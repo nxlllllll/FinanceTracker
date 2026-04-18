@@ -4,7 +4,15 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Application</RootNamespace>
+        <RootNamespace>FinanceTracker.Application</RootNamespace>
     </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MediatR" Version="14.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
+    </ItemGroup>
 
 </Project>
