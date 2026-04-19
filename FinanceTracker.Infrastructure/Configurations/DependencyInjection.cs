@@ -14,14 +14,15 @@ public static class DependencyInjection
 		this IServiceCollection services,
 		IConfiguration configuration)
 	{
-		services.AddDbContext<FinanceTrackerContext>(
-			optionsAction: options => options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
+		services.AddDbContext<FinanceTrackerContext>(optionsAction: options => 
+			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
-
+		
 		services.AddSingleton<IEventTypeRegistry, EventTypeRegistry>();
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		services.AddScoped<IAccountRepository, AccountRepository>();
 		services.AddScoped<IAccountReadRepository, AccountReadRepository>();
+		services.AddScoped<IAccountWriteRepository, AccountWriteRepository>();
 		
 		return services;
 	}

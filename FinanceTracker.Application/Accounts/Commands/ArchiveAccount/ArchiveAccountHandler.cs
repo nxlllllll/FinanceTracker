@@ -4,25 +4,22 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories;
 using MediatR;
 
-namespace FinanceTracker.Application.Accounts.Commands.CreateAccount;
+namespace FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
 
-public sealed class CreateAccountHandler(
+public sealed class ArchiveAccountHandler(
 	IAccountRepository accountRepository,
 	IPublisher publisher
-) : IRequestHandler<CreateAccountCommand, Guid>
+) : IRequestHandler<ArchiveAccountCommand>
 {
-	public async Task<Guid> Handle(
-		CreateAccountCommand command,
+	public async Task Handle(
+		ArchiveAccountCommand command,
 		CancellationToken ct = default)
 	{
-		Account account = Account.Create(
-			userId: command.UserId,
-			name: command.Name,
-			accountType: command.AccountType,
-			currency: command.Currency,
-			balance: command.InitialBalance
-		);
+		Account account = await accountRepository.GetByIdAsync(accountId: command.AccountId, ct: ct)
+			?? throw new InvalidOperationException($"Account with id {command.AccountId} not found");
 		
+		account.Archive();
+
 		List<IEvent> events = account.Events.ToList();
 		await accountRepository.SaveAsync(account: account, ct: ct);
 
@@ -30,7 +27,5 @@ public sealed class CreateAccountHandler(
 			notification: new AccountEventsNotification(AccountId: account.Id, Events: events),
 			cancellationToken: ct
 		);
-		
-		return account.Id;
 	}
 }

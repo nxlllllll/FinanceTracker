@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.6" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+      <PackageReference Include="NSubstitute" Version="5.3.0" />
+      <PackageReference Include="Testcontainers.PostgreSql" Version="4.11.0" />
+      <PackageReference Include="TUnit" Version="1.37.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\FinanceTracker.Application\FinanceTracker.Application.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
+    </ItemGroup>
+
+</Project>
