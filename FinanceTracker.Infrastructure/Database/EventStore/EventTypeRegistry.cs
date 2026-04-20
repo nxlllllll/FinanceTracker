@@ -1,5 +1,7 @@
 ﻿using System.Collections.Frozen;
+using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Infrastructure.Database.EventStore;
 
@@ -7,9 +9,9 @@ public sealed class EventTypeRegistry : IEventTypeRegistry
 {
 	private readonly FrozenDictionary<string, Type> _eventTypes;
 
-	public EventTypeRegistry()
+	public EventTypeRegistry(Assembly assembly)
 	{
-		_eventTypes = typeof(IEvent).Assembly.GetTypes()
+		_eventTypes = assembly.GetTypes()
 			.Where(predicate: type => type.IsAssignableTo(targetType: typeof(IEvent)) && type.IsClass)
 			.ToFrozenDictionary(keySelector: type => type.Name);
 	}
@@ -17,7 +19,7 @@ public sealed class EventTypeRegistry : IEventTypeRegistry
 	public Type ResolveType(string typeName)
 	{
 		if (!_eventTypes.TryGetValue(key: typeName, out Type? type))
-			throw new InvalidOperationException(message: $"Unknown event type: {typeName}");
+			throw new UnknownEventTypeException(message: "Unknown event type.", eventType: typeName);
 		
 		return type;
 	}

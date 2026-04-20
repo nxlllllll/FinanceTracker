@@ -8,21 +8,21 @@ public sealed class AccountBalanceEntityConfiguration : IEntityTypeConfiguration
 {
 	public void Configure(EntityTypeBuilder<AccountBalanceEntity> builder)
 	{
-		builder.ToTable("rm_account_balances");
+		builder.ToTable(name: "rm_account_balances");
 
-		builder.HasKey(b => b.AccountId);
+		builder.HasKey(keyExpression: b => b.AccountId);
 
-		builder.Property(b => b.AccountId)
-			.HasColumnName("account_id");
+		builder.Property(propertyExpression: b => b.AccountId)
+			.HasColumnName(name: "account_id");
 
-		builder.Property(b => b.Balance)
-			.HasColumnName("balance")
-			.HasColumnType("numeric(18,2)");
+		builder.Property(propertyExpression:b => b.Balance)
+			.HasColumnName(name: "balance")
+			.HasColumnType(typeName: "numeric(18,2)");
 
-		builder.Property(b => b.LastVersion)
-			.HasColumnName("last_version");
+		builder.Property(propertyExpression:b => b.LastVersion)
+			.HasColumnName(name: "last_version");
 
-		builder.Property(b => b.UpdatedAt)
-			.HasColumnName("updated_at");
+		builder.Property(propertyExpression:b => b.UpdatedAt)
+			.HasColumnName(name: "updated_at");
 	}
 }

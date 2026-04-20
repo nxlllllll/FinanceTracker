@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories;
+﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Repositories;
@@ -18,7 +19,9 @@ public static class DependencyInjection
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
 		
-		services.AddSingleton<IEventTypeRegistry, EventTypeRegistry>();
+		services.AddSingleton<IEventTypeRegistry, EventTypeRegistry>(implementationFactory: _ => 
+			new EventTypeRegistry(assembly: typeof(IEvent).Assembly)
+		);
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		services.AddScoped<IAccountRepository, AccountRepository>();
 		services.AddScoped<IAccountReadRepository, AccountReadRepository>();

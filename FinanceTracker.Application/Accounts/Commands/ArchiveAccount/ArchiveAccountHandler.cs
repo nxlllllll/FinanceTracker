@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using MediatR;
 
@@ -16,7 +17,7 @@ public sealed class ArchiveAccountHandler(
 		CancellationToken ct = default)
 	{
 		Account account = await accountRepository.GetByIdAsync(accountId: command.AccountId, ct: ct)
-			?? throw new InvalidOperationException($"Account with id {command.AccountId} not found");
+			?? throw new AccountNotFoundException(message: "Account not found.", accountId: command.AccountId);
 		
 		account.Archive();
 
