@@ -9,6 +9,7 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<EventEntity> Events => Set<EventEntity>();
 	public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
 	public DbSet<AccountBalanceEntity> AccountBalances => Set<AccountBalanceEntity>();
+	public DbSet<CategoryEntity> Categories => Set<CategoryEntity>();
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(typeof(FinanceTrackerContext).Assembly);

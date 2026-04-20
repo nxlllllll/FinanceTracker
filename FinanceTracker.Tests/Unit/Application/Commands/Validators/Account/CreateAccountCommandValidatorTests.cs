@@ -1,7 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
 using FluentValidation.Results;
 
-namespace FinanceTracker.Tests.Unit.Application.Commands.Validators;
+namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Account;
 
 public sealed class CreateAccountCommandValidatorTests
 {

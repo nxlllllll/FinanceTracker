@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using MediatR;
 
@@ -26,6 +27,7 @@ public sealed class AccountProjection (
 			case AccountRenamed e: await HandleAsync(e, ct); break;
 			case AccountArchived e: await HandleAsync(e, ct); break;
 			case AccountUnarchived e: await HandleAsync(e, ct); break;
+			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
 	

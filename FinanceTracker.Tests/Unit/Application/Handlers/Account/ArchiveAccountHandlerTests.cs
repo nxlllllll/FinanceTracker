@@ -1,12 +1,11 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
 using FinanceTracker.Application.Accounts.Notifications;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using MediatR;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Handlers;
+namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 
 public sealed class ArchiveAccountHandlerTests
 {
@@ -22,9 +21,9 @@ public sealed class ArchiveAccountHandlerTests
 		_handler = new ArchiveAccountHandler(accountRepository: _accountRepository, publisher: _publisher);
 	}
 	
-	private static Account CreateAccount()
+	private static Core.Domains.Account.Account CreateAccount()
 	{
-		Account account = Account.Create(
+		Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
 			accountType: "checking",
@@ -38,7 +37,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
     public async Task Handle_WithActiveAccount_ShouldArchiveAccount()
     {
-        Account account = CreateAccount();
+        Core.Domains.Account.Account account = CreateAccount();
         _accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -48,7 +47,7 @@ public sealed class ArchiveAccountHandlerTests
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: Arg.Is<Account>(predicate: a => a.IsArchived),
+            account: Arg.Is<Core.Domains.Account.Account>(predicate: a => a.IsArchived),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -56,7 +55,7 @@ public sealed class ArchiveAccountHandlerTests
     [Test]
     public async Task Handle_WithActiveAccount_ShouldPublishNotification()
     {
-        Account account = CreateAccount();
+        Core.Domains.Account.Account account = CreateAccount();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -77,19 +76,19 @@ public sealed class ArchiveAccountHandlerTests
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(Task.FromResult<Account?>(result: null));
+		).Returns(Task.FromResult<Core.Domains.Account.Account?>(result: null));
 
 		ArchiveAccountCommand command = new ArchiveAccountCommand(AccountId: Guid.NewGuid());
 
 		await Assert.That(action: async () => 
 			await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<AccountNotFoundException>();
+		).Throws<NotFoundException>();
 	}
 
 	[Test]
 	public async Task Handle_WhenAccountAlreadyArchived_ShouldThrowArgumentException()
 	{
-		Account account = CreateAccount();
+		Core.Domains.Account.Account account = CreateAccount();
 		account.Archive();
 		account.ClearEvents();
 
@@ -102,6 +101,6 @@ public sealed class ArchiveAccountHandlerTests
 
 		await Assert.That(action: async () => 
 			await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<AccountArchivingException>();
+		).Throws<ArchivingException>();
 	}
 }

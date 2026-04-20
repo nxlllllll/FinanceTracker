@@ -12,7 +12,7 @@ public sealed class AccountReadRepository(
 		Guid accountId,
 		CancellationToken ct = default)
 	{
-		return await context.Accounts.Where(predicate: account => account.Id == accountId).Join(
+		return await context.Accounts.AsNoTracking().Where(predicate: account => account.Id == accountId).Join(
 			inner: context.AccountBalances,
 			outerKeySelector: account => account.Id,
 			innerKeySelector: balance => balance.AccountId,

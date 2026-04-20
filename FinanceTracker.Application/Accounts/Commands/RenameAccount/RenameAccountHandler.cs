@@ -17,7 +17,7 @@ public sealed class RenameAccountHandler(
 		CancellationToken ct = default)
 	{
 		Account account = await accountRepository.GetByIdAsync(accountId: command.AccountId, ct: ct)
-			?? throw new AccountNotFoundException(message: "Account not found.", accountId: command.AccountId);
+			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
 		
 		account.Rename(newName: command.NewName);
 

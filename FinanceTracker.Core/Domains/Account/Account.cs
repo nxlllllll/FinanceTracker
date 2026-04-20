@@ -69,7 +69,7 @@ public sealed class Account : AggregateRoot
 	public void Archive()
 	{
 		if (IsArchived)
-			throw new AccountArchivingException(message: "The account has already been archived before.");
+			throw new ArchivingException(message: "The account has already been archived before.");
 		
 		RaiseEvent(new AccountArchived(
 			Id: Guid.NewGuid(),
@@ -81,7 +81,7 @@ public sealed class Account : AggregateRoot
 	public void Unarchive()
 	{
 		if (!IsArchived)
-			throw new AccountUnarchivingException(message: "The account is already active.");
+			throw new UnarchivingException(message: "The account is already active.");
 		
 		RaiseEvent(new AccountUnarchived(
 			Id: Guid.NewGuid(),

@@ -1,12 +1,11 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
 using FinanceTracker.Application.Accounts.Notifications;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using MediatR;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Handlers;
+namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 
 public sealed class CreateAccountHandlerTests
 {
@@ -51,7 +50,7 @@ public sealed class CreateAccountHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			 account: Arg.Is<Account>(account =>
+			 account: Arg.Is<Core.Domains.Account.Account>(account =>
 				account.Name == command.Name &&
 				account.UserId == command.UserId &&
 				account.AccountType == command.AccountType &&
@@ -89,7 +88,7 @@ public sealed class CreateAccountHandlerTests
 	{
 		CreateAccountCommand command = CreateCreateAccountCommand();
 
-		_accountRepository.SaveAsync(account: Arg.Any<Account>(), ct: Arg.Any<CancellationToken>())
+		_accountRepository.SaveAsync(account: Arg.Any<Core.Domains.Account.Account>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: _ => throw new InvalidOperationException(message: "DB error"));
 
 		await Assert.That(

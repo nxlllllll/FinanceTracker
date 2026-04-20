@@ -17,7 +17,7 @@ public sealed class UnarchiveAccountHandler(
 		CancellationToken ct = default)
 	{
 		Account account = await accountRepository.GetByIdAsync(command.AccountId, ct)
-			?? throw new AccountNotFoundException(message: "Account not found.", accountId: command.AccountId);
+			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
 		
 		account.Unarchive();
 		

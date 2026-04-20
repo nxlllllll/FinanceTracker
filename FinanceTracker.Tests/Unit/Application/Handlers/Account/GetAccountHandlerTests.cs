@@ -3,7 +3,7 @@ using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Handlers;
+namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 
 public sealed class GetAccountHandlerTests
 {

@@ -140,7 +140,7 @@ public sealed class AccountTests
 
 		account.Archive();
 
-		await Assert.That(action: account.Archive).Throws<AccountArchivingException>();
+		await Assert.That(action: account.Archive).Throws<ArchivingException>();
 	}
 
 	[Test]
