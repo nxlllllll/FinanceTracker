@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Tests.Unit;
 
@@ -52,7 +53,7 @@ public sealed class AccountTests
 			accountType: "checking",
 			currency: "RUB",
 			balance: 10000
-		)).Throws<ArgumentException>();
+		)).Throws<EmptyNameException>();
 	}
 	
 	[Test]
@@ -64,7 +65,7 @@ public sealed class AccountTests
 			accountType: "checking",
 			currency: "RUB",
 			balance: -100
-		)).Throws<ArgumentException>();
+		)).Throws<NegativeInitialBalanceException>();
 	}
 #endregion
 	
@@ -139,7 +140,7 @@ public sealed class AccountTests
 
 		account.Archive();
 
-		await Assert.That(action: account.Archive).Throws<ArgumentException>();
+		await Assert.That(action: account.Archive).Throws<AccountArchivingException>();
 	}
 
 	[Test]

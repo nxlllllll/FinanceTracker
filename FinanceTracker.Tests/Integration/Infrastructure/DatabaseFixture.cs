@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database;
+﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -15,7 +16,7 @@ public abstract class DatabaseFixture
 	{
 		return new PostgresEventStore(context: new FinanceTrackerContext(
 			new DbContextOptionsBuilder<FinanceTrackerContext>().UseNpgsql(connectionString: Context.Database.GetConnectionString()!).Options
-		), eventTypeRegistry: new EventTypeRegistry());
+		), eventTypeRegistry: new EventTypeRegistry(assembly: typeof(IEvent).Assembly));
 	}
 
 	[Before(hookType: Class)]

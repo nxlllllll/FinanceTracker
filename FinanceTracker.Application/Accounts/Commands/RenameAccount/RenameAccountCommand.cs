@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using MediatR;
+﻿using MediatR;
 
 namespace FinanceTracker.Application.Accounts.Commands.RenameAccount;
 

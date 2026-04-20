@@ -8,32 +8,32 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 {
 	public void Configure(EntityTypeBuilder<AccountEntity> builder)
 	{
-		builder.ToTable("accounts");
+		builder.ToTable(name: "accounts");
 
-		builder.HasKey(a => a.Id);
+		builder.HasKey(keyExpression: a => a.Id);
 
-		builder.Property(a => a.UserId)
-			.HasColumnName("user_id");
+		builder.Property(propertyExpression: a => a.UserId)
+			.HasColumnName(name: "user_id");
 
-		builder.Property(a => a.Name)
-			.HasColumnName("name")
-			.HasMaxLength(100);
+		builder.Property(propertyExpression: a => a.Name)
+			.HasColumnName(name: "name")
+			.HasMaxLength(maxLength: 100);
 
-		builder.Property(a => a.AccountType)
-			.HasColumnName("account_type_code")
-			.HasMaxLength(20);
+		builder.Property(propertyExpression: a => a.AccountType)
+			.HasColumnName(name: "account_type_code")
+			.HasMaxLength(maxLength: 20);
 
-		builder.Property(a => a.Currency)
-			.HasColumnName("currency_code")
-			.HasMaxLength(3);
+		builder.Property(propertyExpression: a => a.Currency)
+			.HasColumnName(name: "currency_code")
+			.HasMaxLength(maxLength: 3);
 
-		builder.Property(a => a.IsArchived)
-			.HasColumnName("is_archived");
+		builder.Property(propertyExpression: a => a.IsArchived)
+			.HasColumnName(name: "is_archived");
 
-		builder.Property(a => a.CreatedAt)
-			.HasColumnName("created_at");
+		builder.Property(propertyExpression: a => a.CreatedAt)
+			.HasColumnName(name: "created_at");
 
 		builder.HasOne<AccountBalanceEntity>().WithOne()
-			.HasForeignKey<AccountBalanceEntity>(b => b.AccountId);
+			.HasForeignKey<AccountBalanceEntity>(foreignKeyExpression: b => b.AccountId);
 	}
 }

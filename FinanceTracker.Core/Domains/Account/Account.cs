@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Core.Domains.Account;
 
@@ -22,10 +23,10 @@ public sealed class Account : AggregateRoot
 		decimal balance)
 	{
 		if (String.IsNullOrWhiteSpace(name))
-			throw new ArgumentException(message: "The account name cannot be empty.", paramName: nameof(name));
+			throw new EmptyNameException(message: "The account name cannot be empty.");
 		
 		if (balance < 0)
-			throw new ArgumentException(message: "The initial account balance cannot be negative.", paramName: nameof(balance));
+			throw new NegativeInitialBalanceException(message: "The initial account balance cannot be negative.");
 
 		Account account = new Account();
 		account.RaiseEvent(@event: new AccountCreated(
@@ -52,7 +53,7 @@ public sealed class Account : AggregateRoot
 	public void Rename(string newName)
 	{
 		if (String.IsNullOrWhiteSpace(newName))
-			throw new ArgumentException(message: "The account name cannot be empty.", paramName: nameof(newName));
+			throw new EmptyNameException(message: "The account name cannot be empty.");
 
 		if (Name.Equals(value: newName))
 			return;
@@ -68,7 +69,7 @@ public sealed class Account : AggregateRoot
 	public void Archive()
 	{
 		if (IsArchived)
-			throw new ArgumentException(message: "The account has already been archived before.");
+			throw new AccountArchivingException(message: "The account has already been archived before.");
 		
 		RaiseEvent(new AccountArchived(
 			Id: Guid.NewGuid(),
@@ -80,7 +81,7 @@ public sealed class Account : AggregateRoot
 	public void Unarchive()
 	{
 		if (!IsArchived)
-			throw new ArgumentException(message: "The account is already active.");
+			throw new AccountUnarchivingException(message: "The account is already active.");
 		
 		RaiseEvent(new AccountUnarchived(
 			Id: Guid.NewGuid(),
@@ -97,7 +98,7 @@ public sealed class Account : AggregateRoot
 			case AccountRenamed e: Apply(@event: e); break;
 			case AccountArchived e: Apply(@event: e); break;
 			case AccountUnarchived e: Apply(@event: e); break;
-			default: throw new ArgumentException(message: $"Event {@event.GetType().Name} is unknown.", paramName: nameof(@event));
+			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
 

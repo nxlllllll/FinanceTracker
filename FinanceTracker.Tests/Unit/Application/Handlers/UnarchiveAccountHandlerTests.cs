@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
 using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using MediatR;
 using NSubstitute;
@@ -83,7 +84,7 @@ public sealed class UnarchiveAccountHandlerTests
 
 		await Assert.That(action: async () => 
 			await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<InvalidOperationException>();
+		).Throws<AccountNotFoundException>();
     }
 
     [Test]
@@ -107,6 +108,6 @@ public sealed class UnarchiveAccountHandlerTests
 
 		await Assert.That(action: async () => 
 			await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<ArgumentException>();
+		).Throws<AccountUnarchivingException>();
     }
 }

@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.RenameAccount;
 using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using MediatR;
 using NSubstitute;
@@ -82,7 +83,7 @@ public sealed class RenameAccountHandlerTests
 
 		await Assert.That(action: async () => 
 			await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<InvalidOperationException>();
+		).Throws<AccountNotFoundException>();
 	}
 
 	[Test]
@@ -97,7 +98,7 @@ public sealed class RenameAccountHandlerTests
 
 		await Assert.That(action: async () => 
 			await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<InvalidOperationException>();
+		).Throws<AccountNotFoundException>();
 
 		await _publisher.DidNotReceive().Publish(
 			notification: Arg.Any<AccountEventsNotification>(),
