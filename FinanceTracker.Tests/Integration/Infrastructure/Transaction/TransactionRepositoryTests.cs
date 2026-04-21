@@ -18,9 +18,9 @@ public sealed class TransactionRepositoryTests : DatabaseFixture
 		));
 	}
 
-	private static Core.Domains.Transactions.Transaction CreateTransaction()
+	private static FinanceTracker.Core.Domains.Transactions.Transaction CreateTransaction()
 	{
-		return Core.Domains.Transactions.Transaction.Create(
+		return FinanceTracker.Core.Domains.Transactions.Transaction.Create(
 			accountId: Guid.NewGuid(),
 			userId: Guid.NewGuid(),
 			categoryId: Guid.NewGuid(),
@@ -35,7 +35,7 @@ public sealed class TransactionRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentTransaction_ShouldReturnNull()
 	{
-		Core.Domains.Transactions.Transaction? result = await _transactionRepository.GetByIdAsync(transactionId: Guid.NewGuid());
+		FinanceTracker.Core.Domains.Transactions.Transaction? result = await _transactionRepository.GetByIdAsync(transactionId: Guid.NewGuid());
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -43,10 +43,10 @@ public sealed class TransactionRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task SaveAsync_ThenGetByIdAsync_ShouldRestoreTransaction()
 	{
-		Core.Domains.Transactions.Transaction transaction = CreateTransaction();
+		FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateTransaction();
 		await _transactionRepository.SaveAsync(transaction: transaction);
 
-		Core.Domains.Transactions.Transaction? loaded = await _transactionRepository.GetByIdAsync(transactionId: transaction.Id);
+		FinanceTracker.Core.Domains.Transactions.Transaction? loaded = await _transactionRepository.GetByIdAsync(transactionId: transaction.Id);
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded!.Id).IsEqualTo(expected: transaction.Id);
@@ -59,7 +59,7 @@ public sealed class TransactionRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task SaveAsync_ShouldClearEventsAfterSave()
 	{
-		Core.Domains.Transactions.Transaction transaction = CreateTransaction();
+		FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateTransaction();
 		await _transactionRepository.SaveAsync(transaction: transaction);
 
 		await Assert.That(value: transaction.Events.Count).IsEqualTo(expected: 0);
@@ -68,14 +68,14 @@ public sealed class TransactionRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task SaveAsync_WithMultipleEvents_ShouldRestoreCorrectState()
 	{
-		Core.Domains.Transactions.Transaction transaction = CreateTransaction();
+		FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateTransaction();
 		await _transactionRepository.SaveAsync(transaction: transaction);
 
-		Core.Domains.Transactions.Transaction? loaded = await _transactionRepository.GetByIdAsync(transactionId: transaction.Id);
+		FinanceTracker.Core.Domains.Transactions.Transaction? loaded = await _transactionRepository.GetByIdAsync(transactionId: transaction.Id);
 		loaded!.Exclude();
 		await _transactionRepository.SaveAsync(transaction: loaded);
 
-		Core.Domains.Transactions.Transaction? final = await _transactionRepository.GetByIdAsync(transactionId: transaction.Id);
+		FinanceTracker.Core.Domains.Transactions.Transaction? final = await _transactionRepository.GetByIdAsync(transactionId: transaction.Id);
 
 		await Assert.That(value: final).IsNotNull();
 		await Assert.That(value: final.IsExcluded).IsTrue();

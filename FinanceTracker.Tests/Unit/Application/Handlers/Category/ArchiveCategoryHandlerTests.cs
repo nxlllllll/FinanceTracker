@@ -18,7 +18,7 @@ public sealed class ArchiveCategoryHandlerTests
 		_handler = new ArchiveCategoryHandler(categoryRepository: _categoryRepository);
 	}
 
-	private static Core.Domains.Category.Category CreateCategory() => Core.Domains.Category.Category.Create(
+	private static FinanceTracker.Core.Domains.Category.Category CreateCategory() => FinanceTracker.Core.Domains.Category.Category.Create(
 		userId: Guid.NewGuid(),
 		name: "Еда",
 		type: CategoryType.Expense,
@@ -28,7 +28,7 @@ public sealed class ArchiveCategoryHandlerTests
 	[Test]
 	public async Task Handle_WithActiveCategory_ShouldArchiveCategory()
 	{
-		Core.Domains.Category.Category category = CreateCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CreateCategory();
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -49,7 +49,7 @@ public sealed class ArchiveCategoryHandlerTests
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
 
 		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: Guid.NewGuid());
 
@@ -61,7 +61,7 @@ public sealed class ArchiveCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryAlreadyArchived_ShouldThrowArchivingException()
 	{
-		Core.Domains.Category.Category category = CreateCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CreateCategory();
 		category.Archive();
 
 		_categoryRepository.GetByIdAsync(

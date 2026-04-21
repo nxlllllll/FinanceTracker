@@ -30,7 +30,7 @@ public sealed class CreateCategoryHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _categoryRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			category: Arg.Is<Core.Domains.Category.Category>(c =>
+			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c =>
 				c.Name == "Еда" &&
 				c.Type == CategoryType.Expense &&
 				c.IsArchived == false
@@ -53,7 +53,7 @@ public sealed class CreateCategoryHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _categoryRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			category: Arg.Is<Core.Domains.Category.Category>(c => c.ParentId == parentId),
+			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c => c.ParentId == parentId),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

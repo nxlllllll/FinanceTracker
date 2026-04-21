@@ -22,9 +22,9 @@ public sealed class ArchiveAccountHandlerTests
 		_handler = new ArchiveAccountHandler(accountRepository: _accountRepository, publisher: _publisher);
 	}
 
-	private static Core.Domains.Account.Account CreateAccount()
+	private static FinanceTracker.Core.Domains.Account.Account CreateAccount()
 	{
-		Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
+		FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
 			accountType: "checking",
@@ -38,7 +38,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task Handle_WithActiveAccount_ShouldArchiveAccount()
 	{
-		Core.Domains.Account.Account account = CreateAccount();
+		FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -48,7 +48,7 @@ public sealed class ArchiveAccountHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<Core.Domains.Account.Account>(predicate: a => a.IsArchived),
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.IsArchived),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -56,7 +56,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task Handle_WithActiveAccount_ShouldPublishNotification()
 	{
-		Core.Domains.Account.Account account = CreateAccount();
+		FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -77,7 +77,7 @@ public sealed class ArchiveAccountHandlerTests
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(Task.FromResult<Core.Domains.Account.Account?>(result: null));
+		).Returns(Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
 
 		ArchiveAccountCommand command = new ArchiveAccountCommand(AccountId: Guid.NewGuid());
 
@@ -89,7 +89,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task Handle_WhenAccountAlreadyArchived_ShouldThrowArgumentException()
 	{
-		Core.Domains.Account.Account account = CreateAccount();
+		FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
 		account.Archive();
 		account.ClearEvents();
 

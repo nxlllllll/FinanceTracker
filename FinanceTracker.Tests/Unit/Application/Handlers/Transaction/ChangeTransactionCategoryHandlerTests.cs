@@ -22,9 +22,9 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		_handler = new ChangeTransactionCategoryHandler(transactionRepository: _transactionRepository, publisher: _publisher);
 	}
 	
-	private static Core.Domains.Transactions.Transaction CreateTransaction()
+	private static FinanceTracker.Core.Domains.Transactions.Transaction CreateTransaction()
     {
-        Core.Domains.Transactions.Transaction transaction = Core.Domains.Transactions.Transaction.Create(
+        FinanceTracker.Core.Domains.Transactions.Transaction transaction = FinanceTracker.Core.Domains.Transactions.Transaction.Create(
             accountId: Guid.NewGuid(),
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
@@ -41,7 +41,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
     [Test]
     public async Task Handle_WithValidCommand_ShouldChangeCategoryAndPublish()
     {
-        Core.Domains.Transactions.Transaction transaction = CreateTransaction();
+        FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateTransaction();
         Guid newCategoryId = Guid.NewGuid();
 
         _transactionRepository.GetByIdAsync(
@@ -57,7 +57,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
         await _transactionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            transaction: Arg.Is<Core.Domains.Transactions.Transaction>(predicate: t => t.CategoryId == newCategoryId),
+            transaction: Arg.Is<FinanceTracker.Core.Domains.Transactions.Transaction>(predicate: t => t.CategoryId == newCategoryId),
             ct: Arg.Any<CancellationToken>()
         );
 
@@ -73,7 +73,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
         _transactionRepository.GetByIdAsync(
             transactionId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<Core.Domains.Transactions.Transaction?>(result: null));
+        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transactions.Transaction?>(result: null));
 
         ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
             TransactionId: Guid.NewGuid(),

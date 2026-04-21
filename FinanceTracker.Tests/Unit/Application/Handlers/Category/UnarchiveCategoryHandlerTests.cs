@@ -18,9 +18,9 @@ public sealed class UnarchiveCategoryHandlerTests
 		_handler = new UnarchiveCategoryHandler(categoryRepository: _categoryRepository);
 	}
 
-	private static Core.Domains.Category.Category CreateArchivedCategory()
+	private static FinanceTracker.Core.Domains.Category.Category CreateArchivedCategory()
 	{
-		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
+		FinanceTracker.Core.Domains.Category.Category category = FinanceTracker.Core.Domains.Category.Category.Create(
 			userId: Guid.NewGuid(),
 			name: "Еда",
 			type: CategoryType.Expense,
@@ -33,7 +33,7 @@ public sealed class UnarchiveCategoryHandlerTests
 	[Test]
 	public async Task Handle_WithArchivedCategory_ShouldUnarchiveCategory()
 	{
-		Core.Domains.Category.Category category = CreateArchivedCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CreateArchivedCategory();
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -54,7 +54,7 @@ public sealed class UnarchiveCategoryHandlerTests
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
 
 		UnarchiveCategoryCommand command = new UnarchiveCategoryCommand(CategoryId: Guid.NewGuid());
 
@@ -66,7 +66,7 @@ public sealed class UnarchiveCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryNotArchived_ShouldThrowUnarchivingException()
 	{
-		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
+		FinanceTracker.Core.Domains.Category.Category category = FinanceTracker.Core.Domains.Category.Category.Create(
 			userId: Guid.NewGuid(),
 			name: "Еда",
 			type: CategoryType.Expense,

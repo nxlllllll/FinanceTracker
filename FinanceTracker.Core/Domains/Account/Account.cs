@@ -22,7 +22,7 @@ public sealed class Account : AggregateRoot
 		string currency,
 		decimal balance)
 	{
-		if (String.IsNullOrWhiteSpace(name))
+		if (String.IsNullOrWhiteSpace(value: name))
 			throw new EmptyNameException(message: "The account name cannot be empty.");
 
 		if (balance < 0)
@@ -84,7 +84,7 @@ public sealed class Account : AggregateRoot
 
 	public void Rename(string newName)
 	{
-		if (String.IsNullOrWhiteSpace(newName))
+		if (String.IsNullOrWhiteSpace(value: newName))
 			throw new EmptyNameException(message: "The account name cannot be empty.");
 
 		if (Name.Equals(value: newName))

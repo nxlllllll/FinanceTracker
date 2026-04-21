@@ -22,9 +22,9 @@ public sealed class RenameAccountHandlerTests
 		_handler = new RenameAccountHandler(accountRepository: _accountRepository, publisher: _publisher);
 	}
 
-	private static Core.Domains.Account.Account CreateAccount(string name = "Карта Сбер")
+	private static FinanceTracker.Core.Domains.Account.Account CreateAccount(string name = "Карта Сбер")
 	{
-		Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
+		FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
 			userId: Guid.NewGuid(),
 			name: name,
 			accountType: "checking",
@@ -38,7 +38,7 @@ public sealed class RenameAccountHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldRenameAccount()
 	{
-		Core.Domains.Account.Account account = CreateAccount();
+		FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -48,7 +48,7 @@ public sealed class RenameAccountHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<Core.Domains.Account.Account>(predicate: a => a.Name == "Карта Тинькофф"),
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Name == "Карта Тинькофф"),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -56,7 +56,7 @@ public sealed class RenameAccountHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldPublishNotification()
 	{
-		Core.Domains.Account.Account account = CreateAccount();
+		FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -77,7 +77,7 @@ public sealed class RenameAccountHandlerTests
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<Core.Domains.Account.Account?>(result: null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
 
 		RenameAccountCommand command = new RenameAccountCommand(AccountId: Guid.NewGuid(), NewName: "Карта Тинькофф");
 
@@ -92,7 +92,7 @@ public sealed class RenameAccountHandlerTests
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<Core.Domains.Account.Account?>(result: null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
 
 		RenameAccountCommand command = new RenameAccountCommand(AccountId: Guid.NewGuid(), NewName: "Карта Тинькофф");
 

@@ -2,7 +2,7 @@
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
 
-namespace FinanceTracker.Tests.Unit;
+namespace FinanceTracker.Tests.Unit.Core;
 
 public sealed class AccountTests
 {

@@ -18,17 +18,20 @@ public sealed class RenameCategoryHandlerTests
 		_handler = new RenameCategoryHandler(categoryRepository: _categoryRepository);
 	}
 
-	private static Core.Domains.Category.Category CreateCategory() => Core.Domains.Category.Category.Create(
-		userId: Guid.NewGuid(),
-		name: "Еда",
-		type: CategoryType.Expense,
-		parentId: null
-	);
+	private static FinanceTracker.Core.Domains.Category.Category CreateCategory()
+	{
+		return FinanceTracker.Core.Domains.Category.Category.Create(
+			userId: Guid.NewGuid(),
+			name: "Еда",
+			type: CategoryType.Expense,
+			parentId: null
+		);
+	}
 
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldRenameCategory()
 	{
-		Core.Domains.Category.Category category = CreateCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CreateCategory();
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -54,7 +57,7 @@ public sealed class RenameCategoryHandlerTests
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
 
 		RenameCategoryCommand command = new RenameCategoryCommand(
 			CategoryId: Guid.NewGuid(),
@@ -69,7 +72,7 @@ public sealed class RenameCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryArchived_ShouldThrowArchivingException()
 	{
-		Core.Domains.Category.Category category = CreateCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CreateCategory();
 		category.Archive();
 
 		_categoryRepository.GetByIdAsync(

@@ -1,7 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 
-namespace FinanceTracker.Tests.Unit.Application;
+namespace FinanceTracker.Tests.Unit.Core;
 
 public sealed class CategoryTests
 {

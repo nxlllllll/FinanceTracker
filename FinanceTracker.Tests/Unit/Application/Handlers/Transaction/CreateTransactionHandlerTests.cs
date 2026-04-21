@@ -38,7 +38,7 @@ public sealed class CreateTransactionHandlerTests
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
         await _transactionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            transaction: Arg.Is<Core.Domains.Transactions.Transaction>(t =>
+            transaction: Arg.Is<FinanceTracker.Core.Domains.Transactions.Transaction>(t =>
                 t.Amount == 1000m &&
                 t.Direction == DirectionType.Debit &&
                 t.IsExcluded == false

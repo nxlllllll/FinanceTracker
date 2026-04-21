@@ -75,7 +75,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentTransaction_ShouldReturnNull()
 	{
-		Core.Domains.Transactions.Transaction? result = await _readRepository.GetByIdAsync(transactionId: Guid.NewGuid());
+		FinanceTracker.Core.Domains.Transactions.Transaction? result = await _readRepository.GetByIdAsync(transactionId: Guid.NewGuid());
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -87,7 +87,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		TransactionCreated @event = CreateTransactionCreatedEvent(accountId: accountId, categoryId: categoryId);
 		await _writeRepository.CreateAsync(@event: @event);
 
-		Core.Domains.Transactions.Transaction? result = await _readRepository.GetByIdAsync(transactionId: @event.TransactionId);
+		FinanceTracker.Core.Domains.Transactions.Transaction? result = await _readRepository.GetByIdAsync(transactionId: @event.TransactionId);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: @event.TransactionId);

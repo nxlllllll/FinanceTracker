@@ -22,9 +22,9 @@ public sealed class IncludeTransactionHandlerTests
         _handler = new IncludeTransactionHandler(transactionRepository: _transactionRepository, publisher: _publisher);
     }
 
-    private static Core.Domains.Transactions.Transaction CreateExcludedTransaction()
+    private static FinanceTracker.Core.Domains.Transactions.Transaction CreateExcludedTransaction()
     {
-        Core.Domains.Transactions.Transaction transaction = Core.Domains.Transactions.Transaction.Create(
+        FinanceTracker.Core.Domains.Transactions.Transaction transaction = FinanceTracker.Core.Domains.Transactions.Transaction.Create(
             accountId: Guid.NewGuid(),
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
@@ -42,7 +42,7 @@ public sealed class IncludeTransactionHandlerTests
     [Test]
     public async Task Handle_WithExcludedTransaction_ShouldIncludeAndPublish()
     {
-        Core.Domains.Transactions.Transaction transaction = CreateExcludedTransaction();
+        FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateExcludedTransaction();
 
         _transactionRepository.GetByIdAsync(
             transactionId: Arg.Any<Guid>(),
@@ -54,7 +54,7 @@ public sealed class IncludeTransactionHandlerTests
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
         await _transactionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            transaction: Arg.Is<Core.Domains.Transactions.Transaction>(predicate: t => t.IsExcluded == false),
+            transaction: Arg.Is<FinanceTracker.Core.Domains.Transactions.Transaction>(predicate: t => t.IsExcluded == false),
             ct: Arg.Any<CancellationToken>()
         );
 
@@ -70,7 +70,7 @@ public sealed class IncludeTransactionHandlerTests
         _transactionRepository.GetByIdAsync(
             transactionId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<Core.Domains.Transactions.Transaction?>(result: null));
+        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transactions.Transaction?>(result: null));
 
         IncludeTransactionCommand command = new IncludeTransactionCommand(TransactionId: Guid.NewGuid());
 
@@ -82,7 +82,7 @@ public sealed class IncludeTransactionHandlerTests
     [Test]
     public async Task Handle_WhenTransactionAlreadyIncluded_ShouldThrowIncludingException()
     {
-        Core.Domains.Transactions.Transaction transaction = Core.Domains.Transactions.Transaction.Create(
+        FinanceTracker.Core.Domains.Transactions.Transaction transaction = FinanceTracker.Core.Domains.Transactions.Transaction.Create(
             accountId: Guid.NewGuid(),
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),

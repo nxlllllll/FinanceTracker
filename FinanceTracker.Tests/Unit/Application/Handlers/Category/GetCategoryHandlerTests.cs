@@ -20,7 +20,7 @@ public sealed class GetCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryExists_ShouldReturnCategory()
 	{
-		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
+		FinanceTracker.Core.Domains.Category.Category category = FinanceTracker.Core.Domains.Category.Category.Create(
 			userId: Guid.NewGuid(),
 			name: "Еда",
 			type: CategoryType.Expense,
@@ -32,7 +32,7 @@ public sealed class GetCategoryHandlerTests
 		).Returns(returnThis: category);
 
 		GetCategoryQuery query = new GetCategoryQuery(CategoryId: category.Id);
-		Core.Domains.Category.Category? result = await _handler.Handle(query: query, ct: CancellationToken.None);
+		FinanceTracker.Core.Domains.Category.Category? result = await _handler.Handle(query: query, ct: CancellationToken.None);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: category.Id);
@@ -44,10 +44,10 @@ public sealed class GetCategoryHandlerTests
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
 
 		GetCategoryQuery query = new GetCategoryQuery(CategoryId: Guid.NewGuid());
-		Core.Domains.Category.Category? result = await _handler.Handle(query: query, ct: CancellationToken.None);
+		FinanceTracker.Core.Domains.Category.Category? result = await _handler.Handle(query: query, ct: CancellationToken.None);
 
 		await Assert.That(value: result).IsNull();
 	}
