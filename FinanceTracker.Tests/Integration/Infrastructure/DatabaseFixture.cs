@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database;
+using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -19,8 +20,65 @@ public abstract class DatabaseFixture
 			.UseNpgsql(connectionString: Context.Database.GetConnectionString()!).Options
 		), eventTypeRegistry: new EventTypeRegistry(assembly: typeof(IEvent).Assembly));
 	}
+	
+	protected async Task<string> CreateCurrencyAsync(string code = "RUB")
+	{
+		await Context.Currencies.AddAsync(new CurrencyEntity()
+		{
+			Code = code,
+			Name = code switch
+			{
+				"RUB" => "Российский рубль",
+				"USD" => "Доллар США",
+				"EUR" => "Евро",
+				_ => code
+			},
+			Symbol = code switch
+			{
+				"RUB" => "₽",
+				"USD" => "$",
+				"EUR" => "€",
+				_ => code
+			},
+			IsActive = true
+		});
+		await Context.SaveChangesAsync();
+		return code;
+	}
 
-	[Before(hookType: Class)]
+	protected async Task<string> CreateAccountTypeAsync(string type = "checking")
+	{
+		await Context.AccountTypes.AddAsync(new AccountTypeEntity()
+		{
+			Type = type,
+			Name = type switch
+			{
+				"checking" => "Текущий счёт",
+				"savings" => "Сберегательный счёт",
+				_ => type
+			},
+			Description = null
+		});
+		await Context.SaveChangesAsync();
+		return type;
+	}
+
+	protected async Task<Guid> CreateUserAsync(string currencyCode = "RUB")
+	{
+		Guid userId = Guid.NewGuid();
+		await Context.Users.AddAsync(new UserEntity()
+		{
+			Id = userId,
+			Email = $"{userId}@test.com",
+			PasswordHash = "hash",
+			BaseCurrencyCode = currencyCode,
+			CreatedAt = DateTime.UtcNow
+		});
+		await Context.SaveChangesAsync();
+		return userId;
+	}
+
+	[Before(hookType: Assembly)]
 	public static async Task StartContainerAsync()
 	{
 		_container = new PostgreSqlBuilder(image: "postgres:16").Build();
@@ -36,7 +94,7 @@ public abstract class DatabaseFixture
 		}.ConnectionString;
 
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-													.UseNpgsql(connectionString: connectionString).Options;
+			.UseNpgsql(connectionString: connectionString).Options;
 
 		Context = new FinanceTrackerContext(options: options);
 		await Context.Database.EnsureCreatedAsync();
@@ -51,7 +109,7 @@ public abstract class DatabaseFixture
 		await Context.DisposeAsync();
 	}
 
-	[After(hookType: Class)]
+	[After(hookType: Assembly)]
 	public static async Task StopContainerAsync()
 		=> await _container.DisposeAsync();
 }

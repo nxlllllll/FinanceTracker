@@ -23,14 +23,18 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
     private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
     {
+        string currencyCode = await CreateCurrencyAsync(code: "RUB");
+        string accountType = await CreateAccountTypeAsync(type: "checking");
+        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+
         Guid accountId = Guid.NewGuid();
         await _accountWriteRepository.CreateAsync(@event: new AccountCreated(
             Id: Guid.NewGuid(),
             AccountId: accountId,
-            UserId: Guid.NewGuid(),
+            UserId: userId,
             Name: "Карта Сбер",
-            AccountType: "checking",
-            Currency: "RUB",
+            AccountType: accountType,
+            Currency: currencyCode,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow
         ));
@@ -39,7 +43,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         await Context.Categories.AddAsync(entity: new CategoryEntity()
         {
             Id = categoryId,
-            UserId = Guid.NewGuid(),
+            UserId = userId,
             ParentId = null,
             Name = "Еда",
             Type = CategoryType.Expense,

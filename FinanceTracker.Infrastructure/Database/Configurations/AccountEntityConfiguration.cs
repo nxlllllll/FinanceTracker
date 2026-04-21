@@ -35,5 +35,17 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.HasOne<AccountBalanceEntity>().WithOne()
 			.HasForeignKey<AccountBalanceEntity>(foreignKeyExpression: b => b.AccountId);
+		
+		builder.HasOne<UserEntity>().WithMany()
+			.HasForeignKey(foreignKeyExpression: a => a.UserId)
+			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+
+		builder.HasOne<CurrencyEntity>().WithMany()
+			.HasForeignKey(foreignKeyExpression: a => a.Currency)
+			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
+
+		builder.HasOne<AccountTypeEntity>().WithMany()
+			.HasForeignKey(foreignKeyExpression: a => a.AccountType)
+			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
 	}
 }
