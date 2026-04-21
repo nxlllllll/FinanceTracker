@@ -2,12 +2,12 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 
-namespace FinanceTracker.Application.Projections;
+namespace FinanceTracker.Application.Accounts.Projections;
 
-public sealed class AccountProjection (
+public sealed class AccountProjection(
 	IAccountWriteRepository accountWriteRepository
 ) : INotificationHandler<AccountEventsNotification>
 {
@@ -30,7 +30,7 @@ public sealed class AccountProjection (
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
-	
+
 	private async Task HandleAsync(AccountCreated @event, CancellationToken ct)
 		=> await accountWriteRepository.CreateAsync(@event: @event, ct: ct);
 

@@ -51,5 +51,4 @@ public sealed class GetCategoryHandlerTests
 
 		await Assert.That(value: result).IsNull();
 	}
-	
 }

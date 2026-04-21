@@ -8,23 +8,23 @@ public interface ICategoryRepository
 		Guid categoryId,
 		CancellationToken ct = default
 	);
-	
+
 	Task CreateAsync(
 		Category category,
 		CancellationToken ct = default
 	);
-	
+
 	Task RenameAsync(
-		Guid categoryId, 
+		Guid categoryId,
 		string newName,
 		CancellationToken ct = default
 	);
-	
+
 	Task ArchiveAsync(
-		Guid categoryId, 
+		Guid categoryId,
 		CancellationToken ct = default
 	);
-	
+
 	Task UnarchiveAsync(
 		Guid categoryId,
 		CancellationToken ct = default

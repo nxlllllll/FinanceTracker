@@ -2,6 +2,7 @@
 using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 using NSubstitute;
 
@@ -20,7 +21,7 @@ public sealed class CreateAccountHandlerTests
 		_publisher = Substitute.For<IPublisher>();
 		_handler = new CreateAccountHandler(accountRepository: _accountRepository, publisher: _publisher);
 	}
-	
+
 	private static CreateAccountCommand CreateCreateAccountCommand(string name = "Карта Сбер")
 	{
 		return new CreateAccountCommand(
@@ -31,7 +32,7 @@ public sealed class CreateAccountHandlerTests
 			InitialBalance: 10000
 		);
 	}
-	
+
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldReturnAccountId()
 	{
@@ -41,7 +42,7 @@ public sealed class CreateAccountHandlerTests
 
 		await Assert.That(value: result).IsNotEqualTo(notExpected: Guid.Empty);
 	}
-	
+
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldSaveAccount()
 	{
@@ -50,7 +51,7 @@ public sealed class CreateAccountHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			 account: Arg.Is<Core.Domains.Account.Account>(account =>
+			account: Arg.Is<Core.Domains.Account.Account>(account =>
 				account.Name == command.Name &&
 				account.UserId == command.UserId &&
 				account.AccountType == command.AccountType &&
@@ -58,8 +59,8 @@ public sealed class CreateAccountHandlerTests
 			), ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
-	
+
+
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldPublishNotification()
 	{
@@ -72,7 +73,7 @@ public sealed class CreateAccountHandlerTests
 			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task Handle_WithEmptyName_ShouldThrowArgumentException()
 	{
@@ -89,7 +90,7 @@ public sealed class CreateAccountHandlerTests
 		CreateAccountCommand command = CreateCreateAccountCommand();
 
 		_accountRepository.SaveAsync(account: Arg.Any<Core.Domains.Account.Account>(), ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: _ => throw new InvalidOperationException(message: "DB error"));
+						.Returns(returnThis: _ => throw new InvalidOperationException(message: "DB error"));
 
 		await Assert.That(
 			func: async () => await _handler.Handle(command: command, ct: CancellationToken.None)

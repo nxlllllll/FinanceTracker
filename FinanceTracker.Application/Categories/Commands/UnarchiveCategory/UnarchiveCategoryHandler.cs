@@ -15,7 +15,7 @@ public sealed class UnarchiveCategoryHandler(
 	{
 		Category category = await categoryRepository.GetByIdAsync(categoryId: command.CategoryId, ct: ct)
 			?? throw new NotFoundException(message: "Category not found.", id: command.CategoryId);
-		
+
 		category.Unarchive();
 		await categoryRepository.UnarchiveAsync(categoryId: command.CategoryId, ct: ct);
 	}

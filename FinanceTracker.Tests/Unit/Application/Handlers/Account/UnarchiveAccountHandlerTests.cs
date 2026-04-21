@@ -2,6 +2,7 @@
 using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 using NSubstitute;
 
@@ -34,46 +35,46 @@ public sealed class UnarchiveAccountHandlerTests
 		account.ClearEvents();
 		return account;
 	}
-	
+
 	[Test]
-    public async Task Handle_WithArchivedAccount_ShouldUnarchiveAccount()
-    {
-		Core.Domains.Account.Account account = CreateArchivedAccount();
-        _accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: account);
-
-        UnarchiveAccountCommand command = new UnarchiveAccountCommand(AccountId: account.Id);
-        await _handler.Handle(command: command, ct: CancellationToken.None);
-
-        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: Arg.Is<Core.Domains.Account.Account>(predicate: a => !a.IsArchived),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
-
-    [Test]
-    public async Task Handle_WithArchivedAccount_ShouldPublishNotification()
-    {
+	public async Task Handle_WithArchivedAccount_ShouldUnarchiveAccount()
+	{
 		Core.Domains.Account.Account account = CreateArchivedAccount();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-        UnarchiveAccountCommand command = new UnarchiveAccountCommand(AccountId: account.Id);
-        await _handler.Handle(command: command, ct: CancellationToken.None);
+		UnarchiveAccountCommand command = new UnarchiveAccountCommand(AccountId: account.Id);
+		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-        await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-            notification: Arg.Is<AccountEventsNotification>(predicate: notification => notification.Events.Count == 1),
-            cancellationToken: Arg.Any<CancellationToken>()
-        );
-    }
+		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+			account: Arg.Is<Core.Domains.Account.Account>(predicate: a => !a.IsArchived),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-    [Test]
-    public async Task Handle_WhenAccountNotFound_ShouldThrowInvalidOperationException()
-    {
+	[Test]
+	public async Task Handle_WithArchivedAccount_ShouldPublishNotification()
+	{
+		Core.Domains.Account.Account account = CreateArchivedAccount();
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: account);
+
+		UnarchiveAccountCommand command = new UnarchiveAccountCommand(AccountId: account.Id);
+		await _handler.Handle(command: command, ct: CancellationToken.None);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<AccountEventsNotification>(predicate: notification => notification.Events.Count == 1),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenAccountNotFound_ShouldThrowInvalidOperationException()
+	{
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -81,14 +82,14 @@ public sealed class UnarchiveAccountHandlerTests
 
 		UnarchiveAccountCommand command = new UnarchiveAccountCommand(AccountId: Guid.NewGuid());
 
-		await Assert.That(action: async () => 
+		await Assert.That(action: async () =>
 			await _handler.Handle(command: command, ct: CancellationToken.None)
 		).Throws<NotFoundException>();
-    }
+	}
 
-    [Test]
-    public async Task Handle_WhenAccountNotArchived_ShouldThrowArgumentException()
-    {
+	[Test]
+	public async Task Handle_WhenAccountNotArchived_ShouldThrowArgumentException()
+	{
 		Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
@@ -105,8 +106,8 @@ public sealed class UnarchiveAccountHandlerTests
 
 		UnarchiveAccountCommand command = new UnarchiveAccountCommand(AccountId: account.Id);
 
-		await Assert.That(action: async () => 
+		await Assert.That(action: async () =>
 			await _handler.Handle(command: command, ct: CancellationToken.None)
 		).Throws<UnarchivingException>();
-    }
+	}
 }

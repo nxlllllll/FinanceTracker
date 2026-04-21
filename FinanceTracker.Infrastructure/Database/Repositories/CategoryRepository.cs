@@ -11,7 +11,7 @@ public sealed class CategoryRepository(
 ) : ICategoryRepository
 {
 	private async Task ChangeCategoryProperty(
-		Guid categoryId, 
+		Guid categoryId,
 		Action<UpdateSettersBuilder<CategoryEntity>> changePropertyAction,
 		CancellationToken ct = default)
 	{
@@ -20,14 +20,15 @@ public sealed class CategoryRepository(
 			cancellationToken: ct
 		);
 	}
-	
+
 	public async Task<Category?> GetByIdAsync(
 		Guid categoryId,
 		CancellationToken ct = default)
 	{
-		CategoryEntity? category = await context.Categories.AsNoTracking().Where(predicate: category => category.Id == categoryId)
-			.FirstOrDefaultAsync(cancellationToken: ct);
-		
+		CategoryEntity? category = await context
+									.Categories.AsNoTracking().Where(predicate: category => category.Id == categoryId)
+									.FirstOrDefaultAsync(cancellationToken: ct);
+
 		if (category is null)
 			return null;
 
@@ -56,7 +57,7 @@ public sealed class CategoryRepository(
 			IsArchived = false,
 			CreatedAt = category.CreatedAt
 		}, cancellationToken: ct);
-		
+
 		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
@@ -66,7 +67,8 @@ public sealed class CategoryRepository(
 	{
 		await ChangeCategoryProperty(
 			categoryId: categoryId,
-			changePropertyAction: builder => builder.SetProperty(propertyExpression: category => category.Name, valueExpression: newName), 
+			changePropertyAction: builder =>
+				builder.SetProperty(propertyExpression: category => category.Name, valueExpression: newName),
 			ct: ct
 		);
 	}
@@ -88,7 +90,8 @@ public sealed class CategoryRepository(
 	{
 		await ChangeCategoryProperty(
 			categoryId: categoryId,
-			changePropertyAction: builder => builder.SetProperty(propertyExpression: category => category.IsArchived, valueExpression: false),
+			changePropertyAction: builder =>
+				builder.SetProperty(propertyExpression: category => category.IsArchived, valueExpression: false),
 			ct: ct
 		);
 	}

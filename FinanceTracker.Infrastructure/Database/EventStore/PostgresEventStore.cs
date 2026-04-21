@@ -22,7 +22,7 @@ public sealed class PostgresEventStore(
 		List<IEvent> eventList = events.ToList();
 		if (eventList.Count == 0)
 			return;
-		
+
 		int currentVersion = expectedVersion;
 		List<EventEntity> entities = eventList.Select(selector: @event => new EventEntity()
 		{
@@ -35,7 +35,7 @@ public sealed class PostgresEventStore(
 			OccurredAt = @event.OccurredAt,
 			CreatedAt = DateTime.UtcNow
 		}).ToList();
-		
+
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
 
 		try
@@ -44,7 +44,8 @@ public sealed class PostgresEventStore(
 		}
 		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
 		{
-			throw new InvalidOperationException(message: $"Conflict: aggregate {aggregateId} was modified by another request. Please retry.");
+			throw new InvalidOperationException(
+				message: $"Conflict: aggregate {aggregateId} was modified by another request. Please retry.");
 		}
 	}
 
@@ -53,14 +54,14 @@ public sealed class PostgresEventStore(
 		CancellationToken ct = default)
 	{
 		List<EventEntity> entities = await context.Events.AsNoTracking()
-			.Where(predicate: @event => @event.AggregateId == aggregateId)
-			.OrderBy(keySelector: @event => @event.Version)
-			.ToListAsync(cancellationToken: ct);
-		
+												.Where(predicate: @event => @event.AggregateId == aggregateId)
+												.OrderBy(keySelector: @event => @event.Version)
+												.ToListAsync(cancellationToken: ct);
+
 		return entities.Select(selector: entity =>
 		{
 			Type type = eventTypeRegistry.ResolveType(typeName: entity.EventType);
-			return (IEvent)JsonSerializer.Deserialize(json: entity.Payload, returnType: type)!;			
+			return (IEvent)JsonSerializer.Deserialize(json: entity.Payload, returnType: type)!;
 		}).ToList();
 	}
 }

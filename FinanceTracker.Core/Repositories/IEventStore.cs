@@ -11,7 +11,7 @@ public interface IEventStore
 		int expectedVersion,
 		CancellationToken ct = default
 	);
-	
+
 	Task<IReadOnlyList<IEvent>> LoadAsync(
 		Guid aggregateId,
 		CancellationToken ct = default

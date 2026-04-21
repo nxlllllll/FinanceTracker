@@ -16,7 +16,7 @@ public sealed class CreateCategoryHandlerTests
 		_categoryRepository = Substitute.For<ICategoryRepository>();
 		_handler = new CreateCategoryHandler(categoryRepository: _categoryRepository);
 	}
-	
+
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldCreateCategory()
 	{
@@ -57,5 +57,4 @@ public sealed class CreateCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-
 }

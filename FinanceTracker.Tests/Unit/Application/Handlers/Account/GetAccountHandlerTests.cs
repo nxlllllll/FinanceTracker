@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Queries.GetAccount;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
@@ -16,7 +17,7 @@ public sealed class GetAccountHandlerTests
 		_accountReadRepository = Substitute.For<IAccountReadRepository>();
 		_handler = new GetAccountHandler(accountReadRepository: _accountReadRepository);
 	}
-	
+
 	private static AccountDto CreateAccountDto() => new AccountDto(
 		Id: Guid.NewGuid(),
 		UserId: Guid.NewGuid(),
@@ -27,7 +28,7 @@ public sealed class GetAccountHandlerTests
 		IsArchived: false,
 		CreatedAt: DateTime.UtcNow
 	);
-	
+
 	[Test]
 	public async Task Handle_WhenAccountExists_ShouldReturnAccountDto()
 	{
@@ -43,8 +44,8 @@ public sealed class GetAccountHandlerTests
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: dto.Id);
 	}
-	
-	
+
+
 	[Test]
 	public async Task Handle_WhenAccountNotFound_ShouldReturnNull()
 	{

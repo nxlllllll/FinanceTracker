@@ -2,6 +2,7 @@
 using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 using NSubstitute;
 
@@ -20,7 +21,7 @@ public sealed class RenameAccountHandlerTests
 		_publisher = Substitute.For<IPublisher>();
 		_handler = new RenameAccountHandler(accountRepository: _accountRepository, publisher: _publisher);
 	}
-	
+
 	private static Core.Domains.Account.Account CreateAccount(string name = "Карта Сбер")
 	{
 		Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
@@ -33,13 +34,13 @@ public sealed class RenameAccountHandlerTests
 		account.ClearEvents();
 		return account;
 	}
-	
+
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldRenameAccount()
 	{
 		Core.Domains.Account.Account account = CreateAccount();
 		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(), 
+			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
@@ -51,13 +52,13 @@ public sealed class RenameAccountHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldPublishNotification()
 	{
 		Core.Domains.Account.Account account = CreateAccount();
 		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(), 
+			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
@@ -69,18 +70,18 @@ public sealed class RenameAccountHandlerTests
 			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task Handle_WhenAccountNotFound_ShouldThrowInvalidOperationException()
 	{
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
-			ct:	Arg.Any<CancellationToken>()
+			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Core.Domains.Account.Account?>(result: null));
 
 		RenameAccountCommand command = new RenameAccountCommand(AccountId: Guid.NewGuid(), NewName: "Карта Тинькофф");
 
-		await Assert.That(action: async () => 
+		await Assert.That(action: async () =>
 			await _handler.Handle(command: command, ct: CancellationToken.None)
 		).Throws<NotFoundException>();
 	}
@@ -90,12 +91,12 @@ public sealed class RenameAccountHandlerTests
 	{
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
-			ct:	Arg.Any<CancellationToken>()
+			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Core.Domains.Account.Account?>(result: null));
 
 		RenameAccountCommand command = new RenameAccountCommand(AccountId: Guid.NewGuid(), NewName: "Карта Тинькофф");
 
-		await Assert.That(action: async () => 
+		await Assert.That(action: async () =>
 			await _handler.Handle(command: command, ct: CancellationToken.None)
 		).Throws<NotFoundException>();
 

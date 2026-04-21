@@ -18,7 +18,7 @@ public sealed class CreateCategoryHandler(
 			parentId: command.ParentId,
 			type: command.Type
 		);
-		
+
 		await categoryRepository.CreateAsync(category: category, ct: ct);
 	}
 }

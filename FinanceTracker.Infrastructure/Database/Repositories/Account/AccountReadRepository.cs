@@ -1,8 +1,8 @@
 ﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinanceTracker.Infrastructure.Database.Repositories;
+namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
 public sealed class AccountReadRepository(
 	FinanceTrackerContext context

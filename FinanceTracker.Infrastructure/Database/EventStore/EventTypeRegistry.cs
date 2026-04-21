@@ -12,15 +12,15 @@ public sealed class EventTypeRegistry : IEventTypeRegistry
 	public EventTypeRegistry(Assembly assembly)
 	{
 		_eventTypes = assembly.GetTypes()
-			.Where(predicate: type => type.IsAssignableTo(targetType: typeof(IEvent)) && type.IsClass)
-			.ToFrozenDictionary(keySelector: type => type.Name);
+							.Where(predicate: type => type.IsAssignableTo(targetType: typeof(IEvent)) && type.IsClass)
+							.ToFrozenDictionary(keySelector: type => type.Name);
 	}
-	
+
 	public Type ResolveType(string typeName)
 	{
 		if (!_eventTypes.TryGetValue(key: typeName, out Type? type))
 			throw new UnknownEventTypeException(message: "Unknown event type.", eventType: typeName);
-		
+
 		return type;
 	}
 }

@@ -15,14 +15,14 @@ public sealed class AccountBalanceEntityConfiguration : IEntityTypeConfiguration
 		builder.Property(propertyExpression: b => b.AccountId)
 			.HasColumnName(name: "account_id");
 
-		builder.Property(propertyExpression:b => b.Balance)
+		builder.Property(propertyExpression: b => b.Balance)
 			.HasColumnName(name: "balance")
 			.HasColumnType(typeName: "numeric(18,2)");
 
-		builder.Property(propertyExpression:b => b.LastVersion)
+		builder.Property(propertyExpression: b => b.LastVersion)
 			.HasColumnName(name: "last_version");
 
-		builder.Property(propertyExpression:b => b.UpdatedAt)
+		builder.Property(propertyExpression: b => b.UpdatedAt)
 			.HasColumnName(name: "updated_at");
 	}
 }

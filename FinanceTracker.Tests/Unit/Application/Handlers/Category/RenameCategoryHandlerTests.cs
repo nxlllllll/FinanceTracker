@@ -9,81 +9,81 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 public sealed class RenameCategoryHandlerTests
 {
 	private ICategoryRepository _categoryRepository;
-    private RenameCategoryHandler _handler;
+	private RenameCategoryHandler _handler;
 
-    [Before(hookType: Test)]
-    public void Setup()
-    {
-        _categoryRepository = Substitute.For<ICategoryRepository>();
-        _handler = new RenameCategoryHandler(categoryRepository: _categoryRepository);
-    }
+	[Before(hookType: Test)]
+	public void Setup()
+	{
+		_categoryRepository = Substitute.For<ICategoryRepository>();
+		_handler = new RenameCategoryHandler(categoryRepository: _categoryRepository);
+	}
 
-    private static Core.Domains.Category.Category CreateCategory() => Core.Domains.Category.Category.Create(
-        userId: Guid.NewGuid(),
-        name: "Еда",
-        type: CategoryType.Expense,
-        parentId: null
-    );
+	private static Core.Domains.Category.Category CreateCategory() => Core.Domains.Category.Category.Create(
+		userId: Guid.NewGuid(),
+		name: "Еда",
+		type: CategoryType.Expense,
+		parentId: null
+	);
 
-    [Test]
-    public async Task Handle_WithValidCommand_ShouldRenameCategory()
-    {
-        Core.Domains.Category.Category category = CreateCategory();
-        _categoryRepository.GetByIdAsync(
-            categoryId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: category);
+	[Test]
+	public async Task Handle_WithValidCommand_ShouldRenameCategory()
+	{
+		Core.Domains.Category.Category category = CreateCategory();
+		_categoryRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 
-        RenameCategoryCommand command = new RenameCategoryCommand(
-            CategoryId: category.Id,
-            NewName: "Продукты"
-        );
+		RenameCategoryCommand command = new RenameCategoryCommand(
+			CategoryId: category.Id,
+			NewName: "Продукты"
+		);
 
-        await _handler.Handle(command: command, ct: CancellationToken.None);
+		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-        await _categoryRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
-            categoryId: category.Id,
-            newName: "Продукты",
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+		await _categoryRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
+			categoryId: category.Id,
+			newName: "Продукты",
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-    [Test]
-    public async Task Handle_WhenCategoryNotFound_ShouldThrowNotFoundException()
-    {
-        _categoryRepository.GetByIdAsync(
-            categoryId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
+	[Test]
+	public async Task Handle_WhenCategoryNotFound_ShouldThrowNotFoundException()
+	{
+		_categoryRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
 
-        RenameCategoryCommand command = new RenameCategoryCommand(
-            CategoryId: Guid.NewGuid(),
-            NewName: "Продукты"
-        );
+		RenameCategoryCommand command = new RenameCategoryCommand(
+			CategoryId: Guid.NewGuid(),
+			NewName: "Продукты"
+		);
 
-        await Assert.That(action: async () =>
-            await _handler.Handle(command: command, ct: CancellationToken.None)
-        ).Throws<NotFoundException>();
-    }
+		await Assert.That(action: async () =>
+			await _handler.Handle(command: command, ct: CancellationToken.None)
+		).Throws<NotFoundException>();
+	}
 
-    [Test]
-    public async Task Handle_WhenCategoryArchived_ShouldThrowArchivingException()
-    {
-        Core.Domains.Category.Category category = CreateCategory();
-        category.Archive();
+	[Test]
+	public async Task Handle_WhenCategoryArchived_ShouldThrowArchivingException()
+	{
+		Core.Domains.Category.Category category = CreateCategory();
+		category.Archive();
 
-        _categoryRepository.GetByIdAsync(
-            categoryId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: category);
+		_categoryRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 
-        RenameCategoryCommand command = new RenameCategoryCommand(
-            CategoryId: category.Id,
-            NewName: "Продукты"
-        );
+		RenameCategoryCommand command = new RenameCategoryCommand(
+			CategoryId: category.Id,
+			NewName: "Продукты"
+		);
 
-        await Assert.That(action: async () =>
-            await _handler.Handle(command: command, ct: CancellationToken.None)
-        ).Throws<ArchivingException>();
-    }
+		await Assert.That(action: async () =>
+			await _handler.Handle(command: command, ct: CancellationToken.None)
+		).Throws<ArchivingException>();
+	}
 }

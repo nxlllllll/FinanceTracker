@@ -1,7 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 
 namespace FinanceTracker.Application.Accounts.Commands.CreateAccount;
@@ -23,7 +23,7 @@ public sealed class CreateAccountHandler(
 			balance: command.InitialBalance
 		);
 		
-		List<IEvent> events = account.Events.ToList();
+		IReadOnlyList<IEvent> events = [..account.Events];
 		await accountRepository.SaveAsync(account: account, ct: ct);
 
 		await publisher.Publish(

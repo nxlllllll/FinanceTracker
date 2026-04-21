@@ -11,11 +11,13 @@ public sealed class Category
 	public CategoryType Type { get; private set; }
 	public bool IsArchived { get; private set; }
 	public DateTime CreatedAt { get; private set; }
-	
-	private  Category() { }
+
+	private Category()
+	{
+	}
 
 	public static Category Create(
-		Guid userId, 
+		Guid userId,
 		string name,
 		CategoryType type,
 		Guid? parentId)
@@ -34,7 +36,7 @@ public sealed class Category
 			CreatedAt = DateTime.UtcNow
 		};
 	}
-	
+
 	public static Category Reconstitute(
 		Guid id,
 		Guid userId,
@@ -63,10 +65,10 @@ public sealed class Category
 
 		if (IsArchived)
 			throw new ArchivingException(message: "It is forbidden to change the name of an archived category.");
-		
+
 		if (newName.Equals(value: Name))
 			return;
-		
+
 		Name = newName;
 	}
 
@@ -74,7 +76,7 @@ public sealed class Category
 	{
 		if (IsArchived)
 			throw new ArchivingException(message: "The category has already been archived before.");
-		
+
 		IsArchived = true;
 	}
 
@@ -82,7 +84,7 @@ public sealed class Category
 	{
 		if (!IsArchived)
 			throw new UnarchivingException(message: "The category is already active.");
-		
+
 		IsArchived = false;
 	}
 }

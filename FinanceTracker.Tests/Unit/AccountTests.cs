@@ -6,7 +6,8 @@ namespace FinanceTracker.Tests.Unit;
 
 public sealed class AccountTests
 {
-#region Creation
+	#region Creation
+
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
 	{
@@ -17,11 +18,11 @@ public sealed class AccountTests
 			currency: "RUB",
 			balance: 10000
 		);
-		
+
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountCreated>();
 	}
-	
+
 	[Test]
 	public async Task Create_WithValidData_ShouldSetCorrectState()
 	{
@@ -43,7 +44,7 @@ public sealed class AccountTests
 		await Assert.That(value: account.IsArchived).IsFalse();
 		await Assert.That(value: account.Version).IsEqualTo(expected: 1);
 	}
-	
+
 	[Test]
 	public async Task Create_WithEmptyName_ShouldThrowArgumentException()
 	{
@@ -55,7 +56,7 @@ public sealed class AccountTests
 			balance: 10000
 		)).Throws<EmptyNameException>();
 	}
-	
+
 	[Test]
 	public async Task Create_WithNegativeBalance_ShouldThrowArgumentException()
 	{
@@ -65,11 +66,13 @@ public sealed class AccountTests
 			accountType: "checking",
 			currency: "RUB",
 			balance: -100
-		)).Throws<NegativeInitialBalanceException>();
+		)).Throws<InvalidInitialBalanceException>();
 	}
-#endregion
-	
-#region Rename
+
+	#endregion
+
+	#region Rename
+
 	[Test]
 	public async Task Rename_WithNewName_ShouldRaiseAccountRenamedEvent()
 	{
@@ -88,7 +91,7 @@ public sealed class AccountTests
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountRenamed>();
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Тинькофф");
 	}
-	
+
 	[Test]
 	public async Task Rename_WithSameName_ShouldNotRaiseEvent()
 	{
@@ -105,9 +108,11 @@ public sealed class AccountTests
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
 	}
-#endregion
 
-#region Archive
+	#endregion
+
+	#region Archive
+
 	[Test]
 	public async Task Archive_ActiveAccount_ShouldRaiseAccountArchivedEvent()
 	{
@@ -162,9 +167,11 @@ public sealed class AccountTests
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountUnarchived>();
 		await Assert.That(value: account.IsArchived).IsFalse();
 	}
-#endregion
 
-#region ReconstituteFromHistory
+	#endregion
+
+	#region ReconstituteFromHistory
+
 	[Test]
 	public async Task ReconstituteFromHistory_ShouldRestoreCorrectState()
 	{
@@ -187,5 +194,6 @@ public sealed class AccountTests
 		await Assert.That(value: reconstituted.Version).IsEqualTo(expected: original.Version);
 		await Assert.That(value: reconstituted.Events).Count().IsEqualTo(expected: 0);
 	}
-#endregion
+
+	#endregion
 }

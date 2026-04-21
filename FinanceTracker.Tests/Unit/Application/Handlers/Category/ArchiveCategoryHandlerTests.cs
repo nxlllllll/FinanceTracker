@@ -8,72 +8,71 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class ArchiveCategoryHandlerTests
 {
-    private ICategoryRepository _categoryRepository;
-    private ArchiveCategoryHandler _handler;
+	private ICategoryRepository _categoryRepository;
+	private ArchiveCategoryHandler _handler;
 
-    [Before(Test)]
-    public void Setup()
-    {
-        _categoryRepository = Substitute.For<ICategoryRepository>();
-        _handler = new ArchiveCategoryHandler(categoryRepository: _categoryRepository);
-    }
+	[Before(Test)]
+	public void Setup()
+	{
+		_categoryRepository = Substitute.For<ICategoryRepository>();
+		_handler = new ArchiveCategoryHandler(categoryRepository: _categoryRepository);
+	}
 
-    private static Core.Domains.Category.Category CreateCategory() => Core.Domains.Category.Category.Create(
-        userId: Guid.NewGuid(),
-        name: "Еда",
-        type: CategoryType.Expense,
-        parentId: null
-    );
+	private static Core.Domains.Category.Category CreateCategory() => Core.Domains.Category.Category.Create(
+		userId: Guid.NewGuid(),
+		name: "Еда",
+		type: CategoryType.Expense,
+		parentId: null
+	);
 
-    [Test]
-    public async Task Handle_WithActiveCategory_ShouldArchiveCategory()
-    {
-        Core.Domains.Category.Category category = CreateCategory();
-        _categoryRepository.GetByIdAsync(
-            categoryId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: category);
+	[Test]
+	public async Task Handle_WithActiveCategory_ShouldArchiveCategory()
+	{
+		Core.Domains.Category.Category category = CreateCategory();
+		_categoryRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 
-        ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: category.Id);
-        await _handler.Handle(command: command, ct: CancellationToken.None);
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: category.Id);
+		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-        await _categoryRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
-            categoryId: category.Id,
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+		await _categoryRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
+			categoryId: category.Id,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-    [Test]
-    public async Task Handle_WhenCategoryNotFound_ShouldThrowNotFoundException()
-    {
-        _categoryRepository.GetByIdAsync(
-            categoryId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
+	[Test]
+	public async Task Handle_WhenCategoryNotFound_ShouldThrowNotFoundException()
+	{
+		_categoryRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<Core.Domains.Category.Category?>(result: null));
 
-        ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: Guid.NewGuid());
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: Guid.NewGuid());
 
-        await Assert.That(action: async () =>
-            await _handler.Handle(command: command, ct: CancellationToken.None)
-        ).Throws<NotFoundException>();
-    }
+		await Assert.That(action: async () =>
+			await _handler.Handle(command: command, ct: CancellationToken.None)
+		).Throws<NotFoundException>();
+	}
 
-    [Test]
-    public async Task Handle_WhenCategoryAlreadyArchived_ShouldThrowArchivingException()
-    {
-        Core.Domains.Category.Category category = CreateCategory();
-        category.Archive();
+	[Test]
+	public async Task Handle_WhenCategoryAlreadyArchived_ShouldThrowArchivingException()
+	{
+		Core.Domains.Category.Category category = CreateCategory();
+		category.Archive();
 
-        _categoryRepository.GetByIdAsync(
-            categoryId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: category);
+		_categoryRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 
-        ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: category.Id);
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: category.Id);
 
-        await Assert.That(action: async () =>
-            await _handler.Handle(command: command, ct: CancellationToken.None)
-        ).Throws<ArchivingException>();
-    }
-
+		await Assert.That(action: async () =>
+			await _handler.Handle(command: command, ct: CancellationToken.None)
+		).Throws<ArchivingException>();
+	}
 }

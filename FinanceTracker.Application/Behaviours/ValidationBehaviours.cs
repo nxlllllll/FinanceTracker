@@ -17,17 +17,17 @@ public sealed class ValidationBehaviours<TRequest, TResponse>(
 			return await next(t: cancellationToken);
 
 		ValidationContext<TRequest> context = new ValidationContext<TRequest>(instanceToValidate: request);
-		
+
 		ValidationResult[] results = await Task.WhenAll(tasks: validators.Select(
 			selector: validator => validator.ValidateAsync(context: context, cancellation: cancellationToken)
 		));
 
 		List<ValidationFailure> failures = results.SelectMany(selector: result => result.Errors)
-			.Where(predicate: error => error is not null).ToList();
+												.Where(predicate: error => error is not null).ToList();
 
 		if (failures.Count != 0)
 			throw new ValidationException(errors: failures);
-		
+
 		return await next(t: cancellationToken);
 	}
 }

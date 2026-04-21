@@ -8,9 +8,11 @@ public sealed class FinanceTrackerContextFactory : IDesignTimeDbContextFactory<F
 	public FinanceTrackerContext CreateDbContext(string[] args)
 	{
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-			.UseNpgsql(connectionString: "Host=localhost;Database=FinanceTracker;Username=postgres;Password=nullReference@@1743")
-			.Options;
-		
+													.UseNpgsql(
+															connectionString:
+															"Host=localhost;Database=FinanceTracker;Username=postgres;Password=nullReference@@1743")
+													.Options;
+
 		return new FinanceTrackerContext(options: options);
 	}
-}	
+}

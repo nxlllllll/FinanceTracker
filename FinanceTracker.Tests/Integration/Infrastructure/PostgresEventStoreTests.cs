@@ -11,7 +11,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupEventStore()
 		=> _eventStore = CreateEventStore();
-	
+
 	[Test]
 	public async Task SaveAsync_WithNewEvents_ShouldPersistToDatabase()
 	{
@@ -37,7 +37,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 		IReadOnlyList<IEvent> loaded = await _eventStore.LoadAsync(aggregateId: accountId);
 		await Assert.That(value: loaded.Count).IsEqualTo(expected: 1);
 	}
-	
+
 	[Test]
 	public async Task LoadAsync_WithSavedEvents_ShouldReturnEventsInOrder()
 	{
@@ -71,14 +71,14 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 		await Assert.That(value: loaded[0]).IsTypeOf<AccountCreated>();
 		await Assert.That(value: loaded[1]).IsTypeOf<AccountArchived>();
 	}
-	
+
 	[Test]
 	public async Task LoadAsync_WithNonExistentAggregate_ShouldReturnEmptyList()
 	{
 		IReadOnlyList<IEvent> loaded = await _eventStore.LoadAsync(aggregateId: Guid.NewGuid());
 		await Assert.That(value: loaded.Count).IsEqualTo(expected: 0);
 	}
-	
+
 	[Test]
 	public async Task SaveAsync_WithConcurrentWrite_ShouldThrowInvalidOperationException()
 	{
@@ -108,11 +108,14 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			await secondStore.SaveAsync(
 				aggregateId: accountId,
 				aggregateType: "Account",
-				events: [new AccountArchived(
-					Id: Guid.NewGuid(),
-					AccountId: accountId,
-					OccurredAt: DateTime.UtcNow
-				)],
+				events:
+				[
+					new AccountArchived(
+						Id: Guid.NewGuid(),
+						AccountId: accountId,
+						OccurredAt: DateTime.UtcNow
+					)
+				],
 				expectedVersion: 0
 			)
 		).Throws<InvalidOperationException>();

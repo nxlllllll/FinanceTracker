@@ -24,9 +24,9 @@ public sealed class Account : AggregateRoot
 	{
 		if (String.IsNullOrWhiteSpace(name))
 			throw new EmptyNameException(message: "The account name cannot be empty.");
-		
+
 		if (balance < 0)
-			throw new NegativeInitialBalanceException(message: "The initial account balance cannot be negative.");
+			throw new InvalidInitialBalanceException(message: "The initial account balance cannot be negative.");
 
 		Account account = new Account();
 		account.RaiseEvent(@event: new AccountCreated(
@@ -39,7 +39,7 @@ public sealed class Account : AggregateRoot
 			Balance: balance,
 			OccurredAt: DateTime.UtcNow
 		));
-		
+
 		return account;
 	}
 
@@ -48,58 +48,6 @@ public sealed class Account : AggregateRoot
 		Account account = new Account();
 		account.LoadEventsFromHistory(history: history);
 		return account;
-	}
-
-	public void Rename(string newName)
-	{
-		if (String.IsNullOrWhiteSpace(newName))
-			throw new EmptyNameException(message: "The account name cannot be empty.");
-
-		if (Name.Equals(value: newName))
-			return;
-		
-		RaiseEvent(new AccountRenamed(
-			Id: Guid.NewGuid(),
-			AccountId: Id,
-			NewName: newName,
-			OccurredAt: DateTime.UtcNow
-		));
-	}
-
-	public void Archive()
-	{
-		if (IsArchived)
-			throw new ArchivingException(message: "The account has already been archived before.");
-		
-		RaiseEvent(new AccountArchived(
-			Id: Guid.NewGuid(),
-			AccountId: Id,
-			OccurredAt: DateTime.UtcNow
-		));
-	}
-
-	public void Unarchive()
-	{
-		if (!IsArchived)
-			throw new UnarchivingException(message: "The account is already active.");
-		
-		RaiseEvent(new AccountUnarchived(
-			Id: Guid.NewGuid(),
-			AccountId: Id,
-			OccurredAt: DateTime.UtcNow
-		));
-	}
-	
-	protected override void Apply(IEvent @event)
-	{
-		switch (@event)
-		{
-			case AccountCreated e: Apply(@event: e); break;
-			case AccountRenamed e: Apply(@event: e); break;
-			case AccountArchived e: Apply(@event: e); break;
-			case AccountUnarchived e: Apply(@event: e); break;
-			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
-		}
 	}
 
 	private void Apply(AccountCreated @event)
@@ -121,4 +69,56 @@ public sealed class Account : AggregateRoot
 
 	private void Apply(AccountUnarchived @event)
 		=> IsArchived = false;
+
+	protected override void Apply(IEvent @event)
+	{
+		switch (@event)
+		{
+			case AccountCreated e: Apply(@event: e); break;
+			case AccountRenamed e: Apply(@event: e); break;
+			case AccountArchived e: Apply(@event: e); break;
+			case AccountUnarchived e: Apply(@event: e); break;
+			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
+		}
+	}
+
+	public void Rename(string newName)
+	{
+		if (String.IsNullOrWhiteSpace(newName))
+			throw new EmptyNameException(message: "The account name cannot be empty.");
+
+		if (Name.Equals(value: newName))
+			return;
+
+		RaiseEvent(new AccountRenamed(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			NewName: newName,
+			OccurredAt: DateTime.UtcNow
+		));
+	}
+
+	public void Archive()
+	{
+		if (IsArchived)
+			throw new ArchivingException(message: "The account has already been archived before.");
+
+		RaiseEvent(new AccountArchived(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			OccurredAt: DateTime.UtcNow
+		));
+	}
+
+	public void Unarchive()
+	{
+		if (!IsArchived)
+			throw new UnarchivingException(message: "The account is already active.");
+
+		RaiseEvent(new AccountUnarchived(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			OccurredAt: DateTime.UtcNow
+		));
+	}
 }

@@ -3,6 +3,7 @@ using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 
 namespace FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
@@ -18,10 +19,10 @@ public sealed class UnarchiveAccountHandler(
 	{
 		Account account = await accountRepository.GetByIdAsync(command.AccountId, ct)
 			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
-		
+
 		account.Unarchive();
-		
-		List<IEvent> events = account.Events.ToList();
+
+		List<IEvent> events = [..account.Events];
 		await accountRepository.SaveAsync(account: account, ct: ct);
 
 		await publisher.Publish(

@@ -1,0 +1,13 @@
+﻿using FluentValidation;
+
+namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionDescription;
+
+public sealed class ChangeTransactionDescriptionCommandValidator : AbstractValidator<ChangeTransactionDescriptionCommand>
+{
+	public ChangeTransactionDescriptionCommandValidator()
+	{
+		RuleFor(expression: command => command.Description)
+			.MaximumLength(maximumLength: 255).WithMessage(errorMessage: "The description cannot exceed 255 characters.")
+			.When(predicate: command => command.Description is not null);
+	}
+}

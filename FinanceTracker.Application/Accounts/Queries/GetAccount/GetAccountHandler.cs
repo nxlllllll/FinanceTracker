@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 
 namespace FinanceTracker.Application.Accounts.Queries.GetAccount;

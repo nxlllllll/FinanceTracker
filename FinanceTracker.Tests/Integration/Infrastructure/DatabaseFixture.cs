@@ -11,11 +11,12 @@ public abstract class DatabaseFixture
 {
 	private static PostgreSqlContainer _container = null!;
 	protected FinanceTrackerContext Context { get; private set; } = null!;
-	
+
 	protected PostgresEventStore CreateEventStore()
 	{
 		return new PostgresEventStore(context: new FinanceTrackerContext(
-			new DbContextOptionsBuilder<FinanceTrackerContext>().UseNpgsql(connectionString: Context.Database.GetConnectionString()!).Options
+			new DbContextOptionsBuilder<FinanceTrackerContext>()
+			.UseNpgsql(connectionString: Context.Database.GetConnectionString()!).Options
 		), eventTypeRegistry: new EventTypeRegistry(assembly: typeof(IEvent).Assembly));
 	}
 
@@ -35,16 +36,17 @@ public abstract class DatabaseFixture
 		}.ConnectionString;
 
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-			.UseNpgsql(connectionString: connectionString).Options;
+													.UseNpgsql(connectionString: connectionString).Options;
 
 		Context = new FinanceTrackerContext(options: options);
 		await Context.Database.EnsureCreatedAsync();
 	}
 
-	[After(Test)]
+	[After(hookType: Test)]
 	public async Task TeardownAsync()
 	{
-		NpgsqlConnection.ClearAllPools(); 
+		await Context.Database.CloseConnectionAsync();
+		NpgsqlConnection.ClearAllPools();
 		await Context.Database.EnsureDeletedAsync();
 		await Context.DisposeAsync();
 	}

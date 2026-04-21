@@ -6,7 +6,7 @@ namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Account;
 public sealed class RenameAccountCommandValidatorTests
 {
 	private readonly RenameAccountCommandValidator _validator = new RenameAccountCommandValidator();
-	
+
 	[Test]
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
