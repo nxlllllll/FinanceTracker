@@ -9,9 +9,9 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 
 public sealed class CreateTransactionHandlerTests
 {
-	private ITransactionRepository _transactionRepository;
-	private IPublisher _publisher;
-	private CreateTransactionHandler _handler;
+	private ITransactionRepository _transactionRepository = null!;
+	private IPublisher _publisher = null!;
+	private CreateTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

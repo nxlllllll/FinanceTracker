@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.Transaction;
+﻿using FinanceTracker.Core.Domains.Transactions;
+using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,5 +33,46 @@ public sealed class TransactionReadRepository(
 			isExcluded: entity.IsExcluded,
 			occurredAt: entity.OccurredAt
 		);
+	}
+
+	public async Task<IReadOnlyList<Core.Domains.Transactions.Transaction>> GetAllAsync(
+		Guid accountId,
+		Guid? categoryId = null,
+		DirectionType? direction = null,
+		bool? isExcluded = null,
+		DateTime? dateFrom = null,
+		DateTime? dateTo = null,
+		CancellationToken ct = default)
+	{
+		IQueryable<TransactionEntity> query = context.Transactions.AsNoTracking().Where(predicate: t => t.AccountId == accountId);
+
+		if (categoryId is not null)
+			query = query.Where(predicate: t => t.CategoryId == categoryId);
+
+		if (direction is not null)
+			query = query.Where(predicate: t => t.Direction == direction);
+
+		if (isExcluded is not null)
+			query = query.Where(predicate: t => t.IsExcluded == isExcluded);
+
+		if (dateFrom is not null)
+			query = query.Where(predicate: t => t.OccurredAt >= dateFrom);
+
+		if (dateTo is not null)
+			query = query.Where(predicate: t => t.OccurredAt <= dateTo);
+
+		return await query.OrderByDescending(keySelector: t => t.OccurredAt)
+			.Select(selector: t => Core.Domains.Transactions.Transaction.Reconstitute(
+				id: t.Id,
+				accountId: t.AccountId,
+				userId: t.UserId,
+				categoryId: t.CategoryId,
+				amount: t.Amount,
+				directionType: t.Direction,
+				exchangeRate: t.ExchangeRate,
+				description: t.Description,
+				isExcluded: t.IsExcluded,
+				occurredAt: t.OccurredAt
+			)).ToListAsync(cancellationToken: ct);
 	}
 }

@@ -7,8 +7,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class ChangeUserEmailHandlerTests
 {
-    private IUserRepository _userRepository;
-    private ChangeUserEmailHandler _handler;
+    private IUserRepository _userRepository = null!;
+    private ChangeUserEmailHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()

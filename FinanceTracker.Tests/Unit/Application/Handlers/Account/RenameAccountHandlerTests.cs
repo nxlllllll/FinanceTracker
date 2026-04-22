@@ -10,9 +10,9 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 
 public sealed class RenameAccountHandlerTests
 {
-	private IAccountRepository _accountRepository;
-	private IPublisher _publisher;
-	private RenameAccountHandler _handler;
+	private IAccountRepository _accountRepository = null!;
+	private IPublisher _publisher = null!;
+	private RenameAccountHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

@@ -1,16 +1,15 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Accounts.Projections;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application;
+namespace FinanceTracker.Tests.Unit.Application.Projections;
 
 public sealed class AccountProjectionTests
 {
-	private IAccountWriteRepository _accountWriteRepository;
-	private AccountProjection _projection;
+	private IAccountWriteRepository _accountWriteRepository = null!;
+	private AccountProjection _projection = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

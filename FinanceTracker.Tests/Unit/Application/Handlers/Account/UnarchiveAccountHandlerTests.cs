@@ -10,9 +10,9 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 
 public sealed class UnarchiveAccountHandlerTests
 {
-	private IAccountRepository _accountRepository;
-	private IPublisher _publisher;
-	private UnarchiveAccountHandler _handler;
+	private IAccountRepository _accountRepository = null!;
+	private IPublisher _publisher = null!;
+	private UnarchiveAccountHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

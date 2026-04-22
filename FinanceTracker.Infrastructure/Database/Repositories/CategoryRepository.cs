@@ -42,6 +42,35 @@ public sealed class CategoryRepository(
 			createdAt: category.CreatedAt
 		);
 	}
+	
+	public async Task<IReadOnlyList<Category>> GetAllAsync(
+		Guid userId,
+		CategoryType? type = null,
+		bool? isArchived = null,
+		Guid? parentId = null,
+		CancellationToken ct = default)
+	{
+		IQueryable<CategoryEntity> categories = context.Categories.AsNoTracking().Where(predicate: c => c.UserId == userId);
+
+		if (type is not null)
+			categories = categories.Where(predicate: c => c.Type == type);
+
+		if (isArchived is not null)
+			categories = categories.Where(predicate: c => c.IsArchived == isArchived);
+
+		if (parentId is not null)
+			categories = categories.Where(predicate: c => c.ParentId == parentId);
+    
+		return await categories.Select(selector: c => Category.Reconstitute(
+			id: c.Id,
+			userId: c.UserId,
+			parentId: c.ParentId,
+			name: c.Name,
+			type: c.Type,
+			isArchived: c.IsArchived,
+			createdAt: c.CreatedAt
+		)).ToListAsync(cancellationToken: ct);
+	}
 
 	public async Task CreateAsync(
 		Category category,

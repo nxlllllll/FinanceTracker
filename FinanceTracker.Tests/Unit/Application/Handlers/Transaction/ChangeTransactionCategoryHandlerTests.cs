@@ -10,9 +10,9 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 
 public sealed class ChangeTransactionCategoryHandlerTests
 {
-	private ITransactionRepository _transactionRepository;
-	private IPublisher _publisher;
-	private ChangeTransactionCategoryHandler _handler;
+	private ITransactionRepository _transactionRepository = null!;
+	private IPublisher _publisher = null!;
+	private ChangeTransactionCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

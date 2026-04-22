@@ -10,9 +10,9 @@ namespace FinanceTracker.Tests.Unit.Application.Projections;
 
 public sealed class TransactionProjectionTests
 {
-	private ITransactionWriteRepository _transactionWriteRepository;
-	private IAccountWriteRepository _accountWriteRepository;
-	private TransactionProjection _projection;
+	private ITransactionWriteRepository _transactionWriteRepository = null!;
+	private IAccountWriteRepository _accountWriteRepository = null!;
+	private TransactionProjection _projection = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

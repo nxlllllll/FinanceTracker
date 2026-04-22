@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Accounts.Queries.GetAccount;
 using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
 
@@ -8,8 +7,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 
 public sealed class GetAccountHandlerTests
 {
-	private IAccountReadRepository _accountReadRepository;
-	private GetAccountHandler _handler;
+	private IAccountReadRepository _accountReadRepository = null!;
+	private GetAccountHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

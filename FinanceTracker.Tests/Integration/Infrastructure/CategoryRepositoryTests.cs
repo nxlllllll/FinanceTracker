@@ -21,6 +21,27 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 		);
 	}
 
+	private async Task<Category> CreateAndSaveCategoryAsync(
+		Guid userId,
+		CategoryType type = CategoryType.Expense,
+		bool isArchived = false,
+		Guid? parentId = null)
+	{
+		Category category = Category.Create(
+			userId: userId,
+			name: "Еда",
+			type: type,
+			parentId: parentId
+		);
+
+		await _categoryRepository.CreateAsync(category: category);
+
+		if (isArchived)
+			await _categoryRepository.ArchiveAsync(categoryId: category.Id);
+
+		return category;
+	}
+	
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentCategory_ShouldReturnNull()
 	{
@@ -104,4 +125,78 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded.IsArchived).IsFalse();
 	}
+	
+	[Test]
+    public async Task GetAllAsync_WithNoCategories_ShouldReturnEmptyList()
+    {
+        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: Guid.NewGuid());
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 0);
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldReturnOnlyUserCategories()
+    {
+        Guid userId = Guid.NewGuid();
+        _ = await CreateAndSaveCategoryAsync(userId: userId);
+        _ = await CreateAndSaveCategoryAsync(userId: Guid.NewGuid());
+
+        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId);
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+        await Assert.That(value: result[0].UserId).IsEqualTo(expected: userId);
+    }
+
+    [Test]
+    public async Task GetAllAsync_WithTypeFilter_ShouldReturnOnlyMatchingCategories()
+    {
+        Guid userId = Guid.NewGuid();
+        _ = await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
+        _ = await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
+
+        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId, type: CategoryType.Expense);
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+        await Assert.That(value: result[0].Type).IsEqualTo(expected: CategoryType.Expense);
+    }
+
+    [Test]
+    public async Task GetAllAsync_WithIsArchivedFilter_ShouldReturnOnlyMatchingCategories()
+    {
+        Guid userId = Guid.NewGuid();
+        _ = await CreateAndSaveCategoryAsync(userId: userId, isArchived: false);
+        _ = await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
+
+        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId, isArchived: false);
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+        await Assert.That(value: result[0].IsArchived).IsFalse();
+    }
+
+    [Test]
+    public async Task GetAllAsync_WithParentIdFilter_ShouldReturnOnlySubcategories()
+    {
+        Guid userId = Guid.NewGuid();
+        Category parent = await CreateAndSaveCategoryAsync(userId: userId);
+        _ = await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
+        _ = await CreateAndSaveCategoryAsync(userId: userId);
+		
+        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId, parentId: parent.Id);
+
+        await Assert.That(result.Count).IsEqualTo(1);
+        await Assert.That(result[0].ParentId).IsEqualTo(parent.Id);
+    }
+
+    [Test]
+    public async Task GetAllAsync_WithNullFilters_ShouldReturnAllCategories()
+    {
+        Guid userId = Guid.NewGuid();
+        _ = await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
+        _ = await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
+        _ = await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
+
+        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId);
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 3);
+    }
 }

@@ -1,0 +1,91 @@
+﻿using FinanceTracker.Application.Users.Queries.GetAccounts;
+using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Repositories.Account;
+using NSubstitute;
+
+namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
+
+public sealed class GetAccountsHandlerTests
+{
+    private IAccountReadRepository _accountReadRepository = null!;
+    private GetAccountsHandler _handler = null!;
+
+    [Before(hookType: Test)]
+    public void Setup()
+    {
+        _accountReadRepository = Substitute.For<IAccountReadRepository>();
+        _handler = new GetAccountsHandler(accountReadRepository: _accountReadRepository);
+    }
+
+    private static AccountDto CreateAccountDto(bool isArchived = false)
+    {
+        return new AccountDto(
+            Id: Guid.NewGuid(),
+            UserId: Guid.NewGuid(),
+            Name: "Карта Сбер",
+            AccountType: "checking",
+            Currency: "RUB",
+            Balance: 1000m,
+            IsArchived: isArchived,
+            CreatedAt: DateTime.UtcNow
+        );
+    }
+
+    [Test]
+    public async Task Handle_ShouldReturnAllAccounts()
+    {
+        Guid userId = Guid.NewGuid();
+        IReadOnlyList<AccountDto> accounts = [CreateAccountDto(), CreateAccountDto()];
+
+        _accountReadRepository.GetAllAsync(
+            userId: Arg.Any<Guid>(),
+            isArchived: Arg.Any<bool?>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: accounts);
+
+        GetAccountsQuery query = new GetAccountsQuery(UserId: userId);
+        IReadOnlyList<AccountDto> result = await _handler.Handle(query: query, ct: CancellationToken.None);
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+    }
+
+    [Test]
+    public async Task Handle_ShouldPassIsArchivedFilterToRepository()
+    {
+        _accountReadRepository.GetAllAsync(
+            userId: Arg.Any<Guid>(),
+            isArchived: Arg.Any<bool?>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: []);
+
+        GetAccountsQuery query = new GetAccountsQuery(UserId: Guid.NewGuid(), IsArchived: false);
+
+        await _handler.Handle(query: query, ct: CancellationToken.None);
+
+        await _accountReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+            userId: Arg.Any<Guid>(),
+            isArchived: false,
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task Handle_WithNullIsArchived_ShouldPassNullToRepository()
+    {
+        _accountReadRepository.GetAllAsync(
+            userId: Arg.Any<Guid>(),
+            isArchived: Arg.Any<bool?>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: []);
+
+        GetAccountsQuery query = new GetAccountsQuery(UserId: Guid.NewGuid(), IsArchived: null);
+
+        await _handler.Handle(query: query, ct: CancellationToken.None);
+
+        await _accountReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+            userId: Arg.Any<Guid>(),
+            isArchived: null,
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+}

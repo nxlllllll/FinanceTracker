@@ -7,8 +7,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class GetCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository;
-	private GetCategoryHandler _handler;
+	private ICategoryRepository _categoryRepository = null!;
+	private GetCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

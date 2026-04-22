@@ -7,8 +7,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class ChangeUserBaseCurrencyHandlerTests
 {
-	private IUserRepository _userRepository;
-	private ChangeUserBaseCurrencyHandler _handler;
+	private IUserRepository _userRepository = null!;
+	private ChangeUserBaseCurrencyHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

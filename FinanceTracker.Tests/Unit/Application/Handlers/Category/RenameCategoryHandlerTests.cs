@@ -8,8 +8,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class RenameCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository;
-	private RenameCategoryHandler _handler;
+	private ICategoryRepository _categoryRepository = null!;
+	private RenameCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

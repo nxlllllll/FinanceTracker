@@ -8,8 +8,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class ArchiveCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository;
-	private ArchiveCategoryHandler _handler;
+	private ICategoryRepository _categoryRepository = null!;
+	private ArchiveCategoryHandler _handler = null!;
 
 	[Before(Test)]
 	public void Setup()

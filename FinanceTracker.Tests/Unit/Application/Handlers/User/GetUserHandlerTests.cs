@@ -6,8 +6,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class GetUserHandlerTests
 {
-	private IUserRepository _userRepository;
-	private GetUserHandler _handler;
+	private IUserRepository _userRepository = null!;
+	private GetUserHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()

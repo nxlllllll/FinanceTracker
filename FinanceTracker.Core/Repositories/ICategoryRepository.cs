@@ -9,6 +9,14 @@ public interface ICategoryRepository
 		CancellationToken ct = default
 	);
 
+	Task<IReadOnlyList<Category>> GetAllAsync(
+		Guid userId,
+		CategoryType? type = null,
+		bool? isArchived = null,
+		Guid? parentId = null,
+		CancellationToken ct = default
+	);
+
 	Task CreateAsync(
 		Category category,
 		CancellationToken ct = default

@@ -23,6 +23,10 @@ public abstract class DatabaseFixture
 	
 	protected async Task<string> CreateCurrencyAsync(string code = "RUB")
 	{
+		bool exists = await Context.Currencies.AnyAsync(c => c.Code == code);
+		if (exists) 
+			return code;
+		
 		await Context.Currencies.AddAsync(new CurrencyEntity()
 		{
 			Code = code,
@@ -48,6 +52,10 @@ public abstract class DatabaseFixture
 
 	protected async Task<string> CreateAccountTypeAsync(string type = "checking")
 	{
+		bool exists = await Context.AccountTypes.AnyAsync(a => a.Type == type);
+		if (exists) 
+			return type;
+		
 		await Context.AccountTypes.AddAsync(new AccountTypeEntity()
 		{
 			Type = type,
