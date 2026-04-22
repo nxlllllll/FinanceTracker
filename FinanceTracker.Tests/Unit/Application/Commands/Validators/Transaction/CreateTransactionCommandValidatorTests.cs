@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
-using FinanceTracker.Core.Domains.Transactions;
+using FinanceTracker.Core.Domains.Transaction;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;

@@ -5,15 +5,15 @@ using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Infrastructure.Database.EventStore;
 
-public sealed class EventTypeRegistry : IEventTypeRegistry
+public sealed class EventTypeResolver : IEventTypeResolver
 {
 	private readonly FrozenDictionary<string, Type> _eventTypes;
 
-	public EventTypeRegistry(Assembly assembly)
+	public EventTypeResolver(Assembly assembly)
 	{
 		_eventTypes = assembly.GetTypes()
-							.Where(predicate: type => type.IsAssignableTo(targetType: typeof(IEvent)) && type.IsClass)
-							.ToFrozenDictionary(keySelector: type => type.Name);
+			.Where(predicate: type => type.IsAssignableTo(targetType: typeof(IEvent)) && type.IsClass)
+			.ToFrozenDictionary(keySelector: type => type.Name);
 	}
 
 	public Type ResolveType(string typeName)

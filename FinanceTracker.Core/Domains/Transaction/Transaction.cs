@@ -1,8 +1,8 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Transactions.Events;
+using FinanceTracker.Core.Domains.Transaction.Events;
 using FinanceTracker.Core.Exceptions;
 
-namespace FinanceTracker.Core.Domains.Transactions;
+namespace FinanceTracker.Core.Domains.Transaction;
 
 public sealed class Transaction : AggregateRoot
 {
@@ -137,7 +137,7 @@ public sealed class Transaction : AggregateRoot
 		));
 	}
 
-	public void ChangeDescription(string description)
+	public void ChangeDescription(string? description)
 	{
 		if (Description == description)
 			return;
@@ -146,7 +146,7 @@ public sealed class Transaction : AggregateRoot
 			Id: Guid.NewGuid(),
 			TransactionId: Id,
 			Description: description,
-			OccurredAt: OccurredAt
+			OccurredAt: DateTime.UtcNow
 		));
 	}
 

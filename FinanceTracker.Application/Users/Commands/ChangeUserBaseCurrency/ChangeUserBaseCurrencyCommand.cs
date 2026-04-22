@@ -2,7 +2,7 @@
 
 namespace FinanceTracker.Application.Users.Commands.ChangeUserBaseCurrency;
 
-public record ChangeUserBaseCurrencyCommand(
+public sealed record ChangeUserBaseCurrencyCommand(
 	Guid UserId,
 	string NewBaseCurrency
 ) : IRequest;

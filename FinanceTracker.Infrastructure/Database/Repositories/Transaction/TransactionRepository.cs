@@ -8,9 +8,9 @@ public sealed class TransactionRepository(
 	IEventStore eventStore
 ) : ITransactionRepository
 {
-	private const string AggregateType = nameof(Core.Domains.Transactions.Transaction);
+	private const string AggregateType = nameof(Core.Domains.Transaction.Transaction);
 	
-	public async Task<Core.Domains.Transactions.Transaction?> GetByIdAsync(
+	public async Task<Core.Domains.Transaction.Transaction?> GetByIdAsync(
 		Guid transactionId,
 		CancellationToken ct = default)
 	{
@@ -19,11 +19,11 @@ public sealed class TransactionRepository(
 		if (events.Count == 0)
 			return null;
 		
-		return Core.Domains.Transactions.Transaction.ReconstituteFromHistory(history: events);
+		return Core.Domains.Transaction.Transaction.ReconstituteFromHistory(history: events);
 	}
 
 	public async Task SaveAsync(
-		Core.Domains.Transactions.Transaction transaction,
+		Core.Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default)
 	{
 		await eventStore.SaveAsync(

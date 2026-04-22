@@ -2,7 +2,7 @@
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
-public sealed record class AccountCreated(
+public sealed record AccountCreated(
 	Guid Id,
 	Guid AccountId,
 	Guid UserId,

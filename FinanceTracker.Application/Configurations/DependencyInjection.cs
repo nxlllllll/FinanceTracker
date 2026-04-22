@@ -1,4 +1,6 @@
 ﻿using FinanceTracker.Application.Behaviours;
+using FinanceTracker.Application.Dispatching;
+using FinanceTracker.Core.Domains.Abstractions;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,10 +15,11 @@ public static class DependencyInjection
 		{
 			configuration.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 			configuration.AddBehavior(serviceType: typeof(IPipelineBehavior<,>),
-				implementationType: typeof(ValidationBehaviours<,>));
+				implementationType: typeof(ValidationBehavior<,>));
 		});
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);
+		services.AddScoped<INotificationDispatcher, MediatRNotificationDispatcher>();
 
 		return services;
 	}

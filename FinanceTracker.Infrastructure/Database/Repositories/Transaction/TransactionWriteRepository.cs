@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Transactions.Events;
+﻿using FinanceTracker.Core.Domains.Transaction.Events;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;

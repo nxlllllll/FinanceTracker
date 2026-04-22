@@ -2,13 +2,13 @@
 
 public interface ITransactionRepository
 {
-	Task<Domains.Transactions.Transaction?> GetByIdAsync(
+	Task<Domains.Transaction.Transaction?> GetByIdAsync(
 		Guid transactionId,
 		CancellationToken ct = default
 	);
 
 	Task SaveAsync(
-		Domains.Transactions.Transaction transaction,
+		Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default
 	);
 }

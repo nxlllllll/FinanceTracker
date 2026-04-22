@@ -1,6 +1,4 @@
-﻿using FinanceTracker.Application.Transactions.Notifications;
-using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Transactions;
+﻿using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using MediatR;
@@ -8,8 +6,7 @@ using MediatR;
 namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionDescription;
 
 public sealed class ChangeTransactionDescriptionHandler(
-	ITransactionRepository transactionRepository,
-	IPublisher publisher
+	ITransactionRepository transactionRepository
 ) : IRequestHandler<ChangeTransactionDescriptionCommand>
 {
 	public async Task Handle(
@@ -20,12 +17,7 @@ public sealed class ChangeTransactionDescriptionHandler(
 			?? throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
 		
 		transaction.ChangeDescription(description: command.Description);
-		IReadOnlyList<IEvent> events = [..transaction.Events];
 
 		await transactionRepository.SaveAsync(transaction: transaction, ct: ct);
-		await publisher.Publish(
-			notification: new TransactionEventsNotification(TransactionId: transaction.Id, Events: events),
-			cancellationToken: ct
-		);
 	}
 }

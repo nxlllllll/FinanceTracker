@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 
-namespace FinanceTracker.Core.Domains.Transactions.Events;
+namespace FinanceTracker.Core.Domains.Transaction.Events;
 
 public sealed record TransactionIncluded(
 	Guid Id,

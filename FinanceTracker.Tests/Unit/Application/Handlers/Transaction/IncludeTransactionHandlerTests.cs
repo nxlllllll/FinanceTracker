@@ -1,9 +1,7 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
-using FinanceTracker.Application.Transactions.Notifications;
-using FinanceTracker.Core.Domains.Transactions;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
-using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -11,20 +9,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class IncludeTransactionHandlerTests
 {
     private ITransactionRepository _transactionRepository = null!;
-    private IPublisher _publisher = null!;
     private IncludeTransactionHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
         _transactionRepository = Substitute.For<ITransactionRepository>();
-        _publisher = Substitute.For<IPublisher>();
-        _handler = new IncludeTransactionHandler(transactionRepository: _transactionRepository, publisher: _publisher);
+        _handler = new IncludeTransactionHandler(transactionRepository: _transactionRepository);
     }
 
-    private static FinanceTracker.Core.Domains.Transactions.Transaction CreateExcludedTransaction()
+    private static FinanceTracker.Core.Domains.Transaction.Transaction CreateExcludedTransaction()
     {
-        FinanceTracker.Core.Domains.Transactions.Transaction transaction = FinanceTracker.Core.Domains.Transactions.Transaction.Create(
+        FinanceTracker.Core.Domains.Transaction.Transaction transaction = FinanceTracker.Core.Domains.Transaction.Transaction.Create(
             accountId: Guid.NewGuid(),
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
@@ -40,9 +36,9 @@ public sealed class IncludeTransactionHandlerTests
     }
 
     [Test]
-    public async Task Handle_WithExcludedTransaction_ShouldIncludeAndPublish()
+    public async Task Handle_WithExcludedTransaction_ShouldInclude()
     {
-        FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateExcludedTransaction();
+        FinanceTracker.Core.Domains.Transaction.Transaction transaction = CreateExcludedTransaction();
 
         _transactionRepository.GetByIdAsync(
             transactionId: Arg.Any<Guid>(),
@@ -54,13 +50,8 @@ public sealed class IncludeTransactionHandlerTests
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
         await _transactionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            transaction: Arg.Is<FinanceTracker.Core.Domains.Transactions.Transaction>(predicate: t => t.IsExcluded == false),
+            transaction: Arg.Is<FinanceTracker.Core.Domains.Transaction.Transaction>(predicate: t => t.IsExcluded == false),
             ct: Arg.Any<CancellationToken>()
-        );
-
-        await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-            notification: Arg.Is<TransactionEventsNotification>(predicate: n => n.Events.Count == 1),
-            cancellationToken: Arg.Any<CancellationToken>()
         );
     }
 
@@ -70,7 +61,7 @@ public sealed class IncludeTransactionHandlerTests
         _transactionRepository.GetByIdAsync(
             transactionId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transactions.Transaction?>(result: null));
+        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transaction.Transaction?>(result: null));
 
         IncludeTransactionCommand command = new IncludeTransactionCommand(TransactionId: Guid.NewGuid());
 
@@ -82,7 +73,7 @@ public sealed class IncludeTransactionHandlerTests
     [Test]
     public async Task Handle_WhenTransactionAlreadyIncluded_ShouldThrowIncludingException()
     {
-        FinanceTracker.Core.Domains.Transactions.Transaction transaction = FinanceTracker.Core.Domains.Transactions.Transaction.Create(
+        FinanceTracker.Core.Domains.Transaction.Transaction transaction = FinanceTracker.Core.Domains.Transaction.Transaction.Create(
             accountId: Guid.NewGuid(),
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),

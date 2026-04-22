@@ -1,9 +1,7 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
-using FinanceTracker.Application.Transactions.Notifications;
-using FinanceTracker.Core.Domains.Transactions;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
-using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -11,20 +9,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class ExcludeTransactionHandlerTests
 {
     private ITransactionRepository _transactionRepository = null!;
-    private IPublisher _publisher = null!;
     private ExcludeTransactionHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
         _transactionRepository = Substitute.For<ITransactionRepository>();
-        _publisher = Substitute.For<IPublisher>();
-        _handler = new ExcludeTransactionHandler(transactionRepository: _transactionRepository, publisher: _publisher);
+        _handler = new ExcludeTransactionHandler(transactionRepository: _transactionRepository);
     }
 
-    private static FinanceTracker.Core.Domains.Transactions.Transaction CreateTransaction()
+    private static FinanceTracker.Core.Domains.Transaction.Transaction CreateTransaction()
     {
-        FinanceTracker.Core.Domains.Transactions.Transaction transaction = FinanceTracker.Core.Domains.Transactions.Transaction.Create(
+        FinanceTracker.Core.Domains.Transaction.Transaction transaction = FinanceTracker.Core.Domains.Transaction.Transaction.Create(
             accountId: Guid.NewGuid(),
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
@@ -39,9 +35,9 @@ public sealed class ExcludeTransactionHandlerTests
     }
 
     [Test]
-    public async Task Handle_WithIncludedTransaction_ShouldExcludeAndPublish()
+    public async Task Handle_WithIncludedTransaction_ShouldExclude()
     {
-        FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateTransaction();
+        FinanceTracker.Core.Domains.Transaction.Transaction transaction = CreateTransaction();
 
         _transactionRepository.GetByIdAsync(
             transactionId: Arg.Any<Guid>(),
@@ -53,13 +49,8 @@ public sealed class ExcludeTransactionHandlerTests
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
         await _transactionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            transaction: Arg.Is<FinanceTracker.Core.Domains.Transactions.Transaction>(predicate: t => t.IsExcluded == true),
+            transaction: Arg.Is<FinanceTracker.Core.Domains.Transaction.Transaction>(predicate: t => t.IsExcluded == true),
             ct: Arg.Any<CancellationToken>()
-        );
-
-        await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-            notification: Arg.Is<TransactionEventsNotification>(predicate: n => n.Events.Count == 1),
-            cancellationToken: Arg.Any<CancellationToken>()
         );
     }
 
@@ -69,7 +60,7 @@ public sealed class ExcludeTransactionHandlerTests
         _transactionRepository.GetByIdAsync(
             transactionId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transactions.Transaction?>(result: null));
+        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transaction.Transaction?>(result: null));
 
         ExcludeTransactionCommand command = new ExcludeTransactionCommand(TransactionId: Guid.NewGuid());
 
@@ -81,7 +72,7 @@ public sealed class ExcludeTransactionHandlerTests
     [Test]
     public async Task Handle_WhenTransactionAlreadyExcluded_ShouldThrowExcludingException()
     {
-        FinanceTracker.Core.Domains.Transactions.Transaction transaction = CreateTransaction();
+        FinanceTracker.Core.Domains.Transaction.Transaction transaction = CreateTransaction();
         transaction.Exclude();
         transaction.ClearEvents();
 

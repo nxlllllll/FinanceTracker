@@ -1,7 +1,7 @@
 ﻿using FinanceTracker.Application.Transactions.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Transactions;
-using FinanceTracker.Core.Domains.Transactions.Events;
+using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Domains.Transaction.Events;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transaction;

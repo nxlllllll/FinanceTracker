@@ -4,6 +4,7 @@ using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
@@ -23,9 +24,10 @@ public static class DependencyInjection
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
 
-		services.AddSingleton<IEventTypeRegistry, EventTypeRegistry>(implementationFactory: _ =>
-			new EventTypeRegistry(assembly: typeof(IEvent).Assembly)
+		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: _ =>
+			new EventTypeResolver(assembly: typeof(IEvent).Assembly)
 		);
+		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		services.AddScoped<IAccountRepository, AccountRepository>();
 		services.AddScoped<IAccountReadRepository, AccountReadRepository>();
@@ -37,6 +39,8 @@ public static class DependencyInjection
 		services.AddScoped<ICurrencyRepository, CurrencyRepository>();
 		services.AddScoped<IAccountTypeRepository, AccountTypeRepository>();
 		services.AddScoped<IUserRepository, UserRepository>();
+
+		services.AddHostedService<OutboxWorker>();
 		return services;
 	}
 }

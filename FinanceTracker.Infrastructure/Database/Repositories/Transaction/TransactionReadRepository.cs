@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Transactions;
+﻿using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +9,7 @@ public sealed class TransactionReadRepository(
 	FinanceTrackerContext context
 ) : ITransactionReadRepository
 {
-	public async Task<Core.Domains.Transactions.Transaction?> GetByIdAsync(
+	public async Task<Core.Domains.Transaction.Transaction?> GetByIdAsync(
 		Guid transactionId,
 		CancellationToken ct = default)
 	{
@@ -21,7 +21,7 @@ public sealed class TransactionReadRepository(
 		if (entity is null)
 			return null;
 
-		return Core.Domains.Transactions.Transaction.Reconstitute(
+		return Core.Domains.Transaction.Transaction.Reconstitute(
 			id: entity.Id,
 			accountId: entity.AccountId,
 			userId: entity.UserId,
@@ -35,7 +35,7 @@ public sealed class TransactionReadRepository(
 		);
 	}
 
-	public async Task<IReadOnlyList<Core.Domains.Transactions.Transaction>> GetAllAsync(
+	public async Task<IReadOnlyList<Core.Domains.Transaction.Transaction>> GetAllAsync(
 		Guid accountId,
 		Guid? categoryId = null,
 		DirectionType? direction = null,
@@ -62,7 +62,7 @@ public sealed class TransactionReadRepository(
 			query = query.Where(predicate: t => t.OccurredAt <= dateTo);
 
 		return await query.OrderByDescending(keySelector: t => t.OccurredAt)
-			.Select(selector: t => Core.Domains.Transactions.Transaction.Reconstitute(
+			.Select(selector: t => Core.Domains.Transaction.Transaction.Reconstitute(
 				id: t.Id,
 				accountId: t.AccountId,
 				userId: t.UserId,

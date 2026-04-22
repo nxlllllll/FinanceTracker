@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Application.Transactions.Queries.GetTransactions;
-using FinanceTracker.Core.Domains.Transactions;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using NSubstitute;
 
@@ -17,9 +17,9 @@ public sealed class GetTransactionsHandlerTests
         _handler = new GetTransactionsHandler(transactionReadRepository: _transactionReadRepository);
     }
 
-    private static FinanceTracker.Core.Domains.Transactions.Transaction CreateTransaction()
+    private static FinanceTracker.Core.Domains.Transaction.Transaction CreateTransaction()
     {
-        return FinanceTracker.Core.Domains.Transactions.Transaction.Create(
+        return FinanceTracker.Core.Domains.Transaction.Transaction.Create(
             accountId: Guid.NewGuid(),
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
@@ -34,7 +34,7 @@ public sealed class GetTransactionsHandlerTests
     [Test]
     public async Task Handle_ShouldReturnAllTransactions()
     {
-        IReadOnlyList<FinanceTracker.Core.Domains.Transactions.Transaction> transactions = [CreateTransaction(), CreateTransaction()];
+        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [CreateTransaction(), CreateTransaction()];
 
         _transactionReadRepository.GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -47,7 +47,7 @@ public sealed class GetTransactionsHandlerTests
         ).Returns(returnThis: transactions);
 
         GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.NewGuid());
-        IReadOnlyList<FinanceTracker.Core.Domains.Transactions.Transaction> result = await _handler.Handle(
+        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
             query: query,
             ct: CancellationToken.None
         );

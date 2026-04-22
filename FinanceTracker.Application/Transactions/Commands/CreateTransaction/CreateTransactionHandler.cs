@@ -1,14 +1,11 @@
-﻿using FinanceTracker.Application.Transactions.Notifications;
-using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Transactions;
+﻿using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 
 public sealed class CreateTransactionHandler(
-	ITransactionRepository transactionRepository,
-	IPublisher publisher
+	ITransactionRepository transactionRepository
 ) : IRequestHandler<CreateTransactionCommand, Guid>
 {
 	public async Task<Guid> Handle(
@@ -26,16 +23,7 @@ public sealed class CreateTransactionHandler(
 			occurredAt: command.OccurredAt
 		);
 
-		IReadOnlyList<IEvent> events = [..transaction.Events];
 		await transactionRepository.SaveAsync(transaction: transaction, ct: ct);
-
-		await publisher.Publish(
-			notification: new TransactionEventsNotification(
-				TransactionId: transaction.Id,
-				Events: events
-			),
-			cancellationToken: ct
-		);
 		
 		return transaction.Id;
 	}

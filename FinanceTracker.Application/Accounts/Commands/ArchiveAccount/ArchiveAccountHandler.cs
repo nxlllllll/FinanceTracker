@@ -1,16 +1,12 @@
-﻿using FinanceTracker.Application.Accounts.Notifications;
-using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using MediatR;
 
 namespace FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
 
 public sealed class ArchiveAccountHandler(
-	IAccountRepository accountRepository,
-	IPublisher publisher
+	IAccountRepository accountRepository
 ) : IRequestHandler<ArchiveAccountCommand>
 {
 	public async Task Handle(
@@ -22,12 +18,6 @@ public sealed class ArchiveAccountHandler(
 
 		account.Archive();
 
-		List<IEvent> events = [..account.Events];
 		await accountRepository.SaveAsync(account: account, ct: ct);
-
-		await publisher.Publish(
-			notification: new AccountEventsNotification(AccountId: account.Id, Events: events),
-			cancellationToken: ct
-		);
 	}
 }

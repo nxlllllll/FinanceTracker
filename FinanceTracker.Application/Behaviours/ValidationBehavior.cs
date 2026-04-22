@@ -4,7 +4,7 @@ using MediatR;
 
 namespace FinanceTracker.Application.Behaviours;
 
-public sealed class ValidationBehaviours<TRequest, TResponse>(
+public sealed class ValidationBehavior<TRequest, TResponse>(
 	IEnumerable<IValidator<TRequest>> validators
 ) : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
 {

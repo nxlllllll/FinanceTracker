@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Transactions;
-using FinanceTracker.Core.Domains.Transactions.Events;
+﻿using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Domains.Transaction.Events;
 using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Tests.Unit.Core;

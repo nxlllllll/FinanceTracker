@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Transactions;
+﻿using FinanceTracker.Core.Domains.Transaction;
 using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Queries.GetTransactions;

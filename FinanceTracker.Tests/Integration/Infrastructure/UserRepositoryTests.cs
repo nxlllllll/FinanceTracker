@@ -1,8 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Infrastructure.Database.Repositories;
-using FinanceTracker.Tests.Integration.Infrastructure;
 
-namespace FinanceTracker.Tests.Integration;
+namespace FinanceTracker.Tests.Integration.Infrastructure;
 
 public sealed class UserRepositoryTests : DatabaseFixture
 {

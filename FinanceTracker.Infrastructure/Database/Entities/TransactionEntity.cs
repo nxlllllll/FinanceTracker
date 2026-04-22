@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Transactions;
+﻿using FinanceTracker.Core.Domains.Transaction;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
 

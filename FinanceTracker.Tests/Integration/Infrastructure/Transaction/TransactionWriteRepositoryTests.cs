@@ -1,13 +1,13 @@
 ﻿using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Domains.Transactions;
-using FinanceTracker.Core.Domains.Transactions.Events;
+using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Domains.Transaction.Events;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure;
+namespace FinanceTracker.Tests.Integration.Infrastructure.Transaction;
 
 public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 {

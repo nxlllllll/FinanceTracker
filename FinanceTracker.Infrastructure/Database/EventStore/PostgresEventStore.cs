@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -9,9 +10,45 @@ namespace FinanceTracker.Infrastructure.Database.EventStore;
 
 public sealed class PostgresEventStore(
 	FinanceTrackerContext context,
-	IEventTypeRegistry eventTypeRegistry
+	IEventTypeResolver eventTypeResolver
 ) : IEventStore
 {
+	private static (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
+		Guid aggregateId,
+		string aggregateType,
+		List<IEvent> eventList,
+		int expectedVersion)
+	{
+		int currentVersion = expectedVersion;
+		List<EventEntity> entities = new List<EventEntity>(capacity: eventList.Count);
+		List<OutboxEventEnvelope> envelopes = new List<OutboxEventEnvelope>(capacity: eventList.Count);
+
+		foreach (IEvent @event in eventList)
+		{
+			string serialized = JsonSerializer.Serialize(value: @event, inputType: @event.GetType());
+			string eventType = @event.GetType().Name;
+
+			entities.Add(item: new EventEntity()
+			{
+				Id = @event.Id,
+				AggregateId = aggregateId,
+				AggregateType = aggregateType,
+				EventType = eventType,
+				Version = ++currentVersion,
+				Payload = serialized,
+				OccurredAt = @event.OccurredAt,
+				CreatedAt = DateTime.UtcNow
+			});
+
+			envelopes.Add(item: new OutboxEventEnvelope(
+				EventType: eventType,
+				EventPayload: serialized
+			));
+		}
+
+		return (entities, envelopes);
+	}
+	
 	public async Task SaveAsync(
 		Guid aggregateId,
 		string aggregateType,
@@ -23,21 +60,27 @@ public sealed class PostgresEventStore(
 		if (eventList.Count == 0)
 			return;
 
-		int currentVersion = expectedVersion;
-		List<EventEntity> entities = eventList.Select(selector: @event => new EventEntity()
-		{
-			Id = @event.Id,
-			AggregateId = aggregateId,
-			AggregateType = aggregateType,
-			EventType = @event.GetType().Name,
-			Version = ++currentVersion,
-			Payload = JsonSerializer.Serialize(value: @event, inputType: @event.GetType()),
-			OccurredAt = @event.OccurredAt,
-			CreatedAt = DateTime.UtcNow
-		}).ToList();
+		(List<EventEntity> entities, List<OutboxEventEnvelope> envelopes) = BuildEntities(
+			aggregateId: aggregateId,
+			aggregateType: aggregateType,
+			eventList: eventList,
+			expectedVersion: expectedVersion
+		);
 
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
-
+		await context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity()
+		{
+			Id = Guid.NewGuid(),
+			AggregateId = aggregateId,
+			AggregateType = aggregateType,
+			Payload = JsonSerializer.Serialize(value: new OutboxPayload(
+				AggregateId: aggregateId,
+				Events: envelopes
+			)),
+			CreatedAt = DateTime.UtcNow,
+			ProcessedAt = null
+		}, cancellationToken: ct);
+		
 		try
 		{
 			await context.SaveChangesAsync(cancellationToken: ct);
@@ -60,7 +103,7 @@ public sealed class PostgresEventStore(
 
 		return entities.Select(selector: entity =>
 		{
-			Type type = eventTypeRegistry.ResolveType(typeName: entity.EventType);
+			Type type = eventTypeResolver.ResolveType(typeName: entity.EventType);
 			return (IEvent)JsonSerializer.Deserialize(json: entity.Payload, returnType: type)!;
 		}).ToList();
 	}

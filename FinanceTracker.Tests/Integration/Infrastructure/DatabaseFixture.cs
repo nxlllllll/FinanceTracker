@@ -18,7 +18,7 @@ public abstract class DatabaseFixture
 		return new PostgresEventStore(context: new FinanceTrackerContext(
 			new DbContextOptionsBuilder<FinanceTrackerContext>()
 			.UseNpgsql(connectionString: Context.Database.GetConnectionString()!).Options
-		), eventTypeRegistry: new EventTypeRegistry(assembly: typeof(IEvent).Assembly));
+		), eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly));
 	}
 	
 	protected async Task<string> CreateCurrencyAsync(string code = "RUB")

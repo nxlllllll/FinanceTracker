@@ -1,9 +1,6 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
-using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
-using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
@@ -11,15 +8,13 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 public sealed class CreateAccountHandlerTests
 {
 	private IAccountRepository _accountRepository = null!;
-	private IPublisher _publisher = null!;
 	private CreateAccountHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_publisher = Substitute.For<IPublisher>();
-		_handler = new CreateAccountHandler(accountRepository: _accountRepository, publisher: _publisher);
+		_handler = new CreateAccountHandler(accountRepository: _accountRepository);
 	}
 
 	private static CreateAccountCommand CreateCreateAccountCommand(string name = "Карта Сбер")
@@ -59,21 +54,7 @@ public sealed class CreateAccountHandlerTests
 			), ct: Arg.Any<CancellationToken>()
 		);
 	}
-
-
-	[Test]
-	public async Task Handle_WithValidCommand_ShouldPublishNotification()
-	{
-		CreateAccountCommand command = CreateCreateAccountCommand();
-
-		await _handler.Handle(command: command, ct: CancellationToken.None);
-
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<AccountEventsNotification>(predicate: notification => notification.Events.Count == 1),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
-	}
-
+	
 	[Test]
 	public async Task Handle_WithEmptyName_ShouldThrowArgumentException()
 	{
@@ -82,23 +63,5 @@ public sealed class CreateAccountHandlerTests
 		await Assert.That(
 			func: async () => await _handler.Handle(command: command, ct: CancellationToken.None)
 		).Throws<EmptyNameException>();
-	}
-
-	[Test]
-	public async Task Handle_WhenExceptionThrown_ShouldNotPublishNotification()
-	{
-		CreateAccountCommand command = CreateCreateAccountCommand();
-
-		_accountRepository.SaveAsync(account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(), ct: Arg.Any<CancellationToken>())
-						.Returns(returnThis: _ => throw new InvalidOperationException(message: "DB error"));
-
-		await Assert.That(
-			func: async () => await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<InvalidOperationException>();
-
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<AccountEventsNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
 	}
 }
