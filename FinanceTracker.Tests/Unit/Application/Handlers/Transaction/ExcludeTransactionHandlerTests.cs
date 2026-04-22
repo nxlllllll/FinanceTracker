@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
-using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using NSubstitute;
@@ -8,48 +8,38 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 
 public sealed class ExcludeTransactionHandlerTests
 {
-    private ITransactionRepository _transactionRepository = null!;
+    private ITransactionReadRepository _transactionReadRepository = null!;
+    private ITransactionWriteRepository _transactionWriteRepository = null!;
     private ExcludeTransactionHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
-        _transactionRepository = Substitute.For<ITransactionRepository>();
-        _handler = new ExcludeTransactionHandler(transactionRepository: _transactionRepository);
-    }
-
-    private static FinanceTracker.Core.Domains.Transaction.Transaction CreateTransaction()
-    {
-        FinanceTracker.Core.Domains.Transaction.Transaction transaction = FinanceTracker.Core.Domains.Transaction.Transaction.Create(
-            accountId: Guid.NewGuid(),
-            userId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
-            amount: 1000m,
-            direction: DirectionType.Debit,
-            exchangeRate: 1m,
-            description: null,
-            occurredAt: DateTime.UtcNow
+        _transactionReadRepository = Substitute.For<ITransactionReadRepository>();
+        _transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
+        _handler = new ExcludeTransactionHandler(
+            transactionReadRepository: _transactionReadRepository,
+            transactionWriteRepository: _transactionWriteRepository
         );
-        transaction.ClearEvents();
-        return transaction;
     }
 
     [Test]
-    public async Task Handle_WithIncludedTransaction_ShouldExclude()
+    public async Task Handle_WithExistingTransaction_ShouldExclude()
     {
-        FinanceTracker.Core.Domains.Transaction.Transaction transaction = CreateTransaction();
+        Guid transactionId = Guid.NewGuid();
 
-        _transactionRepository.GetByIdAsync(
-            transactionId: Arg.Any<Guid>(),
+        _transactionReadRepository.ExistsAsync(
+            transactionId: transactionId,
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: transaction);
+        ).Returns(returnThis: true);
 
-        ExcludeTransactionCommand command = new ExcludeTransactionCommand(TransactionId: transaction.Id);
+        await _handler.Handle(
+            command: new ExcludeTransactionCommand(TransactionId: transactionId),
+            ct: CancellationToken.None
+        );
 
-        await _handler.Handle(command: command, ct: CancellationToken.None);
-
-        await _transactionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            transaction: Arg.Is<FinanceTracker.Core.Domains.Transaction.Transaction>(predicate: t => t.IsExcluded == true),
+        await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ExcludeAsync(
+            transactionId: transactionId,
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -57,34 +47,33 @@ public sealed class ExcludeTransactionHandlerTests
     [Test]
     public async Task Handle_WhenTransactionNotFound_ShouldThrowNotFoundException()
     {
-        _transactionRepository.GetByIdAsync(
+        _transactionReadRepository.ExistsAsync(
             transactionId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transaction.Transaction?>(result: null));
+        ).Returns(returnThis: false);
 
-        ExcludeTransactionCommand command = new ExcludeTransactionCommand(TransactionId: Guid.NewGuid());
-
-        await Assert.That(action: async () =>
-            await _handler.Handle(command: command, ct: CancellationToken.None)
-        ).Throws<NotFoundException>();
+        await Assert.That(action: async () => await _handler.Handle(
+            command: new ExcludeTransactionCommand(TransactionId: Guid.NewGuid()),
+            ct: CancellationToken.None
+        )).Throws<NotFoundException>();
     }
 
     [Test]
-    public async Task Handle_WhenTransactionAlreadyExcluded_ShouldThrowExcludingException()
+    public async Task Handle_WhenTransactionNotFound_ShouldNotCallWriteRepository()
     {
-        FinanceTracker.Core.Domains.Transaction.Transaction transaction = CreateTransaction();
-        transaction.Exclude();
-        transaction.ClearEvents();
-
-        _transactionRepository.GetByIdAsync(
+        _transactionReadRepository.ExistsAsync(
             transactionId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: transaction);
+        ).Returns(returnThis: false);
 
-        ExcludeTransactionCommand command = new ExcludeTransactionCommand(TransactionId: transaction.Id);
+        await Assert.That(action: async () => await _handler.Handle(
+            command: new ExcludeTransactionCommand(TransactionId: Guid.NewGuid()),
+            ct: CancellationToken.None
+        )).Throws<NotFoundException>();
 
-        await Assert.That(action: async () =>
-            await _handler.Handle(command: command, ct: CancellationToken.None)
-        ).Throws<ExcludingException>();
-    }	
+        await _transactionWriteRepository.DidNotReceive().ExcludeAsync(
+            transactionId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
 }

@@ -10,90 +10,104 @@ public sealed class AccountWriteRepository(
 	FinanceTrackerContext context
 ) : IAccountWriteRepository
 {
-	private async Task ChangeAccountProperty(
-		Guid accountId,
-		Action<UpdateSettersBuilder<AccountEntity>> changePropertyAction,
-		CancellationToken ct = default)
-	{
-		await context.Accounts.Where(predicate: account => account.Id == accountId).ExecuteUpdateAsync(
-			setPropertyCalls: changePropertyAction,
+    public async Task CreateAsync(
+        AccountCreated @event,
+        CancellationToken ct = default)
+    {
+        await context.Accounts.AddAsync(entity: new AccountEntity()
+        {
+            Id = @event.AccountId,
+            UserId = @event.UserId,
+            Name = @event.Name,
+            AccountType = @event.AccountType,
+            Currency = @event.Currency,
+            IsArchived = false,
+            CreatedAt = @event.OccurredAt
+        }, cancellationToken: ct);
+
+        await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity()
+        {
+            AccountId = @event.AccountId,
+            Balance = @event.Balance,
+            LastVersion = 1,
+            UpdatedAt = @event.OccurredAt
+        }, cancellationToken: ct);
+
+        await context.SaveChangesAsync(cancellationToken: ct);
+    }
+
+    public async Task DebitAsync(
+        AccountDebited @event,
+        CancellationToken ct = default)
+    {
+        await context.AccountBalances.Where(predicate: b => b.AccountId == @event.AccountId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(
+				propertyExpression: e => e.Balance,
+				valueExpression: e => e.Balance - @event.Amount * @event.ExchangeRate
+			).SetProperty(
+				propertyExpression: e => e.LastVersion,
+				valueExpression: e => e.LastVersion + 1)
+			.SetProperty(
+				propertyExpression: e => e.UpdatedAt,
+				valueExpression: DateTime.UtcNow
+			),
 			cancellationToken: ct
 		);
-	}
+    }
 
-	public async Task CreateAsync(
-		AccountCreated @event,
-		CancellationToken ct = default)
-	{
-		await context.Accounts.AddAsync(entity: new AccountEntity()
-		{
-			Id = @event.AccountId,
-			UserId = @event.UserId,
-			Name = @event.Name,
-			AccountType = @event.AccountType,
-			Currency = @event.Currency,
-			IsArchived = false,
-			CreatedAt = @event.OccurredAt
-		}, cancellationToken: ct);
-
-		await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity()
-		{
-			AccountId = @event.AccountId,
-			Balance = @event.Balance,
-			LastVersion = 1,
-			UpdatedAt = @event.OccurredAt
-		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
-	}
+    public async Task CreditAsync(
+        AccountCredited @event,
+        CancellationToken ct = default)
+    {
+        await context.AccountBalances.Where(predicate: b => b.AccountId == @event.AccountId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(
+				propertyExpression: e => e.Balance,
+				valueExpression: e => e.Balance + @event.Amount * @event.ExchangeRate)
+			.SetProperty(
+				propertyExpression: e => e.LastVersion,
+				valueExpression: e => e.LastVersion + 1)
+			.SetProperty(
+				propertyExpression: e => e.UpdatedAt,
+				valueExpression: DateTime.UtcNow
+			),
+			cancellationToken: ct
+		);
+    }
 
 	public async Task RenameAsync(
-		AccountRenamed @event,
+		Guid accountId,
+		string newName,
 		CancellationToken ct = default)
 	{
-		await ChangeAccountProperty(
-			accountId: @event.AccountId,
-			changePropertyAction: builder =>
-				builder.SetProperty(propertyExpression: entity => entity.Name, valueExpression: @event.NewName),
-			ct: ct
+		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(
+				propertyExpression: e => e.Name,
+				valueExpression: newName
+			), cancellationToken: ct
 		);
 	}
 
 	public async Task ArchiveAsync(
-		AccountArchived @event,
+		Guid accountId,
 		CancellationToken ct = default)
 	{
-		await ChangeAccountProperty(
-			accountId: @event.AccountId,
-			changePropertyAction: builder =>
-				builder.SetProperty(propertyExpression: entity => entity.IsArchived, valueExpression: true),
-			ct: ct
+		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(
+				propertyExpression: e => e.IsArchived,
+				valueExpression: true
+			), cancellationToken: ct
 		);
 	}
 
 	public async Task UnarchiveAsync(
-		AccountUnarchived @event,
+		Guid accountId,
 		CancellationToken ct = default)
 	{
-		await ChangeAccountProperty(
-			accountId: @event.AccountId,
-			changePropertyAction: builder =>
-				builder.SetProperty(propertyExpression: entity => entity.IsArchived, valueExpression: false),
-			ct: ct
-		);
-	}
-
-	public async Task UpdateBalanceAsync(
-		Guid accountId, 
-		decimal amount,
-		CancellationToken ct = default)
-	{
-		await context.AccountBalances.Where(predicate: balance => balance.AccountId == accountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				.SetProperty(propertyExpression: entity => entity.Balance, valueExpression: entity => entity.Balance + amount)
-				.SetProperty(propertyExpression: entity => entity.LastVersion, valueExpression: entity => entity.LastVersion + 1)
-				.SetProperty(propertyExpression: entity => entity.UpdatedAt, valueExpression: DateTime.UtcNow),
-			cancellationToken: ct
+		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(
+				propertyExpression: e => e.IsArchived,
+				valueExpression: false
+			), cancellationToken: ct
 		);
 	}
 }

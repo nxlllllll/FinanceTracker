@@ -1,23 +1,29 @@
-﻿using FinanceTracker.Core.Domains.Transaction;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionDescription;
 
 public sealed class ChangeTransactionDescriptionHandler(
-	ITransactionRepository transactionRepository
+	ITransactionReadRepository transactionReadRepository,
+	ITransactionWriteRepository transactionWriteRepository
 ) : IRequestHandler<ChangeTransactionDescriptionCommand>
 {
 	public async Task Handle(
 		ChangeTransactionDescriptionCommand command,
 		CancellationToken ct = default)
 	{
-		Transaction transaction = await transactionRepository.GetByIdAsync(transactionId: command.TransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
-		
-		transaction.ChangeDescription(description: command.Description);
+		bool exists = await transactionReadRepository.ExistsAsync(
+			transactionId: command.TransactionId, ct: ct
+		);
 
-		await transactionRepository.SaveAsync(transaction: transaction, ct: ct);
+		if (!exists)
+			throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
+
+		await transactionWriteRepository.ChangeDescriptionAsync(
+			transactionId: command.TransactionId,
+			description: command.Description,
+			ct: ct
+		);
 	}
 }

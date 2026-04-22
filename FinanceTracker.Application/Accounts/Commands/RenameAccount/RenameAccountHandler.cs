@@ -6,7 +6,8 @@ using MediatR;
 namespace FinanceTracker.Application.Accounts.Commands.RenameAccount;
 
 public sealed class RenameAccountHandler(
-	IAccountRepository accountRepository
+	IAccountRepository accountRepository,
+	IAccountWriteRepository accountWriteRepository
 ) : IRequestHandler<RenameAccountCommand>
 {
 	public async Task Handle(
@@ -15,9 +16,10 @@ public sealed class RenameAccountHandler(
 	{
 		Account account = await accountRepository.GetByIdAsync(accountId: command.AccountId, ct: ct)
 			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
-
-		account.Rename(newName: command.NewName);
-
-		await accountRepository.SaveAsync(account: account, ct: ct);
+		
+		bool changed = account.Rename(newName: command.NewName);
+		
+		if (changed)
+			await accountWriteRepository.RenameAsync(accountId: command.AccountId, newName: command.NewName, ct: ct);
 	}
 }

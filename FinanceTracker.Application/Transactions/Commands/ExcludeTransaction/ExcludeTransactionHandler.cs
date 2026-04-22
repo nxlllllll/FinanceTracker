@@ -1,23 +1,28 @@
-﻿using FinanceTracker.Core.Domains.Transaction;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 
 public sealed class ExcludeTransactionHandler(
-	ITransactionRepository transactionRepository
+	ITransactionReadRepository transactionReadRepository,
+	ITransactionWriteRepository transactionWriteRepository
 ) : IRequestHandler<ExcludeTransactionCommand>
 {
 	public async Task Handle(
 		ExcludeTransactionCommand command,
 		CancellationToken ct = default)
 	{
-		Transaction transaction = await transactionRepository.GetByIdAsync(transactionId: command.TransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
+		bool exists = await transactionReadRepository.ExistsAsync(
+			transactionId: command.TransactionId, ct: ct
+		);
 
-		transaction.Exclude();
+		if (!exists)
+			throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
 
-		await transactionRepository.SaveAsync(transaction: transaction, ct: ct);
+		await transactionWriteRepository.ExcludeAsync(
+			transactionId: command.TransactionId,
+			ct: ct
+		);
 	}
 }

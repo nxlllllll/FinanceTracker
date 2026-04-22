@@ -1,7 +1,6 @@
-﻿using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Domains.Transaction;
-using FinanceTracker.Core.Domains.Transaction.Events;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
@@ -11,7 +10,7 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.Transaction;
 
 public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 {
-	private TransactionWriteRepository _writeRepository = null!;
+    private TransactionWriteRepository _writeRepository = null!;
     private AccountWriteRepository _accountWriteRepository = null!;
 
     [Before(hookType: Test)]
@@ -23,8 +22,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
     private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
     {
-        string currencyCode = await CreateCurrencyAsync(code: "RUB");
-        string accountType = await CreateAccountTypeAsync(type: "checking");
+        string currencyCode = await CreateCurrencyAsync();
+        string accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         Guid accountId = Guid.NewGuid();
@@ -55,52 +54,78 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         return (accountId, categoryId);
     }
 
-    private static TransactionCreated CreateTransactionCreatedEvent(
-        Guid accountId,
-        Guid categoryId,
-        DirectionType direction = DirectionType.Debit)
-    {
-        return new TransactionCreated(
-            Id: Guid.NewGuid(),
-            TransactionId: Guid.NewGuid(),
-            AccountId: accountId,
-            UserId: Guid.NewGuid(),
-            CategoryId: categoryId,
-            Amount: 1000m,
-            Direction: direction,
-            ExchangeRate: 1m,
-            Description: "Обед",
-            OccurredAt: DateTime.UtcNow
-        );
-    }
-
     [Test]
     public async Task CreateAsync_ShouldCreateTransaction()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        TransactionCreated @event = CreateTransactionCreatedEvent(
+        Guid transactionId = Guid.NewGuid();
+
+        await _writeRepository.CreateAsync(
+            transactionId: transactionId,
             accountId: accountId,
-            categoryId: categoryId
+            userId: Guid.NewGuid(),
+            categoryId: categoryId,
+            amount: 1000m,
+            direction: DirectionType.Debit,
+            exchangeRate: 1m,
+            description: "Обед",
+            occurredAt: DateTime.UtcNow
         );
 
-        await _writeRepository.CreateAsync(@event: @event);
-
-        bool exists = await Context.Transactions.AnyAsync(predicate: t => t.Id == @event.TransactionId);
+        bool exists = await Context.Transactions.AnyAsync(predicate: t => t.Id == transactionId);
         await Assert.That(value: exists).IsTrue();
+    }
+
+    [Test]
+    public async Task CreateAsync_ShouldSetCorrectValues()
+    {
+        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+        Guid transactionId = Guid.NewGuid();
+        Guid userId = Guid.NewGuid();
+
+        await _writeRepository.CreateAsync(
+            transactionId: transactionId,
+            accountId: accountId,
+            userId: userId,
+            categoryId: categoryId,
+            amount: 1000m,
+            direction: DirectionType.Debit,
+            exchangeRate: 1m,
+            description: "Обед",
+            occurredAt: DateTime.UtcNow
+        );
+
+        TransactionEntity entity = await Context.Transactions.FirstAsync(
+            predicate: t => t.Id == transactionId
+        );
+
+        await Assert.That(value: entity.Amount).IsEqualTo(expected: 1000m);
+        await Assert.That(value: entity.Direction).IsEqualTo(expected: DirectionType.Debit);
+        await Assert.That(value: entity.Description).IsEqualTo(expected: "Обед");
+        await Assert.That(value: entity.IsExcluded).IsFalse();
+        await Assert.That(value: entity.UserId).IsEqualTo(expected: userId);
     }
 
     [Test]
     public async Task ChangeCategoryAsync_ShouldUpdateCategoryId()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        TransactionCreated created = CreateTransactionCreatedEvent(
+        Guid transactionId = Guid.NewGuid();
+
+        await _writeRepository.CreateAsync(
+            transactionId: transactionId,
             accountId: accountId,
-            categoryId: categoryId
+            userId: Guid.NewGuid(),
+            categoryId: categoryId,
+            amount: 1000m,
+            direction: DirectionType.Debit,
+            exchangeRate: 1m,
+            description: null,
+            occurredAt: DateTime.UtcNow
         );
-        await _writeRepository.CreateAsync(@event: created);
 
         Guid newCategoryId = Guid.NewGuid();
-        await Context.Categories.AddAsync(new CategoryEntity()
+        await Context.Categories.AddAsync(entity: new CategoryEntity()
         {
             Id = newCategoryId,
             UserId = Guid.NewGuid(),
@@ -112,17 +137,15 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         });
         await Context.SaveChangesAsync();
 
-        await _writeRepository.ChangeCategoryAsync(@event: new TransactionCategoryChanged(
-            Id: Guid.NewGuid(),
-            TransactionId: created.TransactionId,
-            CategoryId: newCategoryId,
-            OccurredAt: DateTime.UtcNow
-        ));
+        await _writeRepository.ChangeCategoryAsync(
+            transactionId: transactionId,
+            categoryId: newCategoryId
+        );
 
-        Guid? loadedCategoryId = await Context.Transactions
-            .Where(predicate: t => t.Id == created.TransactionId)
+        Guid loadedCategoryId = await Context.Transactions
+            .Where(predicate: t => t.Id == transactionId)
             .Select(selector: t => t.CategoryId)
-            .FirstOrDefaultAsync();
+            .FirstAsync();
 
         await Assert.That(value: loadedCategoryId).IsEqualTo(expected: newCategoryId);
     }
@@ -131,20 +154,26 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task ChangeDescriptionAsync_ShouldUpdateDescription()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        TransactionCreated created = CreateTransactionCreatedEvent(accountId: accountId, categoryId: categoryId);
-        await _writeRepository.CreateAsync(@event: created);
+        Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.ChangeDescriptionAsync(@event: new TransactionDescriptionChanged(
-            Id: Guid.NewGuid(),
-            TransactionId: created.TransactionId,
-            Description: "Ужин",
-            OccurredAt: DateTime.UtcNow
-        ));
+        await _writeRepository.CreateAsync(
+            transactionId: transactionId,
+            accountId: accountId,
+            userId: Guid.NewGuid(),
+            categoryId: categoryId,
+            amount: 1000m,
+            direction: DirectionType.Debit,
+            exchangeRate: 1m,
+            description: "Обед",
+            occurredAt: DateTime.UtcNow
+        );
+
+        await _writeRepository.ChangeDescriptionAsync(transactionId: transactionId, description: "Ужин");
 
         string? description = await Context.Transactions
-            .Where(predicate: t => t.Id == created.TransactionId)
+            .Where(predicate: t => t.Id == transactionId)
             .Select(selector: t => t.Description)
-            .FirstOrDefaultAsync();
+            .FirstAsync();
 
         await Assert.That(value: description).IsEqualTo(expected: "Ужин");
     }
@@ -153,17 +182,24 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task ExcludeAsync_ShouldSetIsExcludedTrue()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        TransactionCreated created = CreateTransactionCreatedEvent(accountId: accountId, categoryId: categoryId);
-        await _writeRepository.CreateAsync(@event: created);
+        Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.ExcludeAsync(@event: new TransactionExcluded(
-            Id: Guid.NewGuid(),
-            TransactionId: created.TransactionId,
-            OccurredAt: DateTime.UtcNow
-        ));
+        await _writeRepository.CreateAsync(
+            transactionId: transactionId,
+            accountId: accountId,
+            userId: Guid.NewGuid(),
+            categoryId: categoryId,
+            amount: 1000m,
+            direction: DirectionType.Debit,
+            exchangeRate: 1m,
+            description: null,
+            occurredAt: DateTime.UtcNow
+        );
+
+        await _writeRepository.ExcludeAsync(transactionId: transactionId);
 
         bool isExcluded = await Context.Transactions
-            .Where(predicate: t => t.Id == created.TransactionId)
+            .Where(predicate: t => t.Id == transactionId)
             .Select(selector: t => t.IsExcluded)
             .FirstAsync();
 
@@ -174,23 +210,25 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task IncludeAsync_ShouldSetIsExcludedFalse()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        TransactionCreated created = CreateTransactionCreatedEvent(accountId: accountId, categoryId: categoryId);
-        await _writeRepository.CreateAsync(@event: created);
+        Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.ExcludeAsync(@event: new TransactionExcluded(
-            Id: Guid.NewGuid(),
-            TransactionId: created.TransactionId,
-            OccurredAt: DateTime.UtcNow
-        ));
+        await _writeRepository.CreateAsync(
+            transactionId: transactionId,
+            accountId: accountId,
+            userId: Guid.NewGuid(),
+            categoryId: categoryId,
+            amount: 1000m,
+            direction: DirectionType.Debit,
+            exchangeRate: 1m,
+            description: null,
+            occurredAt: DateTime.UtcNow
+        );
 
-        await _writeRepository.IncludeAsync(@event: new TransactionIncluded(
-            Id: Guid.NewGuid(),
-            TransactionId: created.TransactionId,
-            OccurredAt: DateTime.UtcNow
-        ));
+        await _writeRepository.ExcludeAsync(transactionId: transactionId);
+        await _writeRepository.IncludeAsync(transactionId: transactionId);
 
         bool isExcluded = await Context.Transactions
-            .Where(predicate: t => t.Id == created.TransactionId)
+            .Where(predicate: t => t.Id == transactionId)
             .Select(selector: t => t.IsExcluded)
             .FirstAsync();
 

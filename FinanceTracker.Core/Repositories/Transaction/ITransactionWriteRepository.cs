@@ -1,31 +1,41 @@
-﻿using FinanceTracker.Core.Domains.Transaction.Events;
+﻿using FinanceTracker.Core.Domains.Account;
 
 namespace FinanceTracker.Core.Repositories.Transaction;
 
 public interface ITransactionWriteRepository
 {
 	Task CreateAsync(
-		TransactionCreated @event,
-		CancellationToken ct = default
+        Guid transactionId,
+        Guid accountId,
+        Guid userId,
+        Guid categoryId,
+        decimal amount,
+        DirectionType direction,
+        decimal exchangeRate,
+        string? description,
+        DateTime occurredAt,
+        CancellationToken ct = default
 	);
 
 	Task ChangeCategoryAsync(
-		TransactionCategoryChanged @event,
+		Guid transactionId,
+		Guid categoryId,
 		CancellationToken ct = default
 	);
 
 	Task ChangeDescriptionAsync(
-		TransactionDescriptionChanged @event,
+		Guid transactionId,
+		string? description,
 		CancellationToken ct = default
 	);
 
 	Task IncludeAsync(
-		TransactionIncluded @event,
+		Guid transactionId,
 		CancellationToken ct = default
 	);
 
 	Task ExcludeAsync(
-		TransactionExcluded @event,
+		Guid transactionId,
 		CancellationToken ct = default
 	);
 }

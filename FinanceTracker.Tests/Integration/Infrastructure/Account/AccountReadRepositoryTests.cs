@@ -36,7 +36,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await _writeRepository.CreateAsync(@event: @event);
         return @event;
     }
-    
+
     private async Task<(Guid userId, AccountCreated @event)> CreateAccountWithArchivationAsync(bool archived = false)
     {
         string currencyCode = await CreateCurrencyAsync();
@@ -57,13 +57,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await _writeRepository.CreateAsync(@event: @event);
 
         if (archived)
-        {
-            await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-                Id: Guid.NewGuid(),
-                AccountId: @event.AccountId,
-                OccurredAt: DateTime.UtcNow
-            ));
-        }
+            await _writeRepository.ArchiveAsync(accountId: @event.AccountId);
 
         return (userId, @event);
     }
@@ -83,20 +77,18 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         AccountDto? result = await _readRepository.GetByIdAsync(accountId: @event.AccountId);
 
         await Assert.That(value: result).IsNotNull();
-        await Assert.That(value: result.Id).IsEqualTo(expected: @event.AccountId);
+        await Assert.That(value: result!.Id).IsEqualTo(expected: @event.AccountId);
         await Assert.That(value: result.Name).IsEqualTo(expected: "Карта Сбер");
         await Assert.That(value: result.Balance).IsEqualTo(expected: 10000m);
         await Assert.That(value: result.IsArchived).IsFalse();
         await Assert.That(value: result.AccountType).IsEqualTo(expected: "checking");
         await Assert.That(value: result.Currency).IsEqualTo(expected: "RUB");
     }
-    
-        [Test]
+
+    [Test]
     public async Task GetAllAsync_WithNoAccounts_ShouldReturnEmptyList()
     {
-        Guid userId = Guid.NewGuid();
-
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId);
+        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: Guid.NewGuid());
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 0);
     }
@@ -119,7 +111,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         (Guid userId, _) = await CreateAccountWithArchivationAsync(archived: false);
         (_, _) = await CreateAccountWithArchivationAsync(archived: true);
 
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: false);
+        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(
+            userId: userId,
+            isArchived: false
+        );
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result[0].IsArchived).IsFalse();
@@ -131,7 +126,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         string currencyCode = await CreateCurrencyAsync();
         string accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
-        
+
         AccountCreated active = new AccountCreated(
             Id: Guid.NewGuid(),
             AccountId: Guid.NewGuid(),
@@ -155,11 +150,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             OccurredAt: DateTime.UtcNow
         );
         await _writeRepository.CreateAsync(@event: archived);
-        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.NewGuid(),
-            AccountId: archived.AccountId,
-            OccurredAt: DateTime.UtcNow
-        ));
+        await _writeRepository.ArchiveAsync(accountId: archived.AccountId);
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: true);
 
@@ -197,11 +188,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             OccurredAt: DateTime.UtcNow
         );
         await _writeRepository.CreateAsync(@event: archived);
-        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.NewGuid(),
-            AccountId: archived.AccountId,
-            OccurredAt: DateTime.UtcNow
-        ));
+        await _writeRepository.ArchiveAsync(accountId: archived.AccountId);
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);
 

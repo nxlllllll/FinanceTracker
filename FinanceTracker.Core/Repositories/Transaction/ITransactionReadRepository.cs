@@ -1,21 +1,27 @@
-﻿using FinanceTracker.Core.Domains.Transaction;
+﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Dtos;
 
 namespace FinanceTracker.Core.Repositories.Transaction;
 
 public interface ITransactionReadRepository
 {
-	Task<Domains.Transaction.Transaction?> GetByIdAsync(
+	Task<TransactionDto?> GetByIdAsync(
 		Guid transactionId,
 		CancellationToken ct = default
 	);
 	
-	Task<IReadOnlyList<Domains.Transaction.Transaction>> GetAllAsync(
+	Task<IReadOnlyList<TransactionDto>> GetAllAsync(
 		Guid accountId,
 		Guid? categoryId = null,
 		DirectionType? direction = null,
 		bool? isExcluded = null,
 		DateTime? dateFrom = null,
 		DateTime? dateTo = null,
+		CancellationToken ct = default
+	);
+	
+	Task<bool> ExistsAsync(
+		Guid transactionId,
 		CancellationToken ct = default
 	);
 }

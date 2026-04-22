@@ -6,8 +6,6 @@ namespace FinanceTracker.Tests.Unit.Core;
 
 public sealed class AccountTests
 {
-	#region Creation
-
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
 	{
@@ -69,12 +67,8 @@ public sealed class AccountTests
 		)).Throws<InvalidInitialBalanceException>();
 	}
 
-	#endregion
-
-	#region Rename
-
 	[Test]
-	public async Task Rename_WithNewName_ShouldRaiseAccountRenamedEvent()
+	public async Task Rename_WithNewName_ShouldChangeName()
 	{
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
@@ -84,16 +78,14 @@ public sealed class AccountTests
 			balance: 0
 		);
 
-		account.ClearEvents();
-		account.Rename(newName: "Карта Тинькофф");
+		bool changed = account.Rename(newName: "Карта Тинькофф");
 
-		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: account.Events[0]).IsTypeOf<AccountRenamed>();
+		await Assert.That(value: changed).IsTrue();
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Тинькофф");
 	}
 
 	[Test]
-	public async Task Rename_WithSameName_ShouldNotRaiseEvent()
+	public async Task Rename_WithSameName_ShouldReturnFalse()
 	{
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
@@ -103,18 +95,13 @@ public sealed class AccountTests
 			balance: 0
 		);
 
-		account.ClearEvents();
-		account.Rename(newName: "Карта Сбер");
+		bool changed = account.Rename(newName: "Карта Сбер");
 
-		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
+		await Assert.That(value: changed).IsFalse();
 	}
 
-	#endregion
-
-	#region Archive
-
 	[Test]
-	public async Task Archive_ActiveAccount_ShouldRaiseAccountArchivedEvent()
+	public async Task Rename_WithEmptyName_ShouldThrowEmptyNameException()
 	{
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
@@ -124,16 +111,30 @@ public sealed class AccountTests
 			balance: 0
 		);
 
-		account.ClearEvents();
-		account.Archive();
+		await Assert.That(
+			action: () => _ = account.Rename(newName: String.Empty)
+		).Throws<EmptyNameException>();
+	}
+	
+	[Test]
+	public async Task Archive_ActiveAccount_ShouldReturnTrueAndSetIsArchived()
+	{
+		Account account = Account.Create(
+			userId: Guid.NewGuid(),
+			name: "Карта Сбер",
+			accountType: "checking",
+			currency: "RUB",
+			balance: 0
+		);
 
-		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: account.Events[0]).IsTypeOf<AccountArchived>();
+		bool changed = account.Archive();
+
+		await Assert.That(value: changed).IsTrue();
 		await Assert.That(value: account.IsArchived).IsTrue();
 	}
 
 	[Test]
-	public async Task Archive_AlreadyArchivedAccount_ShouldThrowArgumentException()
+	public async Task Archive_AlreadyArchivedAccount_ShouldThrowArchivingException()
 	{
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
@@ -143,13 +144,15 @@ public sealed class AccountTests
 			balance: 0
 		);
 
-		account.Archive();
+		_ = account.Archive();
 
-		await Assert.That(action: account.Archive).Throws<ArchivingException>();
+		await Assert.That(
+			action: () => _ = account.Archive()
+		).Throws<ArchivingException>();
 	}
 
 	[Test]
-	public async Task Unarchive_ArchivedAccount_ShouldRaiseAccountUnarchivedEvent()
+	public async Task Unarchive_ArchivedAccount_ShouldReturnTrueAndClearIsArchived()
 	{
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
@@ -159,19 +162,164 @@ public sealed class AccountTests
 			balance: 0
 		);
 
-		account.Archive();
-		account.ClearEvents();
-		account.Unarchive();
+		_ = account.Archive();
+		bool changed = account.Unarchive();
 
-		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: account.Events[0]).IsTypeOf<AccountUnarchived>();
+		await Assert.That(value: changed).IsTrue();
 		await Assert.That(value: account.IsArchived).IsFalse();
 	}
 
-	#endregion
+	[Test]
+	public async Task Unarchive_ActiveAccount_ShouldThrowUnarchivingException()
+	{
+		Account account = Account.Create(
+			userId: Guid.NewGuid(),
+			name: "Карта Сбер",
+			accountType: "checking",
+			currency: "RUB",
+			balance: 0
+		);
 
-	#region ReconstituteFromHistory
+		await Assert.That(
+			action: () => _ = account.Unarchive()
+		).Throws<UnarchivingException>();
+	}
+	
+	[Test]
+    public async Task Debit_WithValidData_ShouldRaiseAccountDebitedEvent()
+    {
+        Account account = Account.Create(
+            userId: Guid.NewGuid(),
+            name: "Карта Сбер",
+            accountType: "checking",
+            currency: "RUB",
+            balance: 10000
+        );
+        account.ClearEvents();
 
+        account.Debit(
+            transactionId: Guid.NewGuid(),
+            categoryId: Guid.NewGuid(),
+            amount: 1000m,
+            exchangeRate: 1m,
+            description: "Обед"
+        );
+
+        await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
+        await Assert.That(value: account.Events[0]).IsTypeOf<AccountDebited>();
+        await Assert.That(value: account.Balance).IsEqualTo(expected: 9000m);
+    }
+
+    [Test]
+    public async Task Debit_WithExchangeRate_ShouldApplyExchangeRate()
+    {
+        Account account = Account.Create(
+            userId: Guid.NewGuid(),
+            name: "Карта Сбер",
+            accountType: "checking",
+            currency: "RUB",
+            balance: 10000
+        );
+        account.ClearEvents();
+
+        account.Debit(
+            transactionId: Guid.NewGuid(),
+            categoryId: Guid.NewGuid(),
+            amount: 100m,
+            exchangeRate: 90m,
+            description: null
+        );
+
+        await Assert.That(value: account.Balance).IsEqualTo(expected: 1000m);
+    }
+
+    [Test]
+    public async Task Debit_OnArchivedAccount_ShouldThrowArchivingException()
+    {
+        Account account = Account.Create(
+            userId: Guid.NewGuid(),
+            name: "Карта Сбер",
+            accountType: "checking",
+            currency: "RUB",
+            balance: 0
+        );
+        account.Archive();
+
+        await Assert.That(action: () => account.Debit(
+            transactionId: Guid.NewGuid(),
+            categoryId: Guid.NewGuid(),
+            amount: 100m,
+            exchangeRate: 1m,
+            description: null
+        )).Throws<ArchivingException>();
+    }
+
+    [Test]
+    public async Task Debit_WithZeroAmount_ShouldThrowInvalidAmountException()
+    {
+        Account account = Account.Create(
+            userId: Guid.NewGuid(),
+            name: "Карта Сбер",
+            accountType: "checking",
+            currency: "RUB",
+            balance: 0
+        );
+
+        await Assert.That(action: () => account.Debit(
+            transactionId: Guid.NewGuid(),
+            categoryId: Guid.NewGuid(),
+            amount: 0m,
+            exchangeRate: 1m,
+            description: null
+        )).Throws<InvalidAmountException>();
+    }
+	
+	[Test]
+	public async Task Credit_WithValidData_ShouldRaiseAccountCreditedEvent()
+	{
+		Account account = Account.Create(
+			userId: Guid.NewGuid(),
+			name: "Карта Сбер",
+			accountType: "checking",
+			currency: "RUB",
+			balance: 1000
+		);
+		account.ClearEvents();
+
+		account.Credit(
+			transactionId: Guid.NewGuid(),
+			categoryId: Guid.NewGuid(),
+			amount: 500m,
+			exchangeRate: 1m,
+			description: "Зарплата"
+		);
+
+		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: account.Events[0]).IsTypeOf<AccountCredited>();
+		await Assert.That(value: account.Balance).IsEqualTo(expected: 1500m);
+	}
+
+	[Test]
+	public async Task Credit_OnArchivedAccount_ShouldThrowArchivingException()
+	{
+		Account account = Account.Create(
+			userId: Guid.NewGuid(),
+			name: "Карта Сбер",
+			accountType: "checking",
+			currency: "RUB",
+			balance: 0
+		);
+		account.Archive();
+
+		await Assert.That(action: () => account.Credit(
+			transactionId: Guid.NewGuid(),
+			categoryId: Guid.NewGuid(),
+			amount: 100m,
+			exchangeRate: 1m,
+			description: null
+		)).Throws<ArchivingException>();
+	}
+	
 	[Test]
 	public async Task ReconstituteFromHistory_ShouldRestoreCorrectState()
 	{
@@ -183,17 +331,27 @@ public sealed class AccountTests
 			balance: 10000
 		);
 
-		original.Rename(newName: "Карта Тинькофф");
-		original.Archive();
+		original.Debit(
+			transactionId: Guid.NewGuid(),
+			categoryId: Guid.NewGuid(),
+			amount: 1000m,
+			exchangeRate: 1m,
+			description: null
+		);
+
+		original.Credit(
+			transactionId: Guid.NewGuid(),
+			categoryId: Guid.NewGuid(),
+			amount: 500m,
+			exchangeRate: 1m,
+			description: null
+		);
 
 		Account reconstituted = Account.ReconstituteFromHistory(history: original.Events.ToList());
 
 		await Assert.That(value: reconstituted.Id).IsEqualTo(expected: original.Id);
-		await Assert.That(value: reconstituted.Name).IsEqualTo(expected: "Карта Тинькофф");
-		await Assert.That(value: reconstituted.IsArchived).IsTrue();
+		await Assert.That(value: reconstituted.Balance).IsEqualTo(expected: 9500m);
 		await Assert.That(value: reconstituted.Version).IsEqualTo(expected: original.Version);
 		await Assert.That(value: reconstituted.Events).Count().IsEqualTo(expected: 0);
 	}
-
-	#endregion
 }

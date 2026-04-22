@@ -97,9 +97,9 @@ public sealed class PostgresEventStore(
 		CancellationToken ct = default)
 	{
 		List<EventEntity> entities = await context.Events.AsNoTracking()
-												.Where(predicate: @event => @event.AggregateId == aggregateId)
-												.OrderBy(keySelector: @event => @event.Version)
-												.ToListAsync(cancellationToken: ct);
+			.Where(predicate: @event => @event.AggregateId == aggregateId)
+			.OrderBy(keySelector: @event => @event.Version)
+			.ToListAsync(cancellationToken: ct);
 
 		return entities.Select(selector: entity =>
 		{

@@ -60,65 +60,107 @@ public sealed class Account : AggregateRoot
 		Balance = @event.Balance;
 		IsArchived = false;
 	}
+	
+	private void Apply(AccountDebited @event)
+		=> Balance -= @event.Amount * @event.ExchangeRate;
 
-	private void Apply(AccountRenamed @event)
-		=> Name = @event.NewName;
-
-	private void Apply(AccountArchived @event)
-		=> IsArchived = true;
-
-	private void Apply(AccountUnarchived @event)
-		=> IsArchived = false;
+	private void Apply(AccountCredited @event)
+		=> Balance += @event.Amount * @event.ExchangeRate;
 
 	protected override void Apply(IEvent @event)
 	{
 		switch (@event)
 		{
 			case AccountCreated e: Apply(@event: e); break;
-			case AccountRenamed e: Apply(@event: e); break;
-			case AccountArchived e: Apply(@event: e); break;
-			case AccountUnarchived e: Apply(@event: e); break;
+			case AccountDebited e: Apply(@event: e); break;
+			case AccountCredited e: Apply(@event: e); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
 
-	public void Rename(string newName)
+	public void Debit(
+		Guid transactionId,
+		Guid categoryId,
+		decimal amount,
+		decimal exchangeRate,
+		string? description)
+	{
+		if (IsArchived)
+			throw new ArchivingException(message: "Cannot debit an archived account.");
+
+		if (amount <= 0)
+			throw new InvalidAmountException(message: "Amount must be greater than zero.");
+
+		if (exchangeRate <= 0)
+			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");
+
+		RaiseEvent(@event: new AccountDebited(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			TransactionId: transactionId,
+			CategoryId: categoryId,
+			Amount: amount,
+			ExchangeRate: exchangeRate,
+			Description: description,
+			OccurredAt: DateTime.UtcNow
+		));
+	}
+
+	public void Credit(
+		Guid transactionId,
+		Guid categoryId,
+		decimal amount,
+		decimal exchangeRate,
+		string? description)
+	{
+		if (IsArchived)
+			throw new ArchivingException(message: "Cannot credit an archived account.");
+
+		if (amount <= 0)
+			throw new InvalidAmountException(message: "Amount must be greater than zero.");
+
+		if (exchangeRate <= 0)
+			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");
+
+		RaiseEvent(@event: new AccountCredited(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			TransactionId: transactionId,
+			CategoryId: categoryId,
+			Amount: amount,
+			ExchangeRate: exchangeRate,
+			Description: description,
+			OccurredAt: DateTime.UtcNow
+		));
+	}
+	
+	public bool Rename(string newName)
 	{
 		if (String.IsNullOrWhiteSpace(value: newName))
 			throw new EmptyNameException(message: "The account name cannot be empty.");
 
 		if (Name.Equals(value: newName))
-			return;
+			return false;
 
-		RaiseEvent(new AccountRenamed(
-			Id: Guid.NewGuid(),
-			AccountId: Id,
-			NewName: newName,
-			OccurredAt: DateTime.UtcNow
-		));
+		Name = newName;
+		return true;
 	}
 
-	public void Archive()
+	public bool Archive()
 	{
 		if (IsArchived)
 			throw new ArchivingException(message: "The account has already been archived before.");
 
-		RaiseEvent(new AccountArchived(
-			Id: Guid.NewGuid(),
-			AccountId: Id,
-			OccurredAt: DateTime.UtcNow
-		));
+		IsArchived = true;
+		return true;
 	}
 
-	public void Unarchive()
+	public bool Unarchive()
 	{
 		if (!IsArchived)
 			throw new UnarchivingException(message: "The account is already active.");
 
-		RaiseEvent(new AccountUnarchived(
-			Id: Guid.NewGuid(),
-			AccountId: Id,
-			OccurredAt: DateTime.UtcNow
-		));
+		IsArchived = false;
+		return true;
 	}
 }

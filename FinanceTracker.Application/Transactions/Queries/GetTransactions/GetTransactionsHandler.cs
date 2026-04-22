@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Transaction;
+﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
 using MediatR;
 
@@ -6,9 +6,9 @@ namespace FinanceTracker.Application.Transactions.Queries.GetTransactions;
 
 public sealed class GetTransactionsHandler(
 	ITransactionReadRepository transactionReadRepository
-) : IRequestHandler<GetTransactionsQuery, IReadOnlyList<Transaction>>
+) : IRequestHandler<GetTransactionsQuery, IReadOnlyList<TransactionDto>>
 {
-	public async Task<IReadOnlyList<Transaction>> Handle(
+	public async Task<IReadOnlyList<TransactionDto>> Handle(
 		GetTransactionsQuery query,
 		CancellationToken ct = default)
 	{

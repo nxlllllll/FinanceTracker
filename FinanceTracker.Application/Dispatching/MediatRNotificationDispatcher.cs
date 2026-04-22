@@ -1,8 +1,6 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
-using FinanceTracker.Application.Transactions.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using MediatR;
 
@@ -20,10 +18,6 @@ public sealed class MediatRNotificationDispatcher(
 		{
 			nameof(Account) => new AccountEventsNotification(
 				AccountId: notification.AggregateId,
-				Events: notification.Events
-			),
-			nameof(Transaction) => new TransactionEventsNotification(
-				TransactionId: notification.AggregateId,
 				Events: notification.Events
 			),
 			_ => throw new UnknownAggregateTypeException(message: "Unknown aggregate type.", aggregateType: notification.AggregateType)

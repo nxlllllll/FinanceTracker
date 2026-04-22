@@ -8,25 +8,30 @@ public interface IAccountWriteRepository
 		AccountCreated @event,
 		CancellationToken ct = default
 	);
-	
+
+	Task DebitAsync(
+		AccountDebited @event,
+		CancellationToken ct = default
+	);
+
+	Task CreditAsync(
+		AccountCredited @event,
+		CancellationToken ct = default
+	);
+
 	Task RenameAsync(
-		AccountRenamed @event, 
-		CancellationToken ct = default
-	);
-	
-	Task ArchiveAsync(
-		AccountArchived @event,
-		CancellationToken ct = default
-	);
-	
-	Task UnarchiveAsync(
-		AccountUnarchived @event,
-		CancellationToken ct = default
-	);
-	
-	Task UpdateBalanceAsync(
 		Guid accountId,
-		decimal amount,
+		string newName,
+		CancellationToken ct = default
+	);
+
+	Task ArchiveAsync(
+		Guid accountId,
+		CancellationToken ct = default
+	);
+
+	Task UnarchiveAsync(
+		Guid accountId,
 		CancellationToken ct = default
 	);
 }

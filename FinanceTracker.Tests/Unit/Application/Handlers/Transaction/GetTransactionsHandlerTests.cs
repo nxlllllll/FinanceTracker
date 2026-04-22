@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.Transactions.Queries.GetTransactions;
-using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
 using NSubstitute;
 
@@ -17,24 +18,30 @@ public sealed class GetTransactionsHandlerTests
         _handler = new GetTransactionsHandler(transactionReadRepository: _transactionReadRepository);
     }
 
-    private static FinanceTracker.Core.Domains.Transaction.Transaction CreateTransaction()
+    private static TransactionDto CreateTransactionDto(Guid? accountId = null)
     {
-        return FinanceTracker.Core.Domains.Transaction.Transaction.Create(
-            accountId: Guid.NewGuid(),
-            userId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
-            amount: 1000m,
-            direction: DirectionType.Debit,
-            exchangeRate: 1m,
-            description: null,
-            occurredAt: DateTime.UtcNow
+        return new TransactionDto(
+            Id: Guid.NewGuid(),
+            AccountId: accountId ?? Guid.NewGuid(),
+            UserId: Guid.NewGuid(),
+            CategoryId: Guid.NewGuid(),
+            Amount: 1000m,
+            Direction: DirectionType.Debit,
+            ExchangeRate: 1m,
+            IsExcluded: false,
+            Description: null,
+            OccurredAt: DateTime.UtcNow
         );
     }
 
     [Test]
     public async Task Handle_ShouldReturnAllTransactions()
     {
-        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [CreateTransaction(), CreateTransaction()];
+        Guid accountId = Guid.NewGuid();
+        IReadOnlyList<TransactionDto> transactions = [
+            CreateTransactionDto(accountId: accountId),
+            CreateTransactionDto(accountId: accountId)
+        ];
 
         _transactionReadRepository.GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -46,8 +53,8 @@ public sealed class GetTransactionsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: transactions);
 
-        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.NewGuid());
-        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
+        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: accountId);
+        IReadOnlyList<TransactionDto> result = await _handler.Handle(
             query: query,
             ct: CancellationToken.None
         );
@@ -70,9 +77,10 @@ public sealed class GetTransactionsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
-        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.NewGuid(), CategoryId: categoryId);
-
-        await _handler.Handle(query: query, ct: CancellationToken.None);
+        await _handler.Handle(
+            query: new GetTransactionsQuery(AccountId: Guid.NewGuid(), CategoryId: categoryId),
+            ct: CancellationToken.None
+        );
 
         await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -98,9 +106,10 @@ public sealed class GetTransactionsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
-        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.NewGuid(), Direction: DirectionType.Credit);
-
-        await _handler.Handle(query: query, ct: CancellationToken.None);
+        await _handler.Handle(
+            query: new GetTransactionsQuery(AccountId: Guid.NewGuid(), Direction: DirectionType.Credit),
+            ct: CancellationToken.None
+        );
 
         await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -126,9 +135,10 @@ public sealed class GetTransactionsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
-        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.NewGuid(), IsExcluded: false);
-
-        await _handler.Handle(query: query, ct: CancellationToken.None);
+        await _handler.Handle(
+            query: new GetTransactionsQuery(AccountId: Guid.NewGuid(), IsExcluded: false),
+            ct: CancellationToken.None
+        );
 
         await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -144,7 +154,7 @@ public sealed class GetTransactionsHandlerTests
     [Test]
     public async Task Handle_ShouldPassDateRangeFilterToRepository()
     {
-        DateTime dateFrom = DateTime.UtcNow.AddDays(-7);
+        DateTime dateFrom = DateTime.UtcNow.AddDays(value: -7);
         DateTime dateTo = DateTime.UtcNow;
 
         _transactionReadRepository.GetAllAsync(
@@ -157,9 +167,11 @@ public sealed class GetTransactionsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
-        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.NewGuid(), DateFrom: dateFrom, DateTo: dateTo);
-
-        await _handler.Handle(query: query, ct: CancellationToken.None);
+        await _handler.Handle(query: new GetTransactionsQuery(
+            AccountId: Guid.NewGuid(),
+            DateFrom: dateFrom,
+            DateTo: dateTo
+        ), ct: CancellationToken.None);
 
         await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
             accountId: Arg.Any<Guid>(),

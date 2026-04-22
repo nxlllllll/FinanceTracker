@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
-using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using NSubstitute;
@@ -8,52 +7,42 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 
 public sealed class ChangeTransactionCategoryHandlerTests
 {
-	private ITransactionRepository _transactionRepository = null!;
-	private ChangeTransactionCategoryHandler _handler = null!;
+    private ITransactionReadRepository _transactionReadRepository = null!;
+    private ITransactionWriteRepository _transactionWriteRepository = null!;
+    private ChangeTransactionCategoryHandler _handler = null!;
 
-	[Before(hookType: Test)]
-	public void Setup()
-	{
-		_transactionRepository = Substitute.For<ITransactionRepository>();
-		_handler = new ChangeTransactionCategoryHandler(transactionRepository: _transactionRepository);
-	}
-	
-	private static FinanceTracker.Core.Domains.Transaction.Transaction CreateTransaction()
+    [Before(hookType: Test)]
+    public void Setup()
     {
-        FinanceTracker.Core.Domains.Transaction.Transaction transaction = FinanceTracker.Core.Domains.Transaction.Transaction.Create(
-            accountId: Guid.NewGuid(),
-            userId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
-            amount: 1000m,
-            direction: DirectionType.Debit,
-            exchangeRate: 1m,
-            description: null,
-            occurredAt: DateTime.UtcNow
+        _transactionReadRepository = Substitute.For<ITransactionReadRepository>();
+        _transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
+        _handler = new ChangeTransactionCategoryHandler(
+            transactionReadRepository: _transactionReadRepository,
+            transactionWriteRepository: _transactionWriteRepository
         );
-        transaction.ClearEvents();
-        return transaction;
     }
 
     [Test]
     public async Task Handle_WithValidCommand_ShouldChangeCategory()
     {
-        FinanceTracker.Core.Domains.Transaction.Transaction transaction = CreateTransaction();
+        Guid transactionId = Guid.NewGuid();
         Guid newCategoryId = Guid.NewGuid();
 
-        _transactionRepository.GetByIdAsync(
-            transactionId: Arg.Any<Guid>(),
+        _transactionReadRepository.ExistsAsync(
+            transactionId: transactionId,
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: transaction);
+        ).Returns(returnThis: true);
 
         ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
-            TransactionId: transaction.Id,
+            TransactionId: transactionId,
             CategoryId: newCategoryId
         );
 
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
-        await _transactionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            transaction: Arg.Is<FinanceTracker.Core.Domains.Transaction.Transaction>(predicate: t => t.CategoryId == newCategoryId),
+        await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ChangeCategoryAsync(
+            transactionId: transactionId,
+            categoryId: newCategoryId,
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -61,10 +50,10 @@ public sealed class ChangeTransactionCategoryHandlerTests
     [Test]
     public async Task Handle_WhenTransactionNotFound_ShouldThrowNotFoundException()
     {
-        _transactionRepository.GetByIdAsync(
+        _transactionReadRepository.ExistsAsync(
             transactionId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Transaction.Transaction?>(result: null));
+        ).Returns(returnThis: false);
 
         ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
             TransactionId: Guid.NewGuid(),
@@ -74,5 +63,29 @@ public sealed class ChangeTransactionCategoryHandlerTests
         await Assert.That(action: async () =>
             await _handler.Handle(command: command, ct: CancellationToken.None)
         ).Throws<NotFoundException>();
+    }
+
+    [Test]
+    public async Task Handle_WhenTransactionNotFound_ShouldNotCallWriteRepository()
+    {
+        _transactionReadRepository.ExistsAsync(
+            transactionId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: false);
+
+        ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
+            TransactionId: Guid.NewGuid(),
+            CategoryId: Guid.NewGuid()
+        );
+
+        await Assert.That(action: async () =>
+            await _handler.Handle(command: command, ct: CancellationToken.None)
+        ).Throws<NotFoundException>();
+
+        await _transactionWriteRepository.DidNotReceive().ChangeCategoryAsync(
+            transactionId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        );
     }
 }
