@@ -50,6 +50,15 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 
+	private void Apply(AccountBalanceAdjusted @event)
+		=> Balance += @event.Delta;
+	
+	private void Apply(AccountDebited @event)
+		=> Balance -= @event.Amount * @event.ExchangeRate;
+
+	private void Apply(AccountCredited @event)
+		=> Balance += @event.Amount * @event.ExchangeRate;
+
 	private void Apply(AccountCreated @event)
 	{
 		Id = @event.AccountId;
@@ -60,12 +69,6 @@ public sealed class Account : AggregateRoot
 		Balance = @event.Balance;
 		IsArchived = false;
 	}
-	
-	private void Apply(AccountDebited @event)
-		=> Balance -= @event.Amount * @event.ExchangeRate;
-
-	private void Apply(AccountCredited @event)
-		=> Balance += @event.Amount * @event.ExchangeRate;
 
 	protected override void Apply(IEvent @event)
 	{
@@ -74,8 +77,48 @@ public sealed class Account : AggregateRoot
 			case AccountCreated e: Apply(@event: e); break;
 			case AccountDebited e: Apply(@event: e); break;
 			case AccountCredited e: Apply(@event: e); break;
+			case AccountBalanceAdjusted e: Apply(@event: e); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
+	}
+
+	public bool AdjustBalance(
+		Guid sourceId,
+		string sourceType,
+		DirectionType direction,
+		decimal oldRate,
+		decimal newRate,
+		decimal amount)
+	{
+		int sign = GetSign(direction: direction);
+		decimal delta = (newRate - oldRate) * amount * sign;
+		
+		if (delta == 0)
+			return false;
+		
+		RaiseEvent(@event: new AccountBalanceAdjusted(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			SourceId: sourceId,
+			SourceType: sourceType,
+			OldRate: oldRate,
+			NewRate: newRate,
+			Amount: amount,
+			Delta: delta,
+			OccurredAt: DateTime.UtcNow
+		));
+		return true;
+	}
+
+	private static int GetSign(DirectionType direction)
+	{
+		int sign = direction switch
+		{
+			DirectionType.Credit => 1,
+			DirectionType.Debit => -1,
+			_ => throw new ArgumentOutOfRangeException(paramName: nameof(direction), message: "Unknown direction type.")
+		};
+		return sign;
 	}
 
 	public void Debit(

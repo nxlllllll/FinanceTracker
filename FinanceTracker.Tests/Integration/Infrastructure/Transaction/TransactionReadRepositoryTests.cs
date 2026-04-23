@@ -74,6 +74,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             direction: direction,
             exchangeRate: 1m,
             description: "Обед",
+            isRatePending: false,
             occurredAt: occurredAt ?? DateTime.UtcNow
         );
 

@@ -14,6 +14,7 @@ public interface ITransactionWriteRepository
         decimal exchangeRate,
         string? description,
         DateTime occurredAt,
+		bool isRatePending,
         CancellationToken ct = default
 	);
 

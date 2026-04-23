@@ -9,7 +9,6 @@ public sealed record CreateTransactionCommand(
     Guid CategoryId,
     decimal Amount,
     DirectionType Direction,
-    decimal ExchangeRate,
     string? Description,
     DateTime OccurredAt
 ) : IRequest<Guid>;

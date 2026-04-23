@@ -354,4 +354,103 @@ public sealed class AccountTests
 		await Assert.That(value: reconstituted.Version).IsEqualTo(expected: original.Version);
 		await Assert.That(value: reconstituted.Events).Count().IsEqualTo(expected: 0);
 	}
+	
+	[Test]
+	public async Task AdjustBalance_WithDebitAndRateIncrease_ShouldDecreaseBalance()
+	{
+	    Account account = Account.Create(
+	        userId: Guid.NewGuid(),
+	        name: "Карта Сбер",
+	        accountType: "checking",
+	        currency: "RUB",
+	        balance: 10000
+	    );
+	    account.ClearEvents();
+
+	    account.AdjustBalance(
+	        sourceId: Guid.NewGuid(),
+	        sourceType: "Transaction",
+	        direction: DirectionType.Debit,
+	        oldRate: 85m,
+	        newRate: 90m,
+	        amount: 1000m
+	    );
+
+	    await Assert.That(value: account.Balance).IsEqualTo(expected: 5000m);
+	    await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
+	    await Assert.That(value: account.Events[0]).IsTypeOf<AccountBalanceAdjusted>();
+	}
+
+	[Test]
+	public async Task AdjustBalance_WithCreditAndRateIncrease_ShouldIncreaseBalance()
+	{
+	    Account account = Account.Create(
+	        userId: Guid.NewGuid(),
+	        name: "Карта Сбер",
+	        accountType: "checking",
+	        currency: "RUB",
+	        balance: 10000
+	    );
+	    account.ClearEvents();
+
+	    account.AdjustBalance(
+	        sourceId: Guid.NewGuid(),
+	        sourceType: "Transaction",
+	        direction: DirectionType.Credit,
+	        oldRate: 85m,
+	        newRate: 90m,
+	        amount: 1000m
+	    );
+		
+	    await Assert.That(value: account.Balance).IsEqualTo(expected: 15000m);
+	}
+
+	[Test]
+	public async Task AdjustBalance_WithDebitAndRateDecrease_ShouldIncreaseBalance()
+	{
+	    Account account = Account.Create(
+	        userId: Guid.NewGuid(),
+	        name: "Карта Сбер",
+	        accountType: "checking",
+	        currency: "RUB",
+	        balance: 10000
+	    );
+	    account.ClearEvents();
+
+	    account.AdjustBalance(
+	        sourceId: Guid.NewGuid(),
+	        sourceType: "Transaction",
+	        direction: DirectionType.Debit,
+	        oldRate: 90m,
+	        newRate: 85m,
+	        amount: 1000m
+	    );
+
+	    await Assert.That(value: account.Balance).IsEqualTo(expected: 15000m);
+	}
+
+	[Test]
+	public async Task AdjustBalance_WithSameRate_ShouldNotRaiseEvent()
+	{
+	    Account account = Account.Create(
+	        userId: Guid.NewGuid(),
+	        name: "Карта Сбер",
+	        accountType: "checking",
+	        currency: "RUB",
+	        balance: 10000
+	    );
+	    account.ClearEvents();
+
+	    account.AdjustBalance(
+	        sourceId: Guid.NewGuid(),
+	        sourceType: "Transaction",
+	        direction: DirectionType.Debit,
+	        oldRate: 90m,
+	        newRate: 90m,
+	        amount: 1000m
+	    );
+
+	    await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
+	    await Assert.That(value: account.Balance).IsEqualTo(expected: 10000m);
+	}
 }

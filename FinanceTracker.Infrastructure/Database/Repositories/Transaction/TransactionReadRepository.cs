@@ -24,6 +24,7 @@ public sealed class TransactionReadRepository(
                 Direction: t.Direction,
                 ExchangeRate: t.ExchangeRate,
                 IsExcluded: t.IsExcluded,
+                IsRatePending: t.IsRatePending,
                 Description: t.Description,
                 OccurredAt: t.OccurredAt
             )).FirstOrDefaultAsync(cancellationToken: ct);
@@ -66,6 +67,7 @@ public sealed class TransactionReadRepository(
                 Direction: t.Direction,
                 ExchangeRate: t.ExchangeRate,
                 IsExcluded: t.IsExcluded,
+                IsRatePending: t.IsRatePending,
                 Description: t.Description,
                 OccurredAt: t.OccurredAt
             )).ToListAsync(cancellationToken: ct);

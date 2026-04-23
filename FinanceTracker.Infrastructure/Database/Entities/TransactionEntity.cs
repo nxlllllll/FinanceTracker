@@ -13,5 +13,6 @@ public sealed class TransactionEntity
 	public decimal ExchangeRate { get; init; }
 	public bool IsExcluded { get; set; }
 	public string? Description { get; set; }
+	public bool IsRatePending { get; set; }
 	public DateTime OccurredAt { get; init; }
 }

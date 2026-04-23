@@ -9,6 +9,11 @@ public interface IAccountWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task AdjustBalanceAsync(
+		AccountBalanceAdjusted @event,
+		CancellationToken ct = default
+	);
+	
 	Task DebitAsync(
 		AccountDebited @event,
 		CancellationToken ct = default

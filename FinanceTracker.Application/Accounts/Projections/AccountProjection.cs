@@ -26,6 +26,7 @@ public sealed class AccountProjection(
 			case AccountCreated e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountDebited e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountCredited e: await HandleAsync(@event: e, ct: ct); break;
+			case AccountBalanceAdjusted e: await HandleAsync(@event: e, ct: ct); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
@@ -38,4 +39,7 @@ public sealed class AccountProjection(
 	
 	private async Task HandleAsync(AccountCredited @event, CancellationToken ct)
 		=> await accountWriteRepository.CreditAsync(@event: @event, ct: ct);
+	
+	private async Task HandleAsync(AccountBalanceAdjusted @event, CancellationToken ct)
+		=> await accountWriteRepository.AdjustBalanceAsync(@event: @event, ct: ct);
 }

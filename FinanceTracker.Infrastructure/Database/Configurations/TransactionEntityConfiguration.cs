@@ -30,9 +30,9 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 			.HasColumnName(name: "direction_type")
 			.HasMaxLength(maxLength: 10)
 			.HasConversion(
-					convertToProviderExpression: type => type.ToString().ToLower(),
-					convertFromProviderExpression: value => Enum.Parse<DirectionType>(value: value, ignoreCase: true)
-				);
+				convertToProviderExpression: type => type.ToString().ToLower(),
+				convertFromProviderExpression: value => Enum.Parse<DirectionType>(value: value, ignoreCase: true)
+			);
 
 		builder.Property(propertyExpression: t => t.ExchangeRate)
 			.HasColumnName(name: "exchange_rate")
@@ -45,6 +45,9 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 			.HasColumnName(name: "description")
 			.HasMaxLength(maxLength: 255);
 
+		builder.Property(propertyExpression: t => t.IsRatePending)
+			.HasColumnName(name: "is_rate_pending");
+		
 		builder.Property(propertyExpression: t => t.OccurredAt)
 			.HasColumnName(name: "occurred_at");
 

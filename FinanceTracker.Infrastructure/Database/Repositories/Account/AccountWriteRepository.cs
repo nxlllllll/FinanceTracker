@@ -2,7 +2,6 @@
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
@@ -36,6 +35,25 @@ public sealed class AccountWriteRepository(
         await context.SaveChangesAsync(cancellationToken: ct);
     }
 
+	public async Task AdjustBalanceAsync(
+		AccountBalanceAdjusted @event,
+		CancellationToken ct = default)
+	{
+		await context.AccountBalances.Where(predicate: balance => balance.AccountId == @event.AccountId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(
+				propertyExpression: balance => balance.Balance,
+				valueExpression: balance => balance.Balance + @event.Delta
+			).SetProperty(
+				propertyExpression: balance => balance.LastVersion,
+				valueExpression: balance => balance.LastVersion + 1
+			).SetProperty(
+				propertyExpression: e => e.UpdatedAt,
+				valueExpression: DateTime.UtcNow
+			),
+			cancellationToken: ct
+		);
+	}
+	
     public async Task DebitAsync(
         AccountDebited @event,
         CancellationToken ct = default)

@@ -17,7 +17,6 @@ public sealed class CreateTransactionCommandValidatorTests
             CategoryId: Guid.NewGuid(),
             Amount: 1000m,
             Direction: DirectionType.Debit,
-            ExchangeRate: 1m,
             Description: null,
             OccurredAt: DateTime.UtcNow
         );
@@ -36,7 +35,6 @@ public sealed class CreateTransactionCommandValidatorTests
             CategoryId: Guid.NewGuid(),
             Amount: 0,
             Direction: DirectionType.Debit,
-            ExchangeRate: 1m,
             Description: null,
             OccurredAt: DateTime.UtcNow
         );
@@ -50,28 +48,6 @@ public sealed class CreateTransactionCommandValidatorTests
     }
 
     [Test]
-    public async Task Validate_WithZeroExchangeRate_ShouldHaveError()
-    {
-        CreateTransactionCommand command = new CreateTransactionCommand(
-            AccountId: Guid.NewGuid(),
-            UserId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
-            Amount: 1000m,
-            Direction: DirectionType.Debit,
-            ExchangeRate: 0,
-            Description: null,
-            OccurredAt: DateTime.UtcNow
-        );
-
-        ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-        await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.ExchangeRate)
-        )).IsTrue();
-    }
-
-    [Test]
     public async Task Validate_WithFutureDate_ShouldHaveError()
     {
         CreateTransactionCommand command = new CreateTransactionCommand(
@@ -80,7 +56,6 @@ public sealed class CreateTransactionCommandValidatorTests
             CategoryId: Guid.NewGuid(),
             Amount: 1000m,
             Direction: DirectionType.Debit,
-            ExchangeRate: 1m,
             Description: null,
             OccurredAt: DateTime.UtcNow.AddDays(value: 1)
         );
@@ -102,7 +77,6 @@ public sealed class CreateTransactionCommandValidatorTests
             CategoryId: Guid.NewGuid(),
             Amount: 1000m,
             Direction: DirectionType.Debit,
-            ExchangeRate: 1m,
             Description: new string(c: 'a', count: 256),
             OccurredAt: DateTime.UtcNow
         );

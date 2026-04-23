@@ -8,10 +8,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 	{
 		RuleFor(expression: command => command.Amount)
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The transaction amount must be greater than zero.");
-
-		RuleFor(expression: command => command.ExchangeRate)
-			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The exchange rate must be greater than zero.");
-
+		
 		RuleFor(expression: command => command.Direction)
 			.IsInEnum().WithMessage(errorMessage: "The direction type can only be 'Credit' or 'Debit'.");
 

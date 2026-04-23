@@ -24,6 +24,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	
 	public DbSet<OutboxMessageEntity> OutboxMessages => Set<OutboxMessageEntity>();
 	
+	public DbSet<CurrencyRateEntity> CurrencyRates => Set<CurrencyRateEntity>();
+
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(typeof(FinanceTrackerContext).Assembly);
 }

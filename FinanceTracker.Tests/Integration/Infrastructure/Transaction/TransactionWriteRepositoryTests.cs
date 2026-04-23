@@ -69,6 +69,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             description: "Обед",
+            isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
 
@@ -92,6 +93,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             description: "Обед",
+            isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
 
@@ -121,6 +123,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             description: null,
+            isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
 
@@ -165,6 +168,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             description: "Обед",
+            isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
 
@@ -193,6 +197,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             description: null,
+            isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
 
@@ -221,6 +226,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             description: null,
+            isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
 

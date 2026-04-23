@@ -19,6 +19,7 @@ public sealed class TransactionWriteRepository(
         decimal exchangeRate,
         string? description,
         DateTime occurredAt,
+        bool isRatePending,
         CancellationToken ct = default)
     {
         await context.Transactions.AddAsync(entity: new TransactionEntity()
@@ -32,6 +33,7 @@ public sealed class TransactionWriteRepository(
             ExchangeRate = exchangeRate,
             Description = description,
             IsExcluded = false,
+            IsRatePending = isRatePending,
             OccurredAt = occurredAt
         }, cancellationToken: ct);
 

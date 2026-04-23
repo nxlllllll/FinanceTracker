@@ -11,6 +11,7 @@ public sealed record TransactionDto(
 	DirectionType Direction,
 	decimal ExchangeRate,
 	bool IsExcluded,
+	bool IsRatePending,
 	string? Description,
 	DateTime OccurredAt
 );

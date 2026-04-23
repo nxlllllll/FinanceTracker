@@ -2,12 +2,14 @@
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
+using FinanceTracker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +40,8 @@ public static class DependencyInjection
 		services.AddScoped<ICurrencyRepository, CurrencyRepository>();
 		services.AddScoped<IAccountTypeRepository, AccountTypeRepository>();
 		services.AddScoped<IUserRepository, UserRepository>();
+		services.AddScoped<ICurrencyRateRepository, CurrencyRateRepository>();
+		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
 		services.AddHostedService<OutboxWorker>();
 		return services;

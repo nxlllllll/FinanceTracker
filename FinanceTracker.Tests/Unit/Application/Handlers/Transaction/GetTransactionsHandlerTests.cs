@@ -29,6 +29,7 @@ public sealed class GetTransactionsHandlerTests
             Direction: DirectionType.Debit,
             ExchangeRate: 1m,
             IsExcluded: false,
+            IsRatePending: false,
             Description: null,
             OccurredAt: DateTime.UtcNow
         );

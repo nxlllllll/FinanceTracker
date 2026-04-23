@@ -98,4 +98,32 @@ public sealed class AccountProjectionTests
             ct: Arg.Any<CancellationToken>()
         );
     }
+    
+    [Test]
+    public async Task Handle_WhenAccountBalanceAdjusted_ShouldCallAdjustBalanceAsync()
+    {
+        AccountBalanceAdjusted @event = new AccountBalanceAdjusted(
+            Id: Guid.NewGuid(),
+            AccountId: Guid.NewGuid(),
+            SourceId: Guid.NewGuid(),
+            SourceType: "Transaction",
+            OldRate: 85m,
+            NewRate: 90m,
+            Amount: 1000m,
+            Delta: 5000m,
+            OccurredAt: DateTime.UtcNow
+        );
+
+        AccountEventsNotification notification = new AccountEventsNotification(
+            AccountId: @event.AccountId,
+            Events: [@event]
+        );
+
+        await _projection.Handle(notification: notification, ct: CancellationToken.None);
+
+        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).AdjustBalanceAsync(
+            @event: Arg.Is<AccountBalanceAdjusted>(predicate: e => e.AccountId == @event.AccountId),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
 }
