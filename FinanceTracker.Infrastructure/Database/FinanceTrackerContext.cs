@@ -27,6 +27,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<CurrencyRateEntity> CurrencyRates => Set<CurrencyRateEntity>();
 
 	public DbSet<SnapshotEntity> Snapshots => Set<SnapshotEntity>();
+
+	public DbSet<TransferEntity> Transfers => Set<TransferEntity>();
 	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(typeof(FinanceTrackerContext).Assembly);

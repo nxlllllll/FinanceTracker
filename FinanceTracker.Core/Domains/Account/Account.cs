@@ -88,6 +88,20 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 
+	private void CheckConstraints(
+		decimal amount,
+		decimal exchangeRate)
+	{
+		if (IsArchived)
+			throw new ArchivingException(message: "Financial transactions on the archived account are prohibited.");
+
+		if (amount <= 0)
+			throw new InvalidAmountException(message: "Amount must be greater than zero.");
+
+		if (exchangeRate <= 0)
+			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");		
+	}
+	
 	private void Apply(AccountBalanceAdjusted @event)
 		=> Balance += @event.Delta;
 	
@@ -95,6 +109,12 @@ public sealed class Account : AggregateRoot
 		=> Balance -= @event.Amount * @event.ExchangeRate;
 
 	private void Apply(AccountCredited @event)
+		=> Balance += @event.Amount * @event.ExchangeRate;
+	
+	private void Apply(AccountTransferDebited @event)
+		=> Balance -= @event.Amount * @event.ExchangeRate;
+
+	private void Apply(AccountTransferCredited @event)
 		=> Balance += @event.Amount * @event.ExchangeRate;
 
 	private void Apply(AccountCreated @event)
@@ -116,6 +136,8 @@ public sealed class Account : AggregateRoot
 			case AccountDebited e: Apply(@event: e); break;
 			case AccountCredited e: Apply(@event: e); break;
 			case AccountBalanceAdjusted e: Apply(@event: e); break;
+			case AccountTransferDebited e: Apply(@event: e); break;
+			case AccountTransferCredited e: Apply(@event: e); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
@@ -155,15 +177,11 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		if (IsArchived)
-			throw new ArchivingException(message: "Cannot debit an archived account.");
-
-		if (amount <= 0)
-			throw new InvalidAmountException(message: "Amount must be greater than zero.");
-
-		if (exchangeRate <= 0)
-			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");
-
+		CheckConstraints(
+			amount: amount,
+			exchangeRate: exchangeRate
+		);
+		
 		RaiseEvent(@event: new AccountDebited(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
@@ -176,6 +194,30 @@ public sealed class Account : AggregateRoot
 		));
 	}
 
+	public void DebitTransfer(
+		Guid transferId,
+		Guid toAccountId,
+		decimal amount,
+		decimal exchangeRate,
+		string? description)
+	{
+		CheckConstraints(
+			amount: amount,
+			exchangeRate: exchangeRate
+		);
+
+		RaiseEvent(@event: new AccountTransferDebited(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			TransferId: transferId,
+			ToAccountId: toAccountId,
+			Amount: amount,
+			ExchangeRate: exchangeRate,
+			Description: description,
+			OccurredAt: DateTime.UtcNow
+		));
+	}
+	
 	public void Credit(
 		Guid transactionId,
 		Guid categoryId,
@@ -183,20 +225,40 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		if (IsArchived)
-			throw new ArchivingException(message: "Cannot credit an archived account.");
-
-		if (amount <= 0)
-			throw new InvalidAmountException(message: "Amount must be greater than zero.");
-
-		if (exchangeRate <= 0)
-			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");
-
+		CheckConstraints(
+			amount: amount,
+			exchangeRate: exchangeRate
+		);
+		
 		RaiseEvent(@event: new AccountCredited(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
 			TransactionId: transactionId,
 			CategoryId: categoryId,
+			Amount: amount,
+			ExchangeRate: exchangeRate,
+			Description: description,
+			OccurredAt: DateTime.UtcNow
+		));
+	}
+	
+	public void CreditTransfer(
+		Guid transferId,
+		Guid fromAccountId,
+		decimal amount,
+		decimal exchangeRate,
+		string? description)
+	{
+		CheckConstraints(
+			amount: amount,
+			exchangeRate: exchangeRate
+		);
+
+		RaiseEvent(@event: new AccountTransferCredited(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			TransferId: transferId,
+			FromAccountId: fromAccountId,
 			Amount: amount,
 			ExchangeRate: exchangeRate,
 			Description: description,
