@@ -1,10 +1,12 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
 public sealed class AccountRepository(
+	IAccountReadRepository accountReadRepository,
 	IEventStore eventStore
 ) : IAccountRepository
 {
@@ -14,17 +16,19 @@ public sealed class AccountRepository(
 		Guid accountId,
 		CancellationToken ct = default)
 	{
-		EventStoreResult result = await eventStore.LoadAsync(aggregateId: accountId, ct: ct);
-		if (result.Events.Count == 0 && result.Snapshot is null)
+		AccountDto? dto = await accountReadRepository.GetByIdAsync(accountId, ct);
+		if (dto is null) 
 			return null;
 
-		if (result.Snapshot is null)
-			return Core.Domains.Account.Account.ReconstituteFromHistory(history: result.Events);
+		EventStoreResult result = await eventStore.LoadAsync(accountId, ct);
+		if (result.Events.Count == 0 && result.Snapshot is null)
+			return null;
 		
-		Core.Domains.Account.Account account = Core.Domains.Account.Account.Restore(snapshot: result.Snapshot);
-		account.LoadEventsFromHistory(history: result.Events);
-		return account;
-
+		return Core.Domains.Account.Account.Reconstitute(
+			metadata: dto,
+			snapshot: result.Snapshot,
+			events: result.Events
+		);
 	}
 
 	public async Task SaveAsync(

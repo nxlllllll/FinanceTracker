@@ -11,6 +11,7 @@ public sealed class RenameAccountCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		RenameAccountCommand command = new RenameAccountCommand(
+			UserId: Guid.NewGuid(),
 			AccountId: Guid.NewGuid(),
 			NewName: "Карта Тинькофф"
 		);
@@ -23,6 +24,7 @@ public sealed class RenameAccountCommandValidatorTests
 	public async Task Validate_WithEmptyNewName_ShouldHaveError()
 	{
 		RenameAccountCommand command = new RenameAccountCommand(
+			UserId: Guid.NewGuid(),
 			AccountId: Guid.NewGuid(),
 			NewName: String.Empty
 		);

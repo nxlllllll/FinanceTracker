@@ -2,4 +2,7 @@
 
 namespace FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
 
-public sealed record ArchiveAccountCommand(Guid AccountId) : IRequest;
+public sealed record ArchiveAccountCommand(
+	Guid UserId,
+	Guid AccountId
+) : IRequest;

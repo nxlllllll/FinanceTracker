@@ -24,6 +24,16 @@ public interface IAccountWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task TransferDebitAsync(
+		AccountTransferDebited @event,
+		CancellationToken ct = default
+	);
+ 
+	Task TransferCreditAsync(
+		AccountTransferCredited @event,
+		CancellationToken ct = default
+	);
+	
 	Task RenameAsync(
 		Guid accountId,
 		string newName,

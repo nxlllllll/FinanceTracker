@@ -9,6 +9,26 @@ public sealed class AccountWriteRepository(
 	FinanceTrackerContext context
 ) : IAccountWriteRepository
 {
+	private async Task ApplyBalanceChangeAsync(
+		Guid accountId, 
+		decimal delta,
+		CancellationToken ct)
+	{
+		await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(
+				propertyExpression: e => e.Balance,
+				valueExpression: e => e.Balance + delta
+			).SetProperty(
+				propertyExpression: e => e.LastVersion,
+				valueExpression: e => e.LastVersion + 1
+			).SetProperty(
+				propertyExpression: e => e.UpdatedAt,
+				valueExpression: DateTime.UtcNow
+			),
+			cancellationToken: ct
+		);
+	}
+	
     public async Task CreateAsync(
         AccountCreated @event,
         CancellationToken ct = default)
@@ -58,39 +78,45 @@ public sealed class AccountWriteRepository(
         AccountDebited @event,
         CancellationToken ct = default)
     {
-        await context.AccountBalances.Where(predicate: b => b.AccountId == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: e => e.Balance,
-				valueExpression: e => e.Balance - @event.Amount * @event.ExchangeRate
-			).SetProperty(
-				propertyExpression: e => e.LastVersion,
-				valueExpression: e => e.LastVersion + 1)
-			.SetProperty(
-				propertyExpression: e => e.UpdatedAt,
-				valueExpression: DateTime.UtcNow
-			),
-			cancellationToken: ct
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: -@event.Amount * @event.ExchangeRate,
+			ct: ct
 		);
     }
 
     public async Task CreditAsync(
         AccountCredited @event,
         CancellationToken ct = default)
-    {
-        await context.AccountBalances.Where(predicate: b => b.AccountId == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: e => e.Balance,
-				valueExpression: e => e.Balance + @event.Amount * @event.ExchangeRate)
-			.SetProperty(
-				propertyExpression: e => e.LastVersion,
-				valueExpression: e => e.LastVersion + 1)
-			.SetProperty(
-				propertyExpression: e => e.UpdatedAt,
-				valueExpression: DateTime.UtcNow
-			),
-			cancellationToken: ct
+	{
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: @event.Amount * @event.ExchangeRate,
+			ct: ct
 		);
-    }
+	}
+
+	public async Task TransferDebitAsync(
+		AccountTransferDebited @event,
+		CancellationToken ct = default)
+	{
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: -@event.Amount * @event.ExchangeRate,
+			ct: ct
+		);
+	}
+
+	public async Task TransferCreditAsync(
+		AccountTransferCredited @event, 
+		CancellationToken ct = default)
+	{
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: @event.Amount * @event.ExchangeRate,
+			ct: ct
+		);
+	}
 
 	public async Task RenameAsync(
 		Guid accountId,

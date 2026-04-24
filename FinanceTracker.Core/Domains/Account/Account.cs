@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Core.Domains.Account;
@@ -69,6 +70,21 @@ public sealed class Account : AggregateRoot
 	{
 		Account account = new Account();
 		account.LoadEventsFromHistory(history: history);
+		return account;
+	}
+	
+	public static Account Reconstitute(
+		AccountDto metadata,
+		SnapshotData? snapshot,
+		IReadOnlyList<IEvent> events)
+	{
+		Account account = snapshot is null ? new Account() : Restore(snapshot: snapshot);
+
+		account.LoadEventsFromHistory(events);
+
+		account.Name = metadata.Name;
+		account.IsArchived = metadata.IsArchived;
+
 		return account;
 	}
 	

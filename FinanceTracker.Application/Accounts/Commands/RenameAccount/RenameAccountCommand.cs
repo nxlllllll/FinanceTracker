@@ -3,6 +3,7 @@
 namespace FinanceTracker.Application.Accounts.Commands.RenameAccount;
 
 public sealed record RenameAccountCommand(
+	Guid UserId,
 	Guid AccountId,
 	string NewName
 ) : IRequest;

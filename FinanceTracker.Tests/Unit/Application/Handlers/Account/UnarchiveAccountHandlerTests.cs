@@ -23,16 +23,19 @@ public sealed class UnarchiveAccountHandlerTests
         );
     }
 
-    private static FinanceTracker.Core.Domains.Account.Account CreateArchivedAccount()
+    private static FinanceTracker.Core.Domains.Account.Account CreateAccount(Guid? userId = null, bool archived = false)
     {
         FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
-            userId: Guid.NewGuid(),
+            userId: userId ?? Guid.NewGuid(),
             name: "Карта Сбер",
             type: AccountType.Checking,
             currency: "RUB",
             balance: 0
         );
-        account.Archive();
+
+        if (archived)
+            account.Archive();
+
         account.ClearEvents();
         return account;
     }
@@ -40,14 +43,14 @@ public sealed class UnarchiveAccountHandlerTests
     [Test]
     public async Task Handle_WithArchivedAccount_ShouldUnarchive()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateArchivedAccount();
+        FinanceTracker.Core.Domains.Account.Account account = CreateAccount(archived: true);
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: account);
 
         await _handler.Handle(
-            command: new UnarchiveAccountCommand(AccountId: account.Id),
+            command: new UnarchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
             ct: CancellationToken.None
         );
 
@@ -65,31 +68,38 @@ public sealed class UnarchiveAccountHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
 
-        await Assert.That(action: async () => await _handler.Handle( 
-            command: new UnarchiveAccountCommand(AccountId: Guid.NewGuid()), 
-            ct: CancellationToken.None 
+        await Assert.That(action: async () => await _handler.Handle(
+            command: new UnarchiveAccountCommand(UserId: Guid.NewGuid(), AccountId: Guid.NewGuid()),
+            ct: CancellationToken.None
         )).Throws<NotFoundException>();
     }
 
     [Test]
-    public async Task Handle_WhenAccountNotArchived_ShouldThrowUnarchivingException()
+    public async Task Handle_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
     {
-        FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
-            userId: Guid.NewGuid(),
-            name: "Карта Сбер",
-            type: AccountType.Checking,
-            currency: "RUB",
-            balance: 0
-        );
-        account.ClearEvents();
-
+        FinanceTracker.Core.Domains.Account.Account account = CreateAccount(archived: true);
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: account);
 
         await Assert.That(action: async () => await _handler.Handle(
-            command: new UnarchiveAccountCommand(AccountId: account.Id),
+            command: new UnarchiveAccountCommand(UserId: Guid.NewGuid(), AccountId: account.Id),
+            ct: CancellationToken.None
+        )).Throws<NotFoundException>();
+    }
+
+    [Test]
+    public async Task Handle_WhenAccountNotArchived_ShouldThrowUnarchivingException()
+    {
+        FinanceTracker.Core.Domains.Account.Account account = CreateAccount(archived: false);
+        _accountRepository.GetByIdAsync(
+            accountId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: account);
+
+        await Assert.That(action: async () => await _handler.Handle(
+            command: new UnarchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
             ct: CancellationToken.None
         )).Throws<UnarchivingException>();
     }
@@ -97,22 +107,14 @@ public sealed class UnarchiveAccountHandlerTests
     [Test]
     public async Task Handle_WhenAccountNotArchived_ShouldNotCallWriteRepository()
     {
-        FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
-            userId: Guid.NewGuid(),
-            name: "Карта Сбер",
-            type: AccountType.Checking,
-            currency: "RUB",
-            balance: 0
-        );
-        account.ClearEvents();
-
+        FinanceTracker.Core.Domains.Account.Account account = CreateAccount(archived: false);
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: account);
 
         await Assert.That(action: async () => await _handler.Handle(
-            command: new UnarchiveAccountCommand(AccountId: account.Id),
+            command: new UnarchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
             ct: CancellationToken.None
         )).Throws<UnarchivingException>();
 

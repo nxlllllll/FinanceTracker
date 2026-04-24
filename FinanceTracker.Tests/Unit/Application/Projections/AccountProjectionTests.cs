@@ -127,4 +127,58 @@ public sealed class AccountProjectionTests
             ct: Arg.Any<CancellationToken>()
         );
     }
+    
+    [Test]
+    public async Task Handle_WhenAccountTransferDebited_ShouldCallTransferDebitAsync()
+    {
+        AccountTransferDebited @event = new AccountTransferDebited(
+            Id: Guid.NewGuid(),
+            AccountId: Guid.NewGuid(),
+            TransferId: Guid.NewGuid(),
+            ToAccountId: Guid.NewGuid(),
+            Amount: 5000m,
+            ExchangeRate: 1m,
+            Description: null,
+            OccurredAt: DateTime.UtcNow
+        );
+ 
+        AccountEventsNotification notification = new AccountEventsNotification(
+            AccountId: @event.AccountId,
+            Events: [@event]
+        );
+ 
+        await _projection.Handle(notification: notification, ct: CancellationToken.None);
+ 
+        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).TransferDebitAsync(
+            @event: Arg.Is<AccountTransferDebited>(predicate: e => e.AccountId == @event.AccountId),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+ 
+    [Test]
+    public async Task Handle_WhenAccountTransferCredited_ShouldCallTransferCreditAsync()
+    {
+        AccountTransferCredited @event = new AccountTransferCredited(
+            Id: Guid.NewGuid(),
+            AccountId: Guid.NewGuid(),
+            TransferId: Guid.NewGuid(),
+            FromAccountId: Guid.NewGuid(),
+            Amount: 5000m,
+            ExchangeRate: 1m,
+            Description: null,
+            OccurredAt: DateTime.UtcNow
+        );
+ 
+        AccountEventsNotification notification = new AccountEventsNotification(
+            AccountId: @event.AccountId,
+            Events: [@event]
+        );
+ 
+        await _projection.Handle(notification: notification, ct: CancellationToken.None);
+ 
+        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).TransferCreditAsync(
+            @event: Arg.Is<AccountTransferCredited>(predicate: e => e.AccountId == @event.AccountId),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
 }

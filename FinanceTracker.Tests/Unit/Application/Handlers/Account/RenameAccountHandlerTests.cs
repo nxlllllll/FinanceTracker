@@ -23,10 +23,10 @@ public sealed class RenameAccountHandlerTests
         );
     }
 
-    private static FinanceTracker.Core.Domains.Account.Account CreateAccount(string name = "Карта Сбер")
+    private static FinanceTracker.Core.Domains.Account.Account CreateAccount(Guid? userId = null, string name = "Карта Сбер")
     {
         FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
-            userId: Guid.NewGuid(),
+            userId: userId ?? Guid.NewGuid(),
             name: name,
             type: AccountType.Checking,
             currency: "RUB",
@@ -46,7 +46,7 @@ public sealed class RenameAccountHandlerTests
         ).Returns(returnThis: account);
 
         await _handler.Handle(
-            command: new RenameAccountCommand(AccountId: account.Id, NewName: "Карта Тинькофф"),
+            command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: "Карта Тинькофф"),
             ct: CancellationToken.None
         );
 
@@ -67,7 +67,7 @@ public sealed class RenameAccountHandlerTests
         ).Returns(returnThis: account);
 
         await _handler.Handle(
-            command: new RenameAccountCommand(AccountId: account.Id, NewName: "Карта Сбер"),
+            command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: "Карта Сбер"),
             ct: CancellationToken.None
         );
 
@@ -87,7 +87,22 @@ public sealed class RenameAccountHandlerTests
         ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
 
         await Assert.That(action: async () => await _handler.Handle(
-            command: new RenameAccountCommand(AccountId: Guid.NewGuid(), NewName: "Карта Тинькофф"),
+            command: new RenameAccountCommand(UserId: Guid.NewGuid(), AccountId: Guid.NewGuid(), NewName: "Карта Тинькофф"),
+            ct: CancellationToken.None
+        )).Throws<NotFoundException>();
+    }
+
+    [Test]
+    public async Task Handle_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
+    {
+        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
+        _accountRepository.GetByIdAsync(
+            accountId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: account);
+
+        await Assert.That(action: async () => await _handler.Handle(
+            command: new RenameAccountCommand(UserId: Guid.NewGuid(), AccountId: account.Id, NewName: "Карта Тинькофф"),
             ct: CancellationToken.None
         )).Throws<NotFoundException>();
     }

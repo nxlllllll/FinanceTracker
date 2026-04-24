@@ -23,10 +23,13 @@ public sealed class OutboxWorkerTests : DatabaseFixture
     public void SetupRepositories()
     {
         _publisher = Substitute.For<IPublisher>();
-        _accountRepository = new AccountRepository(eventStore: new PostgresEventStore(
-            context: Context,
-            eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly)
-        ));
+        _accountRepository = new AccountRepository(
+            accountReadRepository: new AccountReadRepository(context: Context),
+            eventStore: new PostgresEventStore(
+                context: Context,
+                eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly)
+            )
+        );
     }
 
     private IServiceScope BuildScope()

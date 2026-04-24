@@ -16,7 +16,10 @@ public sealed class UnarchiveAccountHandler(
 	{
 		Account account = await accountRepository.GetByIdAsync(command.AccountId, ct)
 			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
-
+		
+		if (account.UserId != command.UserId)
+			throw new NotFoundException(message: "Account not found.", id: command.AccountId);		
+		
 		bool changed = account.Unarchive();
 
 		if (changed)

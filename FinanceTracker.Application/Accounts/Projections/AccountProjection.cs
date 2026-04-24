@@ -11,14 +11,6 @@ public sealed class AccountProjection(
 	IAccountWriteRepository accountWriteRepository
 ) : INotificationHandler<AccountEventsNotification>
 {
-	public async Task Handle(
-		AccountEventsNotification notification,
-		CancellationToken ct = default)
-	{
-		foreach (IEvent @event in notification.Events)
-			await HandleAsync(@event: @event, ct: ct);
-	}
-
 	private async Task HandleAsync(IEvent @event, CancellationToken ct)
 	{
 		switch (@event)
@@ -26,6 +18,8 @@ public sealed class AccountProjection(
 			case AccountCreated e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountDebited e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountCredited e: await HandleAsync(@event: e, ct: ct); break;
+			case AccountTransferDebited e: await HandleAsync(@event: e, ct: ct); break;
+			case AccountTransferCredited e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountBalanceAdjusted e: await HandleAsync(@event: e, ct: ct); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
@@ -39,7 +33,19 @@ public sealed class AccountProjection(
 	
 	private async Task HandleAsync(AccountCredited @event, CancellationToken ct)
 		=> await accountWriteRepository.CreditAsync(@event: @event, ct: ct);
+
+	private async Task HandleAsync(AccountTransferDebited @event, CancellationToken ct)
+		=> await accountWriteRepository.TransferDebitAsync(@event: @event, ct: ct);
+	
+	private async Task HandleAsync(AccountTransferCredited @event, CancellationToken ct)
+		=> await accountWriteRepository.TransferCreditAsync(@event: @event, ct: ct);
 	
 	private async Task HandleAsync(AccountBalanceAdjusted @event, CancellationToken ct)
 		=> await accountWriteRepository.AdjustBalanceAsync(@event: @event, ct: ct);
+	
+	public async Task Handle(AccountEventsNotification notification, CancellationToken ct = default)
+	{
+		foreach (IEvent @event in notification.Events)
+			await HandleAsync(@event: @event, ct: ct);
+	}
 }
