@@ -12,7 +12,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 10000
 		);
@@ -29,14 +29,14 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: userId,
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 10000
 		);
 
 		await Assert.That(value: account.UserId).IsEqualTo(expected: userId);
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Сбер");
-		await Assert.That(value: account.AccountType).IsEqualTo(expected: "checking");
+		await Assert.That(value: account.Type).IsEqualTo(expected: AccountType.Checking);
 		await Assert.That(value: account.Currency).IsEqualTo(expected: "RUB");
 		await Assert.That(value: account.Balance).IsEqualTo(expected: 10000);
 		await Assert.That(value: account.IsArchived).IsFalse();
@@ -49,7 +49,7 @@ public sealed class AccountTests
 		await Assert.That(func: () => Account.Create(
 			userId: Guid.NewGuid(),
 			name: String.Empty,
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 10000
 		)).Throws<EmptyNameException>();
@@ -61,7 +61,7 @@ public sealed class AccountTests
 		await Assert.That(func: () => Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: -100
 		)).Throws<InvalidInitialBalanceException>();
@@ -73,7 +73,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -90,7 +90,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -106,7 +106,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -122,7 +122,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -139,7 +139,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -157,7 +157,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -175,7 +175,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -191,7 +191,7 @@ public sealed class AccountTests
         Account account = Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 10000
         );
@@ -216,7 +216,7 @@ public sealed class AccountTests
         Account account = Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 10000
         );
@@ -239,7 +239,7 @@ public sealed class AccountTests
         Account account = Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 0
         );
@@ -260,7 +260,7 @@ public sealed class AccountTests
         Account account = Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 0
         );
@@ -280,7 +280,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 1000
 		);
@@ -305,7 +305,7 @@ public sealed class AccountTests
 		Account account = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 0
 		);
@@ -326,7 +326,7 @@ public sealed class AccountTests
 		Account original = Account.Create(
 			userId: Guid.NewGuid(),
 			name: "Карта Сбер",
-			accountType: "checking",
+			type: AccountType.Checking,
 			currency: "RUB",
 			balance: 10000
 		);
@@ -361,7 +361,7 @@ public sealed class AccountTests
 	    Account account = Account.Create(
 	        userId: Guid.NewGuid(),
 	        name: "Карта Сбер",
-	        accountType: "checking",
+	        type: AccountType.Checking,
 	        currency: "RUB",
 	        balance: 10000
 	    );
@@ -387,7 +387,7 @@ public sealed class AccountTests
 	    Account account = Account.Create(
 	        userId: Guid.NewGuid(),
 	        name: "Карта Сбер",
-	        accountType: "checking",
+	        type: AccountType.Checking,
 	        currency: "RUB",
 	        balance: 10000
 	    );
@@ -411,7 +411,7 @@ public sealed class AccountTests
 	    Account account = Account.Create(
 	        userId: Guid.NewGuid(),
 	        name: "Карта Сбер",
-	        accountType: "checking",
+	        type: AccountType.Checking,
 	        currency: "RUB",
 	        balance: 10000
 	    );
@@ -435,7 +435,7 @@ public sealed class AccountTests
 	    Account account = Account.Create(
 	        userId: Guid.NewGuid(),
 	        name: "Карта Сбер",
-	        accountType: "checking",
+	        type: AccountType.Checking,
 	        currency: "RUB",
 	        balance: 10000
 	    );

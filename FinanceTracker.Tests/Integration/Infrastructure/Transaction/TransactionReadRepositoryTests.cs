@@ -25,7 +25,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
     {
         string currencyCode = await CreateCurrencyAsync();
-        string accountType = await CreateAccountTypeAsync();
+        AccountType accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         Guid accountId = Guid.NewGuid();
@@ -34,7 +34,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             AccountId: accountId,
             UserId: userId,
             Name: "Карта Сбер",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow

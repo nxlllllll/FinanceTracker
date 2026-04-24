@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Accounts.Projections;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
@@ -26,7 +27,7 @@ public sealed class AccountProjectionTests
             AccountId: Guid.NewGuid(),
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            AccountType: "checking",
+            Type: AccountType.Checking,
             Currency: "RUB",
             Balance: 0,
             OccurredAt: DateTime.UtcNow

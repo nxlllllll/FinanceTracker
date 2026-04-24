@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 
@@ -19,7 +20,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     private async Task<AccountCreated> CreateAccountAsync()
     {
         string currencyCode = await CreateCurrencyAsync();
-        string accountType = await CreateAccountTypeAsync();
+        AccountType accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
@@ -27,7 +28,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             AccountId: Guid.NewGuid(),
             UserId: userId,
             Name: "Карта Сбер",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow
@@ -40,7 +41,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     private async Task<(Guid userId, AccountCreated @event)> CreateAccountWithArchivationAsync(bool archived = false)
     {
         string currencyCode = await CreateCurrencyAsync();
-        string accountType = await CreateAccountTypeAsync();
+        AccountType accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
@@ -48,7 +49,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             AccountId: Guid.NewGuid(),
             UserId: userId,
             Name: "Карта Сбер",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 1000m,
             OccurredAt: DateTime.UtcNow
@@ -81,7 +82,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await Assert.That(value: result.Name).IsEqualTo(expected: "Карта Сбер");
         await Assert.That(value: result.Balance).IsEqualTo(expected: 10000m);
         await Assert.That(value: result.IsArchived).IsFalse();
-        await Assert.That(value: result.AccountType).IsEqualTo(expected: "checking");
+        await Assert.That(value: result.Type).IsEqualTo(expected: AccountType.Checking);
         await Assert.That(value: result.Currency).IsEqualTo(expected: "RUB");
     }
 
@@ -124,7 +125,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     public async Task GetAllAsync_WithIsArchivedTrue_ShouldReturnOnlyArchivedAccounts()
     {
         string currencyCode = await CreateCurrencyAsync();
-        string accountType = await CreateAccountTypeAsync();
+        AccountType accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         AccountCreated active = new AccountCreated(
@@ -132,7 +133,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             AccountId: Guid.NewGuid(),
             UserId: userId,
             Name: "Активный",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 1000m,
             OccurredAt: DateTime.UtcNow
@@ -144,7 +145,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             AccountId: Guid.NewGuid(),
             UserId: userId,
             Name: "Заархивированный",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 500m,
             OccurredAt: DateTime.UtcNow
@@ -162,7 +163,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     public async Task GetAllAsync_WithNullIsArchived_ShouldReturnAllAccounts()
     {
         string currencyCode = await CreateCurrencyAsync();
-        string accountType = await CreateAccountTypeAsync();
+        AccountType accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         AccountCreated active = new AccountCreated(
@@ -170,7 +171,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             AccountId: Guid.NewGuid(),
             UserId: userId,
             Name: "Активный",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 1000m,
             OccurredAt: DateTime.UtcNow
@@ -182,7 +183,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             AccountId: Guid.NewGuid(),
             UserId: userId,
             Name: "Заархивированный",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 500m,
             OccurredAt: DateTime.UtcNow

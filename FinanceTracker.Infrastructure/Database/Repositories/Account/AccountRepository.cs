@@ -14,11 +14,17 @@ public sealed class AccountRepository(
 		Guid accountId,
 		CancellationToken ct = default)
 	{
-		IReadOnlyList<IEvent> events = await eventStore.LoadAsync(aggregateId: accountId, ct: ct);
-		if (events.Count == 0)
+		EventStoreResult result = await eventStore.LoadAsync(aggregateId: accountId, ct: ct);
+		if (result.Events.Count == 0 && result.Snapshot is null)
 			return null;
 
-		return Core.Domains.Account.Account.ReconstituteFromHistory(history: events);
+		if (result.Snapshot is null)
+			return Core.Domains.Account.Account.ReconstituteFromHistory(history: result.Events);
+		
+		Core.Domains.Account.Account account = Core.Domains.Account.Account.Restore(snapshot: result.Snapshot);
+		account.LoadEventsFromHistory(history: result.Events);
+		return account;
+
 	}
 
 	public async Task SaveAsync(

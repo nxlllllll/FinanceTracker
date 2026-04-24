@@ -15,7 +15,7 @@ public sealed class CreateAccountHandler(
 		Account account = Account.Create(
 			userId: command.UserId,
 			name: command.Name,
-			accountType: command.AccountType,
+			type: command.Type,
 			currency: command.Currency,
 			balance: command.InitialBalance
 		);

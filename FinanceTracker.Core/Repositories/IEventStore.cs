@@ -9,10 +9,11 @@ public interface IEventStore
 		string aggregateType,
 		IEnumerable<IEvent> events,
 		int expectedVersion,
+		string? snapshotState = null,
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<IEvent>> LoadAsync(
+	Task<EventStoreResult> LoadAsync(
 		Guid aggregateId,
 		CancellationToken ct = default
 	);

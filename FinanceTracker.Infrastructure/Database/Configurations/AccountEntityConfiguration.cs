@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,7 +22,11 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.Property(propertyExpression: a => a.AccountType)
 			.HasColumnName(name: "account_type_code")
-			.HasMaxLength(maxLength: 20);
+			.HasMaxLength(maxLength: 20)
+			.HasConversion(
+				convertToProviderExpression: type => type.ToString().ToLower(),
+				convertFromProviderExpression: value => Enum.Parse<AccountType>(value: value, ignoreCase: true)
+			);
 
 		builder.Property(propertyExpression: a => a.Currency)
 			.HasColumnName(name: "currency_code")
@@ -42,10 +47,6 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: a => a.Currency)
-			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
-
-		builder.HasOne<AccountTypeEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: a => a.AccountType)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
 	}
 }

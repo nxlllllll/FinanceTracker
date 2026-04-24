@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.RenameAccount;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
@@ -27,7 +28,7 @@ public sealed class RenameAccountHandlerTests
         FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: name,
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 0
         );

@@ -27,9 +27,9 @@ public sealed class CategoryEntityConfiguration : IEntityTypeConfiguration<Categ
 			.HasColumnName(name: "type_code")
 			.HasMaxLength(maxLength: 10)
 			.HasConversion(
-					convertToProviderExpression: type => type.ToString().ToLower(),
-					convertFromProviderExpression: value => Enum.Parse<CategoryType>(value: value, ignoreCase: true)
-				);
+				convertToProviderExpression: type => type.ToString().ToLower(),
+				convertFromProviderExpression: value => Enum.Parse<CategoryType>(value: value, ignoreCase: true)
+			);
 
 		builder.Property(propertyExpression: c => c.IsArchived)
 			.HasColumnName(name: "is_archived");

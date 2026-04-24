@@ -37,7 +37,7 @@ public sealed class CreateTransactionHandlerTests
         FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 10000
         );

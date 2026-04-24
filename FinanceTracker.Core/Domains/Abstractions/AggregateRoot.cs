@@ -22,6 +22,9 @@ public abstract class AggregateRoot
 		_events.Add(item: @event);
 	}
 
+	protected void RestoreVersion(int version)
+		=> Version = version;
+	
 	public void LoadEventsFromHistory(IReadOnlyList<IEvent> history)
 	{
 		foreach (IEvent @event in history)

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Infrastructure.Database.EventStore;
 
@@ -21,7 +22,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            AccountType: "checking",
+            Type: AccountType.Checking,
             Currency: "RUB",
             Balance: 0,
             OccurredAt: DateTime.UtcNow
@@ -34,8 +35,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             expectedVersion: 0
         );
 
-        IReadOnlyList<IEvent> loaded = await _eventStore.LoadAsync(aggregateId: accountId);
-        await Assert.That(value: loaded.Count).IsEqualTo(expected: 1);
+        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: accountId);
+        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 1);
     }
 
     [Test]
@@ -47,7 +48,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            AccountType: "checking",
+            Type: AccountType.Checking,
             Currency: "RUB",
             Balance: 1000m,
             OccurredAt: DateTime.UtcNow
@@ -70,18 +71,18 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             expectedVersion: 0
         );
 
-        IReadOnlyList<IEvent> loaded = await _eventStore.LoadAsync(aggregateId: accountId);
+        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: accountId);
 
-        await Assert.That(value: loaded.Count).IsEqualTo(expected: 2);
-        await Assert.That(value: loaded[0]).IsTypeOf<AccountCreated>();
-        await Assert.That(value: loaded[1]).IsTypeOf<AccountDebited>();
+        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 2);
+        await Assert.That(value: result.Events[0]).IsTypeOf<AccountCreated>();
+        await Assert.That(value: result.Events[1]).IsTypeOf<AccountDebited>();
     }
 
     [Test]
     public async Task LoadAsync_WithNonExistentAggregate_ShouldReturnEmptyList()
     {
-        IReadOnlyList<IEvent> loaded = await _eventStore.LoadAsync(aggregateId: Guid.NewGuid());
-        await Assert.That(value: loaded.Count).IsEqualTo(expected: 0);
+        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: Guid.NewGuid());
+        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
     }
 
     [Test]
@@ -93,7 +94,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            AccountType: "checking",
+            Type: AccountType.Checking,
             Currency: "RUB",
             Balance: 0,
             OccurredAt: DateTime.UtcNow
@@ -127,5 +128,103 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 expectedVersion: 0
             );
         }).Throws<InvalidOperationException>();
+    }
+    
+    [Test]
+    public async Task SaveAsync_WhenVersionReaches50_ShouldCreateSnapshot()
+    {
+        Guid accountId = Guid.NewGuid();
+        Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
+            userId: Guid.NewGuid(),
+            name: "Тест",
+            type: AccountType.Checking,
+            currency: "RUB",
+            balance: 0
+        );
+
+        await _eventStore.SaveAsync(
+            aggregateId: account.Id,
+            aggregateType: nameof(Account),
+            events: account.Events,
+            expectedVersion: 0,
+            snapshotState: account.TakeSnapshot()
+        );
+        account.ClearEvents();
+
+        for (int i = 0; i < 49; i++)
+        {
+            account.Debit(
+                transactionId: Guid.NewGuid(),
+                categoryId: Guid.NewGuid(),
+                amount: 1m,
+                exchangeRate: 1m,
+                description: null
+            );
+            int expectedVersion = account.Version - account.Events.Count;
+            await _eventStore.SaveAsync(
+                aggregateId: account.Id,
+                aggregateType: nameof(Account),
+                events: account.Events,
+                expectedVersion: expectedVersion,
+                snapshotState: account.TakeSnapshot()
+            );
+            account.ClearEvents();
+        }
+
+        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: account.Id);
+
+        await Assert.That(value: result.Snapshot).IsNotNull();
+        await Assert.That(value: result.Snapshot!.Version).IsEqualTo(expected: 50);
+        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
+    }
+
+    [Test]
+    public async Task LoadAsync_WithSnapshot_ShouldRestoreCorrectState()
+    {
+        Core.Domains.Account.Account original = Core.Domains.Account.Account.Create(
+            userId: Guid.NewGuid(),
+            name: "Тест снапшота",
+            type: AccountType.Savings,
+            currency: "USD",
+            balance: 1000m
+        );
+
+        await _eventStore.SaveAsync(
+            aggregateId: original.Id,
+            aggregateType: nameof(Account),
+            events: original.Events,
+            expectedVersion: 0,
+            snapshotState: original.TakeSnapshot()
+        );
+        original.ClearEvents();
+
+        for (int i = 0; i < 49; i++)
+        {
+            original.Credit(
+                transactionId: Guid.NewGuid(),
+                categoryId: Guid.NewGuid(),
+                amount: 10m,
+                exchangeRate: 1m,
+                description: null
+            );
+            int expectedVersion = original.Version - original.Events.Count;
+            await _eventStore.SaveAsync(
+                aggregateId: original.Id,
+                aggregateType: nameof(Account),
+                events: original.Events,
+                expectedVersion: expectedVersion,
+                snapshotState: original.TakeSnapshot()
+            );
+            original.ClearEvents();
+        }
+
+        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: original.Id);
+        Core.Domains.Account.Account restored = Core.Domains.Account.Account.Restore(snapshot: result.Snapshot!);
+        restored.LoadEventsFromHistory(history: result.Events);
+
+        await Assert.That(value: restored.Id).IsEqualTo(expected: original.Id);
+        await Assert.That(value: restored.Name).IsEqualTo(expected: original.Name);
+        await Assert.That(value: restored.Balance).IsEqualTo(expected: 1490m);
+        await Assert.That(value: restored.Version).IsEqualTo(expected: 50);
     }
 }

@@ -7,7 +7,7 @@ public sealed record AccountCreated(
 	Guid AccountId,
 	Guid UserId,
 	string Name,
-	string AccountType,
+	AccountType Type,
 	string Currency,
 	decimal Balance,
 	DateTime OccurredAt

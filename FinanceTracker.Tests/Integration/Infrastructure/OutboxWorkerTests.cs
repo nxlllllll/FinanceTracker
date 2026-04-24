@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Outbox;
@@ -43,13 +44,13 @@ public sealed class OutboxWorkerTests : DatabaseFixture
     private async Task<Core.Domains.Account.Account> CreateAndSaveAccountAsync()
     {
         string currencyCode = await CreateCurrencyAsync();
-        string accountType = await CreateAccountTypeAsync();
+        AccountType accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
             userId: userId,
             name: "Карта Сбер",
-            accountType: accountType,
+            type: accountType,
             currency: currencyCode,
             balance: 1000m
         );

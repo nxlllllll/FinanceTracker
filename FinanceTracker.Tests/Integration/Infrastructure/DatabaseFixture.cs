@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
@@ -50,24 +51,29 @@ public abstract class DatabaseFixture
 		return code;
 	}
 
-	protected async Task<string> CreateAccountTypeAsync(string type = "checking")
+	protected async Task<AccountType> CreateAccountTypeAsync(AccountType type = AccountType.Checking)
 	{
-		bool exists = await Context.AccountTypes.AnyAsync(a => a.Type == type);
-		if (exists) 
+		string typeCode = type.ToString().ToLower();
+
+		bool exists = await Context.AccountTypes.AnyAsync(predicate: a => a.Type == typeCode);
+
+		if (exists)
 			return type;
 		
 		await Context.AccountTypes.AddAsync(new AccountTypeEntity()
 		{
-			Type = type,
+			Type = typeCode,
 			Name = type switch
 			{
-				"checking" => "Текущий счёт",
-				"savings" => "Сберегательный счёт",
-				_ => type
+				AccountType.Checking => "Текущий счёт",
+				AccountType.Savings => "Сберегательный счёт",
+				AccountType.Cash => "Наличные",
+				_ => typeCode
 			},
 			Description = null
 		});
 		await Context.SaveChangesAsync();
+
 		return type;
 	}
 

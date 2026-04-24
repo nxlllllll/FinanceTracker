@@ -18,7 +18,7 @@ public sealed class AccountWriteRepository(
             Id = @event.AccountId,
             UserId = @event.UserId,
             Name = @event.Name,
-            AccountType = @event.AccountType,
+            AccountType = @event.Type,
             Currency = @event.Currency,
             IsArchived = false,
             CreatedAt = @event.OccurredAt

@@ -13,6 +13,8 @@ public sealed class PostgresEventStore(
 	IEventTypeResolver eventTypeResolver
 ) : IEventStore
 {
+	private const int SnapshotThreshold = 50;
+	
 	private static (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
 		Guid aggregateId,
 		string aggregateType,
@@ -49,11 +51,48 @@ public sealed class PostgresEventStore(
 		return (entities, envelopes);
 	}
 	
+	private async Task ApplySnapshot(
+		Guid aggregateId, 
+		string aggregateType, 
+		int expectedVersion, 
+		string? snapshotState,
+		int eventsCount,
+		CancellationToken ct = default)
+	{
+		int newVersion = expectedVersion + eventsCount;
+		if (snapshotState is null || newVersion % SnapshotThreshold != 0)
+			return;
+		
+		SnapshotEntity? existing = await context.Snapshots.FirstOrDefaultAsync(
+			predicate: s => s.AggregateId == aggregateId && s.AggregateType == aggregateType,
+			cancellationToken: ct
+		);
+
+		if (existing is null)
+		{
+			await context.Snapshots.AddAsync(entity: new SnapshotEntity()
+			{
+				AggregateId = aggregateId,
+				AggregateType = aggregateType,
+				Version = newVersion,
+				State = snapshotState,
+				CreatedAt = DateTime.UtcNow
+			}, cancellationToken: ct);
+		}
+		else
+		{
+			existing.Version = newVersion;
+			existing.State = snapshotState;
+			existing.CreatedAt = DateTime.UtcNow;
+		}
+	}
+	
 	public async Task SaveAsync(
 		Guid aggregateId,
 		string aggregateType,
 		IEnumerable<IEvent> events,
 		int expectedVersion,
+		string? snapshotState = null,
 		CancellationToken ct = default)
 	{
 		List<IEvent> eventList = events.ToList();
@@ -81,6 +120,15 @@ public sealed class PostgresEventStore(
 			ProcessedAt = null
 		}, cancellationToken: ct);
 		
+		await ApplySnapshot(
+			aggregateId: aggregateId,
+			aggregateType: aggregateType,
+			expectedVersion: expectedVersion,
+			snapshotState: snapshotState,
+			eventsCount: eventList.Count,
+			ct: ct
+		);
+
 		try
 		{
 			await context.SaveChangesAsync(cancellationToken: ct);
@@ -92,19 +140,35 @@ public sealed class PostgresEventStore(
 		}
 	}
 
-	public async Task<IReadOnlyList<IEvent>> LoadAsync(
+	public async Task<EventStoreResult> LoadAsync(
 		Guid aggregateId,
 		CancellationToken ct = default)
 	{
+		SnapshotEntity? snapshot = await context.Snapshots.AsNoTracking().FirstOrDefaultAsync(
+			predicate: s => s.AggregateId == aggregateId,
+			cancellationToken: ct
+		);
+
+		int fromVersion = snapshot?.Version ?? 0;
+
 		List<EventEntity> entities = await context.Events.AsNoTracking()
-			.Where(predicate: @event => @event.AggregateId == aggregateId)
-			.OrderBy(keySelector: @event => @event.Version)
+			.Where(predicate: e => e.AggregateId == aggregateId && e.Version > fromVersion)
+			.OrderBy(keySelector: e => e.Version)
 			.ToListAsync(cancellationToken: ct);
 
-		return entities.Select(selector: entity =>
+		List<IEvent> events = entities.Select(selector: entity =>
 		{
 			Type type = eventTypeResolver.ResolveType(typeName: entity.EventType);
 			return (IEvent)JsonSerializer.Deserialize(json: entity.Payload, returnType: type)!;
 		}).ToList();
+
+		SnapshotData? snapshotData = snapshot is null ? null : new SnapshotData(
+			AggregateId: snapshot.AggregateId,
+			AggregateType: snapshot.AggregateType,
+			Version: snapshot.Version,
+			State: snapshot.State
+		);
+
+		return new EventStoreResult(Snapshot: snapshotData, Events: events);
 	}
 }

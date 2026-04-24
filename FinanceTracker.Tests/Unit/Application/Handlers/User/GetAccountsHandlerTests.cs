@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Users.Queries.GetAccounts;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
@@ -23,7 +24,7 @@ public sealed class GetAccountsHandlerTests
             Id: Guid.NewGuid(),
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            AccountType: "checking",
+            Type: AccountType.Checking,
             Currency: "RUB",
             Balance: 1000m,
             IsArchived: isArchived,

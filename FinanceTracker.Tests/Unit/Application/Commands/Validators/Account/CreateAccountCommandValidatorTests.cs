@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
+using FinanceTracker.Core.Domains.Account;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Account;
@@ -13,7 +14,7 @@ public sealed class CreateAccountCommandValidatorTests
 		CreateAccountCommand command = new CreateAccountCommand(
 			UserId: Guid.NewGuid(),
 			Name: "Карта Сбер",
-			AccountType: "checking",
+			Type: AccountType.Checking,
 			Currency: "RUB",
 			InitialBalance: 0
 		);
@@ -29,7 +30,7 @@ public sealed class CreateAccountCommandValidatorTests
 		CreateAccountCommand command = new CreateAccountCommand(
 			UserId: Guid.NewGuid(),
 			Name: String.Empty,
-			AccountType: "checking",
+			Type: AccountType.Checking,
 			Currency: "RUB",
 			InitialBalance: 0
 		);
@@ -48,7 +49,7 @@ public sealed class CreateAccountCommandValidatorTests
 		CreateAccountCommand command = new CreateAccountCommand(
 			UserId: Guid.NewGuid(),
 			Name: "Карта Сбер",
-			AccountType: "checking",
+			Type: AccountType.Checking,
 			Currency: "RUB",
 			InitialBalance: -1
 		);

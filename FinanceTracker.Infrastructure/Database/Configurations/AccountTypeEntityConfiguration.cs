@@ -13,12 +13,15 @@ public sealed class AccountTypeEntityConfiguration : IEntityTypeConfiguration<Ac
 		builder.HasKey(keyExpression: a => a.Type);
 		
 		builder.Property(propertyExpression: a => a.Type)
-			.HasColumnName(name: "type").HasMaxLength(maxLength: 20);
+			.HasColumnName(name: "type")
+			.HasMaxLength(maxLength: 20);
 		
 		builder.Property(propertyExpression: a => a.Name)
-			.HasColumnName(name: "name").HasMaxLength(maxLength: 100);
+			.HasColumnName(name: "name")
+			.HasMaxLength(maxLength: 100);
 		
 		builder.Property(propertyExpression: a => a.Description)
-			.HasColumnName(name: "description").HasMaxLength(maxLength: 255);
+			.HasColumnName(name: "description")
+			.HasMaxLength(maxLength: 255);
 	}
 }

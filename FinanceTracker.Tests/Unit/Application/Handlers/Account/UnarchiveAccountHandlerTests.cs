@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
@@ -27,7 +28,7 @@ public sealed class UnarchiveAccountHandlerTests
         FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 0
         );
@@ -76,7 +77,7 @@ public sealed class UnarchiveAccountHandlerTests
         FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 0
         );
@@ -99,7 +100,7 @@ public sealed class UnarchiveAccountHandlerTests
         FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: "Карта Сбер",
-            accountType: "checking",
+            type: AccountType.Checking,
             currency: "RUB",
             balance: 0
         );

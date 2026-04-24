@@ -6,9 +6,20 @@ namespace FinanceTracker.Core.Domains.Account;
 
 public sealed class Account : AggregateRoot
 {
+	private sealed record AccountSnapshotState(
+		Guid Id,
+		Guid UserId,
+		string Name,
+		AccountType Type,
+		string Currency,
+		decimal Balance,
+		bool IsArchived,
+		int Version
+	);
+	
 	public Guid UserId { get; private set; }
 	public string Name { get; private set; } = String.Empty;
-	public string AccountType { get; private set; } = String.Empty;
+	public AccountType Type { get; private set; }
 	public string Currency { get; private set; } = String.Empty;
 	public decimal Balance { get; private set; }
 	public bool IsArchived { get; private set; }
@@ -18,7 +29,7 @@ public sealed class Account : AggregateRoot
 	public static Account Create(
 		Guid userId,
 		string name,
-		string accountType,
+		AccountType type,
 		string currency,
 		decimal balance)
 	{
@@ -34,7 +45,7 @@ public sealed class Account : AggregateRoot
 			AccountId: Guid.NewGuid(),
 			UserId: userId,
 			Name: name,
-			AccountType: accountType,
+			Type: type,
 			Currency: currency,
 			Balance: balance,
 			OccurredAt: DateTime.UtcNow
@@ -43,10 +54,37 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 
+	private static int GetSign(DirectionType direction)
+	{
+		int sign = direction switch
+		{
+			DirectionType.Credit => 1,
+			DirectionType.Debit => -1,
+			_ => throw new ArgumentOutOfRangeException(message: "Unknown direction type.", paramName: nameof(direction))
+		};
+		return sign;
+	}
+	
 	public static Account ReconstituteFromHistory(IReadOnlyList<IEvent> history)
 	{
 		Account account = new Account();
 		account.LoadEventsFromHistory(history: history);
+		return account;
+	}
+	
+	public static Account Restore(SnapshotData snapshot)
+	{
+		AccountSnapshotState state = System.Text.Json.JsonSerializer.Deserialize<AccountSnapshotState>(json: snapshot.State)!;
+
+		Account account = new Account();
+		account.Id = state.Id;
+		account.UserId = state.UserId;
+		account.Name = state.Name;
+		account.Type = state.Type;
+		account.Currency = state.Currency;
+		account.Balance = state.Balance;
+		account.IsArchived = state.IsArchived;
+		account.RestoreVersion(version: state.Version);
 		return account;
 	}
 
@@ -64,7 +102,7 @@ public sealed class Account : AggregateRoot
 		Id = @event.AccountId;
 		UserId = @event.UserId;
 		Name = @event.Name;
-		AccountType = @event.AccountType;
+		Type = @event.Type;
 		Currency = @event.Currency;
 		Balance = @event.Balance;
 		IsArchived = false;
@@ -109,18 +147,7 @@ public sealed class Account : AggregateRoot
 		));
 		return true;
 	}
-
-	private static int GetSign(DirectionType direction)
-	{
-		int sign = direction switch
-		{
-			DirectionType.Credit => 1,
-			DirectionType.Debit => -1,
-			_ => throw new ArgumentOutOfRangeException(paramName: nameof(direction), message: "Unknown direction type.")
-		};
-		return sign;
-	}
-
+	
 	public void Debit(
 		Guid transactionId,
 		Guid categoryId,
@@ -205,5 +232,19 @@ public sealed class Account : AggregateRoot
 
 		IsArchived = false;
 		return true;
+	}
+	
+	public string TakeSnapshot()
+	{
+		return System.Text.Json.JsonSerializer.Serialize(new AccountSnapshotState(
+			Id: Id,
+			UserId: UserId,
+			Name: Name,
+			Type: Type,
+			Currency: Currency,
+			Balance: Balance,
+			IsArchived: IsArchived,
+			Version: Version
+		));
 	}
 }

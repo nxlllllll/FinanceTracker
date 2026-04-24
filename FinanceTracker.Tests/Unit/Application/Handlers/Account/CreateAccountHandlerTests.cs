@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
@@ -22,7 +23,7 @@ public sealed class CreateAccountHandlerTests
 		return new CreateAccountCommand(
 			UserId: Guid.NewGuid(),
 			Name: name,
-			AccountType: "checking",
+			Type: AccountType.Checking,
 			Currency: "RUB",
 			InitialBalance: 10000
 		);
@@ -49,7 +50,7 @@ public sealed class CreateAccountHandlerTests
 			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(account =>
 				account.Name == command.Name &&
 				account.UserId == command.UserId &&
-				account.AccountType == command.AccountType &&
+				account.Type == command.Type &&
 				account.Currency == command.Currency
 			), ct: Arg.Any<CancellationToken>()
 		);

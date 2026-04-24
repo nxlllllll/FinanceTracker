@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     private async Task<AccountCreated> CreateAccountAsync()
     {
         string currencyCode = await CreateCurrencyAsync();
-        string accountType = await CreateAccountTypeAsync();
+        AccountType accountType = await CreateAccountTypeAsync();
         Guid userId = await CreateUserAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
@@ -23,7 +24,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             AccountId: Guid.NewGuid(),
             UserId: userId,
             Name: "Карта Сбер",
-            AccountType: accountType,
+            Type: accountType,
             Currency: currencyCode,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow
