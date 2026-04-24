@@ -25,7 +25,7 @@ public abstract class AggregateRoot
 	protected void RestoreVersion(int version)
 		=> Version = version;
 	
-	public void LoadEventsFromHistory(IReadOnlyList<IEvent> history)
+	internal void LoadEventsFromHistory(IReadOnlyList<IEvent> history)
 	{
 		foreach (IEvent @event in history)
 			Load(@event: @event);

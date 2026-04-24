@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
+namespace FinanceTracker.Tests.Integration.Infrastructure._Shared;
+
 public abstract class DatabaseFixture
 {
 	private static PostgreSqlContainer _container = null!;
@@ -24,7 +26,7 @@ public abstract class DatabaseFixture
 		}.ConnectionString;
 
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-			.UseNpgsql(connectionString: connectionString).Options;
+													.UseNpgsql(connectionString: connectionString).Options;
 
 		Context = new FinanceTrackerContext(options: options);
 		await Context.Database.EnsureCreatedAsync();

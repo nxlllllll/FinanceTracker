@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Infrastructure.Database.Repositories;
+using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.AccountType;

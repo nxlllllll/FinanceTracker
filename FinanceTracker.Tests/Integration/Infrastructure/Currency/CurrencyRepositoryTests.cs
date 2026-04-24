@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Infrastructure.Database.Repositories;
+using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 

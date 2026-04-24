@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Account;

@@ -2,7 +2,7 @@
 using FinanceTracker.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinanceTracker.Infrastructure.Database.Repositories;
+namespace FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 
 public sealed class AccountTypeRepository(
 	FinanceTrackerContext context
@@ -25,5 +25,6 @@ public sealed class AccountTypeRepository(
 				Type: a.Type,
 				Name: a.Name,
 				Description: a.Description
-			)).FirstOrDefaultAsync(cancellationToken: ct);	}
+			)).FirstOrDefaultAsync(cancellationToken: ct);	
+	}
 }

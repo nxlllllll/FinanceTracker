@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.PostgresEventStore;

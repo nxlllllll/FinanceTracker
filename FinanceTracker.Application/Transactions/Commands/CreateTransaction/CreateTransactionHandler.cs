@@ -13,7 +13,8 @@ public sealed class CreateTransactionHandler(
 	IAccountRepository accountRepository,
 	ITransactionWriteRepository transactionWriteRepository,
 	ICurrencyConversionService currencyConversionService,
-	IUserRepository userRepository
+	IUserRepository userRepository,
+	IUnitOfWork unitOfWork
 ) : IRequestHandler<CreateTransactionCommand, Guid>
 {
 	private void ApplyDirection(
@@ -60,21 +61,33 @@ public sealed class CreateTransactionHandler(
 			rate: conversion.Rate
 		);
 
-		await transactionWriteRepository.CreateAsync(
-			transactionId: transactionId,
-			accountId: command.AccountId,
-			userId: command.UserId,
-			categoryId: command.CategoryId,
-			amount: command.Amount,
-			direction: command.Direction,
-			exchangeRate: conversion.Rate,
-			description: command.Description,
-			occurredAt: command.OccurredAt,
-			isRatePending: conversion.IsPending,
-			ct: ct
-		);
+		await unitOfWork.BeginTransactionAsync(ct: ct);
 
-		await accountRepository.SaveAsync(account: account, ct: ct);
+		try
+		{
+			await transactionWriteRepository.CreateAsync(
+				transactionId: transactionId,
+				accountId: command.AccountId,
+				userId: command.UserId,
+				categoryId: command.CategoryId,
+				amount: command.Amount,
+				direction: command.Direction,
+				exchangeRate: conversion.Rate,
+				description: command.Description,
+				occurredAt: command.OccurredAt,
+				isRatePending: conversion.IsPending,
+				ct: ct
+			);
+
+			await accountRepository.SaveAsync(account: account, ct: ct);
+			
+			await unitOfWork.CommitAsync(ct: ct);
+		}
+		catch
+		{
+			await unitOfWork.RollbackAsync(ct: ct);
+			throw;
+		}
 
 		return transactionId;
 	}

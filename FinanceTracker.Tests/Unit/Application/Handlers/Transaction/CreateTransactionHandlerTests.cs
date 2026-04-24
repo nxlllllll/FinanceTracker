@@ -17,6 +17,7 @@ public sealed class CreateTransactionHandlerTests
     private ICurrencyConversionService _currencyConversionService = null!;
     private IUserRepository _userRepository = null!;
     private CreateTransactionHandler _handler = null!;
+    private IUnitOfWork _unitOfWork = null!;
  
     [Before(hookType: Test)]
     public void Setup()
@@ -25,11 +26,14 @@ public sealed class CreateTransactionHandlerTests
         _transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
         _currencyConversionService = Substitute.For<ICurrencyConversionService>();
         _userRepository = Substitute.For<IUserRepository>();
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+        
         _handler = new CreateTransactionHandler(
             accountRepository: _accountRepository,
             transactionWriteRepository: _transactionWriteRepository,
             currencyConversionService: _currencyConversionService,
-            userRepository: _userRepository
+            userRepository: _userRepository,
+            unitOfWork: _unitOfWork
         );
     }
  

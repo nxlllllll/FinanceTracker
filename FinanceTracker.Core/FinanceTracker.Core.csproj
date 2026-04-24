@@ -7,4 +7,8 @@
         <RootNamespace>FinanceTracker.Core</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="FinanceTracker.Tests" />
+    </ItemGroup>
+    
 </Project>

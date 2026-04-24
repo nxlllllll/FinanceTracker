@@ -1,10 +1,9 @@
-﻿using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Repositories;
+﻿using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 
-namespace FinanceTracker.Infrastructure.Database.Repositories;
+namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
 public sealed class UserRepository(
 	FinanceTrackerContext context
@@ -21,13 +20,13 @@ public sealed class UserRepository(
 		);
 	}
 	
-	public async Task<User?> GetByIdAsync(
+	public async Task<Core.Domains.User.User?> GetByIdAsync(
 		Guid userId,
 		CancellationToken ct = default)
 	{
 		return await context.Users.AsNoTracking()
 			.Where(predicate: user => user.Id == userId)
-			.Select(selector: user => User.Reconstitute(
+			.Select(selector: user => Core.Domains.User.User.Reconstitute(
 				id: user.Id,
 				email: user.Email,
 				passwordHash: user.PasswordHash,
@@ -36,13 +35,13 @@ public sealed class UserRepository(
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
-	public async Task<User?> GetByEmailAsync(
+	public async Task<Core.Domains.User.User?> GetByEmailAsync(
 		string email,
 		CancellationToken ct = default)
 	{
 		return await context.Users.AsNoTracking()
 			.Where(predicate: user => user.Email == email)
-			.Select(selector: user => User.Reconstitute(
+			.Select(selector: user => Core.Domains.User.User.Reconstitute(
 				id: user.Id,
 				email: user.Email,
 				passwordHash: user.PasswordHash,
@@ -53,7 +52,7 @@ public sealed class UserRepository(
 	}
 
 	public async Task CreateAsync(
-		User user,
+		Core.Domains.User.User user,
 		CancellationToken ct = default)
 	{
 		await context.Users.AddAsync(entity: new UserEntity()

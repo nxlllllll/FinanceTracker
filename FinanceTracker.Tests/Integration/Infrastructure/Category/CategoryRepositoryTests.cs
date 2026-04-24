@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Infrastructure.Database.Repositories;
+using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Category;

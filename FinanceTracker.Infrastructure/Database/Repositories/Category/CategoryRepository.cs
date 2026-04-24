@@ -4,7 +4,7 @@ using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 
-namespace FinanceTracker.Infrastructure.Database.Repositories;
+namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
 
 public sealed class CategoryRepository(
 	FinanceTrackerContext context
@@ -21,7 +21,7 @@ public sealed class CategoryRepository(
 		);
 	}
 
-	public async Task<Category?> GetByIdAsync(
+	public async Task<Core.Domains.Category.Category?> GetByIdAsync(
 		Guid categoryId,
 		CancellationToken ct = default)
 	{
@@ -32,7 +32,7 @@ public sealed class CategoryRepository(
 		if (category is null)
 			return null;
 
-		return Category.Reconstitute(
+		return Core.Domains.Category.Category.Reconstitute(
 			id: category.Id,
 			userId: category.UserId,
 			parentId: category.ParentId,
@@ -43,7 +43,7 @@ public sealed class CategoryRepository(
 		);
 	}
 	
-	public async Task<IReadOnlyList<Category>> GetAllAsync(
+	public async Task<IReadOnlyList<Core.Domains.Category.Category>> GetAllAsync(
 		Guid userId,
 		CategoryType? type = null,
 		bool? isArchived = null,
@@ -61,7 +61,7 @@ public sealed class CategoryRepository(
 		if (parentId is not null)
 			categories = categories.Where(predicate: c => c.ParentId == parentId);
     
-		return await categories.Select(selector: c => Category.Reconstitute(
+		return await categories.Select(selector: c => Core.Domains.Category.Category.Reconstitute(
 			id: c.Id,
 			userId: c.UserId,
 			parentId: c.ParentId,
@@ -73,7 +73,7 @@ public sealed class CategoryRepository(
 	}
 
 	public async Task CreateAsync(
-		Category category,
+		Core.Domains.Category.Category category,
 		CancellationToken ct = default)
 	{
 		await context.Categories.AddAsync(entity: new CategoryEntity()

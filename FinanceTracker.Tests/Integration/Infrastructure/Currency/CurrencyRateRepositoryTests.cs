@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Infrastructure.Database.Entities;
-using FinanceTracker.Infrastructure.Database.Repositories;
+using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 

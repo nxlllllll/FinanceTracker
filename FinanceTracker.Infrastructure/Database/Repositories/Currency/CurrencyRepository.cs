@@ -2,7 +2,7 @@
 using FinanceTracker.Core.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinanceTracker.Infrastructure.Database.Repositories;
+namespace FinanceTracker.Infrastructure.Database.Repositories.Currency;
 
 public sealed class CurrencyRepository(
 	FinanceTrackerContext context

@@ -1,11 +1,11 @@
 ﻿using FinanceTracker.Core.Repositories;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace FinanceTracker.Infrastructure.Database;
+namespace FinanceTracker.Infrastructure.Database.UOW;
 
 public sealed class EFUnitOfWork(
 	FinanceTrackerContext context
-) : IUnitOfWork
+) : IUnitOfWork, IDisposable, IAsyncDisposable
 {
 	private IDbContextTransaction? _transaction;
 	
@@ -28,6 +28,23 @@ public sealed class EFUnitOfWork(
 			return;
 
 		await _transaction.RollbackAsync(cancellationToken: ct);
+		await _transaction.DisposeAsync();
+		_transaction = null;
+	}
+
+	public void Dispose()
+	{
+		_transaction?.Rollback();
+		_transaction?.Dispose();
+		_transaction = null;
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_transaction is null)
+			return;
+		
+		await _transaction.RollbackAsync();
 		await _transaction.DisposeAsync();
 		_transaction = null;
 	}
