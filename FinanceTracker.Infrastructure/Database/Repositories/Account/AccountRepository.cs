@@ -45,6 +45,7 @@ public sealed class AccountRepository(
 			aggregateType: AggregateType,
 			events: account.Events,
 			expectedVersion: expectedVersion,
+			snapshotState: account.TakeSnapshot(),
 			ct: ct
 		);
 

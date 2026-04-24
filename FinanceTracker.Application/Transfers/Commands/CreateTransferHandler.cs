@@ -40,7 +40,6 @@ public sealed class CreateTransferHandler(
 		);
 
 		Guid transferId = Guid.NewGuid();
-		decimal amountTo = command.Amount * conversion.Rate;
 
 		fromAccount.DebitTransfer(
 			transferId: transferId,
@@ -53,8 +52,8 @@ public sealed class CreateTransferHandler(
 		toAccount.CreditTransfer(
 			transferId: transferId,
 			fromAccountId: command.FromAccountId,
-			amount: amountTo,
-			exchangeRate: 1m,
+			amount: command.Amount,
+			exchangeRate: conversion.Rate,
 			description: command.Description
 		);
 
@@ -64,7 +63,7 @@ public sealed class CreateTransferHandler(
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,
 			amountFrom: command.Amount,
-			amountTo: amountTo,
+			amountTo: command.Amount * conversion.Rate,
 			exchangeRate: conversion.Rate,
 			description: command.Description,
 			occurredAt: command.OccurredAt,

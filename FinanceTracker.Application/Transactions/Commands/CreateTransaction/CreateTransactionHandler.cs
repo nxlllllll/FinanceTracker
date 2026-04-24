@@ -28,7 +28,7 @@ public sealed class CreateTransactionHandler(
 			DirectionType.Credit => account.Credit,
 			_ => throw new ArgumentOutOfRangeException(message: "Direction is unknown.", paramName: nameof(command.Direction))
 		};
-
+ 
 		func(transactionId, command.CategoryId, command.Amount, rate, command.Description);
 	}
 	
@@ -39,6 +39,9 @@ public sealed class CreateTransactionHandler(
 		Account account = await accountRepository.GetByIdAsync(accountId: command.AccountId, ct: ct) 
 			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
 
+		if (account.UserId != command.UserId)
+			throw new NotFoundException(message: "Account not found.", id: command.AccountId);
+ 
 		User user = await userRepository.GetByIdAsync(userId: command.UserId, ct: ct) 
 			?? throw new NotFoundException(message: "User not found.", id: command.UserId);
 

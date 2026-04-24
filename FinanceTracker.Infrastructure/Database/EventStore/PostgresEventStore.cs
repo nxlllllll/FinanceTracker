@@ -60,9 +60,12 @@ public sealed class PostgresEventStore(
 		CancellationToken ct = default)
 	{
 		int newVersion = expectedVersion + eventsCount;
-		if (snapshotState is null || newVersion % SnapshotThreshold != 0)
+		int previousThreshold = expectedVersion / SnapshotThreshold;
+		int newThreshold = newVersion / SnapshotThreshold;
+
+		if (snapshotState is null || newThreshold <= previousThreshold)
 			return;
-		
+
 		SnapshotEntity? existing = await context.Snapshots.FirstOrDefaultAsync(
 			predicate: s => s.AggregateId == aggregateId && s.AggregateType == aggregateType,
 			cancellationToken: ct
@@ -107,18 +110,20 @@ public sealed class PostgresEventStore(
 		);
 
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
-		await context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity()
-		{
-			Id = Guid.NewGuid(),
-			AggregateId = aggregateId,
-			AggregateType = aggregateType,
-			Payload = JsonSerializer.Serialize(value: new OutboxPayload(
-				AggregateId: aggregateId,
-				Events: envelopes
-			)),
-			CreatedAt = DateTime.UtcNow,
-			ProcessedAt = null
-		}, cancellationToken: ct);
+		await context.OutboxMessages.AddAsync(
+			entity: new OutboxMessageEntity() {
+				Id = Guid.NewGuid(),
+				AggregateId = aggregateId,
+				AggregateType = aggregateType,
+				Payload = JsonSerializer.Serialize(value: new OutboxPayload(
+					AggregateId: aggregateId,
+					Events: envelopes
+				)),
+				CreatedAt = DateTime.UtcNow,
+				ProcessedAt = null
+			},
+			cancellationToken: ct
+		);
 		
 		await ApplySnapshot(
 			aggregateId: aggregateId,
