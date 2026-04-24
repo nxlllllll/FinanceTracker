@@ -1,7 +1,8 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Infrastructure.Database.Repositories;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure;
+namespace FinanceTracker.Tests.Integration.Infrastructure.Category;
 
 public sealed class CategoryRepositoryTests : DatabaseFixture
 {
@@ -11,9 +12,9 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 	public void SetupRepository()
 		=> _categoryRepository = new CategoryRepository(context: Context);
 
-	private static Category CreateCategory(Guid? parentId = null)
+	private static Core.Domains.Category.Category CreateCategory(Guid? parentId = null)
 	{
-		return Category.Create(
+		return Core.Domains.Category.Category.Create(
 			userId: Guid.NewGuid(),
 			name: "Еда",
 			type: CategoryType.Expense,
@@ -21,13 +22,13 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 		);
 	}
 
-	private async Task<Category> CreateAndSaveCategoryAsync(
+	private async Task<Core.Domains.Category.Category> CreateAndSaveCategoryAsync(
 		Guid userId,
 		CategoryType type = CategoryType.Expense,
 		bool isArchived = false,
 		Guid? parentId = null)
 	{
-		Category category = Category.Create(
+		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
 			userId: userId,
 			name: "Еда",
 			type: type,
@@ -45,17 +46,17 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentCategory_ShouldReturnNull()
 	{
-		Category? result = await _categoryRepository.GetByIdAsync(categoryId: Guid.NewGuid());
+		Core.Domains.Category.Category? result = await _categoryRepository.GetByIdAsync(categoryId: Guid.NewGuid());
 		await Assert.That(value: result).IsNull();
 	}
 
 	[Test]
 	public async Task CreateAsync_ThenGetByIdAsync_ShouldReturnCorrectCategory()
 	{
-		Category category = CreateCategory();
+		Core.Domains.Category.Category category = CreateCategory();
 		await _categoryRepository.CreateAsync(category: category);
 
-		Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
+		Core.Domains.Category.Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded.Id).IsEqualTo(expected: category.Id);
@@ -68,13 +69,13 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task CreateAsync_WithParentId_ShouldSetParentId()
 	{
-		Category parent = CreateCategory();
+		Core.Domains.Category.Category parent = CreateCategory();
 		await _categoryRepository.CreateAsync(category: parent);
 
-		Category child = CreateCategory(parentId: parent.Id);
+		Core.Domains.Category.Category child = CreateCategory(parentId: parent.Id);
 		await _categoryRepository.CreateAsync(category: child);
 
-		Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: child.Id);
+		Core.Domains.Category.Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: child.Id);
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded.ParentId).IsEqualTo(expected: parent.Id);
@@ -83,7 +84,7 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task RenameAsync_ShouldUpdateName()
 	{
-		Category category = CreateCategory();
+		Core.Domains.Category.Category category = CreateCategory();
 		await _categoryRepository.CreateAsync(category: category);
 
 		await _categoryRepository.RenameAsync(
@@ -91,7 +92,7 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 			newName: "Продукты"
 		);
 
-		Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
+		Core.Domains.Category.Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded.Name).IsEqualTo(expected: "Продукты");
@@ -100,12 +101,12 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task ArchiveAsync_ShouldSetIsArchivedTrue()
 	{
-		Category category = CreateCategory();
+		Core.Domains.Category.Category category = CreateCategory();
 		await _categoryRepository.CreateAsync(category: category);
 
 		await _categoryRepository.ArchiveAsync(categoryId: category.Id);
 
-		Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
+		Core.Domains.Category.Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded.IsArchived).IsTrue();
@@ -114,13 +115,13 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task UnarchiveAsync_ShouldSetIsArchivedFalse()
 	{
-		Category category = CreateCategory();
+		Core.Domains.Category.Category category = CreateCategory();
 		await _categoryRepository.CreateAsync(category: category);
 
 		await _categoryRepository.ArchiveAsync(categoryId: category.Id);
 		await _categoryRepository.UnarchiveAsync(categoryId: category.Id);
 
-		Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
+		Core.Domains.Category.Category? loaded = await _categoryRepository.GetByIdAsync(categoryId: category.Id);
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded.IsArchived).IsFalse();
@@ -129,7 +130,7 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
 	[Test]
     public async Task GetAllAsync_WithNoCategories_ShouldReturnEmptyList()
     {
-        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: Guid.NewGuid());
+        IReadOnlyList<Core.Domains.Category.Category> result = await _categoryRepository.GetAllAsync(userId: Guid.NewGuid());
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 0);
     }
@@ -141,7 +142,7 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
         _ = await CreateAndSaveCategoryAsync(userId: userId);
         _ = await CreateAndSaveCategoryAsync(userId: Guid.NewGuid());
 
-        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId);
+        IReadOnlyList<Core.Domains.Category.Category> result = await _categoryRepository.GetAllAsync(userId: userId);
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result[0].UserId).IsEqualTo(expected: userId);
@@ -154,7 +155,7 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
         _ = await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
         _ = await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
 
-        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId, type: CategoryType.Expense);
+        IReadOnlyList<Core.Domains.Category.Category> result = await _categoryRepository.GetAllAsync(userId: userId, type: CategoryType.Expense);
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result[0].Type).IsEqualTo(expected: CategoryType.Expense);
@@ -167,7 +168,7 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
         _ = await CreateAndSaveCategoryAsync(userId: userId, isArchived: false);
         _ = await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
 
-        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId, isArchived: false);
+        IReadOnlyList<Core.Domains.Category.Category> result = await _categoryRepository.GetAllAsync(userId: userId, isArchived: false);
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result[0].IsArchived).IsFalse();
@@ -177,11 +178,11 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
     public async Task GetAllAsync_WithParentIdFilter_ShouldReturnOnlySubcategories()
     {
         Guid userId = Guid.NewGuid();
-        Category parent = await CreateAndSaveCategoryAsync(userId: userId);
+        Core.Domains.Category.Category parent = await CreateAndSaveCategoryAsync(userId: userId);
         _ = await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
         _ = await CreateAndSaveCategoryAsync(userId: userId);
 		
-        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId, parentId: parent.Id);
+        IReadOnlyList<Core.Domains.Category.Category> result = await _categoryRepository.GetAllAsync(userId: userId, parentId: parent.Id);
 
         await Assert.That(result.Count).IsEqualTo(1);
         await Assert.That(result[0].ParentId).IsEqualTo(parent.Id);
@@ -195,7 +196,7 @@ public sealed class CategoryRepositoryTests : DatabaseFixture
         _ = await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
         _ = await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
 
-        IReadOnlyList<Category> result = await _categoryRepository.GetAllAsync(userId: userId);
+        IReadOnlyList<Core.Domains.Category.Category> result = await _categoryRepository.GetAllAsync(userId: userId);
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 3);
     }

@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -17,23 +18,11 @@ public sealed class UnarchiveCategoryHandlerTests
 		_categoryRepository = Substitute.For<ICategoryRepository>();
 		_handler = new UnarchiveCategoryHandler(categoryRepository: _categoryRepository);
 	}
-
-	private static FinanceTracker.Core.Domains.Category.Category CreateArchivedCategory()
-	{
-		FinanceTracker.Core.Domains.Category.Category category = FinanceTracker.Core.Domains.Category.Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
-		category.Archive();
-		return category;
-	}
-
+	
 	[Test]
 	public async Task Handle_WithArchivedCategory_ShouldUnarchiveCategory()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CreateArchivedCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true);
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -66,12 +55,7 @@ public sealed class UnarchiveCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryNotArchived_ShouldThrowUnarchivingException()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = FinanceTracker.Core.Domains.Category.Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
 
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),

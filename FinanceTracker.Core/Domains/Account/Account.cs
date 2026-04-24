@@ -5,6 +5,11 @@ using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Core.Domains.Account;
 
+/// <remarks>
+/// Event Store tracks only financial events (Debit, Credit, Transfer, BalanceAdjusted).
+/// Metadata (Name, IsArchived) is managed via CRUD and injected from the read model
+/// during reconstitution. This is intentional — see AccountRepository.Reconstitute.
+/// </remarks>
 public sealed class Account : AggregateRoot
 {
 	private sealed record AccountSnapshotState(

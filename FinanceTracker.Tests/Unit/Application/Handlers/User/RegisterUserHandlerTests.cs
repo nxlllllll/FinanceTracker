@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Users.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
@@ -64,11 +65,7 @@ public sealed class RegisterUserHandlerTests
     [Test]
     public async Task Handle_WithDuplicateEmail_ShouldThrowDuplicateEmailException()
     {
-        FinanceTracker.Core.Domains.User.User existingUser = FinanceTracker.Core.Domains.User.User.Register(
-            email: "test@test.com",
-            passwordHash: "hash",
-            baseCurrencyCode: "RUB"
-        );
+        FinanceTracker.Core.Domains.User.User existingUser = UserFactory.Create();
 
         _userRepository.GetByEmailAsync(
             email: Arg.Any<string>(),

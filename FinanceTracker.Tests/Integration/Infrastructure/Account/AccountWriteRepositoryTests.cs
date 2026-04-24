@@ -1,6 +1,7 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Account;
@@ -8,16 +9,28 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.Account;
 public sealed class AccountWriteRepositoryTests : DatabaseFixture
 {
     private AccountWriteRepository _writeRepository = null!;
-
+    private CurrencyBuilder _currencyBuilder = null!;
+    private AccountTypeBuilder _accountTypeBuilder = null!;
+    private UserBuilder _userBuilder = null!;
+    
+    [Before(hookType: Test)]
+    public void SetupRepositories()
+    {
+        _writeRepository = new AccountWriteRepository(context: Context);
+        _currencyBuilder = new CurrencyBuilder(context: Context);
+        _accountTypeBuilder = new AccountTypeBuilder(context: Context);
+        _userBuilder = new UserBuilder(context: Context);
+    }
+    
     [Before(hookType: Test)]
     public void SetupRepository()
         => _writeRepository = new AccountWriteRepository(context: Context);
 
     private async Task<AccountCreated> CreateAccountAsync()
     {
-        string currencyCode = await CreateCurrencyAsync();
-        AccountType accountType = await CreateAccountTypeAsync();
-        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
             Id: Guid.NewGuid(),

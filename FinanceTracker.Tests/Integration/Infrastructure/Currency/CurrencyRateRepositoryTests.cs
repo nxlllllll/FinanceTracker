@@ -1,15 +1,21 @@
 ﻿using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure;
+namespace FinanceTracker.Tests.Integration.Infrastructure.Currency;
 
 public sealed class CurrencyRateRepositoryTests : DatabaseFixture
 {
 	private CurrencyRateRepository _repository = null!;
+    private CurrencyBuilder _currencyBuilder = null!;
 
     [Before(hookType: Test)]
     public void SetupRepository()
-        => _repository = new CurrencyRateRepository(context: Context);
+    {
+        _repository = new CurrencyRateRepository(context: Context);
+        _currencyBuilder = new CurrencyBuilder(context: Context);
+    }
 
     private async Task SeedRateAsync(
         string baseCode,
@@ -43,8 +49,8 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetRateAsync_WhenRateExists_ShouldReturnRate()
     {
-        await CreateCurrencyAsync(code: "USD");
-        await CreateCurrencyAsync(code: "RUB");
+        await _currencyBuilder.CreateAsync(code: "USD");
+        await _currencyBuilder.CreateAsync(code: "RUB");
 
         DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
         await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 90m, date: date);
@@ -84,8 +90,8 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetLatestRateAsync_WhenMultipleRatesExist_ShouldReturnLatest()
     {
-        await CreateCurrencyAsync(code: "USD");
-        await CreateCurrencyAsync(code: "RUB");
+        await _currencyBuilder.CreateAsync(code: "USD");
+        await _currencyBuilder.CreateAsync(code: "RUB");
 
         await SeedRateAsync(
             baseCode: "USD", 

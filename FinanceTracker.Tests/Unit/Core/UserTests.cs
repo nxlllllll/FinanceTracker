@@ -1,26 +1,15 @@
 ﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
 
 public sealed class UserTests
 {
-	private static User CreateUser(
-        string email = "test@test.com",
-        string passwordHash = "hash",
-        string baseCurrencyCode = "RUB")
-    {
-        return User.Register(
-            email: email,
-            passwordHash: passwordHash,
-            baseCurrencyCode: baseCurrencyCode
-        );
-    }
-
     [Test]
     public async Task Register_WithValidData_ShouldSetCorrectState()
     {
-        User user = CreateUser();
+        User user = UserFactory.Create();
 
         await Assert.That(value: user.Id).IsNotDefault();
         await Assert.That(value: user.Email).IsEqualTo(expected: "test@test.com");
@@ -31,20 +20,20 @@ public sealed class UserTests
 
     [Test]
     public async Task Register_WithEmptyEmail_ShouldThrowEmptyEmailException()
-        => await Assert.That(action: () => CreateUser(email: String.Empty)).Throws<EmailException>();
+        => await Assert.That(action: () => UserFactory.Create(email: String.Empty)).Throws<EmailException>();
 
     [Test]
-    public async Task Register_WithEmptyPasswordHash_ShouldThrowArgumentException()
-        => await Assert.That(action: () => CreateUser(passwordHash: String.Empty)).Throws<PasswordException>();
+    public async Task Register_WithEmptyPasswordHash_ShouldThrowPasswordException()
+        => await Assert.That(action: () => UserFactory.Create(passwordHash: String.Empty)).Throws<PasswordException>();
 
     [Test]
-    public async Task Register_WithEmptyBaseCurrencyCode_ShouldThrowArgumentException()
-        => await Assert.That(action: () => CreateUser(baseCurrencyCode: String.Empty)).Throws<CurrencyException>();
+    public async Task Register_WithEmptyBaseCurrencyCode_ShouldThrowCurrencyException()
+        => await Assert.That(action: () => UserFactory.Create(baseCurrencyCode: String.Empty)).Throws<CurrencyException>();
 
     [Test]
     public async Task ChangeEmail_WithValidEmail_ShouldChangeEmail()
     {
-        User user = CreateUser();
+        User user = UserFactory.Create();
 
         user.ChangeEmail(newEmail: "new@test.com");
 
@@ -54,7 +43,7 @@ public sealed class UserTests
     [Test]
     public async Task ChangeEmail_WithSameEmail_ShouldNotChangeEmail()
     {
-        User user = CreateUser(email: "test@test.com");
+        User user = UserFactory.Create();
 
         user.ChangeEmail(newEmail: "test@test.com");
 
@@ -64,7 +53,7 @@ public sealed class UserTests
     [Test]
     public async Task ChangeEmail_WithEmptyEmail_ShouldThrowEmptyEmailException()
     {
-        User user = CreateUser();
+        User user = UserFactory.Create();
 
         await Assert.That(action: () => user.ChangeEmail(newEmail: String.Empty)).Throws<EmailException>();
     }
@@ -72,7 +61,7 @@ public sealed class UserTests
     [Test]
     public async Task ChangePassword_WithValidHash_ShouldChangePassword()
     {
-        User user = CreateUser();
+        User user = UserFactory.Create();
 
         user.ChangePassword(newPasswordHash: "newHash");
 
@@ -82,7 +71,7 @@ public sealed class UserTests
     [Test]
     public async Task ChangePassword_WithEmptyHash_ShouldThrowArgumentException()
     {
-        User user = CreateUser();
+        User user = UserFactory.Create();
 
         await Assert.That(action: () => user.ChangePassword(newPasswordHash: String.Empty)).Throws<PasswordException>();
     }
@@ -90,7 +79,7 @@ public sealed class UserTests
     [Test]
     public async Task ChangeBaseCurrency_WithValidCode_ShouldChangeBaseCurrency()
     {
-        User user = CreateUser();
+        User user = UserFactory.Create();
 
         user.ChangeBaseCurrency(newBaseCurrencyCode: "USD");
 
@@ -100,7 +89,7 @@ public sealed class UserTests
     [Test]
     public async Task ChangeBaseCurrency_WithSameCode_ShouldNotChangeBaseCurrency()
     {
-        User user = CreateUser(baseCurrencyCode: "RUB");
+        User user = UserFactory.Create(baseCurrencyCode: "RUB");
 
         user.ChangeBaseCurrency(newBaseCurrencyCode: "RUB");
 
@@ -110,7 +99,7 @@ public sealed class UserTests
     [Test]
     public async Task ChangeBaseCurrency_WithEmptyCode_ShouldThrowArgumentException()
     {
-        User user = CreateUser();
+        User user = UserFactory.Create();
 
         await Assert.That(action: () => user.ChangeBaseCurrency(newBaseCurrencyCode: String.Empty)).Throws<CurrencyException>();
     }

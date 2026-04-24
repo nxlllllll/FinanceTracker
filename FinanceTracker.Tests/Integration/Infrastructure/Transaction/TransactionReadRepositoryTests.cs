@@ -5,6 +5,8 @@ using FinanceTracker.Core.Dtos;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Transaction;
 
@@ -13,6 +15,9 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     private TransactionReadRepository _readRepository = null!;
     private TransactionWriteRepository _writeRepository = null!;
     private AccountWriteRepository _accountWriteRepository = null!;
+    private CurrencyBuilder _currencyBuilder = null!;
+    private AccountTypeBuilder _accountTypeBuilder = null!;
+    private UserBuilder _userBuilder = null!;
 
     [Before(hookType: Test)]
     public void SetupRepositories()
@@ -20,13 +25,16 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         _readRepository = new TransactionReadRepository(context: Context);
         _writeRepository = new TransactionWriteRepository(context: Context);
         _accountWriteRepository = new AccountWriteRepository(context: Context);
+        _currencyBuilder = new CurrencyBuilder(context: Context);
+        _accountTypeBuilder = new AccountTypeBuilder(context: Context);
+        _userBuilder = new UserBuilder(context: Context);
     }
 
     private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
     {
-        string currencyCode = await CreateCurrencyAsync();
-        AccountType accountType = await CreateAccountTypeAsync();
-        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         Guid accountId = Guid.NewGuid();
         await _accountWriteRepository.CreateAsync(@event: new AccountCreated(

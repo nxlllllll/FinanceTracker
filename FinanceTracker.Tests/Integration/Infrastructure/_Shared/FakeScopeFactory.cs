@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure;
+namespace FinanceTracker.Tests.Integration.Infrastructure._Shared;
 
 public sealed class FakeScopeFactory(
 	IServiceScope scope

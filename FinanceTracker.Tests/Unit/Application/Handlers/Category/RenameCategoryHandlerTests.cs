@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -18,20 +19,10 @@ public sealed class RenameCategoryHandlerTests
 		_handler = new RenameCategoryHandler(categoryRepository: _categoryRepository);
 	}
 
-	private static FinanceTracker.Core.Domains.Category.Category CreateCategory()
-	{
-		return FinanceTracker.Core.Domains.Category.Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
-	}
-
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldRenameCategory()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CreateCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -72,7 +63,7 @@ public sealed class RenameCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryArchived_ShouldThrowArchivingException()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CreateCategory();
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
 		category.Archive();
 
 		_categoryRepository.GetByIdAsync(

@@ -6,6 +6,9 @@ public sealed class CreateCategoryCommandValidator : AbstractValidator<CreateCat
 {
 	public CreateCategoryCommandValidator()
 	{
+		RuleFor(expression: command => command.UserId)
+			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
+
 		RuleFor(expression: command => command.Name)
 			.NotEmpty().WithMessage(errorMessage: "The name cannot be empty.");
 

@@ -6,6 +6,9 @@ public sealed class ChangeUserBaseCurrencyCommandValidator : AbstractValidator<C
 {
 	public ChangeUserBaseCurrencyCommandValidator()
 	{
+		RuleFor(expression: command => command.UserId)
+			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
+		
 		RuleFor(expression: command => command.NewBaseCurrency)
 			.NotEmpty().WithMessage(errorMessage: "The base currency code cannot be empty.")
 			.Length(exactLength: 3).WithMessage(errorMessage: "The base currency code must be 3 characters.");

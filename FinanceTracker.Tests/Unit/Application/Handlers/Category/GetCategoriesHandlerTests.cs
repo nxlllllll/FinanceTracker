@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Queries.GetCategories;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -17,26 +18,10 @@ public sealed class GetCategoriesHandlerTests
         _handler = new GetCategoriesHandler(categoryRepository: _categoryRepository);
     }
 
-    private static FinanceTracker.Core.Domains.Category.Category CreateCategory(
-        CategoryType type = CategoryType.Expense,
-        bool isArchived = false)
-    {
-        FinanceTracker.Core.Domains.Category.Category category = FinanceTracker.Core.Domains.Category.Category.Create(
-            userId: Guid.NewGuid(),
-            name: "Еда",
-            type: type,
-            parentId: null
-        );
-        if (isArchived) 
-            category.Archive();
-        
-        return category;
-    }
-
     [Test]
     public async Task Handle_ShouldReturnAllCategories()
     {
-        IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> categories = [CreateCategory(), CreateCategory()];
+        IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> categories = [CategoryFactory.Create(), CategoryFactory.Create()];
 
         _categoryRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),

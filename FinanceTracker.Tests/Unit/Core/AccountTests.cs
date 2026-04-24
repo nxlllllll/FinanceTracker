@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
 
@@ -9,13 +10,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 10000
-		);
+		Account account = AccountFactory.Create();
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountCreated>();
@@ -26,13 +21,7 @@ public sealed class AccountTests
 	{
 		Guid userId = Guid.NewGuid();
 
-		Account account = Account.Create(
-			userId: userId,
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 10000
-		);
+		Account account = AccountFactory.Create(userId: userId, balance: 10000);
 
 		await Assert.That(value: account.UserId).IsEqualTo(expected: userId);
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Сбер");
@@ -42,41 +31,19 @@ public sealed class AccountTests
 		await Assert.That(value: account.IsArchived).IsFalse();
 		await Assert.That(value: account.Version).IsEqualTo(expected: 1);
 	}
+	
+	[Test]
+	public async Task Create_WithEmptyName_ShouldThrowEmptyNameException()
+		=> await Assert.That(func: () => AccountFactory.Create(name: String.Empty)).Throws<EmptyNameException>();
 
 	[Test]
-	public async Task Create_WithEmptyName_ShouldThrowArgumentException()
-	{
-		await Assert.That(func: () => Account.Create(
-			userId: Guid.NewGuid(),
-			name: String.Empty,
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 10000
-		)).Throws<EmptyNameException>();
-	}
-
-	[Test]
-	public async Task Create_WithNegativeBalance_ShouldThrowArgumentException()
-	{
-		await Assert.That(func: () => Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: -100
-		)).Throws<InvalidInitialBalanceException>();
-	}
+	public async Task Create_WithNegativeBalance_ShouldThrowInvalidInitialBalanceException()
+		=> await Assert.That(func: () => AccountFactory.Create(balance: -100)).Throws<InvalidInitialBalanceException>();
 
 	[Test]
 	public async Task Rename_WithNewName_ShouldChangeName()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
+		Account account = AccountFactory.Create();
 
 		bool changed = account.Rename(newName: "Карта Тинькофф");
 
@@ -87,13 +54,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Rename_WithSameName_ShouldReturnFalse()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
+		Account account = AccountFactory.Create();
 
 		bool changed = account.Rename(newName: "Карта Сбер");
 
@@ -103,29 +64,15 @@ public sealed class AccountTests
 	[Test]
 	public async Task Rename_WithEmptyName_ShouldThrowEmptyNameException()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
-
-		await Assert.That(
-			action: () => _ = account.Rename(newName: String.Empty)
-		).Throws<EmptyNameException>();
+		Account account = AccountFactory.Create();
+		
+		await Assert.That(action: () => _ = account.Rename(newName: String.Empty)).Throws<EmptyNameException>();
 	}
 	
 	[Test]
 	public async Task Archive_ActiveAccount_ShouldReturnTrueAndSetIsArchived()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
+		Account account = AccountFactory.Create();
 
 		bool changed = account.Archive();
 
@@ -136,31 +83,17 @@ public sealed class AccountTests
 	[Test]
 	public async Task Archive_AlreadyArchivedAccount_ShouldThrowArchivingException()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
+		Account account = AccountFactory.Create();
 
 		_ = account.Archive();
 
-		await Assert.That(
-			action: () => _ = account.Archive()
-		).Throws<ArchivingException>();
+		await Assert.That(action: () => _ = account.Archive()).Throws<ArchivingException>();
 	}
 
 	[Test]
 	public async Task Unarchive_ArchivedAccount_ShouldReturnTrueAndClearIsArchived()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
+		Account account = AccountFactory.Create();
 
 		_ = account.Archive();
 		bool changed = account.Unarchive();
@@ -172,29 +105,15 @@ public sealed class AccountTests
 	[Test]
 	public async Task Unarchive_ActiveAccount_ShouldThrowUnarchivingException()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
+		Account account = AccountFactory.Create();
 
-		await Assert.That(
-			action: () => _ = account.Unarchive()
-		).Throws<UnarchivingException>();
+		await Assert.That(action: () => _ = account.Unarchive()).Throws<UnarchivingException>();
 	}
 	
 	[Test]
     public async Task Debit_WithValidData_ShouldRaiseAccountDebitedEvent()
-    {
-        Account account = Account.Create(
-            userId: Guid.NewGuid(),
-            name: "Карта Сбер",
-            type: AccountType.Checking,
-            currency: "RUB",
-            balance: 10000
-        );
+	{
+		Account account = AccountFactory.Create(balance: 10000);
         account.ClearEvents();
 
         account.Debit(
@@ -213,13 +132,7 @@ public sealed class AccountTests
     [Test]
     public async Task Debit_WithExchangeRate_ShouldApplyExchangeRate()
     {
-        Account account = Account.Create(
-            userId: Guid.NewGuid(),
-            name: "Карта Сбер",
-            type: AccountType.Checking,
-            currency: "RUB",
-            balance: 10000
-        );
+		Account account = AccountFactory.Create(balance: 10000);
         account.ClearEvents();
 
         account.Debit(
@@ -236,13 +149,7 @@ public sealed class AccountTests
     [Test]
     public async Task Debit_OnArchivedAccount_ShouldThrowArchivingException()
     {
-        Account account = Account.Create(
-            userId: Guid.NewGuid(),
-            name: "Карта Сбер",
-            type: AccountType.Checking,
-            currency: "RUB",
-            balance: 0
-        );
+		Account account = AccountFactory.Create();
         account.Archive();
 
         await Assert.That(action: () => account.Debit(
@@ -257,14 +164,8 @@ public sealed class AccountTests
     [Test]
     public async Task Debit_WithZeroAmount_ShouldThrowInvalidAmountException()
     {
-        Account account = Account.Create(
-            userId: Guid.NewGuid(),
-            name: "Карта Сбер",
-            type: AccountType.Checking,
-            currency: "RUB",
-            balance: 0
-        );
-
+		Account account = AccountFactory.Create(balance: 10000);
+		
         await Assert.That(action: () => account.Debit(
             transactionId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
@@ -277,13 +178,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Credit_WithValidData_ShouldRaiseAccountCreditedEvent()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 1000
-		);
+		Account account = AccountFactory.Create(balance: 1000);
 		account.ClearEvents();
 
 		account.Credit(
@@ -302,13 +197,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Credit_OnArchivedAccount_ShouldThrowArchivingException()
 	{
-		Account account = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 0
-		);
+		Account account = AccountFactory.Create(balance: 0);
 		account.Archive();
 
 		await Assert.That(action: () => account.Credit(
@@ -323,13 +212,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task ReconstituteFromHistory_ShouldRestoreCorrectState()
 	{
-		Account original = Account.Create(
-			userId: Guid.NewGuid(),
-			name: "Карта Сбер",
-			type: AccountType.Checking,
-			currency: "RUB",
-			balance: 10000
-		);
+		Account original = AccountFactory.Create(balance: 10000);
 
 		original.Debit(
 			transactionId: Guid.NewGuid(),
@@ -358,13 +241,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithDebitAndRateIncrease_ShouldDecreaseBalance()
 	{
-	    Account account = Account.Create(
-	        userId: Guid.NewGuid(),
-	        name: "Карта Сбер",
-	        type: AccountType.Checking,
-	        currency: "RUB",
-	        balance: 10000
-	    );
+		Account account = AccountFactory.Create(balance: 10000);
 	    account.ClearEvents();
 
 	    account.AdjustBalance(
@@ -384,14 +261,8 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithCreditAndRateIncrease_ShouldIncreaseBalance()
 	{
-	    Account account = Account.Create(
-	        userId: Guid.NewGuid(),
-	        name: "Карта Сбер",
-	        type: AccountType.Checking,
-	        currency: "RUB",
-	        balance: 10000
-	    );
-	    account.ClearEvents();
+		Account account = AccountFactory.Create(balance: 10000);
+		account.ClearEvents();
 
 	    account.AdjustBalance(
 	        sourceId: Guid.NewGuid(),
@@ -408,14 +279,8 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithDebitAndRateDecrease_ShouldIncreaseBalance()
 	{
-	    Account account = Account.Create(
-	        userId: Guid.NewGuid(),
-	        name: "Карта Сбер",
-	        type: AccountType.Checking,
-	        currency: "RUB",
-	        balance: 10000
-	    );
-	    account.ClearEvents();
+		Account account = AccountFactory.Create(balance: 10000);
+		account.ClearEvents();
 
 	    account.AdjustBalance(
 	        sourceId: Guid.NewGuid(),
@@ -432,13 +297,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithSameRate_ShouldNotRaiseEvent()
 	{
-	    Account account = Account.Create(
-	        userId: Guid.NewGuid(),
-	        name: "Карта Сбер",
-	        type: AccountType.Checking,
-	        currency: "RUB",
-	        balance: 10000
-	    );
+		Account account = AccountFactory.Create(balance: 10000);
 	    account.ClearEvents();
 
 	    account.AdjustBalance(

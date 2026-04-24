@@ -6,7 +6,10 @@ public sealed class RenameCategoryCommandValidator : AbstractValidator<RenameCat
 {
 	public RenameCategoryCommandValidator()
 	{
-		RuleFor(expression: x => x.NewName)
-		.NotEmpty().WithMessage(errorMessage: "The new name cannot be empty.");
+		RuleFor(expression: command => command.CategoryId)
+			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.");
+		
+		RuleFor(expression: command => command.NewName)
+			.NotEmpty().WithMessage(errorMessage: "The new name cannot be empty.");
 	}
 }

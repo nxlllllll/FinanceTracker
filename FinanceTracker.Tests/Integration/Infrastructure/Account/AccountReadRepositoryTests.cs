@@ -1,7 +1,7 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Account;
 
@@ -9,19 +9,25 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 {
     private AccountReadRepository _readRepository = null!;
     private AccountWriteRepository _writeRepository = null!;
-
+    private CurrencyBuilder _currencyBuilder = null!;
+    private AccountTypeBuilder _accountTypeBuilder = null!;
+    private UserBuilder _userBuilder = null!;
+    
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
         _readRepository = new AccountReadRepository(context: Context);
         _writeRepository = new AccountWriteRepository(context: Context);
+        _currencyBuilder = new CurrencyBuilder(context: Context);
+        _accountTypeBuilder = new AccountTypeBuilder(context: Context);
+        _userBuilder = new UserBuilder(context: Context);
     }
 
     private async Task<AccountCreated> CreateAccountAsync()
     {
-        string currencyCode = await CreateCurrencyAsync();
-        AccountType accountType = await CreateAccountTypeAsync();
-        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
             Id: Guid.NewGuid(),
@@ -40,9 +46,9 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 
     private async Task<(Guid userId, AccountCreated @event)> CreateAccountWithArchivationAsync(bool archived = false)
     {
-        string currencyCode = await CreateCurrencyAsync();
-        AccountType accountType = await CreateAccountTypeAsync();
-        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
             Id: Guid.NewGuid(),
@@ -82,7 +88,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await Assert.That(value: result.Name).IsEqualTo(expected: "Карта Сбер");
         await Assert.That(value: result.Balance).IsEqualTo(expected: 10000m);
         await Assert.That(value: result.IsArchived).IsFalse();
-        await Assert.That(value: result.Type).IsEqualTo(expected: AccountType.Checking);
+        await Assert.That(value: result.Type).IsEqualTo(expected: Core.Domains.Account.AccountType.Checking);
         await Assert.That(value: result.Currency).IsEqualTo(expected: "RUB");
     }
 
@@ -124,9 +130,9 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithIsArchivedTrue_ShouldReturnOnlyArchivedAccounts()
     {
-        string currencyCode = await CreateCurrencyAsync();
-        AccountType accountType = await CreateAccountTypeAsync();
-        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated active = new AccountCreated(
             Id: Guid.NewGuid(),
@@ -162,9 +168,9 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithNullIsArchived_ShouldReturnAllAccounts()
     {
-        string currencyCode = await CreateCurrencyAsync();
-        AccountType accountType = await CreateAccountTypeAsync();
-        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated active = new AccountCreated(
             Id: Guid.NewGuid(),

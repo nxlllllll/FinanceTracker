@@ -1,9 +1,10 @@
 ﻿using FinanceTracker.Application.Transfers.Commands;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transfer;
@@ -14,14 +15,16 @@ public sealed class CreateTransferHandlerTests
     private IAccountRepository _accountRepository = null!;
     private ITransferWriteRepository _transferWriteRepository = null!;
     private ICurrencyConversionService _currencyConversionService = null!;
-
+    private IUnitOfWork _unitOfWork = null!;
+    
     [Before(hookType: Test)]
     public void Setup()
     {
         _accountRepository = Substitute.For<IAccountRepository>();
         _transferWriteRepository = Substitute.For<ITransferWriteRepository>();
         _currencyConversionService = Substitute.For<ICurrencyConversionService>();
-
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+        
         _currencyConversionService.GetConversionRateAsync(
             fromCurrency: Arg.Any<string>(),
             toCurrency: Arg.Any<string>(),
@@ -32,18 +35,8 @@ public sealed class CreateTransferHandlerTests
         _handler = new CreateTransferHandler(
             accountRepository: _accountRepository,
             transferWriteRepository: _transferWriteRepository,
-            currencyConversionService: _currencyConversionService
-        );
-    }
-
-    private static FinanceTracker.Core.Domains.Account.Account CreateAccount(Guid userId, string currency = "RUB")
-    {
-        return FinanceTracker.Core.Domains.Account.Account.Create(
-            userId: userId,
-            name: "Тестовый счёт",
-            type: AccountType.Checking,
-            currency: currency,
-            balance: 1000m
+            currencyConversionService: _currencyConversionService,
+            unitOfWork: _unitOfWork
         );
     }
 
@@ -51,8 +44,8 @@ public sealed class CreateTransferHandlerTests
     public async Task Handle_ShouldDebitFromAccount_AndCreditToAccount()
     {
         Guid userId = Guid.NewGuid();
-        FinanceTracker.Core.Domains.Account.Account fromAccount = CreateAccount(userId: userId);
-        FinanceTracker.Core.Domains.Account.Account toAccount = CreateAccount(userId: userId);
+        FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(userId: userId);
+        FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create(userId: userId);
 
         _accountRepository.GetByIdAsync(
             accountId: fromAccount.Id,
@@ -148,8 +141,8 @@ public sealed class CreateTransferHandlerTests
     {
         Guid userId = Guid.NewGuid();
         Guid otherUserId = Guid.NewGuid();
-        FinanceTracker.Core.Domains.Account.Account fromAccount = CreateAccount(userId: otherUserId);
-        FinanceTracker.Core.Domains.Account.Account toAccount = CreateAccount(userId: userId);
+        FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(userId: otherUserId);
+        FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create(userId: userId);
 
         _accountRepository.GetByIdAsync(
             accountId: fromAccount.Id,
@@ -177,8 +170,8 @@ public sealed class CreateTransferHandlerTests
     public async Task Handle_WhenFromAccountArchived_ShouldThrowArchivingException()
     {
         Guid userId = Guid.NewGuid();
-        FinanceTracker.Core.Domains.Account.Account fromAccount = CreateAccount(userId: userId);
-        FinanceTracker.Core.Domains.Account.Account toAccount = CreateAccount(userId: userId);
+        FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(userId: userId);
+        FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create(userId: userId);
         fromAccount.Archive();
         fromAccount.ClearEvents();
 
@@ -208,8 +201,8 @@ public sealed class CreateTransferHandlerTests
     public async Task Handle_WhenDifferentCurrencies_ShouldApplyExchangeRate()
     {
         Guid userId = Guid.NewGuid();
-        FinanceTracker.Core.Domains.Account.Account fromAccount = CreateAccount(userId: userId, currency: "RUB");
-        FinanceTracker.Core.Domains.Account.Account toAccount = CreateAccount(userId: userId, currency: "USD");
+        FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(userId: userId, currency: "RUB");
+        FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create(userId: userId, currency: "USD");
 
         _accountRepository.GetByIdAsync(
             accountId: fromAccount.Id,
@@ -252,5 +245,42 @@ public sealed class CreateTransferHandlerTests
             isRatePending: false,
             ct: Arg.Any<CancellationToken>()
         );
+    }
+    
+    [Test]
+    public async Task Handle_WhenSecondSaveFails_ShouldRollbackTransaction()
+    {
+        Guid userId = Guid.NewGuid();
+        FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(userId: userId);
+        FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create(userId: userId);
+        
+        _accountRepository.GetByIdAsync(
+            accountId: fromAccount.Id,
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: fromAccount);
+        _accountRepository.GetByIdAsync(
+            accountId: toAccount.Id,
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: toAccount);
+
+        _accountRepository.SaveAsync(
+            account: toAccount,
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: _ => throw new InvalidOperationException("DB error"));
+
+        await Assert.That(async () => await _handler.Handle(
+            command: new CreateTransferCommand(
+                UserId: userId,
+                FromAccountId: fromAccount.Id,
+                ToAccountId: toAccount.Id,
+                Amount: 100m,
+                Description: null,
+                OccurredAt: DateTime.UtcNow
+            ),
+            ct: CancellationToken.None
+        )).Throws<InvalidOperationException>();
+
+        await _unitOfWork.Received(requiredNumberOfCalls: 1).RollbackAsync(ct: Arg.Any<CancellationToken>());
+        await _unitOfWork.DidNotReceive().CommitAsync(ct: Arg.Any<CancellationToken>());
     }
 }

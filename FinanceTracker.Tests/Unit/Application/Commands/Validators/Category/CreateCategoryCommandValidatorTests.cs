@@ -58,4 +58,22 @@ public sealed class CreateCategoryCommandValidatorTests
 			predicate: e => e.PropertyName == nameof(command.Type)
 		)).IsTrue();
 	}
+	
+	[Test]
+	public async Task Validate_WithEmptyUserId_ShouldHaveError()
+	{
+		CreateCategoryCommand command = new CreateCategoryCommand(
+			UserId: Guid.Empty,
+			Name: "Еда",
+			Type: CategoryType.Expense,
+			ParentId: null
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(
+			predicate: e => e.PropertyName == nameof(command.UserId)
+		)).IsTrue();
+	}
 }

@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
@@ -18,25 +19,11 @@ public sealed class GetAccountsHandlerTests
         _handler = new GetAccountsHandler(accountReadRepository: _accountReadRepository);
     }
 
-    private static AccountDto CreateAccountDto(bool isArchived = false)
-    {
-        return new AccountDto(
-            Id: Guid.NewGuid(),
-            UserId: Guid.NewGuid(),
-            Name: "Карта Сбер",
-            Type: AccountType.Checking,
-            Currency: "RUB",
-            Balance: 1000m,
-            IsArchived: isArchived,
-            CreatedAt: DateTime.UtcNow
-        );
-    }
-
     [Test]
     public async Task Handle_ShouldReturnAllAccounts()
     {
         Guid userId = Guid.NewGuid();
-        IReadOnlyList<AccountDto> accounts = [CreateAccountDto(), CreateAccountDto()];
+        IReadOnlyList<AccountDto> accounts = [AccountFactory.CreateAccountDto(), AccountFactory.CreateAccountDto()];
 
         _accountReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),

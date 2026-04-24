@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Users.Commands.RegisterUser;
+using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.User;
@@ -10,11 +11,7 @@ public sealed class RegisterUserCommandValidatorTests
     [Test]
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
     {
-        RegisterUserCommand command = new RegisterUserCommand(
-            Email: "test@test.com",
-            PasswordHash: "hash",
-            BaseCurrencyCode: "RUB"
-        );
+        RegisterUserCommand command = RegisterUserCommandFactory.Create();
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -24,11 +21,7 @@ public sealed class RegisterUserCommandValidatorTests
     [Test]
     public async Task Validate_WithEmptyEmail_ShouldHaveError()
     {
-        RegisterUserCommand command = new RegisterUserCommand(
-            Email: String.Empty,
-            PasswordHash: "hash",
-            BaseCurrencyCode: "RUB"
-        );
+        RegisterUserCommand command = RegisterUserCommandFactory.Create(email: String.Empty);
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -41,11 +34,7 @@ public sealed class RegisterUserCommandValidatorTests
     [Test]
     public async Task Validate_WithInvalidEmail_ShouldHaveError()
     {
-        RegisterUserCommand command = new RegisterUserCommand(
-            Email: "notanemail",
-            PasswordHash: "hash",
-            BaseCurrencyCode: "RUB"
-        );
+        RegisterUserCommand command = RegisterUserCommandFactory.Create(email: "notanemail");
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -58,11 +47,7 @@ public sealed class RegisterUserCommandValidatorTests
     [Test]
     public async Task Validate_WithEmptyPasswordHash_ShouldHaveError()
     {
-        RegisterUserCommand command = new RegisterUserCommand(
-            Email: "test@test.com",
-            PasswordHash: String.Empty,
-            BaseCurrencyCode: "RUB"
-        );
+        RegisterUserCommand command = RegisterUserCommandFactory.Create(passwordHash: String.Empty);
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -75,11 +60,7 @@ public sealed class RegisterUserCommandValidatorTests
     [Test]
     public async Task Validate_WithInvalidBaseCurrencyCode_ShouldHaveError()
     {
-        RegisterUserCommand command = new RegisterUserCommand(
-            Email: "test@test.com",
-            PasswordHash: "hash",
-            BaseCurrencyCode: "RU"
-        );
+        RegisterUserCommand command = RegisterUserCommandFactory.Create(baseCurrencyCode: "RU");
 
         ValidationResult result = await _validator.ValidateAsync(command);
 

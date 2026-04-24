@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
@@ -17,22 +18,12 @@ public sealed class GetAccountHandlerTests
 		_accountReadRepository = Substitute.For<IAccountReadRepository>();
 		_handler = new GetAccountHandler(accountReadRepository: _accountReadRepository);
 	}
-
-	private static AccountDto CreateAccountDto() => new AccountDto(
-		Id: Guid.NewGuid(),
-		UserId: Guid.NewGuid(),
-		Name: "Карта Сбер",
-		Type: AccountType.Checking,
-		Currency: "RUB",
-		Balance: 1000m,
-		IsArchived: false,
-		CreatedAt: DateTime.UtcNow
-	);
-
+	
 	[Test]
 	public async Task Handle_WhenAccountExists_ShouldReturnAccountDto()
 	{
-		AccountDto dto = CreateAccountDto();
+		AccountDto dto = AccountFactory.CreateAccountDto();
+
 		_accountReadRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

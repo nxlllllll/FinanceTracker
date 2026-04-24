@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -18,31 +19,11 @@ public sealed class GetTransactionsHandlerTests
         _handler = new GetTransactionsHandler(transactionReadRepository: _transactionReadRepository);
     }
 
-    private static TransactionDto CreateTransactionDto(Guid? accountId = null)
-    {
-        return new TransactionDto(
-            Id: Guid.NewGuid(),
-            AccountId: accountId ?? Guid.NewGuid(),
-            UserId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
-            Amount: 1000m,
-            Direction: DirectionType.Debit,
-            ExchangeRate: 1m,
-            IsExcluded: false,
-            IsRatePending: false,
-            Description: null,
-            OccurredAt: DateTime.UtcNow
-        );
-    }
-
     [Test]
     public async Task Handle_ShouldReturnAllTransactions()
     {
         Guid accountId = Guid.NewGuid();
-        IReadOnlyList<TransactionDto> transactions = [
-            CreateTransactionDto(accountId: accountId),
-            CreateTransactionDto(accountId: accountId)
-        ];
+        IReadOnlyList<TransactionDto> transactions = [TransactionFactory.Create(accountId: accountId), TransactionFactory.Create(accountId: accountId)];
 
         _transactionReadRepository.GetAllAsync(
             accountId: Arg.Any<Guid>(),

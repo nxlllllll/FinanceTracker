@@ -1,35 +1,42 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
-using FinanceTracker.Infrastructure.Database.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure;
+namespace FinanceTracker.Tests.Integration.Infrastructure.OutboxWorker;
 
 public sealed class OutboxWorkerTests : DatabaseFixture
 {
 	private AccountRepository _accountRepository = null!;
     private IPublisher _publisher = null!;
+    private CurrencyBuilder _currencyBuilder = null!;
+    private AccountTypeBuilder _accountTypeBuilder = null!;
+    private UserBuilder _userBuilder = null!;
 
+    
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
         _publisher = Substitute.For<IPublisher>();
         _accountRepository = new AccountRepository(
             accountReadRepository: new AccountReadRepository(context: Context),
-            eventStore: new PostgresEventStore(
+            eventStore: new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
                 context: Context,
                 eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly)
             )
         );
+        _currencyBuilder = new CurrencyBuilder(context: Context);
+        _accountTypeBuilder = new AccountTypeBuilder(context: Context);
+        _userBuilder = new UserBuilder(context: Context);
     }
 
     private IServiceScope BuildScope()
@@ -46,9 +53,9 @@ public sealed class OutboxWorkerTests : DatabaseFixture
 
     private async Task<Core.Domains.Account.Account> CreateAndSaveAccountAsync()
     {
-        string currencyCode = await CreateCurrencyAsync();
-        AccountType accountType = await CreateAccountTypeAsync();
-        Guid userId = await CreateUserAsync(currencyCode: currencyCode);
+        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
             userId: userId,
@@ -71,9 +78,9 @@ public sealed class OutboxWorkerTests : DatabaseFixture
             .CountAsync(predicate: m => m.ProcessedAt == null);
         await Assert.That(value: unprocessedBefore).IsEqualTo(expected: 1);
 
-        OutboxWorker worker = new OutboxWorker(
+        FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker(
             scopeFactory: new FakeScopeFactory(scope: BuildScope()),
-            logger: NullLogger<OutboxWorker>.Instance
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker>.Instance
         );
 
         await worker.ProcessBatchAsync(ct: CancellationToken.None);
@@ -90,9 +97,9 @@ public sealed class OutboxWorkerTests : DatabaseFixture
     [Test]
     public async Task ProcessBatchAsync_WhenNoMessages_ShouldNotDispatch()
     {
-        OutboxWorker worker = new OutboxWorker(
+        FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker(
             scopeFactory: new FakeScopeFactory(scope: BuildScope()),
-            logger: NullLogger<OutboxWorker>.Instance
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker>.Instance
         );
 
         await worker.ProcessBatchAsync(ct: CancellationToken.None);

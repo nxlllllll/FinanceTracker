@@ -36,4 +36,38 @@ public sealed class RenameAccountCommandValidatorTests
 			predicate: e => e.PropertyName == nameof(command.NewName)
 		)).IsTrue();
 	}
+	
+	[Test]
+	public async Task Validate_WithEmptyUserId_ShouldHaveError()
+	{
+		RenameAccountCommand command = new RenameAccountCommand(
+			UserId: Guid.Empty,
+			AccountId: Guid.NewGuid(),
+			NewName: "Карта Тинькофф"
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(
+			predicate: e => e.PropertyName == nameof(command.UserId)
+		)).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithEmptyAccountId_ShouldHaveError()
+	{
+		RenameAccountCommand command = new RenameAccountCommand(
+			UserId: Guid.NewGuid(),
+			AccountId: Guid.Empty,
+			NewName: "Карта Тинькофф"
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(
+			predicate: e => e.PropertyName == nameof(command.AccountId)
+		)).IsTrue();
+	}
 }

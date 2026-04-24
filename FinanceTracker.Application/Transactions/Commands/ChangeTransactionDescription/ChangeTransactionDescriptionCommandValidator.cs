@@ -6,6 +6,9 @@ public sealed class ChangeTransactionDescriptionCommandValidator : AbstractValid
 {
 	public ChangeTransactionDescriptionCommandValidator()
 	{
+		RuleFor(expression: command => command.TransactionId)
+			.NotEmpty().WithMessage(errorMessage: "The transaction cannot be empty.");
+
 		RuleFor(expression: command => command.Description)
 			.MaximumLength(maximumLength: 255).WithMessage(errorMessage: "The description cannot exceed 255 characters.")
 			.When(predicate: command => command.Description is not null);

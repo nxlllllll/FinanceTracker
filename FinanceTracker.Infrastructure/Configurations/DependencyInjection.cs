@@ -45,6 +45,8 @@ public static class DependencyInjection
 		services.AddScoped<ICurrencyRateRepository, CurrencyRateRepository>();
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
+		
+		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 
 		services.AddHostedService<OutboxWorker>();
 		return services;

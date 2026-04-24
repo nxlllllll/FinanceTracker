@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
 
@@ -9,12 +10,7 @@ public sealed class CategoryTests
 	public async Task Create_WithValidData_ShouldSetCorrectState()
 	{
 		Guid userId = Guid.NewGuid();
-		Category category = Category.Create(
-			userId: userId,
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create(userId: userId);
 
 		await Assert.That(value: category.Id).IsNotDefault();
 		await Assert.That(value: category.UserId).IsEqualTo(expected: userId);
@@ -29,36 +25,19 @@ public sealed class CategoryTests
 	public async Task Create_WithParentId_ShouldSetParentId()
 	{
 		Guid parentId = Guid.NewGuid();
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Фастфуд",
-			type: CategoryType.Expense,
-			parentId: parentId
-		);
+		Category category = CategoryFactory.Create(parentId: parentId);
 
 		await Assert.That(value: category.ParentId).IsEqualTo(expected: parentId);
 	}
 
 	[Test]
 	public async Task Create_WithEmptyName_ShouldThrowEmptyNameException()
-	{
-		await Assert.That(func: () => Category.Create(
-			userId: Guid.NewGuid(),
-			name: String.Empty,
-			type: CategoryType.Expense,
-			parentId: null
-		)).Throws<EmptyNameException>();
-	}
+		=> await Assert.That(func: () => CategoryFactory.Create(name: String.Empty)).Throws<EmptyNameException>();
 
 	[Test]
 	public async Task Rename_WithValidName_ShouldChangeName()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
 
 		category.Rename(newName: "Продукты");
 
@@ -68,12 +47,7 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Rename_WithSameName_ShouldNotChangeName()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
 
 		category.Rename(newName: "Еда");
 
@@ -83,12 +57,7 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Rename_WithEmptyName_ShouldThrowEmptyNameException()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
 
 		await Assert.That(action: () => category.Rename(newName: String.Empty)).Throws<EmptyNameException>();
 	}
@@ -96,12 +65,8 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Rename_WhenArchived_ShouldThrowArchivingException()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
+
 		category.Archive();
 
 		await Assert.That(action: () => category.Rename(newName: "Продукты")).Throws<ArchivingException>();
@@ -110,12 +75,7 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Archive_WithActiveCategory_ShouldSetIsArchivedTrue()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
 
 		category.Archive();
 
@@ -125,12 +85,8 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Archive_WhenAlreadyArchived_ShouldThrowArchivingException()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
+
 		category.Archive();
 
 		await Assert.That(action: category.Archive).Throws<ArchivingException>();
@@ -139,12 +95,8 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Unarchive_WhenArchived_ShouldSetIsArchivedFalse()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
+
 		category.Archive();
 		category.Unarchive();
 
@@ -154,12 +106,7 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Unarchive_WhenNotArchived_ShouldThrowUnarchivingException()
 	{
-		Category category = Category.Create(
-			userId: Guid.NewGuid(),
-			name: "Еда",
-			type: CategoryType.Expense,
-			parentId: null
-		);
+		Category category = CategoryFactory.Create();
 
 		await Assert.That(action: category.Unarchive).Throws<UnarchivingException>();
 	}

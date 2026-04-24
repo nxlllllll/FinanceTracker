@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Users.Commands.ChangeUserEmail;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
@@ -16,20 +17,11 @@ public sealed class ChangeUserEmailHandlerTests
         _userRepository = Substitute.For<IUserRepository>();
         _handler = new ChangeUserEmailHandler(userRepository: _userRepository);
     }
-
-    private static FinanceTracker.Core.Domains.User.User CreateUser()
-    {
-        return FinanceTracker.Core.Domains.User.User.Register(
-            email: "test@test.com",
-            passwordHash: "hash",
-            baseCurrencyCode: "RUB"
-        );
-    }
-
+    
     [Test]
     public async Task Handle_WithValidCommand_ShouldChangeEmail()
     {
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
         _userRepository.GetByIdAsync(
             userId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
@@ -67,12 +59,8 @@ public sealed class ChangeUserEmailHandlerTests
     [Test]
     public async Task Handle_WithDuplicateEmail_ShouldThrowDuplicateEmailException()
     {
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
-        FinanceTracker.Core.Domains.User.User anotherUser = FinanceTracker.Core.Domains.User.User.Register(
-            email: "new@test.com",
-            passwordHash: "hash",
-            baseCurrencyCode: "RUB"
-        );
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
+		FinanceTracker.Core.Domains.User.User anotherUser = UserFactory.Create(email: "new@test.com");
 
         _userRepository.GetByIdAsync(
             userId: Arg.Any<Guid>(),

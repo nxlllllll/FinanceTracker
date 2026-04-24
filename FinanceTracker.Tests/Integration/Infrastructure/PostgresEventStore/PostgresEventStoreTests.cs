@@ -1,14 +1,26 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using Microsoft.EntityFrameworkCore;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure;
+namespace FinanceTracker.Tests.Integration.Infrastructure.PostgresEventStore;
 
 public sealed class PostgresEventStoreTests : DatabaseFixture
 {
-    private PostgresEventStore _eventStore = null!;
+    private FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore _eventStore = null!;
 
+    private FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore CreateEventStore()
+    {
+        return new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
+            context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()
+                .UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
+                .Options
+            ),
+            eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly)
+        );
+    }
+    
     [Before(hookType: Test)]
     public void SetupEventStore()
         => _eventStore = CreateEventStore();
@@ -22,7 +34,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            Type: AccountType.Checking,
+            Type: Core.Domains.Account.AccountType.Checking,
             Currency: "RUB",
             Balance: 0,
             OccurredAt: DateTime.UtcNow
@@ -48,7 +60,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            Type: AccountType.Checking,
+            Type: Core.Domains.Account.AccountType.Checking,
             Currency: "RUB",
             Balance: 1000m,
             OccurredAt: DateTime.UtcNow
@@ -94,14 +106,14 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
-            Type: AccountType.Checking,
+            Type: Core.Domains.Account.AccountType.Checking,
             Currency: "RUB",
             Balance: 0,
             OccurredAt: DateTime.UtcNow
         );
 
-        PostgresEventStore firstStore = CreateEventStore();
-        PostgresEventStore secondStore = CreateEventStore();
+        FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore firstStore = CreateEventStore();
+        FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore secondStore = CreateEventStore();
 
         await firstStore.SaveAsync(
             aggregateId: accountId,
@@ -137,7 +149,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: "Тест",
-            type: AccountType.Checking,
+            type: Core.Domains.Account.AccountType.Checking,
             currency: "RUB",
             balance: 0
         );
@@ -184,7 +196,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         Core.Domains.Account.Account original = Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: "Тест снапшота",
-            type: AccountType.Savings,
+            type: Core.Domains.Account.AccountType.Savings,
             currency: "USD",
             balance: 1000m
         );

@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
@@ -18,21 +19,10 @@ public sealed class CreateAccountHandlerTests
 		_handler = new CreateAccountHandler(accountRepository: _accountRepository);
 	}
 
-	private static CreateAccountCommand CreateCreateAccountCommand(string name = "Карта Сбер")
-	{
-		return new CreateAccountCommand(
-			UserId: Guid.NewGuid(),
-			Name: name,
-			Type: AccountType.Checking,
-			Currency: "RUB",
-			InitialBalance: 10000
-		);
-	}
-
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldReturnAccountId()
 	{
-		CreateAccountCommand command = CreateCreateAccountCommand();
+		CreateAccountCommand command = CreateAccountCommandFactory.Create();
 
 		Guid result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
@@ -42,7 +32,7 @@ public sealed class CreateAccountHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldSaveAccount()
 	{
-		CreateAccountCommand command = CreateCreateAccountCommand();
+		CreateAccountCommand command = CreateAccountCommandFactory.Create();
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
@@ -59,7 +49,7 @@ public sealed class CreateAccountHandlerTests
 	[Test]
 	public async Task Handle_WithEmptyName_ShouldThrowArgumentException()
 	{
-		CreateAccountCommand command = CreateCreateAccountCommand(name: String.Empty);
+		CreateAccountCommand command = CreateAccountCommandFactory.Create(name: String.Empty);
 
 		await Assert.That(
 			func: async () => await _handler.Handle(command: command, ct: CancellationToken.None)

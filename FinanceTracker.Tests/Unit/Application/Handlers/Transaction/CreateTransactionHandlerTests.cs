@@ -5,6 +5,7 @@ using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
  
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -32,53 +33,11 @@ public sealed class CreateTransactionHandlerTests
         );
     }
  
-    private static FinanceTracker.Core.Domains.Account.Account CreateAccount(Guid? userId = null, bool archived = false)
-    {
-        FinanceTracker.Core.Domains.Account.Account account = FinanceTracker.Core.Domains.Account.Account.Create(
-            userId: userId ?? Guid.NewGuid(),
-            name: "Карта Сбер",
-            type: AccountType.Checking,
-            currency: "RUB",
-            balance: 10000
-        );
-        account.ClearEvents();
-        
-        if (archived) 
-            account.Archive();
-        
-        return account;
-    }
- 
-    private static FinanceTracker.Core.Domains.User.User CreateUser()
-    {
-        return FinanceTracker.Core.Domains.User.User.Register(
-            email: "test@test.com",
-            passwordHash: "hash",
-            baseCurrencyCode: "RUB"
-        );
-    }
- 
-    private static CreateTransactionCommand CreateCommand(
-        Guid? accountId = null,
-        Guid? userId = null,
-        DirectionType direction = DirectionType.Debit)
-    {
-        return new CreateTransactionCommand(
-            AccountId: accountId ?? Guid.NewGuid(),
-            UserId: userId ?? Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
-            Amount: 1000m,
-            Direction: direction,
-            Description: "Обед",
-            OccurredAt: DateTime.UtcNow
-        );
-    }
- 
     [Test]
     public async Task Handle_WithValidCommand_ShouldReturnTransactionId()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(), 
@@ -98,7 +57,7 @@ public sealed class CreateTransactionHandlerTests
         ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
  
         Guid result = await _handler.Handle(
-            command: CreateCommand(userId: account.UserId),
+            command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             ct: CancellationToken.None
         );
  
@@ -108,8 +67,8 @@ public sealed class CreateTransactionHandlerTests
     [Test]
     public async Task Handle_WithDebitDirection_ShouldDecreaseAccountBalance()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000);
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(), 
@@ -129,7 +88,7 @@ public sealed class CreateTransactionHandlerTests
         ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
  
         await _handler.Handle(
-            command: CreateCommand(userId: account.UserId, direction: DirectionType.Debit),
+            command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Debit),
             ct: CancellationToken.None
         );
  
@@ -142,8 +101,8 @@ public sealed class CreateTransactionHandlerTests
     [Test]
     public async Task Handle_WithCreditDirection_ShouldIncreaseAccountBalance()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000);
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(),
@@ -163,7 +122,7 @@ public sealed class CreateTransactionHandlerTests
         ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
  
         await _handler.Handle(
-            command: CreateCommand(userId: account.UserId, direction: DirectionType.Credit),
+            command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Credit),
             ct: CancellationToken.None
         );
  
@@ -176,8 +135,8 @@ public sealed class CreateTransactionHandlerTests
     [Test]
     public async Task Handle_WithPendingRate_ShouldCreateTransactionWithIsPendingTrue()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(), 
@@ -196,7 +155,7 @@ public sealed class CreateTransactionHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: new ConversionResult(Rate: 85m, IsPending: true));
  
-        await _handler.Handle(command: CreateCommand(userId: account.UserId), ct: CancellationToken.None);
+        await _handler.Handle(command: CreateTransactionCommandFactory.Create(userId: account.UserId), ct: CancellationToken.None);
  
         await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
             transactionId: Arg.Any<Guid>(),
@@ -222,14 +181,14 @@ public sealed class CreateTransactionHandlerTests
         ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
  
         await Assert.That(action: async () =>
-            await _handler.Handle(command: CreateCommand(), ct: CancellationToken.None)
+            await _handler.Handle(command: CreateTransactionCommandFactory.Create(), ct: CancellationToken.None)
         ).Throws<NotFoundException>();
     }
  
     [Test]
     public async Task Handle_WhenUserNotFound_ShouldThrowNotFoundException()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(), 
@@ -242,15 +201,15 @@ public sealed class CreateTransactionHandlerTests
         ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
  
         await Assert.That(action: async () =>
-            await _handler.Handle(command: CreateCommand(), ct: CancellationToken.None)
+            await _handler.Handle(command: CreateTransactionCommandFactory.Create(), ct: CancellationToken.None)
         ).Throws<NotFoundException>();
     }
  
     [Test]
     public async Task Handle_WhenAccountIsArchived_ShouldThrowArchivingException()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount(archived: true);
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(), 
@@ -270,15 +229,15 @@ public sealed class CreateTransactionHandlerTests
         ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
  
         await Assert.That(action: async () =>
-            await _handler.Handle(command: CreateCommand(userId: account.UserId), ct: CancellationToken.None)
+            await _handler.Handle(command: CreateTransactionCommandFactory.Create(userId: account.UserId), ct: CancellationToken.None)
         ).Throws<ArchivingException>();
     }
  
     [Test]
     public async Task Handle_WhenRateNotFound_ShouldThrowCurrencyRateNotFoundException()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
-        FinanceTracker.Core.Domains.User.User user = CreateUser();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(), 
@@ -302,14 +261,14 @@ public sealed class CreateTransactionHandlerTests
         ));
  
         await Assert.That(action: async () =>
-            await _handler.Handle(command: CreateCommand(userId: account.UserId), ct: CancellationToken.None)
+            await _handler.Handle(command: CreateTransactionCommandFactory.Create(userId: account.UserId), ct: CancellationToken.None)
         ).Throws<CurrencyRateNotFoundException>();
     }
  
     [Test]
     public async Task Handle_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
     {
-        FinanceTracker.Core.Domains.Account.Account account = CreateAccount();
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
  
         _accountRepository.GetByIdAsync(
             accountId: Arg.Any<Guid>(),
@@ -317,7 +276,7 @@ public sealed class CreateTransactionHandlerTests
         ).Returns(returnThis: account);
  
         await Assert.That(action: async () => await _handler.Handle(
-            command: CreateCommand(accountId: account.Id, userId: Guid.NewGuid()),
+            command: CreateTransactionCommandFactory.Create(accountId: account.Id, userId: Guid.NewGuid()),
             ct: CancellationToken.None
         )).Throws<NotFoundException>();
     }

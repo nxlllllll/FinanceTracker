@@ -34,4 +34,20 @@ public sealed class RenameCategoryCommandValidatorTests
 			predicate: e => e.PropertyName == nameof(command.NewName)
 		)).IsTrue();
 	}
+	
+	[Test]
+	public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
+	{
+		RenameCategoryCommand command = new RenameCategoryCommand(
+			CategoryId: Guid.Empty,
+			NewName: "Продукты"
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(
+			predicate: e => e.PropertyName == nameof(command.CategoryId)
+		)).IsTrue();
+	}
 }

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
@@ -10,7 +11,8 @@ namespace FinanceTracker.Application.Transfers.Commands;
 public sealed class CreateTransferHandler(
 	IAccountRepository accountRepository,
 	ITransferWriteRepository transferWriteRepository,
-	ICurrencyConversionService currencyConversionService
+	ICurrencyConversionService currencyConversionService,
+	IUnitOfWork unitOfWork
 ) : IRequestHandler<CreateTransferCommand, Guid>
 {
 	public async Task<Guid> Handle(
@@ -57,22 +59,34 @@ public sealed class CreateTransferHandler(
 			description: command.Description
 		);
 
-		await transferWriteRepository.CreateAsync(
-			transferId: transferId,
-			userId: command.UserId,
-			fromAccountId: command.FromAccountId,
-			toAccountId: command.ToAccountId,
-			amountFrom: command.Amount,
-			amountTo: command.Amount * conversion.Rate,
-			exchangeRate: conversion.Rate,
-			description: command.Description,
-			occurredAt: command.OccurredAt,
-			isRatePending: conversion.IsPending,
-			ct: ct
-		);
+		await unitOfWork.BeginTransactionAsync(ct: ct);
 
-		await accountRepository.SaveAsync(account: fromAccount, ct: ct);
-		await accountRepository.SaveAsync(account: toAccount, ct: ct);
+		try
+		{
+			await transferWriteRepository.CreateAsync(
+				transferId: transferId,
+				userId: command.UserId,
+				fromAccountId: command.FromAccountId,
+				toAccountId: command.ToAccountId,
+				amountFrom: command.Amount,
+				amountTo: command.Amount * conversion.Rate,
+				exchangeRate: conversion.Rate,
+				description: command.Description,
+				occurredAt: command.OccurredAt,
+				isRatePending: conversion.IsPending,
+				ct: ct
+			);
+
+			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
+			await accountRepository.SaveAsync(account: toAccount, ct: ct);
+			
+			await unitOfWork.CommitAsync(ct: ct);
+		}
+		catch
+		{
+			await unitOfWork.RollbackAsync(ct: ct);
+			throw;
+		}
 
 		return transferId;
 	}

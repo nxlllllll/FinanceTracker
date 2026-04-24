@@ -1,15 +1,21 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Infrastructure.Database.Repositories;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure;
+namespace FinanceTracker.Tests.Integration.Infrastructure.Currency;
 
 public sealed class CurrencyRepositoryTests : DatabaseFixture
 {
 	private CurrencyRepository _repository = null!;
+	private CurrencyBuilder _currencyBuilder = null!;
 
 	[Before(hookType: Test)]
 	public void SetupRepository()
-		=> _repository = new CurrencyRepository(context: Context);
+	{
+		_repository = new CurrencyRepository(context: Context);
+		_currencyBuilder = new CurrencyBuilder(context: Context);
+	}
 
 	[Test]
 	public async Task GetAllAsync_WithNoCurrencies_ShouldReturnEmptyList()
@@ -22,8 +28,8 @@ public sealed class CurrencyRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithCurrencies_ShouldReturnAll()
 	{
-		await CreateCurrencyAsync(code: "RUB");
-		await CreateCurrencyAsync(code: "USD");
+		await _currencyBuilder.CreateAsync(code: "RUB");
+		await _currencyBuilder.CreateAsync(code: "USD");
 
 		IReadOnlyList<CurrencyDto> result = await _repository.GetAllAsync();
 
@@ -41,7 +47,7 @@ public sealed class CurrencyRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByCodeAsync_WithExistingCode_ShouldReturnCorrectDto()
 	{
-		await CreateCurrencyAsync(code: "RUB");
+		await _currencyBuilder.CreateAsync(code: "RUB");
 
 		CurrencyDto? result = await _repository.GetByCodeAsync(code: "RUB");
 
