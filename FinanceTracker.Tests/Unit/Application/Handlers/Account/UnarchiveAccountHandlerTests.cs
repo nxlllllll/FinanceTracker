@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
-using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -18,14 +18,11 @@ public sealed class UnarchiveAccountHandlerTests
     {
         _accountRepository = Substitute.For<IAccountRepository>();
         _accountWriteRepository = Substitute.For<IAccountWriteRepository>();
-        _handler = new UnarchiveAccountHandler(
-            accountRepository: _accountRepository,
-            accountWriteRepository: _accountWriteRepository
-        );
+        _handler = new UnarchiveAccountHandler(accountRepository: _accountRepository);
     }
 
     [Test]
-    public async Task Handle_WithArchivedAccount_ShouldUnarchive()
+    public async Task Handle_WithArchivedAccount_ShouldSaveAccount()
     {
         FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
         _accountRepository.GetByIdAsync(
@@ -38,8 +35,8 @@ public sealed class UnarchiveAccountHandlerTests
             ct: CancellationToken.None
         );
 
-        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).UnarchiveAsync(
-            accountId: account.Id,
+        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -89,7 +86,7 @@ public sealed class UnarchiveAccountHandlerTests
     }
 
     [Test]
-    public async Task Handle_WhenAccountNotArchived_ShouldNotCallWriteRepository()
+    public async Task Handle_WhenAccountNotArchived_ShouldNotSaveAccount()
     {
         FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: false);
         _accountRepository.GetByIdAsync(
@@ -102,8 +99,8 @@ public sealed class UnarchiveAccountHandlerTests
             ct: CancellationToken.None
         )).Throws<UnarchivingException>();
 
-        await _accountWriteRepository.DidNotReceive().UnarchiveAsync(
-            accountId: Arg.Any<Guid>(),
+        await _accountRepository.DidNotReceive().SaveAsync(
+            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

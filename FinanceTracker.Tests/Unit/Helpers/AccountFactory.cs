@@ -30,7 +30,10 @@ public static class AccountFactory
 		account.ClearEvents();
 
 		if (archived)
+		{
 			account.Archive();
+			account.ClearEvents();
+		}
 
 		return account;
 	}

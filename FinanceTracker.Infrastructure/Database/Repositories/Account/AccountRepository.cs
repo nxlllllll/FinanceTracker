@@ -1,12 +1,10 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
 public sealed class AccountRepository(
-	IAccountReadRepository accountReadRepository,
 	IEventStore eventStore
 ) : IAccountRepository
 {
@@ -16,16 +14,11 @@ public sealed class AccountRepository(
 		Guid accountId,
 		CancellationToken ct = default)
 	{
-		AccountDto? dto = await accountReadRepository.GetByIdAsync(accountId, ct);
-		if (dto is null) 
-			return null;
-
 		EventStoreResult result = await eventStore.LoadAsync(accountId, ct);
 		if (result.Events.Count == 0 && result.Snapshot is null)
 			return null;
 		
 		return Core.Domains.Account.Account.Reconstitute(
-			metadata: dto,
 			snapshot: result.Snapshot,
 			events: result.Events
 		);
@@ -36,7 +29,7 @@ public sealed class AccountRepository(
 		CancellationToken ct = default)
 	{
 		if (account.Events.Count == 0)
-			return;
+			return;	
 
 		int expectedVersion = account.Version - account.Events.Count;
 
@@ -45,7 +38,7 @@ public sealed class AccountRepository(
 			aggregateType: AggregateType,
 			events: account.Events,
 			expectedVersion: expectedVersion,
-			snapshotState: account.TakeSnapshot(),
+			snapshotFactory: account.TakeSnapshot,
 			ct: ct
 		);
 

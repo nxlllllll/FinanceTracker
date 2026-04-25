@@ -124,23 +124,22 @@ public sealed class AccountWriteRepository(
 	}
 
 	public async Task RenameAsync(
-		Guid accountId,
-		string newName,
+		AccountRenamed @event,
 		CancellationToken ct = default)
 	{
-		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteUpdateAsync(
+		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(
 				propertyExpression: e => e.Name,
-				valueExpression: newName
+				valueExpression: @event.NewName
 			), cancellationToken: ct
 		);
 	}
 
 	public async Task ArchiveAsync(
-		Guid accountId,
+		AccountArchived @event,
 		CancellationToken ct = default)
 	{
-		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteUpdateAsync(
+		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(
 				propertyExpression: e => e.IsArchived,
 				valueExpression: true
@@ -149,10 +148,10 @@ public sealed class AccountWriteRepository(
 	}
 
 	public async Task UnarchiveAsync(
-		Guid accountId,
+		AccountUnarchived @event,
 		CancellationToken ct = default)
 	{
-		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteUpdateAsync(
+		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(
 				propertyExpression: e => e.IsArchived,
 				valueExpression: false

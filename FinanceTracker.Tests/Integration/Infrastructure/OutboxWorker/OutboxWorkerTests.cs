@@ -28,7 +28,6 @@ public sealed class OutboxWorkerTests : DatabaseFixture
     {
         _publisher = Substitute.For<IPublisher>();
         _accountRepository = new AccountRepository(
-            accountReadRepository: new AccountReadRepository(context: Context),
             eventStore: new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
                 context: Context,
                 eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly)

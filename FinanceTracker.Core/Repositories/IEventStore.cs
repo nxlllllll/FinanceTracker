@@ -9,7 +9,7 @@ public interface IEventStore
 		string aggregateType,
 		IEnumerable<IEvent> events,
 		int expectedVersion,
-		string? snapshotState = null,
+		Func<string>? snapshotFactory = null,
 		CancellationToken ct = default
 	);
 

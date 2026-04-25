@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
@@ -99,7 +100,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     }
 
     [Test]
-    public async Task SaveAsync_WithConcurrentWrite_ShouldThrowInvalidOperationException()
+    public async Task SaveAsync_WithConcurrentWrite_ShouldThrowConcurrencyConflictException()
     {
         Guid accountId = Guid.NewGuid();
         AccountCreated @event = new AccountCreated(
@@ -140,7 +141,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 )],
                 expectedVersion: 0
             );
-        }).Throws<InvalidOperationException>();
+        }).Throws<ConcurrencyConflictException>();
     }
     
     [Test]
@@ -160,7 +161,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             aggregateType: nameof(Account),
             events: account.Events,
             expectedVersion: 0,
-            snapshotState: account.TakeSnapshot()
+            snapshotFactory: account.TakeSnapshot
         );
         account.ClearEvents();
 
@@ -179,7 +180,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 aggregateType: nameof(Account),
                 events: account.Events,
                 expectedVersion: expectedVersion,
-                snapshotState: account.TakeSnapshot()
+                snapshotFactory: account.TakeSnapshot
             );
             account.ClearEvents();
         }
@@ -207,7 +208,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             aggregateType: nameof(Account),
             events: original.Events,
             expectedVersion: 0,
-            snapshotState: original.TakeSnapshot()
+            snapshotFactory: original.TakeSnapshot
         );
         original.ClearEvents();
 
@@ -226,7 +227,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 aggregateType: nameof(Account),
                 events: original.Events,
                 expectedVersion: expectedVersion,
-                snapshotState: original.TakeSnapshot()
+                snapshotFactory: original.TakeSnapshot
             );
             original.ClearEvents();
         }

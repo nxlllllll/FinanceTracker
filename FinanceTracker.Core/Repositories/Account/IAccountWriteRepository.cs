@@ -35,18 +35,17 @@ public interface IAccountWriteRepository
 	);
 	
 	Task RenameAsync(
-		Guid accountId,
-		string newName,
+		AccountRenamed @event,
 		CancellationToken ct = default
 	);
 
 	Task ArchiveAsync(
-		Guid accountId,
+		AccountArchived @event,
 		CancellationToken ct = default
 	);
 
 	Task UnarchiveAsync(
-		Guid accountId,
+		AccountUnarchived @event,
 		CancellationToken ct = default
 	);
 }

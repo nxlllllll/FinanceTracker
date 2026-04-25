@@ -45,20 +45,20 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		bool changed = account.Rename(newName: "Карта Тинькофф");
+		account.Rename(newName: "Карта Тинькофф");
 
-		await Assert.That(value: changed).IsTrue();
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Тинькофф");
 	}
 
 	[Test]
 	public async Task Rename_WithSameName_ShouldReturnFalse()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create(name: "Карта Сбер");
+		account.ClearEvents();
+		
+		account.Rename(newName: "Карта Сбер");
 
-		bool changed = account.Rename(newName: "Карта Сбер");
-
-		await Assert.That(value: changed).IsFalse();
+		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
 	}
 
 	[Test]
@@ -66,7 +66,7 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 		
-		await Assert.That(action: () => _ = account.Rename(newName: String.Empty)).Throws<EmptyNameException>();
+		await Assert.That(action: () => account.Rename(newName: String.Empty)).Throws<EmptyNameException>();
 	}
 	
 	[Test]
@@ -74,9 +74,8 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		bool changed = account.Archive();
+		account.Archive();
 
-		await Assert.That(value: changed).IsTrue();
 		await Assert.That(value: account.IsArchived).IsTrue();
 	}
 
@@ -85,9 +84,9 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		_ = account.Archive();
+		account.Archive();
 
-		await Assert.That(action: () => _ = account.Archive()).Throws<ArchivingException>();
+		await Assert.That(action: account.Archive).Throws<ArchivingException>();
 	}
 
 	[Test]
@@ -95,10 +94,9 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		_ = account.Archive();
-		bool changed = account.Unarchive();
+		account.Archive();
+		account.Unarchive();
 
-		await Assert.That(value: changed).IsTrue();
 		await Assert.That(value: account.IsArchived).IsFalse();
 	}
 
@@ -107,7 +105,7 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		await Assert.That(action: () => _ = account.Unarchive()).Throws<UnarchivingException>();
+		await Assert.That(action: account.Unarchive).Throws<UnarchivingException>();
 	}
 	
 	[Test]

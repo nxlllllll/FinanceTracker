@@ -5,12 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 
-/// <remarks>
-/// Transaction metadata (CategoryId, Description, IsExcluded) is managed via CRUD
-/// and is NOT recorded in the Event Store. This is intentional. A full ES rebuild
-/// restores only financial data (Amount, Direction, ExchangeRate) from Account events.
-/// If metadata rebuild is ever required, these fields must be sourced separately.
-/// </remarks>
 public sealed class TransactionWriteRepository(
 	FinanceTrackerContext context
 ) : ITransactionWriteRepository

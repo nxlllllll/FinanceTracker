@@ -64,7 +64,12 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     {
         AccountCreated created = await CreateAccountAsync();
 
-        await _writeRepository.RenameAsync(accountId: created.AccountId, newName: "Карта Тинькофф");
+        await _writeRepository.RenameAsync(@event: new AccountRenamed(
+            Id: Guid.NewGuid(),
+            AccountId: created.AccountId, 
+            NewName: "Карта Тинькофф",
+            OccurredAt: DateTime.UtcNow
+        ));
 
         string? name = await Context.Accounts
             .Where(predicate: a => a.Id == created.AccountId)
@@ -79,7 +84,11 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     {
         AccountCreated created = await CreateAccountAsync();
 
-        await _writeRepository.ArchiveAsync(accountId: created.AccountId);
+        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+            Id: Guid.NewGuid(),
+            AccountId: created.AccountId,
+            OccurredAt: DateTime.UtcNow
+        ));
 
         bool isArchived = await Context.Accounts
             .Where(predicate: a => a.Id == created.AccountId)
@@ -94,8 +103,16 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     {
         AccountCreated created = await CreateAccountAsync();
 
-        await _writeRepository.ArchiveAsync(accountId: created.AccountId);
-        await _writeRepository.UnarchiveAsync(accountId: created.AccountId);
+        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+            Id: Guid.NewGuid(),
+            AccountId: created.AccountId,
+            OccurredAt: DateTime.UtcNow
+        ));
+        await _writeRepository.UnarchiveAsync(@event: new AccountUnarchived(
+            Id: Guid.NewGuid(),
+            AccountId: created.AccountId,
+            OccurredAt: DateTime.UtcNow
+        ));
 
         bool isArchived = await Context.Accounts
             .Where(predicate: a => a.Id == created.AccountId)

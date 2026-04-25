@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Outbox;
@@ -55,7 +56,7 @@ public sealed class PostgresEventStore(
 		Guid aggregateId, 
 		string aggregateType, 
 		int expectedVersion, 
-		string? snapshotState,
+		Func<string>? snapshotFactory,
 		int eventsCount,
 		CancellationToken ct = default)
 	{
@@ -63,7 +64,7 @@ public sealed class PostgresEventStore(
 		int previousThreshold = expectedVersion / SnapshotThreshold;
 		int newThreshold = newVersion / SnapshotThreshold;
 
-		if (snapshotState is null || newThreshold <= previousThreshold)
+		if (snapshotFactory is null || newThreshold <= previousThreshold)
 			return;
 
 		SnapshotEntity? existing = await context.Snapshots.FirstOrDefaultAsync(
@@ -71,6 +72,8 @@ public sealed class PostgresEventStore(
 			cancellationToken: ct
 		);
 
+		string snapshot = snapshotFactory();
+		
 		if (existing is null)
 		{
 			await context.Snapshots.AddAsync(entity: new SnapshotEntity()
@@ -78,14 +81,14 @@ public sealed class PostgresEventStore(
 				AggregateId = aggregateId,
 				AggregateType = aggregateType,
 				Version = newVersion,
-				State = snapshotState,
+				State = snapshot,
 				CreatedAt = DateTime.UtcNow
 			}, cancellationToken: ct);
 		}
 		else
 		{
 			existing.Version = newVersion;
-			existing.State = snapshotState;
+			existing.State = snapshot;
 			existing.CreatedAt = DateTime.UtcNow;
 		}
 	}
@@ -95,7 +98,7 @@ public sealed class PostgresEventStore(
 		string aggregateType,
 		IEnumerable<IEvent> events,
 		int expectedVersion,
-		string? snapshotState = null,
+		Func<string>? snapshotFactory = null,
 		CancellationToken ct = default)
 	{
 		List<IEvent> eventList = events.ToList();
@@ -129,7 +132,7 @@ public sealed class PostgresEventStore(
 			aggregateId: aggregateId,
 			aggregateType: aggregateType,
 			expectedVersion: expectedVersion,
-			snapshotState: snapshotState,
+			snapshotFactory: snapshotFactory,
 			eventsCount: eventList.Count,
 			ct: ct
 		);
@@ -140,8 +143,7 @@ public sealed class PostgresEventStore(
 		}
 		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
 		{
-			throw new InvalidOperationException(
-				message: $"Conflict: aggregate {aggregateId} was modified by another request. Please retry.");
+			throw new ConcurrencyConflictException(message: $"Conflict: aggregate was modified by another request.", id: aggregateId);
 		}
 	}
 

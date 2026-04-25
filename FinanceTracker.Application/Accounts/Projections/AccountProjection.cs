@@ -16,6 +16,9 @@ public sealed class AccountProjection(
 		switch (@event)
 		{
 			case AccountCreated e: await HandleAsync(@event: e, ct: ct); break;
+			case AccountRenamed e: await HandleAsync(@event: e, ct: ct); break;
+			case AccountArchived e: await HandleAsync(@event: e, ct: ct); break;
+			case AccountUnarchived e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountDebited e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountCredited e: await HandleAsync(@event: e, ct: ct); break;
 			case AccountTransferDebited e: await HandleAsync(@event: e, ct: ct); break;
@@ -27,6 +30,15 @@ public sealed class AccountProjection(
 
 	private async Task HandleAsync(AccountCreated @event, CancellationToken ct)
 		=> await accountWriteRepository.CreateAsync(@event: @event, ct: ct);
+
+	private async Task HandleAsync(AccountRenamed @event, CancellationToken ct)
+		=> await accountWriteRepository.RenameAsync(@event: @event, ct: ct);
+
+	private async Task HandleAsync(AccountArchived @event, CancellationToken ct)
+		=> await accountWriteRepository.ArchiveAsync(@event: @event, ct: ct);
+
+	private async Task HandleAsync(AccountUnarchived @event, CancellationToken ct)
+		=> await accountWriteRepository.UnarchiveAsync(@event: @event, ct: ct);
 
 	private async Task HandleAsync(AccountDebited @event, CancellationToken ct)
 		=> await accountWriteRepository.DebitAsync(@event: @event, ct: ct);

@@ -1,15 +1,9 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Core.Domains.Account;
 
-/// <remarks>
-/// Event Store tracks only financial events (Debit, Credit, Transfer, BalanceAdjusted).
-/// Metadata (Name, IsArchived) is managed via CRUD and injected from the read model
-/// during reconstitution. This is intentional — see AccountRepository.Reconstitute.
-/// </remarks>
 public sealed class Account : AggregateRoot
 {
 	private sealed record AccountSnapshotState(
@@ -79,17 +73,11 @@ public sealed class Account : AggregateRoot
 	}
 	
 	public static Account Reconstitute(
-		AccountDto metadata,
 		SnapshotData? snapshot,
 		IReadOnlyList<IEvent> events)
 	{
 		Account account = snapshot is null ? new Account() : Restore(snapshot: snapshot);
-
 		account.LoadEventsFromHistory(events);
-
-		account.Name = metadata.Name;
-		account.IsArchived = metadata.IsArchived;
-
 		return account;
 	}
 	
@@ -138,6 +126,15 @@ public sealed class Account : AggregateRoot
 	private void Apply(AccountTransferCredited @event)
 		=> Balance += @event.Amount * @event.ExchangeRate;
 
+	private void Apply(AccountRenamed @event)
+		=> Name = @event.NewName;
+	
+	private void Apply(AccountArchived @event)
+		=> IsArchived = true;
+	
+	private void Apply(AccountUnarchived @event)
+		=> IsArchived = false;
+	
 	private void Apply(AccountCreated @event)
 	{
 		Id = @event.AccountId;
@@ -154,6 +151,9 @@ public sealed class Account : AggregateRoot
 		switch (@event)
 		{
 			case AccountCreated e: Apply(@event: e); break;
+			case AccountRenamed e: Apply(@event: e); break;
+			case AccountArchived e: Apply(@event: e); break;
+			case AccountUnarchived e: Apply(@event: e); break;
 			case AccountDebited e: Apply(@event: e); break;
 			case AccountCredited e: Apply(@event: e); break;
 			case AccountBalanceAdjusted e: Apply(@event: e); break;
@@ -287,34 +287,44 @@ public sealed class Account : AggregateRoot
 		));
 	}
 	
-	public bool Rename(string newName)
+	public void Rename(string newName)
 	{
 		if (String.IsNullOrWhiteSpace(value: newName))
 			throw new EmptyNameException(message: "The account name cannot be empty.");
 
 		if (Name.Equals(value: newName))
-			return false;
+			return;
 
-		Name = newName;
-		return true;
+		RaiseEvent(@event: new AccountRenamed(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			NewName: newName,
+			OccurredAt: DateTime.UtcNow
+		));
 	}
 
-	public bool Archive()
+	public void Archive()
 	{
 		if (IsArchived)
 			throw new ArchivingException(message: "The account has already been archived before.");
 
-		IsArchived = true;
-		return true;
+		RaiseEvent(@event: new AccountArchived(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			OccurredAt: DateTime.UtcNow
+		));
 	}
 
-	public bool Unarchive()
+	public void Unarchive()
 	{
 		if (!IsArchived)
 			throw new UnarchivingException(message: "The account is already active.");
 
-		IsArchived = false;
-		return true;
+		RaiseEvent(@event: new AccountUnarchived(
+			Id: Guid.NewGuid(),
+			AccountId: Id,
+			OccurredAt: DateTime.UtcNow
+		));
 	}
 	
 	public string TakeSnapshot()

@@ -6,8 +6,7 @@ using MediatR;
 namespace FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
 
 public sealed class UnarchiveAccountHandler(
-	IAccountRepository accountRepository,
-	IAccountWriteRepository accountWriteRepository
+	IAccountRepository accountRepository
 ) : IRequestHandler<UnarchiveAccountCommand>
 {
 	public async Task Handle(
@@ -20,9 +19,8 @@ public sealed class UnarchiveAccountHandler(
 		if (account.UserId != command.UserId)
 			throw new NotFoundException(message: "Account not found.", id: command.AccountId);		
 		
-		bool changed = account.Unarchive();
+		account.Unarchive();
 
-		if (changed)
-			await accountWriteRepository.UnarchiveAsync(accountId: command.AccountId, ct: ct);
+		await accountRepository.SaveAsync(account: account, ct: ct);
 	}
 }

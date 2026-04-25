@@ -65,7 +65,13 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await _writeRepository.CreateAsync(@event: @event);
 
         if (archived)
-            await _writeRepository.ArchiveAsync(accountId: @event.AccountId);
+        {
+            await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+                Id: Guid.NewGuid(),
+                AccountId: @event.AccountId,
+                OccurredAt: DateTime.UtcNow
+            ));
+        }
 
         return (userId, @event);
     }
@@ -158,7 +164,11 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             OccurredAt: DateTime.UtcNow
         );
         await _writeRepository.CreateAsync(@event: archived);
-        await _writeRepository.ArchiveAsync(accountId: archived.AccountId);
+        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+            Id: Guid.NewGuid(),
+            AccountId: archived.AccountId,
+            OccurredAt: DateTime.UtcNow
+        ));
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: true);
 
@@ -196,7 +206,11 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             OccurredAt: DateTime.UtcNow
         );
         await _writeRepository.CreateAsync(@event: archived);
-        await _writeRepository.ArchiveAsync(accountId: archived.AccountId);
+        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+            Id: Guid.NewGuid(),
+            AccountId: archived.AccountId,
+            OccurredAt: DateTime.UtcNow
+        ));
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);
 

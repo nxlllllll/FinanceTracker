@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.RenameAccount;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -10,22 +9,17 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 public sealed class RenameAccountHandlerTests
 {
     private IAccountRepository _accountRepository = null!;
-    private IAccountWriteRepository _accountWriteRepository = null!;
     private RenameAccountHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
         _accountRepository = Substitute.For<IAccountRepository>();
-        _accountWriteRepository = Substitute.For<IAccountWriteRepository>();
-        _handler = new RenameAccountHandler(
-            accountRepository: _accountRepository,
-            accountWriteRepository: _accountWriteRepository
-        );
+        _handler = new RenameAccountHandler(accountRepository: _accountRepository);
     }
 
     [Test]
-    public async Task Handle_WithNewName_ShouldRename()
+    public async Task Handle_WithNewName_ShouldSaveAccount()
     {
         FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
         _accountRepository.GetByIdAsync(
@@ -38,15 +32,14 @@ public sealed class RenameAccountHandlerTests
             ct: CancellationToken.None
         );
 
-        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
-            accountId: account.Id,
-            newName: "Карта Тинькофф",
+        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
 
     [Test]
-    public async Task Handle_WithSameName_ShouldNotCallWriteRepository()
+    public async Task Handle_WithSameName_ShouldSaveAccount()
     {
         FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
         _accountRepository.GetByIdAsync(
@@ -59,9 +52,8 @@ public sealed class RenameAccountHandlerTests
             ct: CancellationToken.None
         );
 
-        await _accountWriteRepository.DidNotReceive().RenameAsync(
-            accountId: Arg.Any<Guid>(),
-            newName: Arg.Any<string>(),
+        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -74,7 +66,7 @@ public sealed class RenameAccountHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
 
-        await Assert.That(action: async () => await _handler.Handle(
+        await Assert.That(async () => await _handler.Handle(
             command: new RenameAccountCommand(UserId: Guid.NewGuid(), AccountId: Guid.NewGuid(), NewName: "Карта Тинькофф"),
             ct: CancellationToken.None
         )).Throws<NotFoundException>();
@@ -89,7 +81,7 @@ public sealed class RenameAccountHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: account);
 
-        await Assert.That(action: async () => await _handler.Handle(
+        await Assert.That(async () => await _handler.Handle(
             command: new RenameAccountCommand(UserId: Guid.NewGuid(), AccountId: account.Id, NewName: "Карта Тинькофф"),
             ct: CancellationToken.None
         )).Throws<NotFoundException>();

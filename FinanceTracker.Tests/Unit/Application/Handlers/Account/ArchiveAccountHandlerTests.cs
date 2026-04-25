@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -10,22 +9,17 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 public sealed class ArchiveAccountHandlerTests
 {
     private IAccountRepository _accountRepository = null!;
-    private IAccountWriteRepository _accountWriteRepository = null!;
     private ArchiveAccountHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
         _accountRepository = Substitute.For<IAccountRepository>();
-        _accountWriteRepository = Substitute.For<IAccountWriteRepository>();
-        _handler = new ArchiveAccountHandler(
-            accountRepository: _accountRepository,
-            accountWriteRepository: _accountWriteRepository
-        );
+        _handler = new ArchiveAccountHandler(accountRepository: _accountRepository);
     }
 
     [Test]
-    public async Task Handle_WithActiveAccount_ShouldArchive()
+    public async Task Handle_WithActiveAccount_ShouldSaveAccount()
     {
         FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
         _accountRepository.GetByIdAsync(
@@ -38,8 +32,8 @@ public sealed class ArchiveAccountHandlerTests
             ct: CancellationToken.None
         );
 
-        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
-            accountId: account.Id,
+        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -89,7 +83,7 @@ public sealed class ArchiveAccountHandlerTests
     }
 
     [Test]
-    public async Task Handle_WhenAccountAlreadyArchived_ShouldNotCallWriteRepository()
+    public async Task Handle_WhenAccountAlreadyArchived_ShouldNotSaveAccount()
     {
         FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
         _accountRepository.GetByIdAsync(
@@ -102,8 +96,8 @@ public sealed class ArchiveAccountHandlerTests
             ct: CancellationToken.None
         )).Throws<ArchivingException>();
 
-        await _accountWriteRepository.DidNotReceive().ArchiveAsync(
-            accountId: Arg.Any<Guid>(),
+        await _accountRepository.DidNotReceive().SaveAsync(
+            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

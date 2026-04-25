@@ -47,6 +47,67 @@ public sealed class AccountProjectionTests
     }
 
     [Test]
+    public async Task Handle_WhenAccountRenamed_ShouldCallRenameAsync()
+    {
+        AccountRenamed @event = new AccountRenamed(
+            Id: Guid.NewGuid(),
+            AccountId: Guid.NewGuid(),
+            NewName: "Карта Тинькофф",
+            OccurredAt: DateTime.UtcNow
+        );
+
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
+        );
+
+        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
+            @event: Arg.Is<AccountRenamed>(e => e.AccountId == @event.AccountId),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task Handle_WhenAccountArchived_ShouldCallArchiveAsync()
+    {
+        AccountArchived @event = new AccountArchived(
+            Id: Guid.NewGuid(),
+            AccountId: Guid.NewGuid(),
+            OccurredAt: DateTime.UtcNow
+        );
+
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
+        );
+
+        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
+            @event: Arg.Is<AccountArchived>(e => e.AccountId == @event.AccountId),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task Handle_WhenAccountUnarchived_ShouldCallUnarchiveAsync()
+    {
+        AccountUnarchived @event = new AccountUnarchived(
+            Id: Guid.NewGuid(),
+            AccountId: Guid.NewGuid(),
+            OccurredAt: DateTime.UtcNow
+        );
+
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
+        );
+
+        await _accountWriteRepository.Received(requiredNumberOfCalls: 1).UnarchiveAsync(
+            @event: Arg.Is<AccountUnarchived>(e => e.AccountId == @event.AccountId),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+    
+    [Test]
     public async Task Handle_WhenAccountDebited_ShouldCallDebitAsync()
     {
         AccountDebited @event = new AccountDebited(
