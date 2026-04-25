@@ -30,6 +30,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 
 	public DbSet<TransferEntity> Transfers => Set<TransferEntity>();
 	
+	public DbSet<CategoryTotalEntity> CategoryTotals => Set<CategoryTotalEntity>();
+	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(typeof(FinanceTrackerContext).Assembly);
 }

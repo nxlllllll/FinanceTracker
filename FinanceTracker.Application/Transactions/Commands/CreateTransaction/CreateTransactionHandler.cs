@@ -3,6 +3,7 @@ using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using MediatR;
@@ -14,7 +15,8 @@ public sealed class CreateTransactionHandler(
 	ITransactionWriteRepository transactionWriteRepository,
 	ICurrencyConversionService currencyConversionService,
 	IUserRepository userRepository,
-	IUnitOfWork unitOfWork
+	IUnitOfWork unitOfWork,
+	ICategoryTotalWriteRepository categoryTotalWriteRepository
 ) : IRequestHandler<CreateTransactionCommand, Guid>
 {
 	private void ApplyDirection(
@@ -23,14 +25,27 @@ public sealed class CreateTransactionHandler(
 		Guid transactionId,
 		decimal rate)
 	{
-		Action<Guid, Guid, decimal, decimal, string?> func = command.Direction switch
+		switch (command.Direction)
 		{
-			DirectionType.Debit => account.Debit,
-			DirectionType.Credit => account.Credit,
-			_ => throw new ArgumentOutOfRangeException(message: "Direction is unknown.", paramName: nameof(command.Direction))
-		};
- 
-		func(transactionId, command.CategoryId, command.Amount, rate, command.Description);
+			case DirectionType.Debit:
+				account.Debit(
+					transactionId: transactionId, 
+					categoryId: command.CategoryId,
+					amount: command.Amount,
+					exchangeRate: rate,
+					description: command.Description
+				); break;
+			case DirectionType.Credit: 
+				account.Credit(
+					transactionId: transactionId, 
+					categoryId: command.CategoryId,
+					amount: command.Amount,
+					exchangeRate: rate, 
+					description: command.Description
+				); break;
+			default:
+				throw new ArgumentOutOfRangeException(message: "Direction is unknown.", paramName: nameof(command.Direction));
+		}
 	}
 	
 	public async Task<Guid> Handle(
@@ -80,6 +95,14 @@ public sealed class CreateTransactionHandler(
 			);
 
 			await accountRepository.SaveAsync(account: account, ct: ct);
+			
+			await categoryTotalWriteRepository.AddAsync(
+				userId: command.UserId,
+				categoryId: command.CategoryId,
+				amount: command.Amount,
+				occurredAt: command.OccurredAt,
+				ct: ct
+			);
 			
 			await unitOfWork.CommitAsync(ct: ct);
 		}

@@ -3,6 +3,7 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -18,6 +19,7 @@ public sealed class CreateTransactionHandlerTests
     private IUserRepository _userRepository = null!;
     private CreateTransactionHandler _handler = null!;
     private IUnitOfWork _unitOfWork = null!;
+    private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
  
     [Before(hookType: Test)]
     public void Setup()
@@ -27,13 +29,15 @@ public sealed class CreateTransactionHandlerTests
         _currencyConversionService = Substitute.For<ICurrencyConversionService>();
         _userRepository = Substitute.For<IUserRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
+        _categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
         
         _handler = new CreateTransactionHandler(
             accountRepository: _accountRepository,
             transactionWriteRepository: _transactionWriteRepository,
             currencyConversionService: _currencyConversionService,
             userRepository: _userRepository,
-            unitOfWork: _unitOfWork
+            unitOfWork: _unitOfWork,
+            categoryTotalWriteRepository: _categoryTotalWriteRepository
         );
     }
  
@@ -283,5 +287,41 @@ public sealed class CreateTransactionHandlerTests
             command: CreateTransactionCommandFactory.Create(accountId: account.Id, userId: Guid.NewGuid()),
             ct: CancellationToken.None
         )).Throws<NotFoundException>();
+    }
+    
+    [Test]
+    public async Task Handle_WithValidCommand_ShouldAddCategoryTotal()
+    {
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
+
+        _accountRepository.GetByIdAsync(
+            accountId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: account);
+
+        _userRepository.GetByIdAsync(
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: user);
+
+        _currencyConversionService.GetConversionRateAsync(
+            fromCurrency: Arg.Any<string>(),
+            toCurrency: Arg.Any<string>(),
+            date: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(userId: account.UserId);
+
+        await _handler.Handle(command: command, ct: CancellationToken.None);
+
+        await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).AddAsync(
+            userId: command.UserId,
+            categoryId: command.CategoryId,
+            amount: command.Amount,
+            occurredAt: command.OccurredAt,
+            ct: Arg.Any<CancellationToken>()
+        );
     }
 }

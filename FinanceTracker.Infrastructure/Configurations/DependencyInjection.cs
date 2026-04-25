@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
@@ -10,6 +11,7 @@ using FinanceTracker.Infrastructure.Database.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
+using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
@@ -50,6 +52,8 @@ public static class DependencyInjection
 		services.AddScoped<ICurrencyRateRepository, CurrencyRateRepository>();
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
+		services.AddScoped<ICategoryTotalWriteRepository, CategoryTotalWriteRepository>();
+		services.AddScoped<ICategoryTotalReadRepository, CategoryTotalReadRepository>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 
