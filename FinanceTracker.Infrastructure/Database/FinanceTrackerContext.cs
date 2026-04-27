@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Infrastructure.Database.Configurations;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database;
@@ -31,6 +32,10 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<TransferEntity> Transfers => Set<TransferEntity>();
 	
 	public DbSet<CategoryTotalEntity> CategoryTotals => Set<CategoryTotalEntity>();
+
+	public DbSet<BudgetEntity> Budgets => Set<BudgetEntity>();
+	
+	public DbSet<BudgetProgressEntity> BudgetProgresses => Set<BudgetProgressEntity>();
 	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(typeof(FinanceTrackerContext).Assembly);

@@ -8,6 +8,7 @@ public sealed record CreateTransactionCommand(
     Guid UserId,
     Guid CategoryId,
     decimal Amount,
+    string Currency,
     DirectionType Direction,
     string? Description,
     DateTime OccurredAt

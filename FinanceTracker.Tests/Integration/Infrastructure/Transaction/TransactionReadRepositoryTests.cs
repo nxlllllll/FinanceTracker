@@ -79,6 +79,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             userId: Guid.NewGuid(),
             categoryId: categoryId,
             amount: 1000m,
+            currency: "RUB",
             direction: direction,
             exchangeRate: 1m,
             description: "Обед",

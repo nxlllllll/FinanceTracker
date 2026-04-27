@@ -10,6 +10,7 @@ public interface ITransactionWriteRepository
         Guid userId,
         Guid categoryId,
         decimal amount,
+		string currency,
         DirectionType direction,
         decimal exchangeRate,
         string? description,

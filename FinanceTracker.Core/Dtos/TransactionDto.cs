@@ -8,6 +8,7 @@ public sealed record TransactionDto(
 	Guid UserId,
 	Guid CategoryId,
 	decimal Amount,
+	string Currency,
 	DirectionType Direction,
 	decimal ExchangeRate,
 	bool IsExcluded,

@@ -10,6 +10,7 @@ public static class CreateTransactionCommandFactory
 		Guid? userId = null,
 		Guid? categoryId = null,
 		decimal amount = 1000m,
+		string currency = "RUB",
 		DirectionType direction = DirectionType.Debit,
 		string? description = "Обед")
 	{
@@ -18,6 +19,7 @@ public static class CreateTransactionCommandFactory
 			UserId: userId ?? Guid.NewGuid(),
 			CategoryId: categoryId ?? Guid.NewGuid(),
 			Amount: amount,
+			Currency: currency,
 			Direction: direction,
 			Description: description,
 			OccurredAt: DateTime.UtcNow

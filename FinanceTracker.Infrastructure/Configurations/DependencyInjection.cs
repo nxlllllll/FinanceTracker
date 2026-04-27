@@ -1,6 +1,8 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -10,6 +12,8 @@ using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
+using FinanceTracker.Infrastructure.Database.Repositories.Budget;
+using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
@@ -54,6 +58,10 @@ public static class DependencyInjection
 		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
 		services.AddScoped<ICategoryTotalWriteRepository, CategoryTotalWriteRepository>();
 		services.AddScoped<ICategoryTotalReadRepository, CategoryTotalReadRepository>();
+		services.AddScoped<IBudgetReadRepository, BudgetReadRepository>();
+		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();
+		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
+		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 

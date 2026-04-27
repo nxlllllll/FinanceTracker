@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -10,56 +9,28 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.CategoryTotal;
 public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 {
     private CategoryTotalWriteRepository _writeRepository = null!;
-    private CurrencyBuilder _currencyBuilder = null!;
     private UserBuilder _userBuilder = null!;
+    private CategoryBuilder _categoryBuilder = null!;
 
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
         _writeRepository = new CategoryTotalWriteRepository(context: Context);
-        _currencyBuilder = new CurrencyBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
-    }
-
-    private async Task<(Guid userId, Guid categoryId)> CreateUserAndCategoryAsync()
-    {
-        string currencyCode = await _currencyBuilder.CreateAsync();
-        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
-
-        Guid categoryId = Guid.NewGuid();
-        await Context.Categories.AddAsync(entity: new CategoryEntity()
-        {
-            Id = categoryId,
-            UserId = userId,
-            ParentId = null,
-            Name = "Еда",
-            Type = CategoryType.Expense,
-            IsArchived = false,
-            CreatedAt = DateTime.UtcNow
-        });
-        await Context.SaveChangesAsync();
-
-        return (userId, categoryId);
+        _categoryBuilder = new CategoryBuilder(context: Context);
     }
 
     [Test]
     public async Task AddAsync_WhenNoRecordExists_ShouldCreateNewRecord()
     {
-        (Guid userId, Guid categoryId) = await CreateUserAndCategoryAsync();
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
             amount: 1000m,
-            occurredAt: new DateTime(
-                year: 2025, 
-                month: 1,
-                day: 15,
-                hour: 0,
-                minute: 0,
-                second: 0,
-                kind: DateTimeKind.Utc
-            )
+            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
 
         CategoryTotalEntity? entity = await Context.CategoryTotals.FirstOrDefaultAsync(predicate: ct =>
@@ -76,30 +47,12 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     [Test]
     public async Task AddAsync_WhenRecordExists_ShouldAccumulateTotal()
     {
-        (Guid userId, Guid categoryId) = await CreateUserAndCategoryAsync();
-        DateTime occurredAt = new DateTime(
-            year: 2025,
-            month: 1,
-            day: 15,
-            hour: 0,
-            minute: 0,
-            second: 0,
-            kind: DateTimeKind.Utc
-        );
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
 
-        await _writeRepository.AddAsync(
-            userId: userId,
-            categoryId: categoryId,
-            amount: 1000m,
-            occurredAt: occurredAt
-        );
-        
-        await _writeRepository.AddAsync(
-            userId: userId,
-            categoryId: categoryId,
-            amount: 500m,
-            occurredAt: occurredAt
-        );
+        await _writeRepository.AddAsync(userId: userId, categoryId: categoryId, amount: 1000m, occurredAt: occurredAt);
+        await _writeRepository.AddAsync(userId: userId, categoryId: categoryId, amount: 500m, occurredAt: occurredAt);
 
         CategoryTotalEntity entity = await Context.CategoryTotals.FirstAsync(
             predicate: ct => ct.UserId == userId && ct.CategoryId == categoryId
@@ -112,29 +65,12 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     [Test]
     public async Task SubtractAsync_ShouldDecreaseTotal()
     {
-        (Guid userId, Guid categoryId) = await CreateUserAndCategoryAsync();
-        DateTime occurredAt = new DateTime(
-            year: 2025,
-            month: 1,
-            day: 15,
-            hour: 0,
-            minute: 0,
-            second: 0,
-            kind: DateTimeKind.Utc
-        );
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
 
-        await _writeRepository.AddAsync(
-            userId: userId,
-            categoryId: categoryId,
-            amount: 1000m,
-            occurredAt: occurredAt
-        );
-        await _writeRepository.SubtractAsync(
-            userId: userId,
-            categoryId: categoryId,
-            amount: 400m,
-            occurredAt: occurredAt
-        );
+        await _writeRepository.AddAsync(userId: userId, categoryId: categoryId, amount: 1000m, occurredAt: occurredAt);
+        await _writeRepository.SubtractAsync(userId: userId, categoryId: categoryId, amount: 400m, occurredAt: occurredAt);
 
         CategoryTotalEntity entity = await Context.CategoryTotals.FirstAsync(
             predicate: ct => ct.UserId == userId && ct.CategoryId == categoryId
@@ -147,33 +83,20 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     [Test]
     public async Task AddAsync_ShouldSeparatePeriodsByMonth()
     {
-        (Guid userId, Guid categoryId) = await CreateUserAndCategoryAsync();
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
             amount: 1000m,
-            occurredAt: new DateTime(
-                year: 2025,
-                month: 1,
-                day: 15,
-                hour: 0,
-                minute: 0,
-                second: 0,
-                kind: DateTimeKind.Utc)
+            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
             amount: 2000m,
-            occurredAt: new DateTime(
-                 year: 2025,
-                 month: 2,
-                 day: 10,
-                 hour: 0,
-                 minute: 0,
-                 second: 0,
-                 kind: DateTimeKind.Utc)
+            occurredAt: new DateTime(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
 
         int count = await Context.CategoryTotals.CountAsync(
@@ -184,38 +107,14 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     }
 
     [Test]
-    public async Task MoveCategoryAsync_ShouldSubtractFromOldAndAddToNew()
+    public async Task ChangeCategoryAsync_ShouldSubtractFromOldAndAddToNew()
     {
-        (Guid userId, Guid oldCategoryId) = await CreateUserAndCategoryAsync();
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid oldCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+        Guid newCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
+        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
 
-        Guid newCategoryId = Guid.NewGuid();
-        await Context.Categories.AddAsync(entity: new CategoryEntity()
-        {
-            Id = newCategoryId,
-            UserId = userId,
-            ParentId = null,
-            Name = "Транспорт",
-            Type = CategoryType.Expense,
-            IsArchived = false,
-            CreatedAt = DateTime.UtcNow
-        });
-        await Context.SaveChangesAsync();
-
-        DateTime occurredAt = new DateTime(
-            year: 2025,
-            month: 1,
-            day: 15,
-            hour: 0,
-            minute: 0,
-            second: 0,
-            kind: DateTimeKind.Utc);
-
-        await _writeRepository.AddAsync(
-            userId: userId,
-            categoryId: oldCategoryId,
-            amount: 1000m,
-            occurredAt: occurredAt
-        );
+        await _writeRepository.AddAsync(userId: userId, categoryId: oldCategoryId, amount: 1000m, occurredAt: occurredAt);
         await _writeRepository.ChangeCategoryAsync(
             userId: userId,
             oldCategoryId: oldCategoryId,

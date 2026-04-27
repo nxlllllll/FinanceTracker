@@ -40,6 +40,7 @@ public sealed class CreateTransactionCommandValidatorTests
             UserId: Guid.NewGuid(),
             CategoryId: Guid.NewGuid(),
             Amount: 1000m,
+            Currency: "RUB",
             Direction: DirectionType.Debit,
             Description: null,
             OccurredAt: DateTime.UtcNow.AddDays(value: 1)

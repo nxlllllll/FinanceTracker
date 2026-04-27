@@ -5,6 +5,7 @@ using Testcontainers.PostgreSql;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared;
 
+[NotInParallel]
 public abstract class DatabaseFixture
 {
 	private static PostgreSqlContainer _container = null!;

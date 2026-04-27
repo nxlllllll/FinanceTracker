@@ -25,9 +25,9 @@ public sealed class CategoryRepository(
 		Guid categoryId,
 		CancellationToken ct = default)
 	{
-		CategoryEntity? category = await context
-									.Categories.AsNoTracking().Where(predicate: category => category.Id == categoryId)
-									.FirstOrDefaultAsync(cancellationToken: ct);
+		CategoryEntity? category = await context.Categories.AsNoTracking()
+			.Where(predicate: category => category.Id == categoryId)
+			.FirstOrDefaultAsync(cancellationToken: ct);
 
 		if (category is null)
 			return null;
@@ -50,7 +50,8 @@ public sealed class CategoryRepository(
 		Guid? parentId = null,
 		CancellationToken ct = default)
 	{
-		IQueryable<CategoryEntity> categories = context.Categories.AsNoTracking().Where(predicate: c => c.UserId == userId);
+		IQueryable<CategoryEntity> categories = context.Categories.AsNoTracking()
+			.Where(predicate: c => c.UserId == userId);
 
 		if (type is not null)
 			categories = categories.Where(predicate: c => c.Type == type);

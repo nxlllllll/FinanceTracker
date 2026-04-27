@@ -6,10 +6,10 @@ namespace FinanceTracker.Tests.Unit.Helpers;
 public static class TransactionFactory
 {
 	public static TransactionDto Create(
-			Guid? accountId = null,
-			Guid? userId = null,
-			Guid? categoryId = null,
-			bool isExcluded = false)
+		Guid? accountId = null,
+		Guid? userId = null,
+		Guid? categoryId = null,
+		bool isExcluded = false)
 	{
 		return new TransactionDto(
 			Id: Guid.NewGuid(),
@@ -17,6 +17,7 @@ public static class TransactionFactory
 			UserId: userId ?? Guid.NewGuid(),
 			CategoryId: categoryId ?? Guid.NewGuid(),
 			Amount: 1000m,
+			Currency: "RUB",
 			Direction: DirectionType.Debit,
 			ExchangeRate: 1m,
 			IsExcluded: isExcluded,

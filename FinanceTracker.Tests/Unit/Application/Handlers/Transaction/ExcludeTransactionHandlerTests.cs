@@ -1,6 +1,8 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -14,6 +16,8 @@ public sealed class ExcludeTransactionHandlerTests
     private ITransactionWriteRepository _transactionWriteRepository = null!;
     private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
     private ExcludeTransactionHandler _handler = null!;
+    private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
+    private IUnitOfWork _unitOfWork = null!;
 
     [Before(hookType: Test)]
     public void Setup()
@@ -21,10 +25,15 @@ public sealed class ExcludeTransactionHandlerTests
         _transactionReadRepository = Substitute.For<ITransactionReadRepository>();
         _transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
         _categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
+        _budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+        
         _handler = new ExcludeTransactionHandler(
             transactionReadRepository: _transactionReadRepository,
             transactionWriteRepository: _transactionWriteRepository,
-            categoryTotalWriteRepository: _categoryTotalWriteRepository
+            categoryTotalWriteRepository: _categoryTotalWriteRepository,
+            budgetProgressWriteRepository: _budgetProgressWriteRepository,
+            unitOfWork: _unitOfWork
         );
     }
 

@@ -26,6 +26,10 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 			.HasColumnName(name: "amount")
 			.HasColumnType(typeName: "numeric(18,2)");
 
+		builder.Property(propertyExpression: t => t.Currency)
+			.HasColumnName(name: "currency_code")
+			.HasMaxLength(maxLength: 3);
+		
 		builder.Property(propertyExpression: t => t.Direction)
 			.HasColumnName(name: "direction_type")
 			.HasMaxLength(maxLength: 10)
@@ -57,6 +61,10 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 
 		builder.HasOne<CategoryEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: t => t.CategoryId)
+			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
+		
+		builder.HasOne<CurrencyEntity>().WithMany()
+			.HasForeignKey(foreignKeyExpression: t => t.Currency)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
 	}
 }
