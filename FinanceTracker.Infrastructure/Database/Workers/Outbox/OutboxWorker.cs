@@ -6,7 +6,6 @@ using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,8 +14,7 @@ namespace FinanceTracker.Infrastructure.Database.Workers.Outbox;
  
 public sealed class OutboxWorker(
 	IServiceScopeFactory scopeFactory,
-	ILogger<OutboxWorker> logger,
-	IUnitOfWork unitOfWork
+	ILogger<OutboxWorker> logger
 ) : BackgroundService
 {
 	private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(value: 3);
@@ -47,6 +45,7 @@ public sealed class OutboxWorker(
 		FinanceTrackerContext context = scope.ServiceProvider.GetRequiredService<FinanceTrackerContext>();
 		INotificationDispatcher dispatcher = scope.ServiceProvider.GetRequiredService<INotificationDispatcher>();
 		IEventTypeResolver resolver = scope.ServiceProvider.GetRequiredService<IEventTypeResolver>();
+		IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
  
 		await unitOfWork.BeginTransactionAsync(ct: ct);
  
@@ -81,9 +80,17 @@ public sealed class OutboxWorker(
 				logger.LogError(exception: exception, message: "Failed to process outbox message: {messageId}.", message.Id);
 			}
 		}
- 
-		await context.SaveChangesAsync(cancellationToken: ct);
-		await unitOfWork.CommitAsync(ct: ct);
+
+		try
+		{
+			await context.SaveChangesAsync(cancellationToken: ct);
+			await unitOfWork.CommitAsync(ct: ct);
+		}
+		catch (Exception exception)
+		{
+			await unitOfWork.RollbackAsync(ct: ct);
+			logger.LogError(exception: exception, message: "Failed to commit outbox batch.");
+		}
 	}
  
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)

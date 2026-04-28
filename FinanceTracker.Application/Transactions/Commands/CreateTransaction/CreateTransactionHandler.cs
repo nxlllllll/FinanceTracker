@@ -104,10 +104,7 @@ public sealed class CreateTransactionHandler(
 					occurredAt: command.OccurredAt,
 					ct: ct
 				);
-			}
 
-			if (command.Direction == DirectionType.Debit)
-			{
 				await budgetProgressWriteRepository.AddAsync(
 					userId: command.UserId,
 					categoryId: command.CategoryId,
