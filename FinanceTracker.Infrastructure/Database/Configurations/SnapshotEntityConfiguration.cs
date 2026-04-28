@@ -13,7 +13,7 @@ public sealed class SnapshotEntityConfiguration : IEntityTypeConfiguration<Snaps
 		builder.HasKey(keyExpression: s => new
 		{
 			s.AggregateId,
-			s.AggregateType
+			s.Version
 		});
 
 		builder.Property(propertyExpression: s => s.AggregateId)
