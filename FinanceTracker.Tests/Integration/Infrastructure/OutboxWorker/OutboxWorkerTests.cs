@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
@@ -77,9 +78,10 @@ public sealed class OutboxWorkerTests : DatabaseFixture
             .CountAsync(predicate: m => m.ProcessedAt == null);
         await Assert.That(value: unprocessedBefore).IsEqualTo(expected: 1);
 
-        FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker(
+        FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
             scopeFactory: new FakeScopeFactory(scope: BuildScope()),
-            logger: NullLogger<FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker>.Instance
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
+            unitOfWork: Substitute.For<IUnitOfWork>()
         );
 
         await worker.ProcessBatchAsync(ct: CancellationToken.None);
@@ -96,9 +98,10 @@ public sealed class OutboxWorkerTests : DatabaseFixture
     [Test]
     public async Task ProcessBatchAsync_WhenNoMessages_ShouldNotDispatch()
     {
-        FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker(
+        FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
             scopeFactory: new FakeScopeFactory(scope: BuildScope()),
-            logger: NullLogger<FinanceTracker.Infrastructure.Database.Outbox.OutboxWorker>.Instance
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
+            unitOfWork: Substitute.For<IUnitOfWork>()
         );
 
         await worker.ProcessBatchAsync(ct: CancellationToken.None);

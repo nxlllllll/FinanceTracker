@@ -1,6 +1,8 @@
 ﻿using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Account.Notification;
+using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using Microsoft.EntityFrameworkCore;
@@ -8,17 +10,18 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
- 
-namespace FinanceTracker.Infrastructure.Database.Outbox;
+
+namespace FinanceTracker.Infrastructure.Database.Workers.Outbox;
  
 public sealed class OutboxWorker(
 	IServiceScopeFactory scopeFactory,
-	ILogger<OutboxWorker> logger
+	ILogger<OutboxWorker> logger,
+	IUnitOfWork unitOfWork
 ) : BackgroundService
 {
 	private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(value: 3);
  
-	private static AggregateNotification BuildNotification(
+	private static AccountNotification BuildNotification(
 		OutboxMessageEntity message,
 		IEventTypeResolver resolver)
 	{
@@ -31,9 +34,8 @@ public sealed class OutboxWorker(
 			return (IEvent)JsonSerializer.Deserialize(json: envelope.EventPayload, returnType: type)!;
 		}).ToList();
  
-		return new AggregateNotification(
-			AggregateId: message.AggregateId,
-			AggregateType: message.AggregateType,
+		return new AccountNotification(
+			AccountId: message.AggregateId,
 			Events: events
 		);
 	}
@@ -46,7 +48,7 @@ public sealed class OutboxWorker(
 		INotificationDispatcher dispatcher = scope.ServiceProvider.GetRequiredService<INotificationDispatcher>();
 		IEventTypeResolver resolver = scope.ServiceProvider.GetRequiredService<IEventTypeResolver>();
  
-		await using IDbContextTransaction batchTransaction = await context.Database.BeginTransactionAsync(cancellationToken: ct);
+		await unitOfWork.BeginTransactionAsync(ct: ct);
  
 		List<OutboxMessageEntity> messages = await context.OutboxMessages.FromSqlRaw(sql: """
 			SELECT * FROM outbox_messages
@@ -56,9 +58,9 @@ public sealed class OutboxWorker(
 			FOR UPDATE SKIP LOCKED
 		""").ToListAsync(cancellationToken: ct);
  
-		if (messages.Count == 0)
+		if (messages.Count == 0)	
 		{
-			await batchTransaction.RollbackAsync(cancellationToken: ct);
+			await unitOfWork.RollbackAsync(ct: ct);
 			return;
 		}
  
@@ -66,12 +68,12 @@ public sealed class OutboxWorker(
 		{
 			try
 			{
-				AggregateNotification notification = BuildNotification(
+				AccountNotification notification = BuildNotification(
 					message: message,
 					resolver: resolver
 				);
  
-				await dispatcher.DispatchAsync(notification: notification, ct: ct);
+				await dispatcher.DispatchAsync(notification: new Notification(Data: notification), ct: ct);
 				message.ProcessedAt = DateTime.UtcNow;
 			}
 			catch (Exception exception)
@@ -81,7 +83,7 @@ public sealed class OutboxWorker(
 		}
  
 		await context.SaveChangesAsync(cancellationToken: ct);
-		await batchTransaction.CommitAsync(cancellationToken: ct);
+		await unitOfWork.CommitAsync(ct: ct);
 	}
  
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -94,7 +96,7 @@ public sealed class OutboxWorker(
 			}
 			catch (Exception exception)
 			{
-				logger.LogError(exception: exception, message: "OutboxWorker error: {message}.", exception.Message);
+				logger.LogError(exception: exception, message: "OutboxWorker error: {Message}.", exception.Message);
 			}
  
 			await Task.Delay(delay: PollingInterval, cancellationToken: stoppingToken);

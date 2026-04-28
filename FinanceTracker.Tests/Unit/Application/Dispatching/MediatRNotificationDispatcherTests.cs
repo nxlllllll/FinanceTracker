@@ -3,6 +3,7 @@ using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Domains.Account.Notification;
 using FinanceTracker.Core.Exceptions;
 using MediatR;
 using NSubstitute;
@@ -24,9 +25,8 @@ public sealed class MediatRNotificationDispatcherTests
     [Test]
     public async Task DispatchAsync_WithAccountAggregateType_ShouldPublishAccountEventsNotification()
     {
-        AggregateNotification notification = new AggregateNotification(
-            AggregateId: Guid.NewGuid(),
-            AggregateType: nameof(Account),
+        Notification notification = new Notification(Data: new AccountNotification(
+            AccountId: Guid.NewGuid(),
             Events: [new AccountDebited(
                 Id: Guid.NewGuid(),
                 AccountId: Guid.NewGuid(),
@@ -37,13 +37,13 @@ public sealed class MediatRNotificationDispatcherTests
                 Description: null,
                 OccurredAt: DateTime.UtcNow
             )]
-        );
+        ));
 
         await _dispatcher.DispatchAsync(notification: notification);
 
         await _publisher.Received(requiredNumberOfCalls: 1).Publish(
             notification: Arg.Is<AccountEventsNotification>(predicate: n =>
-                n.AccountId == notification.AggregateId &&
+                n.AccountId == (notification.Data as AccountNotification)!.AccountId &&
                 n.Events.Count == 1
             ),
             cancellationToken: Arg.Any<CancellationToken>()
@@ -53,11 +53,12 @@ public sealed class MediatRNotificationDispatcherTests
     [Test]
     public async Task DispatchAsync_WithUnknownAggregateType_ShouldThrowUnknownAggregateTypeException()
     {
-        AggregateNotification notification = new AggregateNotification(
-            AggregateId: Guid.NewGuid(),
-            AggregateType: "Unknown",
-            Events: []
-        );
+        Notification notification = new Notification(Data: new
+        {
+            AggregateId = Guid.NewGuid(),
+            AggregateType = "Unknown",
+            Events = new int[1]
+        });
 
         await Assert.That(
             action: async () => await _dispatcher.DispatchAsync(notification: notification)

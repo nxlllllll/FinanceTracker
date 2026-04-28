@@ -12,9 +12,7 @@ public sealed class Category
 	public bool IsArchived { get; private set; }
 	public DateTime CreatedAt { get; private set; }
 
-	private Category()
-	{
-	}
+	private Category() { }
 
 	public static Category Create(
 		Guid userId,

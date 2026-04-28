@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Outbox;
+﻿namespace FinanceTracker.Infrastructure.Database.Workers.Outbox;
 
 public record OutboxEventEnvelope(
 	string EventType,

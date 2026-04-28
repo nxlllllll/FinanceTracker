@@ -1,0 +1,19 @@
+﻿using FinanceTracker.Core.Domains.Account;
+
+namespace FinanceTracker.Infrastructure.Database.Entities;
+
+public sealed class RecurringTransactionEntity
+{
+	public Guid Id { get; init; }
+	public Guid UserId { get; init; }
+	public Guid AccountId { get; init; }
+	public Guid CategoryId { get; init; }
+	public decimal Amount { get; set; }
+	public string Currency { get; set; } = null!;
+	public DirectionType Direction { get; init; }
+	public int DayOfMonth { get; set; }
+	public string? Description { get; init; }
+	public bool IsActive { get; set; }
+	public DateTime? LastExecutedAt { get; set; }
+	public DateTime CreatedAt { get; init; }
+}

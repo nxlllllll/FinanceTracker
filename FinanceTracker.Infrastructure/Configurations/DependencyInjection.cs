@@ -9,7 +9,6 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
-using FinanceTracker.Infrastructure.Database.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
@@ -22,10 +21,13 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.UOW;
+using FinanceTracker.Infrastructure.Database.Workers.Outbox;
+using FinanceTracker.Infrastructure.Database.Workers.RecurringTransaction;
 using FinanceTracker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Quartz;
 
 namespace FinanceTracker.Infrastructure.Configurations;
 
@@ -66,6 +68,25 @@ public static class DependencyInjection
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 
 		services.AddHostedService<OutboxWorker>();
+		
+		services.AddQuartz(configure: configurator =>
+		{
+			configurator.AddJob<RecurringTransactionJob>(
+				configure: configure => configure.WithIdentity(name: nameof(RecurringTransactionJob), group: "default")
+			);
+
+			configurator.AddTrigger(configure => configure
+				.ForJob(jobName: nameof(RecurringTransactionJob), jobGroup: "default")
+				.WithIdentity(name: "RecurringTransactionTrigger", group: "default")
+				.WithCronSchedule(
+					cronExpression: "0 0 3 * * ?",
+					schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
+				)
+			);
+		});
+
+		services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);
+		
 		return services;
 	}
 }

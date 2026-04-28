@@ -1,6 +1,8 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
+using FinanceTracker.Application.RecurringTransactions.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account.Notification;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions;
 using MediatR;
 
@@ -11,16 +13,26 @@ public sealed class MediatRNotificationDispatcher(
 ) : INotificationDispatcher
 {
 	public Task DispatchAsync(
-		AggregateNotification notification,
+		Notification notification,
 		CancellationToken ct = default)
 	{
-		INotification mediatRNotification = notification.AggregateType switch
+		INotification mediatRNotification = notification.Data switch
 		{
-			nameof(Account) => new AccountEventsNotification(
-				AccountId: notification.AggregateId,
-				Events: notification.Events
+			AccountNotification n => new AccountEventsNotification(
+				AccountId: n.AccountId,
+				Events: n.Events
 			),
-			_ => throw new UnknownAggregateTypeException(message: "Unknown aggregate type.", aggregateType: notification.AggregateType)
+			RecurringTransactionNotification n => new TransactionDataNotification(
+				AccountId: n.AccountId,
+				UserId: n.UserId,
+				CategoryId: n.CategoryId,
+				Amount: n.Amount,
+				Currency: n.Currency,
+				Direction: n.Direction,
+				Description: n.Description,
+				OccurredAt: n.OccurredAt
+			),
+			_ => throw new UnknownAggregateTypeException(message: "Unknown aggregate type.", aggregateType: notification.Data.GetType().Name)
 		};
 
 		return publisher.Publish(notification: mediatRNotification, cancellationToken: ct);

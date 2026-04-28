@@ -3,7 +3,7 @@ using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
-using FinanceTracker.Infrastructure.Database.Outbox;
+using FinanceTracker.Infrastructure.Database.Workers.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -143,7 +143,7 @@ public sealed class PostgresEventStore(
 		}
 		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
 		{
-			throw new ConcurrencyConflictException(message: $"Conflict: aggregate was modified by another request.", id: aggregateId);
+			throw new ConcurrencyConflictException(message: "Conflict: aggregate was modified by another request.", id: aggregateId);
 		}
 	}
 

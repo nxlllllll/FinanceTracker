@@ -3,7 +3,7 @@
 public interface INotificationDispatcher
 {
 	Task DispatchAsync(
-		AggregateNotification notification, 
+		Notification notification, 
 		CancellationToken ct = default
 	);
 }

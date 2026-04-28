@@ -94,23 +94,29 @@ public sealed class CreateTransactionHandler(
 			);
 
 			await accountRepository.SaveAsync(account: account, ct: ct);
-			
-			await categoryTotalWriteRepository.AddAsync(
-				userId: command.UserId,
-				categoryId: command.CategoryId,
-				amount: command.Amount,
-				occurredAt: command.OccurredAt,
-				ct: ct
-			);
-			
-			await budgetProgressWriteRepository.AddAsync(
-				userId: command.UserId,
-				categoryId: command.CategoryId,
-				currencyCode: command.Currency,
-				amount: command.Amount,
-				occurredAt: command.OccurredAt,
-				ct: ct
-			);
+
+			if (command.Direction == DirectionType.Debit)
+			{
+				await categoryTotalWriteRepository.AddAsync(
+					userId: command.UserId,
+					categoryId: command.CategoryId,
+					amount: command.Amount,
+					occurredAt: command.OccurredAt,
+					ct: ct
+				);
+			}
+
+			if (command.Direction == DirectionType.Debit)
+			{
+				await budgetProgressWriteRepository.AddAsync(
+					userId: command.UserId,
+					categoryId: command.CategoryId,
+					currencyCode: command.Currency,
+					amount: command.Amount,
+					occurredAt: command.OccurredAt,
+					ct: ct
+				);
+			}
 			
 			await unitOfWork.CommitAsync(ct: ct);
 		}

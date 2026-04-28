@@ -1,6 +1,6 @@
 ﻿namespace FinanceTracker.Core.Repositories;
 
-public interface IUnitOfWork
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
 	Task BeginTransactionAsync(CancellationToken ct = default);
 	Task CommitAsync(CancellationToken ct = default);

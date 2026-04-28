@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Application.Budgets.Commands.CreateBudget;
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace FinanceTracker.Application.Budgets.Commands.CreateBudget;
 

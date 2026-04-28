@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Commands.ArchiveCategory;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -10,12 +11,21 @@ public sealed class ArchiveCategoryHandlerTests
 {
 	private ICategoryRepository _categoryRepository = null!;
 	private ArchiveCategoryHandler _handler = null!;
+	private IRecurringTransactionWriteRepository _recurringTransactionWriteRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 
-	[Before(Test)]
+	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_categoryRepository = Substitute.For<ICategoryRepository>();
-		_handler = new ArchiveCategoryHandler(categoryRepository: _categoryRepository);
+		_recurringTransactionWriteRepository = Substitute.For<IRecurringTransactionWriteRepository>();
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+		
+		_handler = new ArchiveCategoryHandler(
+			categoryRepository: _categoryRepository,
+			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
+			unitOfWork: _unitOfWork
+		);
 	}
 
 	[Test]
