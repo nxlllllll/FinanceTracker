@@ -3,9 +3,9 @@
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared;
 
 public sealed class FakeScopeFactory(
-	IServiceScope scope
+	IServiceProvider serviceProvider
 ) : IServiceScopeFactory
 {
 	public IServiceScope CreateScope()
-		=> scope;
+		=> serviceProvider.CreateScope();
 }

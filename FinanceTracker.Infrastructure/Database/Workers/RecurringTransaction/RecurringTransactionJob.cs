@@ -33,6 +33,7 @@ public sealed class RecurringTransactionJob(
 		
 		IReadOnlyList<RecurringTransactionDto> dueTransactions = await recurringTransactionReadRepository.GetDueTodayAsync(
 			dayOfMonth: now.Day, 
+			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: firstDayOfCurrentMonth,
 			ct: context.CancellationToken
 		);

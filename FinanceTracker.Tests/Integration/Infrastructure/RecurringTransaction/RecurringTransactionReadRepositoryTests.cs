@@ -99,7 +99,8 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		int today = DateTime.UtcNow.Day;
+		DateTime now = DateTime.UtcNow;
+		int today = now.Day;
 
 		await _recurringTransactionBuilder.CreateAsync(
 			userId: userId,
@@ -109,8 +110,8 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		);
 
 		DateTime currentMonthStart = new DateTime(
-			year: DateTime.UtcNow.Year,
-			month: DateTime.UtcNow.Month,
+			year: now.Year,
+			month: now.Month,
 			day: 1,
 			hour: 0,
 			minute: 0,
@@ -118,7 +119,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(dayOfMonth: today, currentMonthStart: currentMonthStart);
+		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+			dayOfMonth: today,
+			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
+			currentMonthStart: currentMonthStart
+		);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 	}
@@ -129,8 +134,9 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		int today = DateTime.UtcNow.Day;
-
+		DateTime now = DateTime.UtcNow;
+		int today = now.Day;
+		
 		Guid id = await _recurringTransactionBuilder.CreateAsync(
 			userId: userId,
 			accountId: accountId,
@@ -150,7 +156,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(dayOfMonth: today, currentMonthStart: currentMonthStart);
+		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+			dayOfMonth: today,
+			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
+			currentMonthStart: currentMonthStart
+		);
 
 		await Assert.That(value: result).IsEmpty();
 	}
@@ -161,8 +171,9 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		int today = DateTime.UtcNow.Day;
-
+		DateTime now = DateTime.UtcNow;
+		int today = now.Day;
+		
 		Guid id = await _recurringTransactionBuilder.CreateAsync(
 			userId: userId,
 			accountId: accountId,
@@ -182,7 +193,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(dayOfMonth: today, currentMonthStart: currentMonthStart);
+		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+			dayOfMonth: today,
+			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
+			currentMonthStart: currentMonthStart
+		);
 
 		await Assert.That(value: result).IsEmpty();
 	}
@@ -193,7 +208,8 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		int today = DateTime.UtcNow.Day;
+		DateTime now = DateTime.UtcNow;
+		int today = now.Day;
 		int otherDay = today == 1 ? 2 : 1;
 
 		await _recurringTransactionBuilder.CreateAsync(
@@ -213,7 +229,80 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(dayOfMonth: today, currentMonthStart: currentMonthStart);
+		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+			dayOfMonth: today,
+			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
+			currentMonthStart: currentMonthStart
+		);
+
+		await Assert.That(value: result).IsEmpty();
+	}
+	
+	[Test]
+	public async Task GetDueTodayAsync_WhenDayOfMonthExceedsMonthLength_AndTodayIsLastDay_ShouldReturn()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		int year = 2024;
+		int month = 2;
+		int daysInMonth = DateTime.DaysInMonth(year: year, month: month);
+		int lastDay = daysInMonth;                                         
+		int configuredDay = 31;                                            
+
+		await _recurringTransactionBuilder.CreateAsync(
+			userId: userId,
+			accountId: accountId,
+			categoryId: categoryId,
+			dayOfMonth: configuredDay
+		);
+
+		DateTime currentMonthStart = new DateTime(
+			year: year, month: month, day: 1,
+			hour: 0, minute: 0, second: 0,
+			kind: DateTimeKind.Utc
+		);
+
+		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+			dayOfMonth: lastDay,
+			daysInCurrentMonth: daysInMonth,
+			currentMonthStart: currentMonthStart
+		);
+
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task GetDueTodayAsync_WhenDayOfMonthExceedsMonthLength_AndTodayIsNotLastDay_ShouldNotReturn()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		int year = 2024;
+		int month = 2;
+		int daysInMonth = DateTime.DaysInMonth(year: year, month: month);
+		int configuredDay = 31;
+
+		await _recurringTransactionBuilder.CreateAsync(
+			userId: userId,
+			accountId: accountId,
+			categoryId: categoryId,
+			dayOfMonth: configuredDay
+		);
+
+		DateTime currentMonthStart = new DateTime(
+			year: year, month: month, day: 1,
+			hour: 0, minute: 0, second: 0,
+			kind: DateTimeKind.Utc
+		);
+
+		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+			dayOfMonth: 15,
+			daysInCurrentMonth: daysInMonth,
+			currentMonthStart: currentMonthStart
+		);
 
 		await Assert.That(value: result).IsEmpty();
 	}

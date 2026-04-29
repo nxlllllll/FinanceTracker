@@ -21,6 +21,7 @@ public sealed class OutboxWorker(
 {
 	private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(value: 3);
 	private const int Limit = 20;
+	private const int MaxRetries = 5;
 
 	private readonly FrozenDictionary<string, IAggregateNotificationFactory> _factories =
 		factories.ToFrozenDictionary(keySelector: f => f.AggregateType);
@@ -56,8 +57,8 @@ public sealed class OutboxWorker(
 		await unitOfWork.BeginTransactionAsync(ct: ct);
  
 		List<OutboxMessageEntity> messages = await context.WithSkipLocked<OutboxMessageEntity>()
-			.Where(predicate: m => m.ProcessedAt == null)
-			.OrderBy(keySelector: m => m.CreatedAt)
+			.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
+			.OrderBy(keySelector: m => m.UpdatedAt)
 			.Take(count: Limit)
 			.ToListAsync(cancellationToken: ct);
  
@@ -81,6 +82,10 @@ public sealed class OutboxWorker(
 			}
 			catch (Exception exception)
 			{
+				++message.RetryCount;
+				
+				if (message.RetryCount >= MaxRetries)
+					message.FailedAt = DateTime.UtcNow;
 				logger.LogError(exception: exception, message: "Failed to process outbox message: {messageId}.", message.Id);
 			}
 		}

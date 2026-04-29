@@ -26,10 +26,17 @@ public sealed class OutboxMessageEntityConfiguration : IEntityTypeConfiguration<
 			.HasColumnName(name: "payload")
 			.HasColumnType(typeName: "jsonb");
 
-		builder.Property(propertyExpression: o => o.CreatedAt)
-			.HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: o => o.UpdatedAt)
+			.HasColumnName(name: "updated_at");
 
 		builder.Property(propertyExpression: o => o.ProcessedAt)
 			.HasColumnName(name: "processed_at");
+		
+		builder.Property(propertyExpression: o => o.RetryCount)
+			.HasColumnName(name: "retry_count")
+			.HasDefaultValue(value: 0);
+
+		builder.Property(propertyExpression: o => o.FailedAt)
+			.HasColumnName(name: "failed_at");
 	}
 }

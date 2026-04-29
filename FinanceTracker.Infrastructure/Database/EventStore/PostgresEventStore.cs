@@ -122,7 +122,7 @@ public sealed class PostgresEventStore(
 					AggregateId: aggregateId,
 					Events: envelopes
 				)),
-				CreatedAt = DateTime.UtcNow,
+				UpdatedAt = DateTime.UtcNow,
 				ProcessedAt = null
 			},
 			cancellationToken: ct

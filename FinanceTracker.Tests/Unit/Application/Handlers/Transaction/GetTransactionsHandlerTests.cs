@@ -165,4 +165,63 @@ public sealed class GetTransactionsHandlerTests
             ct: Arg.Any<CancellationToken>()
         );
     }
+    
+    [Test]
+    public async Task Handle_WhenNoTransactions_ShouldReturnEmptyList()
+    {
+        _transactionReadRepository.GetAllAsync(
+            accountId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid?>(),
+            direction: Arg.Any<DirectionType?>(),
+            isExcluded: Arg.Any<bool?>(),
+            dateFrom: Arg.Any<DateTime?>(),
+            dateTo: Arg.Any<DateTime?>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: []);
+
+        IReadOnlyList<TransactionDto> result = await _handler.Handle(
+            query: new GetTransactionsQuery(AccountId: Guid.NewGuid()),
+            ct: CancellationToken.None
+        );
+
+        await Assert.That(value: result).IsEmpty();
+    }
+
+    [Test]
+    public async Task Handle_ShouldPassAllFiltersToRepository()
+    {
+        Guid accountId = Guid.NewGuid();
+        Guid categoryId = Guid.NewGuid();
+        DateTime dateFrom = DateTime.UtcNow.AddDays(value: -30);
+        DateTime dateTo = DateTime.UtcNow;
+
+        _transactionReadRepository.GetAllAsync(
+            accountId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid?>(),
+            direction: Arg.Any<DirectionType?>(),
+            isExcluded: Arg.Any<bool?>(),
+            dateFrom: Arg.Any<DateTime?>(),
+            dateTo: Arg.Any<DateTime?>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: []);
+
+        await _handler.Handle(query: new GetTransactionsQuery(
+            AccountId: accountId,
+            CategoryId: categoryId,
+            Direction: DirectionType.Debit,
+            IsExcluded: false,
+            DateFrom: dateFrom,
+            DateTo: dateTo
+        ), ct: CancellationToken.None);
+
+        await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+            accountId: accountId,
+            categoryId: categoryId,
+            direction: DirectionType.Debit,
+            isExcluded: false,
+            dateFrom: dateFrom,
+            dateTo: dateTo,
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
 }

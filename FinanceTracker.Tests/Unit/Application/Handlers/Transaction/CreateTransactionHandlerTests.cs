@@ -286,4 +286,35 @@ public sealed class CreateTransactionHandlerTests
             ct: Arg.Any<CancellationToken>()
         );
     }
+    
+    [Test]
+    public async Task Handle_WithValidCommand_ShouldAddBudgetProgress()
+    {
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+
+        _accountRepository.GetByIdAsync(
+            accountId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: account);
+
+        _currencyConversionService.GetConversionRateAsync(
+            fromCurrency: Arg.Any<string>(),
+            toCurrency: Arg.Any<string>(),
+            date: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(userId: account.UserId);
+
+        await _handler.Handle(command: command, ct: CancellationToken.None);
+
+        await _budgetProgressWriteRepository.Received(requiredNumberOfCalls: 1).AddAsync(
+            userId: command.UserId,
+            categoryId: command.CategoryId,
+            currencyCode: command.Currency,
+            amount: command.Amount,
+            occurredAt: command.OccurredAt,
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
 }

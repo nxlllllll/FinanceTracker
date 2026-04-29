@@ -16,6 +16,7 @@ public interface IRecurringTransactionReadRepository
 
 	Task<IReadOnlyList<RecurringTransactionDto>> GetDueTodayAsync(
 		int dayOfMonth,
+		int daysInCurrentMonth,
 		DateTime currentMonthStart,
 		CancellationToken ct = default
 	);

@@ -55,11 +55,17 @@ public sealed class RecurringTransactionReadRepository(
 
     public async Task<IReadOnlyList<RecurringTransactionDto>> GetDueTodayAsync(
         int dayOfMonth,
+        int daysInCurrentMonth,
         DateTime currentMonthStart,
         CancellationToken ct = default)
     {
+        bool isLastDayOfMonth = dayOfMonth == daysInCurrentMonth;
+        
         return await context.RecurringTransactions.AsNoTracking()
-            .Where(predicate: r => r.IsActive && r.DayOfMonth == dayOfMonth && (r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart))
+            .Where(predicate: r => r.IsActive &&
+                (r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart) &&
+                (r.DayOfMonth == dayOfMonth || (isLastDayOfMonth && r.DayOfMonth > daysInCurrentMonth))
+            )
             .Select(selector: r => new RecurringTransactionDto(
                 Id: r.Id,
                 UserId: r.UserId,

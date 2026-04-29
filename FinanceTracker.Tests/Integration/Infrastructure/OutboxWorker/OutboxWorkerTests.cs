@@ -3,6 +3,7 @@ using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database;
+using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.UOW;
@@ -13,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.OutboxWorker;
 
@@ -41,7 +43,7 @@ public sealed class OutboxWorkerTests : DatabaseFixture
         _userBuilder = new UserBuilder(context: Context);
     }
 
-    private IServiceScope BuildScope()
+    private IServiceProvider BuildScope()
     {
         ServiceCollection services = new ServiceCollection();
         services.AddSingleton<FinanceTrackerContext>(implementationInstance: Context);
@@ -51,7 +53,7 @@ public sealed class OutboxWorkerTests : DatabaseFixture
         services.AddSingleton<IPublisher>(implementationInstance: _publisher);
         services.AddScoped<INotificationDispatcher, MediatRNotificationDispatcher>();
         services.AddScoped<IUnitOfWork, EFUnitOfWork>();
-        return services.BuildServiceProvider().CreateScope();
+        return services.BuildServiceProvider();
     }
 
     private async Task<Core.Domains.Account.Account> CreateAndSaveAccountAsync()
@@ -82,7 +84,7 @@ public sealed class OutboxWorkerTests : DatabaseFixture
         await Assert.That(value: unprocessedBefore).IsEqualTo(expected: 1);
 
         FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
-            scopeFactory: new FakeScopeFactory(scope: BuildScope()),
+            scopeFactory: new FakeScopeFactory(serviceProvider: BuildScope()),
             logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
             factories: Factories
         );
@@ -102,7 +104,7 @@ public sealed class OutboxWorkerTests : DatabaseFixture
     public async Task ProcessBatchAsync_WhenNoMessages_ShouldNotDispatch()
     {
         FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
-            scopeFactory: new FakeScopeFactory(scope: BuildScope()),
+            scopeFactory: new FakeScopeFactory(serviceProvider: BuildScope()),
             logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
             factories: Factories
         );
@@ -113,5 +115,55 @@ public sealed class OutboxWorkerTests : DatabaseFixture
             notification: Arg.Any<INotification>(),
             cancellationToken: Arg.Any<CancellationToken>()
         );
+    }
+    
+    [Test]
+    public async Task ProcessBatchAsync_WhenDispatcherAlwaysFails_ShouldMarkAsFailedAfterMaxRetries()
+    {
+        _ = await CreateAndSaveAccountAsync();
+
+        _publisher.Publish(notification: Arg.Any<INotification>(), cancellationToken: Arg.Any<CancellationToken>())
+            .ThrowsAsync(ex: new InvalidOperationException("Simulated dispatch failure"));
+
+        FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
+            scopeFactory: new FakeScopeFactory(serviceProvider: BuildScope()),
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
+            factories: Factories
+        );
+
+        for (int i = 0; i < 5; i++)
+            await worker.ProcessBatchAsync(ct: CancellationToken.None);
+
+        OutboxMessageEntity? message = await Context.OutboxMessages.FirstOrDefaultAsync();
+
+        await Assert.That(value: message).IsNotNull();
+        await Assert.That(value: message.ProcessedAt).IsNull();
+        await Assert.That(value: message.RetryCount).IsEqualTo(expected: 5);
+        await Assert.That(value: message.FailedAt).IsNotNull();
+    }
+
+    [Test]
+    public async Task ProcessBatchAsync_WhenMessageIsInDeadLetter_ShouldNotRetryIt()
+    {
+        _ = await CreateAndSaveAccountAsync();
+
+        _publisher
+        .Publish(notification: Arg.Any<INotification>(), cancellationToken: Arg.Any<CancellationToken>())
+            .ThrowsAsync(ex: new InvalidOperationException(message: "Simulated dispatch failure"));
+
+        FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
+            scopeFactory: new FakeScopeFactory(serviceProvider: BuildScope()),
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
+            factories: Factories
+        );
+
+        for (int i = 0; i < 5; i++)
+            await worker.ProcessBatchAsync(ct: CancellationToken.None);
+
+        await worker.ProcessBatchAsync(ct: CancellationToken.None);
+
+        OutboxMessageEntity? message = await Context.OutboxMessages.FirstOrDefaultAsync();
+
+        await Assert.That(value: message!.RetryCount).IsEqualTo(expected: 5);
     }
 }
