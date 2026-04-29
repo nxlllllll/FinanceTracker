@@ -11,6 +11,7 @@ public sealed class ChangeTransactionDescriptionCommandValidatorTests
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
     {
         ChangeTransactionDescriptionCommand command = new ChangeTransactionDescriptionCommand(
+            UserId: Guid.NewGuid(),
             TransactionId: Guid.NewGuid(),
             Description: "Обед"
         );
@@ -24,6 +25,7 @@ public sealed class ChangeTransactionDescriptionCommandValidatorTests
     public async Task Validate_WithNullDescription_ShouldNotHaveErrors()
     {
         ChangeTransactionDescriptionCommand command = new ChangeTransactionDescriptionCommand(
+            UserId: Guid.NewGuid(),
             TransactionId: Guid.NewGuid(),
             Description: null
         );
@@ -37,6 +39,7 @@ public sealed class ChangeTransactionDescriptionCommandValidatorTests
     public async Task Validate_WithEmptyTransactionId_ShouldHaveError()
     {
         ChangeTransactionDescriptionCommand command = new ChangeTransactionDescriptionCommand(
+            UserId: Guid.NewGuid(),
             TransactionId: Guid.Empty,
             Description: null
         );
@@ -53,6 +56,7 @@ public sealed class ChangeTransactionDescriptionCommandValidatorTests
     public async Task Validate_WithTooLongDescription_ShouldHaveError()
     {
         ChangeTransactionDescriptionCommand command = new ChangeTransactionDescriptionCommand(
+            UserId: Guid.NewGuid(),
             TransactionId: Guid.NewGuid(),
             Description: new string(c: 'a', count: 256)
         );

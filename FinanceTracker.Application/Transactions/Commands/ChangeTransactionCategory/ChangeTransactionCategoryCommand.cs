@@ -3,6 +3,7 @@
 namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
 
 public sealed record ChangeTransactionCategoryCommand(
+	Guid UserId,
 	Guid TransactionId,
 	Guid CategoryId
 ) : IRequest;

@@ -6,6 +6,9 @@ public sealed class UnarchiveCategoryCommandValidator : AbstractValidator<Unarch
 {
 	public UnarchiveCategoryCommandValidator()
 	{
+		RuleFor(expression: command => command.UserId)
+			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
+		
 		RuleFor(expression: command => command.CategoryId)
 			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.");
 	}

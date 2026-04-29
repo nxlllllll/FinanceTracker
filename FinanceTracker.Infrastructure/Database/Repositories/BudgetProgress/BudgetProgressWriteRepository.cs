@@ -89,4 +89,34 @@ public sealed class BudgetProgressWriteRepository(
             ct: ct
         );
     }
+
+    public async Task ChangeCategoryAsync(
+        Guid userId,
+        Guid oldCategoryId,
+        Guid newCategoryId,
+        string currencyCode,
+        decimal amount,
+        DateTime occurredAt,
+        CancellationToken ct = default)
+    {
+        await ChangeSpentAsync(
+            userId: userId,
+            categoryId: oldCategoryId,
+            currencyCode: currencyCode,
+            amount: amount,
+            occurredAt: occurredAt,
+            delta: -1,
+            ct: ct
+        );
+
+        await ChangeSpentAsync(
+            userId: userId,
+            categoryId: newCategoryId,
+            currencyCode: currencyCode,
+            amount: amount,
+            occurredAt: occurredAt,
+            delta: 1,
+            ct: ct
+        );
+    }
 }

@@ -47,7 +47,7 @@ public sealed class CreateTransferHandler(
 			transferId: transferId,
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,
-			exchangeRate: conversion.Rate,
+			forexRate: conversion.Rate,
 			description: command.Description
 		);
 

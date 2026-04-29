@@ -5,11 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
-/// <remarks>
-/// Event Store tracks only financial events (Debit, Credit, Transfer, BalanceAdjusted).
-/// Metadata (Name, IsArchived) is managed via CRUD and injected from the read model
-/// during reconstitution. This is intentional — see AccountRepository.Reconstitute.
-/// </remarks>
 public sealed class AccountWriteRepository(
 	FinanceTrackerContext context
 ) : IAccountWriteRepository
@@ -107,7 +102,7 @@ public sealed class AccountWriteRepository(
 	{
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
-			delta: -@event.Amount * @event.ExchangeRate,
+			delta: -@event.Amount,
 			ct: ct
 		);
 	}

@@ -198,7 +198,7 @@ public sealed class AccountProjectionTests
             TransferId: Guid.NewGuid(),
             ToAccountId: Guid.NewGuid(),
             Amount: 5000m,
-            ExchangeRate: 1m,
+            ForexRate: 1m,
             Description: null,
             OccurredAt: DateTime.UtcNow
         );

@@ -310,4 +310,42 @@ public sealed class AccountTests
 	    await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
 	    await Assert.That(value: account.Balance).IsEqualTo(expected: 10000m);
 	}
+	
+	[Test]
+	public async Task DebitTransfer_ShouldReduceBalanceByAmountOnly_IgnoringForexRate()
+	{
+		Account account = AccountFactory.Create(balance: 10000m);
+		account.ClearEvents();
+
+		account.DebitTransfer(
+			transferId: Guid.NewGuid(),
+			toAccountId: Guid.NewGuid(),
+			amount: 1000m,
+			forexRate: 0.011m,
+			description: null
+		);
+
+		await Assert.That(value: account.Balance).IsEqualTo(expected: 9000m);
+		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: account.Events[0]).IsTypeOf<AccountTransferDebited>();
+	}
+
+	[Test]
+	public async Task CreditTransfer_ShouldIncreaseBalanceByAmountMultipliedByExchangeRate()
+	{
+		Account account = AccountFactory.Create(balance: 0m);
+		account.ClearEvents();
+
+		account.CreditTransfer(
+			transferId: Guid.NewGuid(),
+			fromAccountId: Guid.NewGuid(),
+			amount: 1000m,
+			exchangeRate: 0.011m,
+			description: null
+		);
+
+		await Assert.That(value: account.Balance).IsEqualTo(expected: 11m);
+		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: account.Events[0]).IsTypeOf<AccountTransferCredited>();
+	}
 }

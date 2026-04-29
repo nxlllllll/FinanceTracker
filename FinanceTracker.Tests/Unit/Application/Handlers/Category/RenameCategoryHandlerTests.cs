@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Categories.Commands.RenameCategory;
-using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -29,6 +28,7 @@ public sealed class RenameCategoryHandlerTests
 		).Returns(returnThis: category);
 
 		RenameCategoryCommand command = new RenameCategoryCommand(
+			UserId: category.UserId,
 			CategoryId: category.Id,
 			NewName: "Продукты"
 		);
@@ -51,6 +51,7 @@ public sealed class RenameCategoryHandlerTests
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
 
 		RenameCategoryCommand command = new RenameCategoryCommand(
+			UserId: Guid.NewGuid(),
 			CategoryId: Guid.NewGuid(),
 			NewName: "Продукты"
 		);
@@ -72,6 +73,7 @@ public sealed class RenameCategoryHandlerTests
 		).Returns(returnThis: category);
 
 		RenameCategoryCommand command = new RenameCategoryCommand(
+			UserId: category.UserId,
 			CategoryId: category.Id,
 			NewName: "Продукты"
 		);

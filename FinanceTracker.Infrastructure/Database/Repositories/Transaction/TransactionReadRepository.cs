@@ -76,11 +76,12 @@ public sealed class TransactionReadRepository(
     }
 
     public async Task<bool> ExistsAsync(
+        Guid userId,
         Guid transactionId,
         CancellationToken ct = default)
     {
         return await context.Transactions.AsNoTracking().AnyAsync(
-            predicate: t => t.Id == transactionId,
+            predicate: t => t.Id == transactionId && t.UserId == userId,
             cancellationToken: ct
         );
     }

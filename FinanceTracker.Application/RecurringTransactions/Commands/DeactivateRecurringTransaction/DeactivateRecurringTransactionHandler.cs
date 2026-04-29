@@ -14,7 +14,7 @@ public sealed class DeactivateRecurringTransactionHandler(
 		DeactivateRecurringTransactionCommand command,
 		CancellationToken ct = default)
 	{
-		RecurringTransactionDto? recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct)
+		RecurringTransactionDto recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct)
 			?? throw new NotFoundException(message: "Recurring transaction not found.", id: command.RecurringTransactionId);
 
 		if (recurringTransaction.UserId != command.UserId)

@@ -1,10 +1,11 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Collections.Frozen;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Account.Notification;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,12 +15,17 @@ namespace FinanceTracker.Infrastructure.Database.Workers.Outbox;
  
 public sealed class OutboxWorker(
 	IServiceScopeFactory scopeFactory,
+	IEnumerable<IAggregateNotificationFactory> factories,
 	ILogger<OutboxWorker> logger
 ) : BackgroundService
 {
 	private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(value: 3);
- 
-	private static AccountNotification BuildNotification(
+	private const int Limit = 20;
+
+	private readonly FrozenDictionary<string, IAggregateNotificationFactory> _factories =
+		factories.ToFrozenDictionary(keySelector: f => f.AggregateType);
+	
+	private Notification BuildNotification(
 		OutboxMessageEntity message,
 		IEventTypeResolver resolver)
 	{
@@ -32,10 +38,10 @@ public sealed class OutboxWorker(
 			return (IEvent)JsonSerializer.Deserialize(json: envelope.EventPayload, returnType: type)!;
 		}).ToList();
  
-		return new AccountNotification(
-			AccountId: message.AggregateId,
-			Events: events
-		);
+		if (!_factories.TryGetValue(key: message.AggregateType, value: out IAggregateNotificationFactory? factory))
+			throw new InvalidOperationException(message: $"No notification factory registered for aggregate type: '{message.AggregateType}'.");
+		
+		return new Notification(Data: factory.Build(aggregateId: message.AggregateId, events: events));
 	}
  
 	internal async Task ProcessBatchAsync(CancellationToken ct)
@@ -49,13 +55,11 @@ public sealed class OutboxWorker(
  
 		await unitOfWork.BeginTransactionAsync(ct: ct);
  
-		List<OutboxMessageEntity> messages = await context.OutboxMessages.FromSqlRaw(sql: """
-			SELECT * FROM outbox_messages
-			WHERE processed_at IS NULL
-			ORDER BY created_at
-			LIMIT 20
-			FOR UPDATE SKIP LOCKED
-		""").ToListAsync(cancellationToken: ct);
+		List<OutboxMessageEntity> messages = await context.WithSkipLocked<OutboxMessageEntity>()
+			.Where(predicate: m => m.ProcessedAt == null)
+			.OrderBy(keySelector: m => m.CreatedAt)
+			.Take(count: Limit)
+			.ToListAsync(cancellationToken: ct);
  
 		if (messages.Count == 0)	
 		{
@@ -67,12 +71,12 @@ public sealed class OutboxWorker(
 		{
 			try
 			{
-				AccountNotification notification = BuildNotification(
+				Notification notification = BuildNotification(
 					message: message,
 					resolver: resolver
 				);
  
-				await dispatcher.DispatchAsync(notification: new Notification(Data: notification), ct: ct);
+				await dispatcher.DispatchAsync(notification: notification, ct: ct);
 				message.ProcessedAt = DateTime.UtcNow;
 			}
 			catch (Exception exception)

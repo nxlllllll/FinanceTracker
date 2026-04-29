@@ -6,6 +6,9 @@ public sealed class ExcludeTransactionCommandValidator : AbstractValidator<Exclu
 {
 	public ExcludeTransactionCommandValidator()
 	{
+		RuleFor(expression: command => command.UserId)
+			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
+		
 		RuleFor(expression: command => command.TransactionId)
 			.NotEmpty().WithMessage(errorMessage: "The transaction cannot be empty.");
 	}

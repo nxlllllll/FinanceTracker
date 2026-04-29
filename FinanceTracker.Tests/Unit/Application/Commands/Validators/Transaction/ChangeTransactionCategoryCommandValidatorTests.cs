@@ -11,6 +11,7 @@ public sealed class ChangeTransactionCategoryCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
+			UserId: Guid.NewGuid(),
 			TransactionId: Guid.NewGuid(),
 			CategoryId: Guid.NewGuid()
 		);
@@ -24,6 +25,7 @@ public sealed class ChangeTransactionCategoryCommandValidatorTests
 	public async Task Validate_WithEmptyTransactionId_ShouldHaveError()
 	{
 		ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
+			UserId: Guid.NewGuid(),
 			TransactionId: Guid.Empty,
 			CategoryId: Guid.NewGuid()
 		);
@@ -40,6 +42,7 @@ public sealed class ChangeTransactionCategoryCommandValidatorTests
 	public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
 	{
 		ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
+			UserId: Guid.NewGuid(),
 			TransactionId: Guid.NewGuid(),
 			CategoryId: Guid.Empty
 		);

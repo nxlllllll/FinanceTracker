@@ -10,7 +10,10 @@ public sealed class IncludeTransactionCommandValidatorTests
 	[Test]
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
-		IncludeTransactionCommand command = new IncludeTransactionCommand(TransactionId: Guid.NewGuid());
+		IncludeTransactionCommand command = new IncludeTransactionCommand(
+			UserId: Guid.NewGuid(),
+			TransactionId: Guid.NewGuid()
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -20,7 +23,10 @@ public sealed class IncludeTransactionCommandValidatorTests
 	[Test]
 	public async Task Validate_WithEmptyTransactionId_ShouldHaveError()
 	{
-		IncludeTransactionCommand command = new IncludeTransactionCommand(TransactionId: Guid.Empty);
+		IncludeTransactionCommand command = new IncludeTransactionCommand(
+			UserId: Guid.NewGuid(),
+			TransactionId: Guid.Empty
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 

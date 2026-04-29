@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
@@ -23,33 +24,39 @@ public sealed class IncludeTransactionHandler(
 		TransactionDto transaction = await transactionReadRepository.GetByIdAsync(transactionId: command.TransactionId, ct: ct)
 			?? throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
 
+		if (transaction.UserId != command.UserId)
+			throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
+		
+		if (!transaction.IsExcluded)
+			return;
+		
 		await unitOfWork.BeginTransactionAsync(ct: ct);
 
 		try
 		{
-			await unitOfWork.CommitAsync(ct: ct);
-
 			await transactionWriteRepository.IncludeAsync(transactionId: command.TransactionId, ct: ct);
 
-			if (!transaction.IsExcluded)
-				return;
-		
-			await categoryTotalWriteRepository.AddAsync(
-				userId: transaction.UserId,
-				categoryId: transaction.CategoryId,
-				amount: transaction.Amount,
-				occurredAt: transaction.OccurredAt,
-				ct: ct
-			);
+			if (transaction.Direction == DirectionType.Debit)
+			{
+				await categoryTotalWriteRepository.AddAsync(
+					userId: transaction.UserId,
+					categoryId: transaction.CategoryId,
+					amount: transaction.Amount,
+					occurredAt: transaction.OccurredAt,
+					ct: ct
+				);
 			
-			await budgetProgressWriteRepository.AddAsync(
-				userId: transaction.UserId,
-				categoryId: transaction.CategoryId,
-				currencyCode: transaction.Currency,
-				amount: transaction.Amount,
-				occurredAt: transaction.OccurredAt,
-				ct: ct
-			);
+				await budgetProgressWriteRepository.AddAsync(
+					userId: transaction.UserId,
+					categoryId: transaction.CategoryId,
+					currencyCode: transaction.Currency,
+					amount: transaction.Amount,
+					occurredAt: transaction.OccurredAt,
+					ct: ct
+				);
+			}
+			
+			await unitOfWork.CommitAsync(ct: ct);
 		}
 		catch
 		{

@@ -2,4 +2,7 @@
 
 namespace FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
 
-public sealed record IncludeTransactionCommand(Guid TransactionId) : IRequest;
+public sealed record IncludeTransactionCommand(
+	Guid UserId,
+	Guid TransactionId
+) : IRequest;

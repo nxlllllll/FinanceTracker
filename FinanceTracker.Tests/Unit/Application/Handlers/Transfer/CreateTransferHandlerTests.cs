@@ -283,4 +283,51 @@ public sealed class CreateTransferHandlerTests
         await _unitOfWork.Received(requiredNumberOfCalls: 1).RollbackAsync(ct: Arg.Any<CancellationToken>());
         await _unitOfWork.DidNotReceive().CommitAsync(ct: Arg.Any<CancellationToken>());
     }
+    
+    [Test]
+    public async Task Handle_WhenDifferentCurrencies_FromAccountBalanceShouldDecreaseByOriginalAmount()
+    {
+        Guid userId = Guid.NewGuid();
+        FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(
+            userId: userId, 
+            currency: "RUB",
+            balance: 10000m
+        );
+        FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create(
+            userId: userId, 
+            currency: "USD",
+            balance: 0m
+        );
+
+        _accountRepository.GetByIdAsync(
+            accountId: fromAccount.Id,
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: fromAccount);
+        _accountRepository.GetByIdAsync(
+            accountId: toAccount.Id,
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: toAccount);
+
+        _currencyConversionService.GetConversionRateAsync(
+            fromCurrency: "RUB", 
+            toCurrency: "USD",
+            date: Arg.Any<DateOnly>(), 
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(new ConversionResult(Rate: 0.011m, IsPending: false));
+
+        await _handler.Handle(
+            command: new CreateTransferCommand(
+                UserId: userId,
+                FromAccountId: fromAccount.Id,
+                ToAccountId: toAccount.Id,
+                Amount: 1000m,
+                Description: null,
+                OccurredAt: DateTime.UtcNow
+            ),
+            ct: CancellationToken.None
+        );
+
+        await Assert.That(value: fromAccount.Balance).IsEqualTo(expected: 9000m);
+        await Assert.That(value: toAccount.Balance).IsEqualTo(expected: 11m);
+    }
 }

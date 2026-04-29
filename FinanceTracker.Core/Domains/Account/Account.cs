@@ -26,6 +26,17 @@ public sealed class Account : AggregateRoot
 
 	private Account() { }
 
+	private static int GetSign(DirectionType direction)
+	{
+		int sign = direction switch
+		{
+			DirectionType.Credit => 1,
+			DirectionType.Debit => -1,
+			_ => throw new ArgumentOutOfRangeException(message: "Unknown direction type.", paramName: nameof(direction))
+		};
+		return sign;
+	}
+	
 	public static Account Create(
 		Guid userId,
 		string name,
@@ -52,17 +63,6 @@ public sealed class Account : AggregateRoot
 		));
 
 		return account;
-	}
-
-	private static int GetSign(DirectionType direction)
-	{
-		int sign = direction switch
-		{
-			DirectionType.Credit => 1,
-			DirectionType.Debit => -1,
-			_ => throw new ArgumentOutOfRangeException(message: "Unknown direction type.", paramName: nameof(direction))
-		};
-		return sign;
 	}
 	
 	public static Account ReconstituteFromHistory(IReadOnlyList<IEvent> history)
@@ -99,7 +99,7 @@ public sealed class Account : AggregateRoot
 
 	private void CheckConstraints(
 		decimal amount,
-		decimal exchangeRate)
+		decimal rate)
 	{
 		if (IsArchived)
 			throw new ArchivingException(message: "Financial transactions on the archived account are prohibited.");
@@ -107,7 +107,7 @@ public sealed class Account : AggregateRoot
 		if (amount <= 0)
 			throw new InvalidAmountException(message: "Amount must be greater than zero.");
 
-		if (exchangeRate <= 0)
+		if (rate <= 0)
 			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");		
 	}
 	
@@ -121,7 +121,7 @@ public sealed class Account : AggregateRoot
 		=> Balance += @event.Amount * @event.ExchangeRate;
 	
 	private void Apply(AccountTransferDebited @event)
-		=> Balance -= @event.Amount * @event.ExchangeRate;
+		=> Balance -= @event.Amount;
 
 	private void Apply(AccountTransferCredited @event)
 		=> Balance += @event.Amount * @event.ExchangeRate;
@@ -200,7 +200,7 @@ public sealed class Account : AggregateRoot
 	{
 		CheckConstraints(
 			amount: amount,
-			exchangeRate: exchangeRate
+			rate: exchangeRate
 		);
 		
 		RaiseEvent(@event: new AccountDebited(
@@ -219,12 +219,12 @@ public sealed class Account : AggregateRoot
 		Guid transferId,
 		Guid toAccountId,
 		decimal amount,
-		decimal exchangeRate,
+		decimal forexRate,
 		string? description)
 	{
 		CheckConstraints(
 			amount: amount,
-			exchangeRate: exchangeRate
+			rate: forexRate
 		);
 
 		RaiseEvent(@event: new AccountTransferDebited(
@@ -233,7 +233,7 @@ public sealed class Account : AggregateRoot
 			TransferId: transferId,
 			ToAccountId: toAccountId,
 			Amount: amount,
-			ExchangeRate: exchangeRate,
+			ForexRate: forexRate,
 			Description: description,
 			OccurredAt: DateTime.UtcNow
 		));
@@ -248,7 +248,7 @@ public sealed class Account : AggregateRoot
 	{
 		CheckConstraints(
 			amount: amount,
-			exchangeRate: exchangeRate
+			rate: exchangeRate
 		);
 		
 		RaiseEvent(@event: new AccountCredited(
@@ -272,7 +272,7 @@ public sealed class Account : AggregateRoot
 	{
 		CheckConstraints(
 			amount: amount,
-			exchangeRate: exchangeRate
+			rate: exchangeRate
 		);
 
 		RaiseEvent(@event: new AccountTransferCredited(

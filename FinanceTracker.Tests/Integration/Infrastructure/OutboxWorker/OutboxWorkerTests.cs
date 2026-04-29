@@ -1,9 +1,11 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Infrastructure.Database.UOW;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using MediatR;
@@ -16,12 +18,13 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.OutboxWorker;
 
 public sealed class OutboxWorkerTests : DatabaseFixture
 {
-	private AccountRepository _accountRepository = null!;
+    private static readonly IReadOnlyList<IAggregateNotificationFactory> Factories = [new AccountNotificationFactory()];
+	
+    private AccountRepository _accountRepository = null!;
     private IPublisher _publisher = null!;
     private CurrencyBuilder _currencyBuilder = null!;
     private AccountTypeBuilder _accountTypeBuilder = null!;
     private UserBuilder _userBuilder = null!;
-
     
     [Before(hookType: Test)]
     public void SetupRepositories()
@@ -47,6 +50,7 @@ public sealed class OutboxWorkerTests : DatabaseFixture
         );
         services.AddSingleton<IPublisher>(implementationInstance: _publisher);
         services.AddScoped<INotificationDispatcher, MediatRNotificationDispatcher>();
+        services.AddScoped<IUnitOfWork, EFUnitOfWork>();
         return services.BuildServiceProvider().CreateScope();
     }
 
@@ -66,7 +70,7 @@ public sealed class OutboxWorkerTests : DatabaseFixture
 
         await _accountRepository.SaveAsync(account: account);
         return account;
-    }
+    }   
 
     [Test]
     public async Task ProcessBatchAsync_ShouldDispatchNotificationAndMarkAsProcessed()
@@ -79,7 +83,8 @@ public sealed class OutboxWorkerTests : DatabaseFixture
 
         FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
             scopeFactory: new FakeScopeFactory(scope: BuildScope()),
-            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
+            factories: Factories
         );
 
         await worker.ProcessBatchAsync(ct: CancellationToken.None);
@@ -98,7 +103,8 @@ public sealed class OutboxWorkerTests : DatabaseFixture
     {
         FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker worker = new FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker(
             scopeFactory: new FakeScopeFactory(scope: BuildScope()),
-            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance
+            logger: NullLogger<FinanceTracker.Infrastructure.Database.Workers.Outbox.OutboxWorker>.Instance,
+            factories: Factories
         );
 
         await worker.ProcessBatchAsync(ct: CancellationToken.None);

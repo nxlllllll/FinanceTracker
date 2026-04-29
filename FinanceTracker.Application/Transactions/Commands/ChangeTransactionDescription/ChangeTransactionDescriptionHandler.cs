@@ -14,7 +14,9 @@ public sealed class ChangeTransactionDescriptionHandler(
 		CancellationToken ct = default)
 	{
 		bool exists = await transactionReadRepository.ExistsAsync(
-			transactionId: command.TransactionId, ct: ct
+			transactionId: command.TransactionId,
+			userId: command.UserId,
+			ct: ct
 		);
 
 		if (!exists)

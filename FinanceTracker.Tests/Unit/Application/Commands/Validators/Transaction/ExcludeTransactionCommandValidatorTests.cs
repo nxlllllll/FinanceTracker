@@ -10,7 +10,10 @@ public sealed class ExcludeTransactionCommandValidatorTests
 	[Test]
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
-		ExcludeTransactionCommand command = new ExcludeTransactionCommand(TransactionId: Guid.NewGuid());
+		ExcludeTransactionCommand command = new ExcludeTransactionCommand(
+			UserId: Guid.NewGuid(),
+			TransactionId: Guid.NewGuid()
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -20,7 +23,10 @@ public sealed class ExcludeTransactionCommandValidatorTests
 	[Test]
 	public async Task Validate_WithEmptyTransactionId_ShouldHaveError()
 	{
-		ExcludeTransactionCommand command = new ExcludeTransactionCommand(TransactionId: Guid.Empty);
+		ExcludeTransactionCommand command = new ExcludeTransactionCommand(
+			UserId: Guid.NewGuid(),
+			TransactionId: Guid.Empty
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 

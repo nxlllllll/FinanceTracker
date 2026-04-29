@@ -17,6 +17,9 @@ public sealed class ChangeBudgetAmountHandler(
 		BudgetDto budget = await budgetReadRepository.GetByIdAsync(budgetId: command.BudgetId, userId: command.UserId, ct: ct) 
 			?? throw new NotFoundException(message: "Budget not found.", id: command.BudgetId);
 
+		if (budget.UserId != command.UserId)
+			throw new NotFoundException(message: "Budget not found.", id: command.BudgetId);
+		
 		await budgetWriteRepository.ChangeAmountAsync(budgetId: budget.Id, amount: command.Amount, ct: ct);
 	}
 }

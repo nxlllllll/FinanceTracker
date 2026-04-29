@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
@@ -48,7 +49,10 @@ public sealed class IncludeTransactionHandlerTests
         ).Returns(returnThis: transaction);
 
         await _handler.Handle(
-            command: new IncludeTransactionCommand(TransactionId: transaction.Id),
+            command: new IncludeTransactionCommand(
+                UserId: transaction.UserId,
+                TransactionId: transaction.Id
+            ),
             ct: CancellationToken.None
         );
 
@@ -69,7 +73,10 @@ public sealed class IncludeTransactionHandlerTests
         ).Returns(returnThis: transaction);
 
         await _handler.Handle(
-            command: new IncludeTransactionCommand(TransactionId: transaction.Id),
+            command: new IncludeTransactionCommand(
+                UserId: transaction.UserId,
+                TransactionId: transaction.Id
+            ),
             ct: CancellationToken.None
         );
 
@@ -93,7 +100,10 @@ public sealed class IncludeTransactionHandlerTests
         ).Returns(returnThis: transaction);
 
         await _handler.Handle(
-            command: new IncludeTransactionCommand(TransactionId: transaction.Id),
+            command: new IncludeTransactionCommand(
+                UserId: transaction.UserId,
+                TransactionId: transaction.Id
+            ),
             ct: CancellationToken.None
         );
 
@@ -115,7 +125,10 @@ public sealed class IncludeTransactionHandlerTests
         ).Returns(returnThis: Task.FromResult<TransactionDto?>(result: null));
 
         await Assert.That(action: async () => await _handler.Handle(
-            command: new IncludeTransactionCommand(TransactionId: Guid.NewGuid()),
+            command: new IncludeTransactionCommand(
+                UserId: Guid.NewGuid(),
+                TransactionId: Guid.NewGuid()
+            ),
             ct: CancellationToken.None
         )).Throws<NotFoundException>();
     }
@@ -129,12 +142,54 @@ public sealed class IncludeTransactionHandlerTests
         ).Returns(returnThis: Task.FromResult<TransactionDto?>(result: null));
 
         await Assert.That(action: async () => await _handler.Handle(
-            command: new IncludeTransactionCommand(TransactionId: Guid.NewGuid()),
+            command: new IncludeTransactionCommand(
+                UserId: Guid.NewGuid(),
+                TransactionId: Guid.NewGuid()
+            ),
             ct: CancellationToken.None
         )).Throws<NotFoundException>();
 
         await _transactionWriteRepository.DidNotReceive().IncludeAsync(
             transactionId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+    
+    [Test]
+    public async Task Handle_WhenTransactionIsCreditDirection_ShouldNotAddCategoryTotal()
+    {
+        TransactionDto transaction = TransactionFactory.Create(
+            isExcluded: true,
+            direction: DirectionType.Credit
+        );
+
+        _transactionReadRepository.GetByIdAsync(
+            transactionId: transaction.Id,
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: transaction);
+
+        await _handler.Handle(
+            command: new IncludeTransactionCommand(
+                UserId: transaction.UserId,
+                TransactionId: transaction.Id
+            ),
+            ct: CancellationToken.None
+        );
+
+        await _categoryTotalWriteRepository.DidNotReceive().AddAsync(
+            userId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            amount: Arg.Any<decimal>(),
+            occurredAt: Arg.Any<DateTime>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+
+        await _budgetProgressWriteRepository.DidNotReceive().AddAsync(
+            userId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            currencyCode: Arg.Any<string>(),
+            amount: Arg.Any<decimal>(),
+            occurredAt: Arg.Any<DateTime>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

@@ -2,4 +2,7 @@
 
 namespace FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
 
-public sealed record UnarchiveCategoryCommand(Guid CategoryId) : IRequest;
+public sealed record UnarchiveCategoryCommand(
+	Guid UserId,
+	Guid CategoryId
+) : IRequest;

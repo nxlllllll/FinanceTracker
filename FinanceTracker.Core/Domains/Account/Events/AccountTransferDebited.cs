@@ -8,7 +8,7 @@ public sealed record AccountTransferDebited(
 	Guid TransferId,
 	Guid ToAccountId,
 	decimal Amount,
-	decimal ExchangeRate,
+	decimal ForexRate,
 	string? Description,
 	DateTime OccurredAt
 ) : IEvent;

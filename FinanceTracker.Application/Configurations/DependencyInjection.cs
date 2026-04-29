@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Application.Behaviours;
+﻿using FinanceTracker.Application.Accounts.Notifications;
+using FinanceTracker.Application.Behaviours;
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
 using FluentValidation;
@@ -20,6 +21,8 @@ public static class DependencyInjection
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 		services.AddScoped<INotificationDispatcher, MediatRNotificationDispatcher>();
+
+		services.AddSingleton<IAggregateNotificationFactory, AccountNotificationFactory>();
 
 		return services;
 	}

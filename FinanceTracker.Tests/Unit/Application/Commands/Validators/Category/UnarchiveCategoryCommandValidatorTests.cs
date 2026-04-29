@@ -10,7 +10,10 @@ public sealed class UnarchiveCategoryCommandValidatorTests
 	[Test]
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
-		UnarchiveCategoryCommand command = new UnarchiveCategoryCommand(CategoryId: Guid.NewGuid());
+		UnarchiveCategoryCommand command = new UnarchiveCategoryCommand(
+			UserId: Guid.NewGuid(),
+			CategoryId: Guid.NewGuid()
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -20,7 +23,10 @@ public sealed class UnarchiveCategoryCommandValidatorTests
 	[Test]
 	public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
 	{
-		UnarchiveCategoryCommand command = new UnarchiveCategoryCommand(CategoryId: Guid.Empty);
+		UnarchiveCategoryCommand command = new UnarchiveCategoryCommand(
+			UserId: Guid.NewGuid(),
+			CategoryId: Guid.Empty
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 

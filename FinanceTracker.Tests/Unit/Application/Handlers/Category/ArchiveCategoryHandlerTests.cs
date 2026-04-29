@@ -37,7 +37,10 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: category.Id);
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(
+			UserId: category.UserId,
+			CategoryId: category.Id
+		);
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _categoryRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
@@ -54,7 +57,10 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
 
-		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: Guid.NewGuid());
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(
+			UserId: Guid.NewGuid(),
+			CategoryId: Guid.NewGuid()
+		);
 
 		await Assert.That(action: async () =>
 			await _handler.Handle(command: command, ct: CancellationToken.None)
@@ -72,7 +78,10 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: category.Id);
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(
+			UserId: category.UserId,
+			CategoryId: category.Id
+		);
 
 		await Assert.That(action: async () =>
 			await _handler.Handle(command: command, ct: CancellationToken.None)

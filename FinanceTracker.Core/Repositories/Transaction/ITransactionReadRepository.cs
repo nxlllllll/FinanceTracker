@@ -21,6 +21,7 @@ public interface ITransactionReadRepository
 	);
 	
 	Task<bool> ExistsAsync(
+		Guid userId,
 		Guid transactionId,
 		CancellationToken ct = default
 	);

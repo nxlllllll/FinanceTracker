@@ -19,6 +19,9 @@ public sealed class ArchiveCategoryHandler(
 		Category category = await categoryRepository.GetByIdAsync(categoryId: command.CategoryId, ct: ct)
 			?? throw new NotFoundException(message: "Category not found.", id: command.CategoryId);
 
+		if (category.UserId != command.UserId)
+			throw new NotFoundException(message: "Category not found.", id: command.CategoryId);
+		
 		category.Archive();
 
 		await unitOfWork.BeginTransactionAsync(ct: ct);

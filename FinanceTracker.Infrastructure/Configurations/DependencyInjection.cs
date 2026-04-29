@@ -66,8 +66,9 @@ public static class DependencyInjection
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
-
-		services.AddHostedService<OutboxWorker>();
+		
+		services.AddSingleton<OutboxWorker>();
+		services.AddHostedService(implementationFactory: sp => sp.GetRequiredService<OutboxWorker>());
 		
 		services.AddQuartz(configure: configurator =>
 		{

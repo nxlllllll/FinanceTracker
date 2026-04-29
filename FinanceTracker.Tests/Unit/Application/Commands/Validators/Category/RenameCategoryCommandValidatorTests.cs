@@ -11,6 +11,7 @@ public sealed class RenameCategoryCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		RenameCategoryCommand command = new RenameCategoryCommand(
+			UserId: Guid.NewGuid(),
 			CategoryId: Guid.NewGuid(),
 			NewName: "Продукты"
 		);
@@ -23,6 +24,7 @@ public sealed class RenameCategoryCommandValidatorTests
 	public async Task Validate_WithEmptyNewName_ShouldHaveError()
 	{
 		RenameCategoryCommand command = new RenameCategoryCommand(
+			UserId: Guid.NewGuid(),
 			CategoryId: Guid.NewGuid(),
 			NewName: String.Empty
 		);
@@ -39,6 +41,7 @@ public sealed class RenameCategoryCommandValidatorTests
 	public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
 	{
 		RenameCategoryCommand command = new RenameCategoryCommand(
+			UserId: Guid.NewGuid(),
 			CategoryId: Guid.Empty,
 			NewName: "Продукты"
 		);

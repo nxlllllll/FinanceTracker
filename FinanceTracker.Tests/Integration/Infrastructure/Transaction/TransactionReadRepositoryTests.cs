@@ -30,7 +30,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         _userBuilder = new UserBuilder(context: Context);
     }
 
-    private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
+    private async Task<(Guid accountId, Guid categoryId, Guid userId)> CreateAccountAndCategoryAsync()
     {
         string currencyCode = await _currencyBuilder.CreateAsync();
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
@@ -61,12 +61,13 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         });
         await Context.SaveChangesAsync();
 
-        return (accountId, categoryId);
+        return (accountId, categoryId, userId);
     }
 
     private async Task<Guid> CreateTransactionAsync(
         Guid accountId,
         Guid categoryId,
+        Guid userId,
         DirectionType direction = DirectionType.Debit,
         bool isExcluded = false,
         DateTime? occurredAt = null)
@@ -76,7 +77,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         await _writeRepository.CreateAsync(
             transactionId: transactionId,
             accountId: accountId,
-            userId: Guid.NewGuid(),
+            userId: userId,
             categoryId: categoryId,
             amount: 1000m,
             currency: "RUB",
@@ -104,8 +105,12 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WithExistingTransaction_ShouldReturnCorrectDto()
     {
-        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = await CreateTransactionAsync(accountId: accountId, categoryId: categoryId);
+        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+        Guid transactionId = await CreateTransactionAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId
+        );
 
         TransactionDto? result = await _readRepository.GetByIdAsync(transactionId: transactionId);
 
@@ -120,7 +125,10 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task ExistsAsync_WithNonExistentTransaction_ShouldReturnFalse()
     {
-        bool result = await _readRepository.ExistsAsync(transactionId: Guid.NewGuid());
+        bool result = await _readRepository.ExistsAsync(
+            userId: Guid.NewGuid(),
+            transactionId: Guid.NewGuid()
+        );
 
         await Assert.That(value: result).IsFalse();
     }
@@ -128,10 +136,17 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task ExistsAsync_WithExistingTransaction_ShouldReturnTrue()
     {
-        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = await CreateTransactionAsync(accountId: accountId, categoryId: categoryId);
+        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+        Guid transactionId = await CreateTransactionAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId
+        );
 
-        bool result = await _readRepository.ExistsAsync(transactionId: transactionId);
+        bool result = await _readRepository.ExistsAsync(
+            userId: userId,
+            transactionId: transactionId
+        );
 
         await Assert.That(value: result).IsTrue();
     }
@@ -147,11 +162,19 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_ShouldReturnOnlyAccountTransactions()
     {
-        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        (Guid anotherAccountId, Guid anotherCategoryId) = await CreateAccountAndCategoryAsync();
+        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+        (Guid anotherAccountId, Guid anotherCategoryId, Guid anotherUserId) = await CreateAccountAndCategoryAsync();
 
-        await CreateTransactionAsync(accountId: accountId, categoryId: categoryId);
-        await CreateTransactionAsync(accountId: anotherAccountId, categoryId: anotherCategoryId);
+        await CreateTransactionAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId
+        );
+        await CreateTransactionAsync(
+            userId: anotherUserId,
+            accountId: anotherAccountId,
+            categoryId: anotherCategoryId
+        );
 
         IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(accountId: accountId);
 
@@ -162,10 +185,20 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithDirectionFilter_ShouldReturnOnlyMatchingTransactions()
     {
-        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
 
-        await CreateTransactionAsync(accountId: accountId, categoryId: categoryId, direction: DirectionType.Debit);
-        await CreateTransactionAsync(accountId: accountId, categoryId: categoryId, direction: DirectionType.Credit);
+        await CreateTransactionAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            direction: DirectionType.Debit
+        );
+        await CreateTransactionAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            direction: DirectionType.Credit
+        );
 
         IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(
             accountId: accountId,
@@ -179,10 +212,20 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithIsExcludedFilter_ShouldReturnOnlyMatchingTransactions()
     {
-        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
 
-        await CreateTransactionAsync(accountId: accountId, categoryId: categoryId, isExcluded: false);
-        await CreateTransactionAsync(accountId: accountId, categoryId: categoryId, isExcluded: true);
+        await CreateTransactionAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            isExcluded: false
+        );
+        await CreateTransactionAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            isExcluded: true
+        );
 
         IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(
             accountId: accountId,
@@ -196,19 +239,22 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithDateRangeFilter_ShouldReturnOnlyMatchingTransactions()
     {
-        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
 
         await CreateTransactionAsync(
+            userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             occurredAt: DateTime.UtcNow.AddDays(value: -10)
         );
         await CreateTransactionAsync(
+            userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             occurredAt: DateTime.UtcNow.AddDays(value: -3)
         );
         await CreateTransactionAsync(
+            userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             occurredAt: DateTime.UtcNow
@@ -226,19 +272,22 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_ShouldReturnTransactionsOrderedByDateDescending()
     {
-        (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
 
         await CreateTransactionAsync(
+            userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             occurredAt: DateTime.UtcNow.AddDays(value: -2)
         );
         await CreateTransactionAsync(
+            userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             occurredAt: DateTime.UtcNow
         );
         await CreateTransactionAsync(
+            userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             occurredAt: DateTime.UtcNow.AddDays(value: -1)

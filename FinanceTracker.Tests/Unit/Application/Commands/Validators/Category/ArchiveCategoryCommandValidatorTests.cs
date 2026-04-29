@@ -10,7 +10,10 @@ public sealed class ArchiveCategoryCommandValidatorTests
 	[Test]
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
-		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: Guid.NewGuid());
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(
+			UserId: Guid.NewGuid(),
+			CategoryId: Guid.NewGuid()
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 
@@ -20,7 +23,10 @@ public sealed class ArchiveCategoryCommandValidatorTests
 	[Test]
 	public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
 	{
-		ArchiveCategoryCommand command = new ArchiveCategoryCommand(CategoryId: Guid.Empty);
+		ArchiveCategoryCommand command = new ArchiveCategoryCommand(
+			UserId: Guid.NewGuid(),
+			CategoryId: Guid.Empty
+		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 

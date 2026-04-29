@@ -9,7 +9,8 @@ public static class TransactionFactory
 		Guid? accountId = null,
 		Guid? userId = null,
 		Guid? categoryId = null,
-		bool isExcluded = false)
+		bool isExcluded = false,
+		DirectionType direction = DirectionType.Debit)
 	{
 		return new TransactionDto(
 			Id: Guid.NewGuid(),
@@ -18,7 +19,7 @@ public static class TransactionFactory
 			CategoryId: categoryId ?? Guid.NewGuid(),
 			Amount: 1000m,
 			Currency: "RUB",
-			Direction: DirectionType.Debit,
+			Direction: direction,
 			ExchangeRate: 1m,
 			IsExcluded: isExcluded,
 			IsRatePending: false,

@@ -19,4 +19,14 @@ public interface IBudgetProgressWriteRepository
 		DateTime occurredAt,
 		CancellationToken ct = default
 	);
+	
+	Task ChangeCategoryAsync(
+		Guid userId,
+		Guid oldCategoryId,
+		Guid newCategoryId,
+		string currencyCode,
+		decimal amount,
+		DateTime occurredAt,
+		CancellationToken ct = default
+	);
 }
