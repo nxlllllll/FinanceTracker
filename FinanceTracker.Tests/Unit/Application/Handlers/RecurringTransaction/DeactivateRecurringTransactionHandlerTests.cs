@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Application.RecurringTransactions.Commands.DeactivateRecurringTransaction;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -19,25 +19,21 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyInactive_ShouldNotCallRepository()
+	public async Task HandleAsync_WhenAlreadyInactive_ShouldThrowDeactivatingException()
 	{
-		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create(isActive: false);
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: false);
 
-		await _handler.HandleAsync(
+		await Assert.That(action: async () => await _handler.HandleAsync(
 			command: new DeactivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
 			recurringTransaction: recurringTransaction,
 			ct: CancellationToken.None
-		);
-
-		await _writeRepository.DidNotReceive().DeactivateAsync(
-			recurringTransactionId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
-		);
+		)).Throws<DeactivatingException>();
 	}
 
 	[Test]
 	public async Task HandleAsync_WhenActive_ShouldCallDeactivate()
 	{
-		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create(isActive: true);
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: true);
 
 		await _handler.HandleAsync(
 			command: new DeactivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),

@@ -1,15 +1,16 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Currency;
 using MediatR;
 
 namespace FinanceTracker.Application.Currencies.Queries.GetCurrencies;
 
 public sealed class GetCurrenciesHandler(
-	ICurrencyRepository currencyRepository
+	ICurrencyReadRepository currencyReadRepository
 ) : IRequestHandler<GetCurrenciesQuery, IReadOnlyList<CurrencyDto>>
 {
 	public async Task<IReadOnlyList<CurrencyDto>> Handle(
 		GetCurrenciesQuery query,
 		CancellationToken ct = default
-	) => await currencyRepository.GetAllAsync(ct: ct);
+	) => await currencyReadRepository.GetAllAsync(ct: ct);
 }

@@ -10,28 +10,28 @@ public sealed class TransactionReadRepository(
 	FinanceTrackerContext context
 ) : ITransactionReadRepository
 {
-	public async Task<TransactionDto?> GetByIdAsync(
+	public async Task<Core.Domains.Transaction.Transaction?> GetByIdAsync(
         Guid transactionId,
         CancellationToken ct = default)
     {
         return await context.Transactions.AsNoTracking().Where(predicate: t => t.Id == transactionId)
-            .Select(selector: t => new TransactionDto(
-                Id: t.Id,
-                AccountId: t.AccountId,
-                UserId: t.UserId,
-                CategoryId: t.CategoryId,
-                Amount: t.Amount,
-                Currency: t.Currency,
-                Direction: t.Direction,
-                ExchangeRate: t.ExchangeRate,
-                IsExcluded: t.IsExcluded,
-                IsRatePending: t.IsRatePending,
-                Description: t.Description,
-                OccurredAt: t.OccurredAt
+            .Select(selector: t => Core.Domains.Transaction.Transaction.Reconstitute(
+                id: t.Id,
+                accountId: t.AccountId,
+                userId: t.UserId,
+                categoryId: t.CategoryId,
+                amount: t.Amount,
+                currency: t.Currency,
+                direction: t.Direction,
+                exchangeRate: t.ExchangeRate,
+                isExcluded: t.IsExcluded,
+                isRatePending: t.IsRatePending,
+                description: t.Description,
+                occurredAt: t.OccurredAt
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<TransactionDto>> GetAllAsync(
+    public async Task<IReadOnlyList<Core.Domains.Transaction.Transaction>> GetAllAsync(
         Guid accountId,
         Guid? categoryId = null,
         DirectionType? direction = null,
@@ -59,19 +59,19 @@ public sealed class TransactionReadRepository(
             query = query.Where(predicate: t => t.OccurredAt <= dateTo);
 
         return await query.OrderByDescending(keySelector: t => t.OccurredAt)
-            .Select(selector: t => new TransactionDto(
-                Id: t.Id,
-                AccountId: t.AccountId,
-                UserId: t.UserId,
-                CategoryId: t.CategoryId,   
-                Amount: t.Amount,
-                Currency: t.Currency,
-                Direction: t.Direction,
-                ExchangeRate: t.ExchangeRate,
-                IsExcluded: t.IsExcluded,
-                IsRatePending: t.IsRatePending,
-                Description: t.Description,
-                OccurredAt: t.OccurredAt
+            .Select(selector: t => Core.Domains.Transaction.Transaction.Reconstitute(
+                id: t.Id,
+                accountId: t.AccountId,
+                userId: t.UserId,
+                categoryId: t.CategoryId,
+                amount: t.Amount,
+                currency: t.Currency,
+                direction: t.Direction,
+                exchangeRate: t.ExchangeRate,
+                isExcluded: t.IsExcluded,
+                isRatePending: t.IsRatePending,
+                description: t.Description,
+                occurredAt: t.OccurredAt
             )).ToListAsync(cancellationToken: ct);
     }
 

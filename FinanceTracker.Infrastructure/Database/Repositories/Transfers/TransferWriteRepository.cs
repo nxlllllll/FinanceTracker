@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.Transfer;
+﻿using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Entities;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfers;
@@ -7,32 +8,21 @@ public sealed class TransferWriteRepository(
 	FinanceTrackerContext context
 ) : ITransferWriteRepository
 {
-	public async Task CreateAsync(
-		Guid transferId,
-		Guid userId,
-		Guid fromAccountId,
-		Guid toAccountId,
-		decimal amountFrom,
-		decimal amountTo,
-		decimal exchangeRate,
-		string? description,
-		DateTime occurredAt,
-		bool isRatePending,
-		CancellationToken ct = default)
+	public async Task CreateAsync(Transfer transfer, CancellationToken ct = default)
 	{
-		await context.Transfers.AddAsync(entity: new TransferEntity()
+		await context.Transfers.AddAsync(entity: new TransferEntity
 		{
-			Id = transferId,
-			UserId = userId,
-			FromAccountId = fromAccountId,
-			ToAccountId = toAccountId,
-			AmountFrom = amountFrom,
-			AmountTo = amountTo,
-			ExchangeRate = exchangeRate,
-			IsExcluded = false,
-			Description = description,
-			OccurredAt = occurredAt,
-			IsRatePending = isRatePending
+			Id = transfer.Id,
+			UserId = transfer.UserId,
+			FromAccountId = transfer.FromAccountId,
+			ToAccountId = transfer.ToAccountId,
+			AmountFrom = transfer.AmountFrom,
+			AmountTo = transfer.AmountTo,
+			ExchangeRate = transfer.ExchangeRate,
+			IsExcluded = transfer.IsExcluded,
+			Description = transfer.Description,
+			OccurredAt = transfer.OccurredAt,
+			IsRatePending = transfer.IsRatePending
 		}, cancellationToken: ct);
 
 		await context.SaveChangesAsync(cancellationToken: ct);

@@ -1,12 +1,13 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.AccountType;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 
-public sealed class AccountTypeRepository(
+public sealed class AccountTypeReadRepository(
 	FinanceTrackerContext context
-) : IAccountTypeRepository
+) : IAccountTypeReadRepository
 {
 	public async Task<IReadOnlyList<AccountTypeDto>> GetAllAsync(CancellationToken ct = default)
 	{

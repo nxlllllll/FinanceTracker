@@ -28,9 +28,17 @@ using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
 using FinanceTracker.Application.Transfers.Authorization;
 using FinanceTracker.Application.Transfers.Commands;
+using FinanceTracker.Application.Users.Authorization;
+using FinanceTracker.Application.Users.Commands.ChangeUserBaseCurrency;
+using FinanceTracker.Application.Users.Commands.ChangeUserEmail;
+using FinanceTracker.Application.Users.Commands.ChangeUserPassword;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.RecurringTransaction;
+using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Dtos;
 using FluentValidation;
 using MediatR;
@@ -75,6 +83,19 @@ public static class DependencyInjection
 		);
 #endregion Account
 
+#region User
+		services.AddScoped<UserLoader>();
+		services.AddScoped<IEntityLoader<ChangeUserBaseCurrencyCommand, User>>(
+			implementationFactory: sp => sp.GetRequiredService<UserLoader>()
+		);
+		services.AddScoped<IEntityLoader<ChangeUserEmailCommand, User>>(
+			implementationFactory: sp => sp.GetRequiredService<UserLoader>()
+		);
+		services.AddScoped<IEntityLoader<ChangeUserPasswordCommand, User>>(
+			implementationFactory: sp => sp.GetRequiredService<UserLoader>()
+		);
+#endregion User
+
 #region Category
 		services.AddScoped<CategoryLoader>();
 		services.AddScoped<IEntityLoader<ArchiveCategoryCommand, Category>>(
@@ -90,48 +111,48 @@ public static class DependencyInjection
 		
 #region Transaction
 		services.AddScoped<TransactionLoader>();
-		services.AddScoped<IEntityLoader<ChangeTransactionCategoryCommand, TransactionDto>>(
+		services.AddScoped<IEntityLoader<ChangeTransactionCategoryCommand, Transaction>>(
 			implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
 		);
-		services.AddScoped<IEntityLoader<ChangeTransactionDescriptionCommand, TransactionDto>>(
+		services.AddScoped<IEntityLoader<ChangeTransactionDescriptionCommand, Transaction>>(
 			implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
 		);
-		services.AddScoped<IEntityLoader<IncludeTransactionCommand, TransactionDto>>(
+		services.AddScoped<IEntityLoader<IncludeTransactionCommand, Transaction>>(
 			implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
 		);
-		services.AddScoped<IEntityLoader<ExcludeTransactionCommand, TransactionDto>>(
+		services.AddScoped<IEntityLoader<ExcludeTransactionCommand, Transaction>>(
 			implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
 		);
 #endregion Transaction
 
 #region RecurringTransaction
 		services.AddScoped<RecurringTransactionLoader>();
-		services.AddScoped<IEntityLoader<ActivateRecurringTransactionCommand, RecurringTransactionDto>>(
+		services.AddScoped<IEntityLoader<ActivateRecurringTransactionCommand, RecurringTransaction>>(
 			implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
 		);
-		services.AddScoped<IEntityLoader<DeactivateRecurringTransactionCommand, RecurringTransactionDto>>(
+		services.AddScoped<IEntityLoader<DeactivateRecurringTransactionCommand, RecurringTransaction>>(
 			implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
 		);
-		services.AddScoped<IEntityLoader<ChangeRecurringTransactionAmountCommand, RecurringTransactionDto>>(
+		services.AddScoped<IEntityLoader<ChangeRecurringTransactionAmountCommand, RecurringTransaction>>(
 			implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
 		);
-		services.AddScoped<IEntityLoader<ChangeRecurringTransactionCurrencyCommand, RecurringTransactionDto>>(
+		services.AddScoped<IEntityLoader<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>>(
 			implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
 		);
-		services.AddScoped<IEntityLoader<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransactionDto>>(
+		services.AddScoped<IEntityLoader<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>>(
 			implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
 		);
 #endregion RecurringTransaction
 
 #region Budget
 		services.AddScoped<BudgetLoader>();
-		services.AddScoped<IEntityLoader<ChangeBudgetAmountCommand, BudgetDto>>(
+		services.AddScoped<IEntityLoader<ChangeBudgetAmountCommand, Budget>>(
 			implementationFactory: sp => sp.GetRequiredService<BudgetLoader>()
 		);
-		services.AddScoped<IEntityLoader<ChangeBudgetPeriodCommand, BudgetDto>>(
+		services.AddScoped<IEntityLoader<ChangeBudgetPeriodCommand, Budget>>(
 			implementationFactory: sp => sp.GetRequiredService<BudgetLoader>()
 		);
-		services.AddScoped<IEntityLoader<DeleteBudgetCommand, BudgetDto>>(
+		services.AddScoped<IEntityLoader<DeleteBudgetCommand, Budget>>(
 			implementationFactory: sp => sp.GetRequiredService<BudgetLoader>()
 		);
 #endregion Budget
@@ -155,6 +176,16 @@ public static class DependencyInjection
 		services.AddScoped<IRequestHandler<RenameAccountCommand>, AuthorizedHandlerAdapter<RenameAccountCommand, Account>>();
 #endregion Account
 
+#region User
+		services.AddScoped<IAuthorizedHandler<ChangeUserBaseCurrencyCommand, User>, ChangeUserBaseCurrencyHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeUserEmailCommand, User>, ChangeUserEmailHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeUserPasswordCommand, User>, ChangeUserPasswordHandler>();
+
+		services.AddScoped<IRequestHandler<ChangeUserBaseCurrencyCommand>, AuthorizedHandlerAdapter<ChangeUserBaseCurrencyCommand, User>>();
+		services.AddScoped<IRequestHandler<ChangeUserEmailCommand>, AuthorizedHandlerAdapter<ChangeUserEmailCommand, User>>();
+		services.AddScoped<IRequestHandler<ChangeUserPasswordCommand>, AuthorizedHandlerAdapter<ChangeUserPasswordCommand, User>>();
+#endregion User
+
 #region Category
 		services.AddScoped<IAuthorizedHandler<ArchiveCategoryCommand, Category>, ArchiveCategoryHandler>();
 		services.AddScoped<IAuthorizedHandler<UnarchiveCategoryCommand, Category>, UnarchiveCategoryHandler>();
@@ -167,40 +198,40 @@ public static class DependencyInjection
 		
 #region Transaction
 		services.AddScoped<IAuthorizedHandler<CreateTransactionCommand, Account, Guid>, CreateTransactionHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeTransactionCategoryCommand, TransactionDto>, ChangeTransactionCategoryHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeTransactionDescriptionCommand, TransactionDto>, ChangeTransactionDescriptionHandler>();
-		services.AddScoped<IAuthorizedHandler<IncludeTransactionCommand, TransactionDto>, IncludeTransactionHandler>();
-		services.AddScoped<IAuthorizedHandler<ExcludeTransactionCommand, TransactionDto>, ExcludeTransactionHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction>, ChangeTransactionCategoryHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeTransactionDescriptionCommand, Transaction>, ChangeTransactionDescriptionHandler>();
+		services.AddScoped<IAuthorizedHandler<IncludeTransactionCommand, Transaction>, IncludeTransactionHandler>();
+		services.AddScoped<IAuthorizedHandler<ExcludeTransactionCommand, Transaction>, ExcludeTransactionHandler>();
 		
 		services.AddScoped<IRequestHandler<CreateTransactionCommand, Guid>, AuthorizedHandlerAdapter<CreateTransactionCommand, Account, Guid>>();
-		services.AddScoped<IRequestHandler<ChangeTransactionCategoryCommand>, AuthorizedHandlerAdapter<ChangeTransactionCategoryCommand, TransactionDto>>();
-		services.AddScoped<IRequestHandler<ChangeTransactionDescriptionCommand>, AuthorizedHandlerAdapter<ChangeTransactionDescriptionCommand, TransactionDto>>();
-		services.AddScoped<IRequestHandler<IncludeTransactionCommand>, AuthorizedHandlerAdapter<IncludeTransactionCommand, TransactionDto>>();
-		services.AddScoped<IRequestHandler<ExcludeTransactionCommand>, AuthorizedHandlerAdapter<ExcludeTransactionCommand, TransactionDto>>();
+		services.AddScoped<IRequestHandler<ChangeTransactionCategoryCommand>, AuthorizedHandlerAdapter<ChangeTransactionCategoryCommand, Transaction>>();
+		services.AddScoped<IRequestHandler<ChangeTransactionDescriptionCommand>, AuthorizedHandlerAdapter<ChangeTransactionDescriptionCommand, Transaction>>();
+		services.AddScoped<IRequestHandler<IncludeTransactionCommand>, AuthorizedHandlerAdapter<IncludeTransactionCommand, Transaction>>();
+		services.AddScoped<IRequestHandler<ExcludeTransactionCommand>, AuthorizedHandlerAdapter<ExcludeTransactionCommand, Transaction>>();
 #endregion Transaction
 		
 #region RecurringTransaction
-		services.AddScoped<IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransactionDto>, ActivateRecurringTransactionHandler>();
-		services.AddScoped<IAuthorizedHandler<DeactivateRecurringTransactionCommand, RecurringTransactionDto>, DeactivateRecurringTransactionHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, RecurringTransactionDto>, ChangeRecurringTransactionAmountHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionCurrencyCommand, RecurringTransactionDto>, ChangeRecurringTransactionCurrencyHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransactionDto>, ChangeRecurringTransactionDayOfMonthHandler>();
+		services.AddScoped<IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransaction>, ActivateRecurringTransactionHandler>();
+		services.AddScoped<IAuthorizedHandler<DeactivateRecurringTransactionCommand, RecurringTransaction>, DeactivateRecurringTransactionHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, RecurringTransaction>, ChangeRecurringTransactionAmountHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>, ChangeRecurringTransactionCurrencyHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>, ChangeRecurringTransactionDayOfMonthHandler>();
 		
-		services.AddScoped<IRequestHandler<ChangeRecurringTransactionDayOfMonthCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransactionDto>>();
-		services.AddScoped<IRequestHandler<ActivateRecurringTransactionCommand>, AuthorizedHandlerAdapter<ActivateRecurringTransactionCommand, RecurringTransactionDto>>();
-		services.AddScoped<IRequestHandler<DeactivateRecurringTransactionCommand>, AuthorizedHandlerAdapter<DeactivateRecurringTransactionCommand, RecurringTransactionDto>>();
-		services.AddScoped<IRequestHandler<ChangeRecurringTransactionAmountCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionAmountCommand, RecurringTransactionDto>>();
-		services.AddScoped<IRequestHandler<ChangeRecurringTransactionCurrencyCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionCurrencyCommand, RecurringTransactionDto>>();
+		services.AddScoped<IRequestHandler<ChangeRecurringTransactionDayOfMonthCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>>();
+		services.AddScoped<IRequestHandler<ActivateRecurringTransactionCommand>, AuthorizedHandlerAdapter<ActivateRecurringTransactionCommand, RecurringTransaction>>();
+		services.AddScoped<IRequestHandler<DeactivateRecurringTransactionCommand>, AuthorizedHandlerAdapter<DeactivateRecurringTransactionCommand, RecurringTransaction>>();
+		services.AddScoped<IRequestHandler<ChangeRecurringTransactionAmountCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionAmountCommand, RecurringTransaction>>();
+		services.AddScoped<IRequestHandler<ChangeRecurringTransactionCurrencyCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>>();
 #endregion RecurringTransaction
 		
 #region Budget
-		services.AddScoped<IAuthorizedHandler<ChangeBudgetAmountCommand, BudgetDto>, ChangeBudgetAmountHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeBudgetPeriodCommand, BudgetDto>, ChangeBudgetPeriodHandler>();
-		services.AddScoped<IAuthorizedHandler<DeleteBudgetCommand, BudgetDto>, DeleteBudgetHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeBudgetAmountCommand, Budget>, ChangeBudgetAmountHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget>, ChangeBudgetPeriodHandler>();
+		services.AddScoped<IAuthorizedHandler<DeleteBudgetCommand, Budget>, DeleteBudgetHandler>();
 		
-		services.AddScoped<IRequestHandler<ChangeBudgetPeriodCommand>, AuthorizedHandlerAdapter<ChangeBudgetPeriodCommand, BudgetDto>>();
-		services.AddScoped<IRequestHandler<DeleteBudgetCommand>, AuthorizedHandlerAdapter<DeleteBudgetCommand, BudgetDto>>();
-		services.AddScoped<IRequestHandler<ChangeBudgetAmountCommand>, AuthorizedHandlerAdapter<ChangeBudgetAmountCommand, BudgetDto>>();
+		services.AddScoped<IRequestHandler<ChangeBudgetPeriodCommand>, AuthorizedHandlerAdapter<ChangeBudgetPeriodCommand, Budget>>();
+		services.AddScoped<IRequestHandler<DeleteBudgetCommand>, AuthorizedHandlerAdapter<DeleteBudgetCommand, Budget>>();
+		services.AddScoped<IRequestHandler<ChangeBudgetAmountCommand>, AuthorizedHandlerAdapter<ChangeBudgetAmountCommand, Budget>>();
 #endregion Budget
 		
 #region Transfer

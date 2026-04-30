@@ -68,8 +68,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
         Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            transactionId: transactionId,
+        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
+            id: transactionId,
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
@@ -77,10 +77,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             currency: "RUB",
             direction: DirectionType.Debit,
             exchangeRate: 1m,
+            isExcluded: false,
             description: "Обед",
             isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
+
+        await _writeRepository.CreateAsync(transaction: transaction);
 
         bool exists = await Context.Transactions.AnyAsync(predicate: t => t.Id == transactionId);
         await Assert.That(value: exists).IsTrue();
@@ -93,8 +96,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         Guid transactionId = Guid.NewGuid();
         Guid userId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            transactionId: transactionId,
+        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
+            id: transactionId,
             accountId: accountId,
             userId: userId,
             categoryId: categoryId,
@@ -102,11 +105,14 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             currency: "RUB",
             direction: DirectionType.Debit,
             exchangeRate: 1m,
+            isExcluded: false,
             description: "Обед",
             isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
 
+        await _writeRepository.CreateAsync(transaction: transaction);
+        
         TransactionEntity entity = await Context.Transactions.FirstAsync(
             predicate: t => t.Id == transactionId
         );
@@ -124,8 +130,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
         Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            transactionId: transactionId,
+        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
+            id: transactionId,
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
@@ -133,10 +139,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             currency: "RUB",
             direction: DirectionType.Debit,
             exchangeRate: 1m,
+            isExcluded: false,
             description: null,
             isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
+
+        await _writeRepository.CreateAsync(transaction: transaction);
 
         Guid newCategoryId = Guid.NewGuid();
         await Context.Categories.AddAsync(entity: new CategoryEntity()
@@ -170,8 +179,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
         Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            transactionId: transactionId,
+        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
+            id: transactionId,
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
@@ -179,10 +188,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             currency: "RUB",
             direction: DirectionType.Debit,
             exchangeRate: 1m,
+            isExcluded: false,
             description: "Обед",
             isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
+
+        await _writeRepository.CreateAsync(transaction: transaction);
 
         await _writeRepository.ChangeDescriptionAsync(transactionId: transactionId, description: "Ужин");
 
@@ -200,8 +212,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
         Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            transactionId: transactionId,
+        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
+            id: transactionId,
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
@@ -209,10 +221,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             currency: "RUB",
             direction: DirectionType.Debit,
             exchangeRate: 1m,
+            isExcluded: false,
             description: null,
             isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
+
+        await _writeRepository.CreateAsync(transaction: transaction);
 
         await _writeRepository.ExcludeAsync(transactionId: transactionId);
 
@@ -230,8 +245,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
         Guid transactionId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            transactionId: transactionId,
+        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
+            id: transactionId,
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
@@ -239,10 +254,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             currency: "RUB",
             direction: DirectionType.Debit,
             exchangeRate: 1m,
+            isExcluded: false,
             description: null,
             isRatePending: false,
             occurredAt: DateTime.UtcNow
         );
+
+        await _writeRepository.CreateAsync(transaction: transaction);
 
         await _writeRepository.ExcludeAsync(transactionId: transactionId);
         await _writeRepository.IncludeAsync(transactionId: transactionId);

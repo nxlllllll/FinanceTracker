@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Account;
 using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.CreateRecurringTransaction;
@@ -12,4 +13,4 @@ public sealed record CreateRecurringTransactionCommand(
 	DirectionType Direction,
 	int DayOfMonth,
 	string? Description
-) : IRequest<Guid>;
+) : IRequest<Guid>, IAuthorizable;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.Budget;
 using MediatR;
 
 namespace FinanceTracker.Application.Budgets.Queries.GetBudget;
@@ -6,4 +6,4 @@ namespace FinanceTracker.Application.Budgets.Queries.GetBudget;
 public sealed record GetBudgetQuery(
 	Guid UserId,
 	Guid BudgetId
-) : IRequest<BudgetDto?>;
+) : IRequest<Budget?>;

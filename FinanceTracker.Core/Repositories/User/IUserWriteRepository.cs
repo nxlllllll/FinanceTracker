@@ -1,21 +1,9 @@
-﻿using FinanceTracker.Core.Domains.User;
+﻿namespace FinanceTracker.Core.Repositories.User;
 
-namespace FinanceTracker.Core.Repositories;
-
-public interface IUserRepository
+public interface IUserWriteRepository
 {
-	Task<User?> GetByIdAsync(
-		Guid userId,
-		CancellationToken ct = default
-	);
-	
-	Task<User?> GetByEmailAsync(
-		string email,
-		CancellationToken ct = default
-	);
-	
 	Task CreateAsync(
-		User user,
+		Domains.User.User user,
 		CancellationToken ct = default
 	);
 	

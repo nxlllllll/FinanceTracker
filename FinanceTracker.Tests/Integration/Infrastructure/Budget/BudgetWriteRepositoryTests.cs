@@ -20,66 +20,40 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         _categoryBuilder = new CategoryBuilder(context: Context);
     }
 
-    [Test]
-    public async Task CreateAsync_ShouldCreateBudgetAndProgress()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
-        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        Guid budgetId = Guid.NewGuid();
-
-        await _writeRepository.CreateAsync(
-            budgetId: budgetId,
-            userId: userId,
-            categoryId: categoryId,
-            currency: "RUB",
-            amount: 10000m,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
-        );
-
-        BudgetEntity? budget = await Context.Budgets.FirstOrDefaultAsync(predicate: b => b.Id == budgetId);
-        BudgetProgressEntity? progress = await Context.BudgetProgresses.FirstOrDefaultAsync(predicate: p => p.BudgetId == budgetId);
-
-        await Assert.That(value: budget).IsNotNull();
-        await Assert.That(value: budget!.Amount).IsEqualTo(expected: 10000m);
-        await Assert.That(value: budget.Currency).IsEqualTo(expected: "RUB");
-        await Assert.That(value: progress).IsNotNull();
-        await Assert.That(value: progress!.Spent).IsEqualTo(expected: 0m);
-    }
-
-    [Test]
-    public async Task ChangeAmountAsync_ShouldUpdateAmount()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
-        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        Guid budgetId = Guid.NewGuid();
-
-        await _writeRepository.CreateAsync(
-            budgetId: budgetId,
-            userId: userId,
-            categoryId: categoryId,
-            currency: "RUB",
-            amount: 10000m,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
-        );
-
-        await _writeRepository.ChangeAmountAsync(budgetId: budgetId, amount: 20000m);
-
-        BudgetEntity budget = await Context.Budgets.AsNoTracking().FirstAsync(predicate: b => b.Id == budgetId);
-
-        await Assert.That(value: budget.Amount).IsEqualTo(expected: 20000m);
-    }
+   [Test]
+   public async Task CreateAsync_ShouldCreateBudgetAndProgress()
+   {
+       Guid userId = await _userBuilder.CreateAsync();
+       Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+   
+       Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
+           userId: userId,
+           categoryId: categoryId,
+           currency: "RUB",
+           amount: 10000m,
+           from: new DateOnly(year: 2025, month: 1, day: 1),
+           to: new DateOnly(year: 2025, month: 1, day: 31)
+       );
+   
+       await _writeRepository.CreateAsync(budget: budget);
+   
+       BudgetEntity? budgetEntity = await Context.Budgets.FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
+       BudgetProgressEntity? progress = await Context.BudgetProgresses.FirstOrDefaultAsync(predicate: p => p.BudgetId == budget.Id);
+   
+       await Assert.That(value: budgetEntity).IsNotNull();
+       await Assert.That(value: budgetEntity!.Amount).IsEqualTo(expected: 10000m);
+       await Assert.That(value: budgetEntity.Currency).IsEqualTo(expected: "RUB");
+       await Assert.That(value: progress).IsNotNull();
+       await Assert.That(value: progress!.Spent).IsEqualTo(expected: 0m);
+   }
 
     [Test]
     public async Task ChangePeriodAsync_ShouldUpdatePeriod()
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        Guid budgetId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            budgetId: budgetId,
+        Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
             userId: userId,
             categoryId: categoryId,
             currency: "RUB",
@@ -88,16 +62,18 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
 
+        await _writeRepository.CreateAsync(budget: budget);
+
         await _writeRepository.ChangePeriodAsync(
-            budgetId: budgetId,
+            budgetId: budget.Id,
             from: new DateOnly(year: 2025, month: 2, day: 1),
             to: new DateOnly(year: 2025, month: 2, day: 28)
         );
 
-        BudgetEntity budget = await Context.Budgets.AsNoTracking().FirstAsync(predicate: b => b.Id == budgetId);
+        BudgetEntity result = await Context.Budgets.AsNoTracking().FirstAsync(predicate: b => b.Id == budget.Id);
 
-        await Assert.That(value: budget.From).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 1));
-        await Assert.That(value: budget.To).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 28));
+        await Assert.That(value: result.From).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 1));
+        await Assert.That(value: result.To).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 28));
     }
 
     [Test]
@@ -105,10 +81,8 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        Guid budgetId = Guid.NewGuid();
 
-        await _writeRepository.CreateAsync(
-            budgetId: budgetId,
+        Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
             userId: userId,
             categoryId: categoryId,
             currency: "RUB",
@@ -117,12 +91,14 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
 
-        await _writeRepository.DeleteAsync(budgetId: budgetId);
+        await _writeRepository.CreateAsync(budget: budget);
 
-        BudgetEntity? budget = await Context.Budgets.FirstOrDefaultAsync(predicate: b => b.Id == budgetId);
-        BudgetProgressEntity? progress = await Context.BudgetProgresses.FirstOrDefaultAsync(predicate: p => p.BudgetId == budgetId);
+        await _writeRepository.DeleteAsync(budgetId: budget.Id);
 
-        await Assert.That(value: budget).IsNull();
+        BudgetEntity? result = await Context.Budgets.FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
+        BudgetProgressEntity? progress = await Context.BudgetProgresses.FirstOrDefaultAsync(predicate: p => p.BudgetId == budget.Id);
+
+        await Assert.That(value: result).IsNull();
         await Assert.That(value: progress).IsNull();
     }
 }

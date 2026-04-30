@@ -5,6 +5,7 @@ using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
@@ -16,40 +17,40 @@ public sealed class TransactionLoader(
 	IAccountRepository accountRepository,
 	ITransactionReadRepository transactionReadRepository
 ) : IEntityLoader<CreateTransactionCommand, Account>,
-	IEntityLoader<ChangeTransactionCategoryCommand, TransactionDto>,
-	IEntityLoader<ChangeTransactionDescriptionCommand, TransactionDto>,
-	IEntityLoader<IncludeTransactionCommand, TransactionDto>,
-	IEntityLoader<ExcludeTransactionCommand, TransactionDto>
+	IEntityLoader<ChangeTransactionCategoryCommand, Transaction>,
+	IEntityLoader<ChangeTransactionDescriptionCommand, Transaction>,
+	IEntityLoader<IncludeTransactionCommand, Transaction>,
+	IEntityLoader<ExcludeTransactionCommand, Transaction>
 {
 	public Task<Account> LoadAsync(
 		CreateTransactionCommand request,
 		CancellationToken ct
 	) => LoadAccountAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
 
-	public Task<TransactionDto> LoadAsync(
+	public Task<Transaction> LoadAsync(
 		ChangeTransactionCategoryCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
 
-	public Task<TransactionDto> LoadAsync(
+	public Task<Transaction> LoadAsync(
 		ChangeTransactionDescriptionCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
 
-	public Task<TransactionDto> LoadAsync(
+	public Task<Transaction> LoadAsync(
 		IncludeTransactionCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
 
-	public Task<TransactionDto> LoadAsync(
+	public Task<Transaction> LoadAsync(
 		ExcludeTransactionCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
 	
-	private async Task<TransactionDto> LoadAndAuthorize(Guid transactionId, Guid userId, CancellationToken ct)
+	private async Task<Transaction> LoadAndAuthorize(Guid transactionId, Guid userId, CancellationToken ct)
 	{
-		TransactionDto transaction = await transactionReadRepository.GetByIdAsync(transactionId: transactionId, ct: ct)
-		?? throw new NotFoundException(message: "Transaction not found.", id: transactionId);
+		Transaction transaction = await transactionReadRepository.GetByIdAsync(transactionId: transactionId, ct: ct)
+			?? throw new NotFoundException(message: "Transaction not found.", id: transactionId);
 		
 		if (transaction.UserId != userId)
 			throw new NotFoundException(message: "Transaction not found.", id: transactionId);

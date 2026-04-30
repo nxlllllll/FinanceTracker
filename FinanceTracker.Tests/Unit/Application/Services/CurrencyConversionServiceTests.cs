@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Infrastructure.Services;
 using NSubstitute;
@@ -8,14 +9,14 @@ namespace FinanceTracker.Tests.Unit.Application.Services;
 
 public sealed class CurrencyConversionServiceTests
 {
-	private ICurrencyRateRepository _currencyRateRepository = null!;
+	private ICurrencyRateReadRepository _currencyRateReadRepository = null!;
 	private CurrencyConversionService _service = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_currencyRateRepository = Substitute.For<ICurrencyRateRepository>();
-		_service = new CurrencyConversionService(currencyRateRepository: _currencyRateRepository);
+		_currencyRateReadRepository = Substitute.For<ICurrencyRateReadRepository>();
+		_service = new CurrencyConversionService(currencyRateReadRepository: _currencyRateReadRepository);
 	}
 	
 	[Test]
@@ -30,7 +31,7 @@ public sealed class CurrencyConversionServiceTests
         await Assert.That(value: result.Rate).IsEqualTo(expected: 1m);
         await Assert.That(value: result.IsPending).IsFalse();
 
-        await _currencyRateRepository.DidNotReceive().GetRateAsync(
+        await _currencyRateReadRepository.DidNotReceive().GetRateAsync(
             baseCurrencyCode: Arg.Any<string>(),
             targetCurrencyCode: Arg.Any<string>(),
             date: Arg.Any<DateOnly>(),
@@ -43,7 +44,7 @@ public sealed class CurrencyConversionServiceTests
     {
         DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        _currencyRateRepository.GetRateAsync(
+        _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB",
             date: date,
@@ -65,14 +66,14 @@ public sealed class CurrencyConversionServiceTests
     {
         DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        _currencyRateRepository.GetRateAsync(
+        _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB",
             date: date,
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: (decimal?)null);
 
-        _currencyRateRepository.GetLatestRateAsync(
+        _currencyRateReadRepository.GetLatestRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB",
             ct: Arg.Any<CancellationToken>()
@@ -93,14 +94,14 @@ public sealed class CurrencyConversionServiceTests
     {
         DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        _currencyRateRepository.GetRateAsync(
+        _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB",
             date: date,
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: (decimal?)null);
 
-        _currencyRateRepository.GetLatestRateAsync(
+        _currencyRateReadRepository.GetLatestRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB",
             ct: Arg.Any<CancellationToken>()

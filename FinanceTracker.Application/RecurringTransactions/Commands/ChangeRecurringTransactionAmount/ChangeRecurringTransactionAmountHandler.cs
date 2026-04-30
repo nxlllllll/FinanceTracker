@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 
@@ -6,11 +7,20 @@ namespace FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurr
 
 public sealed class ChangeRecurringTransactionAmountHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
-) : IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, RecurringTransactionDto>
+) : IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, RecurringTransaction>
 {
 	public async Task HandleAsync(
 		ChangeRecurringTransactionAmountCommand command,
-		RecurringTransactionDto recurringTransaction,
+		RecurringTransaction recurringTransaction,
 		CancellationToken ct = default
-	) => await recurringTransactionWriteRepository.ChangeAmountAsync(recurringTransactionId: command.RecurringTransactionId, amount: command.Amount, ct: ct);
+	)
+	{
+		recurringTransaction.ChangeAmount(amount: command.Amount);
+		
+		await recurringTransactionWriteRepository.ChangeAmountAsync(
+			recurringTransactionId: command.RecurringTransactionId,
+			amount: command.Amount,
+			ct: ct
+		);
+	}
 }

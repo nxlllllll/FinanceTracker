@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
@@ -13,15 +13,14 @@ public sealed class IncludeTransactionHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork
-) : IAuthorizedHandler<IncludeTransactionCommand, TransactionDto>
+) : IAuthorizedHandler<IncludeTransactionCommand, Transaction>
 {
 	public async Task HandleAsync(
 		IncludeTransactionCommand command,
-		TransactionDto transaction,
+		Transaction transaction,
 		CancellationToken ct = default)
 	{
-		if (!transaction.IsExcluded)
-			return;
+		transaction.Include();
 		
 		await unitOfWork.BeginTransactionAsync(ct: ct);
 

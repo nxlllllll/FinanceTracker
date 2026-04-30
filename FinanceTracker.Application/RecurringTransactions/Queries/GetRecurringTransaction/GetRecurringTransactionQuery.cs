@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.RecurringTransaction;
+using FinanceTracker.Core.Dtos;
 using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Queries.GetRecurringTransaction;
@@ -6,4 +7,4 @@ namespace FinanceTracker.Application.RecurringTransactions.Queries.GetRecurringT
 public sealed record GetRecurringTransactionQuery(
 	Guid UserId,
 	Guid RecurringTransactionId
-) : IRequest<RecurringTransactionDto>;
+) : IRequest<RecurringTransaction>;

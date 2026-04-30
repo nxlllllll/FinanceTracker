@@ -72,10 +72,8 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         bool isExcluded = false,
         DateTime? occurredAt = null)
     {
-        Guid transactionId = Guid.NewGuid();
-
-        await _writeRepository.CreateAsync(
-            transactionId: transactionId,
+        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
+            id: Guid.NewGuid(),
             accountId: accountId,
             userId: userId,
             categoryId: categoryId,
@@ -83,21 +81,24 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             currency: "RUB",
             direction: direction,
             exchangeRate: 1m,
-            description: "Обед",
+            isExcluded: false,
             isRatePending: false,
+            description: "Обед",
             occurredAt: occurredAt ?? DateTime.UtcNow
         );
 
-        if (isExcluded)
-            await _writeRepository.ExcludeAsync(transactionId: transactionId);
+        await _writeRepository.CreateAsync(transaction: transaction);
 
-        return transactionId;
+        if (isExcluded)
+            await _writeRepository.ExcludeAsync(transactionId: transaction.Id);
+
+        return transaction.Id;
     }
 
     [Test]
     public async Task GetByIdAsync_WithNonExistentTransaction_ShouldReturnNull()
     {
-        TransactionDto? result = await _readRepository.GetByIdAsync(transactionId: Guid.NewGuid());
+        Core.Domains.Transaction.Transaction? result = await _readRepository.GetByIdAsync(transactionId: Guid.NewGuid());
 
         await Assert.That(value: result).IsNull();
     }
@@ -112,7 +113,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             categoryId: categoryId
         );
 
-        TransactionDto? result = await _readRepository.GetByIdAsync(transactionId: transactionId);
+        Core.Domains.Transaction.Transaction? result = await _readRepository.GetByIdAsync(transactionId: transactionId);
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: transactionId);
@@ -154,7 +155,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithNoTransactions_ShouldReturnEmptyList()
     {
-        IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(accountId: Guid.NewGuid());
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(accountId: Guid.NewGuid());
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 0);
     }
@@ -176,7 +177,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             categoryId: anotherCategoryId
         );
 
-        IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(accountId: accountId);
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(accountId: accountId);
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result[0].AccountId).IsEqualTo(expected: accountId);
@@ -200,7 +201,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             direction: DirectionType.Credit
         );
 
-        IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
             accountId: accountId,
             direction: DirectionType.Debit
         );
@@ -227,7 +228,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             isExcluded: true
         );
 
-        IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
             accountId: accountId,
             isExcluded: false
         );
@@ -260,7 +261,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             occurredAt: DateTime.UtcNow
         );
 
-        IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
             accountId: accountId,
             dateFrom: DateTime.UtcNow.AddDays(value: -5),
             dateTo: DateTime.UtcNow.AddDays(value: 1)
@@ -293,7 +294,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             occurredAt: DateTime.UtcNow.AddDays(value: -1)
         );
 
-        IReadOnlyList<TransactionDto> result = await _readRepository.GetAllAsync(accountId: accountId);
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(accountId: accountId);
 
         await Assert.That(value: result[0].OccurredAt).IsGreaterThan(minimum: result[1].OccurredAt);
         await Assert.That(value: result[1].OccurredAt).IsGreaterThan(minimum: result[2].OccurredAt);

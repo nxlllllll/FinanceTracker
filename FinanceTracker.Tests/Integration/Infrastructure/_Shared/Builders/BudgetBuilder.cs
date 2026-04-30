@@ -15,9 +15,7 @@ public class BudgetBuilder(FinanceTrackerContext context)
 		DateOnly? dateFrom = null,
 		DateOnly? dateTo = null)
 	{
-		Guid budgetId = Guid.NewGuid();
-		await _writeRepository.CreateAsync(
-			budgetId: budgetId,
+		Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
 			userId: userId,
 			categoryId: categoryId,
 			currency: currency,
@@ -25,6 +23,8 @@ public class BudgetBuilder(FinanceTrackerContext context)
 			from: dateFrom ?? new DateOnly(year: 2025, month: 1, day: 1),
 			to: dateTo ?? new DateOnly(year: 2025, month: 1, day: 31)
 		);
-		return budgetId;
+		
+		await _writeRepository.CreateAsync(budget: budget);
+		return budget.Id;
 	}
 }

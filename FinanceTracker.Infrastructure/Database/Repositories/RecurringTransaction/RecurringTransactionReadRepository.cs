@@ -8,52 +8,52 @@ public sealed class RecurringTransactionReadRepository(
     FinanceTrackerContext context
 ) : IRecurringTransactionReadRepository
 {
-    public async Task<RecurringTransactionDto?> GetByIdAsync(
+    public async Task<Core.Domains.RecurringTransaction.RecurringTransaction?> GetByIdAsync(
         Guid recurringTransactionId,
         CancellationToken ct = default)
     {
         return await context.RecurringTransactions.AsNoTracking()
             .Where(predicate: r => r.Id == recurringTransactionId)
-            .Select(selector: r => new RecurringTransactionDto(
-                Id: r.Id,
-                UserId: r.UserId,
-                AccountId: r.AccountId,
-                CategoryId: r.CategoryId,
-                Amount: r.Amount,
-                Currency: r.Currency,
-                Direction: r.Direction,
-                DayOfMonth: r.DayOfMonth,
-                Description: r.Description,
-                IsActive: r.IsActive,
-                LastExecutedAt: r.LastExecutedAt,
-                CreatedAt: r.CreatedAt
+            .Select(selector: r => Core.Domains.RecurringTransaction.RecurringTransaction.Reconstitute(
+                id: r.Id,
+                userId: r.UserId,
+                accountId: r.AccountId,
+                categoryId: r.CategoryId,
+                amount: r.Amount,
+                currency: r.Currency,
+                direction: r.Direction,
+                dayOfMonth: r.DayOfMonth,
+                description: r.Description,
+                isActive: r.IsActive,
+                lastExecutedAt: r.LastExecutedAt,
+                createdAt: r.CreatedAt
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<RecurringTransactionDto>> GetByUserIdAsync(
+    public async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
         Guid userId,
         CancellationToken ct = default)
     {
         return await context.RecurringTransactions.AsNoTracking()
             .Where(predicate: r => r.UserId == userId)
             .OrderBy(keySelector: r => r.CreatedAt)
-            .Select(selector: r => new RecurringTransactionDto(
-                Id: r.Id,
-                UserId: r.UserId,
-                AccountId: r.AccountId,
-                CategoryId: r.CategoryId,
-                Amount: r.Amount,
-                Currency: r.Currency,
-                Direction: r.Direction,
-                DayOfMonth: r.DayOfMonth,
-                Description: r.Description,
-                IsActive: r.IsActive,
-                LastExecutedAt: r.LastExecutedAt,
-                CreatedAt: r.CreatedAt
+            .Select(selector: r => Core.Domains.RecurringTransaction.RecurringTransaction.Reconstitute(
+                id: r.Id,
+                userId: r.UserId,
+                accountId: r.AccountId,
+                categoryId: r.CategoryId,
+                amount: r.Amount,
+                currency: r.Currency,
+                direction: r.Direction,
+                dayOfMonth: r.DayOfMonth,
+                description: r.Description,
+                isActive: r.IsActive,
+                lastExecutedAt: r.LastExecutedAt,
+                createdAt: r.CreatedAt
             )).ToListAsync(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<RecurringTransactionDto>> GetDueTodayAsync(
+    public async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetDueTodayAsync(
         int dayOfMonth,
         int daysInCurrentMonth,
         DateTime currentMonthStart,
@@ -66,19 +66,19 @@ public sealed class RecurringTransactionReadRepository(
                 (r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart) &&
                 (r.DayOfMonth == dayOfMonth || (isLastDayOfMonth && r.DayOfMonth > daysInCurrentMonth))
             )
-            .Select(selector: r => new RecurringTransactionDto(
-                Id: r.Id,
-                UserId: r.UserId,
-                AccountId: r.AccountId,
-                CategoryId: r.CategoryId,
-                Amount: r.Amount,
-                Currency: r.Currency,
-                Direction: r.Direction,
-                DayOfMonth: r.DayOfMonth,
-                Description: r.Description,
-                IsActive: r.IsActive,
-                LastExecutedAt: r.LastExecutedAt,
-                CreatedAt: r.CreatedAt
+            .Select(selector: r => Core.Domains.RecurringTransaction.RecurringTransaction.Reconstitute(
+                id: r.Id,
+                userId: r.UserId,
+                accountId: r.AccountId,
+                categoryId: r.CategoryId,
+                amount: r.Amount,
+                currency: r.Currency,
+                direction: r.Direction,
+                dayOfMonth: r.DayOfMonth,
+                description: r.Description,
+                isActive: r.IsActive,
+                lastExecutedAt: r.LastExecutedAt,
+                createdAt: r.CreatedAt
             )).ToListAsync(cancellationToken: ct);
     }
 }

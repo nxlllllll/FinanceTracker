@@ -1,20 +1,21 @@
 ﻿using FinanceTracker.Application.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class CreateCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository = null!;
+	private ICategoryWriteRepository _categoryWriteRepository = null!;
 	private CreateCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryRepository = Substitute.For<ICategoryRepository>();
-		_handler = new CreateCategoryHandler(categoryRepository: _categoryRepository);
+		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
+		_handler = new CreateCategoryHandler(categoryWriteRepository: _categoryWriteRepository);
 	}
 
 	[Test]
@@ -29,7 +30,7 @@ public sealed class CreateCategoryHandlerTests
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _categoryRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
+		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c =>
 				c.Name == "Еда" &&
 				c.Type == CategoryType.Expense &&
@@ -52,7 +53,7 @@ public sealed class CreateCategoryHandlerTests
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _categoryRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
+		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c => c.ParentId == parentId),
 			ct: Arg.Any<CancellationToken>()
 		);

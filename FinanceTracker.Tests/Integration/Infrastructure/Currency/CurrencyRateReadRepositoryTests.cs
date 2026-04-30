@@ -5,15 +5,15 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Currency;
 
-public sealed class CurrencyRateRepositoryTests : DatabaseFixture
+public sealed class CurrencyRateReadRepositoryTests : DatabaseFixture
 {
-	private CurrencyRateRepository _repository = null!;
+	private CurrencyRateReadRepository _readRepository = null!;
     private CurrencyBuilder _currencyBuilder = null!;
 
     [Before(hookType: Test)]
     public void SetupRepository()
     {
-        _repository = new CurrencyRateRepository(context: Context);
+        _readRepository = new CurrencyRateReadRepository(context: Context);
         _currencyBuilder = new CurrencyBuilder(context: Context);
     }
 
@@ -37,7 +37,7 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetRateAsync_WhenSameCurrency_ShouldReturnOne()
     {
-        decimal? result = await _repository.GetRateAsync(
+        decimal? result = await _readRepository.GetRateAsync(
             baseCurrencyCode: "RUB",
             targetCurrencyCode: "RUB",
             date: DateOnly.FromDateTime(DateTime.UtcNow)
@@ -55,7 +55,7 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
         DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
         await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 90m, date: date);
 
-        decimal? result = await _repository.GetRateAsync(
+        decimal? result = await _readRepository.GetRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB",
             date: date
@@ -67,7 +67,7 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetRateAsync_WhenRateNotExists_ShouldReturnNull()
     {
-        decimal? result = await _repository.GetRateAsync(
+        decimal? result = await _readRepository.GetRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB",
             date: DateOnly.FromDateTime(DateTime.UtcNow)
@@ -79,7 +79,7 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetLatestRateAsync_WhenSameCurrency_ShouldReturnOne()
     {
-        decimal? result = await _repository.GetLatestRateAsync(
+        decimal? result = await _readRepository.GetLatestRateAsync(
             baseCurrencyCode: "RUB",
             targetCurrencyCode: "RUB"
         );
@@ -112,7 +112,7 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
             date: DateOnly.FromDateTime(DateTime.UtcNow)
         );
 
-        decimal? result = await _repository.GetLatestRateAsync(
+        decimal? result = await _readRepository.GetLatestRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB"
         );
@@ -123,7 +123,7 @@ public sealed class CurrencyRateRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetLatestRateAsync_WhenNoRateExists_ShouldReturnNull()
     {
-        decimal? result = await _repository.GetLatestRateAsync(
+        decimal? result = await _readRepository.GetLatestRateAsync(
             baseCurrencyCode: "USD",
             targetCurrencyCode: "RUB"
         );

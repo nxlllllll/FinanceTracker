@@ -1,11 +1,11 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 
 namespace FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
 
 public sealed class UnarchiveCategoryHandler(
-	ICategoryRepository categoryRepository
+	ICategoryWriteRepository categoryWriteRepository
 ) : IAuthorizedHandler<UnarchiveCategoryCommand, Category>
 {
 	public async Task HandleAsync(
@@ -14,6 +14,6 @@ public sealed class UnarchiveCategoryHandler(
 		CancellationToken ct = default)
 	{
 		category.Unarchive();
-		await categoryRepository.UnarchiveAsync(categoryId: command.CategoryId, ct: ct);
+		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, ct: ct);
 	}
 }

@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Queries.GetCategories;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -8,14 +9,14 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class GetCategoriesHandlerTests
 {
-    private ICategoryRepository _categoryRepository = null!;
+    private ICategoryReadRepository _categoryReadRepository = null!;
     private GetCategoriesHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
-        _categoryRepository = Substitute.For<ICategoryRepository>();
-        _handler = new GetCategoriesHandler(categoryRepository: _categoryRepository);
+        _categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+        _handler = new GetCategoriesHandler(categoryRepository: _categoryReadRepository);
     }
 
     [Test]
@@ -23,7 +24,7 @@ public sealed class GetCategoriesHandlerTests
     {
         IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> categories = [CategoryFactory.Create(), CategoryFactory.Create()];
 
-        _categoryRepository.GetAllAsync(
+        _categoryReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),
             type: Arg.Any<CategoryType?>(),
             isArchived: Arg.Any<bool?>(),
@@ -40,7 +41,7 @@ public sealed class GetCategoriesHandlerTests
     [Test]
     public async Task Handle_ShouldPassTypeFilterToRepository()
     {
-        _categoryRepository.GetAllAsync(
+        _categoryReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),
             type: Arg.Any<CategoryType?>(),
             isArchived: Arg.Any<bool?>(),
@@ -52,7 +53,7 @@ public sealed class GetCategoriesHandlerTests
 
         await _handler.Handle(query: query, ct: CancellationToken.None);
 
-        await _categoryRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+        await _categoryReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
             userId: Arg.Any<Guid>(),
             type: CategoryType.Income,
             isArchived: Arg.Any<bool?>(),
@@ -64,7 +65,7 @@ public sealed class GetCategoriesHandlerTests
     [Test]
     public async Task Handle_ShouldPassIsArchivedFilterToRepository()
     {
-        _categoryRepository.GetAllAsync(
+        _categoryReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),
             type: Arg.Any<CategoryType?>(),
             isArchived: Arg.Any<bool?>(),
@@ -76,7 +77,7 @@ public sealed class GetCategoriesHandlerTests
 
         await _handler.Handle(query: query, ct: CancellationToken.None);
 
-        await _categoryRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+        await _categoryReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
             userId: Arg.Any<Guid>(),
             type: Arg.Any<CategoryType?>(),
             isArchived: false,
@@ -90,7 +91,7 @@ public sealed class GetCategoriesHandlerTests
     {
         Guid parentId = Guid.NewGuid();
 
-        _categoryRepository.GetAllAsync(
+        _categoryReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),
             type: Arg.Any<CategoryType?>(),
             isArchived: Arg.Any<bool?>(),
@@ -102,7 +103,7 @@ public sealed class GetCategoriesHandlerTests
 
         await _handler.Handle(query: query, ct: CancellationToken.None);
 
-        await _categoryRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+        await _categoryReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
             userId: Arg.Any<Guid>(),
             type: Arg.Any<CategoryType?>(),
             isArchived: Arg.Any<bool?>(),

@@ -5,17 +5,7 @@ namespace FinanceTracker.Core.Repositories.Transaction;
 public interface ITransactionWriteRepository
 {
 	Task CreateAsync(
-        Guid transactionId,
-        Guid accountId,
-        Guid userId,
-        Guid categoryId,
-        decimal amount,
-		string currency,
-        DirectionType direction,
-        decimal exchangeRate,
-        string? description,
-        DateTime occurredAt,
-		bool isRatePending,
+		Domains.Transaction.Transaction transaction,
         CancellationToken ct = default
 	);
 

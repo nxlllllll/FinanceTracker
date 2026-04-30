@@ -5,15 +5,7 @@ namespace FinanceTracker.Core.Repositories.RecurringTransaction;
 public interface IRecurringTransactionWriteRepository
 {
 	Task CreateAsync(
-		Guid recurringTransactionId,
-		Guid userId,
-		Guid accountId,
-		Guid categoryId,
-		decimal amount,
-		string currency,
-		DirectionType direction,
-		int dayOfMonth,
-		string? description,
+		Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
 		CancellationToken ct = default
 	);
 

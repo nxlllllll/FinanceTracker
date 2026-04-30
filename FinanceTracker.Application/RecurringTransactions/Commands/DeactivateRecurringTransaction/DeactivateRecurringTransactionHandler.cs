@@ -1,20 +1,19 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.DeactivateRecurringTransaction;
 
 public sealed class DeactivateRecurringTransactionHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
-) : IAuthorizedHandler<DeactivateRecurringTransactionCommand, RecurringTransactionDto>
+) : IAuthorizedHandler<DeactivateRecurringTransactionCommand, RecurringTransaction>
 {
 	public async Task HandleAsync(
 		DeactivateRecurringTransactionCommand command,
-		RecurringTransactionDto recurringTransaction,
+		RecurringTransaction recurringTransaction,
 		CancellationToken ct = default)
 	{
-		if (!recurringTransaction.IsActive)
-			return;
+		recurringTransaction.Deactivate();
 
 		await recurringTransactionWriteRepository.DeactivateAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct);
 	}

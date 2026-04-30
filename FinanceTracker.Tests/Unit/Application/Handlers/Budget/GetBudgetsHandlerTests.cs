@@ -22,14 +22,14 @@ public sealed class GetBudgetsHandlerTests
 	public async Task Handle_ShouldReturnAllBudgets()
 	{
 		Guid userId = Guid.NewGuid();
-		IReadOnlyList<BudgetDto> budgets = [BudgetFactory.Create(userId: userId), BudgetFactory.Create(userId: userId)];
+		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> budgets = [BudgetFactory.Create(userId: userId), BudgetFactory.Create(userId: userId)];
 
 		_budgetReadRepository.GetAllAsync(
 			userId: userId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: budgets);
 
-		IReadOnlyList<BudgetDto> result = await _handler.Handle(
+		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> result = await _handler.Handle(
 			query: new GetBudgetsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
@@ -45,7 +45,7 @@ public sealed class GetBudgetsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 
-		IReadOnlyList<BudgetDto> result = await _handler.Handle(
+		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> result = await _handler.Handle(
 			query: new GetBudgetsQuery(UserId: Guid.NewGuid()),
 			ct: CancellationToken.None
 		);

@@ -24,13 +24,13 @@ public sealed class GetRecurringTransactionsHandlerTests
 	public async Task Handle_ShouldReturnAllUserTransactions()
 	{
 		Guid userId = Guid.NewGuid();
-		List<RecurringTransactionDto> dtos = [RecurringTransactionFactory.Create(userId: userId), RecurringTransactionFactory.Create(userId: userId)];
+		List<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> dtos = [RecurringTransactionFactory.Create(userId: userId), RecurringTransactionFactory.Create(userId: userId)];
 		_readRepository.GetByUserIdAsync(
 			userId: userId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: dtos);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _handler.Handle(
+		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
 			query: new GetRecurringTransactionsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
@@ -45,9 +45,9 @@ public sealed class GetRecurringTransactionsHandlerTests
 		_readRepository.GetByUserIdAsync(
 			userId: userId,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new List<RecurringTransactionDto>());
+		).Returns(returnThis: new List<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>());
 
-		IReadOnlyList<RecurringTransactionDto> result = await _handler.Handle(
+		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
 			query: new GetRecurringTransactionsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);

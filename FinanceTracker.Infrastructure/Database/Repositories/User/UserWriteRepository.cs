@@ -1,13 +1,13 @@
-﻿using FinanceTracker.Core.Repositories;
+﻿using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
-public sealed class UserRepository(
+public class UserWriteRepository(
 	FinanceTrackerContext context
-) : IUserRepository
+) : IUserWriteRepository
 {
 	private async Task ChangeUserPropertyAsync(
 		Guid userId,
@@ -18,37 +18,6 @@ public sealed class UserRepository(
 			setPropertyCalls: changePropertyAction,
 			cancellationToken: ct
 		);
-	}
-	
-	public async Task<Core.Domains.User.User?> GetByIdAsync(
-		Guid userId,
-		CancellationToken ct = default)
-	{
-		return await context.Users.AsNoTracking()
-			.Where(predicate: user => user.Id == userId)
-			.Select(selector: user => Core.Domains.User.User.Reconstitute(
-				id: user.Id,
-				email: user.Email,
-				passwordHash: user.PasswordHash,
-				baseCurrencyCode: user.BaseCurrencyCode,
-				createdAt: user.CreatedAt
-			)).FirstOrDefaultAsync(cancellationToken: ct);
-	}
-
-	public async Task<Core.Domains.User.User?> GetByEmailAsync(
-		string email,
-		CancellationToken ct = default)
-	{
-		return await context.Users.AsNoTracking()
-			.Where(predicate: user => user.Email == email)
-			.Select(selector: user => Core.Domains.User.User.Reconstitute(
-				id: user.Id,
-				email: user.Email,
-				passwordHash: user.PasswordHash,
-				baseCurrencyCode: user.BaseCurrencyCode,
-				createdAt: user.CreatedAt
-			)).FirstOrDefaultAsync(cancellationToken: ct);
-
 	}
 
 	public async Task CreateAsync(

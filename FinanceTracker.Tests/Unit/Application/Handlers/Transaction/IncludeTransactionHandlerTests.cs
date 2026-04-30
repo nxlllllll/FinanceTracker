@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
@@ -34,25 +34,21 @@ public sealed class IncludeTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyIncluded_ShouldNotCallRepository()
+	public async Task HandleAsync_WhenAlreadyIncluded_ShouldThrowIncludingException()
 	{
-		TransactionDto transaction = TransactionFactory.Create(isExcluded: false);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(isExcluded: false);
 
-		await _handler.HandleAsync(
+		await Assert.That(action: async () => await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
 			transaction: transaction,
 			ct: CancellationToken.None
-		);
-
-		await _transactionWriteRepository.DidNotReceive().IncludeAsync(
-			transactionId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
-		);
+		)).Throws<IncludingException>();
 	}
 
 	[Test]
 	public async Task HandleAsync_WithExcludedDebit_ShouldIncludeAndAddTotals()
 	{
-		TransactionDto transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: true);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: true);
 
 		await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
@@ -77,7 +73,7 @@ public sealed class IncludeTransactionHandlerTests
 	[Test]
 	public async Task HandleAsync_WithExcludedCredit_ShouldIncludeButNotUpdateTotals()
 	{
-		TransactionDto transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: true);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: true);
 
 		await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),

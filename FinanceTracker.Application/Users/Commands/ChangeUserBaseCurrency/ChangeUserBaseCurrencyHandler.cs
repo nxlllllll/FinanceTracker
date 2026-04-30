@@ -1,24 +1,21 @@
-﻿using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Repositories;
-using MediatR;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Repositories.User;
 
 namespace FinanceTracker.Application.Users.Commands.ChangeUserBaseCurrency;
 
 public sealed class ChangeUserBaseCurrencyHandler(
-	IUserRepository userRepository
-) : IRequestHandler<ChangeUserBaseCurrencyCommand>
+	IUserWriteRepository userWriteRepository
+) : IAuthorizedHandler<ChangeUserBaseCurrencyCommand, User>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ChangeUserBaseCurrencyCommand command,
+		User user,
 		CancellationToken ct = default)
 	{
-		User user = await userRepository.GetByIdAsync(userId: command.UserId, ct: ct)
-			?? throw new NotFoundException(message: "User not found.", id: command.UserId);
-
 		user.ChangeBaseCurrency(newBaseCurrencyCode: command.NewBaseCurrency);
 
-		await userRepository.ChangeBaseCurrencyAsync(
+		await userWriteRepository.ChangeBaseCurrencyAsync(
 			userId: command.UserId,
 			newBaseCurrencyCode: command.NewBaseCurrency,
 			ct: ct

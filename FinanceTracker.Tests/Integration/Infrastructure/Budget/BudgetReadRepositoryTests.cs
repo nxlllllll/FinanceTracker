@@ -28,7 +28,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-        BudgetDto? result = await _readRepository.GetByIdAsync(budgetId: budgetId, userId: userId);
+        Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(budgetId: budgetId, userId: userId);
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: budgetId);
@@ -38,7 +38,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WhenNotExists_ShouldReturnNull()
     {
-        BudgetDto? result = await _readRepository.GetByIdAsync(
+        Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(
             budgetId: Guid.NewGuid(),
             userId: Guid.NewGuid()
         );
@@ -53,7 +53,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-        BudgetDto? result = await _readRepository.GetByIdAsync(
+        Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(
             budgetId: budgetId,
             userId: Guid.NewGuid()
         );
@@ -68,7 +68,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-        BudgetDto? result = await _readRepository.GetActiveByCategoryAsync(
+        Core.Domains.Budget.Budget? result = await _readRepository.GetActiveByCategoryAsync(
             userId: userId,
             categoryId: categoryId,
             date: new DateOnly(year: 2025, month: 1, day: 15)
@@ -85,7 +85,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-        BudgetDto? result = await _readRepository.GetActiveByCategoryAsync(
+        Core.Domains.Budget.Budget? result = await _readRepository.GetActiveByCategoryAsync(
             userId: userId,
             categoryId: categoryId,
             date: new DateOnly(2025, 2, 1)
@@ -103,7 +103,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
         await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId1);
         await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId2);
 
-        IReadOnlyList<BudgetDto> result = await _readRepository.GetAllAsync(userId: userId);
+        IReadOnlyList<Core.Domains.Budget.Budget> result = await _readRepository.GetAllAsync(userId: userId);
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 2);
     }
@@ -116,7 +116,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: anotherUserId);
         await _budgetBuilder.CreateAsync(userId: anotherUserId, categoryId: categoryId);
 
-        IReadOnlyList<BudgetDto> result = await _readRepository.GetAllAsync(userId: userId);
+        IReadOnlyList<Core.Domains.Budget.Budget> result = await _readRepository.GetAllAsync(userId: userId);
 
         await Assert.That(value: result).IsEmpty();
     }

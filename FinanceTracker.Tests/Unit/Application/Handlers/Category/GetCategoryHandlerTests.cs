@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Queries.GetCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -8,14 +9,14 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class GetCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository = null!;
+	private ICategoryReadRepository _categoryReadRepository = null!;
 	private GetCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryRepository = Substitute.For<ICategoryRepository>();
-		_handler = new GetCategoryHandler(categoryRepository: _categoryRepository);
+		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+		_handler = new GetCategoryHandler(categoryRepository: _categoryReadRepository);
 	}
 
 	[Test]
@@ -23,7 +24,7 @@ public sealed class GetCategoryHandlerTests
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
 		
-		_categoryRepository.GetByIdAsync(
+		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
@@ -38,7 +39,7 @@ public sealed class GetCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryNotFound_ShouldReturnNull()
 	{
-		_categoryRepository.GetByIdAsync(
+		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));

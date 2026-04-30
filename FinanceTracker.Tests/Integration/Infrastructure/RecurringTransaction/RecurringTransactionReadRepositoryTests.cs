@@ -33,7 +33,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
-		RecurringTransactionDto? result = await _readRepository.GetByIdAsync(recurringTransactionId: id);
+		Core.Domains.RecurringTransaction.RecurringTransaction? result = await _readRepository.GetByIdAsync(recurringTransactionId: id);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: id);
@@ -43,7 +43,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WhenNotExists_ShouldReturnNull()
 	{
-		RecurringTransactionDto? result = await _readRepository.GetByIdAsync(recurringTransactionId: Guid.NewGuid());
+		Core.Domains.RecurringTransaction.RecurringTransaction? result = await _readRepository.GetByIdAsync(recurringTransactionId: Guid.NewGuid());
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -69,7 +69,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			dayOfMonth: 15
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetByUserIdAsync(userId: userId);
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetByUserIdAsync(userId: userId);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
 	}
@@ -88,7 +88,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			categoryId: categoryId
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetByUserIdAsync(userId: userId);
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetByUserIdAsync(userId: userId);
 
 		await Assert.That(value: result).IsEmpty();
 	}
@@ -119,7 +119,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -156,7 +156,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -193,7 +193,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -229,7 +229,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -264,7 +264,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: lastDay,
 			daysInCurrentMonth: daysInMonth,
 			currentMonthStart: currentMonthStart
@@ -298,7 +298,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			kind: DateTimeKind.Utc
 		);
 
-		IReadOnlyList<RecurringTransactionDto> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: 15,
 			daysInCurrentMonth: daysInMonth,
 			currentMonthStart: currentMonthStart

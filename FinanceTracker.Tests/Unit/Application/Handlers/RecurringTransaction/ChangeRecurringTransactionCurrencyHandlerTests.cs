@@ -21,7 +21,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangeCurrency()
 	{
-		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create();
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionCurrencyCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id, Currency: "USD"),

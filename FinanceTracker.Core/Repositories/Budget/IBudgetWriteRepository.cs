@@ -3,13 +3,7 @@
 public interface IBudgetWriteRepository
 {
     Task CreateAsync(
-        Guid budgetId,
-        Guid userId,
-        Guid categoryId,
-        string currency,
-        decimal amount,
-        DateOnly from,
-        DateOnly to,
+        Domains.Budget.Budget budget,
         CancellationToken ct = default
     );
 

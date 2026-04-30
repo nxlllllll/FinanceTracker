@@ -4,12 +4,12 @@ using FinanceTracker.Application.Categories.Commands.RenameCategory;
 using FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 
 namespace FinanceTracker.Application.Categories.Authorization;
 
 public sealed class CategoryLoader(
-	ICategoryRepository categoryRepository
+	ICategoryReadRepository categoryReadRepository
 ) : IEntityLoader<ArchiveCategoryCommand, Category>,
 	IEntityLoader<UnarchiveCategoryCommand, Category>,
 	IEntityLoader<RenameCategoryCommand, Category>
@@ -31,7 +31,7 @@ public sealed class CategoryLoader(
 
 	private async Task<Category> LoadAndAuthorize(Guid categoryId, Guid userId, CancellationToken ct)
 	{
-		Category category = await categoryRepository.GetByIdAsync(categoryId: categoryId, ct: ct)
+		Category category = await categoryReadRepository.GetByIdAsync(categoryId: categoryId, ct: ct)
 			?? throw new NotFoundException(message: "Category not found.", id: categoryId);
 
 		if (category.UserId != userId)

@@ -4,6 +4,7 @@ using FinanceTracker.Application.Categories.Commands.RenameCategory;
 using FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -11,14 +12,14 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 
 public sealed class CategoryLoaderTests
 {
-	private ICategoryRepository _categoryRepository = null!;
+	private ICategoryReadRepository _categoryRepository = null!;
 	private CategoryLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryRepository = Substitute.For<ICategoryRepository>();
-		_loader = new CategoryLoader(categoryRepository: _categoryRepository);
+		_categoryRepository = Substitute.For<ICategoryReadRepository>();
+		_loader = new CategoryLoader(categoryReadRepository: _categoryRepository);
 	}
 
 	[Test]

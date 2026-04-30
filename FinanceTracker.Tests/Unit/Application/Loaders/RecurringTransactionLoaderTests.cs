@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Application.RecurringTransactions.Authorization;
 using FinanceTracker.Application.RecurringTransactions.Commands.ActivateRecurringTransaction;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -26,7 +26,7 @@ public sealed class RecurringTransactionLoaderTests
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<RecurringTransactionDto?>(result: null));
+		).Returns(returnThis: Task.FromResult<RecurringTransaction?>(result: null));
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: Guid.NewGuid(), RecurringTransactionId: Guid.NewGuid()),
@@ -37,7 +37,7 @@ public sealed class RecurringTransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create();
+		RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -52,13 +52,13 @@ public sealed class RecurringTransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnDto()
 	{
-		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create();
+		RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: recurringTransaction);
 
-		RecurringTransactionDto result = await _loader.LoadAsync(
+		RecurringTransaction result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
 		);

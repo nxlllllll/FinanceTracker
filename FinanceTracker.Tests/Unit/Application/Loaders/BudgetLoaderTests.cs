@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Application.Budgets.Authorization;
 using FinanceTracker.Application.Budgets.Commands.ChangeBudgetAmount;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -27,7 +27,7 @@ public sealed class BudgetLoaderTests
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetDto?>(result: null));
+		).Returns(returnThis: Task.FromResult<Budget?>(result: null));
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: Guid.NewGuid(), BudgetId: Guid.NewGuid(), Amount: 1000m),
@@ -38,14 +38,14 @@ public sealed class BudgetLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnBudget()
 	{
-		BudgetDto budget = BudgetFactory.Create();
+		Budget budget = BudgetFactory.Create();
 		_budgetReadRepository.GetByIdAsync(
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: budget);
 
-		BudgetDto result = await _loader.LoadAsync(
+		Budget result = await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 1000m),
 			ct: CancellationToken.None
 		);

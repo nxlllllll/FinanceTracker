@@ -116,17 +116,7 @@ public sealed class CreateTransactionHandlerTests
         );
 
         await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-            transactionId: Arg.Any<Guid>(),
-            accountId: Arg.Any<Guid>(),
-            userId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid>(),
-            amount: Arg.Any<decimal>(),
-            currency: Arg.Any<string>(),
-            direction: Arg.Any<DirectionType>(),
-            exchangeRate: 85m,
-            description: Arg.Any<string?>(),
-            occurredAt: Arg.Any<DateTime>(),
-            isRatePending: true,
+            transaction: Arg.Is<FinanceTracker.Core.Domains.Transaction.Transaction>(t => t.ExchangeRate == 85m && t.IsRatePending),
             ct: Arg.Any<CancellationToken>()
         );
     }

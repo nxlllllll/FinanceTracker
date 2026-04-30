@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.Transaction;
 using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Queries.GetTransactions;
@@ -11,4 +11,4 @@ public sealed record GetTransactionsQuery(
 	bool? IsExcluded = null,
 	DateTime? DateFrom = null,
 	DateTime? DateTo = null
-) : IRequest<IReadOnlyList<TransactionDto>>;
+) : IRequest<IReadOnlyList<Transaction>>;

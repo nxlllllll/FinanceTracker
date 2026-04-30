@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.BudgetProgress;
@@ -59,11 +60,22 @@ public sealed class CreateTransactionHandler(
 			ct: ct
 		);
 
-		Guid transactionId = Guid.NewGuid();
+		Transaction transaction = Transaction.Create(
+			accountId: command.AccountId,
+			userId: command.UserId,
+			categoryId: command.CategoryId,
+			amount: command.Amount,
+			currency: command.Currency,
+			direction: command.Direction,
+			exchangeRate: conversion.Rate,
+			isRatePending: conversion.IsPending,
+			description: command.Description
+		);
+		
 		ApplyDirection(
 			account: account,
 			command: command,
-			transactionId: transactionId,
+			transactionId: transaction.Id,
 			rate: conversion.Rate
 		);
 
@@ -71,20 +83,7 @@ public sealed class CreateTransactionHandler(
 
 		try
 		{
-			await transactionWriteRepository.CreateAsync(
-				transactionId: transactionId,
-				accountId: command.AccountId,
-				userId: command.UserId,
-				categoryId: command.CategoryId,
-				amount: command.Amount,
-				currency: command.Currency,
-				direction: command.Direction,
-				exchangeRate: conversion.Rate,
-				description: command.Description,
-				occurredAt: command.OccurredAt,
-				isRatePending: conversion.IsPending,
-				ct: ct
-			);
+			await transactionWriteRepository.CreateAsync(transaction: transaction, ct: ct);
 
 			await accountRepository.SaveAsync(account: account, ct: ct);
 
@@ -116,6 +115,6 @@ public sealed class CreateTransactionHandler(
 			throw;
 		}
 
-		return transactionId;
+		return transaction.Id;
 	}
 }

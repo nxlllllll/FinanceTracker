@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -8,14 +9,14 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class UnarchiveCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository = null!;
+	private ICategoryWriteRepository _categoryWriteRepository = null!;
 	private UnarchiveCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryRepository = Substitute.For<ICategoryRepository>();
-		_handler = new UnarchiveCategoryHandler(categoryRepository: _categoryRepository);
+		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
+		_handler = new UnarchiveCategoryHandler(categoryWriteRepository: _categoryWriteRepository);
 	}
 
 	[Test]
@@ -29,7 +30,7 @@ public sealed class UnarchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _categoryRepository.Received(requiredNumberOfCalls: 1).UnarchiveAsync(
+		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).UnarchiveAsync(
 			categoryId: category.Id,
 			ct: Arg.Any<CancellationToken>()
 		);

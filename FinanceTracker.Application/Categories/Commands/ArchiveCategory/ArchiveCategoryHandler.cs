@@ -1,12 +1,13 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 
 namespace FinanceTracker.Application.Categories.Commands.ArchiveCategory;
 
 public sealed class ArchiveCategoryHandler(
-	ICategoryRepository categoryRepository,
+	ICategoryWriteRepository categoryWriteRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IUnitOfWork unitOfWork
 ) : IAuthorizedHandler<ArchiveCategoryCommand, Category>
@@ -22,7 +23,7 @@ public sealed class ArchiveCategoryHandler(
 
 		try
 		{
-			await categoryRepository.ArchiveAsync(categoryId: command.CategoryId, ct: ct);
+			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 
 			await unitOfWork.CommitAsync(ct: ct);

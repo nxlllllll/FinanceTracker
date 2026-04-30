@@ -1,6 +1,6 @@
-﻿namespace FinanceTracker.Core.Repositories;
+﻿namespace FinanceTracker.Core.Repositories.Currency;
 
-public interface ICurrencyRateRepository
+public interface ICurrencyRateReadRepository
 {
 	Task<decimal?> GetRateAsync(
 		string baseCurrencyCode,

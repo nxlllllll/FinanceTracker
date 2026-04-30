@@ -21,7 +21,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangeAmount()
 	{
-		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create();
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionAmountCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id, Amount: 9999m),

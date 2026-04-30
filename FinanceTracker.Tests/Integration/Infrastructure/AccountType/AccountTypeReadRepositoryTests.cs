@@ -5,22 +5,22 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.AccountType;
 
-public sealed class AccountTypeRepositoryTests : DatabaseFixture
+public sealed class AccountTypeReadRepositoryTests : DatabaseFixture
 {
-	private AccountTypeRepository _repository = null!;
+	private AccountTypeReadRepository _readRepository = null!;
 	private AccountTypeBuilder _accountTypeBuilder = null!;
 	
 	[Before(hookType: Test)]
 	public void SetupRepository()
 	{
-		_repository = new AccountTypeRepository(context: Context);
+		_readRepository = new AccountTypeReadRepository(context: Context);
 		_accountTypeBuilder = new AccountTypeBuilder(context: Context);
 	}
 
 	[Test]
 	public async Task GetAllAsync_WithNoAccountTypes_ShouldReturnEmptyList()
 	{
-		IReadOnlyList<AccountTypeDto> result = await _repository.GetAllAsync();
+		IReadOnlyList<AccountTypeDto> result = await _readRepository.GetAllAsync();
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 0);
 	}
@@ -31,7 +31,7 @@ public sealed class AccountTypeRepositoryTests : DatabaseFixture
 		await _accountTypeBuilder.CreateAsync(type: Core.Domains.Account.AccountType.Checking);
 		await _accountTypeBuilder.CreateAsync(type: Core.Domains.Account.AccountType.Savings);
 
-		IReadOnlyList<AccountTypeDto> result = await _repository.GetAllAsync();
+		IReadOnlyList<AccountTypeDto> result = await _readRepository.GetAllAsync();
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
 	}
@@ -39,7 +39,7 @@ public sealed class AccountTypeRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByTypeAsync_WithNonExistentType_ShouldReturnNull()
 	{
-		AccountTypeDto? result = await _repository.GetByTypeAsync(type: "checking");
+		AccountTypeDto? result = await _readRepository.GetByTypeAsync(type: "checking");
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -49,7 +49,7 @@ public sealed class AccountTypeRepositoryTests : DatabaseFixture
 	{
 		await _accountTypeBuilder.CreateAsync(type: Core.Domains.Account.AccountType.Checking);
 
-		AccountTypeDto? result = await _repository.GetByTypeAsync(type: "checking");
+		AccountTypeDto? result = await _readRepository.GetByTypeAsync(type: "checking");
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Type).IsEqualTo(expected: "checking");

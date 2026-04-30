@@ -21,7 +21,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangeDayOfMonth()
 	{
-		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create();
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id, DayOfMonth: 20),

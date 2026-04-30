@@ -5,22 +5,22 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Currency;
 
-public sealed class CurrencyRepositoryTests : DatabaseFixture
+public sealed class CurrencyReadRepositoryTests : DatabaseFixture
 {
-	private CurrencyRepository _repository = null!;
+	private CurrencyReadRepository _readRepository = null!;
 	private CurrencyBuilder _currencyBuilder = null!;
 
 	[Before(hookType: Test)]
 	public void SetupRepository()
 	{
-		_repository = new CurrencyRepository(context: Context);
+		_readRepository = new CurrencyReadRepository(context: Context);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
 	}
 
 	[Test]
 	public async Task GetAllAsync_WithNoCurrencies_ShouldReturnEmptyList()
 	{
-		IReadOnlyList<CurrencyDto> result = await _repository.GetAllAsync();
+		IReadOnlyList<CurrencyDto> result = await _readRepository.GetAllAsync();
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 0);
 	}
@@ -31,7 +31,7 @@ public sealed class CurrencyRepositoryTests : DatabaseFixture
 		await _currencyBuilder.CreateAsync(code: "RUB");
 		await _currencyBuilder.CreateAsync(code: "USD");
 
-		IReadOnlyList<CurrencyDto> result = await _repository.GetAllAsync();
+		IReadOnlyList<CurrencyDto> result = await _readRepository.GetAllAsync();
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
 	}
@@ -39,7 +39,7 @@ public sealed class CurrencyRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByCodeAsync_WithNonExistentCode_ShouldReturnNull()
 	{
-		CurrencyDto? result = await _repository.GetByCodeAsync(code: "USD");
+		CurrencyDto? result = await _readRepository.GetByCodeAsync(code: "USD");
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -49,7 +49,7 @@ public sealed class CurrencyRepositoryTests : DatabaseFixture
 	{
 		await _currencyBuilder.CreateAsync(code: "RUB");
 
-		CurrencyDto? result = await _repository.GetByCodeAsync(code: "RUB");
+		CurrencyDto? result = await _readRepository.GetByCodeAsync(code: "RUB");
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result.Code).IsEqualTo(expected: "RUB");

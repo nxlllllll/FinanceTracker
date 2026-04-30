@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 
@@ -6,11 +7,20 @@ namespace FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurr
 
 public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
-) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransactionDto>
+) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>
 {
 	public async Task HandleAsync(
 		ChangeRecurringTransactionDayOfMonthCommand command,
-		RecurringTransactionDto recurringTransaction,
+		RecurringTransaction recurringTransaction,
 		CancellationToken ct = default
-	) => await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(recurringTransactionId: command.RecurringTransactionId, dayOfMonth: command.DayOfMonth, ct: ct);
+	)
+	{
+		recurringTransaction.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
+		
+		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(
+			recurringTransactionId: command.RecurringTransactionId,
+			dayOfMonth: command.DayOfMonth,
+			ct: ct
+		);
+	}
 }

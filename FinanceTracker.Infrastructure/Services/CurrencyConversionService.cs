@@ -1,11 +1,12 @@
 ﻿using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.CurrencyConversion;
 
 namespace FinanceTracker.Infrastructure.Services;
 
 public sealed class CurrencyConversionService(
-	ICurrencyRateRepository currencyRateRepository
+	ICurrencyRateReadRepository currencyRateReadRepository
 ) : ICurrencyConversionService
 {
 	public async Task<ConversionResult> GetConversionRateAsync(
@@ -17,7 +18,7 @@ public sealed class CurrencyConversionService(
 		if (fromCurrency == toCurrency)
 			return new ConversionResult(Rate: 1m, IsPending: false);
 
-		decimal? exactRate = await currencyRateRepository.GetRateAsync(
+		decimal? exactRate = await currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: fromCurrency,
 			targetCurrencyCode: toCurrency,
 			date: date,
@@ -27,7 +28,7 @@ public sealed class CurrencyConversionService(
 		if (exactRate is not null)
 			return new ConversionResult(Rate: exactRate.Value, IsPending: false);
 
-		decimal? latestRate = await currencyRateRepository.GetLatestRateAsync(
+		decimal? latestRate = await currencyRateReadRepository.GetLatestRateAsync(
 			baseCurrencyCode: fromCurrency,
 			targetCurrencyCode: toCurrency,
 			ct: ct

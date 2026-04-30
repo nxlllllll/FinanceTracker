@@ -25,19 +25,18 @@ public sealed class GetRecurringTransactionHandlerTests
 	public async Task Handle_WhenFound_ShouldReturnDto()
 	{
 		Guid userId = Guid.NewGuid();
-		Guid id = Guid.NewGuid();
-		RecurringTransactionDto dto = RecurringTransactionFactory.Create(userId: userId, id: id);
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction dto = RecurringTransactionFactory.Create(userId: userId);
 		_readRepository.GetByIdAsync(
-			recurringTransactionId: id, 
+			recurringTransactionId: dto.Id, 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: dto);
 
-		RecurringTransactionDto result = await _handler.Handle(
-			query: new GetRecurringTransactionQuery(UserId: userId, RecurringTransactionId: id),
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction result = await _handler.Handle(
+			query: new GetRecurringTransactionQuery(UserId: userId, RecurringTransactionId: dto.Id),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Id).IsEqualTo(expected: id);
+		await Assert.That(value: result.Id).IsEqualTo(expected: dto.Id);
 	}
 
 	[Test]
@@ -46,7 +45,7 @@ public sealed class GetRecurringTransactionHandlerTests
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (RecurringTransactionDto?)null);
+		).Returns(returnThis: (FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction?)null);
 
 		await Assert.That(action: async () => await _handler.Handle(
 			query: new GetRecurringTransactionQuery(
@@ -60,16 +59,15 @@ public sealed class GetRecurringTransactionHandlerTests
 	[Test]
 	public async Task Handle_WhenBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		Guid id = Guid.NewGuid();
 		_readRepository.GetByIdAsync(
-			recurringTransactionId: id, 
+			recurringTransactionId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RecurringTransactionFactory.Create(userId: Guid.NewGuid(), id: id));
+		).Returns(returnThis: RecurringTransactionFactory.Create(userId: Guid.NewGuid()));
 
 		await Assert.That(action: async () => await _handler.Handle(
 			query: new GetRecurringTransactionQuery(
 				UserId: Guid.NewGuid(),
-				RecurringTransactionId: id
+				RecurringTransactionId: Guid.NewGuid()
 			),
 			ct: CancellationToken.None
 		)).Throws<NotFoundException>();

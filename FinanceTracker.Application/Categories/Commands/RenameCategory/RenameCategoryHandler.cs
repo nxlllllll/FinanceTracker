@@ -1,11 +1,11 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 
 namespace FinanceTracker.Application.Categories.Commands.RenameCategory;
 
 public sealed class RenameCategoryHandler(
-	ICategoryRepository categoryRepository
+	ICategoryWriteRepository categoryWriteRepository
 ) : IAuthorizedHandler<RenameCategoryCommand, Category>
 {
 	public async Task HandleAsync(
@@ -14,6 +14,6 @@ public sealed class RenameCategoryHandler(
 		CancellationToken ct = default)
 	{
 		category.Rename(newName: command.NewName);
-		await categoryRepository.RenameAsync(categoryId: command.CategoryId, newName: command.NewName, ct: ct);
+		await categoryWriteRepository.RenameAsync(categoryId: command.CategoryId, newName: command.NewName, ct: ct);
 	}
 }

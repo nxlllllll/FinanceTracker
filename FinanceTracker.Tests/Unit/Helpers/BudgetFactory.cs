@@ -1,22 +1,21 @@
-﻿using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.Budget;
+using FinanceTracker.Core.Dtos;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
 public static class BudgetFactory
 {
-	public static BudgetDto Create(
+	public static Budget Create(
 		Guid? userId = null,
 		Guid? categoryId = null)
 	{
-		return new BudgetDto(
-			Id: Guid.NewGuid(),
-			UserId: userId ?? Guid.NewGuid(),
-			CategoryId: categoryId ?? Guid.NewGuid(),
-			Currency: "RUB",
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31),
-			CreatedAt: DateTime.UtcNow
+		return Budget.Create(
+			userId: userId ?? Guid.NewGuid(),
+			categoryId: categoryId ?? Guid.NewGuid(),
+			currency: "RUB",
+			amount: 10000m,
+			from: new DateOnly(year: 2025, month: 1, day: 1),
+			to: new DateOnly(year: 2025, month: 1, day: 31)
 		);
 	}
 

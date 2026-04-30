@@ -28,7 +28,7 @@ public sealed class RecurringTransactionHandlingJob(
 			kind: DateTimeKind.Utc
 		);
 		
-		IReadOnlyList<RecurringTransactionDto> dueTransactions = await recurringTransactionReadRepository.GetDueTodayAsync(
+		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> dueTransactions = await recurringTransactionReadRepository.GetDueTodayAsync(
 			dayOfMonth: now.Day, 
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: firstDayOfCurrentMonth,
@@ -38,7 +38,7 @@ public sealed class RecurringTransactionHandlingJob(
 		if (dueTransactions.Count == 0)
 			return;
 
-		foreach (RecurringTransactionDto dueTransaction in dueTransactions)
+		foreach (Core.Domains.RecurringTransaction.RecurringTransaction dueTransaction in dueTransactions)
 		{
 			try
 			{

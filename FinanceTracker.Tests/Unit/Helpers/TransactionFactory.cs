@@ -1,30 +1,32 @@
 ﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.Transaction;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
 public static class TransactionFactory
 {
-	public static TransactionDto Create(
+	public static Transaction Create(
 		Guid? accountId = null,
 		Guid? userId = null,
 		Guid? categoryId = null,
 		bool isExcluded = false,
 		DirectionType direction = DirectionType.Debit)
 	{
-		return new TransactionDto(
-			Id: Guid.NewGuid(),
-			AccountId: accountId ?? Guid.NewGuid(),
-			UserId: userId ?? Guid.NewGuid(),
-			CategoryId: categoryId ?? Guid.NewGuid(),
-			Amount: 1000m,
-			Currency: "RUB",
-			Direction: direction,
-			ExchangeRate: 1m,
-			IsExcluded: isExcluded,
-			IsRatePending: false,
-			Description: null,
-			OccurredAt: DateTime.UtcNow
+		Transaction transaction = Transaction.Create(
+			accountId: accountId ?? Guid.NewGuid(),
+			userId: userId ?? Guid.NewGuid(),
+			categoryId: categoryId ?? Guid.NewGuid(),
+			amount: 1000m,
+			currency: "RUB",
+			direction: direction,
+			exchangeRate: 1m,
+			isRatePending: false,
+			description: null
 		);
+
+		if (isExcluded)
+			transaction.Exclude();
+		
+		return transaction;
 	}
 }

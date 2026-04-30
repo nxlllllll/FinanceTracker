@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
@@ -34,25 +34,21 @@ public sealed class ExcludeTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyExcluded_ShouldNotCallRepository()
+	public async Task HandleAsync_WhenAlreadyExcluded_ShouldThrowExcludingException()
 	{
-		TransactionDto transaction = TransactionFactory.Create(isExcluded: true);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
-		await _handler.HandleAsync(
+		await Assert.That(action: async () => await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
 			transaction: transaction,
 			ct: CancellationToken.None
-		);
-
-		await _transactionWriteRepository.DidNotReceive().ExcludeAsync(
-			transactionId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
-		);
+		)).Throws<ExcludingException>();
 	}
 
 	[Test]
 	public async Task HandleAsync_WithIncludedDebit_ShouldExcludeAndSubtractTotals()
 	{
-		TransactionDto transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
@@ -77,7 +73,7 @@ public sealed class ExcludeTransactionHandlerTests
 	[Test]
 	public async Task HandleAsync_WithIncludedCredit_ShouldExcludeButNotSubtractTotals()
 	{
-		TransactionDto transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: false);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: false);
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),

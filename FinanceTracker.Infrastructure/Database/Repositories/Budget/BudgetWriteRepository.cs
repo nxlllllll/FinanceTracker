@@ -9,30 +9,24 @@ public sealed class BudgetWriteRepository(
 ) : IBudgetWriteRepository
 {
 	public async Task CreateAsync(
-		Guid budgetId,
-		Guid userId,
-		Guid categoryId,
-		string currency,
-		decimal amount,
-		DateOnly from,
-		DateOnly to,
+		Core.Domains.Budget.Budget budget,
 		CancellationToken ct = default)
 	{
 		await context.Budgets.AddAsync(entity: new BudgetEntity()
 		{
-			Id =  budgetId,
-			UserId = userId,
-			CategoryId = categoryId,
-			Amount = amount,
-			Currency = currency,
-			From = from,
-			To = to,
+			Id = budget.Id,
+			UserId = budget.UserId,
+			CategoryId = budget.CategoryId,
+			Amount = budget.Amount,
+			Currency = budget.Currency,
+			From = budget.From,
+			To = budget.To,
 			CreatedAt = DateTime.UtcNow
 		}, cancellationToken: ct);
 
 		await context.BudgetProgresses.AddAsync(entity: new BudgetProgressEntity()
 		{
-			BudgetId = budgetId,
+			BudgetId = budget.Id,
 			Spent = 0,
 			UpdatedAt = DateTime.UtcNow
 		}, cancellationToken: ct);

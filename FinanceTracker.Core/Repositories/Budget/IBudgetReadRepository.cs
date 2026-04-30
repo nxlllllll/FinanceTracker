@@ -1,23 +1,21 @@
-﻿using FinanceTracker.Core.Dtos;
-
-namespace FinanceTracker.Core.Repositories.Budget;
+﻿namespace FinanceTracker.Core.Repositories.Budget;
 
 public interface IBudgetReadRepository
 {
-    Task<BudgetDto?> GetByIdAsync(
+    Task<Domains.Budget.Budget?> GetByIdAsync(
         Guid budgetId,
         Guid userId,
         CancellationToken ct = default
     );
 
-    Task<BudgetDto?> GetActiveByCategoryAsync(
+    Task<Domains.Budget.Budget?> GetActiveByCategoryAsync(
         Guid userId,
         Guid categoryId,
         DateOnly date,
         CancellationToken ct = default
     );
 
-    Task<IReadOnlyList<BudgetDto>> GetAllAsync(
+    Task<IReadOnlyList<Domains.Budget.Budget>> GetAllAsync(
         Guid userId,
         CancellationToken ct = default
     );

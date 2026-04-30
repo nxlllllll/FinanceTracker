@@ -10,33 +10,23 @@ public sealed class TransactionWriteRepository(
 ) : ITransactionWriteRepository
 {
     public async Task CreateAsync(
-        Guid transactionId,
-        Guid accountId,
-        Guid userId,
-        Guid categoryId,
-        decimal amount,
-        string currency,
-        DirectionType direction,
-        decimal exchangeRate,
-        string? description,
-        DateTime occurredAt,
-        bool isRatePending,
+        Core.Domains.Transaction.Transaction transaction,
         CancellationToken ct = default)
     {
         await context.Transactions.AddAsync(entity: new TransactionEntity()
         {
-            Id = transactionId,
-            AccountId = accountId,
-            UserId = userId,
-            CategoryId = categoryId,
-            Amount = amount,
-            Currency = currency,
-            Direction = direction,
-            ExchangeRate = exchangeRate,
-            Description = description,
+            Id = transaction.Id,
+            AccountId = transaction.AccountId,
+            UserId = transaction.UserId,
+            CategoryId = transaction.CategoryId,
+            Amount = transaction.Amount,
+            Currency = transaction.Currency,
+            Direction = transaction.Direction,
+            ExchangeRate = transaction.ExchangeRate,
+            Description = transaction.Description,
             IsExcluded = false,
-            IsRatePending = isRatePending,
-            OccurredAt = occurredAt
+            IsRatePending = transaction.IsRatePending,
+            OccurredAt = transaction.OccurredAt
         }, cancellationToken: ct);
 
         await context.SaveChangesAsync(cancellationToken: ct);

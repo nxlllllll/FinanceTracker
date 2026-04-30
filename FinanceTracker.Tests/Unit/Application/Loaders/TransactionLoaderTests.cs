@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Application.Transactions.Authorization;
 using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transaction;
@@ -32,7 +32,7 @@ public sealed class TransactionLoaderTests
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<TransactionDto?>(result: null));
+		).Returns(returnThis: Task.FromResult<Transaction?>(result: null));
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: Guid.NewGuid(), TransactionId: Guid.NewGuid(), CategoryId: Guid.NewGuid()),
@@ -43,7 +43,7 @@ public sealed class TransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenTransactionBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		TransactionDto transaction = TransactionFactory.Create();
+		Transaction transaction = TransactionFactory.Create();
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -58,13 +58,13 @@ public sealed class TransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnTransaction()
 	{
-		TransactionDto transaction = TransactionFactory.Create();
+		Transaction transaction = TransactionFactory.Create();
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
 
-		TransactionDto result = await _loader.LoadAsync(
+		Transaction result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),
 			ct: CancellationToken.None
 		);

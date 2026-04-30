@@ -21,7 +21,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangePeriod()
 	{
-		BudgetDto budget = BudgetFactory.Create();
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create();
 		DateOnly from = new DateOnly(year: 2025, month: 2, day: 1);
 		DateOnly to = new DateOnly(year: 2025, month: 2, day: 28);
 

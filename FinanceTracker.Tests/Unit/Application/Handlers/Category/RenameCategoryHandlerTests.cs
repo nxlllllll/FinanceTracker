@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.Categories.Commands.RenameCategory;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -7,14 +8,14 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class RenameCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository = null!;
+	private ICategoryWriteRepository _categoryWriteRepository = null!;
 	private RenameCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryRepository = Substitute.For<ICategoryRepository>();
-		_handler = new RenameCategoryHandler(categoryRepository: _categoryRepository);
+		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
+		_handler = new RenameCategoryHandler(categoryWriteRepository: _categoryWriteRepository);
 	}
 
 	[Test]
@@ -28,7 +29,7 @@ public sealed class RenameCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _categoryRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
+		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
 			categoryId: category.Id,
 			newName: "Транспорт",
 			ct: Arg.Any<CancellationToken>()

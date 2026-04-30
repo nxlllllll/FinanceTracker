@@ -22,7 +22,7 @@ public sealed class GetBudgetHandlerTests
 	[Test]
 	public async Task Handle_WhenBudgetExists_ShouldReturnBudgetDto()
 	{
-		BudgetDto budget = BudgetFactory.Create();
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create();
 
 		_budgetReadRepository.GetByIdAsync(
 			budgetId: budget.Id,
@@ -30,7 +30,7 @@ public sealed class GetBudgetHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: budget);
 
-		BudgetDto? result = await _handler.Handle(
+		FinanceTracker.Core.Domains.Budget.Budget? result = await _handler.Handle(
 			query: new GetBudgetQuery(UserId: budget.UserId, BudgetId: budget.Id),
 			ct: CancellationToken.None
 		);
@@ -46,9 +46,9 @@ public sealed class GetBudgetHandlerTests
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetDto?>(result: null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Budget.Budget?>(result: null));
 
-		BudgetDto? result = await _handler.Handle(
+		FinanceTracker.Core.Domains.Budget.Budget? result = await _handler.Handle(
 			query: new GetBudgetQuery(UserId: Guid.NewGuid(), BudgetId: Guid.NewGuid()),
 			ct: CancellationToken.None
 		);

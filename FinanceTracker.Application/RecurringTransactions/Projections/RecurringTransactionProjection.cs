@@ -1,13 +1,11 @@
 ﻿using FinanceTracker.Application.RecurringTransactions.Notifications;
 using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
-using FinanceTracker.Core.Repositories.RecurringTransaction;
 using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Projections;
 
 public sealed class RecurringTransactionProjection(
-	IMediator mediator,
-	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
+	IMediator mediator
 ) : INotificationHandler<TransactionDataNotification>
 {
 	public async Task Handle(

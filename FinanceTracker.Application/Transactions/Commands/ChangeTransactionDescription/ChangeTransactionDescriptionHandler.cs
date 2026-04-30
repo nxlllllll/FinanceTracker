@@ -1,16 +1,28 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Repositories.Transaction;
 
 namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionDescription;
 
 public sealed class ChangeTransactionDescriptionHandler(
 	ITransactionWriteRepository transactionWriteRepository
-) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, TransactionDto>
+) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, Transaction>
 {
 	public async Task HandleAsync(
 		ChangeTransactionDescriptionCommand command,
-		TransactionDto transaction,
+		Transaction transaction,
 		CancellationToken ct = default
-	) => await transactionWriteRepository.ChangeDescriptionAsync(transactionId: command.TransactionId, description: command.Description, ct: ct);
+	)
+	{
+		if (transaction.Description == command.Description)
+			return;
+		
+		transaction.ChangeDescription(description: command.Description);
+		
+		await transactionWriteRepository.ChangeDescriptionAsync(
+			transactionId: command.TransactionId,
+			description: command.Description,
+			ct: ct
+		);
+	}
 }

@@ -49,13 +49,13 @@ public sealed class CreateBudgetHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			budgetId: Arg.Any<Guid>(),
-			userId: command.UserId,
-			categoryId: command.CategoryId,
-			currency: command.Currency,
-			amount: command.Amount,
-			from: command.From,
-			to: command.To,
+			budget: Arg.Is<FinanceTracker.Core.Domains.Budget.Budget>(b =>
+				b.UserId == command.UserId &&
+				b.CategoryId == command.CategoryId &&
+				b.Currency == command.Currency &&
+				b.Amount == command.Amount &&
+				b.From == command.From &&
+				b.To == command.To),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

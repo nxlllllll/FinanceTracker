@@ -10,28 +10,20 @@ public sealed class RecurringTransactionWriteRepository(
 ) : IRecurringTransactionWriteRepository
 {
     public async Task CreateAsync(
-        Guid recurringTransactionId,
-        Guid userId,
-        Guid accountId,
-        Guid categoryId,
-        decimal amount,
-        string currency,
-        DirectionType direction,
-        int dayOfMonth,
-        string? description,
+        Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.AddAsync(entity: new RecurringTransactionEntity()
         {
-            Id = recurringTransactionId,
-            UserId = userId,
-            AccountId = accountId,
-            CategoryId = categoryId,
-            Amount = amount,
-            Currency = currency,
-            Direction = direction,
-            DayOfMonth = dayOfMonth,
-            Description = description,
+            Id = recurringTransaction.Id,
+            UserId = recurringTransaction.UserId,
+            AccountId = recurringTransaction.AccountId,
+            CategoryId = recurringTransaction.CategoryId,
+            Amount = recurringTransaction.Amount,
+            Currency = recurringTransaction.Currency,
+            Direction = recurringTransaction.Direction,
+            DayOfMonth = recurringTransaction.DayOfMonth,
+            Description = recurringTransaction.Description,
             IsActive = true,
             LastExecutedAt = null,
             CreatedAt = DateTime.UtcNow

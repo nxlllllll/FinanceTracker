@@ -1,12 +1,13 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Currency;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Currency;
 
-public sealed class CurrencyRepository(
+public sealed class CurrencyReadRepository(
 	FinanceTrackerContext context
-) : ICurrencyRepository
+) : ICurrencyReadRepository
 {
 	public async Task<IReadOnlyList<CurrencyDto>> GetAllAsync(CancellationToken ct = default)
 	{

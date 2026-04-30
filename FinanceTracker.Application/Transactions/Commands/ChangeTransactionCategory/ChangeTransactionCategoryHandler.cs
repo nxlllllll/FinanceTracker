@@ -1,12 +1,10 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
-using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
 
@@ -15,13 +13,18 @@ public sealed class ChangeTransactionCategoryHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IUnitOfWork unitOfWork,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository
-) : IAuthorizedHandler<ChangeTransactionCategoryCommand, TransactionDto>
+) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction>
 {
 	public async Task HandleAsync(
 		ChangeTransactionCategoryCommand command,
-		TransactionDto transaction,
+		Transaction transaction,
 		CancellationToken ct = default)
 	{
+		if (transaction.CategoryId == command.CategoryId)
+			return;
+
+		transaction.ChangeCategory(categoryId: command.CategoryId);
+		
 		await unitOfWork.BeginTransactionAsync(ct: ct);
 
 		try

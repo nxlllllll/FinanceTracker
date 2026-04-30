@@ -1,12 +1,11 @@
 ﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
 public static class RecurringTransactionFactory
 {
-	public static RecurringTransactionDto Create(
-		Guid? id = null,
+	public static RecurringTransaction Create(
 		Guid? userId = null,
 		Guid? accountId = null,
 		Guid? categoryId = null,
@@ -15,22 +14,22 @@ public static class RecurringTransactionFactory
 		DirectionType direction = DirectionType.Debit,
 		int dayOfMonth = 15,
 		string? description = "Monthly rent",
-		bool isActive = true,
-		DateTime? lastExecutedAt = null)
+		bool isActive = true)
 	{
-		return new RecurringTransactionDto(
-			Id: id ?? Guid.NewGuid(),
-			UserId: userId ?? Guid.NewGuid(),
-			AccountId: accountId ?? Guid.NewGuid(),
-			CategoryId: categoryId ?? Guid.NewGuid(),
-			Amount: amount,
-			Currency: currency,
-			Direction: direction,
-			DayOfMonth: dayOfMonth,
-			Description: description,
-			IsActive: isActive,
-			LastExecutedAt: lastExecutedAt,
-			CreatedAt: DateTime.UtcNow
+		RecurringTransaction recurringTransaction = RecurringTransaction.Create(
+			userId: userId ?? Guid.NewGuid(),
+			accountId: accountId ?? Guid.NewGuid(),
+			categoryId: categoryId ?? Guid.NewGuid(),
+			amount: amount,
+			currency: currency,
+			direction: direction,
+			dayOfMonth: dayOfMonth,
+			description: description
 		);
+		
+		if (!isActive)
+			recurringTransaction.Deactivate();
+		
+		return recurringTransaction;
 	}
 }

@@ -1,30 +1,20 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Repositories.Account;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
-using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.CreateRecurringTransaction;
 
 public sealed class CreateRecurringTransactionHandler(
-	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
-	IAccountReadRepository accountReadRepository
-) : IRequestHandler<CreateRecurringTransactionCommand, Guid>
+	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
+) : IAuthorizedHandler<CreateRecurringTransactionCommand, Account, Guid>
 {
-	public async Task<Guid> Handle(
+	public async Task<Guid> HandleAsync(
 		CreateRecurringTransactionCommand command,
+		Account account,
 		CancellationToken ct = default)
 	{
-		AccountDto account = await accountReadRepository.GetByIdAsync(accountId: command.AccountId, ct: ct)
-			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
-
-		if (account.UserId != command.UserId)
-			throw new NotFoundException(message: "Account not found.", id: command.AccountId);
-		
-		Guid recurringTransactionId = Guid.NewGuid();
-
-		await recurringTransactionWriteRepository.CreateAsync(
-			recurringTransactionId: recurringTransactionId,
+		RecurringTransaction recurringTransaction = RecurringTransaction.Create(
 			userId: command.UserId,
 			accountId: command.AccountId,
 			categoryId: command.CategoryId,
@@ -32,10 +22,11 @@ public sealed class CreateRecurringTransactionHandler(
 			currency: command.Currency,
 			direction: command.Direction,
 			dayOfMonth: command.DayOfMonth,
-			description: command.Description,
-			ct: ct
+			description: command.Description
 		);
 
-		return recurringTransactionId;
+		await recurringTransactionWriteRepository.CreateAsync(recurringTransaction: recurringTransaction, ct: ct);
+		
+		return recurringTransaction.Id;
 	}
 }

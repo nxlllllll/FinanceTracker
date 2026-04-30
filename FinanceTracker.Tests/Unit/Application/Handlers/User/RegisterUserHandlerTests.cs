@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Users.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -8,20 +9,25 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class RegisterUserHandlerTests
 {
-	private IUserRepository _userRepository = null!;
+	private IUserWriteRepository _userWriteRepository = null!;
+	private IUserReadRepository _userReadRepository = null!;
     private RegisterUserHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
-        _userRepository = Substitute.For<IUserRepository>();
-        _handler = new RegisterUserHandler(userRepository: _userRepository);
+        _userReadRepository = Substitute.For<IUserReadRepository>();
+        _userWriteRepository = Substitute.For<IUserWriteRepository>();
+        _handler = new RegisterUserHandler(
+            userWriteRepository: _userWriteRepository,
+            userReadRepository: _userReadRepository
+        );
     }
 
     [Test]
     public async Task Handle_WithValidCommand_ShouldCreateUser()
     {
-        _userRepository.GetByEmailAsync(
+        _userReadRepository.GetByEmailAsync(
             email: Arg.Any<string>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
@@ -34,7 +40,7 @@ public sealed class RegisterUserHandlerTests
 
         await _handler.Handle(command: command, ct: CancellationToken.None);
 
-        await _userRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
+        await _userWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
             user: Arg.Is<FinanceTracker.Core.Domains.User.User>(u =>
                 u.Email == "test@test.com" &&
                 u.BaseCurrencyCode == "RUB"
@@ -46,7 +52,7 @@ public sealed class RegisterUserHandlerTests
     [Test]
     public async Task Handle_WithValidCommand_ShouldReturnUserId()
     {
-        _userRepository.GetByEmailAsync(
+        _userReadRepository.GetByEmailAsync(
             email: Arg.Any<string>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(Task.FromResult<FinanceTracker.Core.Domains.User.User?>(null));
@@ -67,7 +73,7 @@ public sealed class RegisterUserHandlerTests
     {
         FinanceTracker.Core.Domains.User.User existingUser = UserFactory.Create();
 
-        _userRepository.GetByEmailAsync(
+        _userReadRepository.GetByEmailAsync(
             email: Arg.Any<string>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: existingUser);

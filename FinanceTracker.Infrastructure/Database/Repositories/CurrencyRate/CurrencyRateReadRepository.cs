@@ -1,11 +1,12 @@
 ﻿using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Currency;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
 
-public class CurrencyRateRepository(
+public class CurrencyRateReadRepository(
 	FinanceTrackerContext context
-) : ICurrencyRateRepository
+) : ICurrencyRateReadRepository
 {
 	public async Task<decimal?> GetRateAsync(
 		string baseCurrencyCode,

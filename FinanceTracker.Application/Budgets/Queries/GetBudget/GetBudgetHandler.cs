@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Repositories.Budget;
 using MediatR;
 
@@ -6,9 +6,9 @@ namespace FinanceTracker.Application.Budgets.Queries.GetBudget;
 
 public sealed class GetBudgetHandler(
 	IBudgetReadRepository budgetReadRepository
-) : IRequestHandler<GetBudgetQuery, BudgetDto?>
+) : IRequestHandler<GetBudgetQuery, Budget?>
 {
-	public async Task<BudgetDto?> Handle(
+	public async Task<Budget?> Handle(
 		GetBudgetQuery query,
 		CancellationToken ct = default
 	) => await budgetReadRepository.GetByIdAsync(budgetId: query.BudgetId, userId: query.UserId, ct: ct);

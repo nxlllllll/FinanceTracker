@@ -23,7 +23,10 @@ public sealed class GetTransactionsHandlerTests
     public async Task Handle_ShouldReturnAllTransactions()
     {
         Guid accountId = Guid.NewGuid();
-        IReadOnlyList<TransactionDto> transactions = [TransactionFactory.Create(accountId: accountId), TransactionFactory.Create(accountId: accountId)];
+        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [
+            TransactionFactory.Create(accountId: accountId), 
+            TransactionFactory.Create(accountId: accountId)
+        ];
 
         _transactionReadRepository.GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -36,7 +39,7 @@ public sealed class GetTransactionsHandlerTests
         ).Returns(returnThis: transactions);
 
         GetTransactionsQuery query = new GetTransactionsQuery(AccountId: accountId);
-        IReadOnlyList<TransactionDto> result = await _handler.Handle(
+        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
             query: query,
             ct: CancellationToken.None
         );
@@ -179,7 +182,7 @@ public sealed class GetTransactionsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
-        IReadOnlyList<TransactionDto> result = await _handler.Handle(
+        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
             query: new GetTransactionsQuery(AccountId: Guid.NewGuid()),
             ct: CancellationToken.None
         );

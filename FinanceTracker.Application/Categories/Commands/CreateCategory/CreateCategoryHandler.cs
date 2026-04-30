@@ -1,11 +1,12 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using MediatR;
 
 namespace FinanceTracker.Application.Categories.Commands.CreateCategory;
 
 public sealed class CreateCategoryHandler(
-	ICategoryRepository categoryRepository
+	ICategoryWriteRepository categoryWriteRepository
 ) : IRequestHandler<CreateCategoryCommand>
 {
 	public async Task Handle(
@@ -19,6 +20,6 @@ public sealed class CreateCategoryHandler(
 			type: command.Type
 		);
 
-		await categoryRepository.CreateAsync(category: category, ct: ct);
+		await categoryWriteRepository.CreateAsync(category: category, ct: ct);
 	}
 }

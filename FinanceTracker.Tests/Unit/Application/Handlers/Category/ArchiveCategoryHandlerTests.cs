@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Commands.ArchiveCategory;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -9,7 +10,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class ArchiveCategoryHandlerTests
 {
-	private ICategoryRepository _categoryRepository = null!;
+	private ICategoryWriteRepository _categoryWriteRepository = null!;
 	private IRecurringTransactionWriteRepository _recurringTransactionWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ArchiveCategoryHandler _handler = null!;
@@ -17,11 +18,11 @@ public sealed class ArchiveCategoryHandlerTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryRepository = Substitute.For<ICategoryRepository>();
+		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
 		_recurringTransactionWriteRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_handler = new ArchiveCategoryHandler(
-			categoryRepository: _categoryRepository,
+			categoryWriteRepository: _categoryWriteRepository,
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
 			unitOfWork: _unitOfWork
 		);
@@ -38,7 +39,7 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _categoryRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
+		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
 			categoryId: category.Id,
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -71,7 +72,7 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		)).Throws<ArchivingException>();
 
-		await _categoryRepository.DidNotReceive().ArchiveAsync(
+		await _categoryWriteRepository.DidNotReceive().ArchiveAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);

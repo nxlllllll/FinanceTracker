@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
@@ -36,7 +35,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	[Test]
 	public async Task HandleAsync_WithDebitNotExcluded_ShouldUpdateCategoryTotalsAndBudget()
 	{
-		TransactionDto transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
 		Guid newCategoryId = Guid.NewGuid();
 
 		await _handler.HandleAsync(
@@ -67,7 +66,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	[Test]
 	public async Task HandleAsync_WithExcludedTransaction_ShouldNotUpdateTotals()
 	{
-		TransactionDto transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: true);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: true);
 
 		await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),
@@ -84,7 +83,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	[Test]
 	public async Task HandleAsync_WithCreditTransaction_ShouldNotUpdateTotals()
 	{
-		TransactionDto transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: false);
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: false);
 
 		await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),

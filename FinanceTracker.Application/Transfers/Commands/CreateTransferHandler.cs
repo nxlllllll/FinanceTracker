@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -28,10 +29,20 @@ public sealed class CreateTransferHandler(
 			ct: ct
 		);
 
-		Guid transferId = Guid.NewGuid();
+		Transfer transfer = Transfer.Create(
+			userId: command.UserId,
+			fromAccountId: command.FromAccountId,
+			toAccountId: command.ToAccountId,
+			amountFrom: command.Amount,
+			amountTo: command.Amount * conversion.Rate,
+			exchangeRate: conversion.Rate,
+			isRatePending: conversion.IsPending,
+			description: command.Description,
+			occurredAt: command.OccurredAt
+		);
 
 		fromAccount.DebitTransfer(
-			transferId: transferId,
+			transferId: transfer.Id,
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,
 			forexRate: conversion.Rate,
@@ -39,7 +50,7 @@ public sealed class CreateTransferHandler(
 		);
 
 		toAccount.CreditTransfer(
-			transferId: transferId,
+			transferId: transfer.Id,
 			fromAccountId: command.FromAccountId,
 			amount: command.Amount,
 			exchangeRate: conversion.Rate,
@@ -50,19 +61,7 @@ public sealed class CreateTransferHandler(
 
 		try
 		{
-			await transferWriteRepository.CreateAsync(
-				transferId: transferId,
-				userId: command.UserId,
-				fromAccountId: command.FromAccountId,
-				toAccountId: command.ToAccountId,
-				amountFrom: command.Amount,
-				amountTo: command.Amount * conversion.Rate,
-				exchangeRate: conversion.Rate,
-				description: command.Description,
-				occurredAt: command.OccurredAt,
-				isRatePending: conversion.IsPending,
-				ct: ct
-			);
+			await transferWriteRepository.CreateAsync(transfer: transfer, ct: ct);
 
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 			await accountRepository.SaveAsync(account: toAccount, ct: ct);
@@ -75,6 +74,6 @@ public sealed class CreateTransferHandler(
 			throw;
 		}
 
-		return transferId;
+		return transfer.Id;
 	}
 }
