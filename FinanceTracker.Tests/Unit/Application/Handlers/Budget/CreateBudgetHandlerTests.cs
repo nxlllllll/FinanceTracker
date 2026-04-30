@@ -52,8 +52,8 @@ public sealed class CreateBudgetHandlerTests
 			budget: Arg.Is<FinanceTracker.Core.Domains.Budget.Budget>(b =>
 				b.UserId == command.UserId &&
 				b.CategoryId == command.CategoryId &&
-				b.Currency == command.Currency &&
-				b.Amount == command.Amount &&
+				b.Amount.Currency == command.Currency &&
+				b.Amount.Amount == command.Amount &&
 				b.From == command.From &&
 				b.To == command.To),
 			ct: Arg.Any<CancellationToken>()

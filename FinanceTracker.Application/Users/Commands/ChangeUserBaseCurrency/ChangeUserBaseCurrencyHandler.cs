@@ -13,7 +13,7 @@ public sealed class ChangeUserBaseCurrencyHandler(
 		User user,
 		CancellationToken ct = default)
 	{
-		user.ChangeBaseCurrency(newBaseCurrencyCode: command.NewBaseCurrency);
+		user.ChangeBaseCurrency(newBaseCurrency: command.NewBaseCurrency);
 
 		await userWriteRepository.ChangeBaseCurrencyAsync(
 			userId: command.UserId,

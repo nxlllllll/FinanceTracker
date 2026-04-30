@@ -30,7 +30,9 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
         Core.Domains.Transfer.Transfer transfer = Core.Domains.Transfer.Transfer.Create(
             userId: userId,
             fromAccountId: fromAccountId,
+            currencyFrom: "RUB",
             toAccountId: toAccountId,
+            currencyTo: "RUB",
             amountFrom: 1000m,
             amountTo: 900m,
             exchangeRate: 0.9m,

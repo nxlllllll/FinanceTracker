@@ -39,7 +39,6 @@ using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Dtos;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;

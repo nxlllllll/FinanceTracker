@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Transaction;
 
@@ -9,8 +10,7 @@ public sealed class Transaction
     public Guid AccountId { get; private set; }
     public Guid UserId { get; private set; }
     public Guid CategoryId { get; private set; }
-    public decimal Amount { get; private set; }
-    public string Currency { get; private set; } = String.Empty;
+    public Money Amount { get; private set; }
     public DirectionType Direction { get; private set; }
     public decimal ExchangeRate { get; private set; }
     public bool IsExcluded { get; private set; }
@@ -24,8 +24,7 @@ public sealed class Transaction
         Guid accountId,
         Guid userId,
         Guid categoryId,
-        decimal amount,
-        string currency,
+        Money amount,
         DirectionType direction,
         decimal exchangeRate,
         bool isRatePending,
@@ -38,7 +37,6 @@ public sealed class Transaction
             UserId = userId,
             CategoryId = categoryId,
             Amount = amount,
-            Currency = currency,
             Direction = direction,
             ExchangeRate = exchangeRate,
             IsExcluded = false,
@@ -53,8 +51,7 @@ public sealed class Transaction
         Guid accountId,
         Guid userId,
         Guid categoryId,
-        decimal amount,
-        string currency,
+        Money amount,
         DirectionType direction,
         decimal exchangeRate,
         bool isExcluded,
@@ -69,7 +66,6 @@ public sealed class Transaction
             UserId = userId,
             CategoryId = categoryId,
             Amount = amount,
-            Currency = currency,
             Direction = direction,
             ExchangeRate = exchangeRate,
             IsExcluded = isExcluded,
@@ -96,18 +92,8 @@ public sealed class Transaction
     }
 
     public void ChangeCategory(Guid categoryId)
-    {
-        if (CategoryId == categoryId)
-            return;
-        
-        CategoryId = categoryId;
-    }
+        => CategoryId = categoryId;
 
     public void ChangeDescription(string? description)
-    {
-        if (Description == description)
-            return;
-        
-        Description = description;
-    }
+        => Description = description;
 }

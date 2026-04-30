@@ -14,7 +14,7 @@ public sealed class UserTests
         await Assert.That(value: user.Id).IsNotDefault();
         await Assert.That(value: user.Email).IsEqualTo(expected: "test@test.com");
         await Assert.That(value: user.PasswordHash).IsEqualTo(expected: "hash");
-        await Assert.That(value: user.BaseCurrencyCode).IsEqualTo(expected: "RUB");
+        await Assert.That(value: user.BaseCurrency).IsEqualTo(expected: "RUB");
         await Assert.That(value: user.CreatedAt).IsNotDefault();
     }
 
@@ -81,9 +81,9 @@ public sealed class UserTests
     {
         User user = UserFactory.Create();
 
-        user.ChangeBaseCurrency(newBaseCurrencyCode: "USD");
+        user.ChangeBaseCurrency(newBaseCurrency: "USD");
 
-        await Assert.That(value: user.BaseCurrencyCode).IsEqualTo(expected: "USD");
+        await Assert.That(value: user.BaseCurrency).IsEqualTo(expected: "USD");
     }
 
     [Test]
@@ -91,9 +91,9 @@ public sealed class UserTests
     {
         User user = UserFactory.Create(baseCurrencyCode: "RUB");
 
-        user.ChangeBaseCurrency(newBaseCurrencyCode: "RUB");
+        user.ChangeBaseCurrency(newBaseCurrency: "RUB");
 
-        await Assert.That(value: user.BaseCurrencyCode).IsEqualTo(expected: "RUB");
+        await Assert.That(value: user.BaseCurrency).IsEqualTo(expected: "RUB");
     }
 
     [Test]
@@ -101,6 +101,6 @@ public sealed class UserTests
     {
         User user = UserFactory.Create();
 
-        await Assert.That(action: () => user.ChangeBaseCurrency(newBaseCurrencyCode: String.Empty)).Throws<CurrencyException>();
+        await Assert.That(action: () => user.ChangeBaseCurrency(newBaseCurrency: String.Empty)).Throws<CurrencyException>();
     }
 }

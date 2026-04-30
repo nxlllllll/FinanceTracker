@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.Budget;
+﻿using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Budget;
@@ -18,8 +18,7 @@ public sealed class BudgetReadRepository(
                 id: b.Id,
                 userId: b.UserId,
                 categoryId: b.CategoryId,
-                currency: b.Currency,
-                amount: b.Amount,
+                amount: new Money(amount: b.Amount, currency: b.Currency),
                 from: b.From,
                 to: b.To,
                 createdAt: b.CreatedAt
@@ -38,8 +37,7 @@ public sealed class BudgetReadRepository(
                 id: b.Id,
                 userId: b.UserId,
                 categoryId: b.CategoryId,
-                currency: b.Currency,
-                amount: b.Amount,
+                amount: new Money(amount: b.Amount, currency: b.Currency),
                 from: b.From,
                 to: b.To,
                 createdAt: b.CreatedAt
@@ -55,8 +53,7 @@ public sealed class BudgetReadRepository(
                 id: b.Id,
                 userId: b.UserId,
                 categoryId: b.CategoryId,
-                currency: b.Currency,
-                amount: b.Amount,
+                amount: new Money(amount: b.Amount, currency: b.Currency),
                 from: b.From,
                 to: b.To,
                 createdAt: b.CreatedAt

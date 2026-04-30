@@ -7,6 +7,7 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 
@@ -64,8 +65,7 @@ public sealed class CreateTransactionHandler(
 			accountId: command.AccountId,
 			userId: command.UserId,
 			categoryId: command.CategoryId,
-			amount: command.Amount,
-			currency: command.Currency,
+			amount: new Money(amount: command.Amount, currency: command.Currency),
 			direction: command.Direction,
 			exchangeRate: conversion.Rate,
 			isRatePending: conversion.IsPending,

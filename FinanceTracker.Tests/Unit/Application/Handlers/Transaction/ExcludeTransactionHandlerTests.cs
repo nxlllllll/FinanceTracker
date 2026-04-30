@@ -60,13 +60,19 @@ public sealed class ExcludeTransactionHandlerTests
 			transactionId: transaction.Id, ct: Arg.Any<CancellationToken>()
 		);
 		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).SubtractAsync(
-			userId: transaction.UserId, categoryId: transaction.CategoryId,
-			amount: transaction.Amount, occurredAt: transaction.OccurredAt, ct: Arg.Any<CancellationToken>()
+			userId: transaction.UserId, 
+			categoryId: transaction.CategoryId,
+			amount: transaction.Amount.Amount, 
+			occurredAt: transaction.OccurredAt, 
+			ct: Arg.Any<CancellationToken>()
 		);
 		await _budgetProgressWriteRepository.Received(requiredNumberOfCalls: 1).SubtractAsync(
-			userId: transaction.UserId, categoryId: transaction.CategoryId,
-			currencyCode: transaction.Currency, amount: transaction.Amount,
-			occurredAt: transaction.OccurredAt, ct: Arg.Any<CancellationToken>()
+			userId: transaction.UserId, 
+			categoryId: transaction.CategoryId,
+			currencyCode: transaction.Amount.Currency, 
+			amount: transaction.Amount.Amount,
+			occurredAt: transaction.OccurredAt, 
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 

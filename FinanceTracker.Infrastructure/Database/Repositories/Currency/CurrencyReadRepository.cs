@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Currency;
 using Microsoft.EntityFrameworkCore;
 

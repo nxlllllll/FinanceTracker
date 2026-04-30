@@ -25,13 +25,21 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
             .HasColumnName(name: "amount_from")
             .HasColumnType(typeName: "numeric(18,2)");
 
-        builder.Property(propertyExpression: t => t.AmountTo)
-            .HasColumnName(name: "amount_to")
-            .HasColumnType(typeName: "numeric(18,2)");
+		builder.Property(propertyExpression: t => t.CurrencyFrom)
+			.HasColumnName(name: "currency_from")
+			.HasMaxLength(maxLength: 3);
 
-        builder.Property(propertyExpression: t => t.ExchangeRate)
-            .HasColumnName(name: "exchange_rate")
-            .HasColumnType(typeName: "numeric(18,6)");
+		builder.Property(propertyExpression: t => t.AmountTo)
+			.HasColumnName(name: "amount_to")
+			.HasColumnType(typeName: "numeric(18,2)");
+
+		builder.Property(propertyExpression: t => t.CurrencyTo)
+			.HasColumnName(name: "currency_to")
+			.HasMaxLength(maxLength: 3);
+
+		builder.Property(propertyExpression: t => t.ExchangeRate)
+			.HasColumnName(name: "exchange_rate")
+			.HasColumnType(typeName: "numeric(18,6)");
 
         builder.Property(propertyExpression: t => t.IsExcluded)
             .HasColumnName(name: "is_excluded");

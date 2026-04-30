@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Repositories.Transaction;
+﻿using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,8 +18,8 @@ public sealed class TransactionWriteRepository(
             AccountId = transaction.AccountId,
             UserId = transaction.UserId,
             CategoryId = transaction.CategoryId,
-            Amount = transaction.Amount,
-            Currency = transaction.Currency,
+            Amount = transaction.Amount.Amount,
+            Currency = transaction.Amount.Currency,
             Direction = transaction.Direction,
             ExchangeRate = transaction.ExchangeRate,
             Description = transaction.Description,

@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.RecurringTransaction;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;

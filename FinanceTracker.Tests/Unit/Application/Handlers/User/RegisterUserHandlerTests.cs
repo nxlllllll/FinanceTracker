@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Users.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -43,7 +42,7 @@ public sealed class RegisterUserHandlerTests
         await _userWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
             user: Arg.Is<FinanceTracker.Core.Domains.User.User>(u =>
                 u.Email == "test@test.com" &&
-                u.BaseCurrencyCode == "RUB"
+                u.BaseCurrency == "RUB"
             ),
             ct: Arg.Any<CancellationToken>()
         );

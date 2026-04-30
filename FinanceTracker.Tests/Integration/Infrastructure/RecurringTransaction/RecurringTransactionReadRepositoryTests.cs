@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
+﻿using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 

@@ -48,7 +48,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			userId: transaction.UserId,
 			oldCategoryId: transaction.CategoryId,
 			newCategoryId: newCategoryId,
-			amount: transaction.Amount,
+			amount: transaction.Amount.Amount,
 			occurredAt: transaction.OccurredAt,
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -56,8 +56,8 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			userId: transaction.UserId,
 			oldCategoryId: transaction.CategoryId,
 			newCategoryId: newCategoryId,
-			currencyCode: transaction.Currency,
-			amount: transaction.Amount,
+			currencyCode: transaction.Amount.Currency,
+			amount: transaction.Amount.Amount,
 			occurredAt: transaction.OccurredAt,
 			ct: Arg.Any<CancellationToken>()
 		);

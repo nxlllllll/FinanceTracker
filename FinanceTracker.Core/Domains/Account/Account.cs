@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account;
 
@@ -11,8 +12,7 @@ public sealed class Account : AggregateRoot
 		Guid UserId,
 		string Name,
 		AccountType Type,
-		string Currency,
-		decimal Balance,
+		Money Balance,
 		bool IsArchived,
 		int Version
 	);
@@ -20,8 +20,8 @@ public sealed class Account : AggregateRoot
 	public Guid UserId { get; private set; }
 	public string Name { get; private set; } = String.Empty;
 	public AccountType Type { get; private set; }
-	public string Currency { get; private set; } = String.Empty;
-	public decimal Balance { get; private set; }
+	public Money Balance { get; private set; }
+	public Currency Currency => Balance.Currency;
 	public bool IsArchived { get; private set; }
 
 	private Account() { }
@@ -41,7 +41,7 @@ public sealed class Account : AggregateRoot
 		Guid userId,
 		string name,
 		AccountType type,
-		string currency,
+		Currency currency,
 		decimal balance)
 	{
 		if (String.IsNullOrWhiteSpace(value: name))
@@ -90,7 +90,6 @@ public sealed class Account : AggregateRoot
 		account.UserId = state.UserId;
 		account.Name = state.Name;
 		account.Type = state.Type;
-		account.Currency = state.Currency;
 		account.Balance = state.Balance;
 		account.IsArchived = state.IsArchived;
 		account.RestoreVersion(version: state.Version);
@@ -141,8 +140,7 @@ public sealed class Account : AggregateRoot
 		UserId = @event.UserId;
 		Name = @event.Name;
 		Type = @event.Type;
-		Currency = @event.Currency;
-		Balance = @event.Balance;
+		Balance = new Money(amount: @event.Balance, currency: @event.Currency);
 		IsArchived = false;
 	}
 
@@ -334,7 +332,6 @@ public sealed class Account : AggregateRoot
 			UserId: UserId,
 			Name: Name,
 			Type: Type,
-			Currency: Currency,
 			Balance: Balance,
 			IsArchived: IsArchived,
 			Version: Version

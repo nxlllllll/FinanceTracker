@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.RecurringTransactions.Queries.GetRecurringTransaction;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;

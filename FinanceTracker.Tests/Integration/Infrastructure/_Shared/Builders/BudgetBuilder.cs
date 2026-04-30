@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -18,8 +19,7 @@ public class BudgetBuilder(FinanceTrackerContext context)
 		Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
 			userId: userId,
 			categoryId: categoryId,
-			currency: currency,
-			amount: amount,
+			amount: new Money(amount: amount, currency: currency),
 			from: dateFrom ?? new DateOnly(year: 2025, month: 1, day: 1),
 			to: dateTo ?? new DateOnly(year: 2025, month: 1, day: 31)
 		);

@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Dtos;
 using MediatR;
 
 namespace FinanceTracker.Application.Users.Queries.GetAccounts;

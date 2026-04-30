@@ -1,6 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
-
-namespace FinanceTracker.Core.Repositories.RecurringTransaction;
+﻿namespace FinanceTracker.Core.Repositories.RecurringTransaction;
 
 public interface IRecurringTransactionReadRepository
 {

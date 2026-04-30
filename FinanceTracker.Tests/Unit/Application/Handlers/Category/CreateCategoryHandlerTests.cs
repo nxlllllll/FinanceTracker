@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Category;
 using NSubstitute;
 

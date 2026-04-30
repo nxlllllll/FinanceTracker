@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -29,8 +30,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
        Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
            userId: userId,
            categoryId: categoryId,
-           currency: "RUB",
-           amount: 10000m,
+           amount: new Money(amount: 10000m, currency: "RUB"),
            from: new DateOnly(year: 2025, month: 1, day: 1),
            to: new DateOnly(year: 2025, month: 1, day: 31)
        );
@@ -56,8 +56,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
-            amount: 10000m,
+            amount: new Money(amount: 10000m, currency: "RUB"),
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
@@ -85,8 +84,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
-            amount: 10000m,
+            amount: new Money(amount: 10000m, currency: "RUB"),
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );

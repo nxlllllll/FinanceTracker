@@ -17,8 +17,8 @@ public sealed class BudgetWriteRepository(
 			Id = budget.Id,
 			UserId = budget.UserId,
 			CategoryId = budget.CategoryId,
-			Amount = budget.Amount,
-			Currency = budget.Currency,
+			Amount = budget.Amount.Amount,
+			Currency = budget.Amount.Currency,
 			From = budget.From,
 			To = budget.To,
 			CreatedAt = DateTime.UtcNow

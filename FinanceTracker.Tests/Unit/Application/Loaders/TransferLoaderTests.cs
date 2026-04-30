@@ -1,11 +1,10 @@
 ﻿using FinanceTracker.Application.Transfers.Authorization;
-using FinanceTracker.Application.Transfers.Commands;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Handlers.Transfer;
+namespace FinanceTracker.Tests.Unit.Application.Loaders;
 
 public sealed class TransferLoaderTests
 {
@@ -25,7 +24,11 @@ public sealed class TransferLoaderTests
 		Guid accountId = Guid.NewGuid();
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
-			request: new CreateTransferCommand(UserId: Guid.NewGuid(), FromAccountId: accountId, ToAccountId: accountId, Amount: 100m, Description: null, OccurredAt: DateTime.UtcNow),
+			request: CreateTransferCommandFactory.Create(
+				fromAccountId: accountId, 
+				toAccountId: accountId,
+				amount: 100m
+			),
 			ct: CancellationToken.None
 		)).Throws<InvalidOperationException>();
 	}
@@ -54,11 +57,10 @@ public sealed class TransferLoaderTests
 			.Returns(returnThis: toAccount);
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
-			request: new CreateTransferCommand(
-				UserId: Guid.NewGuid(),
-				FromAccountId: fromAccount.Id,
-				ToAccountId: toAccount.Id,
-				Amount: 100m, Description: null, OccurredAt: DateTime.UtcNow
+			request: CreateTransferCommandFactory.Create(
+				fromAccountId: fromAccount.Id,
+				toAccountId: toAccount.Id,
+				amount: 100m
 			),
 			ct: CancellationToken.None
 		)).Throws<NotFoundException>();
@@ -76,11 +78,11 @@ public sealed class TransferLoaderTests
 			.Returns(returnThis: toAccount);
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
-			request: new CreateTransferCommand(
-				UserId: fromAccount.UserId,
-				FromAccountId: fromAccount.Id,
-				ToAccountId: toAccount.Id,
-				Amount: 100m, Description: null, OccurredAt: DateTime.UtcNow
+			request: CreateTransferCommandFactory.Create(
+				userId: fromAccount.UserId,
+				fromAccountId: fromAccount.Id,
+				toAccountId: toAccount.Id,
+				amount: 100m
 			),
 			ct: CancellationToken.None
 		)).Throws<NotFoundException>();
@@ -98,11 +100,11 @@ public sealed class TransferLoaderTests
 			.Returns(returnThis: toAccount);
 
 		(FinanceTracker.Core.Domains.Account.Account from, FinanceTracker.Core.Domains.Account.Account to) = await _loader.LoadAsync(
-			request: new CreateTransferCommand(
-				UserId: fromAccount.UserId,
-				FromAccountId: fromAccount.Id,
-				ToAccountId: toAccount.Id,
-				Amount: 100m, Description: null, OccurredAt: DateTime.UtcNow
+			request: CreateTransferCommandFactory.Create(
+				userId: fromAccount.UserId,
+				fromAccountId: fromAccount.Id,
+				toAccountId: toAccount.Id,
+				amount: 100m
 			),
 			ct: CancellationToken.None
 		);

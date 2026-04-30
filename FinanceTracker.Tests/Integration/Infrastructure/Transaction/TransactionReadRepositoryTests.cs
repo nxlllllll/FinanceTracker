@@ -1,7 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
@@ -77,8 +77,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: userId,
             categoryId: categoryId,
-            amount: 1000m,
-            currency: "RUB",
+            amount: new Money(amount: 1000m, currency: "RUB"),
             direction: direction,
             exchangeRate: 1m,
             isExcluded: false,
@@ -118,7 +117,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: transactionId);
         await Assert.That(value: result.AccountId).IsEqualTo(expected: accountId);
-        await Assert.That(value: result.Amount).IsEqualTo(expected: 1000m);
+        await Assert.That(value: result.Amount.Amount).IsEqualTo(expected: 1000m);
         await Assert.That(value: result.Direction).IsEqualTo(expected: DirectionType.Debit);
         await Assert.That(value: result.IsExcluded).IsFalse();
     }

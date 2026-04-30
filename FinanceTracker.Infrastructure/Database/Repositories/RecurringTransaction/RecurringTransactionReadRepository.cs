@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.RecurringTransaction;
+﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
@@ -19,8 +19,7 @@ public sealed class RecurringTransactionReadRepository(
                 userId: r.UserId,
                 accountId: r.AccountId,
                 categoryId: r.CategoryId,
-                amount: r.Amount,
-                currency: r.Currency,
+                amount: new Money(amount: r.Amount, currency: r.Currency),
                 direction: r.Direction,
                 dayOfMonth: r.DayOfMonth,
                 description: r.Description,
@@ -42,8 +41,7 @@ public sealed class RecurringTransactionReadRepository(
                 userId: r.UserId,
                 accountId: r.AccountId,
                 categoryId: r.CategoryId,
-                amount: r.Amount,
-                currency: r.Currency,
+                amount: new Money(amount: r.Amount, currency: r.Currency),
                 direction: r.Direction,
                 dayOfMonth: r.DayOfMonth,
                 description: r.Description,
@@ -64,15 +62,14 @@ public sealed class RecurringTransactionReadRepository(
         return await context.RecurringTransactions.AsNoTracking()
             .Where(predicate: r => r.IsActive &&
                 (r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart) &&
-                (r.DayOfMonth == dayOfMonth || (isLastDayOfMonth && r.DayOfMonth > daysInCurrentMonth))
+                (r.DayOfMonth == dayOfMonth || isLastDayOfMonth && r.DayOfMonth > daysInCurrentMonth)
             )
             .Select(selector: r => Core.Domains.RecurringTransaction.RecurringTransaction.Reconstitute(
                 id: r.Id,
                 userId: r.UserId,
                 accountId: r.AccountId,
                 categoryId: r.CategoryId,
-                amount: r.Amount,
-                currency: r.Currency,
+                amount: new Money(amount: r.Amount, currency: r.Currency),
                 direction: r.Direction,
                 dayOfMonth: r.DayOfMonth,
                 description: r.Description,

@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Core.Domains.RecurringTransaction;
-using FinanceTracker.Core.Dtos;
 using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Queries.GetRecurringTransaction;

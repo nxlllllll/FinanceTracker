@@ -1,6 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
-
-namespace FinanceTracker.Core.Repositories.Transaction;
+﻿namespace FinanceTracker.Core.Repositories.Transaction;
 
 public interface ITransactionWriteRepository
 {

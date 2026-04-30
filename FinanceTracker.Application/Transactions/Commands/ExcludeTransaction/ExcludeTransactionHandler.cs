@@ -33,7 +33,7 @@ public sealed class ExcludeTransactionHandler(
 				await categoryTotalWriteRepository.SubtractAsync(
 					userId: transaction.UserId,
 					categoryId: transaction.CategoryId,
-					amount: transaction.Amount,
+					amount: transaction.Amount.Amount,
 					occurredAt: transaction.OccurredAt,
 					ct: ct
 				);
@@ -41,8 +41,8 @@ public sealed class ExcludeTransactionHandler(
 				await budgetProgressWriteRepository.SubtractAsync(
 					userId: transaction.UserId,
 					categoryId: transaction.CategoryId,
-					currencyCode: transaction.Currency,
-					amount: transaction.Amount,
+					currencyCode: transaction.Amount.Currency,
+					amount: transaction.Amount.Amount,
 					occurredAt: transaction.OccurredAt,
 					ct: ct
 				);

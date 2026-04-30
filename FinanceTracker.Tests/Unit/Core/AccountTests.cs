@@ -27,7 +27,7 @@ public sealed class AccountTests
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Сбер");
 		await Assert.That(value: account.Type).IsEqualTo(expected: AccountType.Checking);
 		await Assert.That(value: account.Currency).IsEqualTo(expected: "RUB");
-		await Assert.That(value: account.Balance).IsEqualTo(expected: 10000);
+		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000);
 		await Assert.That(value: account.IsArchived).IsFalse();
 		await Assert.That(value: account.Version).IsEqualTo(expected: 1);
 	}
@@ -124,7 +124,7 @@ public sealed class AccountTests
 
         await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
         await Assert.That(value: account.Events[0]).IsTypeOf<AccountDebited>();
-        await Assert.That(value: account.Balance).IsEqualTo(expected: 9000m);
+        await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 9000m);
     }
 
     [Test]
@@ -141,7 +141,7 @@ public sealed class AccountTests
             description: null
         );
 
-        await Assert.That(value: account.Balance).IsEqualTo(expected: 1000m);
+        await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 1000m);
     }
 
     [Test]
@@ -189,7 +189,7 @@ public sealed class AccountTests
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountCredited>();
-		await Assert.That(value: account.Balance).IsEqualTo(expected: 1500m);
+		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 1500m);
 	}
 
 	[Test]
@@ -231,7 +231,7 @@ public sealed class AccountTests
 		Account reconstituted = Account.ReconstituteFromHistory(history: original.Events.ToList());
 
 		await Assert.That(value: reconstituted.Id).IsEqualTo(expected: original.Id);
-		await Assert.That(value: reconstituted.Balance).IsEqualTo(expected: 9500m);
+		await Assert.That(value: reconstituted.Balance.Amount).IsEqualTo(expected: 9500m);
 		await Assert.That(value: reconstituted.Version).IsEqualTo(expected: original.Version);
 		await Assert.That(value: reconstituted.Events).Count().IsEqualTo(expected: 0);
 	}
@@ -251,7 +251,7 @@ public sealed class AccountTests
 	        amount: 1000m
 	    );
 
-	    await Assert.That(value: account.Balance).IsEqualTo(expected: 5000m);
+	    await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 5000m);
 	    await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 	    await Assert.That(value: account.Events[0]).IsTypeOf<AccountBalanceAdjusted>();
 	}
@@ -271,7 +271,7 @@ public sealed class AccountTests
 	        amount: 1000m
 	    );
 		
-	    await Assert.That(value: account.Balance).IsEqualTo(expected: 15000m);
+	    await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 15000m);
 	}
 
 	[Test]
@@ -289,7 +289,7 @@ public sealed class AccountTests
 	        amount: 1000m
 	    );
 
-	    await Assert.That(value: account.Balance).IsEqualTo(expected: 15000m);
+	    await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 15000m);
 	}
 
 	[Test]
@@ -308,7 +308,7 @@ public sealed class AccountTests
 	    );
 
 	    await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
-	    await Assert.That(value: account.Balance).IsEqualTo(expected: 10000m);
+	    await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000m);
 	}
 	
 	[Test]
@@ -325,7 +325,7 @@ public sealed class AccountTests
 			description: null
 		);
 
-		await Assert.That(value: account.Balance).IsEqualTo(expected: 9000m);
+		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 9000m);
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountTransferDebited>();
 	}
@@ -344,7 +344,7 @@ public sealed class AccountTests
 			description: null
 		);
 
-		await Assert.That(value: account.Balance).IsEqualTo(expected: 11m);
+		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 11m);
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountTransferCredited>();
 	}

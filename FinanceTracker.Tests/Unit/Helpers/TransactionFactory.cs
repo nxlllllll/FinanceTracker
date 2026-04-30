@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -16,8 +17,7 @@ public static class TransactionFactory
 			accountId: accountId ?? Guid.NewGuid(),
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
-			amount: 1000m,
-			currency: "RUB",
+			amount: new Money(amount: 1000m, currency: "RUB"),
 			direction: direction,
 			exchangeRate: 1m,
 			isRatePending: false,

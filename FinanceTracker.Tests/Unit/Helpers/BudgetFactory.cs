@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -12,8 +13,7 @@ public static class BudgetFactory
 		return Budget.Create(
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
-			currency: "RUB",
-			amount: 10000m,
+			amount: new Money(amount: 10000m, currency: "RUB"),
 			from: new DateOnly(year: 2025, month: 1, day: 1),
 			to: new DateOnly(year: 2025, month: 1, day: 31)
 		);

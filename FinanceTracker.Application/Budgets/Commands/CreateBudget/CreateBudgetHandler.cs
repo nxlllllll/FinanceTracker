@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.Budgets.Commands.CreateBudget;
@@ -15,8 +16,7 @@ public sealed class CreateBudgetHandler(
 		Budget budget = Budget.Create(
 			userId: command.UserId,
 			categoryId: command.CategoryId,
-			currency: command.Currency,
-			amount: command.Amount,
+			amount: new Money(amount: command.Amount, currency: command.Currency),
 			from: command.From,
 			to: command.To
 		);

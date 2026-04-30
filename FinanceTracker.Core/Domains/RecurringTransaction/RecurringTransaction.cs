@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.RecurringTransaction;
 
@@ -9,8 +10,7 @@ public sealed class RecurringTransaction
     public Guid UserId { get; private set; }
     public Guid AccountId { get; private set; }
     public Guid CategoryId { get; private set; }
-    public decimal Amount { get; private set; }
-    public string Currency { get; private set; } = String.Empty;
+    public Money Amount { get; private set; }
     public DirectionType Direction { get; private set; }
     public int DayOfMonth { get; private set; }
     public string? Description { get; private set; }
@@ -24,15 +24,11 @@ public sealed class RecurringTransaction
         Guid userId,
         Guid accountId,
         Guid categoryId,
-        decimal amount,
-        string currency,
+        Money amount,
         DirectionType direction,
         int dayOfMonth,
         string? description)
     {
-        if (amount <= 0)
-            throw new InvalidAmountException("Amount must be greater than zero.");
-
         if (dayOfMonth is < 1 or > 31)
             throw new InvalidDayOfMonthException("Day of month must be between 1 and 31.");
 
@@ -43,7 +39,6 @@ public sealed class RecurringTransaction
             AccountId = accountId,
             CategoryId = categoryId,
             Amount = amount,
-            Currency = currency,
             Direction = direction,
             DayOfMonth = dayOfMonth,
             Description = description,
@@ -58,8 +53,7 @@ public sealed class RecurringTransaction
         Guid userId,
         Guid accountId,
         Guid categoryId,
-        decimal amount,
-        string currency,
+        Money amount,
         DirectionType direction,
         int dayOfMonth,
         string? description,
@@ -74,7 +68,6 @@ public sealed class RecurringTransaction
             AccountId = accountId,
             CategoryId = categoryId,
             Amount = amount,
-            Currency = currency,
             Direction = direction,
             DayOfMonth = dayOfMonth,
             Description = description,
@@ -101,32 +94,19 @@ public sealed class RecurringTransaction
     }
 
     public void ChangeAmount(decimal amount)
-    {
-        if (amount <= 0)
-            throw new InvalidAmountException("Amount must be greater than zero.");
-        
-        if (Amount == amount)
-            return;
-        
-        Amount = amount;
-    }
+        => Amount = new Money(amount: amount, currency: Amount.Currency);
 
     public void ChangeCurrency(string currency)
-    {
-        if (Currency == currency)
-            return;
-        
-        Currency = currency;
-    }
+        => Amount = new Money(amount: Amount.Amount, currency: currency);
 
     public void ChangeDayOfMonth(int dayOfMonth)
     {
         if (dayOfMonth is < 1 or > 31)
             throw new InvalidDayOfMonthException("Day of month must be between 1 and 31.");
-
-        if (DayOfMonth == dayOfMonth)
-            return;
         
         DayOfMonth = dayOfMonth;
     }
+    
+    public void MarkExecuted()
+        => LastExecutedAt = DateTime.UtcNow;
 }

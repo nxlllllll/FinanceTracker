@@ -80,7 +80,7 @@ public sealed class CreateTransactionHandlerTests
         );
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Balance == 9000m),
+            account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Balance.Amount == 9000m),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -98,7 +98,7 @@ public sealed class CreateTransactionHandlerTests
         );
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Balance == 11000m),
+            account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Balance.Amount == 11000m),
             ct: Arg.Any<CancellationToken>()
         );
     }

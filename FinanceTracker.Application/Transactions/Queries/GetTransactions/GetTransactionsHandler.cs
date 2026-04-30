@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Core.Domains.Transaction;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
 using MediatR;
 

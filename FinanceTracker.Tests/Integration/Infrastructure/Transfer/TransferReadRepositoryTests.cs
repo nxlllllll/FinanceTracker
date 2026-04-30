@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Transfer;
-using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
+﻿using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
@@ -38,7 +37,9 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
         Guid transferId = await _transferBuilder.CreateAsync(
             userId: userId,
             fromAccountId: fromAccountId,
+            currencyFrom: "RUB",
             toAccountId: toAccountId,
+            currencyTo: "RUB",
             amountFrom: 1000m,
             amountTo: 900m
         );
@@ -68,8 +69,20 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
         Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
         Guid anotherAccountId = await _accountBuilder.CreateAsync(userId: anotherUserId);
 
-        await _transferBuilder.CreateAsync(userId: userId, fromAccountId: accountId, toAccountId: accountId);
-        await _transferBuilder.CreateAsync(userId: anotherUserId, fromAccountId: anotherAccountId, toAccountId: anotherAccountId);
+        await _transferBuilder.CreateAsync(
+            userId: userId,
+            fromAccountId: accountId,
+            currencyFrom: "RUB",
+            toAccountId: accountId,
+            currencyTo: "RUB"
+        );
+        await _transferBuilder.CreateAsync(
+            userId: anotherUserId,
+            fromAccountId: anotherAccountId,
+            currencyFrom: "RUB",
+            toAccountId: anotherAccountId,
+            currencyTo: "RUB"
+        );
 
         IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(userId: userId);
 
@@ -85,8 +98,20 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
         Guid accountB = await _accountBuilder.CreateAsync(userId: userId);
         Guid accountC = await _accountBuilder.CreateAsync(userId: userId);
 
-        await _transferBuilder.CreateAsync(userId: userId, fromAccountId: accountA, toAccountId: accountB);
-        await _transferBuilder.CreateAsync(userId: userId, fromAccountId: accountC, toAccountId: accountC);
+        await _transferBuilder.CreateAsync(
+            userId: userId,
+            fromAccountId: accountA,
+            currencyFrom: "RUB",
+            toAccountId: accountB,
+            currencyTo: "RUB"
+        );
+        await _transferBuilder.CreateAsync(
+            userId: userId,
+            fromAccountId: accountC,
+            currencyFrom: "RUB",
+            toAccountId: accountC,
+            currencyTo: "RUB"
+        );
 
         IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(userId: userId, accountId: accountA);
 
@@ -103,8 +128,22 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
         DateTime old = DateTime.UtcNow.AddDays(-10);
         DateTime recent = DateTime.UtcNow;
 
-        await _transferBuilder.CreateAsync(userId: userId, fromAccountId: accountId, toAccountId: accountId, occurredAt: old);
-        await _transferBuilder.CreateAsync(userId: userId, fromAccountId: accountId, toAccountId: accountId, occurredAt: recent);
+        await _transferBuilder.CreateAsync(
+            userId: userId,
+            fromAccountId: accountId,
+            currencyFrom: "RUB",
+            toAccountId: accountId,
+            currencyTo: "RUB",
+            occurredAt: old
+        );
+        await _transferBuilder.CreateAsync(
+            userId: userId,
+            fromAccountId: accountId,
+            currencyFrom: "RUB",
+            toAccountId: accountId,
+            currencyTo: "RUB",
+            occurredAt: recent
+        );
 
         IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(
             userId: userId,

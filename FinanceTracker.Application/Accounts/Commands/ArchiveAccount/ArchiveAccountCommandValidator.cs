@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
 

@@ -95,7 +95,7 @@ public sealed class CreateTransferHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: fromAccount.Balance).IsEqualTo(expected: 4000m);
-		await Assert.That(value: toAccount.Balance).IsEqualTo(expected: 2000m);
+		await Assert.That(value: fromAccount.Balance.Amount).IsEqualTo(expected: 4000m);
+		await Assert.That(value: toAccount.Balance.Amount).IsEqualTo(expected: 2000m);
 	}
 }

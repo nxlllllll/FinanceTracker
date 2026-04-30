@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Transactions.Queries.GetTransactions;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

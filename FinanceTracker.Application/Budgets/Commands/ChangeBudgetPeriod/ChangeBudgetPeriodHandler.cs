@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Budget;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Budget;
 
 namespace FinanceTracker.Application.Budgets.Commands.ChangeBudgetPeriod;

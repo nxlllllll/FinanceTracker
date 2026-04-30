@@ -1,7 +1,6 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Account.Notification;
 using FinanceTracker.Core.Exceptions;

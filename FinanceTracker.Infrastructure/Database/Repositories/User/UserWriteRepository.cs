@@ -29,7 +29,7 @@ public class UserWriteRepository(
 			Id = user.Id,
 			Email = user.Email,
 			PasswordHash = user.PasswordHash,
-			BaseCurrencyCode = user.BaseCurrencyCode,
+			BaseCurrencyCode = user.BaseCurrency,
 			CreatedAt = user.CreatedAt
 		}, cancellationToken: ct);
 		

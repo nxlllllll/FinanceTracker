@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Repositories.RecurringTransaction;
+﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,8 +18,8 @@ public sealed class RecurringTransactionWriteRepository(
             UserId = recurringTransaction.UserId,
             AccountId = recurringTransaction.AccountId,
             CategoryId = recurringTransaction.CategoryId,
-            Amount = recurringTransaction.Amount,
-            Currency = recurringTransaction.Currency,
+            Amount = recurringTransaction.Amount.Amount,
+            Currency = recurringTransaction.Amount.Currency,
             Direction = recurringTransaction.Direction,
             DayOfMonth = recurringTransaction.DayOfMonth,
             Description = recurringTransaction.Description,

@@ -1,46 +1,41 @@
 ﻿using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.User;
 
 public sealed class User
 {
 	public Guid Id { get; private set; }
-	public string Email { get; private set; } = String.Empty;
+	public Email Email { get; private set; }
 	public string PasswordHash { get; private set; } = String.Empty;
-	public string BaseCurrencyCode { get; private set; } = String.Empty;
+	public Currency BaseCurrency { get; private set; }
 	public DateTime CreatedAt { get; private set; }
 
 	private User() { }
 
 	public static User Register(
-		string email,
+		Email email,
 		string passwordHash,
-		string baseCurrencyCode)
+		Currency baseCurrency)
 	{
-		if (String.IsNullOrWhiteSpace(value: email))
-			throw new EmailException(message: "The email cannot be empty.", email: email);
-
 		if (String.IsNullOrWhiteSpace(value: passwordHash))
 			throw new PasswordException(message: "The password hash cannot be empty.");
-
-		if (String.IsNullOrWhiteSpace(value: baseCurrencyCode))
-			throw new CurrencyException(message: "The base currency code cannot be empty.");
 
 		return new User()
 		{
 			Id = Guid.NewGuid(),
 			Email = email,
 			PasswordHash = passwordHash,
-			BaseCurrencyCode = baseCurrencyCode,
+			BaseCurrency = baseCurrency,
 			CreatedAt = DateTime.UtcNow
 		};
 	}
 
 	public static User Reconstitute(
 		Guid id,
-		string email,
+		Email email,
 		string passwordHash,
-		string baseCurrencyCode,
+		Currency baseCurrencyCode,
 		DateTime createdAt)
 	{
 		return new User()
@@ -48,17 +43,14 @@ public sealed class User
 			Id = id,
 			Email = email,
 			PasswordHash = passwordHash,
-			BaseCurrencyCode = baseCurrencyCode,
+			BaseCurrency = baseCurrencyCode,
 			CreatedAt = createdAt
 		};
 	}
 	
-	public void ChangeEmail(string newEmail)
+	public void ChangeEmail(Email newEmail)
 	{
-		if (String.IsNullOrWhiteSpace(value: newEmail))
-			throw new EmailException(message: "The email cannot be empty.", email: newEmail);
-
-		if (Email.Equals(value: newEmail))
+		if (Email == newEmail)
 			return;
 
 		Email = newEmail;
@@ -72,14 +64,11 @@ public sealed class User
 		PasswordHash = newPasswordHash;
 	}
 
-	public void ChangeBaseCurrency(string newBaseCurrencyCode)
+	public void ChangeBaseCurrency(Currency newBaseCurrency)
 	{
-		if (String.IsNullOrWhiteSpace(newBaseCurrencyCode))
-			throw new CurrencyException(message: "The base currency code cannot be empty.");
-
-		if (BaseCurrencyCode.Equals(value: newBaseCurrencyCode))
+		if (BaseCurrency == newBaseCurrency)
 			return;
 
-		BaseCurrencyCode = newBaseCurrencyCode;
+		BaseCurrency = newBaseCurrency;
 	}
 }

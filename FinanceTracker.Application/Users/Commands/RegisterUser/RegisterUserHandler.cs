@@ -21,7 +21,7 @@ public sealed class RegisterUserHandler(
 		User user = User.Register(
 			email: command.Email,
 			passwordHash: command.PasswordHash,
-			baseCurrencyCode: command.BaseCurrencyCode
+			baseCurrency: command.BaseCurrencyCode
 		);
 
 		await userWriteRepository.CreateAsync(user: user, ct: ct);

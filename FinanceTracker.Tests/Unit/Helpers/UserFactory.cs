@@ -12,7 +12,7 @@ public static class UserFactory
 		return User.Register(
 			email: email,
 			passwordHash: passwordHash,
-			baseCurrencyCode: baseCurrencyCode
+			baseCurrency: baseCurrencyCode
 		);
 	}
 }

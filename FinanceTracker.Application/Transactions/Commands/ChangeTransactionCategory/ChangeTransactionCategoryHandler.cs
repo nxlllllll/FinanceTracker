@@ -41,7 +41,7 @@ public sealed class ChangeTransactionCategoryHandler(
 					userId: transaction.UserId,
 					oldCategoryId: transaction.CategoryId,
 					newCategoryId: command.CategoryId,
-					amount: transaction.Amount,
+					amount: transaction.Amount.Amount,
 					occurredAt: transaction.OccurredAt,
 					ct: ct
 				);
@@ -50,8 +50,8 @@ public sealed class ChangeTransactionCategoryHandler(
 					userId: transaction.UserId,
 					oldCategoryId: transaction.CategoryId,
 					newCategoryId: command.CategoryId,
-					currencyCode: transaction.Currency,
-					amount: transaction.Amount,
+					currencyCode: transaction.Amount.Currency,
+					amount: transaction.Amount.Amount,
 					occurredAt: transaction.OccurredAt,
 					ct: ct
 				);

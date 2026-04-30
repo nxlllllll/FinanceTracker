@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Repositories;
-using FinanceTracker.Core.Repositories.Currency;
+﻿using FinanceTracker.Core.Repositories.Currency;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;

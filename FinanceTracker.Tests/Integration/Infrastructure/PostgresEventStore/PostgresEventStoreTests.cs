@@ -252,7 +252,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 
         await Assert.That(value: restored.Id).IsEqualTo(expected: original.Id);
         await Assert.That(value: restored.Name).IsEqualTo(expected: original.Name);
-        await Assert.That(value: restored.Balance).IsEqualTo(expected: 1490m);
+        await Assert.That(value: restored.Balance.Amount).IsEqualTo(expected: 1490m);
         await Assert.That(value: restored.Version).IsEqualTo(expected: 50);
     }
 }

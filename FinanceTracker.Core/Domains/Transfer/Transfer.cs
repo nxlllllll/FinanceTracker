@@ -7,7 +7,9 @@ public sealed class Transfer
     public Guid FromAccountId { get; private set; }
     public Guid ToAccountId { get; private set; }
     public decimal AmountFrom { get; private set; }
+    public string CurrencyFrom { get; private set; } = String.Empty;
     public decimal AmountTo { get; private set; }
+    public string CurrencyTo { get; private set; } = String.Empty;
     public decimal ExchangeRate { get; private set; }
     public bool IsExcluded { get; private set; }
     public bool IsRatePending { get; private set; }
@@ -21,7 +23,9 @@ public sealed class Transfer
         Guid fromAccountId,
         Guid toAccountId,
         decimal amountFrom,
+        string currencyFrom,
         decimal amountTo,
+        string currencyTo,
         decimal exchangeRate,
         bool isRatePending,
         string? description,
@@ -34,7 +38,9 @@ public sealed class Transfer
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,
             AmountFrom = amountFrom,
+            CurrencyFrom = currencyFrom,
             AmountTo = amountTo,
+            CurrencyTo = currencyTo,
             ExchangeRate = exchangeRate,
             IsExcluded = false,
             IsRatePending = isRatePending,
@@ -49,7 +55,9 @@ public sealed class Transfer
         Guid fromAccountId,
         Guid toAccountId,
         decimal amountFrom,
+        string currencyFrom,
         decimal amountTo,
+        string currencyTo,
         decimal exchangeRate,
         bool isExcluded,
         bool isRatePending,
@@ -63,7 +71,9 @@ public sealed class Transfer
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,
             AmountFrom = amountFrom,
+            CurrencyFrom = currencyFrom,
             AmountTo = amountTo,
+            CurrencyTo = currencyTo,
             ExchangeRate = exchangeRate,
             IsExcluded = isExcluded,
             IsRatePending = isRatePending,

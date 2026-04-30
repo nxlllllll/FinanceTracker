@@ -24,7 +24,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Core.Domains.User.User user = Core.Domains.User.User.Register(
             email: $"{Guid.NewGuid()}@test.com",
             passwordHash: "hash",
-            baseCurrencyCode: currencyCode
+            baseCurrency: currencyCode
         );
         await _writeRepository.CreateAsync(user: user);
         return user;
@@ -47,7 +47,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: user.Id);
         await Assert.That(value: result.Email).IsEqualTo(expected: user.Email);
-        await Assert.That(value: result.BaseCurrencyCode).IsEqualTo(expected: "RUB");
+        await Assert.That(value: result.BaseCurrency).IsEqualTo(expected: "RUB");
     }
 
     [Test]

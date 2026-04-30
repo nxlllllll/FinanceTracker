@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Infrastructure.Database.Repositories.Budget;
+﻿using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
@@ -32,7 +31,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: budgetId);
-        await Assert.That(value: result.Amount).IsEqualTo(expected: 10000m);
+        await Assert.That(value: result.Amount.Amount).IsEqualTo(expected: 10000m);
     }
 
     [Test]

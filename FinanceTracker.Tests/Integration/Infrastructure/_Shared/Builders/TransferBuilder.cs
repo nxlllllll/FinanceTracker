@@ -10,7 +10,9 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 	public async Task<Guid> CreateAsync(
 		Guid userId,
 		Guid fromAccountId,
+		string currencyFrom,
 		Guid toAccountId,
+		string currencyTo,
 		decimal amountFrom = 1000m,
 		decimal amountTo = 1000m,
 		DateTime? occurredAt = null)
@@ -20,7 +22,9 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 			fromAccountId: fromAccountId,
 			toAccountId: toAccountId,
 			amountFrom: amountFrom,
+			currencyFrom: currencyFrom,
 			amountTo: amountTo,
+			currencyTo: currencyTo,
 			exchangeRate: 1m,
 			isRatePending: false,
 			description: null,

@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Categories.Commands.RenameCategory;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

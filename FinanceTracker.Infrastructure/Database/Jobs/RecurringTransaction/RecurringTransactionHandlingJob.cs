@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.RecurringTransaction;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using Quartz;
@@ -48,8 +47,8 @@ public sealed class RecurringTransactionHandlingJob(
 					AccountId: dueTransaction.AccountId,
 					UserId: dueTransaction.UserId,
 					CategoryId: dueTransaction.CategoryId,
-					Amount: dueTransaction.Amount,
-					Currency: dueTransaction.Currency,
+					Amount: dueTransaction.Amount.Amount,
+					Currency: dueTransaction.Amount.Currency,
 					Direction: dueTransaction.Direction,
 					Description: dueTransaction.Description,
 					OccurredAt: now

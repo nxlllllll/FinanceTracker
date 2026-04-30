@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
@@ -73,8 +74,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: 1000m,
-            currency: "RUB",
+			amount: new Money(amount: 1000m, currency: "RUB"),
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -101,8 +101,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: userId,
             categoryId: categoryId,
-            amount: 1000m,
-            currency: "RUB",
+            amount: new Money(amount: 1000m, currency: "RUB"),
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -135,8 +134,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: 1000m,
-            currency: "RUB",
+            amount: new Money(amount: 1000m, currency: "RUB"),
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -184,8 +182,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: 1000m,
-            currency: "RUB",
+            amount: new Money(amount: 1000m, currency: "RUB"),
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -217,8 +214,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: 1000m,
-            currency: "RUB",
+            amount: new Money(amount: 1000m, currency: "RUB"),
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -250,8 +246,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: 1000m,
-            currency: "RUB",
+            amount: new Money(amount: 1000m, currency: "RUB"),
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,

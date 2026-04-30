@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -20,8 +21,7 @@ public static class RecurringTransactionFactory
 			userId: userId ?? Guid.NewGuid(),
 			accountId: accountId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
-			amount: amount,
-			currency: currency,
+			amount: new Money(amount: amount, currency: currency),
 			direction: direction,
 			dayOfMonth: dayOfMonth,
 			description: description

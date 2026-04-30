@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Category;
 using MediatR;
 

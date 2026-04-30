@@ -66,31 +66,17 @@ public sealed class PostgresEventStore(
 
 		if (snapshotFactory is null || newThreshold <= previousThreshold)
 			return;
-
-		SnapshotEntity? existing = await context.Snapshots.FirstOrDefaultAsync(
-			predicate: s => s.AggregateId == aggregateId && s.AggregateType == aggregateType,
-			cancellationToken: ct
-		);
-
+		
 		string snapshot = snapshotFactory();
 		
-		if (existing is null)
+		await context.Snapshots.AddAsync(entity: new SnapshotEntity()
 		{
-			await context.Snapshots.AddAsync(entity: new SnapshotEntity()
-			{
-				AggregateId = aggregateId,
-				AggregateType = aggregateType,
-				Version = newVersion,
-				State = snapshot,
-				CreatedAt = DateTime.UtcNow
-			}, cancellationToken: ct);
-		}
-		else
-		{
-			existing.Version = newVersion;
-			existing.State = snapshot;
-			existing.CreatedAt = DateTime.UtcNow;
-		}
+			AggregateId = aggregateId,
+			AggregateType = aggregateType,
+			Version = newVersion,
+			State = snapshot,
+			CreatedAt = DateTime.UtcNow
+		}, cancellationToken: ct);
 	}
 	
 	public async Task SaveAsync(
@@ -152,10 +138,10 @@ public sealed class PostgresEventStore(
 		string aggregateType,
 		CancellationToken ct = default)
 	{
-		SnapshotEntity? snapshot = await context.Snapshots.AsNoTracking().FirstOrDefaultAsync(
-			predicate: s => s.AggregateId == aggregateId && s.AggregateType == aggregateType,
-			cancellationToken: ct
-		);
+		SnapshotEntity? snapshot = await context.Snapshots.AsNoTracking()
+		    .Where(s => s.AggregateId == aggregateId && s.AggregateType == aggregateType)
+		    .OrderByDescending(s => s.Version)
+		    .FirstOrDefaultAsync(cancellationToken: ct);
 
 		int fromVersion = snapshot?.Version ?? 0;
 

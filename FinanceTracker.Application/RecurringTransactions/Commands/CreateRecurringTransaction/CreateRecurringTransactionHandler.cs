@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.CreateRecurringTransaction;
 
@@ -18,8 +19,7 @@ public sealed class CreateRecurringTransactionHandler(
 			userId: command.UserId,
 			accountId: command.AccountId,
 			categoryId: command.CategoryId,
-			amount: command.Amount,
-			currency: command.Currency,
+			amount: new Money(amount: command.Amount, currency: command.Currency),
 			direction: command.Direction,
 			dayOfMonth: command.DayOfMonth,
 			description: command.Description

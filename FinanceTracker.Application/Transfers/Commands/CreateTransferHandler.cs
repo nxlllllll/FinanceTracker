@@ -23,8 +23,8 @@ public sealed class CreateTransferHandler(
 		(Account fromAccount, Account toAccount) = accounts;
 		
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
-			fromCurrency: fromAccount.Currency,
-			toCurrency: toAccount.Currency,
+			fromCurrency: command.CurrencyFrom,
+			toCurrency: command.CurrencyTo,
 			date: DateOnly.FromDateTime(dateTime: command.OccurredAt),
 			ct: ct
 		);
@@ -34,7 +34,9 @@ public sealed class CreateTransferHandler(
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,
 			amountFrom: command.Amount,
+			currencyFrom: command.CurrencyFrom,
 			amountTo: command.Amount * conversion.Rate,
+			currencyTo: command.CurrencyTo,
 			exchangeRate: conversion.Rate,
 			isRatePending: conversion.IsPending,
 			description: command.Description,

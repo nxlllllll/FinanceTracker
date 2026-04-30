@@ -12,8 +12,14 @@ public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTra
 		RuleFor(command => command.FromAccountId)
 			.NotEmpty().WithMessage(errorMessage: "The source account cannot be empty.");
 
+		RuleFor(command => command.CurrencyFrom)
+			.NotEmpty().WithMessage(errorMessage: "The destination account cannot be empty.");
+
 		RuleFor(command => command.ToAccountId)
 			.NotEmpty().WithMessage(errorMessage: "The destination account cannot be empty.");
+
+		RuleFor(command => command.CurrencyTo)
+			.NotEmpty().WithMessage(errorMessage: "The source account cannot be empty.");
 
 		RuleFor(command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");

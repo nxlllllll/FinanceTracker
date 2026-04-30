@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
@@ -34,8 +35,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: 5000m,
-			currency: "RUB",
+			amount: new Money(amount: 5000m, currency: "RUB"),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: "Monthly rent"
@@ -64,8 +64,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: 5000m,
-			currency: "RUB",
+			amount: new Money(amount: 5000m, currency: "RUB"),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -94,8 +93,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: 5000m,
-			currency: "RUB",
+			amount: new Money(amount: 5000m, currency: "RUB"),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -122,8 +120,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: 5000m,
-			currency: "RUB",
+			amount: new Money(amount: 5000m, currency: "RUB"),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -150,8 +147,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: 5000m,
-			currency: "RUB",
+			amount: new Money(amount: 5000m, currency: "RUB"),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -178,8 +174,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: 5000m,
-			currency: "RUB",
+			amount: new Money(amount: 5000m, currency: "RUB"),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -207,8 +202,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: 5000m,
-			currency: "RUB",
+			amount: new Money(amount: 5000m, currency: "RUB"),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -236,8 +230,7 @@ public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWit
         userId: userId,
         accountId: accountId,
         categoryId: categoryId,
-        amount: 5000m,
-        currency: "RUB",
+		amount: new Money(amount: 5000m, currency: "RUB"),
         direction: DirectionType.Debit,
         dayOfMonth: 15,
         description: null
@@ -247,8 +240,7 @@ public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWit
         userId: userId,
         accountId: accountId,
         categoryId: categoryId,
-        amount: 3000m,
-        currency: "RUB",
+		amount: new Money(amount: 3000m, currency: "RUB"),
         direction: DirectionType.Debit,
         dayOfMonth: 20,
         description: null

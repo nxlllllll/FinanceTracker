@@ -90,7 +90,9 @@ public sealed class CreateTransferCommandValidatorTests
         CreateTransferCommand command = new CreateTransferCommand(
             UserId: Guid.NewGuid(),
             FromAccountId: Guid.NewGuid(),
+            CurrencyFrom: "RUB",
             ToAccountId: Guid.NewGuid(),
+            CurrencyTo: "RUB",
             Amount: 500m,
             Description: null,
             OccurredAt: DateTime.UtcNow.AddDays(value: 1)

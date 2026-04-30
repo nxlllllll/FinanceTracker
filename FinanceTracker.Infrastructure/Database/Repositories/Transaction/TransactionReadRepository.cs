@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,8 +20,7 @@ public sealed class TransactionReadRepository(
                 accountId: t.AccountId,
                 userId: t.UserId,
                 categoryId: t.CategoryId,
-                amount: t.Amount,
-                currency: t.Currency,
+                amount: new Money(amount: t.Amount, currency: t.Currency),
                 direction: t.Direction,
                 exchangeRate: t.ExchangeRate,
                 isExcluded: t.IsExcluded,
@@ -64,8 +63,7 @@ public sealed class TransactionReadRepository(
                 accountId: t.AccountId,
                 userId: t.UserId,
                 categoryId: t.CategoryId,
-                amount: t.Amount,
-                currency: t.Currency,
+                amount: new Money(amount: t.Amount, currency: t.Currency),
                 direction: t.Direction,
                 exchangeRate: t.ExchangeRate,
                 isExcluded: t.IsExcluded,
