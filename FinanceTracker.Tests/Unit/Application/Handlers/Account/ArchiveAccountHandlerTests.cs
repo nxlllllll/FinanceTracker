@@ -8,97 +8,59 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Account;
 
 public sealed class ArchiveAccountHandlerTests
 {
-    private IAccountRepository _accountRepository = null!;
-    private ArchiveAccountHandler _handler = null!;
+	private IAccountRepository _accountRepository = null!;
+	private ArchiveAccountHandler _handler = null!;
 
-    [Before(hookType: Test)]
-    public void Setup()
-    {
-        _accountRepository = Substitute.For<IAccountRepository>();
-        _handler = new ArchiveAccountHandler(accountRepository: _accountRepository);
-    }
+	[Before(hookType: Test)]
+	public void Setup()
+	{
+		_accountRepository = Substitute.For<IAccountRepository>();
+		_handler = new ArchiveAccountHandler(accountRepository: _accountRepository);
+	}
 
-    [Test]
-    public async Task Handle_WithActiveAccount_ShouldSaveAccount()
-    {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
-        _accountRepository.GetByIdAsync(
-            accountId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: account);
+	[Test]
+	public async Task HandleAsync_WithActiveAccount_ShouldSaveAccount()
+	{
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
 
-        await _handler.Handle(
-            command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-            ct: CancellationToken.None
-        );
+		await _handler.HandleAsync(
+			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
+			account: account,
+			ct: CancellationToken.None
+		);
 
-        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-    [Test]
-    public async Task Handle_WhenAccountNotFound_ShouldThrowNotFoundException()
-    {
-        _accountRepository.GetByIdAsync(
-            accountId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
+	[Test]
+	public async Task HandleAsync_WhenAccountAlreadyArchived_ShouldThrowArchivingException()
+	{
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
 
-        await Assert.That(action: async () => await _handler.Handle(
-            command: new ArchiveAccountCommand(UserId: Guid.NewGuid(), AccountId: Guid.NewGuid()),
-            ct: CancellationToken.None
-        )).Throws<NotFoundException>();
-    }
+		await Assert.That(action: async () => await _handler.HandleAsync(
+			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
+			account: account,
+			ct: CancellationToken.None
+		)).Throws<ArchivingException>();
+	}
 
-    [Test]
-    public async Task Handle_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
-    {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
-        _accountRepository.GetByIdAsync(
-            accountId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: account);
+	[Test]
+	public async Task HandleAsync_WhenAccountAlreadyArchived_ShouldNotSaveAccount()
+	{
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
 
-        await Assert.That(action: async () => await _handler.Handle(
-            command: new ArchiveAccountCommand(UserId: Guid.NewGuid(), AccountId: account.Id),
-            ct: CancellationToken.None
-        )).Throws<NotFoundException>();
-    }
+		await Assert.That(action: async () => await _handler.HandleAsync(
+			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
+			account: account,
+			ct: CancellationToken.None
+		)).Throws<ArchivingException>();
 
-    [Test]
-    public async Task Handle_WhenAccountAlreadyArchived_ShouldThrowArchivingException()
-    {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
-        _accountRepository.GetByIdAsync(
-            accountId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: account);
-
-        await Assert.That(action: async () => await _handler.Handle(
-            command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-            ct: CancellationToken.None
-        )).Throws<ArchivingException>();
-    }
-
-    [Test]
-    public async Task Handle_WhenAccountAlreadyArchived_ShouldNotSaveAccount()
-    {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
-        _accountRepository.GetByIdAsync(
-            accountId: Arg.Any<Guid>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: account);
-
-        await Assert.That(action: async () => await _handler.Handle(
-            command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-            ct: CancellationToken.None
-        )).Throws<ArchivingException>();
-
-        await _accountRepository.DidNotReceive().SaveAsync(
-            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 }

@@ -1,25 +1,16 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
-using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringTransactionDayOfMonth;
 
 public sealed class ChangeRecurringTransactionDayOfMonthHandler(
-	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
-	IRecurringTransactionReadRepository recurringTransactionReadRepository
-) : IRequestHandler<ChangeRecurringTransactionDayOfMonthCommand>
+	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
+) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransactionDto>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ChangeRecurringTransactionDayOfMonthCommand command,
-		CancellationToken ct = default)
-	{
-		RecurringTransactionDto recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Recurring transaction not found.", id: command.RecurringTransactionId);
-
-		if (recurringTransaction.UserId != command.UserId)
-			throw new NotFoundException(message: "Recurring transaction not found.", id: command.RecurringTransactionId);
-
-		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(recurringTransactionId: command.RecurringTransactionId, dayOfMonth: command.DayOfMonth, ct: ct);
-	}
+		RecurringTransactionDto recurringTransaction,
+		CancellationToken ct = default
+	) => await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(recurringTransactionId: command.RecurringTransactionId, dayOfMonth: command.DayOfMonth, ct: ct);
 }

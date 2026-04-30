@@ -1,10 +1,9 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
-using MediatR;
 
 namespace FinanceTracker.Application.Transfers.Commands;
 
@@ -13,26 +12,14 @@ public sealed class CreateTransferHandler(
 	ITransferWriteRepository transferWriteRepository,
 	ICurrencyConversionService currencyConversionService,
 	IUnitOfWork unitOfWork
-) : IRequestHandler<CreateTransferCommand, Guid>
+) : IAuthorizedHandler<CreateTransferCommand, (Account, Account), Guid>
 {
-	public async Task<Guid> Handle(
+	public async Task<Guid> HandleAsync(
 		CreateTransferCommand command,
+		(Account, Account) accounts,
 		CancellationToken ct = default)
 	{
-		if (command.FromAccountId == command.ToAccountId)
-			throw new InvalidOperationException(message: "Cannot transfer to the same account.");
-		
-		Account fromAccount = await accountRepository.GetByIdAsync(accountId: command.FromAccountId, ct: ct)
-			?? throw new NotFoundException(message: "Source account not found.", id: command.FromAccountId);
-
-		if (fromAccount.UserId != command.UserId)
-			throw new NotFoundException(message: "Source account not found.", id: command.FromAccountId);
-		
-		Account toAccount = await accountRepository.GetByIdAsync(accountId: command.ToAccountId, ct: ct)
-			?? throw new NotFoundException(message: "Destination account not found.", id: command.ToAccountId);
-
-		if (toAccount.UserId != command.UserId)
-			throw new NotFoundException(message: "Destination account not found.", id: command.ToAccountId);
+		(Account fromAccount, Account toAccount) = accounts;
 		
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: fromAccount.Currency,

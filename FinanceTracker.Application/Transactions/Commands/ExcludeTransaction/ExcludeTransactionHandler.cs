@@ -1,32 +1,25 @@
-﻿using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
-using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 
 public sealed class ExcludeTransactionHandler(
-	ITransactionReadRepository transactionReadRepository,
 	ITransactionWriteRepository transactionWriteRepository,
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork
-) : IRequestHandler<ExcludeTransactionCommand>
+) : IAuthorizedHandler<ExcludeTransactionCommand, TransactionDto>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ExcludeTransactionCommand command,
+		TransactionDto transaction,
 		CancellationToken ct = default)
 	{
-		TransactionDto transaction = await transactionReadRepository.GetByIdAsync(transactionId: command.TransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
-		
-		if (transaction.UserId != command.UserId)
-			throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
-		
 		if (transaction.IsExcluded)
 			return;
 		

@@ -1,24 +1,18 @@
-﻿using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
-using MediatR;
 
 namespace FinanceTracker.Application.Categories.Commands.RenameCategory;
 
 public sealed class RenameCategoryHandler(
 	ICategoryRepository categoryRepository
-) : IRequestHandler<RenameCategoryCommand>
+) : IAuthorizedHandler<RenameCategoryCommand, Category>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		RenameCategoryCommand command,
+		Category category,
 		CancellationToken ct = default)
 	{
-		Category category = await categoryRepository.GetByIdAsync(categoryId: command.CategoryId, ct: ct)
-			?? throw new NotFoundException(message: "Category not found.", id: command.CategoryId);
-
-		if (category.UserId != command.UserId)
-			throw new NotFoundException(message: "Category not found.", id: command.CategoryId);
-		
 		category.Rename(newName: command.NewName);
 		await categoryRepository.RenameAsync(categoryId: command.CategoryId, newName: command.NewName, ct: ct);
 	}

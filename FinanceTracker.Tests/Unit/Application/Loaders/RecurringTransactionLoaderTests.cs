@@ -1,0 +1,68 @@
+﻿using FinanceTracker.Application.RecurringTransactions.Authorization;
+using FinanceTracker.Application.RecurringTransactions.Commands.ActivateRecurringTransaction;
+using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Tests.Unit.Helpers;
+using NSubstitute;
+
+namespace FinanceTracker.Tests.Unit.Application.Loaders;
+
+public sealed class RecurringTransactionLoaderTests
+{
+	private IRecurringTransactionReadRepository _readRepository = null!;
+	private RecurringTransactionLoader _loader = null!;
+
+	[Before(hookType: Test)]
+	public void Setup()
+	{
+		_readRepository = Substitute.For<IRecurringTransactionReadRepository>();
+		_loader = new RecurringTransactionLoader(recurringTransactionReadRepository: _readRepository);
+	}
+
+	[Test]
+	public async Task LoadAsync_WhenNotFound_ShouldThrowNotFoundException()
+	{
+		_readRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<RecurringTransactionDto?>(result: null));
+
+		await Assert.That(action: async () => await _loader.LoadAsync(
+			request: new ActivateRecurringTransactionCommand(UserId: Guid.NewGuid(), RecurringTransactionId: Guid.NewGuid()),
+			ct: CancellationToken.None
+		)).Throws<NotFoundException>();
+	}
+
+	[Test]
+	public async Task LoadAsync_WhenBelongsToAnotherUser_ShouldThrowNotFoundException()
+	{
+		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create();
+		_readRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: recurringTransaction);
+
+		await Assert.That(action: async () => await _loader.LoadAsync(
+			request: new ActivateRecurringTransactionCommand(UserId: Guid.NewGuid(), RecurringTransactionId: recurringTransaction.Id),
+			ct: CancellationToken.None
+		)).Throws<NotFoundException>();
+	}
+
+	[Test]
+	public async Task LoadAsync_WhenOwner_ShouldReturnDto()
+	{
+		RecurringTransactionDto recurringTransaction = RecurringTransactionFactory.Create();
+		_readRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: recurringTransaction);
+
+		RecurringTransactionDto result = await _loader.LoadAsync(
+			request: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.Id).IsEqualTo(expected: recurringTransaction.Id);
+	}
+}

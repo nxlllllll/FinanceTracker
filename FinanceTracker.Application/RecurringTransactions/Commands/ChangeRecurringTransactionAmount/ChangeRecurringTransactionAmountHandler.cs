@@ -1,25 +1,16 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
-using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringTransactionAmount;
 
 public sealed class ChangeRecurringTransactionAmountHandler(
-	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
-	IRecurringTransactionReadRepository recurringTransactionReadRepository
-) : IRequestHandler<ChangeRecurringTransactionAmountCommand>
+	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
+) : IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, RecurringTransactionDto>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ChangeRecurringTransactionAmountCommand command,
-		CancellationToken ct = default)
-	{
-		RecurringTransactionDto recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Recurring transaction not found.", id: command.RecurringTransactionId);
-
-		if (recurringTransaction.UserId != command.UserId)
-			throw new NotFoundException(message: "Recurring transaction not found.", id: command.RecurringTransactionId);
-
-		await recurringTransactionWriteRepository.ChangeAmountAsync(recurringTransactionId: command.RecurringTransactionId, amount: command.Amount, ct: ct);
-	}
+		RecurringTransactionDto recurringTransaction,
+		CancellationToken ct = default
+	) => await recurringTransactionWriteRepository.ChangeAmountAsync(recurringTransactionId: command.RecurringTransactionId, amount: command.Amount, ct: ct);
 }

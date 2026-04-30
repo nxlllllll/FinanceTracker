@@ -1,8 +1,7 @@
-﻿using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
-using MediatR;
 
 namespace FinanceTracker.Application.Categories.Commands.ArchiveCategory;
 
@@ -10,18 +9,13 @@ public sealed class ArchiveCategoryHandler(
 	ICategoryRepository categoryRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IUnitOfWork unitOfWork
-) : IRequestHandler<ArchiveCategoryCommand>
+) : IAuthorizedHandler<ArchiveCategoryCommand, Category>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ArchiveCategoryCommand command,
+		Category category,
 		CancellationToken ct = default)
 	{
-		Category category = await categoryRepository.GetByIdAsync(categoryId: command.CategoryId, ct: ct)
-			?? throw new NotFoundException(message: "Category not found.", id: command.CategoryId);
-
-		if (category.UserId != command.UserId)
-			throw new NotFoundException(message: "Category not found.", id: command.CategoryId);
-		
 		category.Archive();
 
 		await unitOfWork.BeginTransactionAsync(ct: ct);

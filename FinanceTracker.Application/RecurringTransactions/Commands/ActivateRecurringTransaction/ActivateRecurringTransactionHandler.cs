@@ -1,25 +1,18 @@
-﻿using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
-using MediatR;
 
 namespace FinanceTracker.Application.RecurringTransactions.Commands.ActivateRecurringTransaction;
 
 public sealed class ActivateRecurringTransactionHandler(
-	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
-	IRecurringTransactionReadRepository recurringTransactionReadRepository
-) : IRequestHandler<ActivateRecurringTransactionCommand>
+	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
+) : IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransactionDto>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ActivateRecurringTransactionCommand command,
+		RecurringTransactionDto recurringTransaction,
 		CancellationToken ct = default)
 	{
-		RecurringTransactionDto recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Recurring transaction not found.", id: command.RecurringTransactionId);
-		
-		if (recurringTransaction.UserId != command.UserId)
-			throw new NotFoundException(message: "Recurring transaction not found.", id: command.RecurringTransactionId);
-
 		if (recurringTransaction.IsActive)
 			return;
 

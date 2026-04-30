@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
@@ -10,23 +11,17 @@ using MediatR;
 namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
 
 public sealed class ChangeTransactionCategoryHandler(
-	ITransactionReadRepository transactionReadRepository,
 	ITransactionWriteRepository transactionWriteRepository,
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IUnitOfWork unitOfWork,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository
-) : IRequestHandler<ChangeTransactionCategoryCommand>
+) : IAuthorizedHandler<ChangeTransactionCategoryCommand, TransactionDto>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ChangeTransactionCategoryCommand command,
+		TransactionDto transaction,
 		CancellationToken ct = default)
 	{
-		TransactionDto transaction = await transactionReadRepository.GetByIdAsync(transactionId: command.TransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
-		
-		if (transaction.UserId != command.UserId)
-			throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
-		
 		await unitOfWork.BeginTransactionAsync(ct: ct);
 
 		try

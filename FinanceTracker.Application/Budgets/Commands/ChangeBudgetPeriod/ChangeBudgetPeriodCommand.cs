@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using MediatR;
 
 namespace FinanceTracker.Application.Budgets.Commands.ChangeBudgetPeriod;
 
@@ -7,4 +8,4 @@ public sealed record ChangeBudgetPeriodCommand(
 	Guid BudgetId,
 	DateOnly From,
 	DateOnly To
-) : IRequest;
+) : IRequest, IAuthorizable;

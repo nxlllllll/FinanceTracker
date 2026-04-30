@@ -1,31 +1,16 @@
-﻿using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
-using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionDescription;
 
 public sealed class ChangeTransactionDescriptionHandler(
-	ITransactionReadRepository transactionReadRepository,
 	ITransactionWriteRepository transactionWriteRepository
-) : IRequestHandler<ChangeTransactionDescriptionCommand>
+) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, TransactionDto>
 {
-	public async Task Handle(
+	public async Task HandleAsync(
 		ChangeTransactionDescriptionCommand command,
-		CancellationToken ct = default)
-	{
-		bool exists = await transactionReadRepository.ExistsAsync(
-			transactionId: command.TransactionId,
-			userId: command.UserId,
-			ct: ct
-		);
-
-		if (!exists)
-			throw new NotFoundException(message: "Transaction not found.", id: command.TransactionId);
-
-		await transactionWriteRepository.ChangeDescriptionAsync(
-			transactionId: command.TransactionId,
-			description: command.Description,
-			ct: ct
-		);
-	}
+		TransactionDto transaction,
+		CancellationToken ct = default
+	) => await transactionWriteRepository.ChangeDescriptionAsync(transactionId: command.TransactionId, description: command.Description, ct: ct);
 }

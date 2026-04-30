@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using MediatR;
 
 namespace FinanceTracker.Application.Transfers.Commands;
 
@@ -9,4 +10,4 @@ public sealed record CreateTransferCommand(
 	decimal Amount,
 	string? Description,
 	DateTime OccurredAt
-) : IRequest<Guid>;
+) : IRequest<Guid>, IAuthorizable;
