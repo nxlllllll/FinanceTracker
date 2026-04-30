@@ -1,8 +1,10 @@
 ﻿using FinanceTracker.Application.Transactions.Authorization;
 using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -13,6 +15,7 @@ public sealed class TransactionLoaderTests
 {
 	private ITransactionReadRepository _transactionReadRepository = null!;
 	private IAccountRepository _accountRepository = null!;
+	private ICategoryReadRepository _categoryReadRepository = null!;
 	private TransactionLoader _loader = null!;
 
 	[Before(hookType: Test)]
@@ -20,8 +23,10 @@ public sealed class TransactionLoaderTests
 	{
 		_transactionReadRepository = Substitute.For<ITransactionReadRepository>();
 		_accountRepository = Substitute.For<IAccountRepository>();
+		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 		_loader = new TransactionLoader(
 			accountRepository: _accountRepository,
+			categoryRepository: _categoryReadRepository,
 			transactionReadRepository: _transactionReadRepository
 		);
 	}
@@ -59,10 +64,15 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_WhenOwner_ShouldReturnTransaction()
 	{
 		Transaction transaction = TransactionFactory.Create();
+		Category category = CategoryFactory.Create();
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 
 		Transaction result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),
@@ -103,9 +113,15 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_CreateTransaction_WhenOwner_ShouldReturnAccount()
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+		Category category = CategoryFactory.Create();
 		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
+			accountId: Arg.Any<Guid>(), 
+			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 
 		FinanceTracker.Core.Domains.Account.Account result = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(userId: account.UserId, accountId: account.Id),

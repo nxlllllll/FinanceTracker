@@ -92,6 +92,7 @@ public sealed class CreateTransactionHandler(
 				await categoryTotalWriteRepository.AddAsync(
 					userId: command.UserId,
 					categoryId: command.CategoryId,
+					currency: command.Currency,
 					amount: command.Amount,
 					occurredAt: command.OccurredAt,
 					ct: ct

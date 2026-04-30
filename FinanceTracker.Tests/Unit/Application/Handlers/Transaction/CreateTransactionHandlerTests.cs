@@ -173,6 +173,7 @@ public sealed class CreateTransactionHandlerTests
         await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).AddAsync(
             userId: command.UserId,
             categoryId: command.CategoryId,
+			currency: command.Currency,
             amount: command.Amount,
             occurredAt: command.OccurredAt,
             ct: Arg.Any<CancellationToken>()
@@ -215,8 +216,11 @@ public sealed class CreateTransactionHandlerTests
         );
 
         await _categoryTotalWriteRepository.DidNotReceive().AddAsync(
-            userId: Arg.Any<Guid>(), categoryId: Arg.Any<Guid>(),
-            amount: Arg.Any<decimal>(), occurredAt: Arg.Any<DateTime>(),
+            userId: Arg.Any<Guid>(), 
+            categoryId: Arg.Any<Guid>(),
+            amount: Arg.Any<decimal>(), 
+            currency: Arg.Any<string>(),
+            occurredAt: Arg.Any<DateTime>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

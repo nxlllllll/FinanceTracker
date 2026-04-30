@@ -33,6 +33,7 @@ public sealed class IncludeTransactionHandler(
 				await categoryTotalWriteRepository.AddAsync(
 					userId: transaction.UserId,
 					categoryId: transaction.CategoryId,
+					currency: transaction.Amount.Currency,
 					amount: transaction.Amount.Amount,
 					occurredAt: transaction.OccurredAt,
 					ct: ct

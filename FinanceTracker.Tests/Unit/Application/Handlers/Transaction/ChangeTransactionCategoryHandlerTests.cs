@@ -48,6 +48,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			userId: transaction.UserId,
 			oldCategoryId: transaction.CategoryId,
 			newCategoryId: newCategoryId,
+			currency: transaction.Amount.Currency,
 			amount: transaction.Amount.Amount,
 			occurredAt: transaction.OccurredAt,
 			ct: Arg.Any<CancellationToken>()
@@ -75,8 +76,13 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		);
 
 		await _categoryTotalWriteRepository.DidNotReceive().ChangeCategoryAsync(
-			userId: Arg.Any<Guid>(), oldCategoryId: Arg.Any<Guid>(), newCategoryId: Arg.Any<Guid>(),
-			amount: Arg.Any<decimal>(), occurredAt: Arg.Any<DateTime>(), ct: Arg.Any<CancellationToken>()
+			userId: Arg.Any<Guid>(),
+			oldCategoryId: Arg.Any<Guid>(),
+			newCategoryId: Arg.Any<Guid>(),
+			currency: transaction.Amount.Currency,
+			amount: Arg.Any<decimal>(),
+			occurredAt: Arg.Any<DateTime>(),
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
@@ -92,8 +98,13 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		);
 
 		await _categoryTotalWriteRepository.DidNotReceive().ChangeCategoryAsync(
-			userId: Arg.Any<Guid>(), oldCategoryId: Arg.Any<Guid>(), newCategoryId: Arg.Any<Guid>(),
-			amount: Arg.Any<decimal>(), occurredAt: Arg.Any<DateTime>(), ct: Arg.Any<CancellationToken>()
+			userId: Arg.Any<Guid>(), 
+			oldCategoryId: Arg.Any<Guid>(), 
+			newCategoryId: Arg.Any<Guid>(),
+			currency: transaction.Amount.Currency,
+			amount: Arg.Any<decimal>(), 
+			occurredAt: Arg.Any<DateTime>(), 
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 }

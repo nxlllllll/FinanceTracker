@@ -62,6 +62,7 @@ public sealed class ExcludeTransactionHandlerTests
 		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).SubtractAsync(
 			userId: transaction.UserId, 
 			categoryId: transaction.CategoryId,
+			currency: transaction.Amount.Currency,
 			amount: transaction.Amount.Amount, 
 			occurredAt: transaction.OccurredAt, 
 			ct: Arg.Any<CancellationToken>()
@@ -91,8 +92,12 @@ public sealed class ExcludeTransactionHandlerTests
 			transactionId: transaction.Id, ct: Arg.Any<CancellationToken>()
 		);
 		await _categoryTotalWriteRepository.DidNotReceive().SubtractAsync(
-			userId: Arg.Any<Guid>(), categoryId: Arg.Any<Guid>(),
-			amount: Arg.Any<decimal>(), occurredAt: Arg.Any<DateTime>(), ct: Arg.Any<CancellationToken>()
+			userId: Arg.Any<Guid>(), 
+			categoryId: Arg.Any<Guid>(),
+			amount: Arg.Any<decimal>(), 
+			currency: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTime>(), 
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 }

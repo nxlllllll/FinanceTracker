@@ -5,15 +5,18 @@ using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 
 namespace FinanceTracker.Application.Transactions.Authorization;
 
 public sealed class TransactionLoader(
 	IAccountRepository accountRepository,
+	ICategoryReadRepository categoryRepository,
 	ITransactionReadRepository transactionReadRepository
 ) : IEntityLoader<CreateTransactionCommand, Account>,
 	IEntityLoader<ChangeTransactionCategoryCommand, Transaction>,
@@ -21,15 +24,23 @@ public sealed class TransactionLoader(
 	IEntityLoader<IncludeTransactionCommand, Transaction>,
 	IEntityLoader<ExcludeTransactionCommand, Transaction>
 {
-	public Task<Account> LoadAsync(
+	public async Task<Account> LoadAsync(
 		CreateTransactionCommand request,
-		CancellationToken ct
-	) => LoadAccountAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
+		CancellationToken ct)
+	{
+		Task<Account> account = LoadAccountAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
+		await ValidateCategoryDirection(categoryId: request.CategoryId, direction: request.Direction, ct: ct);
+		return await account;
+	}
 
-	public Task<Transaction> LoadAsync(
+	public async Task<Transaction> LoadAsync(
 		ChangeTransactionCategoryCommand request,
-		CancellationToken ct
-	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
+		CancellationToken ct)
+	{
+		Transaction transaction = await LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
+		await ValidateCategoryDirection(categoryId: request.CategoryId, direction: transaction.Direction, ct: ct);
+		return transaction;
+	}
 
 	public Task<Transaction> LoadAsync(
 		ChangeTransactionDescriptionCommand request,
@@ -66,5 +77,24 @@ public sealed class TransactionLoader(
 			throw new NotFoundException(message: "Account not found.", id: accountId);
 
 		return account;
+	}
+	
+	private async Task ValidateCategoryDirection(
+		Guid categoryId,
+		DirectionType direction,
+		CancellationToken ct)
+	{
+		Category category = await categoryRepository.GetByIdAsync(categoryId: categoryId, ct: ct)
+			?? throw new NotFoundException(message: "Category not found.", id: categoryId);
+		
+		bool valid = (direction, category.Type) switch
+		{
+			(DirectionType.Debit,  CategoryType.Expense) => true,
+			(DirectionType.Credit, CategoryType.Income)  => true,
+			_ => false
+		};
+ 
+		if (!valid)
+			throw new InvalidTransactionDirectionException(message: $"Direction '{direction}' is not compatible with category type '{category.Type}'.");
 	}
 }

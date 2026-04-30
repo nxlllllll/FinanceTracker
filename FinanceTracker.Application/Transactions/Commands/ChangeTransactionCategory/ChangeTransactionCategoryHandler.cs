@@ -41,6 +41,7 @@ public sealed class ChangeTransactionCategoryHandler(
 					userId: transaction.UserId,
 					oldCategoryId: transaction.CategoryId,
 					newCategoryId: command.CategoryId,
+					currency: transaction.Amount.Currency,
 					amount: transaction.Amount.Amount,
 					occurredAt: transaction.OccurredAt,
 					ct: ct

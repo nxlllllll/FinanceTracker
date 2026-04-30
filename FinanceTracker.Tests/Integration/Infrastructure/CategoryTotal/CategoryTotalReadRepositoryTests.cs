@@ -1,5 +1,10 @@
 ﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
+using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
+using FinanceTracker.Infrastructure.Database.Repositories.User;
+using FinanceTracker.Infrastructure.Services;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
@@ -9,14 +14,24 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
 {
     private CategoryTotalReadRepository _readRepository = null!;
     private CategoryTotalWriteRepository _writeRepository = null!;
+    private IUserReadRepository _userReadRepository = null!;
+    private ICurrencyConversionService _currencyConversionService = null!;
     private UserBuilder _userBuilder = null!;
     private CategoryBuilder _categoryBuilder = null!;
 
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
+        _userReadRepository = new UserReadRepository(context: Context);
+        _currencyConversionService = new CurrencyConversionService(
+            currencyRateReadRepository: new CurrencyRateReadRepository(context: Context)
+        );
         _readRepository = new CategoryTotalReadRepository(context: Context);
-        _writeRepository = new CategoryTotalWriteRepository(context: Context);
+        _writeRepository = new CategoryTotalWriteRepository(
+            context: Context,
+            userReadRepository:  _userReadRepository,
+            currencyConversionService: _currencyConversionService
+        );
         _userBuilder = new UserBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);
     }
@@ -28,8 +43,20 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
 
-        await _writeRepository.AddAsync(userId: userId, categoryId: categoryId, amount: 1000m, occurredAt: occurredAt);
-        await _writeRepository.AddAsync(userId: userId, categoryId: categoryId, amount: 500m, occurredAt: occurredAt);
+        await _writeRepository.AddAsync(
+            userId: userId,
+            categoryId: categoryId,
+            currency: "RUB",
+            amount: 1000m,
+            occurredAt: occurredAt
+        );
+        await _writeRepository.AddAsync(
+            userId: userId,
+            categoryId: categoryId,
+            currency: "RUB",
+            amount: 500m,
+            occurredAt: occurredAt
+        );
 
         CategoryTotalDto? result = await _readRepository.GetByCategoryAsync(
             userId: userId,
@@ -66,6 +93,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: anotherUserId,
             categoryId: categoryId,
+            currency: "RUB",
             amount: 9999m,
             occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
@@ -87,8 +115,20 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
         DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
 
-        await _writeRepository.AddAsync(userId: userId, categoryId: categoryId1, amount: 1000m, occurredAt: occurredAt);
-        await _writeRepository.AddAsync(userId: userId, categoryId: categoryId2, amount: 2000m, occurredAt: occurredAt);
+        await _writeRepository.AddAsync(
+            userId: userId, 
+            categoryId: categoryId1,
+            currency: "RUB",
+            amount: 1000m,
+            occurredAt: occurredAt
+        );
+        await _writeRepository.AddAsync(
+            userId: userId, 
+            categoryId: categoryId2,
+            currency: "RUB",
+            amount: 2000m,
+            occurredAt: occurredAt
+        );
 
         IReadOnlyList<CategoryTotalDto> result = await _readRepository.GetAllByPeriodAsync(
             userId: userId,
@@ -107,12 +147,14 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
+            currency: "RUB",
             amount: 1000m,
             occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
+            currency: "RUB",
             amount: 2000m,
             occurredAt: new DateTime(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
