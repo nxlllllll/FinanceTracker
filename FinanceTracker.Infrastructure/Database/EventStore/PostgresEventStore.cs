@@ -149,17 +149,18 @@ public sealed class PostgresEventStore(
 
 	public async Task<EventStoreResult> LoadAsync(
 		Guid aggregateId,
+		string aggregateType,
 		CancellationToken ct = default)
 	{
 		SnapshotEntity? snapshot = await context.Snapshots.AsNoTracking().FirstOrDefaultAsync(
-			predicate: s => s.AggregateId == aggregateId,
+			predicate: s => s.AggregateId == aggregateId && s.AggregateType == aggregateType,
 			cancellationToken: ct
 		);
 
 		int fromVersion = snapshot?.Version ?? 0;
 
 		List<EventEntity> entities = await context.Events.AsNoTracking()
-			.Where(predicate: e => e.AggregateId == aggregateId && e.Version > fromVersion)
+			.Where(predicate: e => e.AggregateId == aggregateId && e.Version > fromVersion && e.AggregateType == aggregateType)
 			.OrderBy(keySelector: e => e.Version)
 			.ToListAsync(cancellationToken: ct);
 

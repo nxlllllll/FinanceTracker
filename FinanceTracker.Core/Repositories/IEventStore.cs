@@ -15,6 +15,7 @@ public interface IEventStore
 
 	Task<EventStoreResult> LoadAsync(
 		Guid aggregateId,
+		string aggregateType,
 		CancellationToken ct = default
 	);
 }

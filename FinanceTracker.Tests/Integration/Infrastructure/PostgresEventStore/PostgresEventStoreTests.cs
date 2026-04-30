@@ -49,7 +49,10 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             expectedVersion: 0
         );
 
-        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: accountId);
+        EventStoreResult result = await _eventStore.LoadAsync(
+            aggregateId: accountId,
+            aggregateType: nameof(Account)
+        );
         await Assert.That(value: result.Events.Count).IsEqualTo(expected: 1);
     }
 
@@ -85,7 +88,10 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             expectedVersion: 0
         );
 
-        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: accountId);
+        EventStoreResult result = await _eventStore.LoadAsync(
+            aggregateId: accountId,
+            aggregateType: nameof(Account)
+        );
 
         await Assert.That(value: result.Events.Count).IsEqualTo(expected: 2);
         await Assert.That(value: result.Events[0]).IsTypeOf<AccountCreated>();
@@ -95,7 +101,10 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task LoadAsync_WithNonExistentAggregate_ShouldReturnEmptyList()
     {
-        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: Guid.NewGuid());
+        EventStoreResult result = await _eventStore.LoadAsync(
+            aggregateId: Guid.NewGuid(),
+            aggregateType: nameof(Account)
+        );
         await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
     }
 
@@ -147,7 +156,6 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task SaveAsync_WhenVersionReaches50_ShouldCreateSnapshot()
     {
-        Guid accountId = Guid.NewGuid();
         Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
             userId: Guid.NewGuid(),
             name: "Тест",
@@ -185,7 +193,10 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             account.ClearEvents();
         }
 
-        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: account.Id);
+        EventStoreResult result = await _eventStore.LoadAsync(
+            aggregateId: account.Id,
+            aggregateType: nameof(Account)
+        );
 
         await Assert.That(value: result.Snapshot).IsNotNull();
         await Assert.That(value: result.Snapshot!.Version).IsEqualTo(expected: 50);
@@ -232,7 +243,10 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             original.ClearEvents();
         }
 
-        EventStoreResult result = await _eventStore.LoadAsync(aggregateId: original.Id);
+        EventStoreResult result = await _eventStore.LoadAsync(
+            aggregateId: original.Id,
+            aggregateType: nameof(Account)
+        );
         Core.Domains.Account.Account restored = Core.Domains.Account.Account.Restore(snapshot: result.Snapshot!);
         restored.LoadEventsFromHistory(history: result.Events);
 

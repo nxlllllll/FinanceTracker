@@ -14,7 +14,11 @@ public sealed class AccountRepository(
 		Guid accountId,
 		CancellationToken ct = default)
 	{
-		EventStoreResult result = await eventStore.LoadAsync(accountId, ct);
+		EventStoreResult result = await eventStore.LoadAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateType,
+			ct: ct
+		);
 		if (result.Events.Count == 0 && result.Snapshot is null)
 			return null;
 		
