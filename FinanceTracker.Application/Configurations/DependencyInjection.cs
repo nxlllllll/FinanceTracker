@@ -23,6 +23,7 @@ using FinanceTracker.Application.RecurringTransactions.Commands.DeactivateRecurr
 using FinanceTracker.Application.Transactions.Authorization;
 using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
 using FinanceTracker.Application.Transactions.Commands.ChangeTransactionDescription;
+using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
 using FinanceTracker.Application.Transfers.Authorization;
@@ -165,11 +166,13 @@ public static class DependencyInjection
 #endregion Category
 		
 #region Transaction
+		services.AddScoped<IAuthorizedHandler<CreateTransactionCommand, Account, Guid>, CreateTransactionHandler>();
 		services.AddScoped<IAuthorizedHandler<ChangeTransactionCategoryCommand, TransactionDto>, ChangeTransactionCategoryHandler>();
 		services.AddScoped<IAuthorizedHandler<ChangeTransactionDescriptionCommand, TransactionDto>, ChangeTransactionDescriptionHandler>();
 		services.AddScoped<IAuthorizedHandler<IncludeTransactionCommand, TransactionDto>, IncludeTransactionHandler>();
 		services.AddScoped<IAuthorizedHandler<ExcludeTransactionCommand, TransactionDto>, ExcludeTransactionHandler>();
 		
+		services.AddScoped<IRequestHandler<CreateTransactionCommand, Guid>, AuthorizedHandlerAdapter<CreateTransactionCommand, Account, Guid>>();
 		services.AddScoped<IRequestHandler<ChangeTransactionCategoryCommand>, AuthorizedHandlerAdapter<ChangeTransactionCategoryCommand, TransactionDto>>();
 		services.AddScoped<IRequestHandler<ChangeTransactionDescriptionCommand>, AuthorizedHandlerAdapter<ChangeTransactionDescriptionCommand, TransactionDto>>();
 		services.AddScoped<IRequestHandler<IncludeTransactionCommand>, AuthorizedHandlerAdapter<IncludeTransactionCommand, TransactionDto>>();

@@ -1,13 +1,11 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Exceptions;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Services.CurrencyConversion;
-using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 
@@ -18,7 +16,7 @@ public sealed class CreateTransactionHandler(
 	IUnitOfWork unitOfWork,
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository
-) : IRequestHandler<CreateTransactionCommand, Guid>
+) : IAuthorizedHandler<CreateTransactionCommand, Account, Guid>
 {
 	private void ApplyDirection(
 		Account account,
@@ -49,16 +47,11 @@ public sealed class CreateTransactionHandler(
 		}
 	}
 	
-	public async Task<Guid> Handle(
+	public async Task<Guid> HandleAsync(
 		CreateTransactionCommand command,
+		Account account,
 		CancellationToken ct = default)
 	{
-		Account account = await accountRepository.GetByIdAsync(accountId: command.AccountId, ct: ct) 
-			?? throw new NotFoundException(message: "Account not found.", id: command.AccountId);
-
-		if (account.UserId != command.UserId)
-			throw new NotFoundException(message: "Account not found.", id: command.AccountId);
-
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: command.Currency,
 			toCurrency: account.Currency,

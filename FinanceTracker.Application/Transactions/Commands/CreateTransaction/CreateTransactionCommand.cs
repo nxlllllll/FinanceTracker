@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Domains.Account;
 using MediatR;
 
 namespace FinanceTracker.Application.Transactions.Commands.CreateTransaction;
@@ -12,4 +13,4 @@ public sealed record CreateTransactionCommand(
     DirectionType Direction,
     string? Description,
     DateTime OccurredAt
-) : IRequest<Guid>;
+) : IRequest<Guid>, IAuthorizable;
