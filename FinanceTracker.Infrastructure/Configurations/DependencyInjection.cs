@@ -9,6 +9,8 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
+using FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
@@ -21,8 +23,6 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.UOW;
-using FinanceTracker.Infrastructure.Database.Workers.Outbox;
-using FinanceTracker.Infrastructure.Database.Workers.RecurringTransaction;
 using FinanceTracker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -67,23 +67,33 @@ public static class DependencyInjection
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		
-		services.AddSingleton<OutboxWorker>();
-		services.AddHostedService(implementationFactory: sp => sp.GetRequiredService<OutboxWorker>());
-		
 		services.AddQuartz(configure: configurator =>
 		{
-			configurator.AddJob<RecurringTransactionJob>(
-				configure: configure => configure.WithIdentity(name: nameof(RecurringTransactionJob), group: "default")
-			);
+		    configurator.AddJob<RecurringTransactionHandlingJob>(
+		        configure: configure => configure.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: "default")
+		    );
 
-			configurator.AddTrigger(configure => configure
-				.ForJob(jobName: nameof(RecurringTransactionJob), jobGroup: "default")
-				.WithIdentity(name: "RecurringTransactionTrigger", group: "default")
-				.WithCronSchedule(
-					cronExpression: "0 0 3 * * ?",
-					schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
-				)
-			);
+		    configurator.AddTrigger(configure => configure
+		        .ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: "default")
+		        .WithIdentity(name: "RecurringTransactionTrigger", group: "default")
+		        .WithCronSchedule(
+		            cronExpression: "0 0 3 * * ?",
+		            schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
+		        )
+		    );
+
+		    configurator.AddJob<OutboxMessagesHandlingJob>(
+		        configure: configure => configure.WithIdentity(name: nameof(OutboxMessagesHandlingJob), group: "default")
+		    );
+
+		    configurator.AddTrigger(configure: configure => configure
+		        .ForJob(jobName: nameof(OutboxMessagesHandlingJob), jobGroup: "default")
+		        .WithIdentity(name: "OutboxWorkerTrigger", group: "default")
+		        .WithSimpleSchedule(action: schedule => schedule
+		            .WithIntervalInSeconds(seconds: 3)
+		            .RepeatForever()
+		        )
+		    );
 		});
 
 		services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);

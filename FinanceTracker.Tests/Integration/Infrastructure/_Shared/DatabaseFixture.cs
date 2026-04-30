@@ -5,7 +5,6 @@ using Testcontainers.PostgreSql;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared;
 
-[NotInParallel]
 public abstract class DatabaseFixture
 {
 	private static PostgreSqlContainer _container = null!;
@@ -14,7 +13,7 @@ public abstract class DatabaseFixture
 	[Before(hookType: Assembly)]
 	public static async Task StartContainerAsync()
 	{
-		_container = new PostgreSqlBuilder(image: "postgres:16").Build();
+		_container = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "150").Build();
 		await _container.StartAsync();
 	}
 
@@ -27,7 +26,7 @@ public abstract class DatabaseFixture
 		}.ConnectionString;
 
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-													.UseNpgsql(connectionString: connectionString).Options;
+			.UseNpgsql(connectionString: connectionString).Options;
 
 		Context = new FinanceTrackerContext(options: options);
 		await Context.Database.EnsureCreatedAsync();

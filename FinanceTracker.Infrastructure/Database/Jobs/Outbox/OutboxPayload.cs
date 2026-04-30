@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Workers.Outbox;
+﻿namespace FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 
 public sealed record OutboxPayload(
 	Guid AggregateId,

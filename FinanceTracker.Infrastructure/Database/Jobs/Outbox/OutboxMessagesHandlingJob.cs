@@ -7,28 +7,26 @@ using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Quartz;
 
-namespace FinanceTracker.Infrastructure.Database.Workers.Outbox;
+namespace FinanceTracker.Infrastructure.Database.Jobs.Outbox;
  
-public sealed class OutboxWorker(
-	IServiceScopeFactory scopeFactory,
-	IEnumerable<IAggregateNotificationFactory> factories,
-	ILogger<OutboxWorker> logger
-) : BackgroundService
+[DisallowConcurrentExecution]
+public sealed class OutboxMessagesHandlingJob(
+	FinanceTrackerContext databaseContext,
+	INotificationDispatcher dispatcher,
+	IEventTypeResolver resolver,
+	IUnitOfWork unitOfWork,
+	IEnumerable<IAggregateNotificationFactory> factories
+) : IJob
 {
-	private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(value: 3);
 	private const int Limit = 20;
 	private const int MaxRetries = 5;
 
 	private readonly FrozenDictionary<string, IAggregateNotificationFactory> _factories =
 		factories.ToFrozenDictionary(keySelector: f => f.AggregateType);
 	
-	private Notification BuildNotification(
-		OutboxMessageEntity message,
-		IEventTypeResolver resolver)
+	private Notification BuildNotification(OutboxMessageEntity message)
 	{
 		OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
 			?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
@@ -44,19 +42,12 @@ public sealed class OutboxWorker(
 		
 		return new Notification(Data: factory.Build(aggregateId: message.AggregateId, events: events));
 	}
- 
-	internal async Task ProcessBatchAsync(CancellationToken ct)
+
+	internal async Task ProcessMessagesAsync(CancellationToken ct)
 	{
-		using IServiceScope scope = scopeFactory.CreateScope();
- 
-		FinanceTrackerContext context = scope.ServiceProvider.GetRequiredService<FinanceTrackerContext>();
-		INotificationDispatcher dispatcher = scope.ServiceProvider.GetRequiredService<INotificationDispatcher>();
-		IEventTypeResolver resolver = scope.ServiceProvider.GetRequiredService<IEventTypeResolver>();
-		IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
- 
 		await unitOfWork.BeginTransactionAsync(ct: ct);
  
-		List<OutboxMessageEntity> messages = await context.WithSkipLocked<OutboxMessageEntity>()
+		List<OutboxMessageEntity> messages = await databaseContext.WithSkipLocked<OutboxMessageEntity>()
 			.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
 			.OrderBy(keySelector: m => m.UpdatedAt)
 			.Take(count: Limit)
@@ -72,50 +63,31 @@ public sealed class OutboxWorker(
 		{
 			try
 			{
-				Notification notification = BuildNotification(
-					message: message,
-					resolver: resolver
-				);
+				Notification notification = BuildNotification(message: message);
  
 				await dispatcher.DispatchAsync(notification: notification, ct: ct);
 				message.ProcessedAt = DateTime.UtcNow;
 			}
-			catch (Exception exception)
+			catch
 			{
 				++message.RetryCount;
 				
 				if (message.RetryCount >= MaxRetries)
 					message.FailedAt = DateTime.UtcNow;
-				logger.LogError(exception: exception, message: "Failed to process outbox message: {messageId}.", message.Id);
 			}
 		}
 
 		try
 		{
-			await context.SaveChangesAsync(cancellationToken: ct);
+			await databaseContext.SaveChangesAsync(cancellationToken: ct);
 			await unitOfWork.CommitAsync(ct: ct);
 		}
-		catch (Exception exception)
+		catch
 		{
 			await unitOfWork.RollbackAsync(ct: ct);
-			logger.LogError(exception: exception, message: "Failed to commit outbox batch.");
 		}
 	}
- 
-	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-	{
-		while (!stoppingToken.IsCancellationRequested)
-		{
-			try
-			{
-				await ProcessBatchAsync(ct: stoppingToken);
-			}
-			catch (Exception exception)
-			{
-				logger.LogError(exception: exception, message: "OutboxWorker error: {Message}.", exception.Message);
-			}
- 
-			await Task.Delay(delay: PollingInterval, cancellationToken: stoppingToken);
-		}
-	}
+	
+	public async Task Execute(IJobExecutionContext context)
+		=> await ProcessMessagesAsync(ct: context.CancellationToken);
 }

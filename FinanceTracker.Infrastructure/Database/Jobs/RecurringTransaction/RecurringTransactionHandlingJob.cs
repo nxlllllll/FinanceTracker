@@ -3,23 +3,20 @@ using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
-using FinanceTracker.Infrastructure.Database.Workers.Outbox;
-using Microsoft.Extensions.Logging;
 using Quartz;
 
-namespace FinanceTracker.Infrastructure.Database.Workers.RecurringTransaction;
+namespace FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 
 [DisallowConcurrentExecution]
-public sealed class RecurringTransactionJob(
+public sealed class RecurringTransactionHandlingJob(
 	IRecurringTransactionReadRepository recurringTransactionReadRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	INotificationDispatcher notificationDispatcher,
-	ILogger<RecurringTransactionJob> logger,
 	IUnitOfWork unitOfWork
 ) : IJob
 {
-    public async Task Execute(IJobExecutionContext context)
-    {
+	internal async Task ProcessTransactionsAsync(CancellationToken ct)
+	{
 		DateTime now = DateTime.UtcNow;
 		DateTime firstDayOfCurrentMonth = new DateTime(
 			year: now.Year,
@@ -35,7 +32,7 @@ public sealed class RecurringTransactionJob(
 			dayOfMonth: now.Day, 
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: firstDayOfCurrentMonth,
-			ct: context.CancellationToken
+			ct: ct
 		);
 
 		if (dueTransactions.Count == 0)
@@ -45,7 +42,7 @@ public sealed class RecurringTransactionJob(
 		{
 			try
 			{
-				await unitOfWork.BeginTransactionAsync(ct: context.CancellationToken);
+				await unitOfWork.BeginTransactionAsync(ct: ct);
 				
 				await notificationDispatcher.DispatchAsync(new Notification(Data: new RecurringTransactionNotification(
 					AccountId: dueTransaction.AccountId,
@@ -56,21 +53,23 @@ public sealed class RecurringTransactionJob(
 					Direction: dueTransaction.Direction,
 					Description: dueTransaction.Description,
 					OccurredAt: now
-				)));
+				)), ct: ct);
 
 				await recurringTransactionWriteRepository.MarkExecutedAsync(
 					recurringTransactionId: dueTransaction.Id,
 					executedAt: now,
-					ct: context.CancellationToken
+					ct: ct
 				);
 				
-				await unitOfWork.CommitAsync(ct: context.CancellationToken);
+				await unitOfWork.CommitAsync(ct: ct);
 			}
-			catch (Exception exception)
+			catch
 			{
-				await unitOfWork.RollbackAsync(ct: context.CancellationToken);
-				logger.LogError(exception: exception, message: "Failed to created recurred transaction: {messageId}.", dueTransaction.Id);
+				await unitOfWork.RollbackAsync(ct: ct);
 			}
 		}
 	}
+	
+    public async Task Execute(IJobExecutionContext context)
+		=> await ProcessTransactionsAsync(ct: context.CancellationToken);
 }

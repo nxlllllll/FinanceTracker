@@ -3,7 +3,7 @@ using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Infrastructure.Database.Entities;
-using FinanceTracker.Infrastructure.Database.Workers.Outbox;
+using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
