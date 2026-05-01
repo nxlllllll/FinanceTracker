@@ -1,10 +1,11 @@
-﻿using FluentValidation;
+﻿using FinanceTracker.Core.Services.DateProvider;
+using FluentValidation;
 
 namespace FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 
 public sealed class CreateTransactionCommandValidator : AbstractValidator<CreateTransactionCommand>
 {
-	public CreateTransactionCommandValidator()
+	public CreateTransactionCommandValidator(IDateProvider dateProvider)
 	{
 		RuleFor(expression: command => command.AccountId)
 			.NotEmpty().WithMessage(errorMessage: "The account cannot be empty.");
@@ -30,7 +31,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 		
 		RuleFor(expression: command => command.OccurredAt) 
 			.NotEmpty().WithMessage(errorMessage: "The transaction date cannot be empty.")
-			.Must(occurredAt => occurredAt <= DateTime.UtcNow)
+			.Must(occurredAt => occurredAt <= dateProvider.UtcNow)
 			.WithMessage(errorMessage: "The transaction date cannot be in the future.");
 	}
 }

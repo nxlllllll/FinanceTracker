@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.Budgets.Commands.CreateBudget;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
@@ -14,7 +15,7 @@ public sealed class CreateBudgetHandlerTests
 	{
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		
-		_handler = new CreateBudgetHandler(budgetWriteRepository: _budgetWriteRepository);
+		_handler = new CreateBudgetHandler(budgetWriteRepository: _budgetWriteRepository, dateProvider: FakeDateProvider.Default);
 	}
 
 	[Test]

@@ -1,12 +1,14 @@
 ﻿using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
 public sealed class AccountWriteRepository(
-	FinanceTrackerContext context
+	FinanceTrackerContext context,
+	IDateProvider dateProvider
 ) : IAccountWriteRepository
 {
 	private async Task ApplyBalanceChangeAsync(
@@ -23,7 +25,7 @@ public sealed class AccountWriteRepository(
 				valueExpression: e => e.LastVersion + 1
 			).SetProperty(
 				propertyExpression: e => e.UpdatedAt,
-				valueExpression: DateTime.UtcNow
+				valueExpression: dateProvider.UtcNow
 			),
 			cancellationToken: ct
 		);
@@ -68,7 +70,7 @@ public sealed class AccountWriteRepository(
 				valueExpression: balance => balance.LastVersion + 1
 			).SetProperty(
 				propertyExpression: e => e.UpdatedAt,
-				valueExpression: DateTime.UtcNow
+				valueExpression: dateProvider.UtcNow
 			),
 			cancellationToken: ct
 		);

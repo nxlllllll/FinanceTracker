@@ -1,11 +1,13 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Services.DateProvider;
 
 namespace FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
 
 public sealed class ArchiveAccountHandler(
-	IAccountRepository accountRepository
+	IAccountRepository accountRepository,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<ArchiveAccountCommand, Account>
 {
 	public async Task HandleAsync(
@@ -13,7 +15,7 @@ public sealed class ArchiveAccountHandler(
 		Account account,
 		CancellationToken ct = default)
 	{
-		account.Archive();
+		account.Archive(occurredAt: dateProvider.UtcNow);
 		await accountRepository.SaveAsync(account: account, ct: ct);
 	}
 }

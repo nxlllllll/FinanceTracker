@@ -7,6 +7,8 @@ namespace FinanceTracker.Tests.Unit.Core;
 
 public sealed class AccountTests
 {
+	private static DateTime Now => FakeDateProvider.Default.UtcNow;
+
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
 	{
@@ -27,7 +29,7 @@ public sealed class AccountTests
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Сбер");
 		await Assert.That(value: account.Type).IsEqualTo(expected: AccountType.Checking);
 		await Assert.That(value: account.Currency).IsEqualTo(expected: "RUB");
-		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000);
+		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000m);
 		await Assert.That(value: account.IsArchived).IsFalse();
 		await Assert.That(value: account.Version).IsEqualTo(expected: 1);
 	}
@@ -45,7 +47,7 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		account.Rename(newName: "Карта Тинькофф");
+		account.Rename(occurredAt: Now, newName: "Карта Тинькофф");
 
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Тинькофф");
 	}
@@ -56,7 +58,7 @@ public sealed class AccountTests
 		Account account = AccountFactory.Create(name: "Карта Сбер");
 		account.ClearEvents();
 		
-		account.Rename(newName: "Карта Сбер");
+		account.Rename(occurredAt: Now, newName: "Карта Сбер");
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
 	}
@@ -66,7 +68,7 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 		
-		await Assert.That(action: () => account.Rename(newName: String.Empty)).Throws<EmptyNameException>();
+		await Assert.That(action: () => account.Rename(occurredAt: Now, newName: String.Empty)).Throws<EmptyNameException>();
 	}
 	
 	[Test]
@@ -74,7 +76,7 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		account.Archive();
+		account.Archive(occurredAt: Now);
 
 		await Assert.That(value: account.IsArchived).IsTrue();
 	}
@@ -84,9 +86,9 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		account.Archive();
+		account.Archive(occurredAt: Now);
 
-		await Assert.That(action: account.Archive).Throws<ArchivingException>();
+		await Assert.That(action: () => account.Archive(occurredAt: Now)).Throws<ArchivingException>();
 	}
 
 	[Test]
@@ -94,8 +96,8 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		account.Archive();
-		account.Unarchive();
+		account.Archive(occurredAt: Now);
+		account.Unarchive(occurredAt: Now);
 
 		await Assert.That(value: account.IsArchived).IsFalse();
 	}
@@ -105,7 +107,7 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 
-		await Assert.That(action: account.Unarchive).Throws<UnarchivingException>();
+		await Assert.That(action: () => account.Unarchive(occurredAt: Now)).Throws<UnarchivingException>();
 	}
 	
 	[Test]
@@ -115,6 +117,7 @@ public sealed class AccountTests
         account.ClearEvents();
 
         account.Debit(
+            occurredAt: Now,
             transactionId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
             amount: 1000m,
@@ -134,6 +137,7 @@ public sealed class AccountTests
         account.ClearEvents();
 
         account.Debit(
+            occurredAt: Now,
             transactionId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
             amount: 100m,
@@ -148,9 +152,10 @@ public sealed class AccountTests
     public async Task Debit_OnArchivedAccount_ShouldThrowArchivingException()
     {
 		Account account = AccountFactory.Create();
-        account.Archive();
+        account.Archive(occurredAt: Now);
 
         await Assert.That(action: () => account.Debit(
+            occurredAt: Now,
             transactionId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
             amount: 100m,
@@ -165,6 +170,7 @@ public sealed class AccountTests
 		Account account = AccountFactory.Create(balance: 10000);
 		
         await Assert.That(action: () => account.Debit(
+            occurredAt: Now,
             transactionId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
             amount: 0m,
@@ -180,6 +186,7 @@ public sealed class AccountTests
 		account.ClearEvents();
 
 		account.Credit(
+			occurredAt: Now,
 			transactionId: Guid.NewGuid(),
 			categoryId: Guid.NewGuid(),
 			amount: 500m,
@@ -196,9 +203,10 @@ public sealed class AccountTests
 	public async Task Credit_OnArchivedAccount_ShouldThrowArchivingException()
 	{
 		Account account = AccountFactory.Create(balance: 0);
-		account.Archive();
+		account.Archive(occurredAt: Now);
 
 		await Assert.That(action: () => account.Credit(
+			occurredAt: Now,
 			transactionId: Guid.NewGuid(),
 			categoryId: Guid.NewGuid(),
 			amount: 100m,
@@ -213,6 +221,7 @@ public sealed class AccountTests
 		Account original = AccountFactory.Create(balance: 10000);
 
 		original.Debit(
+			occurredAt: Now,
 			transactionId: Guid.NewGuid(),
 			categoryId: Guid.NewGuid(),
 			amount: 1000m,
@@ -221,6 +230,7 @@ public sealed class AccountTests
 		);
 
 		original.Credit(
+			occurredAt: Now,
 			transactionId: Guid.NewGuid(),
 			categoryId: Guid.NewGuid(),
 			amount: 500m,
@@ -243,6 +253,7 @@ public sealed class AccountTests
 	    account.ClearEvents();
 
 	    account.AdjustBalance(
+	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
 	        sourceType: "Transaction",
 	        direction: DirectionType.Debit,
@@ -263,6 +274,7 @@ public sealed class AccountTests
 		account.ClearEvents();
 
 	    account.AdjustBalance(
+	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
 	        sourceType: "Transaction",
 	        direction: DirectionType.Credit,
@@ -281,6 +293,7 @@ public sealed class AccountTests
 		account.ClearEvents();
 
 	    account.AdjustBalance(
+	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
 	        sourceType: "Transaction",
 	        direction: DirectionType.Debit,
@@ -299,6 +312,7 @@ public sealed class AccountTests
 	    account.ClearEvents();
 
 	    account.AdjustBalance(
+	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
 	        sourceType: "Transaction",
 	        direction: DirectionType.Debit,
@@ -318,6 +332,7 @@ public sealed class AccountTests
 		account.ClearEvents();
 
 		account.DebitTransfer(
+			occurredAt: Now,
 			transferId: Guid.NewGuid(),
 			toAccountId: Guid.NewGuid(),
 			amount: 1000m,
@@ -337,6 +352,7 @@ public sealed class AccountTests
 		account.ClearEvents();
 
 		account.CreditTransfer(
+			occurredAt: Now,
 			transferId: Guid.NewGuid(),
 			fromAccountId: Guid.NewGuid(),
 			amount: 1000m,

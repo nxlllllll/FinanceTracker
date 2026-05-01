@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Repositories.User;
+﻿using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
@@ -22,6 +23,7 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
     {
         await _currencyBuilder.CreateAsync(code: currencyCode);
         Core.Domains.User.User user = Core.Domains.User.User.Register(
+            createdAt: FakeDateProvider.Default.UtcNow,
             email: $"{Guid.NewGuid()}@test.com",
             passwordHash: "hash",
             baseCurrency: currencyCode

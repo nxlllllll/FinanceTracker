@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Queries.GetTotalsByPeriod;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.CategoryTotals;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -30,14 +31,14 @@ public sealed class GetTotalsByPeriodHandlerTests
                 Period: period,
                 Total: 1000m,
                 Count: 1,
-                UpdatedAt: DateTime.UtcNow
+                UpdatedAt: FakeDateProvider.Default.UtcNow
             ),
             new CategoryTotalDto(
                 CategoryId: Guid.NewGuid(),
                 Period: period,
                 Total: 2000m,
                 Count: 2,
-                UpdatedAt: DateTime.UtcNow
+                UpdatedAt: FakeDateProvider.Default.UtcNow
             ),
         ];
 

@@ -1,12 +1,13 @@
 ﻿using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 public class BudgetBuilder(FinanceTrackerContext context)
 {
-	private readonly BudgetWriteRepository _writeRepository = new BudgetWriteRepository(context: context);
+	private readonly BudgetWriteRepository _writeRepository = new BudgetWriteRepository(context: context, dateProvider: FakeDateProvider.Default);
 
 	public async Task<Guid> CreateAsync(
 		Guid userId,
@@ -17,6 +18,7 @@ public class BudgetBuilder(FinanceTrackerContext context)
 		DateOnly? dateTo = null)
 	{
 		Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			categoryId: categoryId,
 			amount: new Money(amount: amount, currency: currency),

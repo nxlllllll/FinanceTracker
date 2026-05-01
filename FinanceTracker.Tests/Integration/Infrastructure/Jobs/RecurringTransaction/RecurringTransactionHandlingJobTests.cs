@@ -1,3 +1,4 @@
+﻿using FinanceTracker.Tests.Unit.Helpers;
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
@@ -29,9 +30,10 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
 
         _job = new RecurringTransactionHandlingJob(
             recurringTransactionReadRepository: new RecurringTransactionReadRepository(context: Context),
-            recurringTransactionWriteRepository: new RecurringTransactionWriteRepository(context: Context),
+            recurringTransactionWriteRepository: new RecurringTransactionWriteRepository(context: Context, dateProvider: FakeDateProvider.Default),
             notificationDispatcher: _dispatcher,
-            unitOfWork: new EFUnitOfWork(context: Context)
+            unitOfWork: new EFUnitOfWork(context: Context),
+            dateProvider: new FinanceTracker.Infrastructure.Services.DateProvider()
         );
     }
 
@@ -107,7 +109,7 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
         await Context.RecurringTransactions.Where(predicate: r => r.Id == id)
             .ExecuteUpdateAsync(setPropertyCalls: builder => builder.SetProperty(
                 propertyExpression: r => r.LastExecutedAt,
-                valueExpression: DateTime.UtcNow.AddHours(value: -1)
+                valueExpression: new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 12, 0, 0, DateTimeKind.Utc)
             ));
 
         await _job.ProcessTransactionsAsync(ct: CancellationToken.None);

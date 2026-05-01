@@ -6,7 +6,7 @@ namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transfer;
 
 public sealed class CreateTransferCommandValidatorTests
 {
-    private readonly CreateTransferCommandValidator _validator = new CreateTransferCommandValidator();
+    private readonly CreateTransferCommandValidator _validator = new CreateTransferCommandValidator(dateProvider: FakeDateProvider.Default);
 
     [Test]
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
@@ -95,7 +95,7 @@ public sealed class CreateTransferCommandValidatorTests
             CurrencyTo: "RUB",
             Amount: 500m,
             Description: null,
-            OccurredAt: DateTime.UtcNow.AddDays(value: 1)
+            OccurredAt: FakeDateProvider.Default.UtcNow.AddDays(value: 1)
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);

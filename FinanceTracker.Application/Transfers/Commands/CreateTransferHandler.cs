@@ -5,6 +5,7 @@ using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.DateProvider;
 
 namespace FinanceTracker.Application.Transfers.Commands;
 
@@ -12,7 +13,8 @@ public sealed class CreateTransferHandler(
 	IAccountRepository accountRepository,
 	ITransferWriteRepository transferWriteRepository,
 	ICurrencyConversionService currencyConversionService,
-	IUnitOfWork unitOfWork
+	IUnitOfWork unitOfWork,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<CreateTransferCommand, (Account, Account), Guid>
 {
 	public async Task<Guid> HandleAsync(
@@ -44,6 +46,7 @@ public sealed class CreateTransferHandler(
 		);
 
 		fromAccount.DebitTransfer(
+			occurredAt: dateProvider.UtcNow,
 			transferId: transfer.Id,
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,
@@ -52,6 +55,7 @@ public sealed class CreateTransferHandler(
 		);
 
 		toAccount.CreditTransfer(
+			occurredAt: dateProvider.UtcNow,
 			transferId: transfer.Id,
 			fromAccountId: command.FromAccountId,
 			amount: command.Amount,

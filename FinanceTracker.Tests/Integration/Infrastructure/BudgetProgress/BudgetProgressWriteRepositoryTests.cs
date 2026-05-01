@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Services.CurrencyConversion;
+﻿using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
@@ -29,7 +30,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 
         _writeRepository = new BudgetProgressWriteRepository(
             context: Context,
-            currencyConversionService: _currencyConversionService
+            currencyConversionService: _currencyConversionService,
+            dateProvider: FakeDateProvider.Default
         );
         _userBuilder = new UserBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);

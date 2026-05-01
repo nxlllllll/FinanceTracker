@@ -7,6 +7,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.UOW;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 
@@ -30,7 +31,8 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
         _accountRepository = new AccountRepository(
             eventStore: new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
                 context: Context,
-                eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly)
+                eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly),
+                dateProvider: FakeDateProvider.Default
             )
         );
         _currencyBuilder = new CurrencyBuilder(context: Context);
@@ -47,7 +49,8 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
             dispatcher: dispatcher ?? _dispatcher,
             resolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly),
             unitOfWork: new EFUnitOfWork(context: Context),
-            factories: Factories
+            factories: Factories,
+            dateProvider: FakeDateProvider.Default
         );
     }
 
@@ -67,6 +70,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
+            occurredAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             name: "Карта Сбер",
             type: accountType,

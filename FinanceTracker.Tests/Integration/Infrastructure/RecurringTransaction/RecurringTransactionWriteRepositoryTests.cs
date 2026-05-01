@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
@@ -18,7 +19,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupRepositories()
 	{
-		_writeRepository = new RecurringTransactionWriteRepository(context: Context);
+		_writeRepository = new RecurringTransactionWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
 		_userBuilder = new UserBuilder(context: Context);
 		_accountBuilder = new AccountBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);
@@ -32,6 +33,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
@@ -39,6 +41,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: "Monthly rent"
+		
 		);
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
@@ -61,6 +64,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
@@ -68,6 +72,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
+		
 		);
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
@@ -90,6 +95,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		await new CurrencyBuilder(context: Context).CreateAsync(code: "USD");
 		
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
@@ -97,6 +103,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
+		
 		);
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
@@ -117,6 +124,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
@@ -124,6 +132,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
+		
 		);
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
@@ -144,6 +153,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
@@ -151,6 +161,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
+		
 		);
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
@@ -171,6 +182,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
@@ -178,6 +190,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
+		
 		);
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
@@ -199,6 +212,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
@@ -206,6 +220,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
+		
 		);
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
@@ -227,24 +242,28 @@ public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWit
     Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
     Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
-        userId: userId,
-        accountId: accountId,
-        categoryId: categoryId,
-		amount: new Money(amount: 5000m, currency: "RUB"),
-        direction: DirectionType.Debit,
-        dayOfMonth: 15,
-        description: null
-    );
+			createdAt: FakeDateProvider.Default.UtcNow,
+			userId: userId,
+			accountId: accountId,
+			categoryId: categoryId,
+			amount: new Money(amount: 5000m, currency: "RUB"),
+			direction: DirectionType.Debit,
+			dayOfMonth: 15,
+			description: null
+    
+		);
 
     Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction2 = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
-        userId: userId,
-        accountId: accountId,
-        categoryId: categoryId,
-		amount: new Money(amount: 3000m, currency: "RUB"),
-        direction: DirectionType.Debit,
-        dayOfMonth: 20,
-        description: null
-    );
+			createdAt: FakeDateProvider.Default.UtcNow,
+			userId: userId,
+			accountId: accountId,
+			categoryId: categoryId,
+			amount: new Money(amount: 3000m, currency: "RUB"),
+			direction: DirectionType.Debit,
+			dayOfMonth: 20,
+			description: null
+    
+		);
 
     await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
     await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction2); 

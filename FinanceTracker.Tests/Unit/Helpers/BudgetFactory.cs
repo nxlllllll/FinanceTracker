@@ -11,6 +11,7 @@ public static class BudgetFactory
 		Guid? categoryId = null)
 	{
 		return Budget.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
 			amount: new Money(amount: 10000m, currency: "RUB"),
@@ -32,7 +33,7 @@ public static class BudgetFactory
 			Spent: spent,
 			Remaining: remaining,
 			Percentage: percentage,
-			UpdatedAt: DateTime.UtcNow
+			UpdatedAt: FakeDateProvider.Default.UtcNow
 		);
 	}
 }

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
@@ -16,7 +17,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
-        _writeRepository = new BudgetWriteRepository(context: Context);
+        _writeRepository = new BudgetWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
         _userBuilder = new UserBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);
     }
@@ -28,6 +29,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
    
        Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
+           createdAt: FakeDateProvider.Default.UtcNow,
            userId: userId,
            categoryId: categoryId,
            amount: new Money(amount: 10000m, currency: "RUB"),
@@ -54,6 +56,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
         Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
+            createdAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             categoryId: categoryId,
             amount: new Money(amount: 10000m, currency: "RUB"),
@@ -82,7 +85,8 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
         Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
-            userId: userId,
+            createdAt: FakeDateProvider.Default.UtcNow,
+           userId: userId,
             categoryId: categoryId,
             amount: new Money(amount: 10000m, currency: "RUB"),
             from: new DateOnly(year: 2025, month: 1, day: 1),

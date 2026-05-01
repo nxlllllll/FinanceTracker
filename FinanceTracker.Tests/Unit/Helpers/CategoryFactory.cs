@@ -12,6 +12,7 @@ public static class CategoryFactory
 		bool archived = false)
 	{
 		Category category = Category.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			name: name,
 			type: type,

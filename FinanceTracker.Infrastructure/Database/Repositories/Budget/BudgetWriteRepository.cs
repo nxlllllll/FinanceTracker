@@ -1,11 +1,13 @@
 ﻿using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Budget;
 
 public sealed class BudgetWriteRepository(
-	FinanceTrackerContext context
+	FinanceTrackerContext context,
+	IDateProvider dateProvider
 ) : IBudgetWriteRepository
 {
 	public async Task CreateAsync(
@@ -21,14 +23,14 @@ public sealed class BudgetWriteRepository(
 			Currency = budget.Amount.Currency,
 			From = budget.From,
 			To = budget.To,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = dateProvider.UtcNow
 		}, cancellationToken: ct);
 
 		await context.BudgetProgresses.AddAsync(entity: new BudgetProgressEntity()
 		{
 			BudgetId = budget.Id,
 			Spent = 0,
-			UpdatedAt = DateTime.UtcNow
+			UpdatedAt = dateProvider.UtcNow
 		}, cancellationToken: ct);
 		
 		await context.SaveChangesAsync(cancellationToken: ct);

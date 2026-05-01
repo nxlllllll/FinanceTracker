@@ -21,6 +21,7 @@ public sealed class RecurringTransaction
     private RecurringTransaction() { }
 
     public static RecurringTransaction Create(
+        DateTime createdAt,
         Guid userId,
         Guid accountId,
         Guid categoryId,
@@ -44,7 +45,7 @@ public sealed class RecurringTransaction
             Description = description,
             IsActive = true,
             LastExecutedAt = null,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = createdAt
         };
     }
 
@@ -107,6 +108,6 @@ public sealed class RecurringTransaction
         DayOfMonth = dayOfMonth;
     }
     
-    public void MarkExecuted()
-        => LastExecutedAt = DateTime.UtcNow;
+    public void MarkExecuted(DateTime executedAt)
+        => LastExecutedAt = executedAt;
 }

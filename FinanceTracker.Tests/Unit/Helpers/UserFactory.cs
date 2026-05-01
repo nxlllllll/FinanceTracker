@@ -10,6 +10,7 @@ public static class UserFactory
 		string baseCurrencyCode = "RUB")
 	{
 		return User.Register(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			email: email,
 			passwordHash: passwordHash,
 			baseCurrency: baseCurrencyCode

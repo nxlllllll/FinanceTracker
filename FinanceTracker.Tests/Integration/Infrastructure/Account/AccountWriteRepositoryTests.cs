@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -16,7 +17,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
-        _writeRepository = new AccountWriteRepository(context: Context);
+        _writeRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
         _currencyBuilder = new CurrencyBuilder(context: Context);
         _accountTypeBuilder = new AccountTypeBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
@@ -24,7 +25,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     
     [Before(hookType: Test)]
     public void SetupRepository()
-        => _writeRepository = new AccountWriteRepository(context: Context);
+        => _writeRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
 
     private async Task<AccountCreated> CreateAccountAsync()
     {

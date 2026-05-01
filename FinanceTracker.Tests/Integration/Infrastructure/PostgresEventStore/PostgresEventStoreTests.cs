@@ -4,6 +4,7 @@ using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.PostgresEventStore;
@@ -19,7 +20,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 .UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
                 .Options
             ),
-            eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly)
+            eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly),
+            dateProvider: FakeDateProvider.Default
         );
     }
     
@@ -157,6 +159,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     public async Task SaveAsync_WhenVersionReaches50_ShouldCreateSnapshot()
     {
         Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
+            occurredAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.NewGuid(),
             name: "Тест",
             type: Core.Domains.Account.AccountType.Checking,
@@ -176,6 +179,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         for (int i = 0; i < 49; i++)
         {
             account.Debit(
+                occurredAt: FakeDateProvider.Default.UtcNow,
                 transactionId: Guid.NewGuid(),
                 categoryId: Guid.NewGuid(),
                 amount: 1m,
@@ -207,6 +211,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     public async Task LoadAsync_WithSnapshot_ShouldRestoreCorrectState()
     {
         Core.Domains.Account.Account original = Core.Domains.Account.Account.Create(
+            occurredAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.NewGuid(),
             name: "Тест снапшота",
             type: Core.Domains.Account.AccountType.Savings,
@@ -226,6 +231,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         for (int i = 0; i < 49; i++)
         {
             original.Credit(
+                occurredAt: FakeDateProvider.Default.UtcNow,
                 transactionId: Guid.NewGuid(),
                 categoryId: Guid.NewGuid(),
                 amount: 10m,

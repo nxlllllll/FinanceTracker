@@ -27,7 +27,8 @@ public sealed class CreateTransferHandlerTests
 			accountRepository: _accountRepository,
 			transferWriteRepository: _transferWriteRepository,
 			currencyConversionService: _currencyConversionService,
-			unitOfWork: _unitOfWork
+			unitOfWork: _unitOfWork,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 

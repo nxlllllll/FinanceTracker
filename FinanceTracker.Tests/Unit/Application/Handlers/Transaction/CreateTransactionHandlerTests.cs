@@ -38,7 +38,8 @@ public sealed class CreateTransactionHandlerTests
             currencyConversionService: _currencyConversionService,
             unitOfWork: _unitOfWork,
             categoryTotalWriteRepository: _categoryTotalWriteRepository,
-            budgetProgressWriteRepository: _budgetProgressWriteRepository
+            budgetProgressWriteRepository: _budgetProgressWriteRepository,
+            dateProvider: FakeDateProvider.Default
         );
     }
 
@@ -173,8 +174,8 @@ public sealed class CreateTransactionHandlerTests
         await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).AddAsync(
             userId: command.UserId,
             categoryId: command.CategoryId,
-			currency: command.Currency,
             amount: command.Amount,
+            currency: command.Currency,
             occurredAt: command.OccurredAt,
             ct: Arg.Any<CancellationToken>()
         );

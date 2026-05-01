@@ -19,7 +19,8 @@ public sealed class RegisterUserHandlerTests
         _userWriteRepository = Substitute.For<IUserWriteRepository>();
         _handler = new RegisterUserHandler(
             userWriteRepository: _userWriteRepository,
-            userReadRepository: _userReadRepository
+            userReadRepository: _userReadRepository,
+            dateProvider: FakeDateProvider.Default
         );
     }
 

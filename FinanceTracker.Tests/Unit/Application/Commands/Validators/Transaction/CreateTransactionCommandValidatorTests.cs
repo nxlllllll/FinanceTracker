@@ -7,7 +7,7 @@ namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;
 
 public sealed class CreateTransactionCommandValidatorTests
 {
-	private readonly CreateTransactionCommandValidator _validator = new CreateTransactionCommandValidator();
+	private readonly CreateTransactionCommandValidator _validator = new CreateTransactionCommandValidator(dateProvider: FakeDateProvider.Default);
 
     [Test]
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
@@ -43,7 +43,7 @@ public sealed class CreateTransactionCommandValidatorTests
             Currency: "RUB",
             Direction: DirectionType.Debit,
             Description: null,
-            OccurredAt: DateTime.UtcNow.AddDays(value: 1)
+            OccurredAt: FakeDateProvider.Default.UtcNow.AddDays(value: 1)
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);

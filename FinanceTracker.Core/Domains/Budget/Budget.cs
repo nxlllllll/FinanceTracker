@@ -16,6 +16,7 @@ public sealed class Budget
     private Budget() { }
 
     public static Budget Create(
+		DateTime createdAt,
         Guid userId,
         Guid categoryId,
         Money amount,
@@ -33,7 +34,7 @@ public sealed class Budget
             Amount = amount,
             From = from,
             To = to,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = createdAt
         };
     }
 

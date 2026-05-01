@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Category;
 
@@ -23,6 +24,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
         Guid? parentId = null)
     {
         Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
+            createdAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             name: "Еда",
             type: type,

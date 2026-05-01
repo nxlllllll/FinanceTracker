@@ -18,6 +18,7 @@ public static class RecurringTransactionFactory
 		bool isActive = true)
 	{
 		RecurringTransaction recurringTransaction = RecurringTransaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			accountId: accountId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),

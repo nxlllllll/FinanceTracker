@@ -24,6 +24,14 @@ public readonly record struct Money
 		Currency = currency;
 	}
  
+	public static Money Positive(decimal amount, Currency currency)
+	{
+		if (amount <= 0)
+			throw new InvalidAmountException(message: "Amount must be greater than zero.");
+ 
+		return new Money(amount, currency);
+	}
+	
 	public static Money operator +(Money left, decimal right)
 		=> new Money(amount: left.Amount + right, currency: left.Currency, _: false);
 	

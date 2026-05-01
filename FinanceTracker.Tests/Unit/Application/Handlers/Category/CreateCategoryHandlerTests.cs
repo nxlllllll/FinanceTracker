@@ -1,3 +1,4 @@
+﻿using FinanceTracker.Tests.Unit.Helpers;
 ﻿using FinanceTracker.Application.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
@@ -14,7 +15,7 @@ public sealed class CreateCategoryHandlerTests
 	public void Setup()
 	{
 		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
-		_handler = new CreateCategoryHandler(categoryWriteRepository: _categoryWriteRepository);
+		_handler = new CreateCategoryHandler(categoryWriteRepository: _categoryWriteRepository, dateProvider: FakeDateProvider.Default);
 	}
 
 	[Test]

@@ -3,6 +3,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Extensions;
@@ -17,7 +18,8 @@ public sealed class OutboxMessagesHandlingJob(
 	INotificationDispatcher dispatcher,
 	IEventTypeResolver resolver,
 	IUnitOfWork unitOfWork,
-	IEnumerable<IAggregateNotificationFactory> factories
+	IEnumerable<IAggregateNotificationFactory> factories,
+	IDateProvider dateProvider
 ) : IJob
 {
 	private const int Limit = 20;
@@ -58,7 +60,7 @@ public sealed class OutboxMessagesHandlingJob(
 			await unitOfWork.RollbackAsync(ct: ct);
 			return;
 		}
- 
+		
 		foreach (OutboxMessageEntity message in messages)
 		{
 			try
@@ -66,14 +68,14 @@ public sealed class OutboxMessagesHandlingJob(
 				Notification notification = BuildNotification(message: message);
  
 				await dispatcher.DispatchAsync(notification: notification, ct: ct);
-				message.ProcessedAt = DateTime.UtcNow;
+				message.ProcessedAt = dateProvider.UtcNow;
 			}
 			catch
 			{
 				++message.RetryCount;
 				
 				if (message.RetryCount >= MaxRetries)
-					message.FailedAt = DateTime.UtcNow;
+					message.FailedAt = dateProvider.UtcNow;
 			}
 		}
 

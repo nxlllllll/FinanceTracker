@@ -1,3 +1,4 @@
+﻿using FinanceTracker.Tests.Unit.Helpers;
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
@@ -24,7 +25,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     {
         _readRepository = new TransactionReadRepository(context: Context);
         _writeRepository = new TransactionWriteRepository(context: Context);
-        _accountWriteRepository = new AccountWriteRepository(context: Context);
+        _accountWriteRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
         _currencyBuilder = new CurrencyBuilder(context: Context);
         _accountTypeBuilder = new AccountTypeBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);

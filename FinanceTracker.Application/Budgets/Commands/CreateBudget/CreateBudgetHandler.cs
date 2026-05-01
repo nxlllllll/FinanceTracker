@@ -1,12 +1,14 @@
 ﻿using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.Budgets.Commands.CreateBudget;
 
 public sealed class CreateBudgetHandler(
-	IBudgetWriteRepository budgetWriteRepository
+	IBudgetWriteRepository budgetWriteRepository,
+	IDateProvider dateProvider
 ) : IRequestHandler<CreateBudgetCommand, Guid>
 {
 	public async Task<Guid> Handle(
@@ -14,6 +16,7 @@ public sealed class CreateBudgetHandler(
 		CancellationToken ct = default)
 	{
 		Budget budget = Budget.Create(
+			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
 			categoryId: command.CategoryId,
 			amount: new Money(amount: command.Amount, currency: command.Currency),

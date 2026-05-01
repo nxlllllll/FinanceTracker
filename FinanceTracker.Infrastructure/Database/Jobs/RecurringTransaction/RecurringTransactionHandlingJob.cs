@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Services.DateProvider;
 using Quartz;
 
 namespace FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
@@ -11,12 +12,13 @@ public sealed class RecurringTransactionHandlingJob(
 	IRecurringTransactionReadRepository recurringTransactionReadRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	INotificationDispatcher notificationDispatcher,
-	IUnitOfWork unitOfWork
+	IUnitOfWork unitOfWork,
+	IDateProvider dateProvider
 ) : IJob
 {
 	internal async Task ProcessTransactionsAsync(CancellationToken ct)
 	{
-		DateTime now = DateTime.UtcNow;
+		DateTime now = dateProvider.UtcNow;
 		DateTime firstDayOfCurrentMonth = new DateTime(
 			year: now.Year,
 			month: now.Month,

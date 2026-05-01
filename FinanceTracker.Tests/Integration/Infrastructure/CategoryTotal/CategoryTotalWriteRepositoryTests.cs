@@ -7,6 +7,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Services;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.CategoryTotal;
@@ -31,7 +32,8 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
         _writeRepository = new CategoryTotalWriteRepository(
             context: Context,
             userReadRepository:  _userReadRepository,
-            currencyConversionService: _currencyConversionService
+            currencyConversionService: _currencyConversionService,
+            dateProvider: FakeDateProvider.Default
         );
         _userBuilder = new UserBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);

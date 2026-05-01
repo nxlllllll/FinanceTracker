@@ -15,6 +15,7 @@ public sealed class Category
 	private Category() { }
 
 	public static Category Create(
+		DateTime createdAt,
 		Guid userId,
 		string name,
 		CategoryType type,
@@ -31,7 +32,7 @@ public sealed class Category
 			Name = name,
 			Type = type,
 			IsArchived = false,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = createdAt
 		};
 	}
 

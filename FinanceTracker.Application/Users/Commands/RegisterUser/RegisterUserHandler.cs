@@ -1,13 +1,15 @@
 ﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
 
 namespace FinanceTracker.Application.Users.Commands.RegisterUser;
 
 public sealed class RegisterUserHandler(
 	IUserReadRepository userReadRepository,
-	IUserWriteRepository userWriteRepository
+	IUserWriteRepository userWriteRepository,
+	IDateProvider dateProvider
 ) : IRequestHandler<RegisterUserCommand, Guid>
 {
 	public async Task<Guid> Handle(
@@ -19,6 +21,7 @@ public sealed class RegisterUserHandler(
 			throw new EmailException(message: "The user with this email address already exists.", email: command.Email);
 
 		User user = User.Register(
+			createdAt: dateProvider.UtcNow,
 			email: command.Email,
 			passwordHash: command.PasswordHash,
 			baseCurrency: command.BaseCurrencyCode

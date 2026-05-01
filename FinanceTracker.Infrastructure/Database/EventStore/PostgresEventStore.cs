@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,8 @@ namespace FinanceTracker.Infrastructure.Database.EventStore;
 
 public sealed class PostgresEventStore(
 	FinanceTrackerContext context,
-	IEventTypeResolver eventTypeResolver
+	IEventTypeResolver eventTypeResolver,
+	IDateProvider dateProvider
 ) : IEventStore
 {
 	private const int SnapshotThreshold = 50;
@@ -20,7 +22,8 @@ public sealed class PostgresEventStore(
 		Guid aggregateId,
 		string aggregateType,
 		List<IEvent> eventList,
-		int expectedVersion)
+		int expectedVersion,
+		DateTime now)
 	{
 		int currentVersion = expectedVersion;
 		List<EventEntity> entities = new List<EventEntity>(capacity: eventList.Count);
@@ -40,7 +43,7 @@ public sealed class PostgresEventStore(
 				Version = ++currentVersion,
 				Payload = serialized,
 				OccurredAt = @event.OccurredAt,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = now
 			});
 
 			envelopes.Add(item: new OutboxEventEnvelope(
@@ -75,7 +78,7 @@ public sealed class PostgresEventStore(
 			AggregateType = aggregateType,
 			Version = newVersion,
 			State = snapshot,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = dateProvider.UtcNow
 		}, cancellationToken: ct);
 	}
 	
@@ -95,7 +98,8 @@ public sealed class PostgresEventStore(
 			aggregateId: aggregateId,
 			aggregateType: aggregateType,
 			eventList: eventList,
-			expectedVersion: expectedVersion
+			expectedVersion: expectedVersion,
+			now: dateProvider.UtcNow
 		);
 
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
@@ -108,7 +112,7 @@ public sealed class PostgresEventStore(
 					AggregateId: aggregateId,
 					Events: envelopes
 				)),
-				UpdatedAt = DateTime.UtcNow,
+				UpdatedAt = dateProvider.UtcNow,
 				ProcessedAt = null
 			},
 			cancellationToken: ct

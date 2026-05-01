@@ -14,20 +14,21 @@ public sealed class User
 	private User() { }
 
 	public static User Register(
+		DateTime createdAt,
 		Email email,
 		string passwordHash,
 		Currency baseCurrency)
 	{
 		if (String.IsNullOrWhiteSpace(value: passwordHash))
-			throw new PasswordException(message: "The password hash cannot be empty.");
-
+			throw new PasswordException("The password hash cannot be empty.");
+ 
 		return new User()
 		{
 			Id = Guid.NewGuid(),
 			Email = email,
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrency,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = createdAt
 		};
 	}
 

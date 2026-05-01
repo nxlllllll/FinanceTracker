@@ -21,7 +21,7 @@ public static class CreateTransferCommandFactory
 			CurrencyTo: currencyTo,
 			Amount: amount,
 			Description: description,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 	}
 }

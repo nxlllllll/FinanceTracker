@@ -1,11 +1,13 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
 
 namespace FinanceTracker.Application.Categories.Commands.CreateCategory;
 
 public sealed class CreateCategoryHandler(
-	ICategoryWriteRepository categoryWriteRepository
+	ICategoryWriteRepository categoryWriteRepository,
+	IDateProvider dateProvider
 ) : IRequestHandler<CreateCategoryCommand>
 {
 	public async Task Handle(
@@ -13,6 +15,7 @@ public sealed class CreateCategoryHandler(
 		CancellationToken ct = default)
 	{
 		Category category = Category.Create(
+			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
 			name: command.Name,
 			parentId: command.ParentId,

@@ -21,6 +21,7 @@ public sealed class Transaction
     private Transaction() { }
 
     public static Transaction Create(
+		DateTime occurredAt,
         Guid accountId,
         Guid userId,
         Guid categoryId,
@@ -42,7 +43,7 @@ public sealed class Transaction
             IsExcluded = false,
             IsRatePending = isRatePending,
             Description = description,
-            OccurredAt = DateTime.UtcNow
+            OccurredAt = occurredAt
         };
     }
 

@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Categories.Queries.GetTotal;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.CategoryTotals;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -29,7 +30,7 @@ public sealed class GetTotalHandlerTests
             Period: period,
             Total: 5000m,
             Count: 3,
-            UpdatedAt: DateTime.UtcNow
+            UpdatedAt: FakeDateProvider.Default.UtcNow
         );
 
         _categoryTotalReadRepository.GetByCategoryAsync(

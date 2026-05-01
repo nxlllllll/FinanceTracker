@@ -11,6 +11,7 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
@@ -70,6 +71,7 @@ public static class DependencyInjection
 		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();
 		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
+		services.AddScoped<IDateProvider, DateProvider>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		

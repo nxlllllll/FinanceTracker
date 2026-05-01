@@ -15,7 +15,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	public void Setup()
 	{
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
-		_handler = new CreateRecurringTransactionHandler(recurringTransactionWriteRepository: _writeRepository);
+		_handler = new CreateRecurringTransactionHandler(recurringTransactionWriteRepository: _writeRepository, dateProvider: FakeDateProvider.Default);
 	}
 
 	[Test]
@@ -36,6 +36,19 @@ public sealed class CreateRecurringTransactionHandlerTests
 		);
 
 		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenAmountIsZero_ShouldThrowInvalidAmountException()
+	{
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: 0m);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId);
+
+		await Assert.That(async () => await _handler.HandleAsync(
+			command: command,
+			account: account,
+			ct: CancellationToken.None
+		)).Throws<InvalidAmountException>();
 	}
 
 	[Test]

@@ -15,7 +15,7 @@ public sealed class ArchiveAccountHandlerTests
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_handler = new ArchiveAccountHandler(accountRepository: _accountRepository);
+		_handler = new ArchiveAccountHandler(accountRepository: _accountRepository, dateProvider: FakeDateProvider.Default);
 	}
 
 	[Test]

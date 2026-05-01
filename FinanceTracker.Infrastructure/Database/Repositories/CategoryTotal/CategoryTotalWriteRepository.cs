@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,8 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 public sealed class CategoryTotalWriteRepository(
 	FinanceTrackerContext context,
 	IUserReadRepository userReadRepository,
-	ICurrencyConversionService currencyConversionService
+	ICurrencyConversionService currencyConversionService,
+	IDateProvider dateProvider
 ) : ICategoryTotalWriteRepository
 {
 	private async Task ApplyDeltaAsync(
@@ -50,14 +52,14 @@ public sealed class CategoryTotalWriteRepository(
 				Period = period,
 				Total = amount * conversion.Rate * delta,
 				TransactionCount = delta,
-				UpdatedAt = DateTime.UtcNow
+				UpdatedAt = dateProvider.UtcNow
 			}, cancellationToken: ct);
 		}
 		else
 		{
 			existing.Total += amount * conversion.Rate * delta;
 			existing.TransactionCount += delta;
-			existing.UpdatedAt = DateTime.UtcNow;
+			existing.UpdatedAt = dateProvider.UtcNow;
 		}
 
 		await context.SaveChangesAsync(cancellationToken: ct);

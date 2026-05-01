@@ -7,6 +7,7 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Application.Transactions.Commands.CreateTransaction;
@@ -17,7 +18,8 @@ public sealed class CreateTransactionHandler(
 	ICurrencyConversionService currencyConversionService,
 	IUnitOfWork unitOfWork,
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
-	IBudgetProgressWriteRepository budgetProgressWriteRepository
+	IBudgetProgressWriteRepository budgetProgressWriteRepository,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<CreateTransactionCommand, Account, Guid>
 {
 	private void ApplyDirection(
@@ -30,6 +32,7 @@ public sealed class CreateTransactionHandler(
 		{
 			case DirectionType.Debit:
 				account.Debit(
+					occurredAt: dateProvider.UtcNow,
 					transactionId: transactionId, 
 					categoryId: command.CategoryId,
 					amount: command.Amount,
@@ -38,6 +41,7 @@ public sealed class CreateTransactionHandler(
 				); break;
 			case DirectionType.Credit: 
 				account.Credit(
+					occurredAt: dateProvider.UtcNow,
 					transactionId: transactionId, 
 					categoryId: command.CategoryId,
 					amount: command.Amount,
@@ -62,6 +66,7 @@ public sealed class CreateTransactionHandler(
 		);
 
 		Transaction transaction = Transaction.Create(
+			occurredAt: dateProvider.UtcNow,
 			accountId: command.AccountId,
 			userId: command.UserId,
 			categoryId: command.CategoryId,

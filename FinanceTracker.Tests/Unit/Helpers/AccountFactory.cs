@@ -13,6 +13,7 @@ public static class AccountFactory
 		decimal balance = 1000m)
 	{
 		return Account.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			name: name,
 			type: type,
@@ -31,7 +32,7 @@ public static class AccountFactory
 
 		if (archived)
 		{
-			account.Archive();
+			account.Archive(occurredAt: FakeDateProvider.Default.UtcNow);
 			account.ClearEvents();
 		}
 
@@ -55,7 +56,7 @@ public static class AccountFactory
 			Currency: currency,
 			Balance: balance,
 			IsArchived: isArchived,
-			CreatedAt: DateTime.UtcNow
+			CreatedAt: FakeDateProvider.Default.UtcNow
 		);
 	}
 }

@@ -138,8 +138,8 @@ public sealed class GetTransactionsHandlerTests
     [Test]
     public async Task Handle_ShouldPassDateRangeFilterToRepository()
     {
-        DateTime dateFrom = DateTime.UtcNow.AddDays(value: -7);
-        DateTime dateTo = DateTime.UtcNow;
+        DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -7);
+        DateTime dateTo = FakeDateProvider.Default.UtcNow;
 
         _transactionReadRepository.GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -194,8 +194,8 @@ public sealed class GetTransactionsHandlerTests
     {
         Guid accountId = Guid.NewGuid();
         Guid categoryId = Guid.NewGuid();
-        DateTime dateFrom = DateTime.UtcNow.AddDays(value: -30);
-        DateTime dateTo = DateTime.UtcNow;
+        DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
+        DateTime dateTo = FakeDateProvider.Default.UtcNow;
 
         _transactionReadRepository.GetAllAsync(
             accountId: Arg.Any<Guid>(),

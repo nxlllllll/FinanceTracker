@@ -14,7 +14,7 @@ public sealed class RenameAccountHandlerTests
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_handler = new RenameAccountHandler(accountRepository: _accountRepository);
+		_handler = new RenameAccountHandler(accountRepository: _accountRepository, dateProvider: FakeDateProvider.Default);
 	}
 
 	[Test]

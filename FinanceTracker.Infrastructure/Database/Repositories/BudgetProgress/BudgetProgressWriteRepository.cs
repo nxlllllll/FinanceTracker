@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +8,8 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 
 public sealed class BudgetProgressWriteRepository(
     FinanceTrackerContext context,
-    ICurrencyConversionService currencyConversionService
+    ICurrencyConversionService currencyConversionService,
+    IDateProvider dateProvider
 ) : IBudgetProgressWriteRepository
 {
     private async Task ChangeSpentAsync(
@@ -45,7 +47,7 @@ public sealed class BudgetProgressWriteRepository(
                     )
                     .SetProperty(
                         propertyExpression: p => p.UpdatedAt,
-                        valueExpression: DateTime.UtcNow
+                        valueExpression: dateProvider.UtcNow
                     ),
                 cancellationToken: ct
             );

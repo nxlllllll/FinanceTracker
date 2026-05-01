@@ -22,7 +22,7 @@ public static class CreateTransactionCommandFactory
 			Currency: currency,
 			Direction: direction,
 			Description: description,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 	}
 }

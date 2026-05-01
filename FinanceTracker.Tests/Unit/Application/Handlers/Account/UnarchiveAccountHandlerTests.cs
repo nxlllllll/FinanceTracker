@@ -15,7 +15,7 @@ public sealed class UnarchiveAccountHandlerTests
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_handler = new UnarchiveAccountHandler(accountRepository: _accountRepository);
+		_handler = new UnarchiveAccountHandler(accountRepository: _accountRepository, dateProvider: FakeDateProvider.Default);
 	}
 
 	[Test]

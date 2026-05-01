@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.RecurringTransaction;
 
@@ -17,7 +18,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 	public void SetupRepositories()
 	{
 		_readRepository = new RecurringTransactionReadRepository(context: Context);
-		_writeRepository = new RecurringTransactionWriteRepository(context: Context);
+		_writeRepository = new RecurringTransactionWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
 		_userBuilder = new UserBuilder(context: Context);
 		_accountBuilder = new AccountBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);

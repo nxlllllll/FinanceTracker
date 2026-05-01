@@ -1,11 +1,13 @@
 ﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 
 public sealed class RecurringTransactionWriteRepository(
-    FinanceTrackerContext context
+    FinanceTrackerContext context,
+    IDateProvider dateProvider
 ) : IRecurringTransactionWriteRepository
 {
     public async Task CreateAsync(
@@ -25,7 +27,7 @@ public sealed class RecurringTransactionWriteRepository(
             Description = recurringTransaction.Description,
             IsActive = true,
             LastExecutedAt = null,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = dateProvider.UtcNow
         }, cancellationToken: ct);
 
         await context.SaveChangesAsync(cancellationToken: ct);

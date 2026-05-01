@@ -38,6 +38,7 @@ public sealed class Account : AggregateRoot
 	}
 	
 	public static Account Create(
+		DateTime occurredAt,
 		Guid userId,
 		string name,
 		AccountType type,
@@ -59,7 +60,7 @@ public sealed class Account : AggregateRoot
 			Type: type,
 			Currency: currency,
 			Balance: balance,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 
 		return account;
@@ -162,6 +163,7 @@ public sealed class Account : AggregateRoot
 	}
 
 	public bool AdjustBalance(
+		DateTime occurredAt,
 		Guid sourceId,
 		string sourceType,
 		DirectionType direction,
@@ -184,12 +186,13 @@ public sealed class Account : AggregateRoot
 			NewRate: newRate,
 			Amount: amount,
 			Delta: delta,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 		return true;
 	}
 	
 	public void Debit(
+		DateTime occurredAt,
 		Guid transactionId,
 		Guid categoryId,
 		decimal amount,
@@ -209,11 +212,12 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ExchangeRate: exchangeRate,
 			Description: description,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 	}
 
 	public void DebitTransfer(
+		DateTime occurredAt,
 		Guid transferId,
 		Guid toAccountId,
 		decimal amount,
@@ -233,11 +237,12 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ForexRate: forexRate,
 			Description: description,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 	}
 	
 	public void Credit(
+		DateTime occurredAt,
 		Guid transactionId,
 		Guid categoryId,
 		decimal amount,
@@ -257,11 +262,12 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ExchangeRate: exchangeRate,
 			Description: description,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 	}
 	
 	public void CreditTransfer(
+		DateTime occurredAt,
 		Guid transferId,
 		Guid fromAccountId,
 		decimal amount,
@@ -281,11 +287,13 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ExchangeRate: exchangeRate,
 			Description: description,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 	}
 	
-	public void Rename(string newName)
+	public void Rename(
+		DateTime occurredAt,
+		string newName)
 	{
 		if (String.IsNullOrWhiteSpace(value: newName))
 			throw new EmptyNameException(message: "The account name cannot be empty.");
@@ -297,11 +305,11 @@ public sealed class Account : AggregateRoot
 			Id: Guid.NewGuid(),
 			AccountId: Id,
 			NewName: newName,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 	}
 
-	public void Archive()
+	public void Archive(DateTime occurredAt)
 	{
 		if (IsArchived)
 			throw new ArchivingException(message: "The account has already been archived before.");
@@ -309,11 +317,11 @@ public sealed class Account : AggregateRoot
 		RaiseEvent(@event: new AccountArchived(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 	}
 
-	public void Unarchive()
+	public void Unarchive(DateTime occurredAt)
 	{
 		if (!IsArchived)
 			throw new UnarchivingException(message: "The account is already active.");
@@ -321,7 +329,7 @@ public sealed class Account : AggregateRoot
 		RaiseEvent(@event: new AccountUnarchived(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: occurredAt
 		));
 	}
 	

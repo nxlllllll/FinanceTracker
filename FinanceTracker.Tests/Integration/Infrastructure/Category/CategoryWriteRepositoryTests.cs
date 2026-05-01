@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Category;
+﻿using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 
@@ -19,6 +20,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
     private async Task<Core.Domains.Category.Category> CreateAndSaveCategoryAsync(Guid? parentId = null)
     {
         Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
+            createdAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.NewGuid(),
             name: "Еда",
             type: CategoryType.Expense,
