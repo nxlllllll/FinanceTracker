@@ -32,8 +32,8 @@ public sealed class ChangeBudgetPeriodHandler(
 				budgetId: budget.Id,
 				userId: command.UserId,
 				categoryId: budget.CategoryId,
-				from: command.From,
-				to: command.To,
+				fromDate: command.From,
+				toDate: command.To,
 				ct: ct
 			);
 		}, ct: ct);

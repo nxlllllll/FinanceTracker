@@ -34,8 +34,8 @@ public interface IBudgetProgressWriteRepository
 		Guid budgetId, 
 		Guid userId,
 		Guid categoryId,
-		DateOnly from,
-		DateOnly to,
+		DateOnly fromDate,
+		DateOnly toDate,
 		CancellationToken ct = default
 	);
 }

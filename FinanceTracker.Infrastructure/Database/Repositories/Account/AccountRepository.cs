@@ -8,7 +8,7 @@ public sealed class AccountRepository(
 	IEventStore eventStore
 ) : IAccountRepository
 {
-	private const string AggregateType = nameof(Core.Domains.Account.Account);
+	private const string AggregateType = AggregateTypeNames.Account;
 
 	public async Task<Core.Domains.Account.Account?> GetByIdAsync(
 		Guid accountId,

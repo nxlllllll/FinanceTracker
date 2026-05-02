@@ -183,8 +183,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             budgetId: budgetId,
             userId: userId,
             categoryId: categoryId,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
+            fromDate: new DateOnly(year: 2025, month: 1, day: 1),
+            toDate: new DateOnly(year: 2025, month: 1, day: 31)
         );
 
         BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
@@ -226,8 +226,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             budgetId: budgetId,
             userId: userId,
             categoryId: categoryId,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
+            fromDate: new DateOnly(year: 2025, month: 1, day: 1),
+            toDate: new DateOnly(year: 2025, month: 1, day: 31)
         );
 
         BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
@@ -266,8 +266,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             budgetId: budgetId,
             userId: userId,
             categoryId: categoryId,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
+            fromDate: new DateOnly(year: 2025, month: 1, day: 1),
+            toDate: new DateOnly(year: 2025, month: 1, day: 31)
         );
 
         BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
@@ -307,8 +307,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             budgetId: budgetId,
             userId: userId,
             categoryId: categoryId,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
+            fromDate: new DateOnly(year: 2025, month: 1, day: 1),
+            toDate: new DateOnly(year: 2025, month: 1, day: 31)
         );
 
         BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
@@ -339,8 +339,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             budgetId: budgetId,
             userId: userId,
             categoryId: categoryId,
-            from: new DateOnly(year: 2025, month: 2, day: 1),
-            to: new DateOnly(year: 2025, month: 2, day: 28)
+            fromDate: new DateOnly(year: 2025, month: 2, day: 1),
+            toDate: new DateOnly(year: 2025, month: 2, day: 28)
         );
 
         BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(

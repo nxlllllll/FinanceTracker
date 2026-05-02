@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -255,7 +256,7 @@ public sealed class AccountTests
 	    account.AdjustBalance(
 	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
-	        sourceType: "Transaction",
+	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Debit,
 	        oldRate: 85m,
 	        newRate: 90m,
@@ -276,7 +277,7 @@ public sealed class AccountTests
 	    account.AdjustBalance(
 	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
-	        sourceType: "Transaction",
+	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Credit,
 	        oldRate: 85m,
 	        newRate: 90m,
@@ -295,7 +296,7 @@ public sealed class AccountTests
 	    account.AdjustBalance(
 	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
-	        sourceType: "Transaction",
+	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Debit,
 	        oldRate: 90m,
 	        newRate: 85m,
@@ -314,7 +315,7 @@ public sealed class AccountTests
 	    account.AdjustBalance(
 	        occurredAt: Now,
 	        sourceId: Guid.NewGuid(),
-	        sourceType: "Transaction",
+	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Debit,
 	        oldRate: 90m,
 	        newRate: 90m,

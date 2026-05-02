@@ -164,7 +164,7 @@ public sealed class AccountProjectionTests
             Id: Guid.NewGuid(),
             AccountId: Guid.NewGuid(),
             SourceId: Guid.NewGuid(),
-            SourceType: "Transaction",
+            SourceType: AggregateTypeNames.Transaction,
             OldRate: 85m,
             NewRate: 90m,
             Amount: 1000m,
