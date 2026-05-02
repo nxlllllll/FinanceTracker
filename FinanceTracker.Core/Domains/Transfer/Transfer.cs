@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Core.Domains.Transfer;
+﻿using FinanceTracker.Core.ValueObjects;
+
+namespace FinanceTracker.Core.Domains.Transfer;
 
 public sealed class Transfer
 {
@@ -6,12 +8,9 @@ public sealed class Transfer
     public Guid UserId { get; private set; }
     public Guid FromAccountId { get; private set; }
     public Guid ToAccountId { get; private set; }
-    public decimal AmountFrom { get; private set; }
-    public string CurrencyFrom { get; private set; } = String.Empty;
-    public decimal AmountTo { get; private set; }
-    public string CurrencyTo { get; private set; } = String.Empty;
+    public Money AmountFrom { get; private set; }
+    public Money AmountTo { get; private set; }
     public decimal ExchangeRate { get; private set; }
-    public bool IsExcluded { get; private set; }
     public bool IsRatePending { get; private set; }
     public string? Description { get; private set; }
     public DateTime OccurredAt { get; private set; }
@@ -23,9 +22,9 @@ public sealed class Transfer
         Guid fromAccountId,
         Guid toAccountId,
         decimal amountFrom,
-        string currencyFrom,
+        Currency currencyFrom,
         decimal amountTo,
-        string currencyTo,
+        Currency currencyTo,
         decimal exchangeRate,
         bool isRatePending,
         string? description,
@@ -37,12 +36,9 @@ public sealed class Transfer
             UserId = userId,
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,
-            AmountFrom = amountFrom,
-            CurrencyFrom = currencyFrom,
-            AmountTo = amountTo,
-            CurrencyTo = currencyTo,
+            AmountFrom = new Money(amount: amountFrom, currency: currencyFrom),
+            AmountTo = new Money(amount: amountTo, currency: currencyTo),
             ExchangeRate = exchangeRate,
-            IsExcluded = false,
             IsRatePending = isRatePending,
             Description = description,
             OccurredAt = occurredAt
@@ -55,11 +51,10 @@ public sealed class Transfer
         Guid fromAccountId,
         Guid toAccountId,
         decimal amountFrom,
-        string currencyFrom,
+        Currency currencyFrom,
         decimal amountTo,
-        string currencyTo,
+        Currency currencyTo,
         decimal exchangeRate,
-        bool isExcluded,
         bool isRatePending,
         string? description,
         DateTime occurredAt)
@@ -70,12 +65,9 @@ public sealed class Transfer
             UserId = userId,
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,
-            AmountFrom = amountFrom,
-            CurrencyFrom = currencyFrom,
-            AmountTo = amountTo,
-            CurrencyTo = currencyTo,
+            AmountFrom = new Money(amount: amountFrom, currency: currencyFrom),
+            AmountTo = new Money(amount: amountTo, currency: currencyTo),
             ExchangeRate = exchangeRate,
-            IsExcluded = isExcluded,
             IsRatePending = isRatePending,
             Description = description,
             OccurredAt = occurredAt

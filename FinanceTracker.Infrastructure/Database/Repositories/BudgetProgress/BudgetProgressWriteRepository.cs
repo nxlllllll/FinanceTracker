@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.BudgetProgress;
+﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -119,6 +120,48 @@ public sealed class BudgetProgressWriteRepository(
             occurredAt: occurredAt,
             delta: 1,
             ct: ct
+        );
+    }
+
+    public async Task RecalculateForBudgetAsync(
+        Guid budgetId,
+        Guid userId,
+        Guid categoryId,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken ct = default)
+    {
+        BudgetEntity? budget = await context.Budgets.AsNoTracking()
+            .FirstOrDefaultAsync(predicate: b => b.Id == budgetId, cancellationToken: ct);
+ 
+        if (budget is null)
+            return;
+ 
+        DateTime fromUtc = from.ToDateTime(time: TimeOnly.MinValue, kind: DateTimeKind.Utc);
+        DateTime toUtc = to.ToDateTime(time: TimeOnly.MaxValue, kind: DateTimeKind.Utc);
+ 
+        List<TransactionEntity> transactions = await context.Transactions.AsNoTracking().Where(predicate: t =>
+            t.UserId == userId && t.CategoryId == categoryId && !t.IsExcluded && t.Direction == DirectionType.Debit && t.OccurredAt >= fromUtc && t.OccurredAt <= toUtc
+        ).ToListAsync(cancellationToken: ct);
+ 
+        decimal spent = 0;
+ 
+        foreach (TransactionEntity transaction in transactions)
+        {
+            ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
+                fromCurrency: transaction.Currency,
+                toCurrency: budget.Currency,
+                date: DateOnly.FromDateTime(dateTime: transaction.OccurredAt),
+                ct: ct
+            );
+ 
+            spent += transaction.Amount * conversion.Rate;
+        }
+ 
+        await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: spent)
+                .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
+            cancellationToken: ct
         );
     }
 }

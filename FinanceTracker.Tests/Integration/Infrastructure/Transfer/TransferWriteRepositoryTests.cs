@@ -50,7 +50,6 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
         await Assert.That(value: entity.AmountFrom).IsEqualTo(expected: 1000m);
         await Assert.That(value: entity.AmountTo).IsEqualTo(expected: 900m);
         await Assert.That(value: entity.ExchangeRate).IsEqualTo(expected: 0.9m);
-        await Assert.That(value: entity.IsExcluded).IsFalse();
         await Assert.That(value: entity.IsRatePending).IsFalse();
         await Assert.That(value: entity.Description).IsEqualTo(expected: "Test transfer");
     }

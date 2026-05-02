@@ -1,3 +1,3 @@
 ﻿namespace FinanceTracker.Core.Exceptions;
 
-public sealed class EmptyNameException(string message) : Exception(message: message);
+public sealed class EmptyNameException(string message) : DomainException(message: message);

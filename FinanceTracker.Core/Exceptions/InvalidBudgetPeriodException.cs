@@ -1,3 +1,3 @@
 ﻿namespace FinanceTracker.Core.Exceptions;
 
-public sealed class InvalidBudgetPeriodException(string message) : Exception(message: message);
+public sealed class InvalidBudgetPeriodException(string message) : DomainException(message: message);

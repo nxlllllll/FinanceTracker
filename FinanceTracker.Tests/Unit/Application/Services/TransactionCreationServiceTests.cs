@@ -1,5 +1,7 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.Transactions.Services;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
@@ -10,17 +12,17 @@ using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
+namespace FinanceTracker.Tests.Unit.Application.Services;
 
-public sealed class CreateTransactionHandlerTests
+public sealed class TransactionCreationServiceTests
 {
     private IAccountRepository _accountRepository = null!;
     private ITransactionWriteRepository _transactionWriteRepository = null!;
     private ICurrencyConversionService _currencyConversionService = null!;
-    private IUnitOfWork _unitOfWork = null!;
     private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
     private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
-    private CreateTransactionHandler _handler = null!;
+    private IUnitOfWork _unitOfWork = null!;
+    private TransactionCreationService _service = null!;
 
     [Before(hookType: Test)]
     public void Setup()
@@ -28,11 +30,11 @@ public sealed class CreateTransactionHandlerTests
         _accountRepository = Substitute.For<IAccountRepository>();
         _transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
         _currencyConversionService = Substitute.For<ICurrencyConversionService>();
-        _unitOfWork = Substitute.For<IUnitOfWork>();
         _categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
         _budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
+        _unitOfWork = Substitute.For<IUnitOfWork>();
 
-        _handler = new CreateTransactionHandler(
+        _service = new TransactionCreationService(
             accountRepository: _accountRepository,
             transactionWriteRepository: _transactionWriteRepository,
             currencyConversionService: _currencyConversionService,
@@ -54,12 +56,12 @@ public sealed class CreateTransactionHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WithValidCommand_ShouldReturnTransactionId()
+    public async Task CreateAsync_WithValidCommand_ShouldReturnTransactionId()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateAccountWithArchivation();
         SetupConversionRate();
 
-        Guid result = await _handler.HandleAsync(
+        Guid result = await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             account: account,
             ct: CancellationToken.None
@@ -69,66 +71,66 @@ public sealed class CreateTransactionHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WithDebitDirection_ShouldDecreaseAccountBalance()
+    public async Task CreateAsync_WithDebitDirection_ShouldDecreaseAccountBalance()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000m);
+        Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000m);
         SetupConversionRate();
 
-        await _handler.HandleAsync(
+        await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Debit),
             account: account,
             ct: CancellationToken.None
         );
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Balance.Amount == 9000m),
+            account: Arg.Is<Account>(predicate: a => a.Balance.Amount == 9000m),
             ct: Arg.Any<CancellationToken>()
         );
     }
 
     [Test]
-    public async Task HandleAsync_WithCreditDirection_ShouldIncreaseAccountBalance()
+    public async Task CreateAsync_WithCreditDirection_ShouldIncreaseAccountBalance()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000m);
+        Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000m);
         SetupConversionRate();
 
-        await _handler.HandleAsync(
+        await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Credit),
             account: account,
             ct: CancellationToken.None
         );
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Balance.Amount == 11000m),
+            account: Arg.Is<Account>(predicate: a => a.Balance.Amount == 11000m),
             ct: Arg.Any<CancellationToken>()
         );
     }
 
     [Test]
-    public async Task HandleAsync_WithPendingRate_ShouldCreateTransactionWithIsRatePendingTrue()
+    public async Task CreateAsync_WithPendingRate_ShouldCreateTransactionWithIsRatePendingTrue()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateAccountWithArchivation();
         SetupConversionRate(rate: 85m, isPending: true);
 
-        await _handler.HandleAsync(
+        await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             account: account,
             ct: CancellationToken.None
         );
 
         await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-            transaction: Arg.Is<FinanceTracker.Core.Domains.Transaction.Transaction>(t => t.ExchangeRate == 85m && t.IsRatePending),
+            transaction: Arg.Is<Transaction>(predicate: t => t.ExchangeRate == 85m && t.IsRatePending),
             ct: Arg.Any<CancellationToken>()
         );
     }
 
     [Test]
-    public async Task HandleAsync_WhenArchivedAccount_ShouldThrowArchivingException()
+    public async Task CreateAsync_WhenArchivedAccount_ShouldThrowArchivingException()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
+        Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
         SetupConversionRate();
 
-        await Assert.That(action: async () => await _handler.HandleAsync(
+        await Assert.That(action: async () => await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             account: account,
             ct: CancellationToken.None
@@ -136,9 +138,9 @@ public sealed class CreateTransactionHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WhenRateNotFound_ShouldThrowCurrencyRateNotFoundException()
+    public async Task CreateAsync_WhenRateNotFound_ShouldThrowCurrencyRateNotFoundException()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateAccountWithArchivation();
 
         _currencyConversionService.GetConversionRateAsync(
             fromCurrency: Arg.Any<string>(),
@@ -151,7 +153,7 @@ public sealed class CreateTransactionHandlerTests
             toCurrency: "RUB"
         ));
 
-        await Assert.That(action: async () => await _handler.HandleAsync(
+        await Assert.That(action: async () => await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             account: account,
             ct: CancellationToken.None
@@ -159,9 +161,9 @@ public sealed class CreateTransactionHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WithDebitDirection_ShouldAddCategoryTotal()
+    public async Task CreateAsync_WithDebitDirection_ShouldAddCategoryTotal()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateAccountWithArchivation();
         SetupConversionRate();
 
         CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
@@ -169,7 +171,7 @@ public sealed class CreateTransactionHandlerTests
             direction: DirectionType.Debit
         );
 
-        await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+        await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
 
         await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).AddAsync(
             userId: command.UserId,
@@ -182,9 +184,9 @@ public sealed class CreateTransactionHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WithDebitDirection_ShouldAddBudgetProgress()
+    public async Task CreateAsync_WithDebitDirection_ShouldAddBudgetProgress()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateAccountWithArchivation();
         SetupConversionRate();
 
         CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
@@ -192,7 +194,7 @@ public sealed class CreateTransactionHandlerTests
             direction: DirectionType.Debit
         );
 
-        await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+        await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
 
         await _budgetProgressWriteRepository.Received(requiredNumberOfCalls: 1).AddAsync(
             userId: command.UserId,
@@ -205,21 +207,21 @@ public sealed class CreateTransactionHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_WithCreditDirection_ShouldNotAddCategoryTotal()
+    public async Task CreateAsync_WithCreditDirection_ShouldNotAddCategoryTotal()
     {
-        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateAccountWithArchivation();
         SetupConversionRate();
 
-        await _handler.HandleAsync(
+        await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Credit),
             account: account,
             ct: CancellationToken.None
         );
 
         await _categoryTotalWriteRepository.DidNotReceive().AddAsync(
-            userId: Arg.Any<Guid>(), 
+            userId: Arg.Any<Guid>(),
             categoryId: Arg.Any<Guid>(),
-            amount: Arg.Any<decimal>(), 
+            amount: Arg.Any<decimal>(),
             currency: Arg.Any<string>(),
             occurredAt: Arg.Any<DateTime>(),
             ct: Arg.Any<CancellationToken>()

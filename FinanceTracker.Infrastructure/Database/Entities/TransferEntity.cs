@@ -11,7 +11,6 @@ public sealed class TransferEntity
 	public decimal AmountTo { get; set; }
 	public string CurrencyTo { get; set; } = null!;
 	public decimal ExchangeRate { get; set; }
-	public bool IsExcluded { get; set; }
 	public string? Description { get; set; }
 	public DateTime OccurredAt { get; set; }
 	public bool IsRatePending { get; set; }

@@ -18,7 +18,7 @@ public readonly record struct Money
 	public Money(decimal amount, Currency currency)
 	{
 		if (amount < 0)
-			throw new InvalidAmountException(message: "Amount must be greater than zero.");
+			throw new InvalidAmountException(message: "Amount cannot be negative.");
 
 		Amount = amount;
 		Currency = currency;

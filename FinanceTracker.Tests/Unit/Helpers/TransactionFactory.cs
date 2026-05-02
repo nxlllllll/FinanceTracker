@@ -14,7 +14,6 @@ public static class TransactionFactory
 		DirectionType direction = DirectionType.Debit)
 	{
 		Transaction transaction = Transaction.Create(
-			occurredAt: FakeDateProvider.Default.UtcNow,
 			accountId: accountId ?? Guid.NewGuid(),
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
@@ -22,7 +21,8 @@ public static class TransactionFactory
 			direction: direction,
 			exchangeRate: 1m,
 			isRatePending: false,
-			description: null
+			description: null,
+			occurredAt: DateTime.UtcNow
 		);
 
 		if (isExcluded)

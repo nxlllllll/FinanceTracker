@@ -40,10 +40,7 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 		builder.Property(propertyExpression: t => t.ExchangeRate)
 			.HasColumnName(name: "exchange_rate")
 			.HasColumnType(typeName: "numeric(18,6)");
-
-        builder.Property(propertyExpression: t => t.IsExcluded)
-            .HasColumnName(name: "is_excluded");
-
+        
         builder.Property(propertyExpression: t => t.Description)
             .HasColumnName(name: "description")
             .HasMaxLength(maxLength: 255);

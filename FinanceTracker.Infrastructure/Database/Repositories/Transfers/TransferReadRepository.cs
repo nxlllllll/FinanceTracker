@@ -24,7 +24,6 @@ public sealed class TransferReadRepository(
                 amountTo: t.AmountTo,
                 currencyTo: t.CurrencyTo,
                 exchangeRate: t.ExchangeRate,
-                isExcluded: t.IsExcluded,
                 isRatePending: t.IsRatePending,
                 description: t.Description,
                 occurredAt: t.OccurredAt
@@ -61,7 +60,6 @@ public sealed class TransferReadRepository(
                 amountTo: t.AmountTo,
                 currencyTo: t.CurrencyTo,
                 exchangeRate: t.ExchangeRate,
-                isExcluded: t.IsExcluded,
                 isRatePending: t.IsRatePending,
                 description: t.Description,
                 occurredAt: t.OccurredAt

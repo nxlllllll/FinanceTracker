@@ -29,4 +29,13 @@ public interface IBudgetProgressWriteRepository
 		DateTime occurredAt,
 		CancellationToken ct = default
 	);
+	
+	Task RecalculateForBudgetAsync(
+		Guid budgetId, 
+		Guid userId,
+		Guid categoryId,
+		DateOnly from,
+		DateOnly to,
+		CancellationToken ct = default
+	);
 }

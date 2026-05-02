@@ -49,9 +49,8 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: transferId);
         await Assert.That(value: result.UserId).IsEqualTo(expected: userId);
-        await Assert.That(value: result.AmountFrom).IsEqualTo(expected: 1000m);
-        await Assert.That(value: result.AmountTo).IsEqualTo(expected: 900m);
-        await Assert.That(value: result.IsExcluded).IsFalse();
+        await Assert.That(value: result.AmountFrom.Amount).IsEqualTo(expected: 1000m);
+        await Assert.That(value: result.AmountTo.Amount).IsEqualTo(expected: 900m);
     }
 
     [Test]

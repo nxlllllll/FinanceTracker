@@ -1,5 +1,7 @@
 ﻿using FinanceTracker.Application.Budgets.Commands.ChangeBudgetPeriod;
+using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -9,12 +11,21 @@ public sealed class ChangeBudgetPeriodHandlerTests
 {
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private ChangeBudgetPeriodHandler _handler = null!;
+	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
-		_handler = new ChangeBudgetPeriodHandler(budgetWriteRepository: _budgetWriteRepository);
+		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+		
+		_handler = new ChangeBudgetPeriodHandler(
+			budgetWriteRepository: _budgetWriteRepository,
+			budgetProgressWriteRepository: _budgetProgressWriteRepository,
+			unitOfWork: _unitOfWork
+		);
 	}
 
 	[Test]
