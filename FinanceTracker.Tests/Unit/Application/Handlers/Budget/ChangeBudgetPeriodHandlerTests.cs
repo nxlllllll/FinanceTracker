@@ -20,7 +20,10 @@ public sealed class ChangeBudgetPeriodHandlerTests
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 		_handler = new ChangeBudgetPeriodHandler(
 			budgetWriteRepository: _budgetWriteRepository,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,

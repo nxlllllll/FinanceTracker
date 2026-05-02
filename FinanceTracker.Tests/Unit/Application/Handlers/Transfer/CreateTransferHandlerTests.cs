@@ -23,6 +23,10 @@ public sealed class CreateTransferHandlerTests
 		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
 		_currencyConversionService = Substitute.For<ICurrencyConversionService>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 		_handler = new CreateTransferHandler(
 			accountRepository: _accountRepository,
 			transferWriteRepository: _transferWriteRepository,

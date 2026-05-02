@@ -21,6 +21,10 @@ public sealed class ArchiveCategoryHandlerTests
 		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
 		_recurringTransactionWriteRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 		_handler = new ArchiveCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,

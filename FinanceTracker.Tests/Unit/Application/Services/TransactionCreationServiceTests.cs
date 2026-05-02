@@ -33,7 +33,10 @@ public sealed class TransactionCreationServiceTests
         _categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
         _budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
-
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
         _service = new TransactionCreationService(
             accountRepository: _accountRepository,
             transactionWriteRepository: _transactionWriteRepository,

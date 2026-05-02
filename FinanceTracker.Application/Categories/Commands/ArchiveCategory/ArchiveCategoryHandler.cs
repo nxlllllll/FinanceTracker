@@ -19,19 +19,10 @@ public sealed class ArchiveCategoryHandler(
 	{
 		category.Archive();
 
-		await unitOfWork.BeginTransactionAsync(ct: ct);
-
-		try
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
-
-			await unitOfWork.CommitAsync(ct: ct);
-		}
-		catch
-		{
-			await unitOfWork.RollbackAsync(ct: ct);
-			throw;
-		}
+		}, ct: ct);
 	}
 }

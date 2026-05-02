@@ -24,6 +24,10 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 		_handler = new ChangeTransactionCategoryHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,

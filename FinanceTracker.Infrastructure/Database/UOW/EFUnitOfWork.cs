@@ -59,6 +59,21 @@ public sealed class EFUnitOfWork(
 		}
 	}
 
+	public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken ct = default)
+	{
+		await BeginTransactionAsync(ct: ct);
+		try
+		{
+			await operation();
+			await CommitAsync(ct: ct);
+		}
+		catch
+		{
+			await RollbackAsync(ct: ct);
+			throw;
+		}
+	}
+
 	public void Dispose()
 	{
 		if (_transaction is null)

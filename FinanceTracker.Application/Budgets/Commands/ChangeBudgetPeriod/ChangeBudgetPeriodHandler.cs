@@ -19,9 +19,7 @@ public sealed class ChangeBudgetPeriodHandler(
 	{
 		budget.ChangePeriod(from: command.From, to: command.To);
 
-		await unitOfWork.BeginTransactionAsync(ct: ct);
-
-		try
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await budgetWriteRepository.ChangePeriodAsync(
 				budgetId: budget.Id,
@@ -38,13 +36,8 @@ public sealed class ChangeBudgetPeriodHandler(
 				to: command.To,
 				ct: ct
 			);
-
-			await unitOfWork.CommitAsync(ct: ct);
-		}
-		catch
-		{
-			await unitOfWork.RollbackAsync(ct: ct);
-			throw;
-		}
+		}, ct: ct);
+		
+		await unitOfWork.BeginTransactionAsync(ct: ct);
 	}
 }

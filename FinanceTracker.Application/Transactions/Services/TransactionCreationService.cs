@@ -87,42 +87,33 @@ public sealed class TransactionCreationService(
             occurredAt: now
         );
 
-        await unitOfWork.BeginTransactionAsync(ct: ct);
-
-        try
+        await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
         {
             await transactionWriteRepository.CreateAsync(transaction: transaction, ct: ct);
 
             await accountRepository.SaveAsync(account: account, ct: ct);
 
-            if (command.Direction == DirectionType.Debit)
-            {
-                await categoryTotalWriteRepository.AddAsync(
-                    userId: command.UserId,
-                    categoryId: command.CategoryId,
-                    currency: command.Currency,
-                    amount: command.Amount,
-                    occurredAt: command.OccurredAt,
-                    ct: ct
-                );
+            if (command.Direction != DirectionType.Debit)
+                return;
 
-                await budgetProgressWriteRepository.AddAsync(
-                    userId: command.UserId,
-                    categoryId: command.CategoryId,
-                    currencyCode: command.Currency,
-                    amount: command.Amount,
-                    occurredAt: command.OccurredAt,
-                    ct: ct
-                );
-            }
+            await categoryTotalWriteRepository.AddAsync(
+                userId: command.UserId,
+                categoryId: command.CategoryId,
+                currency: command.Currency,
+                amount: command.Amount,
+                occurredAt: command.OccurredAt,
+                ct: ct
+            );
 
-            await unitOfWork.CommitAsync(ct: ct);
-        }
-        catch
-        {
-            await unitOfWork.RollbackAsync(ct: ct);
-            throw;
-        }
+            await budgetProgressWriteRepository.AddAsync(
+                userId: command.UserId,
+                categoryId: command.CategoryId,
+                currencyCode: command.Currency,
+                amount: command.Amount,
+                occurredAt: command.OccurredAt,
+                ct: ct
+            );
+        }, ct: ct);
 
         return transaction.Id;
     }

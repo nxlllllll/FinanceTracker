@@ -24,10 +24,8 @@ public sealed class ChangeTransactionCategoryHandler(
 			return;
 
 		transaction.ChangeCategory(categoryId: command.CategoryId);
-		
-		await unitOfWork.BeginTransactionAsync(ct: ct);
 
-		try
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.ChangeCategoryAsync(
 				transactionId: command.TransactionId,
@@ -35,35 +33,27 @@ public sealed class ChangeTransactionCategoryHandler(
 				ct: ct
 			);
 
-			if (transaction is { IsExcluded: false, Direction: DirectionType.Debit })
-			{
-				await categoryTotalWriteRepository.ChangeCategoryAsync(
-					userId: transaction.UserId,
-					oldCategoryId: transaction.CategoryId,
-					newCategoryId: command.CategoryId,
-					currency: transaction.Amount.Currency,
-					amount: transaction.Amount.Amount,
-					occurredAt: transaction.OccurredAt,
-					ct: ct
-				);
+			if (transaction is not { IsExcluded: false, Direction: DirectionType.Debit })
+				return;
+			await categoryTotalWriteRepository.ChangeCategoryAsync(
+				userId: transaction.UserId,
+				oldCategoryId: transaction.CategoryId,
+				newCategoryId: command.CategoryId,
+				currency: transaction.Amount.Currency,
+				amount: transaction.Amount.Amount,
+				occurredAt: transaction.OccurredAt,
+				ct: ct
+			);
 
-				await budgetProgressWriteRepository.ChangeCategoryAsync(
-					userId: transaction.UserId,
-					oldCategoryId: transaction.CategoryId,
-					newCategoryId: command.CategoryId,
-					currencyCode: transaction.Amount.Currency,
-					amount: transaction.Amount.Amount,
-					occurredAt: transaction.OccurredAt,
-					ct: ct
-				);
-			}
-			
-			await unitOfWork.CommitAsync(ct: ct);
-		}
-		catch
-		{
-			await unitOfWork.RollbackAsync(ct: ct);
-			throw;
-		}
+			await budgetProgressWriteRepository.ChangeCategoryAsync(
+				userId: transaction.UserId,
+				oldCategoryId: transaction.CategoryId,
+				newCategoryId: command.CategoryId,
+				currencyCode: transaction.Amount.Currency,
+				amount: transaction.Amount.Amount,
+				occurredAt: transaction.OccurredAt,
+				ct: ct
+			);
+		}, ct: ct);
 	}
 }

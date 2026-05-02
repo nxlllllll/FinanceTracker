@@ -23,7 +23,7 @@ public sealed class CreateTransferHandler(
 		CancellationToken ct = default)
 	{
 		(Account fromAccount, Account toAccount) = accounts;
-		
+
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: command.CurrencyFrom,
 			toCurrency: command.CurrencyTo,
@@ -46,7 +46,7 @@ public sealed class CreateTransferHandler(
 		);
 
 		DateTime now = dateProvider.UtcNow;
-		
+
 		fromAccount.DebitTransfer(
 			occurredAt: now,
 			transferId: transfer.Id,
@@ -65,22 +65,12 @@ public sealed class CreateTransferHandler(
 			description: command.Description
 		);
 
-		await unitOfWork.BeginTransactionAsync(ct: ct);
-
-		try
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transferWriteRepository.CreateAsync(transfer: transfer, ct: ct);
-
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 			await accountRepository.SaveAsync(account: toAccount, ct: ct);
-			
-			await unitOfWork.CommitAsync(ct: ct);
-		}
-		catch
-		{
-			await unitOfWork.RollbackAsync(ct: ct);
-			throw;
-		}
+		}, ct: ct);
 
 		return transfer.Id;
 	}
