@@ -24,8 +24,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
     {
         _currencyConversionService = Substitute.For<ICurrencyConversionService>();
         _currencyConversionService.GetConversionRateAsync(
-            fromCurrency: Arg.Any<string>(),
-            toCurrency: Arg.Any<string>(),
+            fromCurrency: Arg.Any<Core.ValueObjects.Currency>(),
+            toCurrency: Arg.Any<Core.ValueObjects.Currency>(),
             date: Arg.Any<DateOnly>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));

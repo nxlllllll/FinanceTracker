@@ -97,9 +97,7 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 
-	private void CheckConstraints(
-		decimal amount,
-		decimal rate)
+	private void CheckConstraints(decimal amount, decimal rate = 1m)
 	{
 		if (IsArchived)
 			throw new ArchivedAccountOperationException(message: "Financial transactions on the archived account are prohibited.");
@@ -108,11 +106,17 @@ public sealed class Account : AggregateRoot
 			throw new InvalidAmountException(message: "Amount must be greater than zero.");
 
 		if (rate <= 0)
-			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");		
+			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");
 	}
 	
+	private void CheckSufficientFunds(decimal amount, decimal rate = 1m)
+	{
+		if (amount * rate > Balance.Amount)
+			throw new InsufficientFundsException("The amount of funds on the balance is insufficient.", balance: Balance);
+	}
+
 	private void Apply(AccountBalanceAdjusted @event)
-		=> Balance += @event.Delta;
+		=> Balance = new Money(amount: Balance.Amount + @event.Delta, currency: Balance.Currency, allowNegative: true);
 	
 	private void Apply(AccountDebited @event)
 		=> Balance -= @event.Amount * @event.ExchangeRate;
@@ -162,7 +166,7 @@ public sealed class Account : AggregateRoot
 		}
 	}
 
-	public bool AdjustBalance(
+	public void AdjustBalance(
 		DateTime occurredAt,
 		Guid sourceId,
 		string sourceType,
@@ -175,7 +179,7 @@ public sealed class Account : AggregateRoot
 		decimal delta = (newRate - oldRate) * amount * sign;
 		
 		if (delta == 0)
-			return false;
+			return;
 		
 		RaiseEvent(@event: new AccountBalanceAdjusted(
 			Id: Guid.NewGuid(),
@@ -188,7 +192,6 @@ public sealed class Account : AggregateRoot
 			Delta: delta,
 			OccurredAt: occurredAt
 		));
-		return true;
 	}
 	
 	public void Debit(
@@ -199,10 +202,8 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		CheckConstraints(
-			amount: amount,
-			rate: exchangeRate
-		);
+		CheckConstraints(amount: amount, rate: exchangeRate);
+		CheckSufficientFunds(amount: amount, rate: exchangeRate);
 		
 		RaiseEvent(@event: new AccountDebited(
 			Id: Guid.NewGuid(),
@@ -224,10 +225,8 @@ public sealed class Account : AggregateRoot
 		decimal forexRate,
 		string? description)
 	{
-		CheckConstraints(
-			amount: amount,
-			rate: forexRate
-		);
+		CheckConstraints(amount: amount);
+		CheckSufficientFunds(amount: amount);
 
 		RaiseEvent(@event: new AccountTransferDebited(
 			Id: Guid.NewGuid(),
@@ -249,10 +248,7 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		CheckConstraints(
-			amount: amount,
-			rate: exchangeRate
-		);
+		CheckConstraints(amount: amount, rate: exchangeRate);
 		
 		RaiseEvent(@event: new AccountCredited(
 			Id: Guid.NewGuid(),
@@ -274,10 +270,7 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		CheckConstraints(
-			amount: amount,
-			rate: exchangeRate
-		);
+		CheckConstraints(amount: amount, rate: exchangeRate);
 
 		RaiseEvent(@event: new AccountTransferCredited(
 			Id: Guid.NewGuid(),
@@ -335,7 +328,7 @@ public sealed class Account : AggregateRoot
 	
 	public string TakeSnapshot()
 	{
-		return System.Text.Json.JsonSerializer.Serialize(new AccountSnapshotState(
+		return System.Text.Json.JsonSerializer.Serialize(value: new AccountSnapshotState(
 			Id: Id,
 			UserId: UserId,
 			Name: Name,

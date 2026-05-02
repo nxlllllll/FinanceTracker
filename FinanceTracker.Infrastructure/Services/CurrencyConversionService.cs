@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Services;
 
@@ -9,8 +10,8 @@ public sealed class CurrencyConversionService(
 ) : ICurrencyConversionService
 {
 	public async Task<ConversionResult> GetConversionRateAsync(
-		string fromCurrency,
-		string toCurrency,
+		Currency fromCurrency,
+		Currency toCurrency,
 		DateOnly date,
 		CancellationToken ct = default)
 	{

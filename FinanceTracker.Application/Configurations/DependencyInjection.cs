@@ -5,6 +5,7 @@ using FinanceTracker.Application.Budgets.Authorization;
 using FinanceTracker.Application.Categories.Authorization;
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Application.RecurringTransactions.Authorization;
+using FinanceTracker.Application.RecurringTransactions.Notifications;
 using FinanceTracker.Application.Transactions.Authorization;
 using FinanceTracker.Application.Transfers.Authorization;
 using FinanceTracker.Application.Users.Authorization;
@@ -30,6 +31,7 @@ public static class DependencyInjection
 		services.AddScoped<INotificationDispatcher, MediatRNotificationDispatcher>();
 
 		services.AddSingleton<IAggregateNotificationFactory, AccountNotificationFactory>();
+		services.AddSingleton<ITransactionNotificationFactory, TransactionNotificationFactory>();
 
 		services.RegisterAuthorizedHandlers();
 		

@@ -18,6 +18,12 @@ public readonly record struct Money
 		Currency = currency;
 	}
  
+	internal Money(decimal amount, Currency currency, bool allowNegative = true)
+	{
+		Amount = amount;
+		Currency = currency;
+	}
+	
 	public static Money Positive(decimal amount, Currency currency)
 	{
 		if (amount <= 0)

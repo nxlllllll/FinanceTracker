@@ -2,7 +2,6 @@
 using FinanceTracker.Application.Dispatching;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Domains.Account.Notification;
 using FinanceTracker.Core.Exceptions;
 using MediatR;
 using NSubstitute;
@@ -22,13 +21,14 @@ public sealed class MediatRNotificationDispatcherTests
     }
 
     [Test]
-    public async Task DispatchAsync_WithAccountAggregateType_ShouldPublishAccountEventsNotification()
+    public async Task DispatchAsync_WithAccountNotification_ShouldPublishAccountEventsNotification()
     {
-        Notification notification = new Notification(Data: new AccountNotification(
-            AccountId: Guid.NewGuid(),
+        Guid accountId = Guid.NewGuid();
+        AccountAppNotification notification = new AccountAppNotification(
+            AccountId: accountId,
             Events: [new AccountDebited(
                 Id: Guid.NewGuid(),
-                AccountId: Guid.NewGuid(),
+                AccountId: accountId,
                 TransactionId: Guid.NewGuid(),
                 CategoryId: Guid.NewGuid(),
                 Amount: 1000m,
@@ -36,13 +36,13 @@ public sealed class MediatRNotificationDispatcherTests
                 Description: null,
                 OccurredAt: DateTime.UtcNow
             )]
-        ));
+        );
 
         await _dispatcher.DispatchAsync(notification: notification);
 
         await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-            notification: Arg.Is<AccountEventsNotification>(predicate: n =>
-                n.AccountId == (notification.Data as AccountNotification)!.AccountId &&
+            notification: Arg.Is<AccountEventsNotification>(n =>
+                n.AccountId == accountId &&
                 n.Events.Count == 1
             ),
             cancellationToken: Arg.Any<CancellationToken>()
@@ -50,14 +50,10 @@ public sealed class MediatRNotificationDispatcherTests
     }
 
     [Test]
-    public async Task DispatchAsync_WithUnknownAggregateType_ShouldThrowUnknownAggregateTypeException()
+    public async Task DispatchAsync_WithNonConvertibleData_ShouldThrowUnknownAggregateTypeException()
     {
-        Notification notification = new Notification(Data: new
-        {
-            AggregateId = Guid.NewGuid(),
-            AggregateType = "Unknown",
-            Events = new int[1]
-        });
+        IAppNotification notification = Substitute.For<IAppNotification>();
+        notification.Data.Returns(Substitute.For<INotificationData>());
 
         await Assert.That(
             action: async () => await _dispatcher.DispatchAsync(notification: notification)

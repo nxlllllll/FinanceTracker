@@ -1,9 +1,9 @@
 ﻿using FinanceTracker.Core.Domains.Account;
-using MediatR;
+using INotification = MediatR.INotification;
 
 namespace FinanceTracker.Application.RecurringTransactions.Notifications;
 
-public record TransactionDataNotification(
+public sealed record TransactionDataNotification(
 	Guid AccountId,
 	Guid UserId,
 	Guid CategoryId,

@@ -1,7 +1,9 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
 using FinanceTracker.Application.Accounts.Projections;
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Account;
 using NSubstitute;
 
@@ -9,16 +11,16 @@ namespace FinanceTracker.Tests.Unit.Application.Projections;
 
 public sealed class AccountProjectionTests
 {
-	private IAccountWriteRepository _accountWriteRepository = null!;
-	private AccountProjection _projection = null!;
+    private IAccountWriteRepository _accountWriteRepository = null!;
+    private AccountProjection _projection = null!;
 
-	[Before(hookType: Test)]
-	public void Setup()
-	{
-		_accountWriteRepository = Substitute.For<IAccountWriteRepository>();
-		_projection = new AccountProjection(accountWriteRepository: _accountWriteRepository);
-	}
-    
+    [Before(hookType: Test)]
+    public void Setup()
+    {
+        _accountWriteRepository = Substitute.For<IAccountWriteRepository>();
+        _projection = new AccountProjection(accountWriteRepository: _accountWriteRepository);
+    }
+
     [Test]
     public async Task Handle_WhenAccountCreated_ShouldCallCreateAsync()
     {
@@ -33,15 +35,13 @@ public sealed class AccountProjectionTests
             OccurredAt: DateTime.UtcNow
         );
 
-        AccountEventsNotification notification = new AccountEventsNotification(
-            AccountId: @event.AccountId,
-            Events: [@event]
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
         );
 
-        await _projection.Handle(notification: notification, ct: CancellationToken.None);
-
         await _accountWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-            @event: Arg.Is<AccountCreated>(predicate: e => e.AccountId == @event.AccountId),
+            @event: Arg.Is<AccountCreated>(e => e.AccountId == @event.AccountId),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -106,7 +106,7 @@ public sealed class AccountProjectionTests
             ct: Arg.Any<CancellationToken>()
         );
     }
-    
+
     [Test]
     public async Task Handle_WhenAccountDebited_ShouldCallDebitAsync()
     {
@@ -121,15 +121,13 @@ public sealed class AccountProjectionTests
             OccurredAt: DateTime.UtcNow
         );
 
-        AccountEventsNotification notification = new AccountEventsNotification(
-            AccountId: @event.AccountId,
-            Events: [@event]
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
         );
 
-        await _projection.Handle(notification: notification, ct: CancellationToken.None);
-
         await _accountWriteRepository.Received(requiredNumberOfCalls: 1).DebitAsync(
-            @event: Arg.Is<AccountDebited>(predicate: e => e.AccountId == @event.AccountId),
+            @event: Arg.Is<AccountDebited>(e => e.AccountId == @event.AccountId),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -148,19 +146,17 @@ public sealed class AccountProjectionTests
             OccurredAt: DateTime.UtcNow
         );
 
-        AccountEventsNotification notification = new AccountEventsNotification(
-            AccountId: @event.AccountId,
-            Events: [@event]
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
         );
 
-        await _projection.Handle(notification: notification, ct: CancellationToken.None);
-
         await _accountWriteRepository.Received(requiredNumberOfCalls: 1).CreditAsync(
-            @event: Arg.Is<AccountCredited>(predicate: e => e.AccountId == @event.AccountId),
+            @event: Arg.Is<AccountCredited>(e => e.AccountId == @event.AccountId),
             ct: Arg.Any<CancellationToken>()
         );
     }
-    
+
     [Test]
     public async Task Handle_WhenAccountBalanceAdjusted_ShouldCallAdjustBalanceAsync()
     {
@@ -176,19 +172,17 @@ public sealed class AccountProjectionTests
             OccurredAt: DateTime.UtcNow
         );
 
-        AccountEventsNotification notification = new AccountEventsNotification(
-            AccountId: @event.AccountId,
-            Events: [@event]
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
         );
 
-        await _projection.Handle(notification: notification, ct: CancellationToken.None);
-
         await _accountWriteRepository.Received(requiredNumberOfCalls: 1).AdjustBalanceAsync(
-            @event: Arg.Is<AccountBalanceAdjusted>(predicate: e => e.AccountId == @event.AccountId),
+            @event: Arg.Is<AccountBalanceAdjusted>(e => e.AccountId == @event.AccountId),
             ct: Arg.Any<CancellationToken>()
         );
     }
-    
+
     [Test]
     public async Task Handle_WhenAccountTransferDebited_ShouldCallTransferDebitAsync()
     {
@@ -202,20 +196,18 @@ public sealed class AccountProjectionTests
             Description: null,
             OccurredAt: DateTime.UtcNow
         );
- 
-        AccountEventsNotification notification = new AccountEventsNotification(
-            AccountId: @event.AccountId,
-            Events: [@event]
+
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
         );
- 
-        await _projection.Handle(notification: notification, ct: CancellationToken.None);
- 
+
         await _accountWriteRepository.Received(requiredNumberOfCalls: 1).TransferDebitAsync(
-            @event: Arg.Is<AccountTransferDebited>(predicate: e => e.AccountId == @event.AccountId),
+            @event: Arg.Is<AccountTransferDebited>(e => e.AccountId == @event.AccountId),
             ct: Arg.Any<CancellationToken>()
         );
     }
- 
+
     [Test]
     public async Task Handle_WhenAccountTransferCredited_ShouldCallTransferCreditAsync()
     {
@@ -229,17 +221,28 @@ public sealed class AccountProjectionTests
             Description: null,
             OccurredAt: DateTime.UtcNow
         );
- 
-        AccountEventsNotification notification = new AccountEventsNotification(
-            AccountId: @event.AccountId,
-            Events: [@event]
+
+        await _projection.Handle(
+            notification: new AccountEventsNotification(AccountId: @event.AccountId, Events: [@event]),
+            ct: CancellationToken.None
         );
- 
-        await _projection.Handle(notification: notification, ct: CancellationToken.None);
- 
+
         await _accountWriteRepository.Received(requiredNumberOfCalls: 1).TransferCreditAsync(
-            @event: Arg.Is<AccountTransferCredited>(predicate: e => e.AccountId == @event.AccountId),
+            @event: Arg.Is<AccountTransferCredited>(e => e.AccountId == @event.AccountId),
             ct: Arg.Any<CancellationToken>()
         );
+    }
+
+    [Test]
+    public async Task Handle_WithUnknownEvent_ShouldThrowUnknownEventException()
+    {
+        IEvent unknownEvent = Substitute.For<IEvent>();
+
+        await Assert.That(
+            action: async () => await _projection.Handle(
+                notification: new AccountEventsNotification(AccountId: Guid.NewGuid(), Events: [unknownEvent]),
+                ct: CancellationToken.None
+            )
+        ).Throws<UnknownEventException>();
     }
 }

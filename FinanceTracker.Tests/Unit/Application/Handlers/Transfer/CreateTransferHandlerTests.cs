@@ -3,6 +3,7 @@ using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -43,8 +44,10 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<string>(), toCurrency: Arg.Any<string>(),
-			date: Arg.Any<DateOnly>(), ct: Arg.Any<CancellationToken>()
+			fromCurrency: Arg.Any<Currency>(), 
+			toCurrency: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
 		Guid result = await _handler.HandleAsync(
@@ -63,8 +66,10 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<string>(), toCurrency: Arg.Any<string>(),
-			date: Arg.Any<DateOnly>(), ct: Arg.Any<CancellationToken>()
+			fromCurrency: Arg.Any<Currency>(), 
+			toCurrency: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(), 
+			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
 		await _handler.HandleAsync(
@@ -90,8 +95,10 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<string>(), toCurrency: Arg.Any<string>(),
-			date: Arg.Any<DateOnly>(), ct: Arg.Any<CancellationToken>()
+			fromCurrency: Arg.Any<Currency>(), 
+			toCurrency: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(), 
+			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
 		await _handler.HandleAsync(

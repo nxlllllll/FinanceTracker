@@ -3,7 +3,7 @@
 public interface INotificationDispatcher
 {
 	Task DispatchAsync(
-		Notification notification, 
+		IAppNotification appNotification, 
 		CancellationToken ct = default
 	);
 }

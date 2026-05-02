@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.DateProvider;
@@ -13,7 +12,8 @@ public sealed class RecurringTransactionHandlingJob(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	INotificationDispatcher notificationDispatcher,
 	IUnitOfWork unitOfWork,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ITransactionNotificationFactory factory
 ) : IJob
 {
 	internal async Task ProcessTransactionsAsync(CancellationToken ct)
@@ -44,17 +44,19 @@ public sealed class RecurringTransactionHandlingJob(
 			try
 			{
 				await unitOfWork.BeginTransactionAsync(ct: ct);
+
+				IAppNotification appNotification = factory.Build(
+					accountId: dueTransaction.AccountId,
+					userId: dueTransaction.UserId,
+					categoryId: dueTransaction.CategoryId,
+					amount: dueTransaction.Amount.Amount,
+					currency: dueTransaction.Amount.Currency,
+					direction: dueTransaction.Direction,
+					description: dueTransaction.Description,
+					occurredAt: now
+				);
 				
-				await notificationDispatcher.DispatchAsync(new Notification(Data: new RecurringTransactionNotification(
-					AccountId: dueTransaction.AccountId,
-					UserId: dueTransaction.UserId,
-					CategoryId: dueTransaction.CategoryId,
-					Amount: dueTransaction.Amount.Amount,
-					Currency: dueTransaction.Amount.Currency,
-					Direction: dueTransaction.Direction,
-					Description: dueTransaction.Description,
-					OccurredAt: now
-				)), ct: ct);
+				await notificationDispatcher.DispatchAsync(appNotification: appNotification, ct: ct);
 
 				await recurringTransactionWriteRepository.MarkExecutedAsync(
 					recurringTransactionId: dueTransaction.Id,

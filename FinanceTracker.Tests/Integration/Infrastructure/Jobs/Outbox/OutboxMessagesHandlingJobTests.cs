@@ -59,7 +59,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
     {
         INotificationDispatcher dispatcher = Substitute.For<INotificationDispatcher>();
         dispatcher.DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: _ => Task.FromException(new InvalidOperationException(message: "Simulated dispatch failure")));
         return dispatcher;
@@ -89,7 +89,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
         await _job.ProcessMessagesAsync(ct: CancellationToken.None);
 
         await _dispatcher.DidNotReceive().DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -110,7 +110,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
         await Assert.That(value: unprocessedAfter).IsEqualTo(expected: 0);
 
         await _dispatcher.Received(requiredNumberOfCalls: 1).DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

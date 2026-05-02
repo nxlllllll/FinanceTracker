@@ -3,5 +3,5 @@
 public interface IAggregateNotificationFactory
 {
 	string AggregateType { get; }
-	object Build(Guid aggregateId, IReadOnlyList<IEvent> events);
+	IAppNotification Build(Guid aggregateId, IReadOnlyList<IEvent> events);
 }

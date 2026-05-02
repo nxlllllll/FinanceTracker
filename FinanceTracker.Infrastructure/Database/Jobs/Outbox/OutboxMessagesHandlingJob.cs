@@ -2,6 +2,7 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -28,7 +29,7 @@ public sealed class OutboxMessagesHandlingJob(
 	private readonly FrozenDictionary<string, IAggregateNotificationFactory> _factories =
 		factories.ToFrozenDictionary(keySelector: f => f.AggregateType);
 	
-	private Notification BuildNotification(OutboxMessageEntity message)
+	private IAppNotification BuildNotification(OutboxMessageEntity message)
 	{
 		OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
 			?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
@@ -40,9 +41,9 @@ public sealed class OutboxMessagesHandlingJob(
 		}).ToList();
  
 		if (!_factories.TryGetValue(key: message.AggregateType, value: out IAggregateNotificationFactory? factory))
-			throw new InvalidOperationException(message: $"No notification factory registered for aggregate type: '{message.AggregateType}'.");
+			throw new UnknownAggregateTypeException(message: "No notification factory registered for aggregate type.", aggregateType: message.AggregateType);
 		
-		return new Notification(Data: factory.Build(aggregateId: message.AggregateId, events: events));
+		return factory.Build(aggregateId: message.AggregateId, events: events);
 	}
 
 	internal async Task ProcessMessagesAsync(CancellationToken ct)
@@ -66,8 +67,8 @@ public sealed class OutboxMessagesHandlingJob(
 	        await unitOfWork.BeginTransactionAsync(ct: ct);
 	        try
 	        {
-	            Notification notification = BuildNotification(message: message);
-	            await dispatcher.DispatchAsync(notification: notification, ct: ct);
+	            IAppNotification appNotification = BuildNotification(message: message);
+	            await dispatcher.DispatchAsync(appNotification: appNotification, ct: ct);
 	            message.ProcessedAt = dateProvider.UtcNow;
 	            await databaseContext.SaveChangesAsync(cancellationToken: ct);
 	            await unitOfWork.CommitAsync(ct: ct);

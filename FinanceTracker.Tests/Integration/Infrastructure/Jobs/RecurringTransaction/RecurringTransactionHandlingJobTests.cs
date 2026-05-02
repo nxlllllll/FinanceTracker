@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Tests.Unit.Helpers;
+﻿using FinanceTracker.Application.RecurringTransactions.Notifications;
+using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
@@ -33,7 +34,8 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
             recurringTransactionWriteRepository: new RecurringTransactionWriteRepository(context: Context, dateProvider: FakeDateProvider.Default),
             notificationDispatcher: _dispatcher,
             unitOfWork: new EFUnitOfWork(context: Context),
-            dateProvider: new FinanceTracker.Infrastructure.Services.DateProvider()
+            dateProvider: new FinanceTracker.Infrastructure.Services.DateProvider(),
+            factory: new TransactionNotificationFactory()
         );
     }
 
@@ -43,7 +45,7 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
         await _job.ProcessTransactionsAsync(ct: CancellationToken.None);
 
         await _dispatcher.DidNotReceive().DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -65,7 +67,7 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
         await _job.ProcessTransactionsAsync(ct: CancellationToken.None);
 
         await _dispatcher.Received(requiredNumberOfCalls: 1).DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -115,7 +117,7 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
         await _job.ProcessTransactionsAsync(ct: CancellationToken.None);
 
         await _dispatcher.DidNotReceive().DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -142,7 +144,7 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
 
         int callCount = 0;
         _dispatcher.DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: _ =>
         {
@@ -155,7 +157,7 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
         await _job.ProcessTransactionsAsync(ct: CancellationToken.None);
 
         await _dispatcher.Received(requiredNumberOfCalls: 2).DispatchAsync(
-            notification: Arg.Any<Notification>(),
+            appNotification: Arg.Any<IAppNotification>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

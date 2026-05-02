@@ -51,8 +51,8 @@ public sealed class TransactionCreationServiceTests
     private void SetupConversionRate(decimal rate = 1m, bool isPending = false)
     {
         _currencyConversionService.GetConversionRateAsync(
-            fromCurrency: Arg.Any<string>(),
-            toCurrency: Arg.Any<string>(),
+            fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+            toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
             date: Arg.Any<DateOnly>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: new ConversionResult(Rate: rate, IsPending: isPending));
@@ -146,8 +146,8 @@ public sealed class TransactionCreationServiceTests
         Account account = AccountFactory.CreateAccountWithArchivation();
 
         _currencyConversionService.GetConversionRateAsync(
-            fromCurrency: Arg.Any<string>(),
-            toCurrency: Arg.Any<string>(),
+            fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+            toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
             date: Arg.Any<DateOnly>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns<ConversionResult>(returnThis: _ => throw new CurrencyRateNotFoundException(
