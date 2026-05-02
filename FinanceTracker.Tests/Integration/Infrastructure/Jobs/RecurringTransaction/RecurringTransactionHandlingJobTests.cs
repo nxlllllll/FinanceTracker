@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Tests.Unit.Helpers;
-﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.UOW;
@@ -128,11 +128,15 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
         await _recurringTransactionBuilder.CreateAsync(
-            userId: userId, accountId: accountId, categoryId: categoryId,
+            userId: userId, 
+            accountId: accountId,
+            categoryId: categoryId,
             dayOfMonth: DateTime.UtcNow.Day
         );
         await _recurringTransactionBuilder.CreateAsync(
-            userId: userId, accountId: accountId, categoryId: categoryId,
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
             dayOfMonth: DateTime.UtcNow.Day
         );
 

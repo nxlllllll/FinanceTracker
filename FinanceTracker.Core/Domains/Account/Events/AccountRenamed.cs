@@ -2,6 +2,7 @@
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
+[EventType(name: "account.renamed")]
 public sealed record AccountRenamed(
 	Guid Id,
 	Guid AccountId,

@@ -7,12 +7,6 @@ public readonly record struct Money
 {
 	public decimal Amount { get; }
 	public Currency Currency { get; }
- 
-	private Money(decimal amount, Currency currency, bool _)
-	{
-		Amount = amount;
-		Currency = currency;
-	}
 	
 	[JsonConstructor]
 	public Money(decimal amount, Currency currency)
@@ -33,13 +27,13 @@ public readonly record struct Money
 	}
 	
 	public static Money operator +(Money left, decimal right)
-		=> new Money(amount: left.Amount + right, currency: left.Currency, _: false);
+		=> new Money(amount: left.Amount + right, currency: left.Currency);
 	
 	public static Money operator -(Money left, decimal right)
-		=> new Money(amount: left.Amount - right, currency: left.Currency, _: false);
+		=> new Money(amount: left.Amount - right, currency: left.Currency);
 	
 	public static Money operator *(Money left, decimal right)
-		=> new Money(amount: left.Amount * right, currency: left.Currency, _: false);
+		=> new Money(amount: left.Amount * right, currency: left.Currency);
  
 	public override string ToString() 
 		=> $"{Amount} {Currency}";

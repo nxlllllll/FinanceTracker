@@ -47,47 +47,46 @@ public sealed class OutboxMessagesHandlingJob(
 
 	internal async Task ProcessMessagesAsync(CancellationToken ct)
 	{
-		await unitOfWork.BeginTransactionAsync(ct: ct);
- 
-		List<OutboxMessageEntity> messages = await databaseContext.WithSkipLocked<OutboxMessageEntity>()
-			.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
-			.OrderBy(keySelector: m => m.UpdatedAt)
-			.Take(count: Limit)
-			.ToListAsync(cancellationToken: ct);
- 
-		if (messages.Count == 0)	
-		{
-			await unitOfWork.RollbackAsync(ct: ct);
-			return;
-		}
-		
-		foreach (OutboxMessageEntity message in messages)
-		{
-			try
-			{
-				Notification notification = BuildNotification(message: message);
- 
-				await dispatcher.DispatchAsync(notification: notification, ct: ct);
-				message.ProcessedAt = dateProvider.UtcNow;
-			}
-			catch
-			{
-				++message.RetryCount;
-				
-				if (message.RetryCount >= MaxRetries)
-					message.FailedAt = dateProvider.UtcNow;
-			}
-		}
+	    await unitOfWork.BeginTransactionAsync(ct: ct);
 
-		try
-		{
-			await databaseContext.SaveChangesAsync(cancellationToken: ct);
-			await unitOfWork.CommitAsync(ct: ct);
-		}
-		catch
-		{
-			await unitOfWork.RollbackAsync(ct: ct);
-		}
+	    List<OutboxMessageEntity> messages = await databaseContext.WithSkipLocked<OutboxMessageEntity>()
+	        .Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
+	        .OrderBy(keySelector: m => m.UpdatedAt)
+	        .Take(count: Limit)
+	        .ToListAsync(cancellationToken: ct);
+
+	    if (messages.Count == 0)
+	    {
+	        await unitOfWork.RollbackAsync(ct: ct);
+	        return;
+	    }
+
+	    foreach (OutboxMessageEntity message in messages)
+	    {
+	        await unitOfWork.BeginTransactionAsync(ct: ct);
+	        try
+	        {
+	            Notification notification = BuildNotification(message: message);
+	            await dispatcher.DispatchAsync(notification: notification, ct: ct);
+	            message.ProcessedAt = dateProvider.UtcNow;
+	            await databaseContext.SaveChangesAsync(cancellationToken: ct);
+	            await unitOfWork.CommitAsync(ct: ct);
+	        }
+	        catch
+	        {
+	            await unitOfWork.RollbackAsync(ct: ct);
+				message.ProcessedAt = null;
+	            ++message.RetryCount;
+	            if (message.RetryCount >= MaxRetries)
+	                message.FailedAt = dateProvider.UtcNow;
+
+	            await unitOfWork.BeginTransactionAsync(ct: ct);
+	            await databaseContext.SaveChangesAsync(cancellationToken: ct);
+	            await unitOfWork.CommitAsync(ct: ct);
+	        }
+	    }
+
+	    await unitOfWork.CommitAsync(ct: ct);
 	}
 	
 	public async Task Execute(IJobExecutionContext context)

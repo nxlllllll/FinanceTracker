@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Reflection;
+using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories;
@@ -32,7 +33,7 @@ public sealed class PostgresEventStore(
 		foreach (IEvent @event in eventList)
 		{
 			string serialized = JsonSerializer.Serialize(value: @event, inputType: @event.GetType());
-			string eventType = @event.GetType().Name;
+			string eventType = @event.GetType().GetCustomAttribute<EventTypeAttribute>()?.Name ?? @event.GetType().Name;
 
 			entities.Add(item: new EventEntity()
 			{

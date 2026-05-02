@@ -161,7 +161,7 @@ public sealed class AccountTests
             amount: 100m,
             exchangeRate: 1m,
             description: null
-        )).Throws<ArchivingException>();
+        )).Throws<ArchivedAccountOperationException>();
     }
 
     [Test]
@@ -212,7 +212,7 @@ public sealed class AccountTests
 			amount: 100m,
 			exchangeRate: 1m,
 			description: null
-		)).Throws<ArchivingException>();
+		)).Throws<ArchivedAccountOperationException>();
 	}
 	
 	[Test]

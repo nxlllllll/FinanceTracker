@@ -164,7 +164,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             name: "Тест",
             type: Core.Domains.Account.AccountType.Checking,
             currency: "RUB",
-            balance: 0
+            balance: 100m
         );
 
         await _eventStore.SaveAsync(

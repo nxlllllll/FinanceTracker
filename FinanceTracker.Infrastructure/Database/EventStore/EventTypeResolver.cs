@@ -11,9 +11,8 @@ public sealed class EventTypeResolver : IEventTypeResolver
 
 	public EventTypeResolver(Assembly assembly)
 	{
-		_eventTypes = assembly.GetTypes()
-			.Where(predicate: type => type.IsAssignableTo(targetType: typeof(IEvent)) && type.IsClass)
-			.ToFrozenDictionary(keySelector: type => type.Name);
+		_eventTypes = assembly.GetTypes().Where(predicate: type => type.IsAssignableTo(targetType: typeof(IEvent)) && type.IsClass)
+    		.ToFrozenDictionary(keySelector: type => type.GetCustomAttribute<EventTypeAttribute>()?.Name ?? type.Name);
 	}
 
 	public Type ResolveType(string typeName)

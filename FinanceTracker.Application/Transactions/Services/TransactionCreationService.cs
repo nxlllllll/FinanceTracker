@@ -26,13 +26,14 @@ public sealed class TransactionCreationService(
         Account account,
         CreateTransactionCommand command,
         Guid transactionId,
-        decimal rate)
+        decimal rate,
+        DateTime occurredAt)
     {
         switch (command.Direction)
         {
             case DirectionType.Debit:
                 account.Debit(
-                    occurredAt: dateProvider.UtcNow,
+                    occurredAt: occurredAt,
                     transactionId: transactionId,
                     categoryId: command.CategoryId,
                     amount: command.Amount,
@@ -41,7 +42,7 @@ public sealed class TransactionCreationService(
                 ); break;
             case DirectionType.Credit:
                 account.Credit(
-                    occurredAt: dateProvider.UtcNow,
+                    occurredAt: occurredAt,
                     transactionId: transactionId,
                     categoryId: command.CategoryId,
                     amount: command.Amount,
@@ -58,6 +59,7 @@ public sealed class TransactionCreationService(
         Account account,
         CancellationToken ct = default)
     {
+        DateTime now = dateProvider.UtcNow;
         ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
             fromCurrency: command.Currency,
             toCurrency: account.Currency,
@@ -74,14 +76,15 @@ public sealed class TransactionCreationService(
             exchangeRate: conversion.Rate,
             isRatePending: conversion.IsPending,
             description: command.Description,
-            occurredAt: dateProvider.UtcNow
+            occurredAt: now
         );
 
         ApplyDirection(
             account: account,
             command: command,
             transactionId: transaction.Id,
-            rate: conversion.Rate
+            rate: conversion.Rate,
+            occurredAt: now
         );
 
         await unitOfWork.BeginTransactionAsync(ct: ct);

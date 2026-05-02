@@ -7,6 +7,7 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.User;
@@ -24,6 +25,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
+using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
@@ -51,26 +53,42 @@ public static class DependencyInjection
 		);
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
+		
 		services.AddScoped<IAccountRepository, AccountRepository>();
 		services.AddScoped<IAccountReadRepository, AccountReadRepository>();
 		services.AddScoped<IAccountWriteRepository, AccountWriteRepository>();
-		services.AddScoped<ICategoryReadRepository, CategoryReadRepository>();
-		services.AddScoped<ICategoryWriteRepository, CategoryWriteRepository>();
-		services.AddScoped<ITransactionReadRepository, TransactionReadRepository>();
-		services.AddScoped<ITransactionWriteRepository, TransactionWriteRepository>();
-		services.AddScoped<ICurrencyReadRepository, CurrencyReadRepository>();
+
 		services.AddScoped<IAccountTypeReadRepository, AccountTypeReadRepository>();
-		services.AddScoped<IUserReadRepository, UserReadRepository>();
-		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
-		services.AddScoped<ICurrencyRateReadRepository, CurrencyRateReadRepository>();
-		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
-		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
-		services.AddScoped<ICategoryTotalWriteRepository, CategoryTotalWriteRepository>();
-		services.AddScoped<ICategoryTotalReadRepository, CategoryTotalReadRepository>();
+		
 		services.AddScoped<IBudgetReadRepository, BudgetReadRepository>();
 		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();
+
 		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
+
+		services.AddScoped<ICategoryReadRepository, CategoryReadRepository>();
+		services.AddScoped<ICategoryWriteRepository, CategoryWriteRepository>();
+		
+		services.AddScoped<ICategoryTotalWriteRepository, CategoryTotalWriteRepository>();
+		services.AddScoped<ICategoryTotalReadRepository, CategoryTotalReadRepository>();
+		
+		services.AddScoped<ICurrencyReadRepository, CurrencyReadRepository>();
+		
+		services.AddScoped<ICurrencyRateReadRepository, CurrencyRateReadRepository>();
+		
+		services.AddScoped<IRecurringTransactionReadRepository, RecurringTransactionReadRepository>();
+		services.AddScoped<IRecurringTransactionWriteRepository, RecurringTransactionWriteRepository>();
+		
+		services.AddScoped<ITransactionReadRepository, TransactionReadRepository>();
+		services.AddScoped<ITransactionWriteRepository, TransactionWriteRepository>();
+
+		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
+		services.AddScoped<ITransferReadRepository, TransferReadRepository>();
+		
+		services.AddScoped<IUserReadRepository, UserReadRepository>();
+		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
+		
+		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<IDateProvider, DateProvider>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();

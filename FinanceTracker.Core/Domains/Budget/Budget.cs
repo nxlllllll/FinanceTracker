@@ -60,7 +60,7 @@ public sealed class Budget
     }
 
     public void ChangeAmount(decimal amount)
-        => Amount = new Money(amount: amount, currency: Amount.Currency);
+        => Amount = Money.Positive(amount: amount, currency: Amount.Currency);
 
     public void ChangePeriod(DateOnly from, DateOnly to)
     {

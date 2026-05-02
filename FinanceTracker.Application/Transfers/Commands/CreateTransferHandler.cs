@@ -45,8 +45,10 @@ public sealed class CreateTransferHandler(
 			occurredAt: command.OccurredAt
 		);
 
+		DateTime now = dateProvider.UtcNow;
+		
 		fromAccount.DebitTransfer(
-			occurredAt: dateProvider.UtcNow,
+			occurredAt: now,
 			transferId: transfer.Id,
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,
@@ -55,7 +57,7 @@ public sealed class CreateTransferHandler(
 		);
 
 		toAccount.CreditTransfer(
-			occurredAt: dateProvider.UtcNow,
+			occurredAt: now,
 			transferId: transfer.Id,
 			fromAccountId: command.FromAccountId,
 			amount: command.Amount,

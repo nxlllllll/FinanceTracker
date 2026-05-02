@@ -102,7 +102,7 @@ public sealed class Account : AggregateRoot
 		decimal rate)
 	{
 		if (IsArchived)
-			throw new ArchivingException(message: "Financial transactions on the archived account are prohibited.");
+			throw new ArchivedAccountOperationException(message: "Financial transactions on the archived account are prohibited.");
 
 		if (amount <= 0)
 			throw new InvalidAmountException(message: "Amount must be greater than zero.");
@@ -298,7 +298,7 @@ public sealed class Account : AggregateRoot
 		if (String.IsNullOrWhiteSpace(value: newName))
 			throw new EmptyNameException(message: "The account name cannot be empty.");
 
-		if (Name.Equals(value: newName))
+		if (Name.Equals(value: newName, comparisonType: StringComparison.OrdinalIgnoreCase))
 			return;
 
 		RaiseEvent(@event: new AccountRenamed(

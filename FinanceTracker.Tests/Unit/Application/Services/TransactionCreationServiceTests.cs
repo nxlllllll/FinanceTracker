@@ -110,7 +110,7 @@ public sealed class TransactionCreationServiceTests
     public async Task CreateAsync_WithPendingRate_ShouldCreateTransactionWithIsRatePendingTrue()
     {
         Account account = AccountFactory.CreateAccountWithArchivation();
-        SetupConversionRate(rate: 85m, isPending: true);
+        SetupConversionRate(rate: 0.85m, isPending: true);
 
         await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
@@ -119,7 +119,7 @@ public sealed class TransactionCreationServiceTests
         );
 
         await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-            transaction: Arg.Is<Transaction>(predicate: t => t.ExchangeRate == 85m && t.IsRatePending),
+            transaction: Arg.Is<Transaction>(predicate: t => t.ExchangeRate == 0.85m && t.IsRatePending),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -134,7 +134,7 @@ public sealed class TransactionCreationServiceTests
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             account: account,
             ct: CancellationToken.None
-        )).Throws<ArchivingException>();
+        )).Throws<ArchivedAccountOperationException>();
     }
 
     [Test]

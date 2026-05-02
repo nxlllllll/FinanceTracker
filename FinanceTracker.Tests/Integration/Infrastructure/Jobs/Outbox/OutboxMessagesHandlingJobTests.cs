@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
+using FinanceTracker.Application.Accounts.Projections;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
@@ -57,9 +58,10 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
     private static INotificationDispatcher BuildFailingDispatcher()
     {
         INotificationDispatcher dispatcher = Substitute.For<INotificationDispatcher>();
-        dispatcher
-            .DispatchAsync(Arg.Any<Notification>(), Arg.Any<CancellationToken>())
-            .Returns(x => Task.FromException(new InvalidOperationException(message: "Simulated dispatch failure")));
+        dispatcher.DispatchAsync(
+            notification: Arg.Any<Notification>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: _ => Task.FromException(new InvalidOperationException(message: "Simulated dispatch failure")));
         return dispatcher;
     }
 
@@ -150,5 +152,26 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
             .FirstOrDefaultAsync();
 
         await Assert.That(value: message!.RetryCount).IsEqualTo(expected: 5);
+    }
+    
+    [Test]
+    public async Task ProcessBatchAsync_WhenDispatcherFailsThenSucceeds_ShouldNotMarkAsProcessedOnFailureAndSucceedOnRetry()
+    {
+        await CreateAndSaveAccountAsync();
+
+        OutboxMessagesHandlingJob failingJob = BuildJob(dispatcher: BuildFailingDispatcher());
+        await failingJob.ProcessMessagesAsync(ct: CancellationToken.None);
+
+        OutboxMessageEntity? messageAfterFailure = await Context.OutboxMessages.AsNoTracking().FirstOrDefaultAsync();
+
+        await Assert.That(value: messageAfterFailure!.ProcessedAt).IsNull();
+        await Assert.That(value: messageAfterFailure.RetryCount).IsEqualTo(expected: 1);
+
+        await _job.ProcessMessagesAsync(ct: CancellationToken.None);
+
+        OutboxMessageEntity? messageAfterSuccess = await Context.OutboxMessages.AsNoTracking().FirstOrDefaultAsync();
+
+        await Assert.That(value: messageAfterSuccess!.ProcessedAt).IsNotNull();
+        await Assert.That(value: messageAfterSuccess.RetryCount).IsEqualTo(expected: 1);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
+[EventType(name: "account.transfer_debited")]
 public sealed record AccountTransferDebited(
 	Guid Id,
 	Guid AccountId,
