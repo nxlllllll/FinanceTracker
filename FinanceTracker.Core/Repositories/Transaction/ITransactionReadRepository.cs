@@ -16,6 +16,9 @@ public interface ITransactionReadRepository
 		bool? isExcluded = null,
 		DateTime? dateFrom = null,
 		DateTime? dateTo = null,
+		DateTime? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
 		CancellationToken ct = default
 	);
 	

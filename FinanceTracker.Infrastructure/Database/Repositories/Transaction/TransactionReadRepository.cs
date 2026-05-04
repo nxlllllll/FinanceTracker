@@ -37,6 +37,9 @@ public sealed class TransactionReadRepository(
         bool? isExcluded = null,
         DateTime? dateFrom = null,
         DateTime? dateTo = null,
+        DateTime? cursorOccurredAt = null,
+        Guid? cursorId = null,
+        int pageSize = 20,
         CancellationToken ct = default)
     {
         IQueryable<TransactionEntity> query = context.Transactions.AsNoTracking()
@@ -57,7 +60,12 @@ public sealed class TransactionReadRepository(
         if (dateTo is not null)
             query = query.Where(predicate: t => t.OccurredAt <= dateTo);
 
+        if (cursorOccurredAt is not null && cursorId is not null)
+            query = query.Where(predicate: t => t.OccurredAt < cursorOccurredAt || t.OccurredAt == cursorOccurredAt && t.Id < cursorId);
+        
         return await query.OrderByDescending(keySelector: t => t.OccurredAt)
+            .ThenByDescending(keySelector: t => t.Id)
+            .Take(count: pageSize)
             .Select(selector: t => Core.Domains.Transaction.Transaction.Reconstitute(
                 id: t.Id,
                 accountId: t.AccountId,

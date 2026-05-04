@@ -9,7 +9,10 @@ public interface IRecurringTransactionReadRepository
 
 	Task<IReadOnlyList<Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
 		Guid userId,
-		CancellationToken ct = default
+		DateTime? cursorCreatedAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
+		CancellationToken ct = default	
 	);
 
 	Task<IReadOnlyList<Domains.RecurringTransaction.RecurringTransaction>> GetDueTodayAsync(

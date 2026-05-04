@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Tests.Unit.Helpers;
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
@@ -19,6 +19,9 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     private CurrencyBuilder _currencyBuilder = null!;
     private AccountTypeBuilder _accountTypeBuilder = null!;
     private UserBuilder _userBuilder = null!;
+    private AccountBuilder _accountBuilder = null!;
+    private CategoryBuilder _categoryBuilder = null!;
+    private TransactionBuilder _transactionBuilder = null!;
 
     [Before(hookType: Test)]
     public void SetupRepositories()
@@ -29,6 +32,9 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         _currencyBuilder = new CurrencyBuilder(context: Context);
         _accountTypeBuilder = new AccountTypeBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
+        _accountBuilder = new AccountBuilder(context: Context);
+        _categoryBuilder = new CategoryBuilder(context: Context);
+        _transactionBuilder = new TransactionBuilder(context: Context);
     }
 
     private async Task<(Guid accountId, Guid categoryId, Guid userId)> CreateAccountAndCategoryAsync()
@@ -295,6 +301,155 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         );
 
         IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(accountId: accountId);
+
+        await Assert.That(value: result[0].OccurredAt).IsGreaterThan(minimum: result[1].OccurredAt);
+        await Assert.That(value: result[1].OccurredAt).IsGreaterThan(minimum: result[2].OccurredAt);
+    }
+    
+        [Test]
+    public async Task GetAllAsync_WithoutCursor_ShouldReturnFirstPage()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        for (int i = 0; i < 5; i++)
+            await _transactionBuilder.CreateAsync(
+                userId: userId,
+                accountId: accountId,
+                categoryId: categoryId
+            );
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            pageSize: 3
+        );
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 3);
+    }
+
+    [Test]
+    public async Task GetAllAsync_WithCursor_ShouldReturnNextPage()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        DateTime baseTime = new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+
+        for (int i = 0; i < 5; i++)
+            await _transactionBuilder.CreateAsync(
+                userId: userId,
+                accountId: accountId,
+                categoryId: categoryId,
+                occurredAt: baseTime.AddHours(value: i)
+            );
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> firstPage = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            pageSize: 3
+        );
+
+        Core.Domains.Transaction.Transaction lastItem = firstPage[^1];
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> secondPage = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            cursorOccurredAt: lastItem.OccurredAt,
+            cursorId: lastItem.Id,
+            pageSize: 3
+        );
+
+        await Assert.That(value: secondPage.Count).IsEqualTo(expected: 2);
+        await Assert.That(value: secondPage.Any(t => firstPage.Any(f => f.Id == t.Id))).IsFalse();
+    }
+
+    [Test]
+    public async Task GetAllAsync_WithCursor_ShouldNotReturnDuplicates()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        DateTime baseTime = new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+
+        for (int i = 0; i < 6; i++)
+            await _transactionBuilder.CreateAsync(
+                userId: userId,
+                accountId: accountId,
+                categoryId: categoryId,
+                occurredAt: baseTime.AddHours(value: i)
+            );
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> firstPage = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            pageSize: 3
+        );
+
+        Core.Domains.Transaction.Transaction lastItem = firstPage[^1];
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> secondPage = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            cursorOccurredAt: lastItem.OccurredAt,
+            cursorId: lastItem.Id,
+            pageSize: 3
+        );
+
+        IEnumerable<Guid> allIds = firstPage.Select(t => t.Id).Concat(secondPage.Select(t => t.Id));
+        await Assert.That(value: allIds.Distinct().Count()).IsEqualTo(expected: 6);
+    }
+
+    [Test]
+    public async Task GetAllAsync_WhenNoMoreItems_ShouldReturnEmptyList()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        await _transactionBuilder.CreateAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            occurredAt: new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+        );
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> firstPage = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            pageSize: 3
+        );
+
+        Core.Domains.Transaction.Transaction lastItem = firstPage[^1];
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> secondPage = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            cursorOccurredAt: lastItem.OccurredAt,
+            cursorId: lastItem.Id,
+            pageSize: 3
+        );
+
+        await Assert.That(value: secondPage).IsEmpty();
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldReturnItemsOrderedByOccurredAtDescending()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        DateTime baseTime = new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+
+        for (int i = 0; i < 3; i++)
+            await _transactionBuilder.CreateAsync(
+                userId: userId,
+                accountId: accountId,
+                categoryId: categoryId,
+                occurredAt: baseTime.AddHours(value: i)
+            );
+
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+            accountId: accountId,
+            pageSize: 10
+        );
 
         await Assert.That(value: result[0].OccurredAt).IsGreaterThan(minimum: result[1].OccurredAt);
         await Assert.That(value: result[1].OccurredAt).IsGreaterThan(minimum: result[2].OccurredAt);

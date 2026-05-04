@@ -10,5 +10,8 @@ public sealed record GetTransactionsQuery(
 	DirectionType? Direction = null,
 	bool? IsExcluded = null,
 	DateTime? DateFrom = null,
-	DateTime? DateTo = null
+	DateTime? DateTo = null,
+	DateTime? CursorOccurredAt = null,
+	Guid? CursorId = null,
+	int PageSize = 20
 ) : IRequest<IReadOnlyList<Transaction>>;

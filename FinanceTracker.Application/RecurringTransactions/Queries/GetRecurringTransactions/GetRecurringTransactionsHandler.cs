@@ -10,6 +10,14 @@ public sealed class GetRecurringTransactionsHandler(
 {
 	public async Task<IReadOnlyList<RecurringTransaction>> Handle(
 		GetRecurringTransactionsQuery query,
-		CancellationToken ct = default
-	) => await recurringTransactionReadRepository.GetByUserIdAsync(userId: query.UserId, ct: ct);
+		CancellationToken ct = default)
+	{
+		return await recurringTransactionReadRepository.GetByUserIdAsync(
+			userId: query.UserId,
+			cursorCreatedAt: query.CursorCreatedAt,
+			cursorId: query.CursorId,
+			pageSize: query.PageSize,
+			ct: ct
+		);
+	}
 }

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
@@ -31,11 +32,21 @@ public sealed class RecurringTransactionReadRepository(
 
     public async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
         Guid userId,
+        DateTime? cursorCreatedAt = null,
+        Guid? cursorId = null,
+        int pageSize = 20,
         CancellationToken ct = default)
     {
-        return await context.RecurringTransactions.AsNoTracking()
-            .Where(predicate: r => r.UserId == userId)
-            .OrderBy(keySelector: r => r.CreatedAt)
+        IQueryable<RecurringTransactionEntity> query = context.RecurringTransactions.AsNoTracking()
+            .Where(predicate: r => r.UserId == userId);
+
+        if (cursorCreatedAt is not null && cursorId is not null)
+            query = query.Where(predicate: r => r.CreatedAt < cursorCreatedAt || (r.CreatedAt == cursorCreatedAt && r.Id < cursorId));
+
+        return await query
+            .OrderByDescending(keySelector: r => r.CreatedAt)
+            .ThenByDescending(keySelector: r => r.Id)
+            .Take(count: pageSize)
             .Select(selector: r => Core.Domains.RecurringTransaction.RecurringTransaction.Reconstitute(
                 id: r.Id,
                 userId: r.UserId,

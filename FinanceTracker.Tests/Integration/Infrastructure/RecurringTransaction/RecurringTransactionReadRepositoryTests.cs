@@ -306,4 +306,108 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: result).IsEmpty();
 	}
+	
+	[Test]
+    public async Task GetByUserIdAsync_WithoutCursor_ShouldReturnFirstPage()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        for (int i = 0; i < 5; i++)
+            await _recurringTransactionBuilder.CreateAsync(
+                userId: userId,
+                accountId: accountId,
+                categoryId: categoryId,
+                dayOfMonth: i + 1
+            );
+
+        IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result =
+            await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
+
+        await Assert.That(value: result.Count).IsEqualTo(expected: 3);
+    }
+
+    [Test]
+    public async Task GetByUserIdAsync_WithCursor_ShouldReturnNextPage()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        for (int i = 0; i < 5; i++)
+            await _recurringTransactionBuilder.CreateAsync(
+                userId: userId,
+                accountId: accountId,
+                categoryId: categoryId,
+                dayOfMonth: i + 1
+            );
+
+        IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> firstPage =
+            await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
+
+        Core.Domains.RecurringTransaction.RecurringTransaction lastItem = firstPage[^1];
+
+        IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> secondPage =
+            await _readRepository.GetByUserIdAsync(
+                userId: userId,
+                cursorCreatedAt: lastItem.CreatedAt,
+                cursorId: lastItem.Id,
+                pageSize: 3
+            );
+
+        await Assert.That(value: secondPage.Count).IsEqualTo(expected: 2);
+        await Assert.That(value: secondPage.Any(r => firstPage.Any(f => f.Id == r.Id))).IsFalse();
+    }
+
+    [Test]
+    public async Task GetByUserIdAsync_WhenNoMoreItems_ShouldReturnEmptyList()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        await _recurringTransactionBuilder.CreateAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId
+        );
+
+        IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> firstPage =
+            await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
+
+        Core.Domains.RecurringTransaction.RecurringTransaction lastItem = firstPage[^1];
+
+        IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> secondPage =
+            await _readRepository.GetByUserIdAsync(
+                userId: userId,
+                cursorCreatedAt: lastItem.CreatedAt,
+                cursorId: lastItem.Id,
+                pageSize: 3
+            );
+
+        await Assert.That(value: secondPage).IsEmpty();
+    }
+
+    [Test]
+    public async Task GetByUserIdAsync_ShouldNotReturnOtherUserItems()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid otherUserId = await _userBuilder.CreateAsync();
+        Guid accountId = await _accountBuilder.CreateAsync(userId: otherUserId);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: otherUserId);
+
+        for (int i = 0; i < 3; i++)
+            await _recurringTransactionBuilder.CreateAsync(
+                userId: otherUserId,
+                accountId: accountId,
+                categoryId: categoryId,
+                dayOfMonth: i + 1
+            );
+
+        IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result =
+            await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 10);
+
+        await Assert.That(value: result).IsEmpty();
+    }
 }

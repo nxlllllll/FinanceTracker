@@ -19,6 +19,9 @@ public sealed class GetTransactionsHandler(
 			isExcluded: query.IsExcluded,
 			dateFrom: query.DateFrom,
 			dateTo: query.DateTo,
+			cursorOccurredAt: query.CursorOccurredAt,
+			cursorId: query.CursorId,
+			pageSize: query.PageSize,
 			ct: ct
 		);
 	}
