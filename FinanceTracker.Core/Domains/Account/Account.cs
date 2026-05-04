@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account;
@@ -38,7 +39,7 @@ public sealed class Account : AggregateRoot
 		return sign;
 	}
 	
-	public static Account Create(
+	public static Result<Account, DomainException> Create(
 		DateTime occurredAt,
 		Guid userId,
 		string name,
@@ -47,11 +48,11 @@ public sealed class Account : AggregateRoot
 		decimal balance)
 	{
 		if (String.IsNullOrWhiteSpace(value: name))
-			throw new NameException(message: "The account name cannot be empty.");
-
+			return Result<Account, DomainException>.Failure(error: new NameException(message: "The account name cannot be empty."));
+ 
 		if (balance < 0)
-			throw new InvalidInitialBalanceException(message: "The initial account balance cannot be negative.");
-
+			return Result<Account, DomainException>.Failure(error: new InvalidInitialBalanceException(message: "The initial account balance cannot be negative."));
+ 
 		Account account = new Account();
 		account.RaiseEvent(@event: new AccountCreated(
 			Id: Guid.NewGuid(),
@@ -63,8 +64,8 @@ public sealed class Account : AggregateRoot
 			Balance: balance,
 			OccurredAt: occurredAt
 		));
-
-		return account;
+ 
+		return Result<Account, DomainException>.Success(value: account);
 	}
 	
 	public static Account ReconstituteFromHistory(IReadOnlyList<IEvent> history)
@@ -98,26 +99,30 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 
-	private void CheckConstraints(decimal amount, decimal rate = 1m)
+	private Result<Unit, DomainException> CheckConstraints(decimal amount, decimal rate = 1m)
 	{
 		if (IsArchived)
-			throw new ArchivedAccountOperationException(message: "Financial transactions on the archived account are prohibited.");
-
+			return Result<Unit, DomainException>.Failure(error: new ArchivedAccountOperationException(message: "Financial transactions on the archived account are prohibited."));
+ 
 		if (amount <= 0)
-			throw new InvalidAmountException(message: "Amount must be greater than zero.");
-
+			return Result<Unit, DomainException>.Failure(error: new InvalidAmountException(message: "Amount must be greater than zero."));
+ 
 		if (rate <= 0)
-			throw new InvalidExchangeRateException(message: "Exchange rate must be greater than zero.");
+			return Result<Unit, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 	
-	private void CheckSufficientFunds(decimal amount, decimal rate = 1m)
+	private Result<Unit, DomainException> CheckSufficientFunds(decimal amount, decimal rate = 1m)
 	{
 		if (amount * rate > Balance.Amount)
-			throw new InsufficientFundsException("The amount of funds on the balance is insufficient.", balance: Balance);
+			return Result<Unit, DomainException>.Failure(error: new InsufficientFundsException("The amount of funds on the balance is insufficient.", balance: Balance));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
 	private void Apply(AccountBalanceAdjusted @event)
-		=> Balance = new Money(amount: Balance.Amount + @event.Delta, currency: Balance.Currency, allowNegative: true);
+		=> Balance += @event.Delta;
 	
 	private void Apply(AccountDebited @event)
 		=> Balance -= @event.Amount * @event.ExchangeRate;
@@ -146,7 +151,7 @@ public sealed class Account : AggregateRoot
 		UserId = @event.UserId;
 		Name = @event.Name;
 		Type = @event.Type;
-		Balance = new Money(amount: @event.Balance, currency: @event.Currency);
+		Balance = Money.Create(amount: @event.Balance, currency: Currency.Create(value: @event.Currency).Value).Value;
 		IsArchived = false;
 	}
 
@@ -167,7 +172,7 @@ public sealed class Account : AggregateRoot
 		}
 	}
 
-	public void AdjustBalance(
+	public Result<Unit, DomainException> AdjustBalance(
 		DateTime occurredAt,
 		Guid sourceId,
 		string sourceType,
@@ -178,10 +183,10 @@ public sealed class Account : AggregateRoot
 	{
 		int sign = GetSign(direction: direction);
 		decimal delta = (newRate - oldRate) * amount * sign;
-		
+ 
 		if (delta == 0)
-			return;
-		
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
+ 
 		RaiseEvent(@event: new AccountBalanceAdjusted(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
@@ -193,9 +198,11 @@ public sealed class Account : AggregateRoot
 			Delta: delta,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
-	public void Debit(
+ 
+	public Result<Unit, DomainException> Debit(
 		DateTime occurredAt,
 		Guid transactionId,
 		Guid categoryId,
@@ -203,9 +210,12 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		CheckConstraints(amount: amount, rate: exchangeRate);
-		CheckSufficientFunds(amount: amount, rate: exchangeRate);
-		
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
+		if (constraints.IsFailure) return constraints;
+ 
+		Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount, rate: exchangeRate);
+		if (funds.IsFailure) return funds;
+ 
 		RaiseEvent(@event: new AccountDebited(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
@@ -216,9 +226,11 @@ public sealed class Account : AggregateRoot
 			Description: description,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-
-	public void DebitTransfer(
+ 
+	public Result<Unit, DomainException> DebitTransfer(
 		DateTime occurredAt,
 		Guid transferId,
 		Guid toAccountId,
@@ -226,9 +238,12 @@ public sealed class Account : AggregateRoot
 		decimal forexRate,
 		string? description)
 	{
-		CheckConstraints(amount: amount);
-		CheckSufficientFunds(amount: amount);
-
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
+		if (constraints.IsFailure) return constraints;
+ 
+		Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount);
+		if (funds.IsFailure) return funds;
+ 
 		RaiseEvent(@event: new AccountTransferDebited(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
@@ -239,9 +254,11 @@ public sealed class Account : AggregateRoot
 			Description: description,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
-	public void Credit(
+ 
+	public Result<Unit, DomainException> Credit(
 		DateTime occurredAt,
 		Guid transactionId,
 		Guid categoryId,
@@ -249,8 +266,9 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		CheckConstraints(amount: amount, rate: exchangeRate);
-		
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
+		if (constraints.IsFailure) return constraints;
+ 
 		RaiseEvent(@event: new AccountCredited(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
@@ -261,9 +279,11 @@ public sealed class Account : AggregateRoot
 			Description: description,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
-	public void CreditTransfer(
+ 
+	public Result<Unit, DomainException> CreditTransfer(
 		DateTime occurredAt,
 		Guid transferId,
 		Guid fromAccountId,
@@ -271,8 +291,9 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
-		CheckConstraints(amount: amount, rate: exchangeRate);
-
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
+		if (constraints.IsFailure) return constraints;
+ 
 		RaiseEvent(@event: new AccountTransferCredited(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
@@ -283,48 +304,56 @@ public sealed class Account : AggregateRoot
 			Description: description,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
-	public void Rename(
+ 
+	public Result<Unit, DomainException> Rename(
 		DateTime occurredAt,
 		string newName)
 	{
 		if (String.IsNullOrWhiteSpace(value: newName))
-			throw new NameException(message: "The account name cannot be empty.");
-
+			return Result<Unit, DomainException>.Failure(error: new NameException(message: "The account name cannot be empty."));
+ 
 		if (Name.Equals(value: newName, comparisonType: StringComparison.OrdinalIgnoreCase))
-			return;
-
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
+ 
 		RaiseEvent(@event: new AccountRenamed(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
 			NewName: newName,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-
-	public void Archive(DateTime occurredAt)
+ 
+	public Result<Unit, DomainException> Archive(DateTime occurredAt)
 	{
 		if (IsArchived)
-			throw new ArchivingException(message: "The account has already been archived before.");
-
+			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The account has already been archived before."));
+ 
 		RaiseEvent(@event: new AccountArchived(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-
-	public void Unarchive(DateTime occurredAt)
+ 
+	public Result<Unit, DomainException> Unarchive(DateTime occurredAt)
 	{
 		if (!IsArchived)
-			throw new UnarchivingException(message: "The account is already active.");
-
+			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The account is already active."));
+ 
 		RaiseEvent(@event: new AccountUnarchived(
 			Id: Guid.NewGuid(),
 			AccountId: Id,
 			OccurredAt: occurredAt
 		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 	
 	public string TakeSnapshot()

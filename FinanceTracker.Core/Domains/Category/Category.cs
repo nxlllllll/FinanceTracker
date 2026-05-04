@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Domains.Category;
 
@@ -14,7 +15,7 @@ public sealed class Category
 
 	private Category() { }
 
-	public static Category Create(
+	public static Result<Category, DomainException> Create(
 		DateTime createdAt,
 		Guid userId,
 		string name,
@@ -22,9 +23,9 @@ public sealed class Category
 		Guid? parentId)
 	{
 		if (String.IsNullOrWhiteSpace(value: name))
-			throw new NameException(message: "The category name cannot be empty.");
-
-		return new Category()
+			return Result<Category, DomainException>.Failure(error: new NameException(message: "The category name cannot be empty."));
+ 
+		return Result<Category, DomainException>.Success(value: new Category()
 		{
 			Id = Guid.NewGuid(),
 			UserId = userId,
@@ -33,7 +34,7 @@ public sealed class Category
 			Type = type,
 			IsArchived = false,
 			CreatedAt = createdAt
-		};
+		});
 	}
 
 	public static Category Reconstitute(
@@ -57,33 +58,33 @@ public sealed class Category
 		};
 	}
 
-	public void Rename(string newName)
+	public Result<Unit, DomainException> Rename(string newName)
 	{
 		if (String.IsNullOrWhiteSpace(value: newName))
-			throw new NameException(message: "The category name cannot be empty.");
-
+			return Result<Unit, DomainException>.Failure(error: new NameException(message: "The category name cannot be empty."));
+ 
 		if (IsArchived)
-			throw new ArchivingException(message: "It is forbidden to change the name of an archived category.");
-
-		if (newName.Equals(value: Name))
-			return;
-
+			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "It is forbidden to change the name of an archived category."));
+ 
 		Name = newName;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-
-	public void Archive()
+ 
+	public Result<Unit, DomainException> Archive()
 	{
 		if (IsArchived)
-			throw new ArchivingException(message: "The category has already been archived before.");
-
+			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The category has already been archived before."));
+ 
 		IsArchived = true;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-
-	public void Unarchive()
+ 
+	public Result<Unit, DomainException> Unarchive()
 	{
 		if (!IsArchived)
-			throw new UnarchivingException(message: "The category is already active.");
-
+			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The category is already active."));
+ 
 		IsArchived = false;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

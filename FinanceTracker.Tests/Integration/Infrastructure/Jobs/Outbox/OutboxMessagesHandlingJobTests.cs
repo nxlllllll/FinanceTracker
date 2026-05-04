@@ -1,10 +1,12 @@
-﻿using FinanceTracker.Application.Accounts.Notifications;
+﻿using FinanceTracker.Application.UseCases.Accounts.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
-using FinanceTracker.Infrastructure.Database.UOW;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -70,7 +72,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
-        Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
+        Result<Core.Domains.Account.Account, DomainException> result = Core.Domains.Account.Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             name: "Карта Сбер",
@@ -78,7 +80,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
             currency: currencyCode,
             balance: 1000m
         );
-
+        Core.Domains.Account.Account account = result.Value!;
         await _accountRepository.SaveAsync(account: account);
     }
 

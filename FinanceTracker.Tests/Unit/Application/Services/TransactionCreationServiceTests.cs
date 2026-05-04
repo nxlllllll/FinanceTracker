@@ -1,13 +1,15 @@
-﻿using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
-using FinanceTracker.Application.Transactions.Services;
+﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Services;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -64,13 +66,14 @@ public sealed class TransactionCreationServiceTests
         Account account = AccountFactory.CreateAccountWithArchivation();
         SetupConversionRate();
 
-        Guid result = await _service.CreateAsync(
+        Result<Guid, DomainException> result = await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             account: account,
             ct: CancellationToken.None
         );
 
-        await Assert.That(value: result).IsNotDefault();
+        await Assert.That(value: result.IsSuccess).IsTrue();
+        await Assert.That(value: result.Value).IsNotDefault();
     }
 
     [Test]
@@ -133,11 +136,14 @@ public sealed class TransactionCreationServiceTests
         Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
         SetupConversionRate();
 
-        await Assert.That(action: async () => await _service.CreateAsync(
+        Result<Guid, DomainException> result = await _service.CreateAsync(
             command: CreateTransactionCommandFactory.Create(userId: account.UserId),
             account: account,
             ct: CancellationToken.None
-        )).Throws<ArchivedAccountOperationException>();
+        );
+        
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
     }
 
     [Test]

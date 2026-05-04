@@ -1,0 +1,11 @@
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
+using MediatR;
+
+namespace FinanceTracker.Application.UseCases.RecurringTransactions.Commands.DeactivateRecurringTransaction;
+
+public sealed record DeactivateRecurringTransactionCommand(
+	Guid UserId,
+	Guid RecurringTransactionId
+) : IRequest<Result<Guid, DomainException>>, IAuthorizable;

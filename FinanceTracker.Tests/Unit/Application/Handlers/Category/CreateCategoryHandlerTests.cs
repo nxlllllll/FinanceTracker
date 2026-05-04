@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Categories.Commands.CreateCategory;
+﻿using FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;

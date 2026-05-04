@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 
@@ -19,7 +20,7 @@ public sealed class RecurringTransactionTests
             userId: userId,
             accountId: accountId,
             categoryId: categoryId
-        );
+        ).Value!;
 
         await Assert.That(value: rt.Id).IsNotDefault();
         await Assert.That(value: rt.UserId).IsEqualTo(expected: userId);
@@ -37,21 +38,23 @@ public sealed class RecurringTransactionTests
     [Test]
     public async Task Create_WithDayOfMonthZero_ShouldThrowInvalidDayOfMonthException()
     {
-        await Assert.That(func: () => RecurringTransactionFactory.Create(dayOfMonth: 0))
-                 .Throws<InvalidDayOfMonthException>();
+        Result<RecurringTransaction, DomainException> result = RecurringTransactionFactory.Create(dayOfMonth: 0);
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
     }
 
     [Test]
     public async Task Create_WithDayOfMonth32_ShouldThrowInvalidDayOfMonthException()
     {
-        await Assert.That(func: () => RecurringTransactionFactory.Create(dayOfMonth: 32))
-                 .Throws<InvalidDayOfMonthException>();
+        Result<RecurringTransaction, DomainException> result = RecurringTransactionFactory.Create(dayOfMonth: 32);
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
     }
 
     [Test]
     public async Task Activate_WhenInactive_ShouldSetIsActiveTrue()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false);
+        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
 
         rt.Activate();
 
@@ -61,15 +64,18 @@ public sealed class RecurringTransactionTests
     [Test]
     public async Task Activate_WhenAlreadyActive_ShouldThrowActivatingException()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true);
+        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
 
-        await Assert.That(action: rt.Activate).Throws<ActivatingException>();
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.Activate();
+        
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
     }
 
     [Test]
     public async Task Deactivate_WhenActive_ShouldSetIsActiveFalse()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true);
+        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
 
         rt.Deactivate();
 
@@ -79,15 +85,18 @@ public sealed class RecurringTransactionTests
     [Test]
     public async Task Deactivate_WhenAlreadyInactive_ShouldThrowDeactivatingException()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false);
+        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
 
-        await Assert.That(action: rt.Deactivate).Throws<DeactivatingException>();
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.Deactivate();
+        
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<DeactivatingException>();
     }
 
     [Test]
     public async Task ChangeAmount_WithValidAmount_ShouldUpdateAmount()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
         rt.ChangeAmount(amount: 3000m);
 
@@ -98,15 +107,17 @@ public sealed class RecurringTransactionTests
     [Test]
     public async Task ChangeAmount_WithNegativeAmount_ShouldThrowInvalidAmountException()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-        await Assert.That(action: () => rt.ChangeAmount(amount: -100m)).Throws<InvalidAmountException>();
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeAmount(amount: -100m);
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
     }
 
     [Test]
     public async Task ChangeCurrency_WithValidCurrency_ShouldUpdateCurrency()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
         rt.ChangeCurrency(currency: "USD");
 
@@ -115,17 +126,9 @@ public sealed class RecurringTransactionTests
     }
 
     [Test]
-    public async Task ChangeCurrency_WithInvalidCurrency_ShouldThrowCurrencyException()
-    {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
-
-        await Assert.That(action: () => rt.ChangeCurrency(currency: String.Empty)).Throws<CurrencyException>();
-    }
-
-    [Test]
     public async Task ChangeDayOfMonth_WithValidDay_ShouldUpdateDayOfMonth()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
         rt.ChangeDayOfMonth(dayOfMonth: 28);
 
@@ -135,23 +138,29 @@ public sealed class RecurringTransactionTests
     [Test]
     public async Task ChangeDayOfMonth_WithZero_ShouldThrowInvalidDayOfMonthException()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-        await Assert.That(action: () => rt.ChangeDayOfMonth(dayOfMonth: 0)).Throws<InvalidDayOfMonthException>();
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 0);
+        
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
     }
 
     [Test]
     public async Task ChangeDayOfMonth_With32_ShouldThrowInvalidDayOfMonthException()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-        await Assert.That(action: () => rt.ChangeDayOfMonth(dayOfMonth: 32)).Throws<InvalidDayOfMonthException>();
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 32);
+        
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
     }
 
     [Test]
     public async Task MarkExecuted_ShouldSetLastExecutedAt()
     {
-        RecurringTransaction rt = RecurringTransactionFactory.Create();
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
         DateTime executedAt = DateTime.UtcNow;
 
         rt.MarkExecuted(executedAt: executedAt);

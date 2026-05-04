@@ -1,7 +1,9 @@
-﻿using FinanceTracker.Application.Transfers.Commands;
-using FinanceTracker.Core.Repositories;
+﻿using FinanceTracker.Application.UseCases.Transfers.Commands;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -44,19 +46,20 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(), 
+			fromCurrency: Arg.Any<Currency>(),
 			toCurrency: Arg.Any<Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
-		Guid result = await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccount.Id),
 			accounts: (fromAccount, toAccount),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNotDefault();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsNotDefault();
 	}
 
 	[Test]
@@ -66,9 +69,9 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(), 
+			fromCurrency: Arg.Any<Currency>(),
 			toCurrency: Arg.Any<Currency>(),
-			date: Arg.Any<DateOnly>(), 
+			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
@@ -95,9 +98,9 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(), 
+			fromCurrency: Arg.Any<Currency>(),
 			toCurrency: Arg.Any<Currency>(),
-			date: Arg.Any<DateOnly>(), 
+			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 

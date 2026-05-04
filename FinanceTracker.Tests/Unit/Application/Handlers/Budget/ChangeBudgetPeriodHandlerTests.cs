@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Application.Budgets.Commands.ChangeBudgetPeriod;
+﻿using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetPeriod;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.BudgetProgress;
@@ -34,7 +35,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangePeriod()
 	{
-		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create();
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 		DateOnly from = new DateOnly(year: 2025, month: 2, day: 1);
 		DateOnly to = new DateOnly(year: 2025, month: 2, day: 28);
 

@@ -1,0 +1,12 @@
+﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
+using MediatR;
+
+namespace FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetAmount;
+
+public sealed record ChangeBudgetAmountCommand(
+	Guid UserId,
+	Guid BudgetId,
+	decimal Amount
+) : IRequest<Result<Guid, DomainException>>, IAuthorizable;

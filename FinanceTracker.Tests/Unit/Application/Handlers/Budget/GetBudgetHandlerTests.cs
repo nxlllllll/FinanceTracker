@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Budgets.Queries.GetBudget;
+﻿using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudget;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -21,7 +21,7 @@ public sealed class GetBudgetHandlerTests
 	[Test]
 	public async Task Handle_WhenBudgetExists_ShouldReturnBudgetDto()
 	{
-		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create();
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 
 		_budgetReadRepository.GetByIdAsync(
 			budgetId: budget.Id,

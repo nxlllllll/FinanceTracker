@@ -1,5 +1,7 @@
-﻿using FinanceTracker.Application.Budgets.Commands.CreateBudget;
+﻿using FinanceTracker.Application.UseCases.Budgets.Commands.CreateBudget;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -14,7 +16,6 @@ public sealed class CreateBudgetHandlerTests
 	public void Setup()
 	{
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
-		
 		_handler = new CreateBudgetHandler(budgetWriteRepository: _budgetWriteRepository, dateProvider: FakeDateProvider.Default);
 	}
 
@@ -30,9 +31,10 @@ public sealed class CreateBudgetHandlerTests
 			To: new DateOnly(year: 2025, month: 1, day: 31)
 		);
 
-		Guid result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await Assert.That(value: result).IsNotEqualTo(notExpected: Guid.Empty);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsNotEqualTo(notExpected: Guid.Empty);
 	}
 
 	[Test]

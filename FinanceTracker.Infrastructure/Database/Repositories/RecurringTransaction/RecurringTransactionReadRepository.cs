@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 

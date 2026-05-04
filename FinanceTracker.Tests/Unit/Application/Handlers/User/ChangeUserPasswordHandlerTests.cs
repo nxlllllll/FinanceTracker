@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Users.Commands.ChangeUserPassword;
+﻿using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserPassword;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class ChangeUserPasswordHandlerTests
 	[Test]
 	public async Task HandleAsync_WithValidCommand_ShouldChangePassword()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
 		await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, NewPasswordHash: "newHash"),

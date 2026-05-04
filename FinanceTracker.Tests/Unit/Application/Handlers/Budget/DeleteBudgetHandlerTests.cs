@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Budgets.Commands.DeleteBudget;
+﻿using FinanceTracker.Application.UseCases.Budgets.Commands.DeleteBudget;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class DeleteBudgetHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallDelete()
 	{
-		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create();
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 
 		await _handler.HandleAsync(
 			command: new DeleteBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),

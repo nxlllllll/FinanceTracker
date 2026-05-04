@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Users.Commands.ChangeUserBaseCurrency;
+﻿using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 	[Test]
 	public async Task HandleAsync_WithValidCommand_ShouldChangeBaseCurrency()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
 		await _handler.HandleAsync(
 			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: "USD"),

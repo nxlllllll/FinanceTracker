@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
@@ -13,7 +14,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountCreated>();
@@ -24,7 +25,7 @@ public sealed class AccountTests
 	{
 		Guid userId = Guid.NewGuid();
 
-		Account account = AccountFactory.Create(userId: userId, balance: 10000);
+		Account account = AccountFactory.Create(userId: userId, balance: 10000).Value!;
 
 		await Assert.That(value: account.UserId).IsEqualTo(expected: userId);
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Сбер");
@@ -37,18 +38,27 @@ public sealed class AccountTests
 	
 	[Test]
 	public async Task Create_WithEmptyName_ShouldThrowEmptyNameException()
-		=> await Assert.That(func: () => AccountFactory.Create(name: String.Empty)).Throws<NameException>();
+	{
+		Result<Account, DomainException> result = AccountFactory.Create(name: String.Empty);	
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NameException>();
+	}
 
 	[Test]
 	public async Task Create_WithNegativeBalance_ShouldThrowInvalidInitialBalanceException()
-		=> await Assert.That(func: () => AccountFactory.Create(balance: -100)).Throws<InvalidInitialBalanceException>();
+	{
+		Result<Account, DomainException> result = AccountFactory.Create(balance: -100);
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidInitialBalanceException>();
+	}
 
 	[Test]
 	public async Task Rename_WithNewName_ShouldChangeName()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
 
-		account.Rename(occurredAt: Now, newName: "Карта Тинькофф");
+		_ = account.Rename(occurredAt: Now, newName: "Карта Тинькофф");
 
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Тинькофф");
 	}
@@ -56,7 +66,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Rename_WithSameName_ShouldReturnFalse()
 	{
-		Account account = AccountFactory.Create(name: "Карта Сбер");
+		Account account = AccountFactory.Create(name: "Карта Сбер").Value!;
 		account.ClearEvents();
 		
 		account.Rename(occurredAt: Now, newName: "Карта Сбер");
@@ -67,15 +77,18 @@ public sealed class AccountTests
 	[Test]
 	public async Task Rename_WithEmptyName_ShouldThrowEmptyNameException()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Rename(occurredAt: Now, newName: String.Empty);
 		
-		await Assert.That(action: () => account.Rename(occurredAt: Now, newName: String.Empty)).Throws<NameException>();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NameException>();
 	}
 	
 	[Test]
 	public async Task Archive_ActiveAccount_ShouldReturnTrueAndSetIsArchived()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
 
 		account.Archive(occurredAt: Now);
 
@@ -85,17 +98,19 @@ public sealed class AccountTests
 	[Test]
 	public async Task Archive_AlreadyArchivedAccount_ShouldThrowArchivingException()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
 
 		account.Archive(occurredAt: Now);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Archive(occurredAt: Now);
 
-		await Assert.That(action: () => account.Archive(occurredAt: Now)).Throws<ArchivingException>();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 	}
 
 	[Test]
 	public async Task Unarchive_ArchivedAccount_ShouldReturnTrueAndClearIsArchived()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
 
 		account.Archive(occurredAt: Now);
 		account.Unarchive(occurredAt: Now);
@@ -106,15 +121,18 @@ public sealed class AccountTests
 	[Test]
 	public async Task Unarchive_ActiveAccount_ShouldThrowUnarchivingException()
 	{
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
 
-		await Assert.That(action: () => account.Unarchive(occurredAt: Now)).Throws<UnarchivingException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Unarchive(occurredAt: Now);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<UnarchivingException>();
 	}
 	
 	[Test]
     public async Task Debit_WithValidData_ShouldRaiseAccountDebitedEvent()
 	{
-		Account account = AccountFactory.Create(balance: 10000);
+		Account account = AccountFactory.Create(balance: 10000).Value!;
         account.ClearEvents();
 
         account.Debit(
@@ -134,7 +152,7 @@ public sealed class AccountTests
     [Test]
     public async Task Debit_WithExchangeRate_ShouldApplyExchangeRate()
     {
-		Account account = AccountFactory.Create(balance: 10000);
+		Account account = AccountFactory.Create(balance: 10000).Value!;
         account.ClearEvents();
 
         account.Debit(
@@ -152,38 +170,44 @@ public sealed class AccountTests
     [Test]
     public async Task Debit_OnArchivedAccount_ShouldThrowArchivingException()
     {
-		Account account = AccountFactory.Create();
+		Account account = AccountFactory.Create().Value!;
         account.Archive(occurredAt: Now);
 
-        await Assert.That(action: () => account.Debit(
-            occurredAt: Now,
-            transactionId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
-            amount: 100m,
-            exchangeRate: 1m,
-            description: null
-        )).Throws<ArchivedAccountOperationException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
+			occurredAt: Now,
+			transactionId: Guid.NewGuid(),
+			categoryId: Guid.NewGuid(),
+			amount: 100m,
+			exchangeRate: 1m,
+			description: null
+		);
+		
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error).IsTypeOf<ArchivedAccountOperationException>();
     }
 
     [Test]
     public async Task Debit_WithZeroAmount_ShouldThrowInvalidAmountException()
     {
-		Account account = AccountFactory.Create(balance: 10000);
+		Account account = AccountFactory.Create(balance: 10000).Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
+			occurredAt: Now,
+			transactionId: Guid.NewGuid(),
+			categoryId: Guid.NewGuid(),
+			amount: 0m,
+			exchangeRate: 1m,
+			description: null
+		);
 		
-        await Assert.That(action: () => account.Debit(
-            occurredAt: Now,
-            transactionId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
-            amount: 0m,
-            exchangeRate: 1m,
-            description: null
-        )).Throws<InvalidAmountException>();
-    }
+		await Assert.That(result.IsFailure).IsTrue();
+		await Assert.That(result.Error).IsTypeOf<InvalidAmountException>();
+	}
 	
 	[Test]
 	public async Task Credit_WithValidData_ShouldRaiseAccountCreditedEvent()
 	{
-		Account account = AccountFactory.Create(balance: 1000);
+		Account account = AccountFactory.Create(balance: 1000).Value!;
 		account.ClearEvents();
 
 		account.Credit(
@@ -203,23 +227,25 @@ public sealed class AccountTests
 	[Test]
 	public async Task Credit_OnArchivedAccount_ShouldThrowArchivingException()
 	{
-		Account account = AccountFactory.Create(balance: 0);
+		Account account = AccountFactory.Create(balance: 0).Value!;
 		account.Archive(occurredAt: Now);
 
-		await Assert.That(action: () => account.Credit(
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Credit(
 			occurredAt: Now,
 			transactionId: Guid.NewGuid(),
 			categoryId: Guid.NewGuid(),
 			amount: 100m,
 			exchangeRate: 1m,
 			description: null
-		)).Throws<ArchivedAccountOperationException>();
+		);
+		await Assert.That(result.IsFailure).IsTrue();
+		await Assert.That(result.Error).IsTypeOf<ArchivedAccountOperationException>();
 	}
 	
 	[Test]
 	public async Task ReconstituteFromHistory_ShouldRestoreCorrectState()
 	{
-		Account original = AccountFactory.Create(balance: 10000);
+		Account original = AccountFactory.Create(balance: 10000).Value!;
 
 		original.Debit(
 			occurredAt: Now,
@@ -250,7 +276,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithDebitAndRateIncrease_ShouldDecreaseBalance()
 	{
-		Account account = AccountFactory.Create(balance: 10000);
+		Account account = AccountFactory.Create(balance: 10000).Value!;
 	    account.ClearEvents();
 
 	    account.AdjustBalance(
@@ -271,7 +297,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithCreditAndRateIncrease_ShouldIncreaseBalance()
 	{
-		Account account = AccountFactory.Create(balance: 10000);
+		Account account = AccountFactory.Create(balance: 10000).Value!;
 		account.ClearEvents();
 
 	    account.AdjustBalance(
@@ -290,7 +316,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithDebitAndRateDecrease_ShouldIncreaseBalance()
 	{
-		Account account = AccountFactory.Create(balance: 10000);
+		Account account = AccountFactory.Create(balance: 10000).Value!;
 		account.ClearEvents();
 
 	    account.AdjustBalance(
@@ -309,7 +335,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task AdjustBalance_WithSameRate_ShouldNotRaiseEvent()
 	{
-		Account account = AccountFactory.Create(balance: 10000);
+		Account account = AccountFactory.Create(balance: 10000).Value!;
 	    account.ClearEvents();
 
 	    account.AdjustBalance(
@@ -329,7 +355,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task DebitTransfer_ShouldReduceBalanceByAmountOnly_IgnoringForexRate()
 	{
-		Account account = AccountFactory.Create(balance: 10000m);
+		Account account = AccountFactory.Create(balance: 10000m).Value!;
 		account.ClearEvents();
 
 		account.DebitTransfer(
@@ -349,7 +375,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task CreditTransfer_ShouldIncreaseBalanceByAmountMultipliedByExchangeRate()
 	{
-		Account account = AccountFactory.Create(balance: 0m);
+		Account account = AccountFactory.Create(balance: 0m).Value!;
 		account.ClearEvents();
 
 		account.CreditTransfer(

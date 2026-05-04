@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Transfers.Commands;
+﻿using FinanceTracker.Application.UseCases.Transfers.Commands;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
 

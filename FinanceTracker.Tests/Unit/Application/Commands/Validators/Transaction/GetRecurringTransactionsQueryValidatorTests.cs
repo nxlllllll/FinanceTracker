@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Queries.GetRecurringTransactions;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;

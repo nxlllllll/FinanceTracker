@@ -1,12 +1,14 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
 public static class RecurringTransactionFactory
 {
-	public static RecurringTransaction Create(
+	public static Result<RecurringTransaction, DomainException> Create(
 		Guid? userId = null,
 		Guid? accountId = null,
 		Guid? categoryId = null,
@@ -17,7 +19,7 @@ public static class RecurringTransactionFactory
 		string? description = "Monthly rent",
 		bool isActive = true)
 	{
-		RecurringTransaction recurringTransaction = RecurringTransaction.Create(
+		Result<RecurringTransaction, DomainException> result = RecurringTransaction.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			accountId: accountId ?? Guid.NewGuid(),
@@ -27,10 +29,14 @@ public static class RecurringTransactionFactory
 			dayOfMonth: dayOfMonth,
 			description: description
 		);
+		if (result.IsFailure)
+			return Result<RecurringTransaction, DomainException>.Failure(error: result.Error!);
+
+		RecurringTransaction recurringTransaction = result.Value!;
 		
 		if (!isActive)
 			recurringTransaction.Deactivate();
 		
-		return recurringTransaction;
+		return Result<RecurringTransaction, DomainException>.Success(value: recurringTransaction);
 	}
 }

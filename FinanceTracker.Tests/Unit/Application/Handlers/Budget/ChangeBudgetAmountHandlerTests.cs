@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Budgets.Commands.ChangeBudgetAmount;
+﻿using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetAmount;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class ChangeBudgetAmountHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangeAmount()
 	{
-		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create();
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 
 		await _handler.HandleAsync(
 			command: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 5000m),

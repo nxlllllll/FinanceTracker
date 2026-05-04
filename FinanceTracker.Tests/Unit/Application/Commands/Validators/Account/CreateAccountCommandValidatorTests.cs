@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
+﻿using FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;

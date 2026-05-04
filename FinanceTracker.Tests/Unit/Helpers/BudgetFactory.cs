@@ -1,16 +1,18 @@
 ﻿using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
 public static class BudgetFactory
 {
-	public static Budget Create(
+	public static Result<Budget, DomainException> Create(
 		Guid? userId = null,
 		Guid? categoryId = null)
 	{
-		return Budget.Create(
+		Result<Budget, DomainException> result = Budget.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
@@ -18,6 +20,8 @@ public static class BudgetFactory
 			from: new DateOnly(year: 2025, month: 1, day: 1),
 			to: new DateOnly(year: 2025, month: 1, day: 31)
 		);
+		
+		return result;
 	}
 
 	public static BudgetProgressDto CreateProgress(

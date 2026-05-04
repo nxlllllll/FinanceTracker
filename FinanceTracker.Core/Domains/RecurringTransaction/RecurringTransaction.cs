@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.RecurringTransaction;
@@ -20,7 +21,7 @@ public sealed class RecurringTransaction
 
     private RecurringTransaction() { }
 
-    public static RecurringTransaction Create(
+    public static Result<RecurringTransaction, DomainException> Create(
         DateTime createdAt,
         Guid userId,
         Guid accountId,
@@ -31,9 +32,9 @@ public sealed class RecurringTransaction
         string? description)
     {
         if (dayOfMonth is < 1 or > 31)
-            throw new InvalidDayOfMonthException("Day of month must be between 1 and 31.");
-
-        return new RecurringTransaction
+            return Result<RecurringTransaction, DomainException>.Failure(error: new InvalidDayOfMonthException("Day of month must be between 1 and 31."));
+ 
+        return Result<RecurringTransaction, DomainException>.Success(value: new RecurringTransaction
         {
             Id = Guid.NewGuid(),
             UserId = userId,
@@ -46,7 +47,7 @@ public sealed class RecurringTransaction
             IsActive = true,
             LastExecutedAt = null,
             CreatedAt = createdAt
-        };
+        });
     }
 
     public static RecurringTransaction Reconstitute(
@@ -78,34 +79,51 @@ public sealed class RecurringTransaction
         };
     }
 
-    public void Activate()
+    public Result<Unit, DomainException> Activate()
     {
         if (IsActive)
-            throw new ActivatingException("Recurring transaction is already active.");
-        
+            return Result<Unit, DomainException>.Failure(error: new ActivatingException("Recurring transaction is already active."));
+ 
         IsActive = true;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
-
-    public void Deactivate()
+ 
+    public Result<Unit, DomainException> Deactivate()
     {
         if (!IsActive)
-            throw new DeactivatingException("Recurring transaction is already inactive.");
-
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException("Recurring transaction is already inactive."));
+ 
         IsActive = false;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
+ 
+    public Result<Unit, DomainException> ChangeAmount(decimal amount)
+    {
+        Result<Money, DomainException> money = Money.Create(amount: amount, currency: Amount.Currency);
+        if (money.IsFailure)
+            return Result<Unit, DomainException>.Failure(error: money.Error!);
 
-    public void ChangeAmount(decimal amount)
-        => Amount = new Money(amount: amount, currency: Amount.Currency);
-
-    public void ChangeCurrency(string currency)
-        => Amount = new Money(amount: Amount.Amount, currency: currency);
-
-    public void ChangeDayOfMonth(int dayOfMonth)
+        Amount = money.Value;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
+    }
+ 
+    public Result<Unit, DomainException> ChangeCurrency(Currency currency)
+    {
+        Result<Money, DomainException> money = Money.Create(amount: Amount.Amount, currency: currency);
+        if (money.IsFailure)
+            return Result<Unit, DomainException>.Failure(error: money.Error!);
+        
+        Amount = money.Value;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
+    }
+ 
+    public Result<Unit, DomainException> ChangeDayOfMonth(int dayOfMonth)
     {
         if (dayOfMonth is < 1 or > 31)
-            throw new InvalidDayOfMonthException("Day of month must be between 1 and 31.");
-        
+            return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException("Day of month must be between 1 and 31."));
+ 
         DayOfMonth = dayOfMonth;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
     
     public void MarkExecuted(DateTime executedAt)

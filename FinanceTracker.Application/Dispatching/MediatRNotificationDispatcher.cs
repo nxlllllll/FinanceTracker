@@ -12,8 +12,8 @@ public sealed class MediatRNotificationDispatcher(
 	public Task DispatchAsync(IAppNotification notification, CancellationToken ct = default)
 	{
 		if (notification.Data is not IMediatRConvertible convertible)
-			throw new UnknownAggregateTypeException(message: $"Notification data of type is not MediatR convertible.", aggregateType: notification.Data.GetType().Name);
+			throw new UnknownAggregateTypeException(message: "Notification data of type is not MediatR convertible.", aggregateType: notification.Data.GetType().Name);
 		
-		return publisher.Publish(convertible.ToMediatRNotification(), ct);
+		return publisher.Publish(notification: convertible.ToMediatRNotification(), cancellationToken: ct);
 	}
 }

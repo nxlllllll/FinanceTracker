@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.BudgetProgress;
+using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;

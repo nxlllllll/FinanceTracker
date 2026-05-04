@@ -1,14 +1,14 @@
-﻿using FinanceTracker.Application.Accounts.Authorization;
-using FinanceTracker.Application.Accounts.Notifications;
-using FinanceTracker.Application.Behaviours;
-using FinanceTracker.Application.Budgets.Authorization;
-using FinanceTracker.Application.Categories.Authorization;
+﻿using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Dispatching;
-using FinanceTracker.Application.RecurringTransactions.Authorization;
-using FinanceTracker.Application.RecurringTransactions.Notifications;
-using FinanceTracker.Application.Transactions.Authorization;
-using FinanceTracker.Application.Transfers.Authorization;
-using FinanceTracker.Application.Users.Authorization;
+using FinanceTracker.Application.UseCases.Accounts.Authorization;
+using FinanceTracker.Application.UseCases.Accounts.Notifications;
+using FinanceTracker.Application.UseCases.Budgets.Authorization;
+using FinanceTracker.Application.UseCases.Categories.Authorization;
+using FinanceTracker.Application.UseCases.RecurringTransactions.Authorization;
+using FinanceTracker.Application.UseCases.RecurringTransactions.Notifications;
+using FinanceTracker.Application.UseCases.Transactions.Authorization;
+using FinanceTracker.Application.UseCases.Transfers.Authorization;
+using FinanceTracker.Application.UseCases.Users.Authorization;
 using FinanceTracker.Core.Domains.Abstractions;
 using FluentValidation;
 using MediatR;
@@ -23,8 +23,16 @@ public static class DependencyInjection
 		services.AddMediatR(configuration: configuration =>
 		{
 			configuration.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
-			configuration.AddBehavior(serviceType: typeof(IPipelineBehavior<,>),
-				implementationType: typeof(ValidationBehavior<,>));
+ 
+			configuration.AddBehavior(
+				serviceType: typeof(IPipelineBehavior<,>),
+				implementationType: typeof(ValidationBehavior<,>)
+			);
+ 
+			configuration.AddBehavior(
+				serviceType: typeof(IPipelineBehavior<,>),
+				implementationType: typeof(QueryValidationBehavior<,>)
+			);
 		});
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Infrastructure.Database;
+using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;

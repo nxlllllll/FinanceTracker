@@ -1,4 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -23,13 +25,15 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
         bool isArchived = false,
         Guid? parentId = null)
     {
-        Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
+        Result<Core.Domains.Category.Category, DomainException> result = Core.Domains.Category.Category.Create(
             createdAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             name: "Еда",
             type: type,
             parentId: parentId
         );
+        Core.Domains.Category.Category category = result.Value!;
+        
         await _writeRepository.CreateAsync(category: category);
         if (isArchived)
             await _writeRepository.ArchiveAsync(categoryId: category.Id);

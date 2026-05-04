@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Queries.GetRecurringTransaction;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -24,7 +24,7 @@ public sealed class GetRecurringTransactionHandlerTests
 	public async Task Handle_WhenFound_ShouldReturnDto()
 	{
 		Guid userId = Guid.NewGuid();
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction dto = RecurringTransactionFactory.Create(userId: userId);
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction dto = RecurringTransactionFactory.Create(userId: userId).Value!;
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: dto.Id, 
 			ct: Arg.Any<CancellationToken>()
@@ -61,7 +61,7 @@ public sealed class GetRecurringTransactionHandlerTests
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RecurringTransactionFactory.Create(userId: Guid.NewGuid()));
+		).Returns(returnThis: RecurringTransactionFactory.Create(userId: Guid.NewGuid()).Value!);
 
 		await Assert.That(action: async () => await _handler.Handle(
 			query: new GetRecurringTransactionQuery(

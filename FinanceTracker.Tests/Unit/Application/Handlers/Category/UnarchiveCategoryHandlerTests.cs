@@ -1,6 +1,7 @@
-﻿using FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
+﻿using FinanceTracker.Application.UseCases.Categories.Commands.UnarchiveCategory;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -21,7 +22,7 @@ public sealed class UnarchiveCategoryHandlerTests
 	[Test]
 	public async Task HandleAsync_WithArchivedCategory_ShouldCallUnarchive()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true);
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true).Value!;
 
 		await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
@@ -38,12 +39,15 @@ public sealed class UnarchiveCategoryHandlerTests
 	[Test]
 	public async Task HandleAsync_WhenCategoryAlreadyActive_ShouldThrowArchivingException()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
 
-		await Assert.That(action: async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
 			category: category,
 			ct: CancellationToken.None
-		)).Throws<UnarchivingException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<UnarchivingException>();
 	}
 }

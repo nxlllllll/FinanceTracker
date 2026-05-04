@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Users.Queries.GetUser;
+﻿using FinanceTracker.Application.UseCases.Users.Queries.GetUser;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class GetUserHandlerTests
 	[Test]
 	public async Task Handle_WhenUserExists_ShouldReturnUser()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
 		_userReadRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),

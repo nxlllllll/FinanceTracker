@@ -1,18 +1,20 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
 public static class AccountFactory
 {
-	public static Account Create(
+	public static Result<Account, DomainException> Create(
 		Guid? userId = null,
 		string name = "Карта Сбер",
 		AccountType type = AccountType.Checking,
 		string currency = "RUB",
 		decimal balance = 1000m)
 	{
-		return Account.Create(
+		Result<Account, DomainException> result = Account.Create(
 			occurredAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			name: name,
@@ -20,6 +22,8 @@ public static class AccountFactory
 			currency: currency,
 			balance: balance
 		);
+		
+		return result;
 	}
 	
 	public static Account CreateAccountWithArchivation(
@@ -27,7 +31,7 @@ public static class AccountFactory
 		decimal balance = 1000,
 		bool archived = false)
 	{
-		Account account = Create(userId: userId, balance: balance);
+		Account account = Create(userId: userId, balance: balance).Value!;
 		account.ClearEvents();
 
 		if (archived)

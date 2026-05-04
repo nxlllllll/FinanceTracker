@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Infrastructure.Database.UOW;
+using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using NetArchTest.Rules;
 using Quartz;
 using TestResult = NetArchTest.Rules.TestResult;
@@ -43,7 +44,7 @@ public sealed class ArchitectureTests
 			));
 
 		await Assert.That(value: violations).IsEmpty()
-			.Because(String.Join(separator: ", ", values: violations));
+			.Because(string.Join(separator: ", ", values: violations));
 	}
 
 	[Test]
@@ -57,7 +58,7 @@ public sealed class ArchitectureTests
 			));
 
 		await Assert.That(value: violations).IsEmpty()
-			.Because(String.Join(separator: ", ", values: violations));
+			.Because(string.Join(separator: ", ", values: violations));
 	}
 
 	[Test]
@@ -73,7 +74,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -87,7 +88,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -95,7 +96,7 @@ public sealed class ArchitectureTests
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
 			.That()
-			.ImplementInterface(interfaceType: typeof(MediatR.IRequestHandler<>))
+			.ImplementInterface(interfaceType: typeof(MediatR.IRequestHandler<,>))
 			.And()
 			.DoNotHaveNameStartingWith(start: "AuthorizedHandlerAdapter")
 			.Should()
@@ -103,7 +104,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -117,7 +118,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -135,6 +136,22 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+	}
+
+	[Test]
+	public async Task Application_UseCases_ShouldResideInUseCasesNamespace()
+	{
+		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
+			.That()
+			.HaveNameEndingWith(end: "Handler")
+			.Or()
+			.HaveNameEndingWith(end: "Loader")
+			.Should()
+			.ResideInNamespaceStartingWith(name: "FinanceTracker.Application.UseCases")
+			.GetResult();
+
+		await Assert.That(value: result.IsSuccessful).IsTrue()
+			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 }

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
+﻿using FinanceTracker.Application.UseCases.Categories.Commands.UnarchiveCategory;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Category;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Categories.Queries.GetCategories;
+﻿using FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -21,7 +21,11 @@ public sealed class GetCategoriesHandlerTests
     [Test]
     public async Task Handle_ShouldReturnAllCategories()
     {
-        IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> categories = [CategoryFactory.Create(), CategoryFactory.Create()];
+        IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> categories = 
+        [
+            CategoryFactory.Create().Value!,
+            CategoryFactory.Create().Value!
+        ];
 
         _categoryReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),

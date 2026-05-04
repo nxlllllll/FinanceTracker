@@ -1,4 +1,6 @@
-﻿using FinanceTracker.Infrastructure.Database.Repositories.User;
+﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
+using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -22,12 +24,14 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
     private async Task<Core.Domains.User.User> CreateAndSaveUserAsync(string currencyCode = "RUB")
     {
         await _currencyBuilder.CreateAsync(code: currencyCode);
-        Core.Domains.User.User user = Core.Domains.User.User.Register(
+        Result<Core.Domains.User.User, DomainException> result = Core.Domains.User.User.Register(
             createdAt: FakeDateProvider.Default.UtcNow,
             email: $"{Guid.NewGuid()}@test.com",
             passwordHash: "hash",
             baseCurrency: currencyCode
         );
+        Core.Domains.User.User user = result.Value!;
+        
         await _writeRepository.CreateAsync(user: user);
         return user;
     }

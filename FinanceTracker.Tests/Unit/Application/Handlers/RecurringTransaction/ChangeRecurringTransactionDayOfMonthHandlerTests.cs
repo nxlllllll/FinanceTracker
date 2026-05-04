@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringTransactionDayOfMonth;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionDayOfMonth;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangeDayOfMonth()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create().Value!;
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id, DayOfMonth: 20),

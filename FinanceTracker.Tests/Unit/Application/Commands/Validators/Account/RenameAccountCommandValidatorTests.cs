@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Accounts.Commands.RenameAccount;
+﻿using FinanceTracker.Application.UseCases.Accounts.Commands.RenameAccount;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Account;

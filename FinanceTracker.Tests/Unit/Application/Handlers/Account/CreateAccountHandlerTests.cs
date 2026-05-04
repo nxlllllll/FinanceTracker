@@ -1,6 +1,7 @@
-﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
+﻿using FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -23,9 +24,10 @@ public sealed class CreateAccountHandlerTests
 	{
 		CreateAccountCommand command = CreateAccountCommandFactory.Create();
 
-		Guid result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await Assert.That(value: result).IsNotEqualTo(notExpected: Guid.Empty);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsNotEqualTo(notExpected: Guid.Empty);
 	}
 
 	[Test]
@@ -44,14 +46,15 @@ public sealed class CreateAccountHandlerTests
 			), ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task Handle_WithEmptyName_ShouldThrowArgumentException()
 	{
 		CreateAccountCommand command = CreateAccountCommandFactory.Create(name: String.Empty);
 
-		await Assert.That(
-			func: async () => await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<NameException>();
+		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NameException>();
 	}
 }

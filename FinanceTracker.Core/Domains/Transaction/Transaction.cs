@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Transaction;
@@ -76,25 +77,33 @@ public sealed class Transaction
         };
     }
 
-    public void Exclude()
-    {
-        if (IsExcluded)
-            throw new ExcludingException("Transaction is already excluded.");
-        
-        IsExcluded = true;
-    }
+    public Result<Unit, DomainException> Exclude()
+	{
+		if (IsExcluded)
+			return Result<Unit, DomainException>.Failure(error: new ExcludingException("Transaction is already excluded."));
 
-    public void Include()
-    {
-        if (!IsExcluded)
-            throw new IncludingException("Transaction is not excluded.");
-        
-        IsExcluded = false;
-    }
+		IsExcluded = true;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
 
-    public void ChangeCategory(Guid categoryId)
-        => CategoryId = categoryId;
+	public Result<Unit, DomainException> Include()
+	{
+		if (!IsExcluded)
+			return Result<Unit, DomainException>.Failure(error: new IncludingException("Transaction is not excluded."));
 
-    public void ChangeDescription(string? description)
-        => Description = description;
+		IsExcluded = false;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+    public Result<Unit, DomainException> ChangeCategory(Guid categoryId)
+	{
+		CategoryId = categoryId;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> ChangeDescription(string? description)
+	{
+		Description = description;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
 }

@@ -1,6 +1,7 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Commands.CreateRecurringTransaction;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.CreateRecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -22,9 +23,9 @@ public sealed class CreateRecurringTransactionHandlerTests
 	public async Task HandleAsync_WhenValidCommand_ShouldCallCreateAsyncAndReturnId()
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		Guid result = await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: command,
 			account: account,
 			ct: CancellationToken.None
@@ -35,58 +36,71 @@ public sealed class CreateRecurringTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		);
 
-		await Assert.That(result).IsNotEqualTo(Guid.Empty);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsNotEqualTo(notExpected: Guid.Empty);
 	}
 
 	[Test]
 	public async Task HandleAsync_WhenAmountIsZero_ShouldThrowInvalidAmountException()
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: 0m);
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		await Assert.That(async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: command,
 			account: account,
 			ct: CancellationToken.None
-		)).Throws<InvalidAmountException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
 	}
 
 	[Test]
 	public async Task HandleAsync_WhenAmountIsNegative_ShouldThrowInvalidAmountException()
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: -100m);
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		await Assert.That(async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: command,
 			account: account,
 			ct: CancellationToken.None
-		)).Throws<InvalidAmountException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
 	}
 
 	[Test]
 	public async Task HandleAsync_WhenDayOfMonthIsZero_ShouldThrowInvalidDayOfMonthException()
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(dayOfMonth: 0);
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		await Assert.That(async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: command,
 			account: account,
 			ct: CancellationToken.None
-		)).Throws<InvalidDayOfMonthException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
 	}
 
 	[Test]
 	public async Task HandleAsync_WhenDayOfMonthIsOver31_ShouldThrowInvalidDayOfMonthException()
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(dayOfMonth: 32);
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		await Assert.That(async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: command,
 			account: account,
 			ct: CancellationToken.None
-		)).Throws<InvalidDayOfMonthException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
 	}
 }

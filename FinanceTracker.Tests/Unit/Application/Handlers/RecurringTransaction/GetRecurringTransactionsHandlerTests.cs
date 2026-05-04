@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Queries.GetRecurringTransactions;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -23,7 +23,11 @@ public sealed class GetRecurringTransactionsHandlerTests
 	public async Task Handle_ShouldReturnAllUserTransactions()
 	{
 		Guid userId = Guid.NewGuid();
-		List<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> dtos = [RecurringTransactionFactory.Create(userId: userId), RecurringTransactionFactory.Create(userId: userId)];
+		List<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> dtos = 
+		[
+			RecurringTransactionFactory.Create(userId: userId).Value!, 
+			RecurringTransactionFactory.Create(userId: userId).Value!
+		];
 		_readRepository.GetByUserIdAsync(
 			userId: userId,
 			ct: Arg.Any<CancellationToken>()

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Accounts.Queries.GetAccount;
+﻿using FinanceTracker.Application.UseCases.Accounts.Queries.GetAccount;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;

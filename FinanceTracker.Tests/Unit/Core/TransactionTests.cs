@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
@@ -47,7 +48,10 @@ public sealed class TransactionTests
 	{
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
-		await Assert.That(action: transaction.Exclude).Throws<ExcludingException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.Exclude();
+        
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ExcludingException>();
 	}
 
 	[Test]
@@ -65,7 +69,10 @@ public sealed class TransactionTests
 	{
 		Transaction transaction = TransactionFactory.Create();
 
-		await Assert.That(action: transaction.Include).Throws<IncludingException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.Include();
+        
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<IncludingException>();
 	}
 
 	[Test]

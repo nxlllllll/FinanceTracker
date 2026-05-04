@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Authorization;
-using FinanceTracker.Application.RecurringTransactions.Commands.ActivateRecurringTransaction;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Authorization;
+using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ActivateRecurringTransaction;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -37,7 +37,7 @@ public sealed class RecurringTransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
+		RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create().Value!;
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -52,7 +52,7 @@ public sealed class RecurringTransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnDto()
 	{
-		RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
+		RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create().Value!;
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

@@ -1,10 +1,12 @@
-﻿using FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
+﻿using FinanceTracker.Application.UseCases.Transactions.Commands.IncludeTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -42,11 +44,14 @@ public sealed class IncludeTransactionHandlerTests
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(isExcluded: false);
 
-		await Assert.That(action: async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
 			transaction: transaction,
 			ct: CancellationToken.None
-		)).Throws<IncludingException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<IncludingException>();
 	}
 
 	[Test]

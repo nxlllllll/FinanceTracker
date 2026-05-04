@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangeCurrency()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create().Value!;
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionCurrencyCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id, Currency: "USD"),

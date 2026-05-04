@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.User;
@@ -13,23 +14,23 @@ public sealed class User
 
 	private User() { }
 
-	public static User Register(
+	public static Result<User, DomainException> Register(
 		DateTime createdAt,
 		Email email,
 		string passwordHash,
 		Currency baseCurrency)
 	{
 		if (String.IsNullOrWhiteSpace(value: passwordHash))
-			throw new PasswordException("The password hash cannot be empty.");
+			return Result<User, DomainException>.Failure(error: new PasswordException("The password hash cannot be empty."));
  
-		return new User()
+		return Result<User, DomainException>.Success(value: new User()
 		{
 			Id = Guid.NewGuid(),
 			Email = email,
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrency,
 			CreatedAt = createdAt
-		};
+		});
 	}
 
 	public static User Reconstitute(
@@ -49,27 +50,30 @@ public sealed class User
 		};
 	}
 	
-	public void ChangeEmail(Email newEmail)
+	public Result<Unit, DomainException> ChangeEmail(Email newEmail)
 	{
 		if (Email == newEmail)
-			return;
-
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
+ 
 		Email = newEmail;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
-	public void ChangePassword(string newPasswordHash)
+ 
+	public Result<Unit, DomainException> ChangePassword(string newPasswordHash)
 	{
 		if (String.IsNullOrWhiteSpace(value: newPasswordHash))
-			throw new PasswordException(message: "The password hash cannot be empty.");
-
+			return Result<Unit, DomainException>.Failure(error: new PasswordException(message: "The password hash cannot be empty."));
+ 
 		PasswordHash = newPasswordHash;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-
-	public void ChangeBaseCurrency(Currency newBaseCurrency)
+ 
+	public Result<Unit, DomainException> ChangeBaseCurrency(Currency newBaseCurrency)
 	{
 		if (BaseCurrency == newBaseCurrency)
-			return;
-
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
+ 
 		BaseCurrency = newBaseCurrency;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

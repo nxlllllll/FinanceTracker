@@ -1,8 +1,8 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Notifications;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Notifications;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
-using FinanceTracker.Infrastructure.Database.UOW;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Commands.CreateRecurringTransaction;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.CreateRecurringTransaction;
 using FinanceTracker.Core.Domains.Account;
 
 namespace FinanceTracker.Tests.Unit.Helpers;

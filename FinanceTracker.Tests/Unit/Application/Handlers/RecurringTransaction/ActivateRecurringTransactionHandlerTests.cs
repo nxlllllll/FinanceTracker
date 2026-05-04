@@ -1,6 +1,7 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Commands.ActivateRecurringTransaction;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ActivateRecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -21,19 +22,22 @@ public sealed class ActivateRecurringTransactionHandlerTests
 	[Test]
 	public async Task HandleAsync_WhenAlreadyActive_ShouldThrowActivatingException()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: true);
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: true).Value!;
 
-		await Assert.That(action: async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
 			recurringTransaction: recurringTransaction,
 			ct: CancellationToken.None
-		)).Throws<ActivatingException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
 	}
 
 	[Test]
 	public async Task HandleAsync_WhenInactive_ShouldCallActivate()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: false);
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: false).Value!;
 
 		await _handler.HandleAsync(
 			command: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),

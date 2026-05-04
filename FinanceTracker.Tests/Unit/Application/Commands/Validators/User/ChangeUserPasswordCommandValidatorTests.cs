@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Users.Commands.ChangeUserPassword;
+﻿using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserPassword;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.User;

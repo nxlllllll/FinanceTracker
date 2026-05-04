@@ -1,13 +1,17 @@
-﻿using MediatR;
+﻿using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Results;
+using MediatR;
 
 namespace FinanceTracker.Application.Behaviours.Authorization;
 
-public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TResponse>(
+public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 	IEntityLoader<TRequest, TEntity> loader,
-	IAuthorizedHandler<TRequest, TEntity, TResponse> handler
-) : IRequestHandler<TRequest, TResponse> where TRequest : IRequest<TResponse>, IAuthorizable
+	IAuthorizedHandler<TRequest, TEntity, TValue, TError> handler
+) : IRequestHandler<TRequest, Result<TValue, TError>>
+	where TRequest : IRequest<Result<TValue, TError>>, IAuthorizable
+	where TError : AppException
 {
-	public async Task<TResponse> Handle(
+	public async Task<Result<TValue, TError>> Handle(
 		TRequest request,
 		CancellationToken ct)
 	{

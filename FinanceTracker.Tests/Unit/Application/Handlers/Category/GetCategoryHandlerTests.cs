@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Categories.Queries.GetCategory;
+﻿using FinanceTracker.Application.UseCases.Categories.Queries.GetCategory;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class GetCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryExists_ShouldReturnCategory()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
 		
 		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),

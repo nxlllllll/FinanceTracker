@@ -1,6 +1,7 @@
-﻿using FinanceTracker.Application.Users.Commands.ChangeUserEmail;
+﻿using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserEmail;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -26,7 +27,7 @@ public sealed class ChangeUserEmailHandlerTests
     [Test]
     public async Task HandleAsync_WithValidCommand_ShouldChangeEmail()
     {
-        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
         _userReadRepository.GetByEmailAsync(
             email: Arg.Any<string>(),
@@ -49,18 +50,21 @@ public sealed class ChangeUserEmailHandlerTests
     [Test]
     public async Task HandleAsync_WithDuplicateEmail_ShouldThrowEmailException()
     {
-        FinanceTracker.Core.Domains.User.User user = UserFactory.Create();
-        FinanceTracker.Core.Domains.User.User anotherUser = UserFactory.Create(email: "new@test.com");
+        FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+        FinanceTracker.Core.Domains.User.User anotherUser = UserFactory.Create(email: "new@test.com").Value!;
 
         _userReadRepository.GetByEmailAsync(
             email: Arg.Any<string>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: anotherUser);
 
-        await Assert.That(action: async () => await _handler.HandleAsync(
+        Result<Guid, DomainException> result = await _handler.HandleAsync(
             command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
             user: user,
             ct: CancellationToken.None
-        )).Throws<EmailException>();
+        );
+        
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<EmailException>();
     }
 }

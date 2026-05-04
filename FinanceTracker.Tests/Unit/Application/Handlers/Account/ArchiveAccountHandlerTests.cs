@@ -1,6 +1,7 @@
-﻿using FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
+﻿using FinanceTracker.Application.UseCases.Accounts.Commands.ArchiveAccount;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -40,11 +41,14 @@ public sealed class ArchiveAccountHandlerTests
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
 
-		await Assert.That(action: async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
 			account: account,
 			ct: CancellationToken.None
-		)).Throws<ArchivingException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 	}
 
 	[Test]
@@ -52,11 +56,14 @@ public sealed class ArchiveAccountHandlerTests
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
 
-		await Assert.That(action: async () => await _handler.HandleAsync(
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
 			account: account,
 			ct: CancellationToken.None
-		)).Throws<ArchivingException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 
 		await _accountRepository.DidNotReceive().SaveAsync(
 			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),

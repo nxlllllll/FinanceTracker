@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Accounts.Commands.RenameAccount;
+﻿using FinanceTracker.Application.UseCases.Accounts.Commands.RenameAccount;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

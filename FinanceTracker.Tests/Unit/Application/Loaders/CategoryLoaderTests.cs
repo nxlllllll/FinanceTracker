@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Application.Categories.Authorization;
-using FinanceTracker.Application.Categories.Commands.ArchiveCategory;
+﻿using FinanceTracker.Application.UseCases.Categories.Authorization;
+using FinanceTracker.Application.UseCases.Categories.Commands.ArchiveCategory;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -36,7 +36,7 @@ public sealed class CategoryLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenCategoryBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -51,7 +51,7 @@ public sealed class CategoryLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnCategory()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create();
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

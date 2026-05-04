@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Budgets.Queries.GetBudgets;
+﻿using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgets;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -21,7 +21,10 @@ public sealed class GetBudgetsHandlerTests
 	public async Task Handle_ShouldReturnAllBudgets()
 	{
 		Guid userId = Guid.NewGuid();
-		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> budgets = [BudgetFactory.Create(userId: userId), BudgetFactory.Create(userId: userId)];
+		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> budgets = [
+			BudgetFactory.Create(userId: userId).Value!,
+			BudgetFactory.Create(userId: userId).Value!
+		];
 
 		_budgetReadRepository.GetAllAsync(
 			userId: userId,

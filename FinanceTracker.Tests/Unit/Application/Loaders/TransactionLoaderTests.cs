@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Application.Transactions.Authorization;
-using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
+﻿using FinanceTracker.Application.UseCases.Transactions.Authorization;
+using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -64,7 +64,7 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_WhenOwner_ShouldReturnTransaction()
 	{
 		Transaction transaction = TransactionFactory.Create();
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -113,7 +113,7 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_CreateTransaction_WhenOwner_ShouldReturnAccount()
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()

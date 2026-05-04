@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Application.Budgets.Authorization;
-using FinanceTracker.Application.Budgets.Commands.ChangeBudgetAmount;
+﻿using FinanceTracker.Application.UseCases.Budgets.Authorization;
+using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetAmount;
 using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
@@ -38,7 +38,7 @@ public sealed class BudgetLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnBudget()
 	{
-		Budget budget = BudgetFactory.Create();
+		Budget budget = BudgetFactory.Create().Value!;
 		_budgetReadRepository.GetByIdAsync(
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),

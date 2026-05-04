@@ -1,0 +1,183 @@
+﻿using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using Microsoft.EntityFrameworkCore;
+
+namespace FinanceTracker.Tests.Integration.Infrastructure.UnitOfWork;
+
+public sealed class EFUnitOfWorkTests : DatabaseFixture
+{
+    private EFUnitOfWork _unitOfWork = null!;
+
+    [Before(hookType: Test)]
+    public void Setup()
+        => _unitOfWork = new EFUnitOfWork(context: Context);
+
+    [After(hookType: Test)]
+    public async Task CloseAsync()
+        => await _unitOfWork.DisposeAsync();
+
+    [Test]
+    public async Task BeginAndCommit_ShouldPersistChanges()
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        Context.Currencies.Add(new CurrencyEntity
+        {
+            Code = "TST",
+            Name = "Test",
+            Symbol = "T",
+            IsActive = true
+        });
+        await Context.SaveChangesAsync();
+        await _unitOfWork.CommitAsync();
+
+        int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
+        await Assert.That(value: count).IsEqualTo(expected: 1);
+    }
+
+    [Test]
+    public async Task BeginAndRollback_ShouldDiscardChanges()
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        Context.Currencies.Add(new CurrencyEntity
+        {
+            Code = "TST",
+            Name = "Test",
+            Symbol = "T",
+            IsActive = true
+        });
+        await Context.SaveChangesAsync();
+        await _unitOfWork.RollbackAsync();
+
+        int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
+        await Assert.That(value: count).IsEqualTo(expected: 0);
+    }
+
+    [Test]
+    public async Task NestedBegin_ShouldCreateSavepoint()
+    {
+        await _unitOfWork.BeginTransactionAsync();
+
+        Context.Currencies.Add(new CurrencyEntity
+        {
+            Code = "OUT",
+            Name = "Output",
+            Symbol = "O",
+            IsActive = true
+        });
+
+        await Context.SaveChangesAsync();
+
+        await _unitOfWork.BeginTransactionAsync(); // depth = 2 → savepoint
+        Context.Currencies.Add(new CurrencyEntity
+        {
+            Code = "TST",
+            Name = "Test",
+            Symbol = "T",
+            IsActive = true
+        });
+        await Context.SaveChangesAsync();
+        await _unitOfWork.RollbackAsync(); // rollback to savepoint
+
+        await _unitOfWork.CommitAsync(); // commit outer
+
+        int outCount = await Context.Currencies.CountAsync(c => c.Code == "OUT");
+        int innCount = await Context.Currencies.CountAsync(c => c.Code == "INN");
+
+        await Assert.That(value: outCount).IsEqualTo(expected: 1);
+        await Assert.That(value: innCount).IsEqualTo(expected: 0);
+    }
+
+    [Test]
+    public async Task NestedBeginAndCommit_ShouldPersistBothLevels()
+    {
+        await _unitOfWork.BeginTransactionAsync();
+
+        Context.Currencies.Add(new CurrencyEntity
+        {
+            Code = "OUT",
+            Name = "Output",
+            Symbol = "O",
+            IsActive = true
+        });
+        await Context.SaveChangesAsync();
+
+        await _unitOfWork.BeginTransactionAsync(); // depth = 2 → savepoint
+        Context.Currencies.Add(new CurrencyEntity
+        {
+            Code = "INN",
+            Name = "Inner",
+            Symbol = "I",
+            IsActive = true
+        });
+
+        await Context.SaveChangesAsync();
+        await _unitOfWork.CommitAsync(); // commit inner (depth → 1, no-op)
+
+        await _unitOfWork.CommitAsync(); // commit outer
+
+        int outCount = await Context.Currencies.CountAsync(c => c.Code == "OUT");
+        int innCount = await Context.Currencies.CountAsync(c => c.Code == "INN");
+
+        await Assert.That(value: outCount).IsEqualTo(expected: 1);
+        await Assert.That(value: innCount).IsEqualTo(expected: 1);
+    }
+
+    [Test]
+    public async Task RollbackWithoutTransaction_ShouldNotThrow()
+    {
+        await Assert.That(
+            action: async () => await _unitOfWork.RollbackAsync()
+        ).ThrowsNothing();
+    }
+
+    [Test]
+    public async Task CommitWithoutTransaction_ShouldThrowInvalidOperationException()
+    {
+        await Assert.That(
+            action: async () => await _unitOfWork.CommitAsync()
+        ).Throws<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task ExecuteInTransactionAsync_WhenOperationSucceeds_ShouldPersistChanges()
+    {
+        await _unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+        {
+            Context.Currencies.Add(new CurrencyEntity
+            {
+                Code = "TST",
+                Name = "Test",
+                Symbol = "T",
+                IsActive = true
+            });
+            await Context.SaveChangesAsync();
+        });
+
+        int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
+        await Assert.That(value: count).IsEqualTo(expected: 1);
+    }
+
+    [Test]
+    public async Task ExecuteInTransactionAsync_WhenOperationThrows_ShouldRollbackAndRethrow()
+    {
+        await Assert.That(action: async () =>
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+            {
+                Context.Currencies.Add(new CurrencyEntity
+                {
+                    Code = "TST",
+                    Name = "Test",
+                    Symbol = "T",
+                    IsActive = true
+                });
+                await Context.SaveChangesAsync();
+                throw new InvalidOperationException("Simulated failure");
+            });
+        }).Throws<InvalidOperationException>();
+
+        int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
+        await Assert.That(value: count).IsEqualTo(expected: 0);
+    }
+}

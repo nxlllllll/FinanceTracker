@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Application.Accounts.Authorization;
-using FinanceTracker.Application.Accounts.Commands.ArchiveAccount;
+﻿using FinanceTracker.Application.UseCases.Accounts.Authorization;
+using FinanceTracker.Application.UseCases.Accounts.Commands.ArchiveAccount;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;

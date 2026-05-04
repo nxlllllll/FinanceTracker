@@ -1,4 +1,6 @@
-﻿using FinanceTracker.Core.ValueObjects;
+﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
@@ -28,7 +30,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
        Guid userId = await _userBuilder.CreateAsync();
        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
    
-       Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
+       Result<Core.Domains.Budget.Budget, DomainException> result = Core.Domains.Budget.Budget.Create(
            createdAt: FakeDateProvider.Default.UtcNow,
            userId: userId,
            categoryId: categoryId,
@@ -37,6 +39,8 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
            to: new DateOnly(year: 2025, month: 1, day: 31)
        );
    
+       Core.Domains.Budget.Budget budget = result.Value!;
+       
        await _writeRepository.CreateAsync(budget: budget);
    
        BudgetEntity? budgetEntity = await Context.Budgets.FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
@@ -55,7 +59,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
+        Result<Core.Domains.Budget.Budget, DomainException> b = Core.Domains.Budget.Budget.Create(
             createdAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             categoryId: categoryId,
@@ -64,6 +68,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
 
+        Core.Domains.Budget.Budget budget = b.Value!;
         await _writeRepository.CreateAsync(budget: budget);
 
         await _writeRepository.ChangePeriodAsync(
@@ -84,7 +89,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        Core.Domains.Budget.Budget budget = Core.Domains.Budget.Budget.Create(
+        Result<Core.Domains.Budget.Budget, DomainException> b = Core.Domains.Budget.Budget.Create(
             createdAt: FakeDateProvider.Default.UtcNow,
            userId: userId,
             categoryId: categoryId,
@@ -92,7 +97,8 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
-
+        Core.Domains.Budget.Budget budget = b.Value!;
+        
         await _writeRepository.CreateAsync(budget: budget);
 
         await _writeRepository.DeleteAsync(budgetId: budget.Id);

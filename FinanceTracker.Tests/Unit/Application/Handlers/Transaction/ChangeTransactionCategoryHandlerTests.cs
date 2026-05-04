@@ -1,5 +1,6 @@
-﻿using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
+﻿using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;

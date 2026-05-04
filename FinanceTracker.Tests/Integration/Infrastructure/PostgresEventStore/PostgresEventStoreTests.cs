@@ -1,7 +1,9 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database;
+using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -158,7 +160,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task SaveAsync_WhenVersionReaches50_ShouldCreateSnapshot()
     {
-        Core.Domains.Account.Account account = Core.Domains.Account.Account.Create(
+        Result<Core.Domains.Account.Account, DomainException> a = Core.Domains.Account.Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.NewGuid(),
             name: "Тест",
@@ -167,6 +169,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             balance: 100m
         );
 
+        Core.Domains.Account.Account account = a.Value!;
+        
         await _eventStore.SaveAsync(
             aggregateId: account.Id,
             aggregateType: AggregateTypeNames.Account,
@@ -210,7 +214,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task LoadAsync_WithSnapshot_ShouldRestoreCorrectState()
     {
-        Core.Domains.Account.Account original = Core.Domains.Account.Account.Create(
+        Result<Core.Domains.Account.Account, DomainException> o = Core.Domains.Account.Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.NewGuid(),
             name: "Тест снапшота",
@@ -218,6 +222,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             currency: "USD",
             balance: 1000m
         );
+
+        Core.Domains.Account.Account original = o.Value!;
 
         await _eventStore.SaveAsync(
             aggregateId: original.Id,

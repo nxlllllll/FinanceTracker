@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Budget;
@@ -15,8 +16,8 @@ public sealed class Budget
 
     private Budget() { }
 
-    public static Budget Create(
-		DateTime createdAt,
+    public static Result<Budget, DomainException> Create(
+        DateTime createdAt,
         Guid userId,
         Guid categoryId,
         Money amount,
@@ -24,9 +25,9 @@ public sealed class Budget
         DateOnly to)
     {
         if (to <= from)
-            throw new InvalidBudgetPeriodException("Budget end date must be after start date.");
-
-        return new Budget
+            return Result<Budget, DomainException>.Failure(error: new InvalidBudgetPeriodException("Budget end date must be after start date."));
+ 
+        return Result<Budget, DomainException>.Success(value: new Budget
         {
             Id = Guid.NewGuid(),
             UserId = userId,
@@ -35,7 +36,7 @@ public sealed class Budget
             From = from,
             To = to,
             CreatedAt = createdAt
-        };
+        });
     }
 
     public static Budget Reconstitute(
@@ -59,15 +60,23 @@ public sealed class Budget
         };
     }
 
-    public void ChangeAmount(decimal amount)
-        => Amount = Money.Positive(amount: amount, currency: Amount.Currency);
-
-    public void ChangePeriod(DateOnly from, DateOnly to)
+    public Result<Unit, DomainException> ChangeAmount(decimal amount)
+    {
+        Result<Money, DomainException> money = Money.Positive(amount: amount, currency: Amount.Currency);
+        if (money.IsFailure)
+            return Result<Unit, DomainException>.Failure(error: money.Error!);
+ 
+        Amount = money.Value!;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
+    }
+ 
+    public Result<Unit, DomainException> ChangePeriod(DateOnly from, DateOnly to)
     {
         if (to <= from)
-            throw new InvalidBudgetPeriodException(message: "Budget end date must be after start date.");
-        
+            return Result<Unit, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must be after start date."));
+ 
         From = from;
         To = to;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
 }

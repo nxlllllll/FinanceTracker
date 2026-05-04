@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringTransactionAmount;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionAmount;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,7 +20,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldCallChangeAmount()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create();
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create().Value!;
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionAmountCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id, Amount: 9999m),

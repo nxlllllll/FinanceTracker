@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
@@ -10,7 +11,7 @@ public sealed class CategoryTests
 	public async Task Create_WithValidData_ShouldSetCorrectState()
 	{
 		Guid userId = Guid.NewGuid();
-		Category category = CategoryFactory.Create(userId: userId);
+		Category category = CategoryFactory.Create(userId: userId).Value!;
 
 		await Assert.That(value: category.Id).IsNotDefault();
 		await Assert.That(value: category.UserId).IsEqualTo(expected: userId);
@@ -25,19 +26,24 @@ public sealed class CategoryTests
 	public async Task Create_WithParentId_ShouldSetParentId()
 	{
 		Guid parentId = Guid.NewGuid();
-		Category category = CategoryFactory.Create(parentId: parentId);
+		Category category = CategoryFactory.Create(parentId: parentId).Value!;
 
 		await Assert.That(value: category.ParentId).IsEqualTo(expected: parentId);
 	}
 
 	[Test]
 	public async Task Create_WithEmptyName_ShouldThrowEmptyNameException()
-		=> await Assert.That(func: () => CategoryFactory.Create(name: String.Empty)).Throws<NameException>();
+	{
+		Result<Category, DomainException> result = CategoryFactory.Create(name: String.Empty);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NameException>();
+	}
 
 	[Test]
 	public async Task Rename_WithValidName_ShouldChangeName()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
 		category.Rename(newName: "Продукты");
 
@@ -47,7 +53,7 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Rename_WithSameName_ShouldNotChangeName()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
 		category.Rename(newName: "Еда");
 
@@ -57,25 +63,31 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Rename_WithEmptyName_ShouldThrowEmptyNameException()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
-		await Assert.That(action: () => category.Rename(newName: String.Empty)).Throws<NameException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(newName: String.Empty);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NameException>();
 	}
 
 	[Test]
 	public async Task Rename_WhenArchived_ShouldThrowArchivingException()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
 		category.Archive();
 
-		await Assert.That(action: () => category.Rename(newName: "Продукты")).Throws<ArchivingException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(newName: "Продукты");
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 	}
 
 	[Test]
 	public async Task Archive_WithActiveCategory_ShouldSetIsArchivedTrue()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
 		category.Archive();
 
@@ -85,17 +97,20 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Archive_WhenAlreadyArchived_ShouldThrowArchivingException()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
 		category.Archive();
 
-		await Assert.That(action: category.Archive).Throws<ArchivingException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Archive();
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 	}
 
 	[Test]
 	public async Task Unarchive_WhenArchived_ShouldSetIsArchivedFalse()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
 		category.Archive();
 		category.Unarchive();
@@ -106,8 +121,11 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Unarchive_WhenNotArchived_ShouldThrowUnarchivingException()
 	{
-		Category category = CategoryFactory.Create();
+		Category category = CategoryFactory.Create().Value!;
 
-		await Assert.That(action: category.Unarchive).Throws<UnarchivingException>();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Unarchive();
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<UnarchivingException>();
 	}
 }
