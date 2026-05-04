@@ -13,15 +13,15 @@ public sealed class ChangeTransactionCategoryHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IUnitOfWork unitOfWork,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository
-) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction>
+) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ChangeTransactionCategoryCommand command,
 		Transaction transaction,
 		CancellationToken ct = default)
 	{
 		if (transaction.CategoryId == command.CategoryId)
-			return;
+			return transaction.Id;
 
 		transaction.ChangeCategory(categoryId: command.CategoryId);
 
@@ -55,5 +55,7 @@ public sealed class ChangeTransactionCategoryHandler(
 				ct: ct
 			);
 		}, ct: ct);
+		
+		return transaction.Id;
 	}
 }

@@ -7,4 +7,4 @@ public sealed record RenameAccountCommand(
 	Guid UserId,
 	Guid AccountId,
 	string NewName
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

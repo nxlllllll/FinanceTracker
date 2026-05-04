@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Accounts.Notifications;
-using FinanceTracker.Application.Accounts.Projections;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;

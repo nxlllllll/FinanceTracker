@@ -6,15 +6,16 @@ namespace FinanceTracker.Application.RecurringTransactions.Commands.ActivateRecu
 
 public sealed class ActivateRecurringTransactionHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
-) : IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransaction>
+) : IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransaction, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ActivateRecurringTransactionCommand command,
 		RecurringTransaction recurringTransaction,
 		CancellationToken ct = default)
 	{
 		recurringTransaction.Activate();
-
 		await recurringTransactionWriteRepository.ActivateAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct);
+
+		return recurringTransaction.Id;
 	}
 }

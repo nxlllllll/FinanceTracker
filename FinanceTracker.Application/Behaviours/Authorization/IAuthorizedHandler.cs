@@ -10,12 +10,3 @@ public interface IAuthorizedHandler<in TRequest, in TEntity, TResponse> where TR
 		CancellationToken ct
 	);
 }
-
-public interface IAuthorizedHandler<in TRequest, in TEntity> where TRequest : IRequest
-{
-	Task HandleAsync(
-		TRequest request,
-		TEntity entity,
-		CancellationToken ct
-	);
-}

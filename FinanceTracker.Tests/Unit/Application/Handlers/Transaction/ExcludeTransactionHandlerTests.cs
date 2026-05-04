@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.ExcludeTransaction;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.BudgetProgress;

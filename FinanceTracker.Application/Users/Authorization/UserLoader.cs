@@ -3,7 +3,6 @@ using FinanceTracker.Application.Users.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Application.Users.Commands.ChangeUserEmail;
 using FinanceTracker.Application.Users.Commands.ChangeUserPassword;
 using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 

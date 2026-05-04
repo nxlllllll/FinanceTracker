@@ -1,10 +1,10 @@
-﻿using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.RecurringTransaction;

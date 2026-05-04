@@ -6,20 +6,20 @@ namespace FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurr
 
 public sealed class ChangeRecurringTransactionCurrencyHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
-) : IAuthorizedHandler<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>
+) : IAuthorizedHandler<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ChangeRecurringTransactionCurrencyCommand command,
 		RecurringTransaction recurringTransaction,
-		CancellationToken ct = default
-	)
+		CancellationToken ct = default)
 	{
 		recurringTransaction.ChangeCurrency(currency: command.Currency);
-		
 		await recurringTransactionWriteRepository.ChangeCurrencyAsync(
 			recurringTransactionId: command.RecurringTransactionId,
 			currency: command.Currency,
 			ct: ct
 		);
+		
+		return recurringTransaction.Id;
 	}
 }

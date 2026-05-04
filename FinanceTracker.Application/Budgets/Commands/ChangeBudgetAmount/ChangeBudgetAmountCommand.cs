@@ -7,4 +7,4 @@ public sealed record ChangeBudgetAmountCommand(
 	Guid UserId,
 	Guid BudgetId,
 	decimal Amount
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

@@ -8,9 +8,9 @@ namespace FinanceTracker.Application.Categories.Commands.CreateCategory;
 public sealed class CreateCategoryHandler(
 	ICategoryWriteRepository categoryWriteRepository,
 	IDateProvider dateProvider
-) : IRequestHandler<CreateCategoryCommand>
+) : IRequestHandler<CreateCategoryCommand, Guid>
 {
-	public async Task Handle(
+	public async Task<Guid> Handle(
 		CreateCategoryCommand command,
 		CancellationToken ct = default)
 	{
@@ -23,5 +23,7 @@ public sealed class CreateCategoryHandler(
 		);
 
 		await categoryWriteRepository.CreateAsync(category: category, ct: ct);
+		
+		return category.Id;
 	}
 }

@@ -8,4 +8,4 @@ public sealed record ChangeBudgetPeriodCommand(
 	Guid BudgetId,
 	DateOnly From,
 	DateOnly To
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

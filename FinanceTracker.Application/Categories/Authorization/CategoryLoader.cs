@@ -3,7 +3,6 @@ using FinanceTracker.Application.Categories.Commands.ArchiveCategory;
 using FinanceTracker.Application.Categories.Commands.RenameCategory;
 using FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 

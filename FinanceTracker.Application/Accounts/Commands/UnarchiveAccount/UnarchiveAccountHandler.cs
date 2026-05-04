@@ -8,14 +8,16 @@ namespace FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
 public sealed class UnarchiveAccountHandler(
 	IAccountRepository accountRepository,
 	IDateProvider dateProvider
-) : IAuthorizedHandler<UnarchiveAccountCommand, Account>
+) : IAuthorizedHandler<UnarchiveAccountCommand, Account, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		UnarchiveAccountCommand command,
 		Account account,
 		CancellationToken ct = default)
 	{
 		account.Unarchive(occurredAt: dateProvider.UtcNow);
 		await accountRepository.SaveAsync(account: account, ct: ct);
+		
+		return account.Id;
 	}
 }

@@ -6,4 +6,4 @@ namespace FinanceTracker.Application.RecurringTransactions.Commands.DeactivateRe
 public sealed record DeactivateRecurringTransactionCommand(
 	Guid UserId,
 	Guid RecurringTransactionId
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

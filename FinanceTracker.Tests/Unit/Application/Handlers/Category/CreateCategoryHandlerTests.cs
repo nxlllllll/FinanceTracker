@@ -1,7 +1,7 @@
-﻿using FinanceTracker.Tests.Unit.Helpers;
 ﻿using FinanceTracker.Application.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;

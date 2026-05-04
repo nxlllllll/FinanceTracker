@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.Categories.Authorization;
 using FinanceTracker.Application.Categories.Commands.ArchiveCategory;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;

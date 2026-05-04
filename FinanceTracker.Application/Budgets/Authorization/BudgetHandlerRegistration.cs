@@ -17,13 +17,13 @@ internal static class BudgetHandlerRegistration
 		services.AddScoped<IEntityLoader<ChangeBudgetPeriodCommand, Budget>>(sp => sp.GetRequiredService<BudgetLoader>());
 		services.AddScoped<IEntityLoader<DeleteBudgetCommand, Budget>>(sp => sp.GetRequiredService<BudgetLoader>());
 
-		services.AddScoped<IAuthorizedHandler<ChangeBudgetAmountCommand, Budget>, ChangeBudgetAmountHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget>, ChangeBudgetPeriodHandler>();
-		services.AddScoped<IAuthorizedHandler<DeleteBudgetCommand, Budget>, DeleteBudgetHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeBudgetAmountCommand, Budget, Guid>, ChangeBudgetAmountHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget, Guid>, ChangeBudgetPeriodHandler>();
+		services.AddScoped<IAuthorizedHandler<DeleteBudgetCommand, Budget, Guid>, DeleteBudgetHandler>();
 
-		services.AddScoped<IRequestHandler<ChangeBudgetAmountCommand>, AuthorizedHandlerAdapter<ChangeBudgetAmountCommand, Budget>>();
-		services.AddScoped<IRequestHandler<ChangeBudgetPeriodCommand>, AuthorizedHandlerAdapter<ChangeBudgetPeriodCommand, Budget>>();
-		services.AddScoped<IRequestHandler<DeleteBudgetCommand>, AuthorizedHandlerAdapter<DeleteBudgetCommand, Budget>>();
+		services.AddScoped<IRequestHandler<ChangeBudgetAmountCommand, Guid>, AuthorizedHandlerAdapter<ChangeBudgetAmountCommand, Budget, Guid>>();
+		services.AddScoped<IRequestHandler<ChangeBudgetPeriodCommand, Guid>, AuthorizedHandlerAdapter<ChangeBudgetPeriodCommand, Budget, Guid>>();
+		services.AddScoped<IRequestHandler<DeleteBudgetCommand, Guid>, AuthorizedHandlerAdapter<DeleteBudgetCommand, Budget, Guid>>();
 
 		return services;
 	}

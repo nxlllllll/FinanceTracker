@@ -6,4 +6,4 @@ namespace FinanceTracker.Application.Transactions.Commands.IncludeTransaction;
 public sealed record IncludeTransactionCommand(
 	Guid UserId,
 	Guid TransactionId
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

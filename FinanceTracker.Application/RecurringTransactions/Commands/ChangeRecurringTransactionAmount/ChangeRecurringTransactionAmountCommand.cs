@@ -7,4 +7,4 @@ public sealed record ChangeRecurringTransactionAmountCommand(
 	Guid UserId,
 	Guid RecurringTransactionId,
 	decimal Amount
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

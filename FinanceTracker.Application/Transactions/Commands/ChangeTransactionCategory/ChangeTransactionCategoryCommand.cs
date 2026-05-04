@@ -7,4 +7,4 @@ public sealed record ChangeTransactionCategoryCommand(
 	Guid UserId,
 	Guid TransactionId,
 	Guid CategoryId
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

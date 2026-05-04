@@ -7,4 +7,4 @@ public sealed record RenameCategoryCommand(
 	Guid UserId,
 	Guid CategoryId,
 	string NewName
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

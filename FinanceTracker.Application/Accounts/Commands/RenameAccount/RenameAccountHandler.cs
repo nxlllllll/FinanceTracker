@@ -8,14 +8,16 @@ namespace FinanceTracker.Application.Accounts.Commands.RenameAccount;
 public sealed class RenameAccountHandler(
 	IAccountRepository accountRepository,
 	IDateProvider dateProvider
-) : IAuthorizedHandler<RenameAccountCommand, Account>
+) : IAuthorizedHandler<RenameAccountCommand, Account, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		RenameAccountCommand command,
 		Account account,
 		CancellationToken ct = default)
 	{
 		account.Rename(occurredAt: dateProvider.UtcNow, newName: command.NewName);
 		await accountRepository.SaveAsync(account: account, ct: ct);
+		
+		return account.Id;
 	}
 }

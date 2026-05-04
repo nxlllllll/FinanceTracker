@@ -6,20 +6,21 @@ namespace FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurr
 
 public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository
-) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>
+) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ChangeRecurringTransactionDayOfMonthCommand command,
 		RecurringTransaction recurringTransaction,
 		CancellationToken ct = default
 	)
 	{
 		recurringTransaction.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
-		
 		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(
 			recurringTransactionId: command.RecurringTransactionId,
 			dayOfMonth: command.DayOfMonth,
 			ct: ct
 		);
+		
+		return recurringTransaction.Id;
 	}
 }

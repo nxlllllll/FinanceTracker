@@ -6,14 +6,16 @@ namespace FinanceTracker.Application.Categories.Commands.UnarchiveCategory;
 
 public sealed class UnarchiveCategoryHandler(
 	ICategoryWriteRepository categoryWriteRepository
-) : IAuthorizedHandler<UnarchiveCategoryCommand, Category>
+) : IAuthorizedHandler<UnarchiveCategoryCommand, Category, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		UnarchiveCategoryCommand command,
 		Category category,
 		CancellationToken ct = default)
 	{
 		category.Unarchive();
 		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, ct: ct);
+		
+		return category.Id;
 	}
 }

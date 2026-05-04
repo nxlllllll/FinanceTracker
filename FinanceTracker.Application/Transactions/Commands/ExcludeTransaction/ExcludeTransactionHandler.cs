@@ -13,15 +13,14 @@ public sealed class ExcludeTransactionHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork
-) : IAuthorizedHandler<ExcludeTransactionCommand, Transaction>
+) : IAuthorizedHandler<ExcludeTransactionCommand, Transaction, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ExcludeTransactionCommand command,
 		Transaction transaction,
 		CancellationToken ct = default)
 	{
 		transaction.Exclude();
-
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.ExcludeAsync(transactionId: command.TransactionId, ct: ct);
@@ -47,5 +46,7 @@ public sealed class ExcludeTransactionHandler(
 				ct: ct
 			);
 		}, ct: ct);
+		
+		return transaction.Id;
 	}
 }

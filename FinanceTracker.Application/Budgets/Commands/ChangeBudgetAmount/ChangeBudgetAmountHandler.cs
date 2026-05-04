@@ -6,16 +6,16 @@ namespace FinanceTracker.Application.Budgets.Commands.ChangeBudgetAmount;
 
 public sealed class ChangeBudgetAmountHandler(
 	IBudgetWriteRepository budgetWriteRepository
-) : IAuthorizedHandler<ChangeBudgetAmountCommand, Budget>
+) : IAuthorizedHandler<ChangeBudgetAmountCommand, Budget, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ChangeBudgetAmountCommand command,
 		Budget budget,
-		CancellationToken ct = default
-	)
+		CancellationToken ct = default)
 	{
 		budget.ChangeAmount(amount: command.Amount);
-		
 		await budgetWriteRepository.ChangeAmountAsync(budgetId: budget.Id, amount: command.Amount, ct: ct);
+		
+		return budget.Id;
 	}
 }

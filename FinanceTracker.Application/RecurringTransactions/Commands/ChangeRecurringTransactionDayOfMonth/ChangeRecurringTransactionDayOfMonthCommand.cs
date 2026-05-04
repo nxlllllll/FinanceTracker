@@ -7,4 +7,4 @@ public sealed record ChangeRecurringTransactionDayOfMonthCommand(
 	Guid UserId,
 	Guid RecurringTransactionId,
 	int DayOfMonth
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

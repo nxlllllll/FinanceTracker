@@ -2,7 +2,6 @@
 using FinanceTracker.Application.Transactions.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Category;

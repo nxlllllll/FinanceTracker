@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Abstractions;
+﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Account;
 
 namespace FinanceTracker.Application.RecurringTransactions.Notifications;
 

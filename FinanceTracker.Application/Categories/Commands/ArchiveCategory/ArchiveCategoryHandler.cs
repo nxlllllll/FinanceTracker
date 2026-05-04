@@ -10,9 +10,9 @@ public sealed class ArchiveCategoryHandler(
 	ICategoryWriteRepository categoryWriteRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IUnitOfWork unitOfWork
-) : IAuthorizedHandler<ArchiveCategoryCommand, Category>
+) : IAuthorizedHandler<ArchiveCategoryCommand, Category, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ArchiveCategoryCommand command,
 		Category category,
 		CancellationToken ct = default)
@@ -24,5 +24,7 @@ public sealed class ArchiveCategoryHandler(
 			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 		}, ct: ct);
+		
+		return category.Id;
 	}
 }

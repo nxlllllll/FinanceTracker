@@ -8,4 +8,4 @@ public sealed record CreateCategoryCommand(
 	string Name,
 	CategoryType Type,
 	Guid? ParentId
-) : IRequest;
+) : IRequest<Guid>;

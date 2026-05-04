@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Tests.Unit.Helpers;
 

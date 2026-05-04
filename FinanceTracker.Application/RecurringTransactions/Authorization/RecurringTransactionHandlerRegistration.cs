@@ -21,17 +21,17 @@ internal static class RecurringTransactionHandlerRegistration
         services.AddScoped<IEntityLoader<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>>(sp => sp.GetRequiredService<RecurringTransactionLoader>());
         services.AddScoped<IEntityLoader<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>>(sp => sp.GetRequiredService<RecurringTransactionLoader>());
 
-        services.AddScoped<IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransaction>, ActivateRecurringTransactionHandler>();
-        services.AddScoped<IAuthorizedHandler<DeactivateRecurringTransactionCommand, RecurringTransaction>, DeactivateRecurringTransactionHandler>();
-        services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, RecurringTransaction>, ChangeRecurringTransactionAmountHandler>();
-        services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>, ChangeRecurringTransactionCurrencyHandler>();
-        services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>, ChangeRecurringTransactionDayOfMonthHandler>();
+        services.AddScoped<IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransaction, Guid>, ActivateRecurringTransactionHandler>();
+        services.AddScoped<IAuthorizedHandler<DeactivateRecurringTransactionCommand, RecurringTransaction, Guid>, DeactivateRecurringTransactionHandler>();
+        services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, RecurringTransaction, Guid>, ChangeRecurringTransactionAmountHandler>();
+        services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction, Guid>, ChangeRecurringTransactionCurrencyHandler>();
+        services.AddScoped<IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction, Guid>, ChangeRecurringTransactionDayOfMonthHandler>();
 
-        services.AddScoped<IRequestHandler<ActivateRecurringTransactionCommand>, AuthorizedHandlerAdapter<ActivateRecurringTransactionCommand, RecurringTransaction>>();
-        services.AddScoped<IRequestHandler<DeactivateRecurringTransactionCommand>, AuthorizedHandlerAdapter<DeactivateRecurringTransactionCommand, RecurringTransaction>>();
-        services.AddScoped<IRequestHandler<ChangeRecurringTransactionAmountCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionAmountCommand, RecurringTransaction>>();
-        services.AddScoped<IRequestHandler<ChangeRecurringTransactionCurrencyCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>>();
-        services.AddScoped<IRequestHandler<ChangeRecurringTransactionDayOfMonthCommand>, AuthorizedHandlerAdapter<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>>();
+        services.AddScoped<IRequestHandler<ActivateRecurringTransactionCommand, Guid>, AuthorizedHandlerAdapter<ActivateRecurringTransactionCommand, RecurringTransaction, Guid>>();
+        services.AddScoped<IRequestHandler<DeactivateRecurringTransactionCommand, Guid>, AuthorizedHandlerAdapter<DeactivateRecurringTransactionCommand, RecurringTransaction, Guid>>();
+        services.AddScoped<IRequestHandler<ChangeRecurringTransactionAmountCommand, Guid>, AuthorizedHandlerAdapter<ChangeRecurringTransactionAmountCommand, RecurringTransaction, Guid>>();
+        services.AddScoped<IRequestHandler<ChangeRecurringTransactionCurrencyCommand, Guid>, AuthorizedHandlerAdapter<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction, Guid>>();
+        services.AddScoped<IRequestHandler<ChangeRecurringTransactionDayOfMonthCommand, Guid>, AuthorizedHandlerAdapter<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction, Guid>>();
 
         return services;
     }

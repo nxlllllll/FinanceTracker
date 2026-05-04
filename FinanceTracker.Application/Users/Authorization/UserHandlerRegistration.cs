@@ -17,13 +17,13 @@ internal static class UserHandlerRegistration
 		services.AddScoped<IEntityLoader<ChangeUserEmailCommand, User>>(sp => sp.GetRequiredService<UserLoader>());
 		services.AddScoped<IEntityLoader<ChangeUserPasswordCommand, User>>(sp => sp.GetRequiredService<UserLoader>());
 
-		services.AddScoped<IAuthorizedHandler<ChangeUserBaseCurrencyCommand, User>, ChangeUserBaseCurrencyHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeUserEmailCommand, User>, ChangeUserEmailHandler>();
-		services.AddScoped<IAuthorizedHandler<ChangeUserPasswordCommand, User>, ChangeUserPasswordHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeUserBaseCurrencyCommand, User, Guid>, ChangeUserBaseCurrencyHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeUserEmailCommand, User, Guid>, ChangeUserEmailHandler>();
+		services.AddScoped<IAuthorizedHandler<ChangeUserPasswordCommand, User, Guid>, ChangeUserPasswordHandler>();
 
-		services.AddScoped<IRequestHandler<ChangeUserBaseCurrencyCommand>, AuthorizedHandlerAdapter<ChangeUserBaseCurrencyCommand, User>>();
-		services.AddScoped<IRequestHandler<ChangeUserEmailCommand>, AuthorizedHandlerAdapter<ChangeUserEmailCommand, User>>();
-		services.AddScoped<IRequestHandler<ChangeUserPasswordCommand>, AuthorizedHandlerAdapter<ChangeUserPasswordCommand, User>>();
+		services.AddScoped<IRequestHandler<ChangeUserBaseCurrencyCommand, Guid>, AuthorizedHandlerAdapter<ChangeUserBaseCurrencyCommand, User, Guid>>();
+		services.AddScoped<IRequestHandler<ChangeUserEmailCommand, Guid>, AuthorizedHandlerAdapter<ChangeUserEmailCommand, User, Guid>>();
+		services.AddScoped<IRequestHandler<ChangeUserPasswordCommand, Guid>, AuthorizedHandlerAdapter<ChangeUserPasswordCommand, User, Guid>>();
 
 		return services;
 	}

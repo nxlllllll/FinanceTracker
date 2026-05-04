@@ -7,4 +7,4 @@ public sealed record ChangeTransactionDescriptionCommand(
 	Guid UserId,
 	Guid TransactionId,
 	string? Description
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

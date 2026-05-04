@@ -6,4 +6,4 @@ namespace FinanceTracker.Application.Users.Commands.ChangeUserPassword;
 public sealed record ChangeUserPasswordCommand(
 	Guid UserId,
 	string NewPasswordHash
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

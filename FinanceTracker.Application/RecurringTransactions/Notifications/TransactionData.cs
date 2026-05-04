@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Abstractions;
-using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
 using INotification = MediatR.INotification;
 

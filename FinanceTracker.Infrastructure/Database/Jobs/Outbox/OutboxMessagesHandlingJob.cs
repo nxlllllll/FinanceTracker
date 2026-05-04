@@ -2,7 +2,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Services.DateProvider;

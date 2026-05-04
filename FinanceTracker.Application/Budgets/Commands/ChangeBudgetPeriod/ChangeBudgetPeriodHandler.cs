@@ -10,9 +10,9 @@ public sealed class ChangeBudgetPeriodHandler(
 	IBudgetWriteRepository budgetWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork
-) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget>
+) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ChangeBudgetPeriodCommand command,
 		Budget budget,
 		CancellationToken ct = default)
@@ -38,6 +38,6 @@ public sealed class ChangeBudgetPeriodHandler(
 			);
 		}, ct: ct);
 		
-		await unitOfWork.BeginTransactionAsync(ct: ct);
+		return budget.Id;
 	}
 }

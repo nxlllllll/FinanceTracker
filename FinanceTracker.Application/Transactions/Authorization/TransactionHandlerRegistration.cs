@@ -23,16 +23,16 @@ internal static class TransactionHandlerRegistration
         services.AddScoped<IEntityLoader<ExcludeTransactionCommand, Transaction>>(sp => sp.GetRequiredService<TransactionLoader>());
 
         services.AddScoped<IAuthorizedHandler<CreateTransactionCommand, Account, Guid>, CreateTransactionHandler>();
-        services.AddScoped<IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction>, ChangeTransactionCategoryHandler>();
-        services.AddScoped<IAuthorizedHandler<ChangeTransactionDescriptionCommand, Transaction>, ChangeTransactionDescriptionHandler>();
-        services.AddScoped<IAuthorizedHandler<IncludeTransactionCommand, Transaction>, IncludeTransactionHandler>();
-        services.AddScoped<IAuthorizedHandler<ExcludeTransactionCommand, Transaction>, ExcludeTransactionHandler>();
+        services.AddScoped<IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction, Guid>, ChangeTransactionCategoryHandler>();
+        services.AddScoped<IAuthorizedHandler<ChangeTransactionDescriptionCommand, Transaction, Guid>, ChangeTransactionDescriptionHandler>();
+        services.AddScoped<IAuthorizedHandler<IncludeTransactionCommand, Transaction, Guid>, IncludeTransactionHandler>();
+        services.AddScoped<IAuthorizedHandler<ExcludeTransactionCommand, Transaction, Guid>, ExcludeTransactionHandler>();
 
         services.AddScoped<IRequestHandler<CreateTransactionCommand, Guid>, AuthorizedHandlerAdapter<CreateTransactionCommand, Account, Guid>>();
-        services.AddScoped<IRequestHandler<ChangeTransactionCategoryCommand>, AuthorizedHandlerAdapter<ChangeTransactionCategoryCommand, Transaction>>();
-        services.AddScoped<IRequestHandler<ChangeTransactionDescriptionCommand>, AuthorizedHandlerAdapter<ChangeTransactionDescriptionCommand, Transaction>>();
-        services.AddScoped<IRequestHandler<IncludeTransactionCommand>, AuthorizedHandlerAdapter<IncludeTransactionCommand, Transaction>>();
-        services.AddScoped<IRequestHandler<ExcludeTransactionCommand>, AuthorizedHandlerAdapter<ExcludeTransactionCommand, Transaction>>();
+        services.AddScoped<IRequestHandler<ChangeTransactionCategoryCommand, Guid>, AuthorizedHandlerAdapter<ChangeTransactionCategoryCommand, Transaction, Guid>>();
+        services.AddScoped<IRequestHandler<ChangeTransactionDescriptionCommand, Guid>, AuthorizedHandlerAdapter<ChangeTransactionDescriptionCommand, Transaction, Guid>>();
+        services.AddScoped<IRequestHandler<IncludeTransactionCommand, Guid>, AuthorizedHandlerAdapter<IncludeTransactionCommand, Transaction, Guid>>();
+        services.AddScoped<IRequestHandler<ExcludeTransactionCommand, Guid>, AuthorizedHandlerAdapter<ExcludeTransactionCommand, Transaction, Guid>>();
 
         return services;
     }

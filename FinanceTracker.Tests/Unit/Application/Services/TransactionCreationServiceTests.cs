@@ -2,7 +2,6 @@
 using FinanceTracker.Application.Transactions.Services;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;

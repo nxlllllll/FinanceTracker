@@ -5,7 +5,6 @@ using FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringT
 using FinanceTracker.Application.RecurringTransactions.Commands.ChangeRecurringTransactionDayOfMonth;
 using FinanceTracker.Application.RecurringTransactions.Commands.DeactivateRecurringTransaction;
 using FinanceTracker.Core.Domains.RecurringTransaction;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 

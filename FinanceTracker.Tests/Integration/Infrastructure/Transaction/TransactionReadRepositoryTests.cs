@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
@@ -8,6 +7,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Transaction;
 

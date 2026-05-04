@@ -15,17 +15,3 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TResponse>(
 		return await handler.HandleAsync(request: request, entity: entity, ct: ct);
 	}
 }
-
-public sealed class AuthorizedHandlerAdapter<TRequest, TEntity>(
-	IEntityLoader<TRequest, TEntity> loader,
-	IAuthorizedHandler<TRequest, TEntity> handler
-) : IRequestHandler<TRequest> where TRequest : IRequest, IAuthorizable
-{
-	public async Task Handle(
-		TRequest request,
-		CancellationToken ct)
-	{
-		TEntity entity = await loader.LoadAsync(request: request, ct: ct);
-		await handler.HandleAsync(request: request, entity: entity, ct: ct);
-	}
-}

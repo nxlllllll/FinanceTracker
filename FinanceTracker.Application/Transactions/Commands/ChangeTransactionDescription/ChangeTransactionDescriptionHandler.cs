@@ -6,16 +6,16 @@ namespace FinanceTracker.Application.Transactions.Commands.ChangeTransactionDesc
 
 public sealed class ChangeTransactionDescriptionHandler(
 	ITransactionWriteRepository transactionWriteRepository
-) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, Transaction>
+) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, Transaction, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ChangeTransactionDescriptionCommand command,
 		Transaction transaction,
 		CancellationToken ct = default
 	)
 	{
 		if (transaction.Description == command.Description)
-			return;
+			return transaction.Id;
 		
 		transaction.ChangeDescription(description: command.Description);
 		
@@ -24,5 +24,7 @@ public sealed class ChangeTransactionDescriptionHandler(
 			description: command.Description,
 			ct: ct
 		);
+		
+		return transaction.Id;
 	}
 }

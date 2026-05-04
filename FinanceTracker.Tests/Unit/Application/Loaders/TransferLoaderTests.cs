@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Application.Transfers.Authorization;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -31,7 +30,7 @@ public sealed class TransferLoaderTests
 				amount: 100m
 			),
 			ct: CancellationToken.None
-		)).Throws<InvalidOperationException>();
+		)).Throws<SameAccountTransferException>();
 	}
 
 	[Test]

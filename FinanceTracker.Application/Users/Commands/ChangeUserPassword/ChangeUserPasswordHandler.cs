@@ -6,9 +6,9 @@ namespace FinanceTracker.Application.Users.Commands.ChangeUserPassword;
 
 public sealed class ChangeUserPasswordHandler(
 	IUserWriteRepository userWriteRepository
-) : IAuthorizedHandler<ChangeUserPasswordCommand, User>
+) : IAuthorizedHandler<ChangeUserPasswordCommand, User, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		ChangeUserPasswordCommand command,
 		User user,
 		CancellationToken ct = default)
@@ -20,5 +20,7 @@ public sealed class ChangeUserPasswordHandler(
 			newPasswordHash: command.NewPasswordHash,
 			ct: ct
 		);
+		
+		return user.Id;
 	}
 }

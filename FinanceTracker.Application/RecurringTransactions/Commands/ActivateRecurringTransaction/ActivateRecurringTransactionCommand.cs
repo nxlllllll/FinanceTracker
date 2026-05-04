@@ -6,4 +6,4 @@ namespace FinanceTracker.Application.RecurringTransactions.Commands.ActivateRecu
 public sealed record ActivateRecurringTransactionCommand(
 	Guid UserId,
 	Guid RecurringTransactionId
-) : IRequest, IAuthorizable;
+) : IRequest<Guid>, IAuthorizable;

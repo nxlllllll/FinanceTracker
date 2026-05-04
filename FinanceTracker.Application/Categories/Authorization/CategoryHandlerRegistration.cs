@@ -17,13 +17,13 @@ internal static class CategoryHandlerRegistration
 		services.AddScoped<IEntityLoader<UnarchiveCategoryCommand, Category>>(sp => sp.GetRequiredService<CategoryLoader>());
 		services.AddScoped<IEntityLoader<RenameCategoryCommand, Category>>(sp => sp.GetRequiredService<CategoryLoader>());
 
-		services.AddScoped<IAuthorizedHandler<ArchiveCategoryCommand, Category>, ArchiveCategoryHandler>();
-		services.AddScoped<IAuthorizedHandler<UnarchiveCategoryCommand, Category>, UnarchiveCategoryHandler>();
-		services.AddScoped<IAuthorizedHandler<RenameCategoryCommand, Category>, RenameCategoryHandler>();
+		services.AddScoped<IAuthorizedHandler<ArchiveCategoryCommand, Category, Guid>, ArchiveCategoryHandler>();
+		services.AddScoped<IAuthorizedHandler<UnarchiveCategoryCommand, Category, Guid>, UnarchiveCategoryHandler>();
+		services.AddScoped<IAuthorizedHandler<RenameCategoryCommand, Category, Guid>, RenameCategoryHandler>();
 
-		services.AddScoped<IRequestHandler<ArchiveCategoryCommand>, AuthorizedHandlerAdapter<ArchiveCategoryCommand, Category>>();
-		services.AddScoped<IRequestHandler<UnarchiveCategoryCommand>, AuthorizedHandlerAdapter<UnarchiveCategoryCommand, Category>>();
-		services.AddScoped<IRequestHandler<RenameCategoryCommand>, AuthorizedHandlerAdapter<RenameCategoryCommand, Category>>();
+		services.AddScoped<IRequestHandler<ArchiveCategoryCommand, Guid>, AuthorizedHandlerAdapter<ArchiveCategoryCommand, Category, Guid>>();
+		services.AddScoped<IRequestHandler<UnarchiveCategoryCommand, Guid>, AuthorizedHandlerAdapter<UnarchiveCategoryCommand, Category, Guid>>();
+		services.AddScoped<IRequestHandler<RenameCategoryCommand, Guid>, AuthorizedHandlerAdapter<RenameCategoryCommand, Category, Guid>>();
 
 		return services;
 	}

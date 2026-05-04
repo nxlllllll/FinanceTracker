@@ -1,9 +1,9 @@
-﻿using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Core.Services.CurrencyConversion;
+﻿using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 

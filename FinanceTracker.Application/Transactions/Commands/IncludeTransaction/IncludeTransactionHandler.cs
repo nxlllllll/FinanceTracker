@@ -13,15 +13,14 @@ public sealed class IncludeTransactionHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork
-) : IAuthorizedHandler<IncludeTransactionCommand, Transaction>
+) : IAuthorizedHandler<IncludeTransactionCommand, Transaction, Guid>
 {
-	public async Task HandleAsync(
+	public async Task<Guid> HandleAsync(
 		IncludeTransactionCommand command,
 		Transaction transaction,
 		CancellationToken ct = default)
 	{
 		transaction.Include();
-
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.IncludeAsync(transactionId: command.TransactionId, ct: ct);
@@ -47,5 +46,7 @@ public sealed class IncludeTransactionHandler(
 				ct: ct
 			);
 		}, ct: ct);
+		
+		return transaction.Id;
 	}
 }

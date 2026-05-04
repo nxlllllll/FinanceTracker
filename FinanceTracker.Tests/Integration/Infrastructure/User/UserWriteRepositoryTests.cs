@@ -1,7 +1,7 @@
-﻿using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Infrastructure.Database.Repositories.User;
+﻿using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.User;
 
