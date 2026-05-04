@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.Accounts.Commands.CreateAccount;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -52,6 +53,6 @@ public sealed class CreateAccountHandlerTests
 
 		await Assert.That(
 			func: async () => await _handler.Handle(command: command, ct: CancellationToken.None)
-		).Throws<EmptyNameException>();
+		).Throws<NameException>();
 	}
 }

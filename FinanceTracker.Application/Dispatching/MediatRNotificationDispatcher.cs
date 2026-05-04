@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using MediatR;
 
 namespace FinanceTracker.Application.Dispatching;

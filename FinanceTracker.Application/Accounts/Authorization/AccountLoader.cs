@@ -4,6 +4,7 @@ using FinanceTracker.Application.Accounts.Commands.UnarchiveAccount;
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Application.Accounts.Authorization;

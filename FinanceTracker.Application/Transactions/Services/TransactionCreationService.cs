@@ -1,6 +1,8 @@
 ﻿using FinanceTracker.Application.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.BudgetProgress;
@@ -50,7 +52,7 @@ public sealed class TransactionCreationService(
                     description: command.Description
                 ); break;
             default:
-                throw new ArgumentOutOfRangeException(message: "Direction is unknown.", paramName: nameof(command.Direction));
+                throw new InvalidTransactionDirectionException(message: "Direction is unknown.");
         }
     }
 

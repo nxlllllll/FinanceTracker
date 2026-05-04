@@ -8,33 +8,32 @@ public sealed class EFUnitOfWork(
 ) : IUnitOfWork
 {
 	private IDbContextTransaction? _transaction;
-	private int _transactionDepth = 0;
+	private readonly Stack<string> _savepoints = new Stack<string>();
 	
 	public async Task BeginTransactionAsync(CancellationToken ct = default)
 	{
-		++_transactionDepth;
-
-		if (_transactionDepth == 1)
-			_transaction = await context.Database.BeginTransactionAsync(cancellationToken: ct);
-		else
+		if (_transaction is null)
 		{
-			if (_transaction is null)
-				throw new InvalidOperationException(message: $"Transaction is null at depth {_transactionDepth}.");
-			
-			await _transaction.CreateSavepointAsync(name: $"Savepoint_{_transactionDepth}", cancellationToken: ct);
+			_transaction = await context.Database.BeginTransactionAsync(cancellationToken: ct);
+			return;
 		}
+ 
+		string savepointName = $"sp_{Guid.NewGuid():N}";
+		await _transaction.CreateSavepointAsync(name: savepointName, cancellationToken: ct);
+		_savepoints.Push(item: savepointName);
 	}
 
 	public async Task CommitAsync(CancellationToken ct = default)
 	{
 		if (_transaction is null)
 			throw new InvalidOperationException(message: "No active transaction to commit.");
-		
-		--_transactionDepth;
-		
-		if (_transactionDepth != 0)
+ 
+		if (_savepoints.Count > 0)
+		{
+			_savepoints.Pop();
 			return;
-		
+		}
+ 
 		await _transaction.CommitAsync(cancellationToken: ct);
 		await _transaction.DisposeAsync();
 		_transaction = null;
@@ -44,19 +43,16 @@ public sealed class EFUnitOfWork(
 	{
 		if (_transaction is null)
 			return;
-
-		if (_transactionDepth > 1)
+ 
+		if (_savepoints.TryPop(result: out string? savepointName))
 		{
-			await _transaction.RollbackToSavepointAsync(name: $"Savepoint_{_transactionDepth}", cancellationToken: ct);
-			--_transactionDepth;
+			await _transaction.RollbackToSavepointAsync(name: savepointName, cancellationToken: ct);
+			return;
 		}
-		else
-		{
-			_transactionDepth = 0;
-			await _transaction.RollbackAsync(cancellationToken: ct);
-			await _transaction.DisposeAsync();
-			_transaction = null;
-		}
+ 
+		await _transaction.RollbackAsync(cancellationToken: ct);
+		await _transaction.DisposeAsync();
+		_transaction = null;
 	}
 
 	public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken ct = default)
@@ -74,12 +70,30 @@ public sealed class EFUnitOfWork(
 		}
 	}
 
+	public async Task ExecuteInTransactionAsync(
+		Func<Task> operation,
+		Func<Exception, Task> onError,
+		CancellationToken ct = default)
+	{
+		await BeginTransactionAsync(ct: ct);
+		try
+		{
+			await operation();
+			await CommitAsync(ct: ct);
+		}
+		catch (Exception e)
+		{
+			await RollbackAsync(ct: ct);
+			await onError(arg: e);
+		}
+	}
+
 	public void Dispose()
 	{
 		if (_transaction is null)
 			return;
 
-		_transactionDepth = 0;
+		_savepoints.Clear();
 		_transaction.Rollback();
 		_transaction.Dispose();
 		_transaction = null;
@@ -90,7 +104,7 @@ public sealed class EFUnitOfWork(
 		if (_transaction is null)
 			return;
 		
-		_transactionDepth = 0;
+		_savepoints.Clear();
 		await _transaction.RollbackAsync();
 		await _transaction.DisposeAsync();
 		_transaction = null;

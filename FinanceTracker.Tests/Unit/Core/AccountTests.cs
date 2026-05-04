@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
@@ -37,7 +38,7 @@ public sealed class AccountTests
 	
 	[Test]
 	public async Task Create_WithEmptyName_ShouldThrowEmptyNameException()
-		=> await Assert.That(func: () => AccountFactory.Create(name: String.Empty)).Throws<EmptyNameException>();
+		=> await Assert.That(func: () => AccountFactory.Create(name: String.Empty)).Throws<NameException>();
 
 	[Test]
 	public async Task Create_WithNegativeBalance_ShouldThrowInvalidInitialBalanceException()
@@ -69,7 +70,7 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create();
 		
-		await Assert.That(action: () => account.Rename(occurredAt: Now, newName: String.Empty)).Throws<EmptyNameException>();
+		await Assert.That(action: () => account.Rename(occurredAt: Now, newName: String.Empty)).Throws<NameException>();
 	}
 	
 	[Test]

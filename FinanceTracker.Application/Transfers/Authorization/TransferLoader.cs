@@ -2,6 +2,7 @@
 using FinanceTracker.Application.Transfers.Commands;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Application.Transfers.Authorization;
@@ -22,7 +23,7 @@ public sealed class TransferLoader(
 		CancellationToken ct)
 	{
 		if (fromAccountId == toAccountId)
-			throw new InvalidOperationException(message: "Cannot transfer to the same account.");
+			throw new SameAccountTransferException(message: "Cannot transfer to the same account.");
 		
 		Account fromAccount = await accountRepository.GetByIdAsync(accountId: fromAccountId, ct: ct)
 		?? throw new NotFoundException(message: "Source account not found.", id: fromAccountId);

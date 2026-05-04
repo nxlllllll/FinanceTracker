@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.RecurringTransactions.Commands.DeactivateRecurringTransaction;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

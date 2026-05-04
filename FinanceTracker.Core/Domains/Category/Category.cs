@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 
 namespace FinanceTracker.Core.Domains.Category;
 
@@ -22,7 +23,7 @@ public sealed class Category
 		Guid? parentId)
 	{
 		if (String.IsNullOrWhiteSpace(value: name))
-			throw new EmptyNameException(message: "The category name cannot be empty.");
+			throw new NameException(message: "The category name cannot be empty.");
 
 		return new Category()
 		{
@@ -60,7 +61,7 @@ public sealed class Category
 	public void Rename(string newName)
 	{
 		if (String.IsNullOrWhiteSpace(value: newName))
-			throw new EmptyNameException(message: "The category name cannot be empty.");
+			throw new NameException(message: "The category name cannot be empty.");
 
 		if (IsArchived)
 			throw new ArchivingException(message: "It is forbidden to change the name of an archived category.");

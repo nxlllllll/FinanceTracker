@@ -3,6 +3,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -48,46 +49,38 @@ public sealed class OutboxMessagesHandlingJob(
 
 	internal async Task ProcessMessagesAsync(CancellationToken ct)
 	{
-	    await unitOfWork.BeginTransactionAsync(ct: ct);
-
-	    List<OutboxMessageEntity> messages = await databaseContext.WithSkipLocked<OutboxMessageEntity>()
-	        .Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
-	        .OrderBy(keySelector: m => m.UpdatedAt)
-	        .Take(count: Limit)
-	        .ToListAsync(cancellationToken: ct);
-
-	    if (messages.Count == 0)
-	    {
-	        await unitOfWork.RollbackAsync(ct: ct);
-	        return;
-	    }
-
-	    foreach (OutboxMessageEntity message in messages)
-	    {
-	        await unitOfWork.BeginTransactionAsync(ct: ct);
-	        try
-	        {
-	            IAppNotification appNotification = BuildNotification(message: message);
-	            await dispatcher.DispatchAsync(appNotification: appNotification, ct: ct);
-	            message.ProcessedAt = dateProvider.UtcNow;
-	            await databaseContext.SaveChangesAsync(cancellationToken: ct);
-	            await unitOfWork.CommitAsync(ct: ct);
-	        }
-	        catch
-	        {
-	            await unitOfWork.RollbackAsync(ct: ct);
-				message.ProcessedAt = null;
-	            ++message.RetryCount;
-	            if (message.RetryCount >= MaxRetries)
-	                message.FailedAt = dateProvider.UtcNow;
-
-	            await unitOfWork.BeginTransactionAsync(ct: ct);
-	            await databaseContext.SaveChangesAsync(cancellationToken: ct);
-	            await unitOfWork.CommitAsync(ct: ct);
-	        }
-	    }
-
-	    await unitOfWork.CommitAsync(ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			List<OutboxMessageEntity> messages = await databaseContext.WithSkipLocked<OutboxMessageEntity>()
+				.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
+				.OrderBy(keySelector: m => m.UpdatedAt)
+				.Take(count: Limit)
+				.ToListAsync(cancellationToken: ct);
+ 
+			foreach (OutboxMessageEntity message in messages)
+			{
+				await unitOfWork.ExecuteInTransactionAsync(operation: async () => 
+				{
+					IAppNotification appNotification = BuildNotification(message: message); 
+					await dispatcher.DispatchAsync(appNotification: appNotification, ct: ct); 
+					message.ProcessedAt = dateProvider.UtcNow; 
+					await databaseContext.SaveChangesAsync(cancellationToken: ct);
+				}, onError: async _ =>
+				{
+					if (ct.IsCancellationRequested)
+						return;
+				
+					await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+					{
+						++message.RetryCount;
+						if (message.RetryCount >= MaxRetries)
+							message.FailedAt = dateProvider.UtcNow;
+				
+						await databaseContext.SaveChangesAsync(cancellationToken: ct);
+					}, ct: ct);
+				}, ct: ct);
+			}
+		}, ct: ct);
 	}
 	
 	public async Task Execute(IJobExecutionContext context)

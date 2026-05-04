@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.CurrencyConversion;

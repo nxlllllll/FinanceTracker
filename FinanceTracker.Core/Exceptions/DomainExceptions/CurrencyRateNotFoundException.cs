@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Exceptions;
+﻿namespace FinanceTracker.Core.Exceptions.DomainExceptions;
 
 public sealed class CurrencyRateNotFoundException(
 	string message,

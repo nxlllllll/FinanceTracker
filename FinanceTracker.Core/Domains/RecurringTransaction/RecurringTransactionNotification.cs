@@ -2,7 +2,7 @@
 
 namespace FinanceTracker.Core.Domains.RecurringTransaction;
 
-public record RecurringTransactionNotification(
+public sealed record RecurringTransactionNotification(
 	Guid AccountId,
 	Guid UserId,
 	Guid CategoryId,

@@ -10,24 +10,29 @@ public static class TransactionFactory
 		Guid? accountId = null,
 		Guid? userId = null,
 		Guid? categoryId = null,
+		decimal amount = 1000m,
+		string currency = "RUB",
+		DirectionType direction = DirectionType.Debit,
+		decimal exchangeRate = 1m,
+		bool isRatePending = false,
 		bool isExcluded = false,
-		DirectionType direction = DirectionType.Debit)
+		string? description = null)
 	{
 		Transaction transaction = Transaction.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow,
 			accountId: accountId ?? Guid.NewGuid(),
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
-			amount: new Money(amount: 1000m, currency: "RUB"),
+			amount: new Money(amount: amount, currency: currency),
 			direction: direction,
-			exchangeRate: 1m,
-			isRatePending: false,
-			description: null,
-			occurredAt: DateTime.UtcNow
+			exchangeRate: exchangeRate,
+			isRatePending: isRatePending,
+			description: description
 		);
 
 		if (isExcluded)
 			transaction.Exclude();
-		
+
 		return transaction;
 	}
 }

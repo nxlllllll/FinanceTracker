@@ -1,6 +1,8 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account;
@@ -32,7 +34,7 @@ public sealed class Account : AggregateRoot
 		{
 			DirectionType.Credit => 1,
 			DirectionType.Debit => -1,
-			_ => throw new ArgumentOutOfRangeException(message: "Unknown direction type.", paramName: nameof(direction))
+			_ => throw new InvalidTransactionDirectionException(message: "Unknown direction type.")
 		};
 		return sign;
 	}
@@ -46,7 +48,7 @@ public sealed class Account : AggregateRoot
 		decimal balance)
 	{
 		if (String.IsNullOrWhiteSpace(value: name))
-			throw new EmptyNameException(message: "The account name cannot be empty.");
+			throw new NameException(message: "The account name cannot be empty.");
 
 		if (balance < 0)
 			throw new InvalidInitialBalanceException(message: "The initial account balance cannot be negative.");
@@ -289,7 +291,7 @@ public sealed class Account : AggregateRoot
 		string newName)
 	{
 		if (String.IsNullOrWhiteSpace(value: newName))
-			throw new EmptyNameException(message: "The account name cannot be empty.");
+			throw new NameException(message: "The account name cannot be empty.");
 
 		if (Name.Equals(value: newName, comparisonType: StringComparison.OrdinalIgnoreCase))
 			return;

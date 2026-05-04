@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 
 namespace FinanceTracker.Core.ValueObjects;
 

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.DateProvider;
 using MediatR;

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
@@ -32,7 +33,7 @@ public sealed class CategoryTests
 
 	[Test]
 	public async Task Create_WithEmptyName_ShouldThrowEmptyNameException()
-		=> await Assert.That(func: () => CategoryFactory.Create(name: String.Empty)).Throws<EmptyNameException>();
+		=> await Assert.That(func: () => CategoryFactory.Create(name: String.Empty)).Throws<NameException>();
 
 	[Test]
 	public async Task Rename_WithValidName_ShouldChangeName()
@@ -59,7 +60,7 @@ public sealed class CategoryTests
 	{
 		Category category = CategoryFactory.Create();
 
-		await Assert.That(action: () => category.Rename(newName: String.Empty)).Throws<EmptyNameException>();
+		await Assert.That(action: () => category.Rename(newName: String.Empty)).Throws<NameException>();
 	}
 
 	[Test]
