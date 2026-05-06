@@ -41,10 +41,13 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Transaction?>(result: null));
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Transaction, DomainException> result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: Guid.NewGuid(), TransactionId: Guid.NewGuid(), CategoryId: Guid.NewGuid()),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -56,10 +59,13 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Transaction, DomainException> result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: Guid.NewGuid(), TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -92,10 +98,13 @@ public sealed class TransactionLoaderTests
 			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Account, DomainException> resultAccount = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: resultAccount.IsFailure).IsTrue();
+		await Assert.That(value: resultAccount.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -106,10 +115,13 @@ public sealed class TransactionLoaderTests
 			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Account, DomainException> resultAccount = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(userId: Guid.NewGuid(), accountId: account.Id),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: resultAccount.IsFailure).IsTrue();
+		await Assert.That(value: resultAccount.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]

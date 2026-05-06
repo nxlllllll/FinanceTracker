@@ -10,12 +10,9 @@ using FinanceTracker.Application.UseCases.Transactions.Authorization;
 using FinanceTracker.Application.UseCases.Transfers.Authorization;
 using FinanceTracker.Application.UseCases.Users.Authorization;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Services.DateProvider;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 
 namespace FinanceTracker.Application.Configurations;
 

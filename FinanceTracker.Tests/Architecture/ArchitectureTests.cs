@@ -30,7 +30,8 @@ public sealed class ArchitectureTests
 		"Microsoft.EntityFrameworkCore",
 		"Npgsql",
 		"Quartz",
-		"Microsoft.Extensions"
+		"Microsoft.Extensions",
+		"ZLogger"
 	];
 
 	[Test]
@@ -44,7 +45,7 @@ public sealed class ArchitectureTests
 			));
 
 		await Assert.That(value: violations).IsEmpty()
-			.Because(string.Join(separator: ", ", values: violations));
+			.Because(message: String.Join(separator: ", ", values: violations));
 	}
 
 	[Test]
@@ -58,7 +59,7 @@ public sealed class ArchitectureTests
 			));
 
 		await Assert.That(value: violations).IsEmpty()
-			.Because(string.Join(separator: ", ", values: violations));
+			.Because(message: String.Join(separator: ", ", values: violations));
 	}
 
 	[Test]
@@ -74,7 +75,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -88,7 +89,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -104,7 +105,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -118,7 +119,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -136,7 +137,7 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 
 	[Test]
@@ -152,6 +153,6 @@ public sealed class ArchitectureTests
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(string.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
 	}
 }

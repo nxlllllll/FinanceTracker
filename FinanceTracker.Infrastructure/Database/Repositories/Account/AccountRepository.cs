@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;

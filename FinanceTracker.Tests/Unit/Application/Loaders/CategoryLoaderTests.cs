@@ -29,10 +29,13 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Category?>(result: null));
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Category, NotFoundException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.NewGuid(), CategoryId: Guid.NewGuid()),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -44,10 +47,13 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Category, NotFoundException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.NewGuid(), CategoryId: category.Id),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]

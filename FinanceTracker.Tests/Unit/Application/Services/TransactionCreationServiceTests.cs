@@ -40,6 +40,11 @@ public sealed class TransactionCreationServiceTests
             operation: Arg.Any<Func<Task>>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            onError: Arg.Any<Func<Exception, Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
         _service = new TransactionCreationService(
             accountRepository: _accountRepository,
             transactionWriteRepository: _transactionWriteRepository,
@@ -55,8 +60,8 @@ public sealed class TransactionCreationServiceTests
     private void SetupConversionRate(decimal rate = 1m, bool isPending = false)
     {
         _currencyConversionService.GetConversionRateAsync(
-            fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
-            toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+            fromCurrency: Arg.Any<Currency>(),
+            toCurrency: Arg.Any<Currency>(),
             date: Arg.Any<DateOnly>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: new ConversionResult(Rate: rate, IsPending: isPending));
@@ -154,8 +159,8 @@ public sealed class TransactionCreationServiceTests
         Account account = AccountFactory.CreateAccountWithArchivation();
 
         _currencyConversionService.GetConversionRateAsync(
-            fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
-            toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+            fromCurrency: Arg.Any<Currency>(),
+            toCurrency: Arg.Any<Currency>(),
             date: Arg.Any<DateOnly>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns<ConversionResult>(returnThis: _ => throw new CurrencyRateNotFoundException(

@@ -29,10 +29,13 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<RecurringTransaction?>(result: null));
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: Guid.NewGuid(), RecurringTransactionId: Guid.NewGuid()),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -44,10 +47,13 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: recurringTransaction);
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: Guid.NewGuid(), RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]

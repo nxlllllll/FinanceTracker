@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database;
-using FinanceTracker.Infrastructure.Database.Context;
+﻿using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;

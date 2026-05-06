@@ -33,6 +33,11 @@ public sealed class IncludeTransactionHandlerTests
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			onError: Arg.Any<Func<Exception, Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
 		_handler = new IncludeTransactionHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,

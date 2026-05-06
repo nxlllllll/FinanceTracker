@@ -30,10 +30,13 @@ public sealed class BudgetLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Budget?>(result: null));
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Budget, NotFoundException> result = await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: Guid.NewGuid(), BudgetId: Guid.NewGuid(), Amount: 1000m),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]

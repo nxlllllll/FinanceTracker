@@ -29,10 +29,13 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Account, NotFoundException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: Guid.NewGuid(), AccountId: Guid.NewGuid()),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -44,10 +47,13 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<Account, NotFoundException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: Guid.NewGuid(), AccountId: account.Id),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]

@@ -25,14 +25,17 @@ public sealed class TransferLoaderTests
 	{
 		Guid accountId = Guid.NewGuid();
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<(Account, Account), DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: accountId, 
 				toAccountId: accountId,
 				amount: 100m
 			),
 			ct: CancellationToken.None
-		)).Throws<SameAccountTransferException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<SameAccountTransferException>();
 	}
 
 	[Test]
@@ -41,10 +44,13 @@ public sealed class TransferLoaderTests
 		_accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<(Account, Account), DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -58,14 +64,17 @@ public sealed class TransferLoaderTests
 		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: toAccount);
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<(Account, Account), DomainException> resultFrom = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: fromAccount.Id,
 				toAccountId: toAccount.Id,
 				amount: 100m
 			),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: resultFrom.IsFailure).IsTrue();
+		await Assert.That(value: resultFrom.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
@@ -79,7 +88,7 @@ public sealed class TransferLoaderTests
 		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: toAccount);
 
-		await Assert.That(action: async () => await _loader.LoadAsync(
+		Result<(Account, Account), DomainException> resultTo = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
@@ -87,7 +96,10 @@ public sealed class TransferLoaderTests
 				amount: 100m
 			),
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		);
+		
+		await Assert.That(value: resultTo.IsFailure).IsTrue();
+		await Assert.That(value: resultTo.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]

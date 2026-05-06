@@ -2,10 +2,8 @@
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
-using FinanceTracker.Infrastructure.Services;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
