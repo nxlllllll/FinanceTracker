@@ -15,7 +15,7 @@ public interface IRecurringTransactionWriteRepository
 	
 	Task ChangeCurrencyAsync(
 		Guid recurringTransactionId,
-		string currency,
+		ValueObjects.Currency currency,
 		CancellationToken ct = default
 	);
 

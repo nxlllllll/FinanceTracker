@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
@@ -9,7 +10,7 @@ public sealed record AccountCreated(
 	Guid UserId,
 	string Name,
 	AccountType Type,
-	string Currency,
+	Currency Currency,
 	decimal Balance,
 	DateTime OccurredAt
 ) : IEvent;

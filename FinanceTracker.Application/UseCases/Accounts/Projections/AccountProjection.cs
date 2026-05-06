@@ -4,28 +4,33 @@ using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Accounts.Projections;
 
 public sealed class AccountProjection(
-	IAccountWriteRepository accountWriteRepository
+	IAccountWriteRepository accountWriteRepository,
+	ILogger<AccountProjection> logger
 ) : INotificationHandler<AccountEventsNotification>
 {
 	private async Task HandleAsync(IEvent @event, CancellationToken ct)
 	{
-		switch (@event)
+		Task task = @event switch
 		{
-			case AccountCreated e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountRenamed e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountArchived e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountUnarchived e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountDebited e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountCredited e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountTransferDebited e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountTransferCredited e: await HandleAsync(@event: e, ct: ct); break;
-			case AccountBalanceAdjusted e: await HandleAsync(@event: e, ct: ct); break;
-			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
-		}
+			AccountCreated e => HandleAsync(@event: e, ct: ct),
+			AccountRenamed e => HandleAsync(@event: e, ct: ct),
+			AccountArchived e => HandleAsync(@event: e, ct: ct),
+			AccountUnarchived e => HandleAsync(@event: e, ct: ct),
+			AccountDebited e => HandleAsync(@event: e, ct: ct),
+			AccountCredited e => HandleAsync(@event: e, ct: ct),
+			AccountTransferDebited e => HandleAsync(@event: e, ct: ct),
+			AccountTransferCredited e => HandleAsync(@event: e, ct: ct),
+			AccountBalanceAdjusted e => HandleAsync(@event: e, ct: ct),
+			_ => throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType())
+		};
+		await task;
+		logger.ZLogInformation(message: $"{@event.GetType().Name} has been handled.");
 	}
 
 	private async Task HandleAsync(AccountCreated @event, CancellationToken ct)

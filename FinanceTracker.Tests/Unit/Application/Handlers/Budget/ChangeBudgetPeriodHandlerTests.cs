@@ -4,6 +4,7 @@ using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
@@ -28,7 +29,8 @@ public sealed class ChangeBudgetPeriodHandlerTests
 		_handler = new ChangeBudgetPeriodHandler(
 			budgetWriteRepository: _budgetWriteRepository,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
-			unitOfWork: _unitOfWork
+			unitOfWork: _unitOfWork,
+			logger: Substitute.For<ILogger<ChangeBudgetPeriodHandler>>()
 		);
 	}
 

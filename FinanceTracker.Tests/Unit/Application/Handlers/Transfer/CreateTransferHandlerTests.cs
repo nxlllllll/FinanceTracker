@@ -7,6 +7,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transfer;
@@ -35,7 +36,8 @@ public sealed class CreateTransferHandlerTests
 			transferWriteRepository: _transferWriteRepository,
 			currencyConversionService: _currencyConversionService,
 			unitOfWork: _unitOfWork,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<CreateTransferHandler>>()
 		);
 	}
 

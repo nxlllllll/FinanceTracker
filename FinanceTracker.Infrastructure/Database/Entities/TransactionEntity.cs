@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
 
@@ -9,7 +10,7 @@ public sealed class TransactionEntity
 	public Guid UserId { get; init; }
 	public Guid CategoryId { get; set; }
 	public decimal Amount { get; init; }
-	public string Currency { get; init; } = null!;
+	public Currency Currency { get; init; }
 	public DirectionType Direction { get; init; }
 	public decimal ExchangeRate { get; init; }
 	public bool IsExcluded { get; set; }

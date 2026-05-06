@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,7 +28,11 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 
 		builder.Property(propertyExpression: t => t.CurrencyFrom)
 			.HasColumnName(name: "currency_from")
-			.HasMaxLength(maxLength: 3);
+			.HasMaxLength(maxLength: 3)
+            .HasConversion(
+                convertToProviderExpression: currency => currency.Value,
+                convertFromProviderExpression: currency => new Currency(value: currency)
+            );
 
 		builder.Property(propertyExpression: t => t.AmountTo)
 			.HasColumnName(name: "amount_to")
@@ -35,7 +40,11 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 
 		builder.Property(propertyExpression: t => t.CurrencyTo)
 			.HasColumnName(name: "currency_to")
-			.HasMaxLength(maxLength: 3);
+			.HasMaxLength(maxLength: 3)
+            .HasConversion(
+                convertToProviderExpression: currency => currency.Value,
+                convertFromProviderExpression: currency => new Currency(value: currency)
+            );
 
 		builder.Property(propertyExpression: t => t.ExchangeRate)
 			.HasColumnName(name: "exchange_rate")
@@ -62,5 +71,15 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
         builder.HasOne<AccountEntity>().WithMany()
             .HasForeignKey(foreignKeyExpression: t => t.ToAccountId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);
+
+        builder.HasOne<CurrencyEntity>().WithMany()
+            .HasForeignKey(foreignKeyExpression: t => t.CurrencyFrom)
+            .OnDelete(deleteBehavior: DeleteBehavior.Cascade)
+			.HasPrincipalKey(keyExpression: c => c.Code);
+
+        builder.HasOne<CurrencyEntity>().WithMany()
+            .HasForeignKey(foreignKeyExpression: t => t.CurrencyTo)
+            .OnDelete(deleteBehavior: DeleteBehavior.Cascade)
+			.HasPrincipalKey(keyExpression: c => c.Code);
     }
 }

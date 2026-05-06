@@ -18,11 +18,21 @@ internal static class TransactionHandlerRegistration
     internal static IServiceCollection RegisterTransactionHandlers(this IServiceCollection services)
     {
         services.AddScoped<TransactionLoader>();
-        services.AddScoped<IEntityLoader<CreateTransactionCommand, Account>>(sp => sp.GetRequiredService<TransactionLoader>());
-        services.AddScoped<IEntityLoader<ChangeTransactionCategoryCommand, Transaction>>(sp => sp.GetRequiredService<TransactionLoader>());
-        services.AddScoped<IEntityLoader<ChangeTransactionDescriptionCommand, Transaction>>(sp => sp.GetRequiredService<TransactionLoader>());
-        services.AddScoped<IEntityLoader<IncludeTransactionCommand, Transaction>>(sp => sp.GetRequiredService<TransactionLoader>());
-        services.AddScoped<IEntityLoader<ExcludeTransactionCommand, Transaction>>(sp => sp.GetRequiredService<TransactionLoader>());
+        services.AddScoped<IEntityLoader<CreateTransactionCommand, Account, DomainException>>(
+            implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<ChangeTransactionCategoryCommand, Transaction, DomainException>>(
+            implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<ChangeTransactionDescriptionCommand, Transaction, DomainException>>(
+            implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<IncludeTransactionCommand, Transaction, DomainException>>(
+            implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<ExcludeTransactionCommand, Transaction, DomainException>>(
+            implementationFactory: sp => sp.GetRequiredService<TransactionLoader>()
+        );
 
         services.AddScoped<IAuthorizedHandler<CreateTransactionCommand, Account, Guid, DomainException>, CreateTransactionHandler>();
         services.AddScoped<IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction, Guid, DomainException>, ChangeTransactionCategoryHandler>();

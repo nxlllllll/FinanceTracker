@@ -6,6 +6,7 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -30,7 +31,8 @@ public sealed class ArchiveCategoryHandlerTests
 		_handler = new ArchiveCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
-			unitOfWork: _unitOfWork
+			unitOfWork: _unitOfWork,
+			logger: Substitute.For<ILogger<ArchiveCategoryHandler>>()
 		);
 	}
 

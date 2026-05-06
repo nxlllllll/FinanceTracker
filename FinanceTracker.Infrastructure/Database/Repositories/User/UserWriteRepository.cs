@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +40,7 @@ public class UserWriteRepository(
 
 	public async Task ChangeEmailAsync(
 		Guid userId,
-		string newEmail,
+		Email newEmail,
 		CancellationToken ct = default)
 	{
 		await ChangeUserPropertyAsync(
@@ -63,7 +64,7 @@ public class UserWriteRepository(
 
 	public async Task ChangeBaseCurrencyAsync(
 		Guid userId,
-		string newBaseCurrencyCode,
+		Core.ValueObjects.Currency newBaseCurrencyCode,
 		CancellationToken ct = default)
 	{
 		await ChangeUserPropertyAsync(

@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetAmount;
 using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -45,11 +46,12 @@ public sealed class BudgetLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: budget);
 
-		Budget result = await _loader.LoadAsync(
+		Result<Budget, NotFoundException> result = await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 1000m),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Id).IsEqualTo(expected: budget.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: budget.Id);
 	}
 }

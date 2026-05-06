@@ -5,9 +5,12 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Services;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.PostgresEventStore;
 
@@ -22,8 +25,12 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 .UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
                 .Options
             ),
-            eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly),
-            dateProvider: FakeDateProvider.Default
+            eventTypeResolver: new EventTypeResolver(
+                assembly: typeof(IEvent).Assembly,
+                logger: Substitute.For<ILogger<EventTypeResolver>>()
+            ),
+            dateProvider: FakeDateProvider.Default,
+            logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
         );
     }
     
@@ -41,7 +48,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
             Type: Core.Domains.Account.AccountType.Checking,
-            Currency: "RUB",
+            Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 0,
             OccurredAt: DateTime.UtcNow
         );
@@ -70,7 +77,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
             Type: Core.Domains.Account.AccountType.Checking,
-            Currency: "RUB",
+            Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 1000m,
             OccurredAt: DateTime.UtcNow
         );
@@ -122,7 +129,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
             Type: Core.Domains.Account.AccountType.Checking,
-            Currency: "RUB",
+            Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 0,
             OccurredAt: DateTime.UtcNow
         );
@@ -165,7 +172,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             userId: Guid.NewGuid(),
             name: "Тест",
             type: Core.Domains.Account.AccountType.Checking,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             balance: 100m
         );
 
@@ -219,7 +226,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             userId: Guid.NewGuid(),
             name: "Тест снапшота",
             type: Core.Domains.Account.AccountType.Savings,
-            currency: "USD",
+            currency: Core.ValueObjects.Currency.Create(value: "USD").Value,
             balance: 1000m
         );
 

@@ -27,7 +27,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 
     private async Task<AccountCreated> CreateAccountAsync()
     {
-        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
@@ -48,7 +48,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 
     private async Task<(Guid userId, AccountCreated @event)> CreateAccountWithArchivationAsync(bool archived = false)
     {
-        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
@@ -112,7 +112,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     public async Task GetAllAsync_ShouldReturnOnlyUserAccounts()
     {
         (Guid userId, _) = await CreateAccountWithArchivationAsync();
-        (_, _) = await CreateAccountWithArchivationAsync();
+        await CreateAccountWithArchivationAsync();
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId);
 
@@ -124,7 +124,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     public async Task GetAllAsync_WithIsArchivedFalse_ShouldReturnOnlyActiveAccounts()
     {
         (Guid userId, _) = await CreateAccountWithArchivationAsync(archived: false);
-        (_, _) = await CreateAccountWithArchivationAsync(archived: true);
+        await CreateAccountWithArchivationAsync(archived: true);
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(
             userId: userId,
@@ -138,7 +138,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithIsArchivedTrue_ShouldReturnOnlyArchivedAccounts()
     {
-        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
@@ -180,7 +180,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithNullIsArchived_ShouldReturnAllAccounts()
     {
-        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 

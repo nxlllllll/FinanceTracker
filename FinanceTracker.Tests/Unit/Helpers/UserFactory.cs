@@ -22,9 +22,9 @@ public static class UserFactory
 		
 		Result<User, DomainException> result = User.Register(
 			createdAt: FakeDateProvider.Default.UtcNow,
-			email: email,
+			email: Email.Create(value: email).Value,
 			passwordHash: passwordHash,
-			baseCurrency: baseCurrencyCode
+			baseCurrency: Currency.Create(value: baseCurrencyCode).Value
 		);
 
 		return result;

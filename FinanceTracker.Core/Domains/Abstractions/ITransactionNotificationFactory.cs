@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Abstractions;
 
@@ -9,7 +10,7 @@ public interface ITransactionNotificationFactory
 		Guid userId,
 		Guid categoryId,
 		decimal amount,
-		string currency,
+		Currency currency,
 		DirectionType direction,
 		string? description,
 		DateTime occurredAt

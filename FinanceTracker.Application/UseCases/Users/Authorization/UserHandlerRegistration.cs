@@ -15,9 +15,9 @@ internal static class UserHandlerRegistration
 	internal static IServiceCollection RegisterUserHandlers(this IServiceCollection services)
 	{
 		services.AddScoped<UserLoader>();
-		services.AddScoped<IEntityLoader<ChangeUserBaseCurrencyCommand, User>>(sp => sp.GetRequiredService<UserLoader>());
-		services.AddScoped<IEntityLoader<ChangeUserEmailCommand, User>>(sp => sp.GetRequiredService<UserLoader>());
-		services.AddScoped<IEntityLoader<ChangeUserPasswordCommand, User>>(sp => sp.GetRequiredService<UserLoader>());
+		services.AddScoped<IEntityLoader<ChangeUserBaseCurrencyCommand, User, NotFoundException>>(sp => sp.GetRequiredService<UserLoader>());
+		services.AddScoped<IEntityLoader<ChangeUserEmailCommand, User, NotFoundException>>(sp => sp.GetRequiredService<UserLoader>());
+		services.AddScoped<IEntityLoader<ChangeUserPasswordCommand, User, NotFoundException>>(sp => sp.GetRequiredService<UserLoader>());
 
 		services.AddScoped<IAuthorizedHandler<ChangeUserBaseCurrencyCommand, User, Guid, DomainException>, ChangeUserBaseCurrencyHandler>();
 		services.AddScoped<IAuthorizedHandler<ChangeUserEmailCommand, User, Guid, DomainException>, ChangeUserEmailHandler>();

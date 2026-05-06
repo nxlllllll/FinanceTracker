@@ -15,9 +15,15 @@ internal static class AccountHandlerRegistration
 	internal static IServiceCollection RegisterAccountHandlers(this IServiceCollection services)
 	{
 		services.AddScoped<AccountLoader>();
-		services.AddScoped<IEntityLoader<ArchiveAccountCommand, Account>>(sp => sp.GetRequiredService<AccountLoader>());
-		services.AddScoped<IEntityLoader<UnarchiveAccountCommand, Account>>(sp => sp.GetRequiredService<AccountLoader>());
-		services.AddScoped<IEntityLoader<RenameAccountCommand, Account>>(sp => sp.GetRequiredService<AccountLoader>());
+		services.AddScoped<IEntityLoader<ArchiveAccountCommand, Account, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<AccountLoader>()
+		);
+		services.AddScoped<IEntityLoader<UnarchiveAccountCommand, Account, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<AccountLoader>()
+		);
+		services.AddScoped<IEntityLoader<RenameAccountCommand, Account, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<AccountLoader>()
+		);
 
 		services.AddScoped<IAuthorizedHandler<ArchiveAccountCommand, Account, Guid, DomainException>, ArchiveAccountHandler>();
 		services.AddScoped<IAuthorizedHandler<UnarchiveAccountCommand, Account, Guid, DomainException>, UnarchiveAccountHandler>();

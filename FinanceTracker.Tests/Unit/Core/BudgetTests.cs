@@ -20,7 +20,7 @@ public sealed class BudgetTests
         await Assert.That(value: budget.UserId).IsEqualTo(expected: userId);
         await Assert.That(value: budget.CategoryId).IsEqualTo(expected: categoryId);
         await Assert.That(value: budget.Amount.Amount).IsEqualTo(expected: 10000m);
-        await Assert.That(value: budget.Amount.Currency).IsEqualTo(expected: (Currency)"RUB");
+        await Assert.That(value: budget.Amount.Currency.Value).IsEqualTo(expected: "RUB");
         await Assert.That(value: budget.From).IsEqualTo(expected: new DateOnly(year: 2025, month: 1, day: 1));
         await Assert.That(value: budget.To).IsEqualTo(expected: new DateOnly(year: 2025, month: 1, day: 31));
         await Assert.That(value: budget.CreatedAt).IsNotDefault();
@@ -33,7 +33,7 @@ public sealed class BudgetTests
             createdAt: DateTime.UtcNow,
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
-            amount: new Money(amount: 1000m, currency: "RUB"),
+            amount: new Money(amount: 1000m, currency: Currency.Create(value: "RUB").Value),
             from: new DateOnly(year: 2025, month: 1, day: 31),
             to: new DateOnly(year: 2025, month: 1, day: 1)
         );
@@ -49,7 +49,7 @@ public sealed class BudgetTests
             createdAt: DateTime.UtcNow,
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
-            amount: new Money(amount: 1000m, currency: "RUB"),
+            amount: new Money(amount: 1000m, currency: Currency.Create(value: "RUB").Value),
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 1)
         );

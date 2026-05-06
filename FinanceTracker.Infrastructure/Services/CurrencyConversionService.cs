@@ -2,11 +2,14 @@
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.ValueObjects;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Services;
 
 public sealed class CurrencyConversionService(
-	ICurrencyRateReadRepository currencyRateReadRepository
+	ICurrencyRateReadRepository currencyRateReadRepository,
+	ILogger<CurrencyConversionService> logger
 ) : ICurrencyConversionService
 {
 	public async Task<ConversionResult> GetConversionRateAsync(
@@ -28,6 +31,7 @@ public sealed class CurrencyConversionService(
 		if (exactRate is not null)
 			return new ConversionResult(Rate: exactRate.Value, IsPending: false);
 
+		logger.ZLogInformation(message: $"The exact exchange rate as of {date:dd.MM.yyyy} for '{fromCurrency}' -> '{toCurrency}' is not set.");
 		decimal? latestRate = await currencyRateReadRepository.GetLatestRateAsync(
 			baseCurrencyCode: fromCurrency,
 			targetCurrencyCode: toCurrency,
@@ -37,6 +41,7 @@ public sealed class CurrencyConversionService(
 		if (latestRate is not null)
 			return new ConversionResult(Rate: latestRate.Value, IsPending: true);
 
+		logger.ZLogInformation(message: $"The exchange rate for '{fromCurrency}' -> '{toCurrency}' is not set.");
 		throw new CurrencyRateNotFoundException(
 			message: $"The exchange rate for {fromCurrency} → {toCurrency} was not found.",
 			fromCurrency: fromCurrency,

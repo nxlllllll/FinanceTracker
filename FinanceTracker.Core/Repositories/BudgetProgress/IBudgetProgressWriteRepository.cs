@@ -5,7 +5,7 @@ public interface IBudgetProgressWriteRepository
 	Task AddAsync(
 		Guid userId,
 		Guid categoryId,
-		string currencyCode,
+		ValueObjects.Currency currencyCode,
 		decimal amount,
 		DateTime occurredAt,
 		CancellationToken ct = default
@@ -14,7 +14,7 @@ public interface IBudgetProgressWriteRepository
 	Task SubtractAsync(
 		Guid userId,
 		Guid categoryId,
-		string currencyCode,
+		ValueObjects.Currency currencyCode,
 		decimal amount,
 		DateTime occurredAt,
 		CancellationToken ct = default
@@ -24,7 +24,7 @@ public interface IBudgetProgressWriteRepository
 		Guid userId,
 		Guid oldCategoryId,
 		Guid newCategoryId,
-		string currencyCode,
+		ValueObjects.Currency currencyCode,
 		decimal amount,
 		DateTime occurredAt,
 		CancellationToken ct = default

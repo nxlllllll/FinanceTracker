@@ -9,14 +9,17 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.EventStore;
 
 public sealed class PostgresEventStore(
 	FinanceTrackerContext context,
 	IEventTypeResolver eventTypeResolver,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<PostgresEventStore> logger
 ) : IEventStore
 {
 	private const int SnapshotThreshold = 50;
@@ -136,6 +139,7 @@ public sealed class PostgresEventStore(
 		}
 		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
 		{
+			logger.ZLogError(message: $"{aggregateType} {aggregateId} was modified by another request.");
 			throw new ConcurrencyConflictException(message: "Conflict: aggregate was modified by another request.", id: aggregateId);
 		}
 	}

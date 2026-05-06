@@ -9,8 +9,8 @@ public class CurrencyRateReadRepository(
 ) : ICurrencyRateReadRepository
 {
 	public async Task<decimal?> GetRateAsync(
-		string baseCurrencyCode,
-		string targetCurrencyCode,
+		Core.ValueObjects.Currency baseCurrencyCode,
+		Core.ValueObjects.Currency targetCurrencyCode,
 		DateOnly date,
 		CancellationToken ct = default)
 	{
@@ -27,8 +27,8 @@ public class CurrencyRateReadRepository(
 	}
 
 	public async Task<decimal?> GetLatestRateAsync(
-		string baseCurrencyCode,
-		string targetCurrencyCode,
+		Core.ValueObjects.Currency baseCurrencyCode,
+		Core.ValueObjects.Currency targetCurrencyCode,
 		CancellationToken ct = default)
 	{
 		if (baseCurrencyCode == targetCurrencyCode)

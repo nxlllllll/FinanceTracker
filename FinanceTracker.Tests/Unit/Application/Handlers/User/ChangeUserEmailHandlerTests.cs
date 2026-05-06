@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -42,7 +43,7 @@ public sealed class ChangeUserEmailHandlerTests
 
         await _userWriteRepository.Received(requiredNumberOfCalls: 1).ChangeEmailAsync(
             userId: user.Id,
-            newEmail: "new@test.com",
+            newEmail: Email.Create(value: "new@test.com").Value,
             ct: Arg.Any<CancellationToken>()
         );
     }

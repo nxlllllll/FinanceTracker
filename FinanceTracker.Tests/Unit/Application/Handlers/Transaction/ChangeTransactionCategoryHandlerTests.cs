@@ -6,6 +6,7 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -33,7 +34,8 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			unitOfWork: _unitOfWork,
-			budgetProgressWriteRepository: _budgetProgressWriteRepository
+			budgetProgressWriteRepository: _budgetProgressWriteRepository,
+			logger: Substitute.For<ILogger<ChangeTransactionCategoryHandler>>()
 		);
 	}
 

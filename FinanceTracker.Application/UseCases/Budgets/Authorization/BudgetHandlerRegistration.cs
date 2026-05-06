@@ -15,9 +15,15 @@ internal static class BudgetHandlerRegistration
 	internal static IServiceCollection RegisterBudgetHandlers(this IServiceCollection services)
 	{
 		services.AddScoped<BudgetLoader>();
-		services.AddScoped<IEntityLoader<ChangeBudgetAmountCommand, Budget>>(sp => sp.GetRequiredService<BudgetLoader>());
-		services.AddScoped<IEntityLoader<ChangeBudgetPeriodCommand, Budget>>(sp => sp.GetRequiredService<BudgetLoader>());
-		services.AddScoped<IEntityLoader<DeleteBudgetCommand, Budget>>(sp => sp.GetRequiredService<BudgetLoader>());
+		services.AddScoped<IEntityLoader<ChangeBudgetAmountCommand, Budget, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<BudgetLoader>()
+		);
+		services.AddScoped<IEntityLoader<ChangeBudgetPeriodCommand, Budget, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<BudgetLoader>()
+		);
+		services.AddScoped<IEntityLoader<DeleteBudgetCommand, Budget, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<BudgetLoader>()
+		);
 
 		services.AddScoped<IAuthorizedHandler<ChangeBudgetAmountCommand, Budget, Guid, DomainException>, ChangeBudgetAmountHandler>();
 		services.AddScoped<IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget, Guid, DomainException>, ChangeBudgetPeriodHandler>();

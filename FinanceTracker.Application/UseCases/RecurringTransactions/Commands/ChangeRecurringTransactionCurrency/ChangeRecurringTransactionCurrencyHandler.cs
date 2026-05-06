@@ -26,7 +26,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandler(
 		
 		await recurringTransactionWriteRepository.ChangeCurrencyAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			currency: command.Currency,
+			currency: currencyResult.Value,
 			ct: ct
 		);
 		

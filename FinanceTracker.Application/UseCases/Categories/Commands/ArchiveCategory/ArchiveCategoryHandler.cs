@@ -5,13 +5,16 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Categories.Commands.ArchiveCategory;
 
 public sealed class ArchiveCategoryHandler(
 	ICategoryWriteRepository categoryWriteRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
-	IUnitOfWork unitOfWork
+	IUnitOfWork unitOfWork,
+	ILogger<ArchiveCategoryHandler> logger
 ) : IAuthorizedHandler<ArchiveCategoryCommand, Category, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -27,7 +30,9 @@ public sealed class ArchiveCategoryHandler(
 		{
 			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
-		}, ct: ct);
+		}, 
+		onError: async exception => logger.ZLogError(message: $"Failed to archiving for category {category.Id}: {exception.Message}."),
+		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: category.Id);
 	}

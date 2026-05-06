@@ -26,7 +26,7 @@ public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 			AccountId = accountId,
 			CategoryId = categoryId,
 			Amount = amount,
-			Currency = currency,
+			Currency = Core.ValueObjects.Currency.Create(value: currency).Value,
 			Direction = direction,
 			DayOfMonth = dayOfMonth,
 			Description = description,

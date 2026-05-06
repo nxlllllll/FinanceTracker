@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -26,9 +27,9 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await _currencyBuilder.CreateAsync(code: currencyCode);
         Result<Core.Domains.User.User, DomainException> result = Core.Domains.User.User.Register(
             createdAt: FakeDateProvider.Default.UtcNow,
-            email: $"{Guid.NewGuid()}@test.com",
+            email: Email.Create(value: $"{Guid.NewGuid()}@test.com").Value,
             passwordHash: "hash",
-            baseCurrency: currencyCode
+            baseCurrency: Core.ValueObjects.Currency.Create(value: currencyCode).Value
         );
         Core.Domains.User.User user = result.Value!;
         
@@ -53,7 +54,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: user.Id);
         await Assert.That(value: result.Email).IsEqualTo(expected: user.Email);
-        await Assert.That(value: result.BaseCurrency).IsEqualTo(expected: "RUB");
+        await Assert.That(value: result.BaseCurrency.Value).IsEqualTo(expected: "RUB");
     }
 
     [Test]

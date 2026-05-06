@@ -34,7 +34,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
            createdAt: FakeDateProvider.Default.UtcNow,
            userId: userId,
            categoryId: categoryId,
-           amount: new Money(amount: 10000m, currency: "RUB"),
+           amount: new Money(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
            from: new DateOnly(year: 2025, month: 1, day: 1),
            to: new DateOnly(year: 2025, month: 1, day: 31)
        );
@@ -48,7 +48,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
    
        await Assert.That(value: budgetEntity).IsNotNull();
        await Assert.That(value: budgetEntity!.Amount).IsEqualTo(expected: 10000m);
-       await Assert.That(value: budgetEntity.Currency).IsEqualTo(expected: "RUB");
+       await Assert.That(value: budgetEntity.Currency.Value).IsEqualTo(expected: "RUB");
        await Assert.That(value: progress).IsNotNull();
        await Assert.That(value: progress!.Spent).IsEqualTo(expected: 0m);
    }
@@ -63,7 +63,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
             createdAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             categoryId: categoryId,
-            amount: new Money(amount: 10000m, currency: "RUB"),
+            amount: new Money(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
@@ -93,7 +93,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
             createdAt: FakeDateProvider.Default.UtcNow,
            userId: userId,
             categoryId: categoryId,
-            amount: new Money(amount: 10000m, currency: "RUB"),
+            amount: new Money(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );

@@ -23,7 +23,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
         await _unitOfWork.BeginTransactionAsync();
         Context.Currencies.Add(new CurrencyEntity
         {
-            Code = "TST",
+			Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
             Name = "Test",
             Symbol = "T",
             IsActive = true
@@ -41,7 +41,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
         await _unitOfWork.BeginTransactionAsync();
         Context.Currencies.Add(new CurrencyEntity
         {
-            Code = "TST",
+            Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
             Name = "Test",
             Symbol = "T",
             IsActive = true
@@ -60,7 +60,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
         Context.Currencies.Add(new CurrencyEntity
         {
-            Code = "OUT",
+			Code = Core.ValueObjects.Currency.Create(value: "OUT").Value,
             Name = "Output",
             Symbol = "O",
             IsActive = true
@@ -68,21 +68,21 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
         await Context.SaveChangesAsync();
 
-        await _unitOfWork.BeginTransactionAsync(); // depth = 2 → savepoint
+        await _unitOfWork.BeginTransactionAsync();
         Context.Currencies.Add(new CurrencyEntity
         {
-            Code = "TST",
+            Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
             Name = "Test",
             Symbol = "T",
             IsActive = true
         });
         await Context.SaveChangesAsync();
-        await _unitOfWork.RollbackAsync(); // rollback to savepoint
+        await _unitOfWork.RollbackAsync();
 
-        await _unitOfWork.CommitAsync(); // commit outer
+        await _unitOfWork.CommitAsync();
 
-        int outCount = await Context.Currencies.CountAsync(c => c.Code == "OUT");
-        int innCount = await Context.Currencies.CountAsync(c => c.Code == "INN");
+        int outCount = await Context.Currencies.CountAsync(predicate: c => c.Code == "OUT");
+        int innCount = await Context.Currencies.CountAsync(predicate: c => c.Code == "INN");
 
         await Assert.That(value: outCount).IsEqualTo(expected: 1);
         await Assert.That(value: innCount).IsEqualTo(expected: 0);
@@ -95,26 +95,26 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
         Context.Currencies.Add(new CurrencyEntity
         {
-            Code = "OUT",
+            Code = Core.ValueObjects.Currency.Create(value: "OUT").Value,
             Name = "Output",
             Symbol = "O",
             IsActive = true
         });
         await Context.SaveChangesAsync();
 
-        await _unitOfWork.BeginTransactionAsync(); // depth = 2 → savepoint
+        await _unitOfWork.BeginTransactionAsync();
         Context.Currencies.Add(new CurrencyEntity
         {
-            Code = "INN",
+			Code = Core.ValueObjects.Currency.Create(value: "INN").Value,
             Name = "Inner",
             Symbol = "I",
             IsActive = true
         });
 
         await Context.SaveChangesAsync();
-        await _unitOfWork.CommitAsync(); // commit inner (depth → 1, no-op)
+        await _unitOfWork.CommitAsync();
 
-        await _unitOfWork.CommitAsync(); // commit outer
+        await _unitOfWork.CommitAsync();
 
         int outCount = await Context.Currencies.CountAsync(c => c.Code == "OUT");
         int innCount = await Context.Currencies.CountAsync(c => c.Code == "INN");
@@ -146,7 +146,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
         {
             Context.Currencies.Add(new CurrencyEntity
             {
-                Code = "TST",
+                Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
                 Name = "Test",
                 Symbol = "T",
                 IsActive = true
@@ -167,7 +167,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
             {
                 Context.Currencies.Add(new CurrencyEntity
                 {
-                    Code = "TST",
+                    Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
                     Name = "Test",
                     Symbol = "T",
                     IsActive = true

@@ -1,6 +1,8 @@
 ﻿using FinanceTracker.Application.UseCases.Transfers.Authorization;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -48,8 +50,8 @@ public sealed class TransferLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenFromAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateAccountWithArchivation();
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation();
+		Account fromAccount = AccountFactory.CreateAccountWithArchivation();
+		Account toAccount = AccountFactory.CreateAccountWithArchivation();
 
 		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: fromAccount);
@@ -69,8 +71,8 @@ public sealed class TransferLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenToAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateAccountWithArchivation();
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation();
+		Account fromAccount = AccountFactory.CreateAccountWithArchivation();
+		Account toAccount = AccountFactory.CreateAccountWithArchivation();
 
 		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: fromAccount);
@@ -91,15 +93,15 @@ public sealed class TransferLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenBothAccountsOwnedByUser_ShouldReturnTuple()
 	{
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateAccountWithArchivation();
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(userId: fromAccount.UserId);
+		Account fromAccount = AccountFactory.CreateAccountWithArchivation();
+		Account toAccount = AccountFactory.CreateAccountWithArchivation(userId: fromAccount.UserId);
 
 		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: fromAccount);
 		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: toAccount);
 
-		(FinanceTracker.Core.Domains.Account.Account from, FinanceTracker.Core.Domains.Account.Account to) = await _loader.LoadAsync(
+		Result<(Account FromAccount, Account ToAccount), DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
@@ -109,7 +111,8 @@ public sealed class TransferLoaderTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: from.Id).IsEqualTo(expected: fromAccount.Id);
-		await Assert.That(value: to.Id).IsEqualTo(expected: toAccount.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value.FromAccount.Id).IsEqualTo(expected: fromAccount.Id);
+		await Assert.That(value: result.Value.ToAccount.Id).IsEqualTo(expected: toAccount.Id);
 	}
 }

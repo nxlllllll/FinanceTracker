@@ -36,6 +36,7 @@ using FinanceTracker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Quartz;
 
 namespace FinanceTracker.Infrastructure.Configurations;
@@ -50,9 +51,10 @@ public static class DependencyInjection
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
 
-		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: _ =>
-			new EventTypeResolver(assembly: typeof(IEvent).Assembly)
-		);
+		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: s => new EventTypeResolver(
+			assembly: typeof(IEvent).Assembly,
+			logger: s.GetService<ILogger<EventTypeResolver>>()!
+		));
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		
@@ -123,7 +125,7 @@ public static class DependencyInjection
 		        )
 		    );
 		});
-
+		
 		services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);
 		
 		return services;

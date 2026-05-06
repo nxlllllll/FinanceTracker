@@ -30,7 +30,7 @@ public sealed class AccountTests
 		await Assert.That(value: account.UserId).IsEqualTo(expected: userId);
 		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Сбер");
 		await Assert.That(value: account.Type).IsEqualTo(expected: AccountType.Checking);
-		await Assert.That(value: account.Currency).IsEqualTo(expected: "RUB");
+		await Assert.That(value: account.Currency.Value).IsEqualTo(expected: "RUB");
 		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000m);
 		await Assert.That(value: account.IsArchived).IsFalse();
 		await Assert.That(value: account.Version).IsEqualTo(expected: 1);

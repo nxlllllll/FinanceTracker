@@ -50,7 +50,7 @@ public sealed class RecurringTransactionWriteRepository(
 
     public async Task ChangeCurrencyAsync(
         Guid recurringTransactionId,
-        string currency,
+        Core.ValueObjects.Currency currency,
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(

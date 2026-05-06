@@ -27,7 +27,7 @@ public sealed class RecurringTransactionTests
         await Assert.That(value: rt.AccountId).IsEqualTo(expected: accountId);
         await Assert.That(value: rt.CategoryId).IsEqualTo(expected: categoryId);
         await Assert.That(value: rt.Amount.Amount).IsEqualTo(expected: 5000m);
-        await Assert.That(value: rt.Amount.Currency).IsEqualTo(expected: (Currency)"RUB");
+        await Assert.That(value: rt.Amount.Currency.Value).IsEqualTo(expected: "RUB");
         await Assert.That(value: rt.Direction).IsEqualTo(expected: DirectionType.Debit);
         await Assert.That(value: rt.DayOfMonth).IsEqualTo(expected: 15);
         await Assert.That(value: rt.IsActive).IsTrue();
@@ -101,7 +101,7 @@ public sealed class RecurringTransactionTests
         rt.ChangeAmount(amount: 3000m);
 
         await Assert.That(value: rt.Amount.Amount).IsEqualTo(expected: 3000m);
-        await Assert.That(value: rt.Amount.Currency).IsEqualTo(expected: (Currency)"RUB");
+        await Assert.That(value: rt.Amount.Currency.Value).IsEqualTo(expected: "RUB");
     }
 
     [Test]
@@ -119,9 +119,9 @@ public sealed class RecurringTransactionTests
     {
         RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-        rt.ChangeCurrency(currency: "USD");
+        rt.ChangeCurrency(currency: Currency.Create(value: "USD").Value);
 
-        await Assert.That(value: rt.Amount.Currency).IsEqualTo(expected: (Currency)"USD");
+        await Assert.That(value: rt.Amount.Currency.Value).IsEqualTo(expected: "USD");
         await Assert.That(value: rt.Amount.Amount).IsEqualTo(expected: 5000m);
     }
 

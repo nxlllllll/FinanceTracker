@@ -26,7 +26,7 @@ public class TransactionBuilder(FinanceTrackerContext context)
 			UserId = userId,
 			CategoryId = categoryId,
 			Amount = amount,
-			Currency = currencyCode,
+			Currency = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			Direction = direction,
 			ExchangeRate = 1m,
 			IsExcluded = isExcluded,

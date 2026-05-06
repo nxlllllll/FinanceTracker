@@ -20,7 +20,7 @@ public sealed class CategoryTotalWriteRepository(
 		Guid userId,
 		Guid categoryId,
 		decimal amount,
-		string currency,
+		Core.ValueObjects.Currency currency,
 		int delta,
 		DateTime occurredAt,
 		CancellationToken ct)
@@ -70,7 +70,7 @@ public sealed class CategoryTotalWriteRepository(
 		Guid userId,
 		Guid categoryId,
 		decimal amount,
-		string currency,
+		Core.ValueObjects.Currency currency,
 		DateTime occurredAt,
 		CancellationToken ct = default)
 	{
@@ -89,7 +89,7 @@ public sealed class CategoryTotalWriteRepository(
 		Guid userId,
 		Guid categoryId,
 		decimal amount,
-		string currency,
+		Core.ValueObjects.Currency currency,
 		DateTime occurredAt,
 		CancellationToken ct = default)
 	{
@@ -109,7 +109,7 @@ public sealed class CategoryTotalWriteRepository(
 		Guid oldCategoryId,
 		Guid newCategoryId,
 		decimal amount,
-		string currency,
+		Core.ValueObjects.Currency currency,
 		DateTime occurredAt,
 		CancellationToken ct = default)
 	{

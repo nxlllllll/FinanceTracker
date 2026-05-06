@@ -5,6 +5,8 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.ValueObjects;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Projections;
@@ -18,7 +20,10 @@ public sealed class AccountProjectionTests
     public void Setup()
     {
         _accountWriteRepository = Substitute.For<IAccountWriteRepository>();
-        _projection = new AccountProjection(accountWriteRepository: _accountWriteRepository);
+        _projection = new AccountProjection(
+            accountWriteRepository: _accountWriteRepository,
+            logger: Substitute.For<ILogger<AccountProjection>>()
+        );
     }
 
     [Test]
@@ -30,7 +35,7 @@ public sealed class AccountProjectionTests
             UserId: Guid.NewGuid(),
             Name: "Карта Сбер",
             Type: AccountType.Checking,
-            Currency: "RUB",
+            Currency: Currency.Create(value: "RUB").Value,
             Balance: 0,
             OccurredAt: DateTime.UtcNow
         );

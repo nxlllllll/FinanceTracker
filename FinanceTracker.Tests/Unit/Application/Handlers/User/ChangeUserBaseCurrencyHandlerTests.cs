@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -30,7 +31,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 
 		await _userWriteRepository.Received(requiredNumberOfCalls: 1).ChangeBaseCurrencyAsync(
 			userId: Arg.Is(value: user.Id),
-			newBaseCurrencyCode: Arg.Is<string>(value: "USD"),
+			newBaseCurrencyCode: Arg.Is<Currency>(value: Currency.Create(value: "USD").Value),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

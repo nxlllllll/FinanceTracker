@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -30,7 +31,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ChangeCurrencyAsync(
 			recurringTransactionId: recurringTransaction.Id,
-			currency: "USD",
+			currency: Currency.Create(value: "USD").Value,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

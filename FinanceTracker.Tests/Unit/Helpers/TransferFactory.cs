@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -21,9 +22,9 @@ public static class TransferFactory
 			fromAccountId: fromAccountId ?? Guid.NewGuid(),
 			toAccountId: toAccountId ?? Guid.NewGuid(),
 			amountFrom: amountFrom,
-			currencyFrom: currencyFrom,
+			currencyFrom: Currency.Create(value: currencyFrom).Value,
 			amountTo: amountTo,
-			currencyTo: currencyTo,
+			currencyTo: Currency.Create(value: currencyTo).Value,
 			exchangeRate: exchangeRate,
 			isRatePending: isRatePending,
 			description: description,

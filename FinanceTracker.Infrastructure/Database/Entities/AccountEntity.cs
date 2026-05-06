@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
 
@@ -8,7 +9,7 @@ public sealed class AccountEntity
 	public Guid UserId { get; init; }
 	public string Name { get; set; } = string.Empty;
 	public AccountType AccountType { get; init; }
-	public string Currency { get; init; } = String.Empty;
+	public Currency Currency { get; init; }
 	public bool IsArchived { get; set; }
 	public DateTime CreatedAt { get; init; }
 }

@@ -52,7 +52,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currencyCode: "RUB",
+            currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 3000m,
             occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
@@ -75,14 +75,14 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currencyCode: "RUB",
+            currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 3000m,
             occurredAt: occurredAt
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currencyCode: "RUB",
+            currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 2000m,
             occurredAt: occurredAt
         );
@@ -105,14 +105,14 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currencyCode: "RUB",
+            currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 5000m,
             occurredAt: occurredAt
         );
         await _writeRepository.SubtractAsync(
             userId: userId,
             categoryId: categoryId,
-            currencyCode: "RUB",
+            currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 2000m,
             occurredAt: occurredAt
         );
@@ -139,7 +139,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currencyCode: "RUB",
+            currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 3000m,
             occurredAt: new DateTime(year: 2025, month: 2, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
@@ -323,14 +323,14 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+        await _accountBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
         DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
 
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currencyCode: "RUB",
+            currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 5000m,
             occurredAt: occurredAt
         );

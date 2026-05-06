@@ -24,7 +24,7 @@ public static class RecurringTransactionFactory
 			userId: userId ?? Guid.NewGuid(),
 			accountId: accountId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
-			amount: new Money(amount: amount, currency: currency),
+			amount: new Money(amount: amount, currency: Currency.Create(value: currency).Value),
 			direction: direction,
 			dayOfMonth: dayOfMonth,
 			description: description

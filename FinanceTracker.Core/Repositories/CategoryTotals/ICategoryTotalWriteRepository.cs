@@ -6,7 +6,7 @@ public interface ICategoryTotalWriteRepository
 		Guid userId,
 		Guid categoryId,
 		decimal amount,
-		string currency,
+		ValueObjects.Currency currency,
 		DateTime occurredAt,
 		CancellationToken ct = default);
  
@@ -14,7 +14,7 @@ public interface ICategoryTotalWriteRepository
 		Guid userId,
 		Guid categoryId,
 		decimal amount,
-		string currency,
+		ValueObjects.Currency currency,
 		DateTime occurredAt,
 		CancellationToken ct = default);
  
@@ -23,7 +23,7 @@ public interface ICategoryTotalWriteRepository
 		Guid oldCategoryId,
 		Guid newCategoryId,
 		decimal amount,
-		string currency,
+		ValueObjects.Currency currency,
 		DateTime occurredAt,
 		CancellationToken ct = default);
 }

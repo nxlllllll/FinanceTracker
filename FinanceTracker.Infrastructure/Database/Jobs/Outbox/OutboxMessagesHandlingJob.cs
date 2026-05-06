@@ -11,7 +11,9 @@ using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Quartz;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.Jobs.Outbox;
  
@@ -22,14 +24,14 @@ public sealed class OutboxMessagesHandlingJob(
 	IEventTypeResolver resolver,
 	IUnitOfWork unitOfWork,
 	IEnumerable<IAggregateNotificationFactory> factories,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<OutboxMessagesHandlingJob> logger
 ) : IJob
 {
 	private const int Limit = 20;
 	private const int MaxRetries = 5;
 
-	private readonly FrozenDictionary<string, IAggregateNotificationFactory> _factories =
-		factories.ToFrozenDictionary(keySelector: f => f.AggregateType);
+	private readonly FrozenDictionary<string, IAggregateNotificationFactory> _factories = factories.ToFrozenDictionary(keySelector: f => f.AggregateType);
 	
 	private IAppNotification BuildNotification(OutboxMessageEntity message)
 	{
@@ -66,22 +68,30 @@ public sealed class OutboxMessagesHandlingJob(
 					await dispatcher.DispatchAsync(appNotification: appNotification, ct: ct); 
 					message.ProcessedAt = dateProvider.UtcNow; 
 					await databaseContext.SaveChangesAsync(cancellationToken: ct);
-				}, onError: async _ =>
+				}, onError: async outerException =>
 				{
 					if (ct.IsCancellationRequested)
 						return;
 				
+					logger.ZLogError(message: $"Failed to process outbox message {message.Id}: {outerException.Message}.");
 					await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 					{
 						++message.RetryCount;
 						if (message.RetryCount >= MaxRetries)
+						{
 							message.FailedAt = dateProvider.UtcNow;
+							logger.ZLogError(message: $"Outbox message {message.Id} marked as failed.");
+						}
 				
 						await databaseContext.SaveChangesAsync(cancellationToken: ct);
-					}, ct: ct);
+					},
+					onError: async innerException => logger.ZLogError(message: $"Failed to mark outbox message {message.Id} as failed: {innerException.Message}."),
+					ct: ct);
 				}, ct: ct);
 			}
-		}, ct: ct);
+		}, 
+		onError: async exception => logger.ZLogError(message: $"Outbox messages processing has error: {exception.Message}."),
+		ct: ct);
 	}
 	
 	public async Task Execute(IJobExecutionContext context)

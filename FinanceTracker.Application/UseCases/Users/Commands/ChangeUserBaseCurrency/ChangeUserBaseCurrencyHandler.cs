@@ -26,7 +26,7 @@ public sealed class ChangeUserBaseCurrencyHandler(
 
 		await userWriteRepository.ChangeBaseCurrencyAsync(
 			userId: command.UserId,
-			newBaseCurrencyCode: command.NewBaseCurrency,
+			newBaseCurrencyCode: newBaseCurrencyResult.Value,
 			ct: ct
 		);
 		

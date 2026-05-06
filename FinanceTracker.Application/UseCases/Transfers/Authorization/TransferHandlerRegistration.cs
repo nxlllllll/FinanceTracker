@@ -13,7 +13,9 @@ internal static class TransferHandlerRegistration
 	internal static IServiceCollection RegisterTransferHandlers(this IServiceCollection services)
 	{
 		services.AddScoped<TransferLoader>();
-		services.AddScoped<IEntityLoader<CreateTransferCommand, (Account, Account)>>(sp => sp.GetRequiredService<TransferLoader>());
+		services.AddScoped<IEntityLoader<CreateTransferCommand, (Account, Account), DomainException>>(
+			implementationFactory: sp => sp.GetRequiredService<TransferLoader>()
+		);
 
 		services.AddScoped<IAuthorizedHandler<CreateTransferCommand, (Account, Account), Guid, DomainException>, CreateTransferHandler>();
 

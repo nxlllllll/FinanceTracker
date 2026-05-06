@@ -11,6 +11,7 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Jobs.Outbox;
@@ -33,8 +34,12 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
         _accountRepository = new AccountRepository(
             eventStore: new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
                 context: Context,
-                eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly),
-                dateProvider: FakeDateProvider.Default
+                eventTypeResolver: new EventTypeResolver(
+                    assembly: typeof(IEvent).Assembly,
+                    logger: Substitute.For<ILogger<EventTypeResolver>>()
+                ),
+                dateProvider: FakeDateProvider.Default,
+                logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
             )
         );
         _currencyBuilder = new CurrencyBuilder(context: Context);
@@ -49,10 +54,14 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
         return new OutboxMessagesHandlingJob(
             databaseContext: Context,
             dispatcher: dispatcher ?? _dispatcher,
-            resolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly),
+            resolver: new EventTypeResolver(
+                assembly: typeof(IEvent).Assembly,
+                logger: Substitute.For<ILogger<EventTypeResolver>>()
+            ),
             unitOfWork: new EFUnitOfWork(context: Context),
             factories: Factories,
-            dateProvider: FakeDateProvider.Default
+            dateProvider: FakeDateProvider.Default,
+            logger: Substitute.For<ILogger<OutboxMessagesHandlingJob>>()
         );
     }
 
@@ -77,7 +86,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
             userId: userId,
             name: "Карта Сбер",
             type: accountType,
-            currency: currencyCode,
+            currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
             balance: 1000m
         );
         Core.Domains.Account.Account account = result.Value!;

@@ -1,7 +1,9 @@
 ﻿using FinanceTracker.Application.UseCases.Categories.Authorization;
 using FinanceTracker.Application.UseCases.Categories.Commands.ArchiveCategory;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -25,7 +27,7 @@ public sealed class CategoryLoaderTests
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
+		).Returns(returnThis: Task.FromResult<Category?>(result: null));
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.NewGuid(), CategoryId: Guid.NewGuid()),
@@ -36,7 +38,7 @@ public sealed class CategoryLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenCategoryBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
+		Category category = CategoryFactory.Create().Value!;
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -51,17 +53,18 @@ public sealed class CategoryLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnCategory()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
+		Category category = CategoryFactory.Create().Value!;
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		FinanceTracker.Core.Domains.Category.Category result = await _loader.LoadAsync(
+		Result<Category, NotFoundException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Id).IsEqualTo(expected: category.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: category.Id);
 	}
 }

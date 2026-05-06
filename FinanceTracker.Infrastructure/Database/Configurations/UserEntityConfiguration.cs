@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,7 +15,11 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 
 		builder.Property(propertyExpression: u => u.Email)
 			.HasColumnName(name: "email")
-			.HasMaxLength(maxLength: 255);
+			.HasMaxLength(maxLength: 255)
+			.HasConversion(
+				convertToProviderExpression: email => email.Value,
+				convertFromProviderExpression: email => new Email(value: email)
+			);
 
 		builder.Property(propertyExpression: u => u.PasswordHash)
 			.HasColumnName(name: "password_hash")
@@ -22,7 +27,11 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 
 		builder.Property(propertyExpression: u => u.BaseCurrencyCode)
 			.HasColumnName(name: "base_currency_code")
-			.HasMaxLength(maxLength: 3);
+			.HasMaxLength(maxLength: 3)
+			.HasConversion(
+				convertToProviderExpression: currency => currency.Value,
+				convertFromProviderExpression: currency => new Currency(value: currency)
+			);
 
 		builder.Property(propertyExpression: u => u.CreatedAt)
 			.HasColumnName(name: "created_at");
@@ -30,7 +39,8 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 		builder.HasIndex(indexExpression: u => u.Email).IsUnique();
 
 		builder.HasOne<CurrencyEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: u => u.BaseCurrencyCode)
-			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
+			.HasForeignKey(foreignKeyExpression: b => b.BaseCurrencyCode)
+			.OnDelete(deleteBehavior: DeleteBehavior.Restrict)
+			.HasPrincipalKey(keyExpression: c => c.Code);
 	}
 }

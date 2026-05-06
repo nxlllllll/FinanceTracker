@@ -3,15 +3,15 @@
 public interface ICurrencyRateReadRepository
 {
 	Task<decimal?> GetRateAsync(
-		string baseCurrencyCode,
-		string targetCurrencyCode,
+		ValueObjects.Currency baseCurrencyCode,
+		ValueObjects.Currency targetCurrencyCode,
 		DateOnly date,
 		CancellationToken ct = default
 	);
 
 	Task<decimal?> GetLatestRateAsync(
-		string baseCurrencyCode,
-		string targetCurrencyCode,
+		ValueObjects.Currency baseCurrencyCode,
+		ValueObjects.Currency targetCurrencyCode,
 		CancellationToken ct = default
 	);
 }

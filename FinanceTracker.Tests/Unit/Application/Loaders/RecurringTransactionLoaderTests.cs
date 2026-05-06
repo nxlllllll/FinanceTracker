@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.Activat
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -58,11 +59,12 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: recurringTransaction);
 
-		RecurringTransaction result = await _loader.LoadAsync(
+		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Id).IsEqualTo(expected: recurringTransaction.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: recurringTransaction.Id);
 	}
 }

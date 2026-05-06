@@ -15,9 +15,15 @@ internal static class CategoryHandlerRegistration
 	internal static IServiceCollection RegisterCategoryHandlers(this IServiceCollection services)
 	{
 		services.AddScoped<CategoryLoader>();
-		services.AddScoped<IEntityLoader<ArchiveCategoryCommand, Category>>(sp => sp.GetRequiredService<CategoryLoader>());
-		services.AddScoped<IEntityLoader<UnarchiveCategoryCommand, Category>>(sp => sp.GetRequiredService<CategoryLoader>());
-		services.AddScoped<IEntityLoader<RenameCategoryCommand, Category>>(sp => sp.GetRequiredService<CategoryLoader>());
+		services.AddScoped<IEntityLoader<ArchiveCategoryCommand, Category, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<CategoryLoader>()
+		);
+		services.AddScoped<IEntityLoader<UnarchiveCategoryCommand, Category, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<CategoryLoader>()
+		);
+		services.AddScoped<IEntityLoader<RenameCategoryCommand, Category, NotFoundException>>(
+			implementationFactory: sp => sp.GetRequiredService<CategoryLoader>()
+		);
 
 		services.AddScoped<IAuthorizedHandler<ArchiveCategoryCommand, Category, Guid, DomainException>, ArchiveCategoryHandler>();
 		services.AddScoped<IAuthorizedHandler<UnarchiveCategoryCommand, Category, Guid, DomainException>, UnarchiveCategoryHandler>();

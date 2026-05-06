@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,13 +14,20 @@ public sealed class CurrencyEntityConfiguration : IEntityTypeConfiguration<Curre
 		builder.HasKey(keyExpression: c => c.Code);
 		
 		builder.Property(propertyExpression: c => c.Code)
-			.HasColumnName(name: "code").HasMaxLength(maxLength: 3);
+			.HasColumnName(name: "code")
+			.HasMaxLength(maxLength: 3)
+			.HasConversion(
+				convertToProviderExpression: currency => currency.Value,
+				convertFromProviderExpression: currency => new Currency(value: currency)
+			);
 		
 		builder.Property(propertyExpression: c => c.Name)
-			.HasColumnName(name: "name").HasMaxLength(maxLength: 50);
+			.HasColumnName(name: "name")
+			.HasMaxLength(maxLength: 50);
 		
 		builder.Property(propertyExpression: c => c.Symbol)
-			.HasColumnName(name: "symbol").HasMaxLength(maxLength: 5);
+			.HasColumnName(name: "symbol")
+			.HasMaxLength(maxLength: 5);
 		
 		builder.Property(propertyExpression: c => c.IsActive)
 			.HasColumnName(name: "is_active");

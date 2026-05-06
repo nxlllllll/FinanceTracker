@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Exceptions;
+﻿using System.Reflection;
+using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Core.Results;
 
@@ -32,7 +33,7 @@ public readonly struct Result<TValue, TError> : IResult<Result<TValue, TError>, 
 
 	static Result<TValue, TError> IResult<Result<TValue, TError>, TError>.CreateFailure(TError error)
 		=> Failure(error: error);
-
+	
 	public TResult Match<TResult>(
 		Func<TValue, TResult> onSuccess,
 		Func<TError, TResult> onFailure

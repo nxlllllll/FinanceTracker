@@ -2,11 +2,14 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.Dispatching;
 
 public sealed class MediatRNotificationDispatcher(
-	IPublisher publisher
+	IPublisher publisher,
+	ILogger<MediatRNotificationDispatcher> logger
 ) : INotificationDispatcher
 {
 	public Task DispatchAsync(IAppNotification notification, CancellationToken ct = default)
@@ -14,6 +17,7 @@ public sealed class MediatRNotificationDispatcher(
 		if (notification.Data is not IMediatRConvertible convertible)
 			throw new UnknownAggregateTypeException(message: "Notification data of type is not MediatR convertible.", aggregateType: notification.Data.GetType().Name);
 		
+		logger.ZLogInformation(message: $"Notification with {notification.Data.GetType().Name} has been published.");
 		return publisher.Publish(notification: convertible.ToMediatRNotification(), cancellationToken: ct);
 	}
 }

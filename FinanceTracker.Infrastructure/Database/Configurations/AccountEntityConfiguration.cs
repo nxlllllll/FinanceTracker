@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -30,7 +31,11 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.Property(propertyExpression: a => a.Currency)
 			.HasColumnName(name: "currency_code")
-			.HasMaxLength(maxLength: 3);
+			.HasMaxLength(maxLength: 3)
+			.HasConversion(
+				convertToProviderExpression: currency => currency.Value,
+				convertFromProviderExpression: currency => new Currency(value: currency)
+			);
 
 		builder.Property(propertyExpression: a => a.IsArchived)
 			.HasColumnName(name: "is_archived");
@@ -46,7 +51,8 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
 		builder.HasOne<CurrencyEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: a => a.Currency)
-			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
+			.HasForeignKey(foreignKeyExpression: b => b.Currency)
+			.OnDelete(deleteBehavior: DeleteBehavior.Restrict)
+			.HasPrincipalKey(keyExpression: c => c.Code);
 	}
 }

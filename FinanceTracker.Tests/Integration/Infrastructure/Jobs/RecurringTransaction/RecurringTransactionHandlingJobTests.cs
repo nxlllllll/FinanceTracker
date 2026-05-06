@@ -7,6 +7,7 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Jobs.RecurringTransaction;
@@ -35,7 +36,8 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
             notificationDispatcher: _dispatcher,
             unitOfWork: new EFUnitOfWork(context: Context),
             dateProvider: new FinanceTracker.Infrastructure.Services.DateProvider(),
-            factory: new TransactionNotificationFactory()
+            factory: new TransactionNotificationFactory(),
+            logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()
         );
     }
 

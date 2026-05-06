@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransactions.Notifications;
 
@@ -10,7 +11,7 @@ public sealed class TransactionNotificationFactory : ITransactionNotificationFac
 		Guid userId,
 		Guid categoryId,
 		decimal amount,
-		string currency,
+		Currency currency,
 		DirectionType direction,
 		string? description,
 		DateTime occurredAt)

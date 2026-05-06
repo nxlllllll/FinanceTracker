@@ -7,6 +7,8 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
 
@@ -14,7 +16,8 @@ public sealed class ChangeTransactionCategoryHandler(
 	ITransactionWriteRepository transactionWriteRepository,
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IUnitOfWork unitOfWork,
-	IBudgetProgressWriteRepository budgetProgressWriteRepository
+	IBudgetProgressWriteRepository budgetProgressWriteRepository,
+	ILogger<ChangeTransactionCategoryHandler> logger
 ) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -58,7 +61,9 @@ public sealed class ChangeTransactionCategoryHandler(
 				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
-		}, ct: ct);
+		},
+		onError: async exception => logger.ZLogError(message: $"Failed to change category for transaction {transaction.Id}: {exception.Message}."),
+		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: transaction.Id);
 	}

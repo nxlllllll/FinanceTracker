@@ -22,7 +22,7 @@ public class AccountBuilder(FinanceTrackerContext context)
 			UserId = userId,
 			Name = "Тестовый счёт",
 			AccountType = Core.Domains.Account.AccountType.Checking,
-			Currency = currencyCode,
+			Currency = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			IsArchived = false,
 			CreatedAt = DateTime.UtcNow
 		});

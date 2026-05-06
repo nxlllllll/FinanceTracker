@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Dispatching;
@@ -17,7 +18,10 @@ public sealed class MediatRNotificationDispatcherTests
     public void Setup()
     {
         _publisher = Substitute.For<IPublisher>();
-        _dispatcher = new MediatRNotificationDispatcher(publisher: _publisher);
+        _dispatcher = new MediatRNotificationDispatcher(
+            publisher: _publisher, 
+            logger: Substitute.For<ILogger<MediatRNotificationDispatcher>>()
+        );
     }
 
     [Test]

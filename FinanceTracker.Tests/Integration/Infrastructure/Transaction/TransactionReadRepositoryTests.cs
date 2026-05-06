@@ -50,7 +50,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             UserId: userId,
             Name: "Карта Сбер",
             Type: accountType,
-            Currency: currencyCode,
+            Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow
         ));
@@ -84,7 +84,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: userId,
             categoryId: categoryId,
-            amount: new Money(amount: 1000m, currency: "RUB"),
+            amount: new Money(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
             direction: direction,
             exchangeRate: 1m,
             isExcluded: false,

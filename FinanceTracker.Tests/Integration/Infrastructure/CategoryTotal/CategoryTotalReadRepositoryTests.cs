@@ -8,6 +8,8 @@ using FinanceTracker.Infrastructure.Services;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.CategoryTotal;
 
@@ -25,7 +27,8 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     {
         _userReadRepository = new UserReadRepository(context: Context);
         _currencyConversionService = new CurrencyConversionService(
-            currencyRateReadRepository: new CurrencyRateReadRepository(context: Context)
+            currencyRateReadRepository: new CurrencyRateReadRepository(context: Context),
+            logger: Substitute.For<ILogger<CurrencyConversionService>>()
         );
         _readRepository = new CategoryTotalReadRepository(context: Context);
         _writeRepository = new CategoryTotalWriteRepository(
@@ -48,14 +51,14 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: occurredAt
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 500m,
             occurredAt: occurredAt
         );
@@ -95,7 +98,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: anotherUserId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 9999m,
             occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
@@ -120,14 +123,14 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId, 
             categoryId: categoryId1,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: occurredAt
         );
         await _writeRepository.AddAsync(
             userId: userId, 
             categoryId: categoryId2,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 2000m,
             occurredAt: occurredAt
         );
@@ -149,14 +152,14 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 2000m,
             occurredAt: new DateTime(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );

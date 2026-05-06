@@ -9,6 +9,8 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Transfers.Commands;
 
@@ -17,7 +19,8 @@ public sealed class CreateTransferHandler(
 	ITransferWriteRepository transferWriteRepository,
 	ICurrencyConversionService currencyConversionService,
 	IUnitOfWork unitOfWork,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<CreateTransferHandler> logger
 ) : IAuthorizedHandler<CreateTransferCommand, (Account, Account), Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -84,7 +87,9 @@ public sealed class CreateTransferHandler(
 			await transferWriteRepository.CreateAsync(transfer: transfer, ct: ct);
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 			await accountRepository.SaveAsync(account: toAccount, ct: ct);
-		}, ct: ct);
+		}, 
+		onError: async exception => logger.ZLogError(message: $"Failed to creating transfer between accounts - {fromAccount.Id} -> {toAccount.Id}: {exception.Message}."),
+		ct: ct);
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);
 	}

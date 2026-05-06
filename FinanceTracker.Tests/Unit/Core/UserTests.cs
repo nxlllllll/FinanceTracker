@@ -14,9 +14,9 @@ public sealed class UserTests
         User user = UserFactory.Create().Value!;
 
         await Assert.That(value: user.Id).IsNotDefault();
-        await Assert.That(value: user.Email).IsEqualTo(expected: "test@test.com");
+        await Assert.That(value: user.Email.Value).IsEqualTo(expected: "test@test.com");
         await Assert.That(value: user.PasswordHash).IsEqualTo(expected: "hash");
-        await Assert.That(value: user.BaseCurrency).IsEqualTo(expected: "RUB");
+        await Assert.That(value: user.BaseCurrency.Value).IsEqualTo(expected: "RUB");
         await Assert.That(value: user.CreatedAt).IsNotDefault();
     }
 
@@ -52,9 +52,9 @@ public sealed class UserTests
     {
         User user = UserFactory.Create().Value!;
 
-        user.ChangeEmail(newEmail: "new@test.com");
+        user.ChangeEmail(newEmail: Email.Create(value: "new@test.com").Value);
 
-        await Assert.That(value: user.Email).IsEqualTo(expected: "new@test.com");
+        await Assert.That(value: user.Email.Value).IsEqualTo(expected: "new@test.com");
     }
 
     [Test]
@@ -62,9 +62,9 @@ public sealed class UserTests
     {
         User user = UserFactory.Create().Value!;
 
-        user.ChangeEmail(newEmail: "test@test.com");
+        user.ChangeEmail(newEmail: Email.Create(value: "test@test.com").Value);
 
-        await Assert.That(value: user.Email).IsEqualTo(expected: "test@test.com");
+        await Assert.That(value: user.Email.Value).IsEqualTo(expected: "test@test.com");
     }
 
     [Test]
@@ -93,9 +93,9 @@ public sealed class UserTests
     {
         User user = UserFactory.Create().Value!;
 
-        user.ChangeBaseCurrency(newBaseCurrency: "USD");
+        user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "USD").Value);
 
-        await Assert.That(value: user.BaseCurrency).IsEqualTo(expected: "USD");
+        await Assert.That(value: user.BaseCurrency.Value).IsEqualTo(expected: "USD");
     }
 
     [Test]
@@ -103,9 +103,9 @@ public sealed class UserTests
     {
         User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
 
-        user.ChangeBaseCurrency(newBaseCurrency: "RUB");
+        user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "RUB").Value);
 
-        await Assert.That(value: user.BaseCurrency).IsEqualTo(expected: "RUB");
+        await Assert.That(value: user.BaseCurrency.Value).IsEqualTo(expected: "RUB");
     }
 
     [Test]

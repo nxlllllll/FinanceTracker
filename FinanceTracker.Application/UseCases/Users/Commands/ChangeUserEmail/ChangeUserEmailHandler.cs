@@ -31,7 +31,7 @@ public sealed class ChangeUserEmailHandler(
 		
 		await userWriteRepository.ChangeEmailAsync(
 			userId: command.UserId,
-			newEmail: command.NewEmail,
+			newEmail: newEmailResult.Value,
 			ct: ct
 		);
 		

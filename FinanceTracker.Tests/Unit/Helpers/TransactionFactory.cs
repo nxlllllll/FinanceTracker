@@ -23,7 +23,7 @@ public static class TransactionFactory
 			accountId: accountId ?? Guid.NewGuid(),
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
-			amount: new Money(amount: amount, currency: currency),
+			amount: new Money(amount: amount, currency: Currency.Create(value: currency).Value),
 			direction: direction,
 			exchangeRate: exchangeRate,
 			isRatePending: isRatePending,

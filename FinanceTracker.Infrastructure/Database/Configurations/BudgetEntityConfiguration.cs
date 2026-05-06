@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -28,7 +29,11 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 
 		builder.Property(propertyExpression: b => b.Currency)
 			.HasColumnName(name: "currency")
-			.HasMaxLength(maxLength: 3);
+			.HasMaxLength(maxLength: 3)
+			.HasConversion(
+				convertToProviderExpression: currency => currency.Value,
+				convertFromProviderExpression: currency => new Currency(value: currency)
+			);
 
 		builder.Property(propertyExpression: b => b.Amount)
 			.HasColumnName(name: "amount")
@@ -37,8 +42,7 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 		builder.Property(propertyExpression: b => b.CreatedAt)
 			.HasColumnName(name: "created_at");
 
-		builder.HasIndex(indexExpression: b => new { b.UserId, b.CategoryId,
-					DateFrom = b.From })
+		builder.HasIndex(indexExpression: b => new { b.UserId, b.CategoryId, DateFrom = b.From })
 			.IsUnique()
 			.HasDatabaseName(name: "uq_budgets_period");
 
@@ -52,6 +56,7 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.Currency)
-			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
+			.OnDelete(deleteBehavior: DeleteBehavior.Restrict)
+			.HasPrincipalKey(keyExpression: c => c.Code);
 	}
 }

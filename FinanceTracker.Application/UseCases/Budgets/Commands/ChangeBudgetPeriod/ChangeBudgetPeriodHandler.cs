@@ -5,13 +5,16 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Results;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetPeriod;
 
 public sealed class ChangeBudgetPeriodHandler(
 	IBudgetWriteRepository budgetWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
-	IUnitOfWork unitOfWork
+	IUnitOfWork unitOfWork,
+	ILogger<ChangeBudgetPeriodHandler> logger
 ) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -40,7 +43,9 @@ public sealed class ChangeBudgetPeriodHandler(
 				toDate: command.To,
 				ct: ct
 			);
-		}, ct: ct);
+		}, 
+		onError: async exception => logger.ZLogError(message: $"Failed to change period for budget {budget.Id} {command.From} to {command.To}: {exception.Message}."),
+		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: budget.Id);
 	}

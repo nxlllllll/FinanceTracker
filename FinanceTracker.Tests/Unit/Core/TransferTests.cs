@@ -47,9 +47,9 @@ public sealed class TransferTests
         );
 
         await Assert.That(value: transfer.AmountFrom.Amount).IsEqualTo(expected: 1000m);
-        await Assert.That(value: transfer.AmountFrom.Currency).IsEqualTo(expected: "RUB");
+        await Assert.That(value: transfer.AmountFrom.Currency.Value).IsEqualTo(expected: "RUB");
         await Assert.That(value: transfer.AmountTo.Amount).IsEqualTo(expected: 11m);
-        await Assert.That(value: transfer.AmountTo.Currency).IsEqualTo(expected: "USD");
+        await Assert.That(value: transfer.AmountTo.Currency.Value).IsEqualTo(expected: "USD");
         await Assert.That(value: transfer.ExchangeRate).IsEqualTo(expected: 0.011m);
     }
 

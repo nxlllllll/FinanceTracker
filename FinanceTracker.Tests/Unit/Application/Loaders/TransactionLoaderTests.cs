@@ -1,11 +1,13 @@
 ﻿using FinanceTracker.Application.UseCases.Transactions.Authorization;
 using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -74,12 +76,13 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		Transaction result = await _loader.LoadAsync(
+		Result<Transaction, DomainException> result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Id).IsEqualTo(expected: transaction.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: transaction.Id);
 	}
 	
 	[Test]
@@ -87,7 +90,7 @@ public sealed class TransactionLoaderTests
 	{
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
+		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(),
@@ -98,7 +101,7 @@ public sealed class TransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_CreateTransaction_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateAccountWithArchivation();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
@@ -112,7 +115,7 @@ public sealed class TransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_CreateTransaction_WhenOwner_ShouldReturnAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateAccountWithArchivation();
 		Category category = CategoryFactory.Create().Value!;
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(), 
@@ -123,11 +126,12 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		FinanceTracker.Core.Domains.Account.Account result = await _loader.LoadAsync(
+		Result<Account, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(userId: account.UserId, accountId: account.Id),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Id).IsEqualTo(expected: account.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: account.Id);
 	}
 }

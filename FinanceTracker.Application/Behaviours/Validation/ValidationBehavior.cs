@@ -2,11 +2,14 @@
 using FluentValidation;
 using FluentValidation.Results;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.Behaviours.Validation;
 
 public sealed class ValidationBehavior<TRequest, TResponse>(
-	IEnumerable<IValidator<TRequest>> validators
+	IEnumerable<IValidator<TRequest>> validators,
+	ILogger<ValidationBehavior<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : notnull
 	where TResponse : IResult<TResponse, FinanceTracker.Core.Exceptions.ValidationException>
@@ -16,6 +19,7 @@ public sealed class ValidationBehavior<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
+		logger.ZLogInformation(message: $"Start validation for {request.GetType().Name}.");
 		if (!validators.Any())
 			return await next(t: cancellationToken);
  
@@ -30,10 +34,12 @@ public sealed class ValidationBehavior<TRequest, TResponse>(
 			.Where(predicate: error => error is not null)
 			.Select(selector: error => error.ErrorMessage)
 			.ToList();
- 
-		if (errors.Count != 0)
-			return TResponse.CreateFailure(error: new FinanceTracker.Core.Exceptions.ValidationException(errors: errors));
- 
-		return await next(t: cancellationToken);
+
+		if (errors.Count == 0)
+			return await next(t: cancellationToken);
+		
+		logger.ZLogError(message: $"{request.GetType().Name} entity have errors: {errors.Count}");
+		return TResponse.CreateFailure(error: new FinanceTracker.Core.Exceptions.ValidationException(errors: errors));
+
 	}
 }

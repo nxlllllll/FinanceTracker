@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 
@@ -8,8 +9,7 @@ public class UserBuilder(FinanceTrackerContext context )
 {
 	private readonly CurrencyBuilder _currencyBuilder = new CurrencyBuilder(context: context);
 	
-	public async Task<Guid> CreateAsync(
-		string currencyCode = "RUB")
+	public async Task<Guid> CreateAsync(string currencyCode = "RUB")
 	{
 		await _currencyBuilder.CreateAsync(code: currencyCode);
 
@@ -17,9 +17,9 @@ public class UserBuilder(FinanceTrackerContext context )
 		await context.Users.AddAsync(new UserEntity()
 		{
 			Id = userId,
-			Email = $"{userId}@test.com",
+			Email = Email.Create(value: $"{userId}@test.com").Value,
 			PasswordHash = "hash",
-			BaseCurrencyCode = currencyCode,
+			BaseCurrencyCode = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			CreatedAt = DateTime.UtcNow
 		});
 		await context.SaveChangesAsync();

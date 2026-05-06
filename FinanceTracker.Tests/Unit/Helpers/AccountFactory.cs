@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -19,7 +20,7 @@ public static class AccountFactory
 			userId: userId ?? Guid.NewGuid(),
 			name: name,
 			type: type,
-			currency: currency,
+			currency: Currency.Create(value: currency).Value,
 			balance: balance
 		);
 		

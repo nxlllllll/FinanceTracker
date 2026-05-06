@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -29,7 +30,11 @@ public sealed class RecurringTransactionEntityConfiguration
 
         builder.Property(propertyExpression: r => r.Currency)
             .HasColumnName(name: "currency_code")
-            .HasMaxLength(maxLength: 3);
+            .HasMaxLength(maxLength: 3)
+            .HasConversion(
+                convertToProviderExpression: currency => currency.Value,
+                convertFromProviderExpression: currency => new Currency(value: currency)
+            );
 
         builder.Property(propertyExpression: r => r.Direction)
             .HasColumnName(name: "direction_type")
@@ -74,7 +79,8 @@ public sealed class RecurringTransactionEntityConfiguration
             .OnDelete(deleteBehavior: DeleteBehavior.Restrict);
 
         builder.HasOne<CurrencyEntity>().WithMany()
-            .HasForeignKey(foreignKeyExpression: r => r.Currency)
-            .OnDelete(deleteBehavior: DeleteBehavior.Restrict);
+            .HasForeignKey(foreignKeyExpression: b => b.Currency)
+            .OnDelete(deleteBehavior: DeleteBehavior.Restrict)
+			.HasPrincipalKey(keyExpression: c => c.Code);
     }
 }

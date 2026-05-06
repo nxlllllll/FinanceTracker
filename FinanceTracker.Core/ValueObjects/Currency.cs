@@ -31,9 +31,6 @@ public readonly record struct Currency
 	public static implicit operator string(Currency code)
 		=> code.Value;
  
-	public static implicit operator Currency(string value)
-		=> new Currency(value: value);
- 
 	public override string ToString()
 		=> Value;
 }

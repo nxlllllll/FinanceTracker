@@ -7,7 +7,9 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -35,7 +37,8 @@ public sealed class ExcludeTransactionHandlerTests
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
-			unitOfWork: _unitOfWork
+			unitOfWork: _unitOfWork,
+			logger: Substitute.For<ILogger<ExcludeTransactionHandler>>()
 		);
 	}
 
@@ -104,7 +107,7 @@ public sealed class ExcludeTransactionHandlerTests
 			userId: Arg.Any<Guid>(), 
 			categoryId: Arg.Any<Guid>(),
 			amount: Arg.Any<decimal>(), 
-			currency: Arg.Any<string>(),
+			currency: Arg.Any<Currency>(),
 			occurredAt: Arg.Any<DateTime>(), 
 			ct: Arg.Any<CancellationToken>()
 		);

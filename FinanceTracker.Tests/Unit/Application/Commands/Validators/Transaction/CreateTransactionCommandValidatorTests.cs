@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
 
@@ -40,7 +41,7 @@ public sealed class CreateTransactionCommandValidatorTests
             UserId: Guid.NewGuid(),
             CategoryId: Guid.NewGuid(),
             Amount: 1000m,
-            Currency: "RUB",
+            Currency: Currency.Create(value: "RUB").Value,
             Direction: DirectionType.Debit,
             Description: null,
             OccurredAt: FakeDateProvider.Default.UtcNow.AddDays(value: 1)

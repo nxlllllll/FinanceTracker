@@ -17,11 +17,21 @@ internal static class RecurringTransactionHandlerRegistration
     internal static IServiceCollection RegisterRecurringTransactionHandlers(this IServiceCollection services)
     {
         services.AddScoped<RecurringTransactionLoader>();
-        services.AddScoped<IEntityLoader<ActivateRecurringTransactionCommand, RecurringTransaction>>(sp => sp.GetRequiredService<RecurringTransactionLoader>());
-        services.AddScoped<IEntityLoader<DeactivateRecurringTransactionCommand, RecurringTransaction>>(sp => sp.GetRequiredService<RecurringTransactionLoader>());
-        services.AddScoped<IEntityLoader<ChangeRecurringTransactionAmountCommand, RecurringTransaction>>(sp => sp.GetRequiredService<RecurringTransactionLoader>());
-        services.AddScoped<IEntityLoader<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction>>(sp => sp.GetRequiredService<RecurringTransactionLoader>());
-        services.AddScoped<IEntityLoader<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction>>(sp => sp.GetRequiredService<RecurringTransactionLoader>());
+        services.AddScoped<IEntityLoader<ActivateRecurringTransactionCommand, RecurringTransaction, NotFoundException>>(
+            implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<DeactivateRecurringTransactionCommand, RecurringTransaction, NotFoundException>>(
+            implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<ChangeRecurringTransactionAmountCommand, RecurringTransaction, NotFoundException>>(
+            implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<ChangeRecurringTransactionCurrencyCommand, RecurringTransaction, NotFoundException>>(
+            implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
+        );
+        services.AddScoped<IEntityLoader<ChangeRecurringTransactionDayOfMonthCommand, RecurringTransaction, NotFoundException>>(
+            implementationFactory: sp => sp.GetRequiredService<RecurringTransactionLoader>()
+        );
 
         services.AddScoped<IAuthorizedHandler<ActivateRecurringTransactionCommand, RecurringTransaction, Guid, DomainException>, ActivateRecurringTransactionHandler>();
         services.AddScoped<IAuthorizedHandler<DeactivateRecurringTransactionCommand, RecurringTransaction, Guid, DomainException>, DeactivateRecurringTransactionHandler>();

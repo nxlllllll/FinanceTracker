@@ -4,14 +4,15 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Services;
@@ -46,7 +47,8 @@ public sealed class TransactionCreationServiceTests
             unitOfWork: _unitOfWork,
             categoryTotalWriteRepository: _categoryTotalWriteRepository,
             budgetProgressWriteRepository: _budgetProgressWriteRepository,
-            dateProvider: FakeDateProvider.Default
+            dateProvider: FakeDateProvider.Default,
+            logger: Substitute.For<ILogger<TransactionCreationService>>()
         );
     }
 
@@ -231,7 +233,7 @@ public sealed class TransactionCreationServiceTests
             userId: Arg.Any<Guid>(),
             categoryId: Arg.Any<Guid>(),
             amount: Arg.Any<decimal>(),
-            currency: Arg.Any<string>(),
+            currency: Arg.Any<Currency>(),
             occurredAt: Arg.Any<DateTime>(),
             ct: Arg.Any<CancellationToken>()
         );

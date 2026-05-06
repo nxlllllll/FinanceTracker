@@ -1,7 +1,9 @@
 ﻿using FinanceTracker.Application.UseCases.Accounts.Authorization;
 using FinanceTracker.Application.UseCases.Accounts.Commands.ArchiveAccount;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -25,7 +27,7 @@ public sealed class AccountLoaderTests
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
+		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
 		await Assert.That(action: async () => await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: Guid.NewGuid(), AccountId: Guid.NewGuid()),
@@ -36,7 +38,7 @@ public sealed class AccountLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateAccountWithArchivation();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -51,17 +53,18 @@ public sealed class AccountLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateAccountWithArchivation();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		FinanceTracker.Core.Domains.Account.Account result = await _loader.LoadAsync(
+		Result<Account, NotFoundException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
 			ct: CancellationToken.None
 		);
-
-		await Assert.That(value: result.Id).IsEqualTo(expected: account.Id);
+		
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: account.Id);
 	}
 }

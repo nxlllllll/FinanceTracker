@@ -32,9 +32,6 @@ public readonly record struct Email
 	public static implicit operator string(Email email)
 		=> email.Value;
  
-	public static implicit operator Email(string value)
-		=> new Email(value);
- 
 	public override string ToString()
 		=> Value;
 }

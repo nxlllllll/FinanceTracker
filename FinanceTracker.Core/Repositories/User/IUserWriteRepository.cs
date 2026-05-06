@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Core.Repositories.User;
+﻿using FinanceTracker.Core.ValueObjects;
+
+namespace FinanceTracker.Core.Repositories.User;
 
 public interface IUserWriteRepository
 {
@@ -9,7 +11,7 @@ public interface IUserWriteRepository
 	
 	Task ChangeEmailAsync(
 		Guid userId,
-		string newEmail,
+		Email newEmail,
 		CancellationToken ct = default
 	);
 	
@@ -21,7 +23,7 @@ public interface IUserWriteRepository
 	
 	Task ChangeBaseCurrencyAsync(
 		Guid userId,
-		string newBaseCurrencyCode,
+		ValueObjects.Currency newBaseCurrencyCode,
 		CancellationToken ct = default
 	);
 }

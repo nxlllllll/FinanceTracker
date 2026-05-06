@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Entities;
+﻿using FinanceTracker.Core.ValueObjects;
+
+namespace FinanceTracker.Infrastructure.Database.Entities;
 
 public sealed class TransferEntity
 {
@@ -7,9 +9,9 @@ public sealed class TransferEntity
 	public Guid FromAccountId { get; set; }
 	public Guid ToAccountId { get; set; }
 	public decimal AmountFrom { get; set; }
-	public string CurrencyFrom { get; set; } = null!;
+	public Currency CurrencyFrom { get; set; }
 	public decimal AmountTo { get; set; }
-	public string CurrencyTo { get; set; } = null!;
+	public Currency CurrencyTo { get; set; }
 	public decimal ExchangeRate { get; set; }
 	public string? Description { get; set; }
 	public DateTime OccurredAt { get; set; }

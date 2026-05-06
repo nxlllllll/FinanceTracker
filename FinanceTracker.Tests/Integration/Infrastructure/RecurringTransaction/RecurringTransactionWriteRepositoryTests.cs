@@ -39,7 +39,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: "RUB"),
+			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: "Monthly rent"
@@ -71,7 +71,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: "RUB"),
+			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -103,7 +103,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: "RUB"),
+			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -113,12 +113,15 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
 
-		await _writeRepository.ChangeCurrencyAsync(recurringTransactionId: recurringTransaction.Id, currency: "USD");
+		await _writeRepository.ChangeCurrencyAsync(
+			recurringTransactionId: recurringTransaction.Id, 
+			currency: Core.ValueObjects.Currency.Create(value: "USD").Value
+		);
 
 		RecurringTransactionEntity entity = await Context.RecurringTransactions.AsNoTracking()
 			.FirstAsync(predicate: r => r.Id == recurringTransaction.Id);
 
-		await Assert.That(value: entity.Currency).IsEqualTo(expected: "USD");
+		await Assert.That(value: entity.Currency.Value).IsEqualTo(expected: "USD");
 	}
 
 	[Test]
@@ -133,7 +136,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: "RUB"),
+			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -162,7 +165,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: "RUB"),
+			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -191,7 +194,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: "RUB"),
+			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -221,7 +224,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: "RUB"),
+			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -251,7 +254,7 @@ public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWit
 		userId: userId,
 		accountId: accountId,
 		categoryId: categoryId,
-		amount: new Money(amount: 5000m, currency: "RUB"),
+		amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 		direction: DirectionType.Debit,
 		dayOfMonth: 15,
 		description: null
@@ -263,7 +266,7 @@ public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWit
 		userId: userId,
 		accountId: accountId,
 		categoryId: categoryId,
-		amount: new Money(amount: 3000m, currency: "RUB"),
+		amount: new Money(amount: 3000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
 		direction: DirectionType.Debit,
 		dayOfMonth: 20,
 		description: null

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -19,7 +20,7 @@ public static class CreateTransactionCommandFactory
 			UserId: userId ?? Guid.NewGuid(),
 			CategoryId: categoryId ?? Guid.NewGuid(),
 			Amount: amount,
-			Currency: currency,
+			Currency: Currency.Create(value: currency).Value,
 			Direction: direction,
 			Description: description,
 			OccurredAt: FakeDateProvider.Default.UtcNow

@@ -38,5 +38,5 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<RecurringTransactionEntity> RecurringTransactions => Set<RecurringTransactionEntity>();
 	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
-		=> modelBuilder.ApplyConfigurationsFromAssembly(typeof(FinanceTrackerContext).Assembly);
+		=> modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);
 }

@@ -29,7 +29,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 
     private async Task<AccountCreated> CreateAccountAsync()
     {
-        string currencyCode = await _currencyBuilder.CreateAsync();
+        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 

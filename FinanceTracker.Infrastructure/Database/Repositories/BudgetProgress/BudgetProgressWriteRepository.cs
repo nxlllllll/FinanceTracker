@@ -19,7 +19,7 @@ public sealed class BudgetProgressWriteRepository(
     private async Task ChangeSpentAsync(
         Guid userId,
         Guid categoryId,
-        string currencyCode,
+        Core.ValueObjects.Currency currencyCode,
         decimal amount,
         DateTime occurredAt,
         int delta,
@@ -61,7 +61,7 @@ public sealed class BudgetProgressWriteRepository(
     public Task AddAsync(
         Guid userId,
         Guid categoryId,
-        string currencyCode,
+        Core.ValueObjects.Currency currencyCode,
         decimal amount,
         DateTime occurredAt,
         CancellationToken ct = default)
@@ -80,7 +80,7 @@ public sealed class BudgetProgressWriteRepository(
     public Task SubtractAsync(
         Guid userId,
         Guid categoryId,
-        string currencyCode,
+        Core.ValueObjects.Currency currencyCode,
         decimal amount,
         DateTime occurredAt,
         CancellationToken ct = default)
@@ -100,7 +100,7 @@ public sealed class BudgetProgressWriteRepository(
         Guid userId,
         Guid oldCategoryId,
         Guid newCategoryId,
-        string currencyCode,
+        Core.ValueObjects.Currency currencyCode,
         decimal amount,
         DateTime occurredAt,
         CancellationToken ct = default)

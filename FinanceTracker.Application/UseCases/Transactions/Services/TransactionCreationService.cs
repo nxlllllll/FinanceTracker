@@ -11,6 +11,8 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Transactions.Services;
 
@@ -21,7 +23,8 @@ public sealed class TransactionCreationService(
     IUnitOfWork unitOfWork,
     ICategoryTotalWriteRepository categoryTotalWriteRepository,
     IBudgetProgressWriteRepository budgetProgressWriteRepository,
-    IDateProvider dateProvider
+    IDateProvider dateProvider,
+    ILogger<TransactionCreationService> logger
 ) : ITransactionCreationService
 {
     private Result<Unit, DomainException> ApplyDirection(
@@ -122,7 +125,9 @@ public sealed class TransactionCreationService(
                 occurredAt: command.OccurredAt,
                 ct: ct
             );
-        }, ct: ct);
+        }, 
+		onError: async exception => logger.ZLogError(message: $"Failed to creating transaction for account {account.Id}: {exception.Message}."),
+        ct: ct);
 
         return Result<Guid, DomainException>.Success(value: transaction.Id);
     }

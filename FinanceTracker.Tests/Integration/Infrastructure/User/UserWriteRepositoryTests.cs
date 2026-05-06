@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -26,9 +27,9 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
         await _currencyBuilder.CreateAsync(code: currencyCode);
         Result<Core.Domains.User.User, DomainException> result = Core.Domains.User.User.Register(
             createdAt: FakeDateProvider.Default.UtcNow,
-            email: $"{Guid.NewGuid()}@test.com",
+            email: Email.Create(value: $"{Guid.NewGuid()}@test.com").Value,
             passwordHash: "hash",
-            baseCurrency: currencyCode
+            baseCurrency: Core.ValueObjects.Currency.Create(value: currencyCode).Value
         );
         Core.Domains.User.User user = result.Value!;
         
@@ -46,7 +47,7 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: user.Id);
         await Assert.That(value: loaded.Email).IsEqualTo(expected: user.Email);
-        await Assert.That(value: loaded.BaseCurrency).IsEqualTo(expected: "RUB");
+        await Assert.That(value: loaded.BaseCurrency.Value).IsEqualTo(expected: "RUB");
     }
 
     [Test]
@@ -54,12 +55,15 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.User.User user = await CreateAndSaveUserAsync();
 
-        await _writeRepository.ChangeEmailAsync(userId: user.Id, newEmail: "new@test.com");
+        await _writeRepository.ChangeEmailAsync(
+            userId: user.Id,
+            newEmail: Email.Create(value: "new@test.com").Value
+        );
 
         Core.Domains.User.User? loaded = await _readRepository.GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
-        await Assert.That(value: loaded!.Email).IsEqualTo(expected: "new@test.com");
+        await Assert.That(value: loaded!.Email.Value).IsEqualTo(expected: "new@test.com");
     }
 
     [Test]
@@ -81,11 +85,14 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
         Core.Domains.User.User user = await CreateAndSaveUserAsync();
         await _currencyBuilder.CreateAsync(code: "USD");
 
-        await _writeRepository.ChangeBaseCurrencyAsync(userId: user.Id, newBaseCurrencyCode: "USD");
+        await _writeRepository.ChangeBaseCurrencyAsync(
+            userId: user.Id,
+            newBaseCurrencyCode: Core.ValueObjects.Currency.Create(value: "USD").Value
+        );
 
         Core.Domains.User.User? loaded = await _readRepository.GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
-        await Assert.That(value: loaded!.BaseCurrency).IsEqualTo(expected: "USD");
+        await Assert.That(value: loaded!.BaseCurrency.Value).IsEqualTo(expected: "USD");
     }
 }

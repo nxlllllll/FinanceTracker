@@ -9,6 +9,8 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.CategoryTotal;
 
@@ -26,7 +28,8 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     {
         _userReadRepository = new UserReadRepository(context: Context);
         _currencyConversionService = new CurrencyConversionService(
-            currencyRateReadRepository: new CurrencyRateReadRepository(context: Context)
+            currencyRateReadRepository: new CurrencyRateReadRepository(context: Context),
+            logger: Substitute.For<ILogger<CurrencyConversionService>>()
         );
         
         _writeRepository = new CategoryTotalWriteRepository(
@@ -49,7 +52,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
             userId: userId,
             categoryId: categoryId,
             amount: 1000m,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
 
@@ -74,14 +77,14 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: occurredAt
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 500m,
             occurredAt: occurredAt
         );
@@ -104,14 +107,14 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: occurredAt
         );
         await _writeRepository.SubtractAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 400m,
             occurredAt: occurredAt
         );
@@ -133,14 +136,14 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 2000m,
             occurredAt: new DateTime(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
         );
@@ -163,7 +166,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: oldCategoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: occurredAt
         );
@@ -171,7 +174,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
             userId: userId,
             oldCategoryId: oldCategoryId,
             newCategoryId: newCategoryId,
-            currency: "RUB",
+            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
             occurredAt: occurredAt
         );

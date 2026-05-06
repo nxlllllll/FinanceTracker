@@ -3,7 +3,9 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.DateProvider;
+using Microsoft.Extensions.Logging;
 using Quartz;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 
@@ -14,7 +16,8 @@ public sealed class RecurringTransactionHandlingJob(
 	INotificationDispatcher notificationDispatcher,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
-	ITransactionNotificationFactory factory
+	ITransactionNotificationFactory factory,
+	ILogger<RecurringTransactionHandlingJob> logger
 ) : IJob
 {
 	internal async Task ProcessTransactionsAsync(CancellationToken ct)
@@ -42,10 +45,8 @@ public sealed class RecurringTransactionHandlingJob(
 
 		foreach (Core.Domains.RecurringTransaction.RecurringTransaction dueTransaction in dueTransactions)
 		{
-			try
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
-				await unitOfWork.BeginTransactionAsync(ct: ct);
-
 				IAppNotification appNotification = factory.Build(
 					accountId: dueTransaction.AccountId,
 					userId: dueTransaction.UserId,
@@ -65,12 +66,9 @@ public sealed class RecurringTransactionHandlingJob(
 					ct: ct
 				);
 				
-				await unitOfWork.CommitAsync(ct: ct);
-			}
-			catch
-			{
-				await unitOfWork.RollbackAsync(ct: ct);
-			}
+			}, 
+			onError: async exception => logger.ZLogError(message: $"Failed to process recurring transaction {dueTransaction.Id}: {exception.Message}"),
+			ct: ct);
 		}
 	}
 	

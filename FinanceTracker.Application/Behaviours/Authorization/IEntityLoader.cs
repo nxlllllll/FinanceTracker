@@ -1,8 +1,13 @@
-﻿namespace FinanceTracker.Application.Behaviours.Authorization;
+﻿using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Results;
 
-public interface IEntityLoader<in TRequest, TEntity> where TRequest : IAuthorizable
+namespace FinanceTracker.Application.Behaviours.Authorization;
+
+public interface IEntityLoader<in TRequest, TEntity, TError> 
+	where TRequest : IAuthorizable
+	where TError : AppException
 {
-	Task<TEntity> LoadAsync(
+	Task<Result<TEntity, TError>> LoadAsync(
 		TRequest request,
 		CancellationToken ct
 	);
