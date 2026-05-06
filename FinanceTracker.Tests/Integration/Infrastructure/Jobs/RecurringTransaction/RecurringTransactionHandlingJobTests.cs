@@ -34,7 +34,10 @@ public sealed class RecurringTransactionHandlingJobTests : DatabaseFixture
             recurringTransactionReadRepository: new RecurringTransactionReadRepository(context: Context),
             recurringTransactionWriteRepository: new RecurringTransactionWriteRepository(context: Context, dateProvider: FakeDateProvider.Default),
             notificationDispatcher: _dispatcher,
-            unitOfWork: new EFUnitOfWork(context: Context),
+            unitOfWork: new EFUnitOfWork(
+                context: Context,
+                logger: Substitute.For<ILogger<EFUnitOfWork>>()
+            ),
             dateProvider: new FinanceTracker.Infrastructure.Services.DateProvider(),
             factory: new TransactionNotificationFactory(),
             logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()

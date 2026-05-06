@@ -1,11 +1,14 @@
 ﻿using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.UnitOfWork;
 
 public sealed class EFUnitOfWork(
-	FinanceTrackerContext context
+	FinanceTrackerContext context,
+	ILogger<EFUnitOfWork> logger
 ) : IUnitOfWork
 {
 	private IDbContextTransaction? _transaction;
@@ -27,7 +30,10 @@ public sealed class EFUnitOfWork(
 	public async Task CommitAsync(CancellationToken ct = default)
 	{
 		if (_transaction is null)
+		{
+			logger.ZLogError(message: $"Commit called without an active transaction.");
 			throw new InvalidOperationException(message: "No active transaction to commit.");
+		}
  
 		if (_savepoints.Count > 0)
 		{

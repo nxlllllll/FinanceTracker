@@ -17,7 +17,7 @@ public sealed class MediatRNotificationDispatcher(
 		if (notification.Data is not IMediatRConvertible convertible)
 			throw new UnknownAggregateTypeException(message: "Notification data of type is not MediatR convertible.", aggregateType: notification.Data.GetType().Name);
 		
-		logger.ZLogInformation(message: $"Notification with {notification.Data.GetType().Name} has been published.");
+		logger.ZLogDebug(message: $"Dispatching notification {notification.Data.GetType().Name}.");
 		return publisher.Publish(notification: convertible.ToMediatRNotification(), cancellationToken: ct);
 	}
 }

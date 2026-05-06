@@ -18,7 +18,6 @@ public sealed class QueryValidationBehavior<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
-		logger.ZLogInformation(message: $"Start validation for {request.GetType().Name}.");
 		if (!validators.Any())
 			return await next(t: cancellationToken);
 
@@ -36,7 +35,7 @@ public sealed class QueryValidationBehavior<TRequest, TResponse>(
 		if (errors.Count == 0)
 			return await next(t: cancellationToken);
 		
-		logger.ZLogError(message: $"{request.GetType().Name} entity have errors: {errors.Count}");
+		logger.ZLogWarning(message: $"{request.GetType().Name} entity have errors: {errors.Count}");
 		throw new ValidationException(errors: errors);
 	}
 }

@@ -22,7 +22,7 @@ public sealed class EventTypeResolver : IEventTypeResolver
 
 		if (missingAttribute.Count > 0)
 		{
-			logger.ZLogInformation(message: $"{String.Join(separator: ", ", missingAttribute)} are missing [EventType] attribute.");
+			logger.ZLogError(message: $"Configuration error: {String.Join(separator: ", ", missingAttribute)} are missing [EventType] attribute.");
 			throw new UnknownEventTypeException(
 				message: "The following IEvent classes are missing [EventType] attribute.", 
 				eventTypes: missingAttribute

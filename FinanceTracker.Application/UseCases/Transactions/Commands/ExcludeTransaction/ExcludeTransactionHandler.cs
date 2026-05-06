@@ -54,7 +54,7 @@ public sealed class ExcludeTransactionHandler(
 				ct: ct
 			);
 		},
-		onError: async exception => logger.ZLogError(message: $"Failed to excluding transaction {transaction.Id}: {exception.Message}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to exclude transaction {transaction.Id}."),
 		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: transaction.Id);

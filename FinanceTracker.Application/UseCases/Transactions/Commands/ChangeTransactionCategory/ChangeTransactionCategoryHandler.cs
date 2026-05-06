@@ -62,7 +62,7 @@ public sealed class ChangeTransactionCategoryHandler(
 				ct: ct
 			);
 		},
-		onError: async exception => logger.ZLogError(message: $"Failed to change category for transaction {transaction.Id}: {exception.Message}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change category for transaction {transaction.Id}."),
 		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: transaction.Id);

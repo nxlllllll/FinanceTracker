@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetPeriod;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Unit.Helpers;

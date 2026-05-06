@@ -88,7 +88,7 @@ public sealed class CreateTransferHandler(
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 			await accountRepository.SaveAsync(account: toAccount, ct: ct);
 		}, 
-		onError: async exception => logger.ZLogError(message: $"Failed to creating transfer between accounts - {fromAccount.Id} -> {toAccount.Id}: {exception.Message}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create transfer {fromAccount.Id} → {toAccount.Id}."),
 		ct: ct);
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);

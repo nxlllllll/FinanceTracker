@@ -5,13 +5,16 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
 
 public sealed class RegisterUserHandler(
 	IUserReadRepository userReadRepository,
 	IUserWriteRepository userWriteRepository,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<RegisterUserHandler> logger
 ) : IRequestHandler<RegisterUserCommand, Result<Guid, DomainException>>
 {
 	public async Task<Result<Guid, DomainException>> Handle(
@@ -42,6 +45,7 @@ public sealed class RegisterUserHandler(
 		User user = userResult.Value!;
 
 		await userWriteRepository.CreateAsync(user: user, ct: ct);
+		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
 		return Result<Guid, DomainException>.Success(value: user.Id);
 	}
 }

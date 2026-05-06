@@ -19,7 +19,7 @@ public sealed class ChangeUserEmailHandler(
 	{
 		User? existing = await userReadRepository.GetByEmailAsync(email: command.NewEmail, ct: ct);
 		if (existing is not null)
-			return Result<Guid, DomainException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.NewEmail)!);
+			return Result<Guid, DomainException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.NewEmail));
 
 		Result<Email, DomainException> newEmailResult = Email.Create(value: command.NewEmail);
 		if (newEmailResult.IsFailure)

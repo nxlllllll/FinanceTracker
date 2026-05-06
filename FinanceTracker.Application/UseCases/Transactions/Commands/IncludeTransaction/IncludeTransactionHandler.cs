@@ -54,7 +54,7 @@ public sealed class IncludeTransactionHandler(
 				ct: ct
 			);
 		}, 
-		onError: async exception => logger.ZLogError(message: $"Failed to including transaction {transaction.Id}: {exception.Message}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {transaction.Id}."),
 		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: transaction.Id);

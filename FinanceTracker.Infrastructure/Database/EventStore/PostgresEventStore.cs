@@ -138,7 +138,7 @@ public sealed class PostgresEventStore(
 		}
 		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
 		{
-			logger.ZLogError(message: $"{aggregateType} {aggregateId} was modified by another request.");
+			logger.ZLogWarning(exception: exception, message: $"Concurrency conflict: {aggregateType} {aggregateId} was modified by another request.");
 			throw new ConcurrencyConflictException(message: "Conflict: aggregate was modified by another request.", id: aggregateId);
 		}
 	}

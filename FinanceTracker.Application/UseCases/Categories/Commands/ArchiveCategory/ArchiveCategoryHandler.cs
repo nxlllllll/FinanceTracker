@@ -31,7 +31,7 @@ public sealed class ArchiveCategoryHandler(
 			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 		}, 
-		onError: async exception => logger.ZLogError(message: $"Failed to archiving for category {category.Id}: {exception.Message}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {category.Id}."),
 		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: category.Id);

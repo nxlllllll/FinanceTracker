@@ -44,7 +44,7 @@ public sealed class ChangeBudgetPeriodHandler(
 				ct: ct
 			);
 		}, 
-		onError: async exception => logger.ZLogError(message: $"Failed to change period for budget {budget.Id} {command.From} to {command.To}: {exception.Message}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {budget.Id} ({command.From} → {command.To})."),
 		ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: budget.Id);

@@ -31,7 +31,7 @@ public sealed class CurrencyConversionService(
 		if (exactRate is not null)
 			return new ConversionResult(Rate: exactRate.Value, IsPending: false);
 
-		logger.ZLogInformation(message: $"The exact exchange rate as of {date:dd.MM.yyyy} for '{fromCurrency}' -> '{toCurrency}' is not set.");
+		logger.ZLogWarning(message: $"No exact rate for {fromCurrency} → {toCurrency} on {date:dd.MM.yyyy}, using latest available.");
 		decimal? latestRate = await currencyRateReadRepository.GetLatestRateAsync(
 			baseCurrencyCode: fromCurrency,
 			targetCurrencyCode: toCurrency,
@@ -41,7 +41,7 @@ public sealed class CurrencyConversionService(
 		if (latestRate is not null)
 			return new ConversionResult(Rate: latestRate.Value, IsPending: true);
 
-		logger.ZLogInformation(message: $"The exchange rate for '{fromCurrency}' -> '{toCurrency}' is not set.");
+		logger.ZLogError(message: $"No exchange rate found for {fromCurrency} → {toCurrency}.");
 		throw new CurrencyRateNotFoundException(
 			message: $"The exchange rate for {fromCurrency} → {toCurrency} was not found.",
 			fromCurrency: fromCurrency,

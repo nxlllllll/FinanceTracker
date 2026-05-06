@@ -30,7 +30,7 @@ public sealed class AccountProjection(
 			_ => throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType())
 		};
 		await task;
-		logger.ZLogInformation(message: $"{@event.GetType().Name} has been handled.");
+		logger.ZLogDebug(message: $"Projected event {@event.GetType().Name}.");
 	}
 
 	private async Task HandleAsync(AccountCreated @event, CancellationToken ct)

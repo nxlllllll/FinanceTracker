@@ -1,7 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Categories.Commands.ArchiveCategory;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;

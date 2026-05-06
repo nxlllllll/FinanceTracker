@@ -58,7 +58,10 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
                 assembly: typeof(IEvent).Assembly,
                 logger: Substitute.For<ILogger<EventTypeResolver>>()
             ),
-            unitOfWork: new EFUnitOfWork(context: Context),
+            unitOfWork: new EFUnitOfWork(
+                context: Context,
+                logger: Substitute.For<ILogger<EFUnitOfWork>>()
+            ),
             factories: Factories,
             dateProvider: FakeDateProvider.Default,
             logger: Substitute.For<ILogger<OutboxMessagesHandlingJob>>()

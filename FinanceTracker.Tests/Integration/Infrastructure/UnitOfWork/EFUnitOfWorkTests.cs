@@ -2,6 +2,8 @@
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.UnitOfWork;
 
@@ -11,7 +13,12 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
     [Before(hookType: Test)]
     public void Setup()
-        => _unitOfWork = new EFUnitOfWork(context: Context);
+    {
+        _unitOfWork = new EFUnitOfWork(
+            context: Context,
+            logger: Substitute.For<ILogger<EFUnitOfWork>>()
+        );
+    }
 
     [After(hookType: Test)]
     public async Task CloseAsync()

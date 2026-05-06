@@ -22,7 +22,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 		if (entity.IsSuccess)
 			return await handler.HandleAsync(request: request, entity: entity.Value!, ct: ct);
 		
-		logger.ZLogError(message: $"{request.GetType().Name} was uploaded with errors: {entity.Error}");
+		logger.ZLogWarning(message: $"Authorization failed for {request.GetType().Name}: {entity.Error!.Message}");
 		return Result<TValue, TError>.Failure(error: entity.Error!);
 	}
 }

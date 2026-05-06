@@ -42,6 +42,9 @@ public sealed class RecurringTransactionHandlingJob(
 		if (dueTransactions.Count == 0)
 			return;
 
+		logger.ZLogInformation(message: $"Found {dueTransactions.Count} due recurring transaction(s) for {now:dd.MM.yyyy}.");
+
+		int processed = 0;
 		foreach (Core.Domains.RecurringTransaction.RecurringTransaction dueTransaction in dueTransactions)
 		{
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
@@ -64,9 +67,9 @@ public sealed class RecurringTransactionHandlingJob(
 					executedAt: now,
 					ct: ct
 				);
-				
+				logger.ZLogInformation($"Recurring transactions processed: {++processed}/{dueTransactions.Count}.");				
 			}, 
-			onError: async exception => logger.ZLogError(message: $"Failed to process recurring transaction {dueTransaction.Id}: {exception.Message}"),
+			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to process recurring transaction {dueTransaction.Id}."),
 			ct: ct);
 		}
 	}

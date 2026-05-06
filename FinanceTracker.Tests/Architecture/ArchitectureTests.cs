@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using NetArchTest.Rules;
 using Quartz;
