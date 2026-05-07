@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
 
-public class CategoryWriteRepository(
+public sealed class CategoryWriteRepository(
 	FinanceTrackerContext context
 ) : ICategoryWriteRepository
 {

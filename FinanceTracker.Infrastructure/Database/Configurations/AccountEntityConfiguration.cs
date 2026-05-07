@@ -34,7 +34,7 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 			.HasMaxLength(maxLength: 3)
 			.HasConversion(
 				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => new Currency(value: currency)
+				convertFromProviderExpression: currency => Currency.Reconstitute(value: currency)
 			);
 
 		builder.Property(propertyExpression: a => a.IsArchived)

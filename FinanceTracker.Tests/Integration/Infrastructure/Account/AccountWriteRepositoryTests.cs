@@ -1,9 +1,13 @@
 ﻿using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Account;
 
@@ -13,19 +17,31 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     private CurrencyBuilder _currencyBuilder = null!;
     private AccountTypeBuilder _accountTypeBuilder = null!;
     private UserBuilder _userBuilder = null!;
+    private IUnitOfWork _unitOfWork = null!;
     
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
-        _writeRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            onError: Arg.Any<Func<Exception, Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+        _writeRepository = new AccountWriteRepository(
+            context: Context,
+            dateProvider: FakeDateProvider.Default,
+            unitOfWork: _unitOfWork,
+            logger: Substitute.For<ILogger<AccountWriteRepository>>()
+        );
         _currencyBuilder = new CurrencyBuilder(context: Context);
         _accountTypeBuilder = new AccountTypeBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
     }
-    
-    [Before(hookType: Test)]
-    public void SetupRepository()
-        => _writeRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
 
     private async Task<AccountCreated> CreateAccountAsync()
     {

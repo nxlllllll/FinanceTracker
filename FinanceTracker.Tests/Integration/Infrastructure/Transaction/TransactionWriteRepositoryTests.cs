@@ -1,14 +1,18 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Transaction;
 
@@ -19,12 +23,28 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     private CurrencyBuilder _currencyBuilder = null!;
     private AccountTypeBuilder _accountTypeBuilder = null!;
     private UserBuilder _userBuilder = null!;
+    private IUnitOfWork _unitOfWork = null!;
 
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
         _writeRepository = new TransactionWriteRepository(context: Context);
-        _accountWriteRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            onError: Arg.Any<Func<Exception, Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+        _accountWriteRepository = new AccountWriteRepository(
+            context: Context,
+            dateProvider: FakeDateProvider.Default,
+            unitOfWork: _unitOfWork,
+            logger: Substitute.For<ILogger<AccountWriteRepository>>()
+        );
         _currencyBuilder = new CurrencyBuilder(context: Context);
         _accountTypeBuilder = new AccountTypeBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
@@ -75,7 +95,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: new Money(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -102,7 +122,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: userId,
             categoryId: categoryId,
-            amount: new Money(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -135,7 +155,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: new Money(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -183,7 +203,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: new Money(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -215,7 +235,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: new Money(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
@@ -247,7 +267,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             userId: Guid.NewGuid(),
             categoryId: categoryId,
-            amount: new Money(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,

@@ -1,9 +1,12 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.ValueObjects;
 
+[JsonConverter(converterType: typeof(EmailJsonConverter))]
 public readonly record struct Email
 {
 	private static readonly Regex FormatRegex = new Regex(
@@ -13,7 +16,7 @@ public readonly record struct Email
 
 	public string Value { get; }
 
-	public Email(string value)
+	private Email(string value)
 		=> Value = value;
 
 	public static Result<Email, DomainException> Create(string value)
@@ -28,7 +31,10 @@ public readonly record struct Email
 
 		return Result<Email, DomainException>.Success(value: new Email(value: normalized));
 	}
-
+	
+	public static Email Reconstitute(string value)
+		=> new Email(value: value);
+	
 	public static implicit operator string(Email email)
 		=> email.Value;
  

@@ -1,18 +1,19 @@
 ﻿using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.ValueObjects;
 
+[JsonConverter(converterType: typeof(CurrencyJsonConverter))]
 public readonly record struct Currency
 {
 	private static readonly Regex FormatRegex = new Regex(pattern: "^[A-Z]{3}$", options: RegexOptions.Compiled);
 
 	public string Value { get; }
 
-	[JsonConstructor]
-	public Currency(string value)
+	private Currency(string value)
 		=> Value = value;
 	
 	public static Result<Currency, DomainException> Create(string value)
@@ -28,6 +29,9 @@ public readonly record struct Currency
 		return Result<Currency, DomainException>.Success(value: new Currency(value: normalized));
 	}
 
+	public static Currency Reconstitute(string value)
+		=> new Currency(value: value);
+	
 	public static implicit operator string(Currency code)
 		=> code.Value;
  

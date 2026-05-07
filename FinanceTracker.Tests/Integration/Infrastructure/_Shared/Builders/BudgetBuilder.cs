@@ -23,7 +23,7 @@ public class BudgetBuilder(FinanceTrackerContext context)
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			categoryId: categoryId,
-			amount: new Money(amount: amount, currency: Core.ValueObjects.Currency.Create(value: currency).Value),
+			amount: Money.Create(amount: amount, currency: Core.ValueObjects.Currency.Create(value: currency).Value).Value,
 			from: dateFrom ?? new DateOnly(year: 2025, month: 1, day: 1),
 			to: dateTo ?? new DateOnly(year: 2025, month: 1, day: 31)
 		);

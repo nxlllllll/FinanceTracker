@@ -52,7 +52,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
     private OutboxMessagesHandlingJob BuildJob(INotificationDispatcher? dispatcher = null)
     {
         return new OutboxMessagesHandlingJob(
-            databaseContext: Context,
+            context: Context,
             dispatcher: dispatcher ?? _dispatcher,
             resolver: new EventTypeResolver(
                 assembly: typeof(IEvent).Assembly,

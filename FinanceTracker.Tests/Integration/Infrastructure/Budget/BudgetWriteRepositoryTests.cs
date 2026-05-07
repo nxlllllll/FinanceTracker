@@ -34,7 +34,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
            createdAt: FakeDateProvider.Default.UtcNow,
            userId: userId,
            categoryId: categoryId,
-           amount: new Money(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+           amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
            from: new DateOnly(year: 2025, month: 1, day: 1),
            to: new DateOnly(year: 2025, month: 1, day: 31)
        );
@@ -63,7 +63,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
             createdAt: FakeDateProvider.Default.UtcNow,
             userId: userId,
             categoryId: categoryId,
-            amount: new Money(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
@@ -89,15 +89,15 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        Result<Core.Domains.Budget.Budget, DomainException> b = Core.Domains.Budget.Budget.Create(
+        Result<Core.Domains.Budget.Budget, DomainException> budgetResult = Core.Domains.Budget.Budget.Create(
             createdAt: FakeDateProvider.Default.UtcNow,
            userId: userId,
             categoryId: categoryId,
-            amount: new Money(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 31)
         );
-        Core.Domains.Budget.Budget budget = b.Value!;
+        Core.Domains.Budget.Budget budget = budgetResult.Value!;
         
         await _writeRepository.CreateAsync(budget: budget);
 

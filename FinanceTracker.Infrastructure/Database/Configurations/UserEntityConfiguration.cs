@@ -18,7 +18,7 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 			.HasMaxLength(maxLength: 255)
 			.HasConversion(
 				convertToProviderExpression: email => email.Value,
-				convertFromProviderExpression: email => new Email(value: email)
+				convertFromProviderExpression: email => Email.Reconstitute(value: email)
 			);
 
 		builder.Property(propertyExpression: u => u.PasswordHash)
@@ -30,7 +30,7 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 			.HasMaxLength(maxLength: 3)
 			.HasConversion(
 				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => new Currency(value: currency)
+				convertFromProviderExpression: currency => Currency.Reconstitute(value: currency)
 			);
 
 		builder.Property(propertyExpression: u => u.CreatedAt)

@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
@@ -23,7 +24,7 @@ public sealed class PostgresEventStore(
 {
 	private const int SnapshotThreshold = 50;
 	
-	private static (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
+	private (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
 		Guid aggregateId,
 		string aggregateType,
 		List<IEvent> eventList,
@@ -37,7 +38,15 @@ public sealed class PostgresEventStore(
 		foreach (IEvent @event in eventList)
 		{
 			string serialized = JsonSerializer.Serialize(value: @event, inputType: @event.GetType());
-			string eventType = @event.GetType().GetCustomAttribute<EventTypeAttribute>()?.Name!;
+			string? eventType = @event.GetType().GetCustomAttribute<EventTypeAttribute>()?.Name;
+			if (eventType is null)
+			{
+				logger.ZLogError(message: $"Configuration error: {@event.GetType().Name} are missing [EventType] attribute.");
+				throw new UnknownEventTypeException(
+					message: "The following IEvent classes are missing [EventType] attribute.",
+					eventTypes: [@event.GetType().Name]
+				);
+			}
 
 			entities.Add(item: new EventEntity()
 			{

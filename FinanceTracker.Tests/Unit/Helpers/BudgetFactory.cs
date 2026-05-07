@@ -16,7 +16,7 @@ public static class BudgetFactory
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.NewGuid(),
 			categoryId: categoryId ?? Guid.NewGuid(),
-			amount: new Money(amount: 10000m, currency: Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 10000m, currency: Currency.Create(value: "RUB").Value).Value,
 			from: new DateOnly(year: 2025, month: 1, day: 1),
 			to: new DateOnly(year: 2025, month: 1, day: 31)
 		);

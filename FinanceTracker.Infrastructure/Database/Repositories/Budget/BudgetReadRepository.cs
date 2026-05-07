@@ -19,7 +19,7 @@ public sealed class BudgetReadRepository(
                 id: b.Id,
                 userId: b.UserId,
                 categoryId: b.CategoryId,
-                amount: new Money(amount: b.Amount, currency: b.Currency),
+                amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
                 from: b.From,
                 to: b.To,
                 createdAt: b.CreatedAt
@@ -38,7 +38,7 @@ public sealed class BudgetReadRepository(
                 id: b.Id,
                 userId: b.UserId,
                 categoryId: b.CategoryId,
-                amount: new Money(amount: b.Amount, currency: b.Currency),
+                amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
                 from: b.From,
                 to: b.To,
                 createdAt: b.CreatedAt
@@ -54,7 +54,7 @@ public sealed class BudgetReadRepository(
                 id: b.Id,
                 userId: b.UserId,
                 categoryId: b.CategoryId,
-                amount: new Money(amount: b.Amount, currency: b.Currency),
+                amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
                 from: b.From,
                 to: b.To,
                 createdAt: b.CreatedAt

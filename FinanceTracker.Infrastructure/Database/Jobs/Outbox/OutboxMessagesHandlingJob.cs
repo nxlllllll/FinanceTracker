@@ -18,7 +18,7 @@ namespace FinanceTracker.Infrastructure.Database.Jobs.Outbox;
  
 [DisallowConcurrentExecution]
 public sealed class OutboxMessagesHandlingJob(
-	FinanceTrackerContext databaseContext,
+	FinanceTrackerContext context,
 	INotificationDispatcher dispatcher,
 	IEventTypeResolver resolver,
 	IUnitOfWork unitOfWork,
@@ -51,53 +51,71 @@ public sealed class OutboxMessagesHandlingJob(
 
 	internal async Task ProcessMessagesAsync(CancellationToken ct)
 	{
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
-			List<OutboxMessageEntity> messages = await databaseContext.WithSkipLocked<OutboxMessageEntity>()
-				.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
-				.OrderBy(keySelector: m => m.UpdatedAt)
-				.Take(count: Limit)
-				.ToListAsync(cancellationToken: ct);
+		await unitOfWork.ExecuteInTransactionAsync(
+			operation: async () => await ProcessBatchAsync(ct: ct),
+			onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch processing failed."),
+			ct: ct
+		);
+	}
  
-			if (messages.Count == 0)
-				return;
-			
-			logger.ZLogInformation(message: $"Found {messages.Count} outbox message(s) to process.");
-			
-			int processed = 0;
-			foreach (OutboxMessageEntity message in messages)
+	private async Task ProcessBatchAsync(CancellationToken ct)
+	{
+		List<OutboxMessageEntity> messages = await context.WithSkipLocked<OutboxMessageEntity>()
+			.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
+			.OrderBy(keySelector: m => m.UpdatedAt)
+			.Take(count: Limit)
+			.ToListAsync(cancellationToken: ct);
+ 
+		if (messages.Count == 0)
+			return;
+ 
+		logger.ZLogInformation(message: $"Found {messages.Count} outbox message(s) to process.");
+ 
+		int processed = 0;
+		foreach (OutboxMessageEntity message in messages)
+		{
+			await unitOfWork.ExecuteInTransactionAsync(
+				operation: async () =>
+				{
+					await ProcessMessageAsync(message: message, ct: ct);
+					logger.ZLogInformation(message: $"Outbox batch processed: {++processed}/{messages.Count}.");
+				},
+				onError: async exception => await UpdateRetryStateAsync(message: message, exception: exception, ct: ct),
+				ct: ct
+			);
+		}
+	}
+ 
+	private async Task ProcessMessageAsync(OutboxMessageEntity message, CancellationToken ct)
+	{
+		IAppNotification appNotification = BuildNotification(message: message);
+		await dispatcher.DispatchAsync(appNotification: appNotification, ct: ct);
+		message.ProcessedAt = dateProvider.UtcNow;
+		await context.SaveChangesAsync(cancellationToken: ct);
+	}
+ 
+	private async Task UpdateRetryStateAsync(OutboxMessageEntity message, Exception exception, CancellationToken ct)
+	{
+		if (ct.IsCancellationRequested)
+			return;
+ 
+		logger.ZLogError(exception: exception, message: $"Failed to process outbox message {message.Id}.");
+ 
+		await unitOfWork.ExecuteInTransactionAsync(
+			operation: async () =>
 			{
-				await unitOfWork.ExecuteInTransactionAsync(operation: async () => 
+				++message.RetryCount;
+				if (message.RetryCount >= MaxRetries)
 				{
-					IAppNotification appNotification = BuildNotification(message: message); 
-					await dispatcher.DispatchAsync(appNotification: appNotification, ct: ct); 
-					message.ProcessedAt = dateProvider.UtcNow; 
-					await databaseContext.SaveChangesAsync(cancellationToken: ct);
-					logger.ZLogInformation($"Outbox batch processed: {++processed}/{messages.Count}.");				
-				}, onError: async outerException =>
-				{
-					if (ct.IsCancellationRequested)
-						return;
-				
-					logger.ZLogError(exception: outerException, message: $"Failed to process outbox message {message.Id}.");
-					await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-					{
-						++message.RetryCount;
-						if (message.RetryCount >= MaxRetries)
-						{
-							message.FailedAt = dateProvider.UtcNow;
-							logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {MaxRetries} retries.");
-						}
-				
-						await databaseContext.SaveChangesAsync(cancellationToken: ct);
-					},
-					onError: async innerException => logger.ZLogError(exception: innerException, message: $"Failed to update retry state for outbox message {message.Id}."),
-					ct: ct);
-				}, ct: ct);
-			}
-		}, 
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch processing failed."),
-		ct: ct);
+					message.FailedAt = dateProvider.UtcNow;
+					logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {MaxRetries} retries.");
+				}
+ 
+				await context.SaveChangesAsync(cancellationToken: ct);
+			},
+			onError: async innerException => logger.ZLogError(exception: innerException, message: $"Failed to update retry state for outbox message {message.Id}."),
+			ct: ct
+		);
 	}
 	
 	public async Task Execute(IJobExecutionContext context)

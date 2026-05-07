@@ -1,16 +1,17 @@
 ﻿using System.Text.Json.Serialization;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.ValueObjects;
 
+[JsonConverter(converterType: typeof(MoneyJsonConverter))]
 public readonly record struct Money
 {
 	public decimal Amount { get; }
 	public Currency Currency { get; }
 
-	[JsonConstructor]
-	public Money(decimal amount, Currency currency)
+	private Money(decimal amount, Currency currency)
 	{
 		Amount = amount;
 		Currency = currency;
@@ -31,6 +32,9 @@ public readonly record struct Money
 
 		return Result<Money, DomainException>.Success(value: new Money(amount: amount, currency: currency));
 	}
+	
+	public static Money Reconstitute(decimal amount, Currency currency)
+		=> new Money(amount: amount, currency: currency);
 
 	public static Money operator +(Money left, decimal right)
 		=> new Money(amount: left.Amount + right, currency: left.Currency);

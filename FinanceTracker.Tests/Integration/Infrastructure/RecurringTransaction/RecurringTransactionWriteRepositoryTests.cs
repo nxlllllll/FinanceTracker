@@ -39,7 +39,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: "Monthly rent"
@@ -71,7 +71,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -103,7 +103,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -136,7 +136,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -165,7 +165,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -194,7 +194,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -224,7 +224,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: 15,
 			description: null
@@ -254,7 +254,7 @@ public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWit
 		userId: userId,
 		accountId: accountId,
 		categoryId: categoryId,
-		amount: new Money(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+		amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 		direction: DirectionType.Debit,
 		dayOfMonth: 15,
 		description: null
@@ -266,7 +266,7 @@ public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWit
 		userId: userId,
 		accountId: accountId,
 		categoryId: categoryId,
-		amount: new Money(amount: 3000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value),
+		amount: Money.Create(amount: 3000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 		direction: DirectionType.Debit,
 		dayOfMonth: 20,
 		description: null

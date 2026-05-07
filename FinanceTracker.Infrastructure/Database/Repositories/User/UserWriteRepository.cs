@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
-public class UserWriteRepository(
+public sealed class UserWriteRepository(
 	FinanceTrackerContext context
 ) : IUserWriteRepository
 {

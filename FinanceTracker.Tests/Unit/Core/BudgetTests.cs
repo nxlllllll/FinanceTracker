@@ -33,7 +33,7 @@ public sealed class BudgetTests
             createdAt: DateTime.UtcNow,
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
-            amount: new Money(amount: 1000m, currency: Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,
             from: new DateOnly(year: 2025, month: 1, day: 31),
             to: new DateOnly(year: 2025, month: 1, day: 1)
         );
@@ -49,7 +49,7 @@ public sealed class BudgetTests
             createdAt: DateTime.UtcNow,
             userId: Guid.NewGuid(),
             categoryId: Guid.NewGuid(),
-            amount: new Money(amount: 1000m, currency: Currency.Create(value: "RUB").Value),
+            amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 1)
         );

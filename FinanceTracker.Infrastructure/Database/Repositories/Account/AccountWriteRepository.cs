@@ -1,15 +1,20 @@
 ﻿using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
 public sealed class AccountWriteRepository(
 	FinanceTrackerContext context,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	IUnitOfWork unitOfWork,
+	ILogger<AccountWriteRepository> logger
 ) : IAccountWriteRepository
 {
 	private async Task ApplyBalanceChangeAsync(
@@ -35,28 +40,32 @@ public sealed class AccountWriteRepository(
     public async Task CreateAsync(
         AccountCreated @event,
         CancellationToken ct = default)
-    {
-        await context.Accounts.AddAsync(entity: new AccountEntity()
-        {
-            Id = @event.AccountId,
-            UserId = @event.UserId,
-            Name = @event.Name,
-            AccountType = @event.Type,
-            Currency = @event.Currency,
-            IsArchived = false,
-            CreatedAt = @event.OccurredAt
-        }, cancellationToken: ct);
+	{
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			await context.Accounts.AddAsync(entity: new AccountEntity()
+			{
+				Id = @event.AccountId,
+				UserId = @event.UserId,
+				Name = @event.Name,
+				AccountType = @event.Type,
+				Currency = @event.Currency,
+				IsArchived = false,
+				CreatedAt = @event.OccurredAt
+			}, cancellationToken: ct);
 
-        await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity()
-        {
-            AccountId = @event.AccountId,
-            Balance = @event.Balance,
-            LastVersion = 1,
-            UpdatedAt = @event.OccurredAt
-        }, cancellationToken: ct);
-
-        await context.SaveChangesAsync(cancellationToken: ct);
-    }
+			await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity()
+			{
+				AccountId = @event.AccountId,
+				Balance = @event.Balance,
+				LastVersion = 1,
+				UpdatedAt = @event.OccurredAt
+			}, cancellationToken: ct);
+			
+			await context.SaveChangesAsync(cancellationToken: ct);
+		}, onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create account {@event.AccountId}."),
+		ct: ct);
+	}
 
 	public async Task AdjustBalanceAsync(
 		AccountBalanceAdjusted @event,

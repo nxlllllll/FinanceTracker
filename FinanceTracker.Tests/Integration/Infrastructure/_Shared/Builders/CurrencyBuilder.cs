@@ -10,7 +10,7 @@ public class CurrencyBuilder(FinanceTrackerContext context)
 	{
 		bool exists = await context.Currencies.AnyAsync(c => c.Code == code);
 		if (exists)
-			return new Core.ValueObjects.Currency(value: code);
+			return Core.ValueObjects.Currency.Reconstitute(value: code);
 
 		await context.Currencies.AddAsync(new CurrencyEntity()
 		{
@@ -32,6 +32,6 @@ public class CurrencyBuilder(FinanceTrackerContext context)
 			IsActive = true
 		});
 		await context.SaveChangesAsync();
-		return new Core.ValueObjects.Currency(value: code);
+		return Core.ValueObjects.Currency.Reconstitute(value: code);
 	}
 }
