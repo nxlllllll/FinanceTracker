@@ -15,6 +15,7 @@ using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.Jobs.DeadLetterMonitoring;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
@@ -119,6 +120,19 @@ public static class DependencyInjection
 		        .WithIdentity(name: "OutboxWorkerTrigger", group: "default")
 		        .WithSimpleSchedule(action: schedule => schedule
 		            .WithIntervalInSeconds(seconds: 3)
+		            .RepeatForever()
+		        )
+		    );
+			
+			configurator.AddJob<DeadLetterMonitoringJob>(
+		        configure: configure => configure.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: "default")
+		    );
+ 
+		    configurator.AddTrigger(configure: configure => configure
+		        .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: "default")
+		        .WithIdentity(name: "DeadLetterMonitoringTrigger", group: "default")
+		        .WithSimpleSchedule(action: schedule => schedule
+		            .WithIntervalInMinutes(minutes: 5)
 		            .RepeatForever()
 		        )
 		    );
