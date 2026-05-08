@@ -7,7 +7,9 @@ using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.PostgresEventStore;
@@ -28,6 +30,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 logger: Substitute.For<ILogger<EventTypeResolver>>()
             ),
             dateProvider: FakeDateProvider.Default,
+            options: Options.Create(options: new EventStoreOptions()),
             logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
         );
     }

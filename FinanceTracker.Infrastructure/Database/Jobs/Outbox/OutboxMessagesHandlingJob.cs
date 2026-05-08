@@ -5,12 +5,14 @@ using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
 
@@ -24,12 +26,10 @@ public sealed class OutboxMessagesHandlingJob(
 	IUnitOfWork unitOfWork,
 	IEnumerable<IAggregateNotificationFactory> factories,
 	IDateProvider dateProvider,
-	ILogger<OutboxMessagesHandlingJob> logger
+	ILogger<OutboxMessagesHandlingJob> logger,
+	IOptions<OutboxOptions> options
 ) : IJob
 {
-	private const int Limit = 20;
-	private const int MaxRetries = 5;
-
 	private readonly FrozenDictionary<string, IAggregateNotificationFactory> _factories = factories.ToFrozenDictionary(keySelector: f => f.AggregateType);
 	
 	private IAppNotification BuildNotification(OutboxMessageEntity message)
@@ -63,7 +63,7 @@ public sealed class OutboxMessagesHandlingJob(
 		List<OutboxMessageEntity> messages = await context.WithSkipLocked<OutboxMessageEntity>()
 			.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
 			.OrderBy(keySelector: m => m.UpdatedAt)
-			.Take(count: Limit)
+			.Take(count: options.Value.BatchSize)
 			.ToListAsync(cancellationToken: ct);
  
 		if (messages.Count == 0)
@@ -105,10 +105,10 @@ public sealed class OutboxMessagesHandlingJob(
 			operation: async () =>
 			{
 				++message.RetryCount;
-				if (message.RetryCount >= MaxRetries)
+				if (message.RetryCount >= options.Value.MaxRetries)
 				{
 					message.FailedAt = dateProvider.UtcNow;
-					logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {MaxRetries} retries.");
+					logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {options.Value.MaxRetries} retries.");
 				}
  
 				await context.SaveChangesAsync(cancellationToken: ct);

@@ -13,6 +13,7 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.Jobs.DeadLetterMonitoring;
@@ -96,43 +97,67 @@ public static class DependencyInjection
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		
+		services.AddOptions<OutboxOptions>()
+			.BindConfiguration(configSectionPath: OutboxOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddOptions<DeadLetterMonitoringOptions>()
+			.BindConfiguration(configSectionPath: DeadLetterMonitoringOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddOptions<RecurringTransactionJobOptions>()
+			.BindConfiguration(configSectionPath: RecurringTransactionJobOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddOptions<EventStoreOptions>()
+			.BindConfiguration(configSectionPath: EventStoreOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		OutboxOptions outboxOptions = configuration.GetSection(key: OutboxOptions.SectionName).Get<OutboxOptions>() ?? new OutboxOptions();
+		DeadLetterMonitoringOptions deadLetterOptions = configuration.GetSection(key: DeadLetterMonitoringOptions.SectionName).Get<DeadLetterMonitoringOptions>() ?? new DeadLetterMonitoringOptions();
+		RecurringTransactionJobOptions recurringOptions = configuration.GetSection(key: RecurringTransactionJobOptions.SectionName).Get<RecurringTransactionJobOptions>() ?? new RecurringTransactionJobOptions();
+
 		services.AddQuartz(configure: configurator =>
 		{
 		    configurator.AddJob<RecurringTransactionHandlingJob>(
-		        configure: configure => configure.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: "default")
+		        configure: configure => configure.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group)
 		    );
 
 		    configurator.AddTrigger(configure => configure
-		        .ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: "default")
-		        .WithIdentity(name: "RecurringTransactionTrigger", group: "default")
+		        .ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: recurringOptions.Group)
+		        .WithIdentity(name: recurringOptions.TriggerName, group: recurringOptions.Group)
 		        .WithCronSchedule(
-		            cronExpression: "0 0 3 * * ?",
+		            cronExpression: recurringOptions.CronExpression,
 		            schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
 		        )
 		    );
 
 		    configurator.AddJob<OutboxMessagesHandlingJob>(
-		        configure: configure => configure.WithIdentity(name: nameof(OutboxMessagesHandlingJob), group: "default")
+		        configure: configure => configure.WithIdentity(name: nameof(OutboxMessagesHandlingJob), group: outboxOptions.Group)
 		    );
 
 		    configurator.AddTrigger(configure: configure => configure
-		        .ForJob(jobName: nameof(OutboxMessagesHandlingJob), jobGroup: "default")
-		        .WithIdentity(name: "OutboxWorkerTrigger", group: "default")
+		        .ForJob(jobName: nameof(OutboxMessagesHandlingJob), jobGroup: outboxOptions.Group)
+		        .WithIdentity(name: outboxOptions.TriggerName, group: outboxOptions.Group)
 		        .WithSimpleSchedule(action: schedule => schedule
-		            .WithIntervalInSeconds(seconds: 3)
+		            .WithIntervalInSeconds(seconds: outboxOptions.IntervalSeconds)
 		            .RepeatForever()
 		        )
 		    );
-			
-			configurator.AddJob<DeadLetterMonitoringJob>(
-		        configure: configure => configure.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: "default")
+
+		    configurator.AddJob<DeadLetterMonitoringJob>(
+		        configure: configure => configure.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: deadLetterOptions.Group)
 		    );
- 
+
 		    configurator.AddTrigger(configure: configure => configure
-		        .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: "default")
-		        .WithIdentity(name: "DeadLetterMonitoringTrigger", group: "default")
+		        .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: deadLetterOptions.Group)
+		        .WithIdentity(name: deadLetterOptions.TriggerName, group: deadLetterOptions.Group)
 		        .WithSimpleSchedule(action: schedule => schedule
-		            .WithIntervalInMinutes(minutes: 5)
+		            .WithIntervalInMinutes(minutes: deadLetterOptions.IntervalMinutes)
 		            .RepeatForever()
 		        )
 		    );

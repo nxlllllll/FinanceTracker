@@ -11,7 +11,9 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Jobs.Outbox;
@@ -39,6 +41,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
                     logger: Substitute.For<ILogger<EventTypeResolver>>()
                 ),
                 dateProvider: FakeDateProvider.Default,
+                options: Options.Create(options: new EventStoreOptions()),
                 logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
             )
         );
@@ -64,6 +67,7 @@ public sealed class OutboxMessagesHandlingJobTests : DatabaseFixture
             ),
             factories: Factories,
             dateProvider: FakeDateProvider.Default,
+            options: Options.Create(options: new OutboxOptions()),
             logger: Substitute.For<ILogger<OutboxMessagesHandlingJob>>()
         );
     }

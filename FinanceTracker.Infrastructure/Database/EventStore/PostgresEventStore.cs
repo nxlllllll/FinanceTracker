@@ -5,11 +5,13 @@ using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using ZLogger;
 
@@ -19,11 +21,10 @@ public sealed class PostgresEventStore(
 	FinanceTrackerContext context,
 	IEventTypeResolver eventTypeResolver,
 	IDateProvider dateProvider,
-	ILogger<PostgresEventStore> logger
+	ILogger<PostgresEventStore> logger,
+	IOptions<EventStoreOptions> options
 ) : IEventStore
 {
-	private const int SnapshotThreshold = 50;
-	
 	private (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
 		Guid aggregateId,
 		string aggregateType,
@@ -78,8 +79,8 @@ public sealed class PostgresEventStore(
 		CancellationToken ct = default)
 	{
 		int newVersion = expectedVersion + eventsCount;
-		int previousThreshold = expectedVersion / SnapshotThreshold;
-		int newThreshold = newVersion / SnapshotThreshold;
+		int previousThreshold = expectedVersion / options.Value.SnapshotThreshold;
+		int newThreshold = newVersion / options.Value.SnapshotThreshold;
 
 		if (snapshotFactory is null || newThreshold <= previousThreshold)
 			return;
