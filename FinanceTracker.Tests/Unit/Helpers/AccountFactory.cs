@@ -58,7 +58,7 @@ public static class AccountFactory
 			UserId: userId ?? Guid.NewGuid(),
 			Name: name,
 			Type: type,
-			Currency: currency,
+			Currency: Currency.Create(value: currency).Value,
 			Balance: balance,
 			IsArchived: isArchived,
 			CreatedAt: FakeDateProvider.Default.UtcNow

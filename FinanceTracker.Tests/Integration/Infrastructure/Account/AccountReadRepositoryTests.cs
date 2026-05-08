@@ -117,7 +117,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await Assert.That(value: result.Balance).IsEqualTo(expected: 10000m);
         await Assert.That(value: result.IsArchived).IsFalse();
         await Assert.That(value: result.Type).IsEqualTo(expected: Core.Domains.Account.AccountType.Checking);
-        await Assert.That(value: result.Currency).IsEqualTo(expected: "RUB");
+        await Assert.That(value: result.Currency.Value).IsEqualTo(expected: "RUB");
     }
 
     [Test]

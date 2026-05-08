@@ -17,6 +17,9 @@ public sealed class GetCategoriesHandler(
 			type: query.Type,
 			isArchived: query.IsArchived,
 			parentId: query.ParentId,
+			cursorCreatedAt: query.CursorCreatedAt,
+			cursorId: query.CursorId,
+			pageSize: query.PageSize,
 			ct: ct
 		);
 	}

@@ -7,5 +7,8 @@ public sealed record GetCategoriesQuery(
 	Guid UserId,
 	CategoryType? Type = null,
 	bool? IsArchived = null,
-	Guid? ParentId = null
+	Guid? ParentId = null,
+	DateTime? CursorCreatedAt = null,
+	Guid? CursorId = null,
+	int PageSize = 20
 ) : IRequest<IReadOnlyList<Category>>;

@@ -16,4 +16,10 @@ public interface ICategoryTotalReadRepository
 		DateOnly period,
 		CancellationToken ct = default
 	);
+	
+	Task<(decimal Income, decimal Expense)> GetIncomeExpenseSummaryAsync(
+		Guid userId,
+		DateOnly period,
+		CancellationToken ct = default
+	);
 }

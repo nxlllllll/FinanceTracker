@@ -14,6 +14,9 @@ public interface ICategoryReadRepository
 		CategoryType? type = null,
 		bool? isArchived = null,
 		Guid? parentId = null,
+		DateTime? cursorCreatedAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
 		CancellationToken ct = default
 	);
 }

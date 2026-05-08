@@ -37,28 +37,37 @@ public sealed class CategoryReadRepository(
 		CategoryType? type = null,
 		bool? isArchived = null,
 		Guid? parentId = null,
+		DateTime? cursorCreatedAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<CategoryEntity> categories = context.Categories.AsNoTracking()
-			.Where(predicate: c => c.UserId == userId);
-
+		IQueryable<CategoryEntity> categories = context.Categories.AsNoTracking().Where(predicate: c => c.UserId == userId);
+ 
 		if (type is not null)
 			categories = categories.Where(predicate: c => c.Type == type);
-
+ 
 		if (isArchived is not null)
 			categories = categories.Where(predicate: c => c.IsArchived == isArchived);
-
+ 
 		if (parentId is not null)
 			categories = categories.Where(predicate: c => c.ParentId == parentId);
-    
-		return await categories.Select(selector: c => Core.Domains.Category.Category.Reconstitute(
-			id: c.Id,
-			userId: c.UserId,
-			parentId: c.ParentId,
-			name: c.Name,
-			type: c.Type,
-			isArchived: c.IsArchived,
-			createdAt: c.CreatedAt
-		)).ToListAsync(cancellationToken: ct);
+ 
+		if (cursorCreatedAt is not null && cursorId is not null)
+			categories = categories.Where(predicate: c => c.CreatedAt < cursorCreatedAt || c.CreatedAt == cursorCreatedAt && c.Id < cursorId);
+ 
+		return await categories
+			.OrderByDescending(keySelector: c => c.CreatedAt)
+			.ThenByDescending(keySelector: c => c.Id)
+			.Take(count: pageSize)
+			.Select(selector: c => Core.Domains.Category.Category.Reconstitute(
+				id: c.Id,
+				userId: c.UserId,
+				parentId: c.ParentId,
+				name: c.Name,
+				type: c.Type,
+				isArchived: c.IsArchived,
+				createdAt: c.CreatedAt
+			)).ToListAsync(cancellationToken: ct);
 	}
 }
