@@ -30,8 +30,8 @@ public sealed class ChangeBudgetPeriodHandler(
 		{
 			await budgetWriteRepository.ChangePeriodAsync(
 				budgetId: budget.Id,
-				dateFrom: command.From,
-				dateTo: command.To,
+				from: command.From,
+				to: command.To,
 				ct: ct
 			);
 

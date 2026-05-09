@@ -2,7 +2,6 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using NetArchTest.Rules;
-using Quartz;
 using TestResult = NetArchTest.Rules.TestResult;
 
 namespace FinanceTracker.Tests.Architecture;
@@ -71,20 +70,6 @@ public sealed class ArchitectureTests
 			.AreClasses()
 			.Should()
 			.HaveCustomAttribute(attribute: typeof(EventTypeAttribute))
-			.GetResult();
-
-		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
-	}
-
-	[Test]
-	public async Task AllIJobClasses_ShouldHaveDisallowConcurrentExecutionAttribute()
-	{
-		TestResult result = Types.InAssembly(assembly: InfrastructureAssembly)
-			.That()
-			.ImplementInterface(interfaceType: typeof(IJob))
-			.Should()
-			.HaveCustomAttribute(attribute: typeof(DisallowConcurrentExecutionAttribute))
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()

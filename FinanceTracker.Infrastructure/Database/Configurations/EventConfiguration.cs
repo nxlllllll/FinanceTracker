@@ -11,6 +11,9 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<EventEntity>
 		builder.ToTable(name: "events");
 
 		builder.HasKey(keyExpression: e => e.Id);
+		
+		builder.Property(propertyExpression: a => a.Id)
+			.HasColumnName(name: "id");
 
 		builder.Property(propertyExpression: e => e.AggregateId)
 			.HasColumnName(name: "aggregate_id");

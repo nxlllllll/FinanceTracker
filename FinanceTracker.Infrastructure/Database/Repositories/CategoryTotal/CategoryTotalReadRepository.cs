@@ -56,9 +56,15 @@ public sealed class CategoryTotalReadRepository(
 			).GroupBy(keySelector: x => x.Type)
 			.Select(selector: g => new { Type = g.Key, Sum = g.Sum(x => x.Total) });
 
-		decimal income = summary.FirstOrDefault(predicate: x => x.Type == Core.Domains.Category.CategoryType.Income)?.Sum ?? 0;
-		decimal expense = summary.FirstOrDefault(predicate: x => x.Type == Core.Domains.Category.CategoryType.Expense)?.Sum ?? 0;
+		var income = await summary.FirstOrDefaultAsync(
+			predicate: x => x.Type == Core.Domains.Category.CategoryType.Income,
+			cancellationToken: ct
+		);
+		var expense = await summary.FirstOrDefaultAsync(
+			predicate: x => x.Type == Core.Domains.Category.CategoryType.Expense,
+			cancellationToken: ct
+		);
  
-		return (income, expense);
+		return (income?.Sum ?? 0, expense?.Sum ?? 0);
 	}
 }

@@ -15,8 +15,8 @@ public interface IBudgetWriteRepository
 
     Task ChangePeriodAsync(
         Guid budgetId,
-        DateOnly dateFrom,
-        DateOnly dateTo,
+        DateOnly from,
+        DateOnly to,
         CancellationToken ct = default
     );
 

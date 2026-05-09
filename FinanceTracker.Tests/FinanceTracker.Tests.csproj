@@ -19,6 +19,8 @@
       <ProjectReference Include="..\FinanceTracker.Application\FinanceTracker.Application.csproj" />
       <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
       <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Worker.AccountProjection\FinanceTracker.Worker.AccountProjection.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransactionProjection\FinanceTracker.Worker.RecurringTransactionProjection.csproj" />
     </ItemGroup>
 
 </Project>

@@ -15,6 +15,9 @@ public sealed class RecurringTransactionEntityConfiguration
 
         builder.HasKey(keyExpression: r => r.Id);
 
+        builder.Property(propertyExpression: a => a.Id)
+            .HasColumnName(name: "id");
+        
         builder.Property(propertyExpression: r => r.UserId)
             .HasColumnName(name: "user_id");
 

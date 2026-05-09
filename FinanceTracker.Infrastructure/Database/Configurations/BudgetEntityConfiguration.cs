@@ -13,6 +13,9 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 
 		builder.HasKey(keyExpression: b => b.Id);
 
+		builder.Property(propertyExpression: a => a.Id)
+			.HasColumnName(name: "id");
+		
 		builder.Property(propertyExpression: b => b.UserId)
 			.HasColumnName(name: "user_id");
 

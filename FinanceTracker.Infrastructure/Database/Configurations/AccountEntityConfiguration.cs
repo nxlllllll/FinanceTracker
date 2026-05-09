@@ -14,6 +14,9 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.HasKey(keyExpression: a => a.Id);
 
+		builder.Property(propertyExpression: a => a.Id)
+			.HasColumnName(name: "id");
+		
 		builder.Property(propertyExpression: a => a.UserId)
 			.HasColumnName(name: "user_id");
 
@@ -25,7 +28,7 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 			.HasColumnName(name: "account_type_code")
 			.HasMaxLength(maxLength: 20)
 			.HasConversion(
-				convertToProviderExpression: type => type.ToString().ToLower(),
+				convertToProviderExpression: type => type.ToString().ToLowerInvariant(),
 				convertFromProviderExpression: value => Enum.Parse<AccountType>(value: value, ignoreCase: true)
 			);
 

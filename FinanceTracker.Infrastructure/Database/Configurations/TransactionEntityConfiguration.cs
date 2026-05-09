@@ -14,6 +14,9 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 
 		builder.HasKey(keyExpression: t => t.Id);
 
+		builder.Property(propertyExpression: a => a.Id)
+			.HasColumnName(name: "id");
+		
 		builder.Property(propertyExpression: t => t.AccountId)
 			.HasColumnName(name: "account_id");
 
@@ -39,7 +42,7 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 			.HasColumnName(name: "direction_type")
 			.HasMaxLength(maxLength: 10)
 			.HasConversion(
-				convertToProviderExpression: type => type.ToString().ToLower(),
+				convertToProviderExpression: type => type.ToString().ToLowerInvariant(),
 				convertFromProviderExpression: value => Enum.Parse<DirectionType>(value: value, ignoreCase: true)
 			);
 

@@ -12,6 +12,9 @@ public sealed class CategoryTotalEntityConfiguration : IEntityTypeConfiguration<
  
         builder.HasKey(keyExpression: c => c.Id);
  
+        builder.Property(propertyExpression: a => a.Id)
+            .HasColumnName(name: "id");
+        
         builder.Property(propertyExpression: c => c.UserId)
             .HasColumnName(name: "user_id");
  

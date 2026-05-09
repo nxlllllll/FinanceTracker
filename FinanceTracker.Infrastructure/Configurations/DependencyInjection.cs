@@ -7,6 +7,7 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -16,9 +17,6 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
-using FinanceTracker.Infrastructure.Database.Jobs.DeadLetterMonitoring;
-using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
-using FinanceTracker.Infrastructure.Database.Jobs.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
@@ -27,6 +25,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
+using FinanceTracker.Infrastructure.Database.Repositories.Operations;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
@@ -37,7 +36,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Quartz;
 
 namespace FinanceTracker.Infrastructure.Configurations;
 
@@ -91,24 +89,16 @@ public static class DependencyInjection
 		
 		services.AddScoped<IUserReadRepository, UserReadRepository>();
 		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
+
+		services.AddScoped<IOperationsReadRepository, OperationsReadRepository>();
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<IDateProvider, DateProvider>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		
-		services.AddOptions<OutboxOptions>()
-			.BindConfiguration(configSectionPath: OutboxOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
-
 		services.AddOptions<DeadLetterMonitoringOptions>()
 			.BindConfiguration(configSectionPath: DeadLetterMonitoringOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
-
-		services.AddOptions<RecurringTransactionJobOptions>()
-			.BindConfiguration(configSectionPath: RecurringTransactionJobOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
@@ -116,54 +106,6 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: EventStoreOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
-
-		OutboxOptions outboxOptions = configuration.GetSection(key: OutboxOptions.SectionName).Get<OutboxOptions>() ?? new OutboxOptions();
-		DeadLetterMonitoringOptions deadLetterOptions = configuration.GetSection(key: DeadLetterMonitoringOptions.SectionName).Get<DeadLetterMonitoringOptions>() ?? new DeadLetterMonitoringOptions();
-		RecurringTransactionJobOptions recurringOptions = configuration.GetSection(key: RecurringTransactionJobOptions.SectionName).Get<RecurringTransactionJobOptions>() ?? new RecurringTransactionJobOptions();
-
-		services.AddQuartz(configure: configurator =>
-		{
-		    configurator.AddJob<RecurringTransactionHandlingJob>(
-		        configure: configure => configure.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group)
-		    );
-
-		    configurator.AddTrigger(configure => configure
-		        .ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: recurringOptions.Group)
-		        .WithIdentity(name: recurringOptions.TriggerName, group: recurringOptions.Group)
-		        .WithCronSchedule(
-		            cronExpression: recurringOptions.CronExpression,
-		            schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
-		        )
-		    );
-
-		    configurator.AddJob<OutboxMessagesHandlingJob>(
-		        configure: configure => configure.WithIdentity(name: nameof(OutboxMessagesHandlingJob), group: outboxOptions.Group)
-		    );
-
-		    configurator.AddTrigger(configure: configure => configure
-		        .ForJob(jobName: nameof(OutboxMessagesHandlingJob), jobGroup: outboxOptions.Group)
-		        .WithIdentity(name: outboxOptions.TriggerName, group: outboxOptions.Group)
-		        .WithSimpleSchedule(action: schedule => schedule
-		            .WithIntervalInSeconds(seconds: outboxOptions.IntervalSeconds)
-		            .RepeatForever()
-		        )
-		    );
-
-		    configurator.AddJob<DeadLetterMonitoringJob>(
-		        configure: configure => configure.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: deadLetterOptions.Group)
-		    );
-
-		    configurator.AddTrigger(configure: configure => configure
-		        .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: deadLetterOptions.Group)
-		        .WithIdentity(name: deadLetterOptions.TriggerName, group: deadLetterOptions.Group)
-		        .WithSimpleSchedule(action: schedule => schedule
-		            .WithIntervalInMinutes(minutes: deadLetterOptions.IntervalMinutes)
-		            .RepeatForever()
-		        )
-		    );
-		});
-		
-		services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);
 		
 		return services;
 	}

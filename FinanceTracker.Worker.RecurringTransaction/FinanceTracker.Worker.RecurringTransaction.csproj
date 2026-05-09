@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>dotnet-FinanceTracker.Worker.RecurringTransaction-9bec230f-178c-4d8b-bb11-67434b9d5f44</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.7" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7"/>
+        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.18.1" />
+        <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\FinanceTracker.Application\FinanceTracker.Application.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Contracts\FinanceTracker.Contracts.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
+    </ItemGroup>
+</Project>

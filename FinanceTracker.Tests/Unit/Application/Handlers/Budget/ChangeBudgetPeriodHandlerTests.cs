@@ -53,8 +53,8 @@ public sealed class ChangeBudgetPeriodHandlerTests
 
 		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).ChangePeriodAsync(
 			budgetId: budget.Id,
-			dateFrom: from,
-			dateTo: to,
+			from: from,
+			to: to,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

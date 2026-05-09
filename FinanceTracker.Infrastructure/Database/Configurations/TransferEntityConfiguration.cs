@@ -13,6 +13,9 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 
         builder.HasKey(keyExpression: t => t.Id);
 
+        builder.Property(propertyExpression: a => a.Id)
+            .HasColumnName(name: "id");
+        
         builder.Property(propertyExpression: t => t.UserId)
             .HasColumnName(name: "user_id");
 
