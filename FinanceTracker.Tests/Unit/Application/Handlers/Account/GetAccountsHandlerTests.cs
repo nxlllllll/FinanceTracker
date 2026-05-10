@@ -21,7 +21,7 @@ public sealed class GetAccountsHandlerTests
     [Test]
     public async Task Handle_ShouldReturnAllAccounts()
     {
-        Guid userId = Guid.NewGuid();
+        Guid userId = Guid.CreateVersion7();
         IReadOnlyList<AccountDto> accounts = [AccountFactory.CreateAccountDto(), AccountFactory.CreateAccountDto()];
 
         _accountReadRepository.GetAllAsync(
@@ -45,7 +45,7 @@ public sealed class GetAccountsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
-        GetAccountsQuery query = new GetAccountsQuery(UserId: Guid.NewGuid(), IsArchived: false);
+        GetAccountsQuery query = new GetAccountsQuery(UserId: Guid.CreateVersion7(), IsArchived: false);
 
         await _handler.Handle(query: query, ct: CancellationToken.None);
 
@@ -65,7 +65,7 @@ public sealed class GetAccountsHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
-        GetAccountsQuery query = new GetAccountsQuery(UserId: Guid.NewGuid(), IsArchived: null);
+        GetAccountsQuery query = new GetAccountsQuery(UserId: Guid.CreateVersion7(), IsArchived: null);
 
         await _handler.Handle(query: query, ct: CancellationToken.None);
 

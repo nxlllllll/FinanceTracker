@@ -23,7 +23,7 @@ public sealed class TransferLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenSameAccount_ShouldThrowInvalidOperationException()
 	{
-		Guid accountId = Guid.NewGuid();
+		Guid accountId = Guid.CreateVersion7();
 
 		Result<(Account, Account), DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(

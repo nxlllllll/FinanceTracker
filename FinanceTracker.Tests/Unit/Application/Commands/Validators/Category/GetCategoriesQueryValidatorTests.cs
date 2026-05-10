@@ -10,7 +10,7 @@ public sealed class GetCategoriesQueryValidatorTests
 	[Test]
 	public async Task Validate_WithValidQuery_ShouldNotHaveErrors()
 	{
-		GetCategoriesQuery query = new GetCategoriesQuery(UserId: Guid.NewGuid());
+		GetCategoriesQuery query = new GetCategoriesQuery(UserId: Guid.CreateVersion7());
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);
 
@@ -21,9 +21,9 @@ public sealed class GetCategoriesQueryValidatorTests
 	public async Task Validate_WithValidCursor_ShouldNotHaveErrors()
 	{
 		GetCategoriesQuery query = new GetCategoriesQuery(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			CursorCreatedAt: DateTime.UtcNow,
-			CursorId: Guid.NewGuid()
+			CursorId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);
@@ -35,7 +35,7 @@ public sealed class GetCategoriesQueryValidatorTests
 	public async Task Validate_WithPageSizeZero_ShouldHaveError()
 	{
 		GetCategoriesQuery query = new GetCategoriesQuery(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			PageSize: 0
 		);
 
@@ -51,7 +51,7 @@ public sealed class GetCategoriesQueryValidatorTests
 	public async Task Validate_WithPageSizeOver100_ShouldHaveError()
 	{
 		GetCategoriesQuery query = new GetCategoriesQuery(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			PageSize: 101
 		);
 
@@ -67,8 +67,8 @@ public sealed class GetCategoriesQueryValidatorTests
 	public async Task Validate_WithCursorIdWithoutCursorCreatedAt_ShouldHaveError()
 	{
 		GetCategoriesQuery query = new GetCategoriesQuery(
-			UserId: Guid.NewGuid(),
-			CursorId: Guid.NewGuid()
+			UserId: Guid.CreateVersion7(),
+			CursorId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);
@@ -83,7 +83,7 @@ public sealed class GetCategoriesQueryValidatorTests
 	public async Task Validate_WithCursorCreatedAtWithoutCursorId_ShouldHaveError()
 	{
 		GetCategoriesQuery query = new GetCategoriesQuery(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			CursorCreatedAt: DateTime.UtcNow
 		);
 

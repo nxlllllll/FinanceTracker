@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Category;
 
@@ -8,7 +9,7 @@ public sealed class Category
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }
 	public Guid? ParentId { get; private set; }
-	public string Name { get; private set; } = String.Empty;
+	public Name Name { get; private set; }
 	public CategoryType Type { get; private set; }
 	public bool IsArchived { get; private set; }
 	public DateTime CreatedAt { get; private set; }
@@ -18,7 +19,7 @@ public sealed class Category
 	public static Result<Category, DomainException> Create(
 		DateTime createdAt,
 		Guid userId,
-		string name,
+		Name name,
 		CategoryType type,
 		Guid? parentId)
 	{
@@ -27,7 +28,7 @@ public sealed class Category
  
 		return Result<Category, DomainException>.Success(value: new Category()
 		{
-			Id = Guid.NewGuid(),
+			Id = Guid.CreateVersion7(),
 			UserId = userId,
 			ParentId = parentId,
 			Name = name,
@@ -41,7 +42,7 @@ public sealed class Category
 		Guid id,
 		Guid userId,
 		Guid? parentId,
-		string name,
+		Name name,
 		CategoryType type,
 		bool isArchived,
 		DateTime createdAt)
@@ -58,11 +59,8 @@ public sealed class Category
 		};
 	}
 
-	public Result<Unit, DomainException> Rename(string newName)
+	public Result<Unit, DomainException> Rename(Name newName)
 	{
-		if (String.IsNullOrWhiteSpace(value: newName))
-			return Result<Unit, DomainException>.Failure(error: new NameException(message: "The category name cannot be empty."));
- 
 		if (IsArchived)
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "It is forbidden to change the name of an archived category."));
  

@@ -26,13 +26,13 @@ public sealed class GetOperationsHistoryHandlerTests
 		IReadOnlyList<OperationDto> operations =
 		[
 			new OperationDto(
-				Id: Guid.NewGuid(),
+				Id: Guid.CreateVersion7(),
 				Type: OperationFilterType.Income,
 				Description: null,
 				OccurredAt: FakeDateProvider.Default.UtcNow,
 				Transaction: new TransactionDetailsDto(
-					AccountId: Guid.NewGuid(),
-					CategoryId: Guid.NewGuid(),
+					AccountId: Guid.CreateVersion7(),
+					CategoryId: Guid.CreateVersion7(),
 					Amount: 1000m,
 					Currency: Currency.Create(value: "RUB").Value,
 					Direction: DirectionType.Credit,
@@ -54,7 +54,7 @@ public sealed class GetOperationsHistoryHandlerTests
 		).Returns(returnThis: operations);
 
 		IReadOnlyList<OperationDto> result = await _handler.Handle(
-			query: new GetOperationsHistoryQuery(UserId: Guid.NewGuid()),
+			query: new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
@@ -64,11 +64,11 @@ public sealed class GetOperationsHistoryHandlerTests
 	[Test]
 	public async Task Handle_ShouldPassAllFiltersToRepository()
 	{
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 		DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
 		DateTime dateTo = FakeDateProvider.Default.UtcNow;
 		DateTime cursorOccurredAt = FakeDateProvider.Default.UtcNow.AddDays(value: -1);
-		Guid cursorId = Guid.NewGuid();
+		Guid cursorId = Guid.CreateVersion7();
 
 		_operationsReadRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
@@ -118,7 +118,7 @@ public sealed class GetOperationsHistoryHandlerTests
 		).Returns(returnThis: []);
 
 		IReadOnlyList<OperationDto> result = await _handler.Handle(
-			query: new GetOperationsHistoryQuery(UserId: Guid.NewGuid()),
+			query: new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 

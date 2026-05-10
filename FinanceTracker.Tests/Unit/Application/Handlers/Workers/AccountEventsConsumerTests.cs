@@ -32,6 +32,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
             eventTypeResolver: Substitute.For<IEventTypeResolver>(),
             context: Context,
             unitOfWork: _unitOfWork,
+            dateProvider: FakeDateProvider.Default,
             logger: Substitute.For<ILogger<AccountEventsConsumer>>()
         );
     }
@@ -39,7 +40,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
     [Test]
     public async Task HandleAsync_WhenMessageAlreadyProcessed_ShouldSkip()
     {
-        Guid messageId = Guid.NewGuid();
+        Guid messageId = Guid.CreateVersion7();
 
         await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
         {
@@ -50,7 +51,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
         AccountEventsMessage message = new AccountEventsMessage(
             MessageId: messageId,
-            AggregateId: Guid.NewGuid(),
+            AggregateId: Guid.CreateVersion7(),
             Events: []
         );
 
@@ -67,8 +68,8 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
     public async Task HandleAsync_WhenMessageNotProcessed_ShouldExecuteTransaction()
     {
         AccountEventsMessage message = new AccountEventsMessage(
-            MessageId: Guid.NewGuid(),
-            AggregateId: Guid.NewGuid(),
+            MessageId: Guid.CreateVersion7(),
+            AggregateId: Guid.CreateVersion7(),
             Events: []
         );
 
@@ -76,7 +77,6 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
         await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
             operation: Arg.Any<Func<Task>>(),
-            onError: Arg.Any<Func<Exception, Task>>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

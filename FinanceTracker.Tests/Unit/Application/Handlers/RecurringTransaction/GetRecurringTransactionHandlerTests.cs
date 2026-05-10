@@ -23,7 +23,7 @@ public sealed class GetRecurringTransactionHandlerTests
 	[Test]
 	public async Task Handle_WhenFound_ShouldReturnDto()
 	{
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction dto = RecurringTransactionFactory.Create(userId: userId).Value!;
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: dto.Id, 
@@ -48,8 +48,8 @@ public sealed class GetRecurringTransactionHandlerTests
 
 		await Assert.That(action: async () => await _handler.Handle(
 			query: new GetRecurringTransactionQuery(
-				UserId: Guid.NewGuid(),
-				RecurringTransactionId: Guid.NewGuid()
+				UserId: Guid.CreateVersion7(),
+				RecurringTransactionId: Guid.CreateVersion7()
 			),
 			ct: CancellationToken.None
 		)).Throws<NotFoundException>();
@@ -61,12 +61,12 @@ public sealed class GetRecurringTransactionHandlerTests
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RecurringTransactionFactory.Create(userId: Guid.NewGuid()).Value!);
+		).Returns(returnThis: RecurringTransactionFactory.Create(userId: Guid.CreateVersion7()).Value!);
 
 		await Assert.That(action: async () => await _handler.Handle(
 			query: new GetRecurringTransactionQuery(
-				UserId: Guid.NewGuid(),
-				RecurringTransactionId: Guid.NewGuid()
+				UserId: Guid.CreateVersion7(),
+				RecurringTransactionId: Guid.CreateVersion7()
 			),
 			ct: CancellationToken.None
 		)).Throws<NotFoundException>();

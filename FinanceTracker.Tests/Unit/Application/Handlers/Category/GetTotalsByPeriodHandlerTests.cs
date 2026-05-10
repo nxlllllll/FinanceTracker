@@ -21,20 +21,20 @@ public sealed class GetTotalsByPeriodHandlerTests
     [Test]
     public async Task Handle_ShouldReturnAllTotalsForPeriod()
     {
-        Guid userId = Guid.NewGuid();
+        Guid userId = Guid.CreateVersion7();
         DateOnly period = new DateOnly(year: 2025, month: 1, day: 1);
 
         IReadOnlyList<CategoryTotalDto> totals =
         [
             new CategoryTotalDto(
-                CategoryId: Guid.NewGuid(),
+                CategoryId: Guid.CreateVersion7(),
                 Period: period,
                 Total: 1000m,
                 Count: 1,
                 UpdatedAt: FakeDateProvider.Default.UtcNow
             ),
             new CategoryTotalDto(
-                CategoryId: Guid.NewGuid(),
+                CategoryId: Guid.CreateVersion7(),
                 Period: period,
                 Total: 2000m,
                 Count: 2,
@@ -67,7 +67,7 @@ public sealed class GetTotalsByPeriodHandlerTests
 
         IReadOnlyList<CategoryTotalDto> result = await _handler.Handle(
             query: new GetTotalsByPeriodQuery(
-                UserId: Guid.NewGuid(),
+                UserId: Guid.CreateVersion7(),
                 Period: new DateOnly(year: 2025, month: 1, day: 1)
             ),
             ct: CancellationToken.None

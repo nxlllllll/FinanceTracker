@@ -21,8 +21,8 @@ public sealed class GetTotalHandlerTests
     [Test]
     public async Task Handle_WhenTotalExists_ShouldReturnCategoryTotalDto()
     {
-        Guid userId = Guid.NewGuid();
-        Guid categoryId = Guid.NewGuid();
+        Guid userId = Guid.CreateVersion7();
+        Guid categoryId = Guid.CreateVersion7();
         DateOnly period = new DateOnly(2025, 1, 1);
 
         CategoryTotalDto dto = new CategoryTotalDto(
@@ -63,8 +63,8 @@ public sealed class GetTotalHandlerTests
 
         CategoryTotalDto? result = await _handler.Handle(
             query: new GetTotalQuery(
-                UserId: Guid.NewGuid(),
-                CategoryId: Guid.NewGuid(),
+                UserId: Guid.CreateVersion7(),
+                CategoryId: Guid.CreateVersion7(),
                 Period: new DateOnly(year: 2025, month: 1, day: 1)
             ),
             ct: CancellationToken.None

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Category;
@@ -12,8 +13,8 @@ public sealed class CreateCategoryCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
-			UserId: Guid.NewGuid(),
-			Name: "Еда",
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Еда").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);
@@ -24,29 +25,11 @@ public sealed class CreateCategoryCommandValidatorTests
 	}
 
 	[Test]
-	public async Task Validate_WithEmptyName_ShouldHaveError()
-	{
-		CreateCategoryCommand command = new CreateCategoryCommand(
-			UserId: Guid.NewGuid(),
-			Name: String.Empty,
-			Type: CategoryType.Expense,
-			ParentId: null
-		);
-
-		ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-		await Assert.That(value: result.IsValid).IsFalse();
-		await Assert.That(value: result.Errors.Any(
-			predicate: e => e.PropertyName == nameof(command.Name)
-		)).IsTrue();
-	}
-
-	[Test]
 	public async Task Validate_WithInvalidType_ShouldHaveError()
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
-			UserId: Guid.NewGuid(),
-			Name: "Еда",
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Еда").Value,
 			Type: (CategoryType)99,
 			ParentId: null
 		);
@@ -64,7 +47,7 @@ public sealed class CreateCategoryCommandValidatorTests
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.Empty,
-			Name: "Еда",
+			Name: Name.Create(value: "Еда").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);

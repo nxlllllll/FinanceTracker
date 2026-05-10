@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Infrastructure.Database.Context;
+﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -14,12 +15,12 @@ public class AccountBuilder(FinanceTrackerContext context)
 	{
 		await _accountTypeBuilder.CreateAsync();
 
-		Guid accountId = Guid.NewGuid();
+		Guid accountId = Guid.CreateVersion7();
 		await context.Accounts.AddAsync(new AccountEntity()
 		{
 			Id = accountId,
 			UserId = userId,
-			Name = "Тестовый счёт",
+			Name = Name.Create(value: "Тестовый счёт").Value,
 			AccountType = Core.Domains.Account.AccountType.Checking,
 			Currency = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			IsArchived = false,

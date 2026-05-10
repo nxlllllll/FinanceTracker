@@ -62,25 +62,25 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
-        Guid accountId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
         await _accountWriteRepository.CreateAsync(@event: new AccountCreated(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: accountId,
             UserId: userId,
-            Name: "Карта Сбер",
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: accountType,
             Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow
         ));
 
-        Guid categoryId = Guid.NewGuid();
+        Guid categoryId = Guid.CreateVersion7();
         await Context.Categories.AddAsync(entity: new CategoryEntity()
         {
             Id = categoryId,
             UserId = userId,
             ParentId = null,
-            Name = "Еда",
+            Name = Name.Create(value: "Еда").Value,
             Type = CategoryType.Expense,
             IsArchived = false,
             CreatedAt = DateTime.UtcNow
@@ -99,7 +99,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
         DateTime? occurredAt = null)
     {
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
-            id: Guid.NewGuid(),
+            id: Guid.CreateVersion7(),
             accountId: accountId,
             userId: userId,
             categoryId: categoryId,
@@ -123,7 +123,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WithNonExistentTransaction_ShouldReturnNull()
     {
-        Core.Domains.Transaction.Transaction? result = await _readRepository.GetByIdAsync(transactionId: Guid.NewGuid());
+        Core.Domains.Transaction.Transaction? result = await _readRepository.GetByIdAsync(transactionId: Guid.CreateVersion7());
 
         await Assert.That(value: result).IsNull();
     }
@@ -152,8 +152,8 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     public async Task ExistsAsync_WithNonExistentTransaction_ShouldReturnFalse()
     {
         bool result = await _readRepository.ExistsAsync(
-            userId: Guid.NewGuid(),
-            transactionId: Guid.NewGuid()
+            userId: Guid.CreateVersion7(),
+            transactionId: Guid.CreateVersion7()
         );
 
         await Assert.That(value: result).IsFalse();
@@ -180,7 +180,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithNoTransactions_ShouldReturnEmptyList()
     {
-        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(accountId: Guid.NewGuid());
+        IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(accountId: Guid.CreateVersion7());
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 0);
     }

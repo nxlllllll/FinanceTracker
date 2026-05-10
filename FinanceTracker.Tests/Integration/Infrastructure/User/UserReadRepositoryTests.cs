@@ -27,7 +27,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await _currencyBuilder.CreateAsync(code: currencyCode);
         Result<Core.Domains.User.User, DomainException> result = Core.Domains.User.User.Register(
             createdAt: FakeDateProvider.Default.UtcNow,
-            email: Email.Create(value: $"{Guid.NewGuid()}@test.com").Value,
+            email: Email.Create(value: $"{Guid.CreateVersion7()}@test.com").Value,
             passwordHash: "hash",
             baseCurrency: Core.ValueObjects.Currency.Create(value: currencyCode).Value
         );
@@ -40,7 +40,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WithNonExistentUser_ShouldReturnNull()
     {
-        Core.Domains.User.User? result = await _readRepository.GetByIdAsync(userId: Guid.NewGuid());
+        Core.Domains.User.User? result = await _readRepository.GetByIdAsync(userId: Guid.CreateVersion7());
         await Assert.That(value: result).IsNull();
     }
 

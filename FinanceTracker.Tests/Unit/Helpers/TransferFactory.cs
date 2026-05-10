@@ -18,9 +18,9 @@ public static class TransferFactory
 		string? description = null)
 	{
 		return Transfer.Create(
-			userId: userId ?? Guid.NewGuid(),
-			fromAccountId: fromAccountId ?? Guid.NewGuid(),
-			toAccountId: toAccountId ?? Guid.NewGuid(),
+			userId: userId ?? Guid.CreateVersion7(),
+			fromAccountId: fromAccountId ?? Guid.CreateVersion7(),
+			toAccountId: toAccountId ?? Guid.CreateVersion7(),
 			amountFrom: amountFrom,
 			currencyFrom: Currency.Create(value: currencyFrom).Value,
 			amountTo: amountTo,

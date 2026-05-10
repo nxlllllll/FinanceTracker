@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +26,7 @@ public sealed class CategoryReadRepository(
 			id: category.Id,
 			userId: category.UserId,
 			parentId: category.ParentId,
-			name: category.Name,
+			name: Name.Reconstitute(value: category.Name),
 			type: category.Type,
 			isArchived: category.IsArchived,
 			createdAt: category.CreatedAt

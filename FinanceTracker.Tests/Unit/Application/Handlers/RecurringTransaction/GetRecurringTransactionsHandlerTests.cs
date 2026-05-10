@@ -22,7 +22,7 @@ public sealed class GetRecurringTransactionsHandlerTests
 	[Test]
 	public async Task Handle_ShouldReturnAllUserTransactions()
 	{
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 		List<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> dtos = 
 		[
 			RecurringTransactionFactory.Create(userId: userId).Value!, 
@@ -44,7 +44,7 @@ public sealed class GetRecurringTransactionsHandlerTests
 	[Test]
 	public async Task Handle_WhenNoTransactions_ShouldReturnEmptyList()
 	{
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 		_readRepository.GetByUserIdAsync(
 			userId: userId,
 			ct: Arg.Any<CancellationToken>()

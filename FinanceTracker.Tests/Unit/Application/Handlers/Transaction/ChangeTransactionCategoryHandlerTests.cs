@@ -47,7 +47,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	public async Task HandleAsync_WithDebitNotExcluded_ShouldUpdateCategoryTotalsAndBudget()
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
-		Guid newCategoryId = Guid.NewGuid();
+		Guid newCategoryId = Guid.CreateVersion7();
 
 		await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: newCategoryId),
@@ -81,7 +81,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: true);
 
 		await _handler.HandleAsync(
-			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),
+			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
 			transaction: transaction,
 			ct: CancellationToken.None
 		);
@@ -103,7 +103,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: false);
 
 		await _handler.HandleAsync(
-			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.NewGuid()),
+			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
 			transaction: transaction,
 			ct: CancellationToken.None
 		);

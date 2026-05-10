@@ -26,7 +26,7 @@ public sealed class CreateAccountHandler(
 			userId: command.UserId,
 			name: command.Name,
 			type: command.Type,
-			currency: currencyResult.Value!,
+			currency: currencyResult.Value,
 			balance: command.InitialBalance
 		);
 		if (accountResult.IsFailure)

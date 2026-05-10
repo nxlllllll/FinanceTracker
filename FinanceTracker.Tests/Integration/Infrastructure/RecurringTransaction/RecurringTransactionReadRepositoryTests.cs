@@ -43,7 +43,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WhenNotExists_ShouldReturnNull()
 	{
-		Core.Domains.RecurringTransaction.RecurringTransaction? result = await _readRepository.GetByIdAsync(recurringTransactionId: Guid.NewGuid());
+		Core.Domains.RecurringTransaction.RecurringTransaction? result = await _readRepository.GetByIdAsync(recurringTransactionId: Guid.CreateVersion7());
 
 		await Assert.That(value: result).IsNull();
 	}

@@ -1,13 +1,14 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;
 
 public sealed record CreateAccountCommand(
 	Guid UserId,
-	string Name,
+	Name Name,
 	AccountType Type,
 	string Currency,
 	decimal InitialBalance

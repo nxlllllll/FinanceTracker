@@ -12,9 +12,9 @@ public sealed class RecurringTransactionTests
     [Test]
     public async Task Create_WithValidData_ShouldSetCorrectState()
     {
-        Guid userId = Guid.NewGuid();
-        Guid accountId = Guid.NewGuid();
-        Guid categoryId = Guid.NewGuid();
+        Guid userId = Guid.CreateVersion7();
+        Guid accountId = Guid.CreateVersion7();
+        Guid categoryId = Guid.CreateVersion7();
 
         RecurringTransaction rt = RecurringTransactionFactory.Create(
             userId: userId,

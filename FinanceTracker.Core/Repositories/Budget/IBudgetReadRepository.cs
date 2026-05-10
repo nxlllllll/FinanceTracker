@@ -17,6 +17,9 @@ public interface IBudgetReadRepository
 
     Task<IReadOnlyList<Domains.Budget.Budget>> GetAllAsync(
         Guid userId,
+        DateTime? cursorCreatedAt = null,
+        Guid? cursorId = null,
+        int pageSize = 20,
         CancellationToken ct = default
     );
 }

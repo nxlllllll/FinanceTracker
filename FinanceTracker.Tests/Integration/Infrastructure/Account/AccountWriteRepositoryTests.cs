@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -49,10 +50,10 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
-            Id: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: "Карта Сбер",
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: accountType,
             Currency: currencyCode,
             Balance: 10000m,
@@ -81,9 +82,9 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         AccountCreated created = await CreateAccountAsync();
 
         await _writeRepository.RenameAsync(@event: new AccountRenamed(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: created.AccountId, 
-            NewName: "Карта Тинькофф",
+            NewName: Name.Create(value: "Карта Тинькофф").Value,
             OccurredAt: DateTime.UtcNow
         ));
 
@@ -101,7 +102,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         AccountCreated created = await CreateAccountAsync();
 
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
             OccurredAt: DateTime.UtcNow
         ));
@@ -120,12 +121,12 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         AccountCreated created = await CreateAccountAsync();
 
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
             OccurredAt: DateTime.UtcNow
         ));
         await _writeRepository.UnarchiveAsync(@event: new AccountUnarchived(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
             OccurredAt: DateTime.UtcNow
         ));
@@ -144,10 +145,10 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         AccountCreated created = await CreateAccountAsync();
 
         await _writeRepository.DebitAsync(@event: new AccountDebited(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
-            TransactionId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
+            TransactionId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
             Amount: 1000m,
             ExchangeRate: 1m,
             Description: null,
@@ -168,10 +169,10 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         AccountCreated created = await CreateAccountAsync();
 
         await _writeRepository.CreditAsync(@event: new AccountCredited(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
-            TransactionId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
+            TransactionId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
             Amount: 500m,
             ExchangeRate: 1m,
             Description: null,
@@ -192,10 +193,10 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         AccountCreated created = await CreateAccountAsync();
 
         await _writeRepository.DebitAsync(@event: new AccountDebited(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
-            TransactionId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
+            TransactionId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
             Amount: 100m,
             ExchangeRate: 90m,
             Description: null,

@@ -14,8 +14,8 @@ public static class BudgetFactory
 	{
 		Result<Budget, DomainException> result = Budget.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
-			userId: userId ?? Guid.NewGuid(),
-			categoryId: categoryId ?? Guid.NewGuid(),
+			userId: userId ?? Guid.CreateVersion7(),
+			categoryId: categoryId ?? Guid.CreateVersion7(),
 			amount: Money.Create(amount: 10000m, currency: Currency.Create(value: "RUB").Value).Value,
 			from: new DateOnly(year: 2025, month: 1, day: 1),
 			to: new DateOnly(year: 2025, month: 1, day: 31)
@@ -33,7 +33,7 @@ public static class BudgetFactory
 		decimal percentage = amount == 0 ? 0 : spent / amount;
 
 		return new BudgetProgressDto(
-			BudgetId: budgetId ?? Guid.NewGuid(),
+			BudgetId: budgetId ?? Guid.CreateVersion7(),
 			Spent: spent,
 			Remaining: remaining,
 			Percentage: percentage,

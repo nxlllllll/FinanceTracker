@@ -3,6 +3,7 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
@@ -23,12 +24,12 @@ public sealed class AccountTests
 	[Test]
 	public async Task Create_WithValidData_ShouldSetCorrectState()
 	{
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 
 		Account account = AccountFactory.Create(userId: userId, balance: 10000).Value!;
 
 		await Assert.That(value: account.UserId).IsEqualTo(expected: userId);
-		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Сбер");
+		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "Карта Сбер");
 		await Assert.That(value: account.Type).IsEqualTo(expected: AccountType.Checking);
 		await Assert.That(value: account.Currency.Value).IsEqualTo(expected: "RUB");
 		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000m);
@@ -58,9 +59,9 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create().Value!;
 
-		_ = account.Rename(occurredAt: Now, newName: "Карта Тинькофф");
+		_ = account.Rename(occurredAt: Now, newName: Name.Create(value: "Карта Тинькофф").Value);
 
-		await Assert.That(value: account.Name).IsEqualTo(expected: "Карта Тинькофф");
+		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "Карта Тинькофф");
 	}
 
 	[Test]
@@ -69,20 +70,9 @@ public sealed class AccountTests
 		Account account = AccountFactory.Create(name: "Карта Сбер").Value!;
 		account.ClearEvents();
 		
-		account.Rename(occurredAt: Now, newName: "Карта Сбер");
+		account.Rename(occurredAt: Now, newName: Name.Create(value: "Карта Сбер").Value);
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
-	}
-
-	[Test]
-	public async Task Rename_WithEmptyName_ShouldThrowEmptyNameException()
-	{
-		Account account = AccountFactory.Create().Value!;
-
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Rename(occurredAt: Now, newName: String.Empty);
-		
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<NameException>();
 	}
 	
 	[Test]
@@ -137,8 +127,8 @@ public sealed class AccountTests
 
         account.Debit(
             occurredAt: Now,
-            transactionId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
+            transactionId: Guid.CreateVersion7(),
+            categoryId: Guid.CreateVersion7(),
             amount: 1000m,
             exchangeRate: 1m,
             description: "Обед"
@@ -157,8 +147,8 @@ public sealed class AccountTests
 
         account.Debit(
             occurredAt: Now,
-            transactionId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
+            transactionId: Guid.CreateVersion7(),
+            categoryId: Guid.CreateVersion7(),
             amount: 100m,
             exchangeRate: 90m,
             description: null
@@ -175,8 +165,8 @@ public sealed class AccountTests
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
 			occurredAt: Now,
-			transactionId: Guid.NewGuid(),
-			categoryId: Guid.NewGuid(),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
 			amount: 100m,
 			exchangeRate: 1m,
 			description: null
@@ -193,8 +183,8 @@ public sealed class AccountTests
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
 			occurredAt: Now,
-			transactionId: Guid.NewGuid(),
-			categoryId: Guid.NewGuid(),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
 			amount: 0m,
 			exchangeRate: 1m,
 			description: null
@@ -212,8 +202,8 @@ public sealed class AccountTests
 
 		account.Credit(
 			occurredAt: Now,
-			transactionId: Guid.NewGuid(),
-			categoryId: Guid.NewGuid(),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
 			amount: 500m,
 			exchangeRate: 1m,
 			description: "Зарплата"
@@ -232,8 +222,8 @@ public sealed class AccountTests
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Credit(
 			occurredAt: Now,
-			transactionId: Guid.NewGuid(),
-			categoryId: Guid.NewGuid(),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
 			amount: 100m,
 			exchangeRate: 1m,
 			description: null
@@ -249,8 +239,8 @@ public sealed class AccountTests
 
 		original.Debit(
 			occurredAt: Now,
-			transactionId: Guid.NewGuid(),
-			categoryId: Guid.NewGuid(),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
 			amount: 1000m,
 			exchangeRate: 1m,
 			description: null
@@ -258,8 +248,8 @@ public sealed class AccountTests
 
 		original.Credit(
 			occurredAt: Now,
-			transactionId: Guid.NewGuid(),
-			categoryId: Guid.NewGuid(),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
 			amount: 500m,
 			exchangeRate: 1m,
 			description: null
@@ -281,7 +271,7 @@ public sealed class AccountTests
 
 	    account.AdjustBalance(
 	        occurredAt: Now,
-	        sourceId: Guid.NewGuid(),
+	        sourceId: Guid.CreateVersion7(),
 	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Debit,
 	        oldRate: 85m,
@@ -302,7 +292,7 @@ public sealed class AccountTests
 
 	    account.AdjustBalance(
 	        occurredAt: Now,
-	        sourceId: Guid.NewGuid(),
+	        sourceId: Guid.CreateVersion7(),
 	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Credit,
 	        oldRate: 85m,
@@ -321,7 +311,7 @@ public sealed class AccountTests
 
 	    account.AdjustBalance(
 	        occurredAt: Now,
-	        sourceId: Guid.NewGuid(),
+	        sourceId: Guid.CreateVersion7(),
 	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Debit,
 	        oldRate: 90m,
@@ -340,7 +330,7 @@ public sealed class AccountTests
 
 	    account.AdjustBalance(
 	        occurredAt: Now,
-	        sourceId: Guid.NewGuid(),
+	        sourceId: Guid.CreateVersion7(),
 	        sourceType: AggregateTypeNames.Transaction,
 	        direction: DirectionType.Debit,
 	        oldRate: 90m,
@@ -360,8 +350,8 @@ public sealed class AccountTests
 
 		account.DebitTransfer(
 			occurredAt: Now,
-			transferId: Guid.NewGuid(),
-			toAccountId: Guid.NewGuid(),
+			transferId: Guid.CreateVersion7(),
+			toAccountId: Guid.CreateVersion7(),
 			amount: 1000m,
 			forexRate: 0.011m,
 			description: null
@@ -380,8 +370,8 @@ public sealed class AccountTests
 
 		account.CreditTransfer(
 			occurredAt: Now,
-			transferId: Guid.NewGuid(),
-			fromAccountId: Guid.NewGuid(),
+			transferId: Guid.CreateVersion7(),
+			fromAccountId: Guid.CreateVersion7(),
 			amount: 1000m,
 			exchangeRate: 0.011m,
 			description: null

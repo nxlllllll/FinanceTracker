@@ -37,9 +37,9 @@ public sealed class CreateTransactionCommandValidatorTests
     public async Task Validate_WithFutureDate_ShouldHaveError()
     {
         CreateTransactionCommand command = new CreateTransactionCommand(
-            AccountId: Guid.NewGuid(),
-            UserId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
+            AccountId: Guid.CreateVersion7(),
+            UserId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
             Amount: 1000m,
             Currency: Currency.Create(value: "RUB").Value,
             Direction: DirectionType.Debit,

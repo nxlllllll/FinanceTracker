@@ -23,7 +23,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WithNonExistentTransfer_ShouldReturnNull()
     {
-        Core.Domains.Transfer.Transfer? result = await _readRepository.GetByIdAsync(transferId: Guid.NewGuid());
+        Core.Domains.Transfer.Transfer? result = await _readRepository.GetByIdAsync(transferId: Guid.CreateVersion7());
         await Assert.That(value: result).IsNull();
     }
 
@@ -56,7 +56,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithNoTransfers_ShouldReturnEmptyList()
     {
-        IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(userId: Guid.NewGuid());
+        IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
         await Assert.That(value: result.Count).IsEqualTo(expected: 0);
     }
 

@@ -22,7 +22,11 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.Property(propertyExpression: a => a.Name)
 			.HasColumnName(name: "name")
-			.HasMaxLength(maxLength: 100);
+			.HasMaxLength(maxLength: 100)
+			.HasConversion(
+				convertToProviderExpression: name => name.Value,
+				convertFromProviderExpression: name => Name.Reconstitute(value: name)
+			);
 
 		builder.Property(propertyExpression: a => a.AccountType)
 			.HasColumnName(name: "account_type_code")

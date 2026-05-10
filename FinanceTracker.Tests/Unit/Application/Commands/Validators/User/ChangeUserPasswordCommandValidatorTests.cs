@@ -11,7 +11,7 @@ public sealed class ChangeUserPasswordCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		ChangeUserPasswordCommand command = new ChangeUserPasswordCommand(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			NewPasswordHash: "newHash"
 		);
 
@@ -40,7 +40,7 @@ public sealed class ChangeUserPasswordCommandValidatorTests
 	public async Task Validate_WithEmptyPasswordHash_ShouldHaveError()
 	{
 		ChangeUserPasswordCommand command = new ChangeUserPasswordCommand(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			NewPasswordHash: String.Empty
 		);
 

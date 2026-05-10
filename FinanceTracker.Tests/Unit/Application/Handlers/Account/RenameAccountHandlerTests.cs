@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Accounts.Commands.RenameAccount;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -23,13 +24,13 @@ public sealed class RenameAccountHandlerTests
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
 
 		await _handler.HandleAsync(
-			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: "Новое название"),
+			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: Name.Create(value: "Новое название").Value),
 			account: account,
 			ct: CancellationToken.None
 		);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Name == "Новое название"),
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Name.Value == "Новое название"),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

@@ -9,7 +9,7 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
-using FinanceTracker.Worker.Outbox.RabbitMQ;
+using FinanceTracker.Worker.Shared.RabbitMQ;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -65,11 +65,23 @@ public sealed class OutboxPublisherJob(
             int published = 0;
             foreach (OutboxMessageEntity message in messages)
             {
-                await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+                try
                 {
-                    await PublishMessageAsync(channel: channel, message: message, ct: ct);
-                    logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
-                }, onError: async exception => await UpdateRetryStateAsync(message: message, exception: exception, ct: ct), ct: ct);
+                    await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+                    {
+                        await PublishMessageAsync(channel: channel, message: message, ct: ct);
+                        logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
+                    }, ct: ct);
+                }
+                catch (Exception exception)
+                {
+                    if (ct.IsCancellationRequested)
+                        return;
+
+                    logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
+
+                    await UpdateRetryStateAsync(message: message, ct: ct);
+                }
             }
         }, onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch publishing failed."), ct: ct);
     }
@@ -101,22 +113,25 @@ public sealed class OutboxPublisherJob(
         await context.SaveChangesAsync(cancellationToken: ct);
     }
 
-    private async Task UpdateRetryStateAsync(OutboxMessageEntity message, Exception exception, CancellationToken ct)
+    private async Task UpdateRetryStateAsync(OutboxMessageEntity message, CancellationToken ct)
     {
-        if (ct.IsCancellationRequested)
-            return;
-
-        logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
-
-        await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+        try
         {
-            ++message.RetryCount;
-            if (message.RetryCount >= _outboxOptions.MaxRetries)
+            await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
             {
-                message.FailedAt = dateProvider.UtcNow;
-                logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {_outboxOptions.MaxRetries} retries.");
-            }
-            await context.SaveChangesAsync(cancellationToken: ct);
-        }, onError: async innerException => logger.ZLogError(exception: innerException, message: $"Failed to update retry state for outbox message {message.Id}."), ct: ct);
+                ++message.RetryCount;
+                if (message.RetryCount >= _outboxOptions.MaxRetries)
+                {
+                    message.FailedAt = dateProvider.UtcNow;
+                    logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {_outboxOptions.MaxRetries} retries.");
+                }
+
+                await context.SaveChangesAsync(cancellationToken: ct);
+            }, ct: ct);
+        }
+        catch (Exception innerException)
+        {
+            logger.ZLogError(exception: innerException, message: $"Failed to update retry state for outbox message {message.Id}.");
+        }
     }
 }

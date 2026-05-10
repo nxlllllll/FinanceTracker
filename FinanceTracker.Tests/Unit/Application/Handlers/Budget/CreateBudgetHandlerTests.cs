@@ -23,8 +23,8 @@ public sealed class CreateBudgetHandlerTests
 	public async Task Handle_WithValidCommand_ShouldReturnBudgetId()
 	{
 		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.NewGuid(),
-			CategoryId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
+			CategoryId: Guid.CreateVersion7(),
 			Currency: "RUB",
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
@@ -41,8 +41,8 @@ public sealed class CreateBudgetHandlerTests
 	public async Task Handle_WithValidCommand_ShouldCallCreateAsync()
 	{
 		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.NewGuid(),
-			CategoryId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
+			CategoryId: Guid.CreateVersion7(),
 			Currency: "RUB",
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),

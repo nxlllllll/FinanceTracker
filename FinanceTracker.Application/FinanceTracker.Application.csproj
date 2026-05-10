@@ -18,8 +18,4 @@
       <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="UseCases\Accounts\Projections\" />
-    </ItemGroup>
-
 </Project>

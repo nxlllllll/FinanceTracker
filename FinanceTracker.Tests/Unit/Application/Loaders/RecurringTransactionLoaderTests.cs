@@ -30,7 +30,7 @@ public sealed class RecurringTransactionLoaderTests
 		).Returns(returnThis: Task.FromResult<RecurringTransaction?>(result: null));
 
 		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
-			request: new ActivateRecurringTransactionCommand(UserId: Guid.NewGuid(), RecurringTransactionId: Guid.NewGuid()),
+			request: new ActivateRecurringTransactionCommand(UserId: Guid.CreateVersion7(), RecurringTransactionId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 		
@@ -48,7 +48,7 @@ public sealed class RecurringTransactionLoaderTests
 		).Returns(returnThis: recurringTransaction);
 
 		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
-			request: new ActivateRecurringTransactionCommand(UserId: Guid.NewGuid(), RecurringTransactionId: recurringTransaction.Id),
+			request: new ActivateRecurringTransactionCommand(UserId: Guid.CreateVersion7(), RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
 		);
 		

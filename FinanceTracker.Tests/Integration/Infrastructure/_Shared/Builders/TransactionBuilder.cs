@@ -16,7 +16,7 @@ public class TransactionBuilder(FinanceTrackerContext context)
 		bool isExcluded = false,
 		DateTime? occurredAt = null)
 	{
-		Guid transactionId = Guid.NewGuid();
+		Guid transactionId = Guid.CreateVersion7();
 
 		await context.Transactions.AddAsync(new TransactionEntity
 		{

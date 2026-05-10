@@ -14,10 +14,10 @@ public static class CreateTransferCommandFactory
 		string? description = "Обед")
 	{
 		return new CreateTransferCommand(
-			UserId: userId ?? Guid.NewGuid(),
-			FromAccountId: fromAccountId ?? Guid.NewGuid(),
+			UserId: userId ?? Guid.CreateVersion7(),
+			FromAccountId: fromAccountId ?? Guid.CreateVersion7(),
 			CurrencyFrom: currencyFrom,
-			ToAccountId: toAccountId ?? Guid.NewGuid(),
+			ToAccountId: toAccountId ?? Guid.CreateVersion7(),
 			CurrencyTo: currencyTo,
 			Amount: amount,
 			Description: description,

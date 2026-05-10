@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.UseCases.Accounts.Commands.RenameAccount;
+using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Account;
@@ -11,30 +12,13 @@ public sealed class RenameAccountCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		RenameAccountCommand command = new RenameAccountCommand(
-			UserId: Guid.NewGuid(),
-			AccountId: Guid.NewGuid(),
-			NewName: "Карта Тинькофф"
+			UserId: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
+			NewName: Name.Create(value: "Карта Тинькофф").Value
 		);
 
 		ValidationResult? result = await _validator.ValidateAsync(instance: command);
 		await Assert.That(value: result.IsValid).IsTrue();
-	}
-
-	[Test]
-	public async Task Validate_WithEmptyNewName_ShouldHaveError()
-	{
-		RenameAccountCommand command = new RenameAccountCommand(
-			UserId: Guid.NewGuid(),
-			AccountId: Guid.NewGuid(),
-			NewName: String.Empty
-		);
-
-		ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-		await Assert.That(value: result.IsValid).IsFalse();
-		await Assert.That(value: result.Errors.Any(
-			predicate: e => e.PropertyName == nameof(command.NewName)
-		)).IsTrue();
 	}
 	
 	[Test]
@@ -42,8 +26,8 @@ public sealed class RenameAccountCommandValidatorTests
 	{
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: Guid.Empty,
-			AccountId: Guid.NewGuid(),
-			NewName: "Карта Тинькофф"
+			AccountId: Guid.CreateVersion7(),
+			NewName: Name.Create(value: "Карта Тинькофф").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -58,9 +42,9 @@ public sealed class RenameAccountCommandValidatorTests
 	public async Task Validate_WithEmptyAccountId_ShouldHaveError()
 	{
 		RenameAccountCommand command = new RenameAccountCommand(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			AccountId: Guid.Empty,
-			NewName: "Карта Тинькофф"
+			NewName: Name.Create(value: "Карта Тинькофф").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);

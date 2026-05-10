@@ -32,7 +32,7 @@ public sealed class Transfer
     {
         return new Transfer
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             UserId = userId,
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,

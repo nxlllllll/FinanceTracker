@@ -48,7 +48,7 @@ public sealed class GetBudgetHandlerTests
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Budget.Budget?>(result: null));
 
 		FinanceTracker.Core.Domains.Budget.Budget? result = await _handler.Handle(
-			query: new GetBudgetQuery(UserId: Guid.NewGuid(), BudgetId: Guid.NewGuid()),
+			query: new GetBudgetQuery(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 

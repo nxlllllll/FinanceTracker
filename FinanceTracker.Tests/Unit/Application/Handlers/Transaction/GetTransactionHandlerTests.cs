@@ -45,7 +45,7 @@ public sealed class GetTransactionHandlerTests
 		).Returns(returnThis: (FinanceTracker.Core.Domains.Transaction.Transaction?)null);
 
 		FinanceTracker.Core.Domains.Transaction.Transaction? result = await _handler.Handle(
-			query: new GetTransactionQuery(TransactionId: Guid.NewGuid()),
+			query: new GetTransactionQuery(TransactionId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
@@ -55,7 +55,7 @@ public sealed class GetTransactionHandlerTests
 	[Test]
 	public async Task Handle_ShouldPassTransactionIdToRepository()
 	{
-		Guid transactionId = Guid.NewGuid();
+		Guid transactionId = Guid.CreateVersion7();
 
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),

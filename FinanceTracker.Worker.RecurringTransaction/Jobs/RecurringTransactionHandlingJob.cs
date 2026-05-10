@@ -4,7 +4,7 @@ using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Worker.RecurringTransaction.RabbitMQ;
+using FinanceTracker.Worker.Shared.RabbitMQ;
 using Microsoft.Extensions.Options;
 using Quartz;
 using RabbitMQ.Client;
@@ -52,11 +52,18 @@ public sealed class RecurringTransactionHandlingJob(
         int processed = 0;
         foreach (Core.Domains.RecurringTransaction.RecurringTransaction dueTransaction in dueTransactions)
         {
-            await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+            try
             {
-                await PublishAndMarkAsync(channel: channel, transaction: dueTransaction, ct: ct);
-                logger.ZLogInformation(message: $"Recurring transaction published: {++processed}/{dueTransactions.Count}.");
-            }, onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to process recurring transaction {dueTransaction.Id}."), ct: ct);
+                await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+                {
+                    await PublishAndMarkAsync(channel: channel, transaction: dueTransaction, ct: ct);
+                    logger.ZLogInformation(message: $"Recurring transaction published: {++processed}/{dueTransactions.Count}.");
+                }, ct: ct);
+            }
+            catch (Exception exception)
+            {
+                logger.ZLogError(exception: exception, message: $"Failed to process recurring transaction {dueTransaction.Id}.");
+            }
         }
     }
 
@@ -79,7 +86,7 @@ public sealed class RecurringTransactionHandlingJob(
         CancellationToken ct)
     {
         RecurringTransactionTriggeredMessage message = new RecurringTransactionTriggeredMessage(
-            MessageId: Guid.NewGuid(),
+            MessageId: Guid.CreateVersion7(),
             RecurringTransactionId: transaction.Id,
             AccountId: transaction.AccountId,
             UserId: transaction.UserId,

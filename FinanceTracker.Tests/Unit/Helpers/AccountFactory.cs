@@ -17,8 +17,8 @@ public static class AccountFactory
 	{
 		Result<Account, DomainException> result = Account.Create(
 			occurredAt: FakeDateProvider.Default.UtcNow,
-			userId: userId ?? Guid.NewGuid(),
-			name: name,
+			userId: userId ?? Guid.CreateVersion7(),
+			name: Name.Create(value: name).Value,
 			type: type,
 			currency: Currency.Create(value: currency).Value,
 			balance: balance
@@ -54,8 +54,8 @@ public static class AccountFactory
 		bool isArchived = false)
 	{
 		return new AccountDto(
-			Id: id ?? Guid.NewGuid(),
-			UserId: userId ?? Guid.NewGuid(),
+			Id: id ?? Guid.CreateVersion7(),
+			UserId: userId ?? Guid.CreateVersion7(),
 			Name: name,
 			Type: type,
 			Currency: Currency.Create(value: currency).Value,

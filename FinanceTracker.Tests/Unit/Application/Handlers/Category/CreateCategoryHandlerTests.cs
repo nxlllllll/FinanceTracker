@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -22,8 +23,8 @@ public sealed class CreateCategoryHandlerTests
 	public async Task Handle_WithValidCommand_ShouldCreateCategory()
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
-			UserId: Guid.NewGuid(),
-			Name: "Еда",
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Еда").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);
@@ -43,10 +44,10 @@ public sealed class CreateCategoryHandlerTests
 	[Test]
 	public async Task Handle_WithParentId_ShouldCreateCategoryWithParentId()
 	{
-		Guid parentId = Guid.NewGuid();
+		Guid parentId = Guid.CreateVersion7();
 		CreateCategoryCommand command = new CreateCategoryCommand(
-			UserId: Guid.NewGuid(),
-			Name: "Фастфуд",
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Фастфуд").Value,
 			Type: CategoryType.Expense,
 			ParentId: parentId
 		);

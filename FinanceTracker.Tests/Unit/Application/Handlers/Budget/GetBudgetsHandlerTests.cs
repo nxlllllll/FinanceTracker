@@ -20,7 +20,7 @@ public sealed class GetBudgetsHandlerTests
 	[Test]
 	public async Task Handle_ShouldReturnAllBudgets()
 	{
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> budgets = [
 			BudgetFactory.Create(userId: userId).Value!,
 			BudgetFactory.Create(userId: userId).Value!
@@ -48,7 +48,7 @@ public sealed class GetBudgetsHandlerTests
 		).Returns(returnThis: []);
 
 		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> result = await _handler.Handle(
-			query: new GetBudgetsQuery(UserId: Guid.NewGuid()),
+			query: new GetBudgetsQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 

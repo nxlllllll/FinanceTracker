@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Core.Repositories.Category;
+﻿using FinanceTracker.Core.ValueObjects;
+
+namespace FinanceTracker.Core.Repositories.Category;
 
 public interface ICategoryWriteRepository
 {
@@ -9,7 +11,7 @@ public interface ICategoryWriteRepository
 
 	Task RenameAsync(
 		Guid categoryId,
-		string newName,
+		Name newName,
 		CancellationToken ct = default
 	);
 

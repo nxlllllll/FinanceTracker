@@ -29,7 +29,7 @@ public sealed class Budget
  
         return Result<Budget, DomainException>.Success(value: new Budget
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             UserId = userId,
             CategoryId = categoryId,
             Amount = amount,

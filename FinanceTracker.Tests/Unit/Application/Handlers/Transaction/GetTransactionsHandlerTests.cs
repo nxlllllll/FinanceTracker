@@ -21,7 +21,7 @@ public sealed class GetTransactionsHandlerTests
     [Test]
     public async Task Handle_ShouldReturnAllTransactions()
     {
-        Guid accountId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
         IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [
             TransactionFactory.Create(accountId: accountId), 
             TransactionFactory.Create(accountId: accountId)
@@ -49,7 +49,7 @@ public sealed class GetTransactionsHandlerTests
     [Test]
     public async Task Handle_ShouldPassCategoryIdFilterToRepository()
     {
-        Guid categoryId = Guid.NewGuid();
+        Guid categoryId = Guid.CreateVersion7();
 
         _transactionReadRepository.GetAllAsync(
             accountId: Arg.Any<Guid>(),
@@ -62,7 +62,7 @@ public sealed class GetTransactionsHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.NewGuid(), CategoryId: categoryId),
+            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), CategoryId: categoryId),
             ct: CancellationToken.None
         );
 
@@ -91,7 +91,7 @@ public sealed class GetTransactionsHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.NewGuid(), Direction: DirectionType.Credit),
+            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), Direction: DirectionType.Credit),
             ct: CancellationToken.None
         );
 
@@ -120,7 +120,7 @@ public sealed class GetTransactionsHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.NewGuid(), IsExcluded: false),
+            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), IsExcluded: false),
             ct: CancellationToken.None
         );
 
@@ -152,7 +152,7 @@ public sealed class GetTransactionsHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(query: new GetTransactionsQuery(
-            AccountId: Guid.NewGuid(),
+            AccountId: Guid.CreateVersion7(),
             DateFrom: dateFrom,
             DateTo: dateTo
         ), ct: CancellationToken.None);
@@ -182,7 +182,7 @@ public sealed class GetTransactionsHandlerTests
         ).Returns(returnThis: []);
 
         IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.NewGuid()),
+            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7()),
             ct: CancellationToken.None
         );
 
@@ -192,8 +192,8 @@ public sealed class GetTransactionsHandlerTests
     [Test]
     public async Task Handle_ShouldPassAllFiltersToRepository()
     {
-        Guid accountId = Guid.NewGuid();
-        Guid categoryId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
+        Guid categoryId = Guid.CreateVersion7();
         DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
         DateTime dateTo = FakeDateProvider.Default.UtcNow;
 

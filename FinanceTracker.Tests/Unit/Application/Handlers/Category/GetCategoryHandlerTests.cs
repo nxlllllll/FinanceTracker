@@ -42,7 +42,7 @@ public sealed class GetCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(result: null));
 
-		GetCategoryQuery query = new GetCategoryQuery(CategoryId: Guid.NewGuid());
+		GetCategoryQuery query = new GetCategoryQuery(CategoryId: Guid.CreateVersion7());
 		FinanceTracker.Core.Domains.Category.Category? result = await _handler.Handle(query: query, ct: CancellationToken.None);
 
 		await Assert.That(value: result).IsNull();

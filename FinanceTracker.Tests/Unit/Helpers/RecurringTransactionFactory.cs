@@ -21,9 +21,9 @@ public static class RecurringTransactionFactory
 	{
 		Result<RecurringTransaction, DomainException> result = RecurringTransaction.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
-			userId: userId ?? Guid.NewGuid(),
-			accountId: accountId ?? Guid.NewGuid(),
-			categoryId: categoryId ?? Guid.NewGuid(),
+			userId: userId ?? Guid.CreateVersion7(),
+			accountId: accountId ?? Guid.CreateVersion7(),
+			categoryId: categoryId ?? Guid.CreateVersion7(),
 			amount: Money.Create(amount: amount, currency: Currency.Create(value: currency).Value).Value,
 			direction: direction,
 			dayOfMonth: dayOfMonth,

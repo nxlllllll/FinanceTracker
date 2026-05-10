@@ -10,7 +10,7 @@ public sealed class GetTransactionsQueryValidatorTests
     [Test]
     public async Task Validate_WithValidQuery_ShouldNotHaveErrors()
     {
-        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.NewGuid());
+        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: Guid.CreateVersion7());
 
         ValidationResult result = await _validator.ValidateAsync(instance: query);
 
@@ -21,9 +21,9 @@ public sealed class GetTransactionsQueryValidatorTests
     public async Task Validate_WithValidCursor_ShouldNotHaveErrors()
     {
         GetTransactionsQuery query = new GetTransactionsQuery(
-            AccountId: Guid.NewGuid(),
+            AccountId: Guid.CreateVersion7(),
             CursorOccurredAt: DateTime.UtcNow,
-            CursorId: Guid.NewGuid()
+            CursorId: Guid.CreateVersion7()
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: query);
@@ -35,7 +35,7 @@ public sealed class GetTransactionsQueryValidatorTests
     public async Task Validate_WithPageSizeZero_ShouldHaveError()
     {
         GetTransactionsQuery query = new GetTransactionsQuery(
-            AccountId: Guid.NewGuid(),
+            AccountId: Guid.CreateVersion7(),
             PageSize: 0
         );
 
@@ -51,7 +51,7 @@ public sealed class GetTransactionsQueryValidatorTests
     public async Task Validate_WithPageSizeOver100_ShouldHaveError()
     {
         GetTransactionsQuery query = new GetTransactionsQuery(
-            AccountId: Guid.NewGuid(),
+            AccountId: Guid.CreateVersion7(),
             PageSize: 101
         );
 
@@ -67,8 +67,8 @@ public sealed class GetTransactionsQueryValidatorTests
     public async Task Validate_WithCursorIdWithoutCursorOccurredAt_ShouldHaveError()
     {
         GetTransactionsQuery query = new GetTransactionsQuery(
-            AccountId: Guid.NewGuid(),
-            CursorId: Guid.NewGuid()
+            AccountId: Guid.CreateVersion7(),
+            CursorId: Guid.CreateVersion7()
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: query);
@@ -83,7 +83,7 @@ public sealed class GetTransactionsQueryValidatorTests
     public async Task Validate_WithCursorOccurredAtWithoutCursorId_ShouldHaveError()
     {
         GetTransactionsQuery query = new GetTransactionsQuery(
-            AccountId: Guid.NewGuid(),
+            AccountId: Guid.CreateVersion7(),
             CursorOccurredAt: DateTime.UtcNow
         );
 

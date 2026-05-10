@@ -1,7 +1,7 @@
 using FinanceTracker.Application.UseCases.Transactions.Services;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumers;
-using FinanceTracker.Worker.RecurringTransactionProjection.RabbitMQ;
+using FinanceTracker.Worker.Shared.RabbitMQ;
 
 namespace FinanceTracker.Worker.RecurringTransactionProjection;
 

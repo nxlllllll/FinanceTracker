@@ -16,9 +16,9 @@ public static class CreateRecurringTransactionCommandFactory
 		string? description = "Monthly rent")
 	{
 		return new CreateRecurringTransactionCommand(
-			UserId: userId ?? Guid.NewGuid(),
-			AccountId: accountId ?? Guid.NewGuid(),
-			CategoryId: categoryId ?? Guid.NewGuid(),
+			UserId: userId ?? Guid.CreateVersion7(),
+			AccountId: accountId ?? Guid.CreateVersion7(),
+			CategoryId: categoryId ?? Guid.CreateVersion7(),
 			Amount: amount,
 			Currency: currency,
 			Direction: direction,

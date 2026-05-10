@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core;
@@ -10,12 +11,12 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Create_WithValidData_ShouldSetCorrectState()
 	{
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 		Category category = CategoryFactory.Create(userId: userId).Value!;
 
 		await Assert.That(value: category.Id).IsNotDefault();
 		await Assert.That(value: category.UserId).IsEqualTo(expected: userId);
-		await Assert.That(value: category.Name).IsEqualTo(expected: "Еда");
+		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Еда");
 		await Assert.That(value: category.Type).IsEqualTo(expected: CategoryType.Expense);
 		await Assert.That(value: category.ParentId).IsNull();
 		await Assert.That(value: category.IsArchived).IsFalse();
@@ -25,7 +26,7 @@ public sealed class CategoryTests
 	[Test]
 	public async Task Create_WithParentId_ShouldSetParentId()
 	{
-		Guid parentId = Guid.NewGuid();
+		Guid parentId = Guid.CreateVersion7();
 		Category category = CategoryFactory.Create(parentId: parentId).Value!;
 
 		await Assert.That(value: category.ParentId).IsEqualTo(expected: parentId);
@@ -45,9 +46,9 @@ public sealed class CategoryTests
 	{
 		Category category = CategoryFactory.Create().Value!;
 
-		category.Rename(newName: "Продукты");
+		category.Rename(newName: Name.Create(value: "Продукты").Value);
 
-		await Assert.That(value: category.Name).IsEqualTo(expected: "Продукты");
+		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Продукты");
 	}
 
 	[Test]
@@ -55,20 +56,9 @@ public sealed class CategoryTests
 	{
 		Category category = CategoryFactory.Create().Value!;
 
-		category.Rename(newName: "Еда");
+		category.Rename(newName: Name.Create(value: "Еда").Value);
 
-		await Assert.That(value: category.Name).IsEqualTo(expected: "Еда");
-	}
-
-	[Test]
-	public async Task Rename_WithEmptyName_ShouldThrowEmptyNameException()
-	{
-		Category category = CategoryFactory.Create().Value!;
-
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(newName: String.Empty);
-		
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<NameException>();
+		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Еда");
 	}
 
 	[Test]
@@ -78,7 +68,7 @@ public sealed class CategoryTests
 
 		category.Archive();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(newName: "Продукты");
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(newName: Name.Create(value: "Продукты").Value);
 		
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();

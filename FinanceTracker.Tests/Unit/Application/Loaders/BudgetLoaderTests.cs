@@ -31,7 +31,7 @@ public sealed class BudgetLoaderTests
 		).Returns(returnThis: Task.FromResult<Budget?>(result: null));
 
 		Result<Budget, NotFoundException> result = await _loader.LoadAsync(
-			request: new ChangeBudgetAmountCommand(UserId: Guid.NewGuid(), BudgetId: Guid.NewGuid(), Amount: 1000m),
+			request: new ChangeBudgetAmountCommand(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7(), Amount: 1000m),
 			ct: CancellationToken.None
 		);
 		

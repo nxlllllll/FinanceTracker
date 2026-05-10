@@ -11,7 +11,7 @@ public sealed class ChangeUserBaseCurrencyCommandValidatorTests
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
     {
         ChangeUserBaseCurrencyCommand command = new ChangeUserBaseCurrencyCommand(
-            UserId: Guid.NewGuid(),
+            UserId: Guid.CreateVersion7(),
             NewBaseCurrency: "USD"
         );
 
@@ -40,7 +40,7 @@ public sealed class ChangeUserBaseCurrencyCommandValidatorTests
     public async Task Validate_WithEmptyNewBaseCurrency_ShouldHaveError()
     {
         ChangeUserBaseCurrencyCommand command = new ChangeUserBaseCurrencyCommand(
-            UserId: Guid.NewGuid(),
+            UserId: Guid.CreateVersion7(),
             NewBaseCurrency: String.Empty
         );
 
@@ -56,7 +56,7 @@ public sealed class ChangeUserBaseCurrencyCommandValidatorTests
     public async Task Validate_WithInvalidCurrencyLength_ShouldHaveError()
     {
         ChangeUserBaseCurrencyCommand command = new ChangeUserBaseCurrencyCommand(
-            UserId: Guid.NewGuid(),
+            UserId: Guid.CreateVersion7(),
             NewBaseCurrency: "RU"
         );
 

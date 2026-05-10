@@ -20,19 +20,6 @@ public sealed class CreateAccountCommandValidatorTests
 	}
 
 	[Test]
-	public async Task Validate_WithEmptyName_ShouldHaveError()
-	{
-		CreateAccountCommand command = CreateAccountCommandFactory.Create(name: String.Empty);
-
-		ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-		await Assert.That(value: result.IsValid).IsFalse();
-		await Assert.That(value: result.Errors.Any(
-			predicate: error => error.PropertyName == nameof(command.Name)
-		)).IsTrue();
-	}
-
-	[Test]
 	public async Task Validate_WithNegativeBalance_ShouldHaveError()
 	{
 		CreateAccountCommand command = CreateAccountCommandFactory.Create(initialBalance: -1);

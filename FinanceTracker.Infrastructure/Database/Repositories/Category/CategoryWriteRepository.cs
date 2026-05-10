@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +42,8 @@ public sealed class CategoryWriteRepository(
 
 	public async Task RenameAsync(
 		Guid categoryId,
-		string newName, CancellationToken ct = default)
+		Name newName, 
+		CancellationToken ct = default)
 	{
 		await ChangeCategoryProperty(
 			categoryId: categoryId,

@@ -12,7 +12,7 @@ public sealed class Account : AggregateRoot
 	private sealed record AccountSnapshotState(
 		Guid Id,
 		Guid UserId,
-		string Name,
+		Name Name,
 		AccountType Type,
 		Money Balance,
 		bool IsArchived,
@@ -20,7 +20,7 @@ public sealed class Account : AggregateRoot
 	);
 	
 	public Guid UserId { get; private set; }
-	public string Name { get; private set; } = String.Empty;
+	public Name Name { get; private set; }
 	public AccountType Type { get; private set; }
 	public Money Balance { get; private set; }
 	public Currency Currency => Balance.Currency;
@@ -42,7 +42,7 @@ public sealed class Account : AggregateRoot
 	public static Result<Account, DomainException> Create(
 		DateTime occurredAt,
 		Guid userId,
-		string name,
+		Name name,
 		AccountType type,
 		Currency currency,
 		decimal balance)
@@ -55,8 +55,8 @@ public sealed class Account : AggregateRoot
  
 		Account account = new Account();
 		account.RaiseEvent(@event: new AccountCreated(
-			Id: Guid.NewGuid(),
-			AccountId: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
 			UserId: userId,
 			Name: name,
 			Type: type,
@@ -84,7 +84,7 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 	
-	public static Account Restore(SnapshotData snapshot)
+	internal static Account Restore(SnapshotData snapshot)
 	{
 		AccountSnapshotState state = System.Text.Json.JsonSerializer.Deserialize<AccountSnapshotState>(json: snapshot.State)!;
 
@@ -188,7 +188,7 @@ public sealed class Account : AggregateRoot
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
  
 		RaiseEvent(@event: new AccountBalanceAdjusted(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			SourceId: sourceId,
 			SourceType: sourceType,
@@ -217,7 +217,7 @@ public sealed class Account : AggregateRoot
 		if (funds.IsFailure) return funds;
  
 		RaiseEvent(@event: new AccountDebited(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			TransactionId: transactionId,
 			CategoryId: categoryId,
@@ -245,7 +245,7 @@ public sealed class Account : AggregateRoot
 		if (funds.IsFailure) return funds;
  
 		RaiseEvent(@event: new AccountTransferDebited(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			TransferId: transferId,
 			ToAccountId: toAccountId,
@@ -270,7 +270,7 @@ public sealed class Account : AggregateRoot
 		if (constraints.IsFailure) return constraints;
  
 		RaiseEvent(@event: new AccountCredited(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			TransactionId: transactionId,
 			CategoryId: categoryId,
@@ -295,7 +295,7 @@ public sealed class Account : AggregateRoot
 		if (constraints.IsFailure) return constraints;
  
 		RaiseEvent(@event: new AccountTransferCredited(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			TransferId: transferId,
 			FromAccountId: fromAccountId,
@@ -310,16 +310,13 @@ public sealed class Account : AggregateRoot
  
 	public Result<Unit, DomainException> Rename(
 		DateTime occurredAt,
-		string newName)
+		Name newName)
 	{
-		if (String.IsNullOrWhiteSpace(value: newName))
-			return Result<Unit, DomainException>.Failure(error: new NameException(message: "The account name cannot be empty."));
- 
-		if (Name.Equals(value: newName, comparisonType: StringComparison.OrdinalIgnoreCase))
+		if (Name == newName)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
  
 		RaiseEvent(@event: new AccountRenamed(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			NewName: newName,
 			OccurredAt: occurredAt
@@ -334,7 +331,7 @@ public sealed class Account : AggregateRoot
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The account has already been archived before."));
  
 		RaiseEvent(@event: new AccountArchived(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			OccurredAt: occurredAt
 		));
@@ -348,7 +345,7 @@ public sealed class Account : AggregateRoot
 			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The account is already active."));
  
 		RaiseEvent(@event: new AccountUnarchived(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			OccurredAt: occurredAt
 		));

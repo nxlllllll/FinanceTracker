@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
-using FinanceTracker.Worker.AccountProjection.RabbitMQ;
+using FinanceTracker.Worker.Shared.RabbitMQ;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;

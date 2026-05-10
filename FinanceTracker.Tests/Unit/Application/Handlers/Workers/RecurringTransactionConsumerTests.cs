@@ -98,7 +98,7 @@ public sealed class RecurringTransactionConsumerTests
             command: Arg.Any<CreateTransactionCommand>(),
             account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Result<Guid, DomainException>.Success(value: Guid.NewGuid()));
+        ).Returns(returnThis: Result<Guid, DomainException>.Success(value: Guid.CreateVersion7()));
 
         RecurringTransactionTriggeredMessage message = BuildMessage();
 
@@ -114,11 +114,11 @@ public sealed class RecurringTransactionConsumerTests
     private static RecurringTransactionTriggeredMessage BuildMessage()
     {
         return new RecurringTransactionTriggeredMessage(
-            MessageId: Guid.NewGuid(),
-            RecurringTransactionId: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
-            UserId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
+            MessageId: Guid.CreateVersion7(),
+            RecurringTransactionId: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
+            UserId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
             Amount: 5000m,
             Currency: "RUB",
             Direction: "Credit",

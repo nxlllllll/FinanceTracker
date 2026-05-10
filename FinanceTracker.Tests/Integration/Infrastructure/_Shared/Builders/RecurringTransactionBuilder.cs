@@ -16,7 +16,7 @@ public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 		int dayOfMonth = 15,
 		string? description = null)
 	{
-		Guid id = Guid.NewGuid();
+		Guid id = Guid.CreateVersion7();
 
 		await context.RecurringTransactions.AddAsync(new RecurringTransactionEntity()
 		{

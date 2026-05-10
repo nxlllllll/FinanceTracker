@@ -120,7 +120,7 @@ public sealed class PostgresEventStore(
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
 		await context.OutboxMessages.AddAsync(
 			entity: new OutboxMessageEntity() {
-				Id = Guid.NewGuid(),
+				Id = Guid.CreateVersion7(),
 				AggregateId = aggregateId,
 				AggregateType = aggregateType,
 				Payload = JsonSerializer.Serialize(value: new OutboxPayload(

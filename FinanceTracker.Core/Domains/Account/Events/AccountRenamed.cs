@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
@@ -6,6 +7,6 @@ namespace FinanceTracker.Core.Domains.Account.Events;
 public sealed record AccountRenamed(
 	Guid Id,
 	Guid AccountId,
-	string NewName,
+	Name NewName,
 	DateTime OccurredAt
 ) : IEvent;

@@ -8,7 +8,7 @@ public sealed record AccountCreated(
 	Guid Id,
 	Guid AccountId,
 	Guid UserId,
-	string Name,
+	Name Name,
 	AccountType Type,
 	Currency Currency,
 	decimal Balance,

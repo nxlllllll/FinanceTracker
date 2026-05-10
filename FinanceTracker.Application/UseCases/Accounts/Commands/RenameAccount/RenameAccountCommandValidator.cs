@@ -11,8 +11,5 @@ public sealed class RenameAccountCommandValidator : AbstractValidator<RenameAcco
 
 		RuleFor(expression: command => command.AccountId)
 			.NotEmpty().WithMessage(errorMessage: "The account cannot be empty.");
-		
-		RuleFor(expression: command => command.NewName)
-			.NotEmpty().WithMessage("The new name cannot be empty.");
 	}
 }

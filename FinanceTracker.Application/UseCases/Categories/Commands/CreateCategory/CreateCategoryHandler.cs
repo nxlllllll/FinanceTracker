@@ -3,6 +3,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
@@ -16,10 +17,14 @@ public sealed class CreateCategoryHandler(
 		CreateCategoryCommand command,
 		CancellationToken ct = default)
 	{
+		Result<Name, DomainException> nameResult = Name.Create(value: command.Name);
+		if (nameResult.IsFailure)
+			return Result<Guid, DomainException>.Failure(error: nameResult.Error!);
+		
 		Result<Category, DomainException> categoryResult = Category.Create(
 			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
-			name: command.Name,
+			name: nameResult.Value,
 			parentId: command.ParentId,
 			type: command.Type
 		);

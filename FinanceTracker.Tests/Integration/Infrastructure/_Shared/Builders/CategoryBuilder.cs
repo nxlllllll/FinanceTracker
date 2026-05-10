@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 
@@ -11,13 +12,13 @@ public class CategoryBuilder(FinanceTrackerContext context)
 		string name = "Еда",
 		CategoryType type = CategoryType.Expense)
 	{
-		Guid categoryId = Guid.NewGuid();
+		Guid categoryId = Guid.CreateVersion7();
 		await context.Categories.AddAsync(new CategoryEntity
 		{
 			Id = categoryId,
 			UserId = userId,
 			ParentId = null,
-			Name = name,
+			Name = Name.Create(value: name).Value,
 			Type = type,
 			IsArchived = false,
 			CreatedAt = DateTime.UtcNow

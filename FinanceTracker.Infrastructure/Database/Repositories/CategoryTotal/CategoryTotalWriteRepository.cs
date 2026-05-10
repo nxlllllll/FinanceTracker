@@ -47,7 +47,7 @@ public sealed class CategoryTotalWriteRepository(
 		{
 			await context.CategoryTotals.AddAsync(entity: new CategoryTotalEntity
 			{
-				Id = Guid.NewGuid(),
+				Id = Guid.CreateVersion7(),
 				UserId = userId,
 				CategoryId = categoryId,
 				Period = period,

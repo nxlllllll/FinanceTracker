@@ -21,7 +21,7 @@ public sealed class GetBudgetProgressHandlerTests
 	[Test]
 	public async Task Handle_WhenProgressExists_ShouldReturnBudgetProgressDto()
 	{
-		Guid budgetId = Guid.NewGuid();
+		Guid budgetId = Guid.CreateVersion7();
 		BudgetProgressDto progress = BudgetFactory.CreateProgress(budgetId: budgetId, spent: 3000m);
 
 		_budgetProgressReadRepository.GetByBudgetIdAsync(
@@ -49,7 +49,7 @@ public sealed class GetBudgetProgressHandlerTests
 		).Returns(returnThis: Task.FromResult<BudgetProgressDto?>(result: null));
 
 		BudgetProgressDto? result = await _handler.Handle(
-			query: new GetBudgetProgressQuery(BudgetId: Guid.NewGuid()),
+			query: new GetBudgetProgressQuery(BudgetId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 

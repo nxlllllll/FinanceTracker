@@ -45,7 +45,7 @@ public sealed class GetUserHandlerTests
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
 
 		FinanceTracker.Core.Domains.User.User? result = await _handler.Handle(
-			query: new GetUserQuery(UserId: Guid.NewGuid()),
+			query: new GetUserQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 

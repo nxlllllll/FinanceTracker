@@ -12,7 +12,7 @@ public class UserBuilder(FinanceTrackerContext context )
 	{
 		await _currencyBuilder.CreateAsync(code: currencyCode);
 
-		Guid userId = Guid.NewGuid();
+		Guid userId = Guid.CreateVersion7();
 		await context.Users.AddAsync(new UserEntity()
 		{
 			Id = userId,

@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -51,10 +52,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
-            Id: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: "Карта Сбер",
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: accountType,
             Currency: currencyCode,
             Balance: 10000m,
@@ -72,10 +73,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
-            Id: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: "Карта Сбер",
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: accountType,
             Currency: currencyCode,
             Balance: 1000m,
@@ -87,7 +88,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         if (archived)
         {
             await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-                Id: Guid.NewGuid(),
+                Id: Guid.CreateVersion7(),
                 AccountId: @event.AccountId,
                 OccurredAt: DateTime.UtcNow
             ));
@@ -99,7 +100,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WithNonExistentAccount_ShouldReturnNull()
     {
-        AccountDto? result = await _readRepository.GetByIdAsync(accountId: Guid.NewGuid());
+        AccountDto? result = await _readRepository.GetByIdAsync(accountId: Guid.CreateVersion7());
         await Assert.That(value: result).IsNull();
     }
 
@@ -122,7 +123,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllAsync_WithNoAccounts_ShouldReturnEmptyList()
     {
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: Guid.NewGuid());
+        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 0);
     }
@@ -162,10 +163,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated active = new AccountCreated(
-            Id: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: "Активный",
+            Name: Name.Create(value: "Активный").Value,
             Type: accountType,
             Currency: currencyCode,
             Balance: 1000m,
@@ -174,10 +175,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await _writeRepository.CreateAsync(@event: active);
 
         AccountCreated archived = new AccountCreated(
-            Id: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: "Заархивированный",
+            Name: Name.Create(value: "Заархивированный").Value,
             Type: accountType,
             Currency: currencyCode,
             Balance: 500m,
@@ -185,7 +186,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         );
         await _writeRepository.CreateAsync(@event: archived);
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: archived.AccountId,
             OccurredAt: DateTime.UtcNow
         ));
@@ -204,10 +205,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated active = new AccountCreated(
-            Id: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: "Активный",
+            Name: Name.Create(value: "Активный").Value,
             Type: accountType,
             Currency: currencyCode,
             Balance: 1000m,
@@ -216,10 +217,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         await _writeRepository.CreateAsync(@event: active);
 
         AccountCreated archived = new AccountCreated(
-            Id: Guid.NewGuid(),
-            AccountId: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
+            AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: "Заархивированный",
+            Name: Name.Create(value: "Заархивированный").Value,
             Type: accountType,
             Currency: currencyCode,
             Balance: 500m,
@@ -227,7 +228,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         );
         await _writeRepository.CreateAsync(@event: archived);
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: archived.AccountId,
             OccurredAt: DateTime.UtcNow
         ));

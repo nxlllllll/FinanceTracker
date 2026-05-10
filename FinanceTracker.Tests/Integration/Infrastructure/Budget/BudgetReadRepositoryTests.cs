@@ -38,8 +38,8 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
     public async Task GetByIdAsync_WhenNotExists_ShouldReturnNull()
     {
         Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(
-            budgetId: Guid.NewGuid(),
-            userId: Guid.NewGuid()
+            budgetId: Guid.CreateVersion7(),
+            userId: Guid.CreateVersion7()
         );
 
         await Assert.That(value: result).IsNull();
@@ -54,7 +54,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 
         Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(
             budgetId: budgetId,
-            userId: Guid.NewGuid()
+            userId: Guid.CreateVersion7()
         );
 
         await Assert.That(value: result).IsNull();

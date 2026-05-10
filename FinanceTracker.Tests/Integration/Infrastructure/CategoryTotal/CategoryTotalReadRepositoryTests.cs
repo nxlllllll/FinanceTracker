@@ -80,8 +80,8 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     public async Task GetTotalByCategoryAsync_WhenNotExists_ShouldReturnNull()
     {
         CategoryTotalDto? result = await _readRepository.GetByCategoryAsync(
-            userId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
+            categoryId: Guid.CreateVersion7(),
             period: new DateOnly(year: 2025, month: 1, day: 1)
         );
 
@@ -177,7 +177,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     public async Task GetAllByPeriodAsync_WhenNoData_ShouldReturnEmptyList()
     {
         IReadOnlyList<CategoryTotalDto> result = await _readRepository.GetAllByPeriodAsync(
-            userId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
             period: new DateOnly(year: 2025, month: 1, day: 1)
         );
 

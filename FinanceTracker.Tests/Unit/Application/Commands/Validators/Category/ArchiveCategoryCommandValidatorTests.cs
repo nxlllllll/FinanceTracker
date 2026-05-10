@@ -11,8 +11,8 @@ public sealed class ArchiveCategoryCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		ArchiveCategoryCommand command = new ArchiveCategoryCommand(
-			UserId: Guid.NewGuid(),
-			CategoryId: Guid.NewGuid()
+			UserId: Guid.CreateVersion7(),
+			CategoryId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -24,7 +24,7 @@ public sealed class ArchiveCategoryCommandValidatorTests
 	public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
 	{
 		ArchiveCategoryCommand command = new ArchiveCategoryCommand(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.Empty
 		);
 

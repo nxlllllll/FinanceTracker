@@ -7,7 +7,7 @@ public sealed class AccountEntity
 {
 	public Guid Id { get; init; }
 	public Guid UserId { get; init; }
-	public string Name { get; set; } = string.Empty;
+	public Name Name { get; set; }
 	public AccountType AccountType { get; init; }
 	public Currency Currency { get; init; }
 	public bool IsArchived { get; set; }

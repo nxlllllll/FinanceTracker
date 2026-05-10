@@ -8,9 +8,6 @@ public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAcco
 	{
 		RuleFor(expression: command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
-		
-		RuleFor(expression: command => command.Name)
-			.NotEmpty().WithMessage(errorMessage: "The name cannot be empty.");
 
 		RuleFor(expression: command => command.InitialBalance)
 			.GreaterThanOrEqualTo(valueToCompare: 0)

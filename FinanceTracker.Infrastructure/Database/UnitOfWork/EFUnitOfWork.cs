@@ -22,7 +22,7 @@ public sealed class EFUnitOfWork(
 			return;
 		}
  
-		string savepointName = $"sp_{Guid.NewGuid():N}";
+		string savepointName = $"sp_{Guid.CreateVersion7():N}";
 		await _transaction.CreateSavepointAsync(name: savepointName, cancellationToken: ct);
 		_savepoints.Push(item: savepointName);
 	}
@@ -92,6 +92,7 @@ public sealed class EFUnitOfWork(
 		{
 			await RollbackAsync(ct: ct);
 			await onError(arg: e);
+			throw;
 		}
 	}
 

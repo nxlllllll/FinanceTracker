@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
@@ -42,12 +43,12 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task SaveAsync_WithNewEvents_ShouldPersistToDatabase()
     {
-        Guid accountId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
         AccountCreated @event = new AccountCreated(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: accountId,
-            UserId: Guid.NewGuid(),
-            Name: "Карта Сбер",
+            UserId: Guid.CreateVersion7(),
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: Core.Domains.Account.AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 0,
@@ -71,22 +72,22 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task LoadAsync_WithSavedEvents_ShouldReturnEventsInOrder()
     {
-        Guid accountId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
         AccountCreated created = new AccountCreated(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: accountId,
-            UserId: Guid.NewGuid(),
-            Name: "Карта Сбер",
+            UserId: Guid.CreateVersion7(),
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: Core.Domains.Account.AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 1000m,
             OccurredAt: DateTime.UtcNow
         );
         AccountDebited debited = new AccountDebited(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: accountId,
-            TransactionId: Guid.NewGuid(),
-            CategoryId: Guid.NewGuid(),
+            TransactionId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
             Amount: 500m,
             ExchangeRate: 1m,
             Description: null,
@@ -114,7 +115,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     public async Task LoadAsync_WithNonExistentAggregate_ShouldReturnEmptyList()
     {
         EventStoreResult result = await _eventStore.LoadAsync(
-            aggregateId: Guid.NewGuid(),
+            aggregateId: Guid.CreateVersion7(),
             aggregateType: AggregateTypeNames.Account
         );
         await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
@@ -123,12 +124,12 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task SaveAsync_WithConcurrentWrite_ShouldThrowConcurrencyConflictException()
     {
-        Guid accountId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
         AccountCreated @event = new AccountCreated(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: accountId,
-            UserId: Guid.NewGuid(),
-            Name: "Карта Сбер",
+            UserId: Guid.CreateVersion7(),
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: Core.Domains.Account.AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 0,
@@ -151,10 +152,10 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 aggregateId: accountId,
                 aggregateType: AggregateTypeNames.Account,
                 events: [new AccountDebited(
-                    Id: Guid.NewGuid(),
+                    Id: Guid.CreateVersion7(),
                     AccountId: accountId,
-                    TransactionId: Guid.NewGuid(),
-                    CategoryId: Guid.NewGuid(),
+                    TransactionId: Guid.CreateVersion7(),
+                    CategoryId: Guid.CreateVersion7(),
                     Amount: 100m,
                     ExchangeRate: 1m,
                     Description: null,
@@ -170,8 +171,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     {
         Result<Core.Domains.Account.Account, DomainException> a = Core.Domains.Account.Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
-            userId: Guid.NewGuid(),
-            name: "Тест",
+            userId: Guid.CreateVersion7(),
+            name: Name.Create(value: "Тест").Value,
             type: Core.Domains.Account.AccountType.Checking,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             balance: 100m
@@ -192,8 +193,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         {
             account.Debit(
                 occurredAt: FakeDateProvider.Default.UtcNow,
-                transactionId: Guid.NewGuid(),
-                categoryId: Guid.NewGuid(),
+                transactionId: Guid.CreateVersion7(),
+                categoryId: Guid.CreateVersion7(),
                 amount: 1m,
                 exchangeRate: 1m,
                 description: null
@@ -224,8 +225,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     {
         Result<Core.Domains.Account.Account, DomainException> o = Core.Domains.Account.Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
-            userId: Guid.NewGuid(),
-            name: "Тест снапшота",
+            userId: Guid.CreateVersion7(),
+            name: Name.Create(value: "Тест снапшота").Value,
             type: Core.Domains.Account.AccountType.Savings,
             currency: Core.ValueObjects.Currency.Create(value: "USD").Value,
             balance: 1000m
@@ -246,8 +247,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         {
             original.Credit(
                 occurredAt: FakeDateProvider.Default.UtcNow,
-                transactionId: Guid.NewGuid(),
-                categoryId: Guid.NewGuid(),
+                transactionId: Guid.CreateVersion7(),
+                categoryId: Guid.CreateVersion7(),
                 amount: 10m,
                 exchangeRate: 1m,
                 description: null

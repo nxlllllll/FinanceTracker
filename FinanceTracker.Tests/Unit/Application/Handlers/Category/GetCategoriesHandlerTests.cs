@@ -39,7 +39,7 @@ public sealed class GetCategoriesHandlerTests
         ).Returns(returnThis: categories);
 
         IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> result = await _handler.Handle(
-            query: new GetCategoriesQuery(UserId: Guid.NewGuid()),
+            query: new GetCategoriesQuery(UserId: Guid.CreateVersion7()),
             ct: CancellationToken.None
         );
 
@@ -61,7 +61,7 @@ public sealed class GetCategoriesHandlerTests
         ).Returns(returnThis: []);
 
         IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> result = await _handler.Handle(
-            query: new GetCategoriesQuery(UserId: Guid.NewGuid()),
+            query: new GetCategoriesQuery(UserId: Guid.CreateVersion7()),
             ct: CancellationToken.None
         );
 
@@ -83,7 +83,7 @@ public sealed class GetCategoriesHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetCategoriesQuery(UserId: Guid.NewGuid(), Type: CategoryType.Income),
+            query: new GetCategoriesQuery(UserId: Guid.CreateVersion7(), Type: CategoryType.Income),
             ct: CancellationToken.None
         );
 
@@ -114,7 +114,7 @@ public sealed class GetCategoriesHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetCategoriesQuery(UserId: Guid.NewGuid(), IsArchived: false),
+            query: new GetCategoriesQuery(UserId: Guid.CreateVersion7(), IsArchived: false),
             ct: CancellationToken.None
         );
 
@@ -133,7 +133,7 @@ public sealed class GetCategoriesHandlerTests
     [Test]
     public async Task Handle_ShouldPassParentIdFilterToRepository()
     {
-        Guid parentId = Guid.NewGuid();
+        Guid parentId = Guid.CreateVersion7();
 
         _categoryReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),
@@ -147,7 +147,7 @@ public sealed class GetCategoriesHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetCategoriesQuery(UserId: Guid.NewGuid(), ParentId: parentId),
+            query: new GetCategoriesQuery(UserId: Guid.CreateVersion7(), ParentId: parentId),
             ct: CancellationToken.None
         );
 
@@ -167,7 +167,7 @@ public sealed class GetCategoriesHandlerTests
     public async Task Handle_ShouldPassCursorToRepository()
     {
         DateTime cursorCreatedAt = FakeDateProvider.Default.UtcNow;
-        Guid cursorId = Guid.NewGuid();
+        Guid cursorId = Guid.CreateVersion7();
 
         _categoryReadRepository.GetAllAsync(
             userId: Arg.Any<Guid>(),
@@ -181,7 +181,7 @@ public sealed class GetCategoriesHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetCategoriesQuery(UserId: Guid.NewGuid(), CursorCreatedAt: cursorCreatedAt, CursorId: cursorId),
+            query: new GetCategoriesQuery(UserId: Guid.CreateVersion7(), CursorCreatedAt: cursorCreatedAt, CursorId: cursorId),
             ct: CancellationToken.None
         );
 
@@ -212,7 +212,7 @@ public sealed class GetCategoriesHandlerTests
         ).Returns(returnThis: []);
 
         await _handler.Handle(
-            query: new GetCategoriesQuery(UserId: Guid.NewGuid(), PageSize: 50),
+            query: new GetCategoriesQuery(UserId: Guid.CreateVersion7(), PageSize: 50),
             ct: CancellationToken.None
         );
 

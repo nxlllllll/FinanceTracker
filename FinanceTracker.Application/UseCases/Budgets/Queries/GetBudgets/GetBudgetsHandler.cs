@@ -10,6 +10,14 @@ public sealed class GetBudgetsHandler(
 {
 	public async Task<IReadOnlyList<Budget>> Handle(
 		GetBudgetsQuery query,
-		CancellationToken ct = default
-	) => await budgetReadRepository.GetAllAsync(userId: query.UserId, ct: ct);
+		CancellationToken ct = default)
+	{
+		return await budgetReadRepository.GetAllAsync(
+			userId: query.UserId,
+			cursorCreatedAt: query.CursorCreatedAt,
+			cursorId: query.CursorId,
+			pageSize: query.PageSize,
+			ct: ct
+		);
+	}
 }

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -24,7 +25,11 @@ public sealed class CategoryEntityConfiguration : IEntityTypeConfiguration<Categ
 
 		builder.Property(propertyExpression: c => c.Name)
 			.HasColumnName(name: "name")
-			.HasMaxLength(maxLength: 100);
+			.HasMaxLength(maxLength: 100)			
+			.HasConversion(
+				convertToProviderExpression: name => name.Value,
+				convertFromProviderExpression: name => Name.Reconstitute(value: name)
+			);
 
 		builder.Property(propertyExpression: c => c.Type)
 			.HasColumnName(name: "type_code")

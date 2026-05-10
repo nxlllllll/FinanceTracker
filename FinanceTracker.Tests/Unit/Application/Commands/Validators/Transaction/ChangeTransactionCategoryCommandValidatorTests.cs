@@ -11,9 +11,9 @@ public sealed class ChangeTransactionCategoryCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
-			UserId: Guid.NewGuid(),
-			TransactionId: Guid.NewGuid(),
-			CategoryId: Guid.NewGuid()
+			UserId: Guid.CreateVersion7(),
+			TransactionId: Guid.CreateVersion7(),
+			CategoryId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -25,9 +25,9 @@ public sealed class ChangeTransactionCategoryCommandValidatorTests
 	public async Task Validate_WithEmptyTransactionId_ShouldHaveError()
 	{
 		ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			TransactionId: Guid.Empty,
-			CategoryId: Guid.NewGuid()
+			CategoryId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -42,8 +42,8 @@ public sealed class ChangeTransactionCategoryCommandValidatorTests
 	public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
 	{
 		ChangeTransactionCategoryCommand command = new ChangeTransactionCategoryCommand(
-			UserId: Guid.NewGuid(),
-			TransactionId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
+			TransactionId: Guid.CreateVersion7(),
 			CategoryId: Guid.Empty
 		);
 

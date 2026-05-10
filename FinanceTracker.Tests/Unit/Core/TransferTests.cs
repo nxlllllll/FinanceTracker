@@ -8,9 +8,9 @@ public sealed class TransferTests
     [Test]
     public async Task Create_WithValidData_ShouldSetCorrectState()
     {
-        Guid userId = Guid.NewGuid();
-        Guid fromAccountId = Guid.NewGuid();
-        Guid toAccountId = Guid.NewGuid();
+        Guid userId = Guid.CreateVersion7();
+        Guid fromAccountId = Guid.CreateVersion7();
+        Guid toAccountId = Guid.CreateVersion7();
 
         Transfer transfer = TransferFactory.Create(
             userId: userId,

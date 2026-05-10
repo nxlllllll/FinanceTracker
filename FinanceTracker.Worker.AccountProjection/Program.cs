@@ -1,6 +1,6 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.AccountProjection.Consumers;
-using FinanceTracker.Worker.AccountProjection.RabbitMQ;
+using FinanceTracker.Worker.Shared.RabbitMQ;
 
 namespace FinanceTracker.Worker.AccountProjection;
 

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Worker.Outbox.RabbitMQ;
+﻿namespace FinanceTracker.Worker.Shared.RabbitMQ;
 
 public sealed class RabbitMqOptions
 {
@@ -9,4 +9,5 @@ public sealed class RabbitMqOptions
 	public string Username { get; init; } = "guest";
 	public string Password { get; init; } = "guest";
 	public string ExchangeName { get; init; } = "finance-tracker";
+	public string? QueueName { get; init; }
 }

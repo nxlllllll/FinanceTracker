@@ -55,25 +55,25 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
-        Guid accountId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
         await _accountWriteRepository.CreateAsync(@event: new AccountCreated(
-            Id: Guid.NewGuid(),
+            Id: Guid.CreateVersion7(),
             AccountId: accountId,
             UserId: userId,
-            Name: "Карта Сбер",
+            Name: Name.Create(value: "Карта Сбер").Value,
             Type: accountType,
             Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow
         ));
 
-        Guid categoryId = Guid.NewGuid();
+        Guid categoryId = Guid.CreateVersion7();
         await Context.Categories.AddAsync(entity: new CategoryEntity()
         {
             Id = categoryId,
             UserId = userId,
             ParentId = null,
-            Name = "Еда",
+            Name = Name.Create(value: "Еда").Value,
             Type = CategoryType.Expense,
             IsArchived = false,
             CreatedAt = DateTime.UtcNow
@@ -87,12 +87,12 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task CreateAsync_ShouldCreateTransaction()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = Guid.NewGuid();
+        Guid transactionId = Guid.CreateVersion7();
 
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
             id: transactionId,
             accountId: accountId,
-            userId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
             categoryId: categoryId,
             amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
@@ -113,8 +113,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task CreateAsync_ShouldSetCorrectValues()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = Guid.NewGuid();
-        Guid userId = Guid.NewGuid();
+        Guid transactionId = Guid.CreateVersion7();
+        Guid userId = Guid.CreateVersion7();
 
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
             id: transactionId,
@@ -147,12 +147,12 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task ChangeCategoryAsync_ShouldUpdateCategoryId()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = Guid.NewGuid();
+        Guid transactionId = Guid.CreateVersion7();
 
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
             id: transactionId,
             accountId: accountId,
-            userId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
             categoryId: categoryId,
             amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
@@ -165,13 +165,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
         await _writeRepository.CreateAsync(transaction: transaction);
 
-        Guid newCategoryId = Guid.NewGuid();
+        Guid newCategoryId = Guid.CreateVersion7();
         await Context.Categories.AddAsync(entity: new CategoryEntity()
         {
             Id = newCategoryId,
-            UserId = Guid.NewGuid(),
+            UserId = Guid.CreateVersion7(),
             ParentId = null,
-            Name = "Транспорт",
+            Name = Name.Create(value: "Транспорт").Value,
             Type = CategoryType.Expense,
             IsArchived = false,
             CreatedAt = DateTime.UtcNow
@@ -195,12 +195,12 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task ChangeDescriptionAsync_ShouldUpdateDescription()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = Guid.NewGuid();
+        Guid transactionId = Guid.CreateVersion7();
 
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
             id: transactionId,
             accountId: accountId,
-            userId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
             categoryId: categoryId,
             amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
@@ -227,12 +227,12 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task ExcludeAsync_ShouldSetIsExcludedTrue()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = Guid.NewGuid();
+        Guid transactionId = Guid.CreateVersion7();
 
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
             id: transactionId,
             accountId: accountId,
-            userId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
             categoryId: categoryId,
             amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,
@@ -259,12 +259,12 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     public async Task IncludeAsync_ShouldSetIsExcludedFalse()
     {
         (Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = Guid.NewGuid();
+        Guid transactionId = Guid.CreateVersion7();
 
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
             id: transactionId,
             accountId: accountId,
-            userId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
             categoryId: categoryId,
             amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit,

@@ -11,7 +11,7 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 	public async Task Validate_WithValidQuery_ShouldNotHaveErrors()
 	{
 		ValidationResult result = await _validator.ValidateAsync(
-			instance: new GetOperationsHistoryQuery(UserId: Guid.NewGuid())
+			instance: new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7())
 		);
 
 		await Assert.That(value: result.IsValid).IsTrue();
@@ -22,9 +22,9 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 	{
 		ValidationResult result = await _validator.ValidateAsync(
 			instance: new GetOperationsHistoryQuery(
-				UserId: Guid.NewGuid(),
+				UserId: Guid.CreateVersion7(),
 				CursorOccurredAt: DateTime.UtcNow,
-				CursorId: Guid.NewGuid()
+				CursorId: Guid.CreateVersion7()
 			)
 		);
 
@@ -34,7 +34,7 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 	[Test]
 	public async Task Validate_WithPageSizeZero_ShouldHaveError()
 	{
-		GetOperationsHistoryQuery query = new GetOperationsHistoryQuery(UserId: Guid.NewGuid(), PageSize: 0);
+		GetOperationsHistoryQuery query = new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7(), PageSize: 0);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);
 
@@ -47,7 +47,7 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 	[Test]
 	public async Task Validate_WithPageSizeOver100_ShouldHaveError()
 	{
-		GetOperationsHistoryQuery query = new GetOperationsHistoryQuery(UserId: Guid.NewGuid(), PageSize: 101);
+		GetOperationsHistoryQuery query = new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7(), PageSize: 101);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);
 
@@ -61,8 +61,8 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 	public async Task Validate_WithCursorIdWithoutCursorOccurredAt_ShouldHaveError()
 	{
 		GetOperationsHistoryQuery query = new GetOperationsHistoryQuery(
-			UserId: Guid.NewGuid(),
-			CursorId: Guid.NewGuid()
+			UserId: Guid.CreateVersion7(),
+			CursorId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);
@@ -77,7 +77,7 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 	public async Task Validate_WithCursorOccurredAtWithoutCursorId_ShouldHaveError()
 	{
 		GetOperationsHistoryQuery query = new GetOperationsHistoryQuery(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			CursorOccurredAt: DateTime.UtcNow
 		);
 

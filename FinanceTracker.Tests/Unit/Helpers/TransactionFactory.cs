@@ -20,9 +20,9 @@ public static class TransactionFactory
 	{
 		Transaction transaction = Transaction.Create(
 			occurredAt: FakeDateProvider.Default.UtcNow,
-			accountId: accountId ?? Guid.NewGuid(),
-			userId: userId ?? Guid.NewGuid(),
-			categoryId: categoryId ?? Guid.NewGuid(),
+			accountId: accountId ?? Guid.CreateVersion7(),
+			userId: userId ?? Guid.CreateVersion7(),
+			categoryId: categoryId ?? Guid.CreateVersion7(),
 			amount: Money.Create(amount: amount, currency: Currency.Create(value: currency).Value).Value,
 			direction: direction,
 			exchangeRate: exchangeRate,

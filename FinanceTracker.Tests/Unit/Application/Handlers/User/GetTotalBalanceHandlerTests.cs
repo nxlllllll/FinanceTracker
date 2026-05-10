@@ -51,7 +51,7 @@ public sealed class GetTotalBalanceHandlerTests
 			isArchived: Arg.Any<bool?>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: [new AccountDto(
-			Id: Guid.NewGuid(),
+			Id: Guid.CreateVersion7(),
 			UserId: user.Id, 
 			Name: "Main",
 			Type: AccountType.Checking,
@@ -90,7 +90,7 @@ public sealed class GetTotalBalanceHandlerTests
 		).Returns(returnThis:
 		[
 			new AccountDto(Id: 
-				Guid.NewGuid(), 
+				Guid.CreateVersion7(), 
 				UserId: user.Id, 
 				Name: "Main", 
 				Type: AccountType.Checking, 
@@ -100,7 +100,7 @@ public sealed class GetTotalBalanceHandlerTests
 				CreatedAt: FakeDateProvider.Default.UtcNow
 			),
 			new AccountDto(Id: 
-				Guid.NewGuid(), 
+				Guid.CreateVersion7(), 
 				UserId: user.Id, 
 				Name: "Savings" +
 				"", Type: AccountType.Savings,
@@ -131,7 +131,7 @@ public sealed class GetTotalBalanceHandlerTests
 			isArchived: Arg.Any<bool?>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: [new AccountDto(
-			Id: Guid.NewGuid(), 
+			Id: Guid.CreateVersion7(), 
 			UserId: user.Id, 
 			Name: "USD", 
 			Type: AccountType.Checking, 

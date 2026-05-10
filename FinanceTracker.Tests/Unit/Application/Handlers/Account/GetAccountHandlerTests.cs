@@ -44,7 +44,7 @@ public sealed class GetAccountHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<AccountDto?>(null));
 
-		GetAccountQuery query = new GetAccountQuery(AccountId: Guid.NewGuid());
+		GetAccountQuery query = new GetAccountQuery(AccountId: Guid.CreateVersion7());
 		AccountDto? result = await _handler.Handle(query: query, ct: CancellationToken.None);
 
 		await Assert.That(value: result).IsNull();
@@ -58,7 +58,7 @@ public sealed class GetAccountHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<AccountDto?>(result: null));
 
-		GetAccountQuery query = new GetAccountQuery(AccountId: Guid.NewGuid());
+		GetAccountQuery query = new GetAccountQuery(AccountId: Guid.CreateVersion7());
 		await _handler.Handle(query: query, ct: CancellationToken.None);
 
 		await _accountReadRepository.Received(requiredNumberOfCalls: 1).GetByIdAsync(

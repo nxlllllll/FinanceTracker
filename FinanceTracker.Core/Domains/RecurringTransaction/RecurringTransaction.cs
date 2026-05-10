@@ -36,7 +36,7 @@ public sealed class RecurringTransaction
  
         return Result<RecurringTransaction, DomainException>.Success(value: new RecurringTransaction
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             UserId = userId,
             AccountId = accountId,
             CategoryId = categoryId,

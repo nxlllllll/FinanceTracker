@@ -34,7 +34,7 @@ public sealed class Transaction
     {
         return new Transaction()
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             AccountId = accountId,
             UserId = userId,
             CategoryId = categoryId,

@@ -11,7 +11,7 @@ public sealed class ChangeUserEmailCommandValidatorTests
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
     {
         ChangeUserEmailCommand command = new ChangeUserEmailCommand(
-            UserId: Guid.NewGuid(),
+            UserId: Guid.CreateVersion7(),
             NewEmail: "new@test.com"
         );
 
@@ -40,7 +40,7 @@ public sealed class ChangeUserEmailCommandValidatorTests
     public async Task Validate_WithEmptyEmail_ShouldHaveError()
     {
         ChangeUserEmailCommand command = new ChangeUserEmailCommand(
-            UserId: Guid.NewGuid(),
+            UserId: Guid.CreateVersion7(),
             NewEmail: String.Empty
         );
 
@@ -56,7 +56,7 @@ public sealed class ChangeUserEmailCommandValidatorTests
     public async Task Validate_WithInvalidEmail_ShouldHaveError()
     {
         ChangeUserEmailCommand command = new ChangeUserEmailCommand(
-            UserId: Guid.NewGuid(),
+            UserId: Guid.CreateVersion7(),
             NewEmail: "notanemail"
         );
 

@@ -73,7 +73,7 @@ public sealed class CreateTransferCommandValidatorTests
     [Test]
     public async Task Validate_WithSameFromAndToAccountId_ShouldHaveError()
     {
-        Guid accountId = Guid.NewGuid();
+        Guid accountId = Guid.CreateVersion7();
         CreateTransferCommand command = CreateTransferCommandFactory.Create(fromAccountId: accountId, toAccountId: accountId);
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -88,10 +88,10 @@ public sealed class CreateTransferCommandValidatorTests
     public async Task Validate_WithFutureDate_ShouldHaveError()
     {
         CreateTransferCommand command = new CreateTransferCommand(
-            UserId: Guid.NewGuid(),
-            FromAccountId: Guid.NewGuid(),
+            UserId: Guid.CreateVersion7(),
+            FromAccountId: Guid.CreateVersion7(),
             CurrencyFrom: "RUB",
-            ToAccountId: Guid.NewGuid(),
+            ToAccountId: Guid.CreateVersion7(),
             CurrencyTo: "RUB",
             Amount: 500m,
             Description: null,

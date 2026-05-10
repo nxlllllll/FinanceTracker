@@ -16,9 +16,9 @@ public static class CreateTransactionCommandFactory
 		string? description = "Обед")
 	{
 		return new CreateTransactionCommand(
-			AccountId: accountId ?? Guid.NewGuid(),
-			UserId: userId ?? Guid.NewGuid(),
-			CategoryId: categoryId ?? Guid.NewGuid(),
+			AccountId: accountId ?? Guid.CreateVersion7(),
+			UserId: userId ?? Guid.CreateVersion7(),
+			CategoryId: categoryId ?? Guid.CreateVersion7(),
 			Amount: amount,
 			Currency: Currency.Create(value: currency).Value,
 			Direction: direction,

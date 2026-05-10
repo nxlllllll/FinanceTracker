@@ -47,7 +47,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByBudgetIdAsync_WhenNotExists_ShouldReturnNull()
     {
-        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: Guid.NewGuid());
+        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: Guid.CreateVersion7());
 
         await Assert.That(value: result).IsNull();
     }

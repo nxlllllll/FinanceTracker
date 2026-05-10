@@ -25,7 +25,7 @@ public sealed class User
  
 		return Result<User, DomainException>.Success(value: new User()
 		{
-			Id = Guid.NewGuid(),
+			Id = Guid.CreateVersion7(),
 			Email = email,
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrency,

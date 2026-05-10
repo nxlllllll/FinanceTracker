@@ -79,7 +79,7 @@ public sealed class TransactionTests
 	public async Task ChangeCategory_ShouldUpdateCategoryId()
 	{
 		Transaction transaction = TransactionFactory.Create();
-		Guid newCategoryId = Guid.NewGuid();
+		Guid newCategoryId = Guid.CreateVersion7();
 
 		transaction.ChangeCategory(categoryId: newCategoryId);
 

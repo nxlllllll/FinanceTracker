@@ -11,8 +11,8 @@ public sealed class UnarchiveAccountCommandValidatorTests
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
 		UnarchiveAccountCommand command = new UnarchiveAccountCommand(
-			UserId: Guid.NewGuid(),
-			AccountId: Guid.NewGuid()
+			UserId: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -25,7 +25,7 @@ public sealed class UnarchiveAccountCommandValidatorTests
 	{
 		UnarchiveAccountCommand command = new UnarchiveAccountCommand(
 			UserId: Guid.Empty,
-			AccountId: Guid.NewGuid()
+			AccountId: Guid.CreateVersion7()
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -40,7 +40,7 @@ public sealed class UnarchiveAccountCommandValidatorTests
 	public async Task Validate_WithEmptyAccountId_ShouldHaveError()
 	{
 		UnarchiveAccountCommand command = new UnarchiveAccountCommand(
-			UserId: Guid.NewGuid(),
+			UserId: Guid.CreateVersion7(),
 			AccountId: Guid.Empty
 		);
 

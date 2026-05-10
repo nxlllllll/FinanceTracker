@@ -22,7 +22,7 @@ public abstract class DatabaseFixture
 	{
 		string connectionString = new NpgsqlConnectionStringBuilder(connectionString: _container.GetConnectionString())
 		{
-			Database = $"ft_test_{Guid.NewGuid():N}"
+			Database = $"ft_test_{Guid.CreateVersion7():N}"
 		}.ConnectionString;
 
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()

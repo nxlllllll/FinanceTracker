@@ -11,8 +11,8 @@ public sealed class BudgetTests
     [Test]
     public async Task Create_WithValidData_ShouldSetCorrectState()
     {
-        Guid userId = Guid.NewGuid();
-        Guid categoryId = Guid.NewGuid();
+        Guid userId = Guid.CreateVersion7();
+        Guid categoryId = Guid.CreateVersion7();
 
         Budget budget = BudgetFactory.Create(userId: userId, categoryId: categoryId).Value!;
 
@@ -31,8 +31,8 @@ public sealed class BudgetTests
     {
         Result<Budget, DomainException> result = Budget.Create(
             createdAt: DateTime.UtcNow,
-            userId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
+            categoryId: Guid.CreateVersion7(),
             amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,
             from: new DateOnly(year: 2025, month: 1, day: 31),
             to: new DateOnly(year: 2025, month: 1, day: 1)
@@ -47,8 +47,8 @@ public sealed class BudgetTests
     {
         Result<Budget, DomainException> result = Budget.Create(
             createdAt: DateTime.UtcNow,
-            userId: Guid.NewGuid(),
-            categoryId: Guid.NewGuid(),
+            userId: Guid.CreateVersion7(),
+            categoryId: Guid.CreateVersion7(),
             amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,
             from: new DateOnly(year: 2025, month: 1, day: 1),
             to: new DateOnly(year: 2025, month: 1, day: 1)

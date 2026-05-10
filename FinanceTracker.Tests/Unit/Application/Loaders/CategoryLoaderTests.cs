@@ -30,7 +30,7 @@ public sealed class CategoryLoaderTests
 		).Returns(returnThis: Task.FromResult<Category?>(result: null));
 
 		Result<Category, NotFoundException> result = await _loader.LoadAsync(
-			request: new ArchiveCategoryCommand(UserId: Guid.NewGuid(), CategoryId: Guid.NewGuid()),
+			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 		
@@ -48,7 +48,7 @@ public sealed class CategoryLoaderTests
 		).Returns(returnThis: category);
 
 		Result<Category, NotFoundException> result = await _loader.LoadAsync(
-			request: new ArchiveCategoryCommand(UserId: Guid.NewGuid(), CategoryId: category.Id),
+			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: category.Id),
 			ct: CancellationToken.None
 		);
 		
