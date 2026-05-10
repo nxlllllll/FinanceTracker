@@ -15,8 +15,6 @@ namespace FinanceTracker.Worker.RecurringTransaction.Jobs;
 [DisallowConcurrentExecution]
 public sealed class RecurringTransactionHandlingJob(
     IRecurringTransactionReadRepository recurringTransactionReadRepository,
-    IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
-    IUnitOfWork unitOfWork,
     IDateProvider dateProvider,
     RabbitMqConnectionFactory connectionFactory,
     IOptions<RabbitMqOptions> options,
@@ -52,18 +50,8 @@ public sealed class RecurringTransactionHandlingJob(
         int processed = 0;
         foreach (Core.Domains.RecurringTransaction.RecurringTransaction dueTransaction in dueTransactions)
         {
-            try
-            {
-                await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-                {
-                    await PublishAndMarkAsync(channel: channel, transaction: dueTransaction, ct: ct);
-                    logger.ZLogInformation(message: $"Recurring transaction published: {++processed}/{dueTransactions.Count}.");
-                }, ct: ct);
-            }
-            catch (Exception exception)
-            {
-                logger.ZLogError(exception: exception, message: $"Failed to process recurring transaction {dueTransaction.Id}.");
-            }
+            await PublishAsync(channel: channel, transaction: dueTransaction, ct: ct);
+            logger.ZLogInformation(message: $"Recurring transaction published: {++processed}/{dueTransactions.Count}.");
         }
     }
 
@@ -80,7 +68,7 @@ public sealed class RecurringTransactionHandlingJob(
         );
     }
 
-    private async Task PublishAndMarkAsync(
+    private async Task PublishAsync(
         IChannel channel,
         Core.Domains.RecurringTransaction.RecurringTransaction transaction,
         CancellationToken ct)
@@ -98,19 +86,11 @@ public sealed class RecurringTransactionHandlingJob(
             OccurredAt: dateProvider.UtcNow
         );
         
-        byte[] body = Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: message));
-
         await channel.BasicPublishAsync(
             exchange: _options.ExchangeName,
             routingKey: String.Empty,
-            body: body,
+            body: Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: message)),
             cancellationToken: ct
-        );
-
-        await recurringTransactionWriteRepository.MarkExecutedAsync(
-            recurringTransactionId: transaction.Id,
-            executedAt: dateProvider.UtcNow,
-            ct: ct
         );
     }
 }

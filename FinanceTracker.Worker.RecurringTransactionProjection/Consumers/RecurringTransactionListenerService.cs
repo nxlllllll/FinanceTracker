@@ -33,7 +33,7 @@ public sealed class RecurringTransactionListenerService(
         );
 
         await _channel.QueueDeclareAsync(
-            queue: _options.QueueName,
+            queue: _options.QueueName!,
             durable: true,
             exclusive: false,
             autoDelete: false,
@@ -41,7 +41,7 @@ public sealed class RecurringTransactionListenerService(
         );
 
         await _channel.QueueBindAsync(
-            queue: _options.QueueName,
+            queue: _options.QueueName!,
             exchange: _options.ExchangeName,
             routingKey: String.Empty,
             cancellationToken: ct
@@ -76,7 +76,7 @@ public sealed class RecurringTransactionListenerService(
         };
 
         await _channel!.BasicConsumeAsync(
-            queue: _options.QueueName,
+            queue: _options.QueueName!,
             autoAck: false,
             consumer: consumer,
             cancellationToken: ct

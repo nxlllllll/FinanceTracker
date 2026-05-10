@@ -5,6 +5,7 @@ using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
@@ -37,33 +38,17 @@ public sealed class CategoryTotalWriteRepository(
 			date: date,
 			ct: ct
 		);
-		
-		CategoryTotalEntity? existing = await context.CategoryTotals.FirstOrDefaultAsync(
-			predicate: total => total.UserId == userId && total.CategoryId == categoryId && total.Period == period,
-			cancellationToken: ct
-		);
-
-		if (existing is null)
+			
+		await context.UpsertCategoryTotalAsync(entity: new CategoryTotalEntity
 		{
-			await context.CategoryTotals.AddAsync(entity: new CategoryTotalEntity
-			{
-				Id = Guid.CreateVersion7(),
-				UserId = userId,
-				CategoryId = categoryId,
-				Period = period,
-				Total = amount * conversion.Rate * delta,
-				TransactionCount = delta,
-				UpdatedAt = dateProvider.UtcNow
-			}, cancellationToken: ct);
-		}
-		else
-		{
-			existing.Total += amount * conversion.Rate * delta;
-			existing.TransactionCount += delta;
-			existing.UpdatedAt = dateProvider.UtcNow;
-		}
-
-		await context.SaveChangesAsync(cancellationToken: ct);
+		    Id = Guid.CreateVersion7(),
+		    UserId = userId,
+		    CategoryId = categoryId,
+		    Period = period,
+		    Total = amount * conversion.Rate * delta,
+		    TransactionCount = delta,
+		    UpdatedAt = dateProvider.UtcNow
+		}, ct: ct);
 	}
 	
 	public async Task AddAsync(
