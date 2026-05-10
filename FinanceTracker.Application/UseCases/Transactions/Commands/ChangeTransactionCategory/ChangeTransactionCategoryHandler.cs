@@ -5,6 +5,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
+using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,8 @@ public sealed class ChangeTransactionCategoryHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IUnitOfWork unitOfWork,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
-	ILogger<ChangeTransactionCategoryHandler> logger
+	ILogger<ChangeTransactionCategoryHandler> logger,
+	IOperationsWriteRepository operationsWriteRepository
 ) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Transaction, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -40,8 +42,15 @@ public sealed class ChangeTransactionCategoryHandler(
 				ct: ct
 			);
 
+			await operationsWriteRepository.UpdateCategoryAsync(
+				operationId: command.TransactionId,
+				categoryId: command.CategoryId,
+				ct: ct
+			);
+			
 			if (transaction is not { IsExcluded: false, Direction: DirectionType.Debit })
 				return;
+			
 			await categoryTotalWriteRepository.ChangeCategoryAsync(
 				userId: transaction.UserId,
 				oldCategoryId: transaction.CategoryId,

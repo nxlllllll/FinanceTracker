@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Operations;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -10,14 +11,14 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class GetOperationsHistoryHandlerTests
 {
-	private IOperationsReadRepository _operationsReadRepository = null!;
+	private IUserReadRepository _userReadRepository = null!;
 	private GetOperationsHistoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_operationsReadRepository = Substitute.For<IOperationsReadRepository>();
-		_handler = new GetOperationsHistoryHandler(operationsReadRepository: _operationsReadRepository);
+		_userReadRepository = Substitute.For<IUserReadRepository>();
+		_handler = new GetOperationsHistoryHandler(userReadRepository: _userReadRepository);
 	}
 
 	[Test]
@@ -42,7 +43,7 @@ public sealed class GetOperationsHistoryHandlerTests
 			)
 		];
 
-		_operationsReadRepository.GetHistoryAsync(
+		_userReadRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
 			dateFrom: Arg.Any<DateTime?>(),
@@ -70,7 +71,7 @@ public sealed class GetOperationsHistoryHandlerTests
 		DateTime cursorOccurredAt = FakeDateProvider.Default.UtcNow.AddDays(value: -1);
 		Guid cursorId = Guid.CreateVersion7();
 
-		_operationsReadRepository.GetHistoryAsync(
+		_userReadRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
 			dateFrom: Arg.Any<DateTime?>(),
@@ -91,7 +92,7 @@ public sealed class GetOperationsHistoryHandlerTests
 			PageSize: 50
 		), ct: CancellationToken.None);
 
-		await _operationsReadRepository.Received(requiredNumberOfCalls: 1).GetHistoryAsync(
+		await _userReadRepository.Received(requiredNumberOfCalls: 1).GetHistoryAsync(
 			userId: userId,
 			type: OperationFilterType.Expense,
 			dateFrom: dateFrom,
@@ -106,7 +107,7 @@ public sealed class GetOperationsHistoryHandlerTests
 	[Test]
 	public async Task Handle_WhenNoOperations_ShouldReturnEmptyList()
 	{
-		_operationsReadRepository.GetHistoryAsync(
+		_userReadRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
 			dateFrom: Arg.Any<DateTime?>(),

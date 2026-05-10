@@ -39,6 +39,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	
 	public DbSet<ProcessedMessageEntity> ProcessedMessages => Set<ProcessedMessageEntity>();
 	
+	public DbSet<OperationEntity> Operations => Set<OperationEntity>();
+	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);
 }

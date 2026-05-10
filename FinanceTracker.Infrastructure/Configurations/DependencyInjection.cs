@@ -90,7 +90,7 @@ public static class DependencyInjection
 		services.AddScoped<IUserReadRepository, UserReadRepository>();
 		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
 
-		services.AddScoped<IOperationsReadRepository, OperationsReadRepository>();
+		services.AddScoped<IOperationsWriteRepository, OperationsWriteRepository>();
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<IDateProvider, DateProvider>();

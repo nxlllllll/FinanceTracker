@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
@@ -17,6 +18,7 @@ public sealed class CreateTransferHandlerTests
 	private IAccountRepository _accountRepository = null!;
 	private ITransferWriteRepository _transferWriteRepository = null!;
 	private ICurrencyConversionService _currencyConversionService = null!;
+	private IOperationsWriteRepository _operationsWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private CreateTransferHandler _handler = null!;
 
@@ -26,6 +28,7 @@ public sealed class CreateTransferHandlerTests
 		_accountRepository = Substitute.For<IAccountRepository>();
 		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
 		_currencyConversionService = Substitute.For<ICurrencyConversionService>();
+		_operationsWriteRepository = Substitute.For<IOperationsWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -40,6 +43,7 @@ public sealed class CreateTransferHandlerTests
 			accountRepository: _accountRepository,
 			transferWriteRepository: _transferWriteRepository,
 			currencyConversionService: _currencyConversionService,
+			operationsWriteRepository: _operationsWriteRepository,
 			unitOfWork: _unitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CreateTransferHandler>>()

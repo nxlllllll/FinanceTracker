@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
@@ -86,7 +87,10 @@ public sealed class Account : AggregateRoot
 	
 	internal static Account Restore(SnapshotData snapshot)
 	{
-		AccountSnapshotState state = System.Text.Json.JsonSerializer.Deserialize<AccountSnapshotState>(json: snapshot.State)!;
+		AccountSnapshotState state = System.Text.Json.JsonSerializer.Deserialize<AccountSnapshotState>(
+			json: snapshot.State,
+			options: FinanceTrackerJsonOptions.Payload
+		)!;
 
 		Account account = new Account();
 		account.Id = state.Id;
@@ -363,6 +367,6 @@ public sealed class Account : AggregateRoot
 			Balance: Balance,
 			IsArchived: IsArchived,
 			Version: Version
-		));
+		), options: FinanceTrackerJsonOptions.Payload);
 	}
 }

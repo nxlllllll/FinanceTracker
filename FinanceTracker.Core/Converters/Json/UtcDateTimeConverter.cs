@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace FinanceTracker.Worker.AccountProjection.Converter;
+namespace FinanceTracker.Core.Converters.Json;
 
 public sealed class UtcDateTimeConverter : JsonConverter<DateTime>
 {

@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Worker.Shared.RabbitMQ;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -62,7 +63,7 @@ public sealed class RecurringTransactionListenerService(
             try
             {
                 string json = Encoding.UTF8.GetString(bytes: ea.Body.ToArray());
-                RecurringTransactionTriggeredMessage message = JsonSerializer.Deserialize<RecurringTransactionTriggeredMessage>(json: json)
+                RecurringTransactionTriggeredMessage message = JsonSerializer.Deserialize<RecurringTransactionTriggeredMessage>(json: json, options: FinanceTrackerJsonOptions.Payload)
                     ?? throw new InvalidOperationException(message: "Failed to deserialize RecurringTransactionTriggeredMessage.");
 
                 await handler.HandleAsync(message: message, ct: ct);

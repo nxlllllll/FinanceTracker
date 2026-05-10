@@ -6,6 +6,7 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
+using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.CurrencyConversion;
@@ -24,7 +25,8 @@ public sealed class TransactionCreationService(
     ICategoryTotalWriteRepository categoryTotalWriteRepository,
     IBudgetProgressWriteRepository budgetProgressWriteRepository,
     IDateProvider dateProvider,
-    ILogger<TransactionCreationService> logger
+    ILogger<TransactionCreationService> logger,
+    IOperationsWriteRepository operationsWriteRepository
 ) : ITransactionCreationService
 {
     private Result<Unit, DomainException> ApplyDirection(
@@ -102,8 +104,8 @@ public sealed class TransactionCreationService(
         await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
         {
             await transactionWriteRepository.CreateAsync(transaction: transaction, ct: ct);
-
             await accountRepository.SaveAsync(account: account, ct: ct);
+            await operationsWriteRepository.CreateFromTransactionAsync(transaction: transaction, ct: ct);
 
             if (command.Direction != DirectionType.Debit)
                 return;

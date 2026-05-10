@@ -1,12 +1,12 @@
 ﻿using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
-using FinanceTracker.Worker.AccountProjection.Converter;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
 using Microsoft.EntityFrameworkCore;
 using ZLogger;
@@ -21,8 +21,6 @@ public sealed class AccountEventsConsumer(
     IDateProvider dateProvider,
     ILogger<AccountEventsConsumer> logger)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions { Converters = { new UtcDateTimeConverter() } };
-    
     public async Task HandleAsync(AccountEventsMessage message, CancellationToken ct)
     {
         await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
@@ -41,7 +39,7 @@ public sealed class AccountEventsConsumer(
             List<IEvent> events = message.Events.Select(selector: e =>
             {
                 Type type = eventTypeResolver.ResolveType(typeName: e.EventType);
-                return (IEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: JsonOptions)!;
+                return (IEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
             }).ToList();
 
             await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: ct);

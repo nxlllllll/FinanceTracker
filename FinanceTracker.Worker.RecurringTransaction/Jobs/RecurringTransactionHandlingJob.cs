@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.DateProvider;
@@ -89,7 +90,7 @@ public sealed class RecurringTransactionHandlingJob(
         await channel.BasicPublishAsync(
             exchange: _options.ExchangeName,
             routingKey: String.Empty,
-            body: Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: message)),
+            body: Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: message, options: FinanceTrackerJsonOptions.Payload)),
             cancellationToken: ct
         );
     }

@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Worker.Shared.RabbitMQ;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -62,7 +63,7 @@ public sealed class AccountEventsListenerService(
             try
             {
                 string json = Encoding.UTF8.GetString(bytes: ea.Body.ToArray());
-                AccountEventsMessage message = JsonSerializer.Deserialize<AccountEventsMessage>(json: json)
+                AccountEventsMessage message = JsonSerializer.Deserialize<AccountEventsMessage>(json: json, options: FinanceTrackerJsonOptions.Payload)
                     ?? throw new InvalidOperationException(message: "Failed to deserialize AccountEventsMessage.");
 
                 await handler.HandleAsync(message: message, ct: ct);

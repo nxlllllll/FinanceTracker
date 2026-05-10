@@ -9,19 +9,14 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class GetIncomeExpenseSummaryHandlerTests
 {
-	private ICategoryTotalReadRepository _categoryTotalReadRepository = null!;
 	private IUserReadRepository _userReadRepository = null!;
 	private GetIncomeExpenseSummaryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryTotalReadRepository = Substitute.For<ICategoryTotalReadRepository>();
 		_userReadRepository = Substitute.For<IUserReadRepository>();
-		_handler = new GetIncomeExpenseSummaryHandler(
-			categoryTotalReadRepository: _categoryTotalReadRepository,
-			userReadRepository: _userReadRepository
-		);
+		_handler = new GetIncomeExpenseSummaryHandler(userReadRepository: _userReadRepository);
 	}
 
 	[Test]
@@ -35,7 +30,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
 
-		_categoryTotalReadRepository.GetIncomeExpenseSummaryAsync(
+		_userReadRepository.GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
@@ -63,7 +58,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
 
-		_categoryTotalReadRepository.GetIncomeExpenseSummaryAsync(
+		_userReadRepository.GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
@@ -89,7 +84,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
 
-		_categoryTotalReadRepository.GetIncomeExpenseSummaryAsync(
+		_userReadRepository.GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
@@ -100,7 +95,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _categoryTotalReadRepository.Received(requiredNumberOfCalls: 1).GetIncomeExpenseSummaryAsync(
+		await _userReadRepository.Received(requiredNumberOfCalls: 1).GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: period,
 			ct: Arg.Any<CancellationToken>()

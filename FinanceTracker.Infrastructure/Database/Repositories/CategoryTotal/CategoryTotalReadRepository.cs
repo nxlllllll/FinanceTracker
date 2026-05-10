@@ -40,31 +40,4 @@ public sealed class CategoryTotalReadRepository(
 				UpdatedAt: total.UpdatedAt
 			)).ToListAsync(cancellationToken: ct);
 	}
-
-	public async Task<(decimal Income, decimal Expense)> GetIncomeExpenseSummaryAsync(
-		Guid userId,
-		DateOnly period,
-		CancellationToken ct = default)
-	{
-		var summary = context.CategoryTotals.AsNoTracking()
-			.Where(predicate: total => total.UserId == userId && total.Period == period)
-			.Join(
-				inner: context.Categories,
-				outerKeySelector: total => total.CategoryId,
-				innerKeySelector: category => category.Id,
-				resultSelector: (total, category) => new { total.Total, category.Type }
-			).GroupBy(keySelector: x => x.Type)
-			.Select(selector: g => new { Type = g.Key, Sum = g.Sum(x => x.Total) });
-
-		var income = await summary.FirstOrDefaultAsync(
-			predicate: x => x.Type == Core.Domains.Category.CategoryType.Income,
-			cancellationToken: ct
-		);
-		var expense = await summary.FirstOrDefaultAsync(
-			predicate: x => x.Type == Core.Domains.Category.CategoryType.Expense,
-			cancellationToken: ct
-		);
- 
-		return (income?.Sum ?? 0, expense?.Sum ?? 0);
-	}
 }

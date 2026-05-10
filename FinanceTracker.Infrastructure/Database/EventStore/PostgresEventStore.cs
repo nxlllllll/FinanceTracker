@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.Json;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -38,7 +39,7 @@ public sealed class PostgresEventStore(
 
 		foreach (IEvent @event in eventList)
 		{
-			string serialized = JsonSerializer.Serialize(value: @event, inputType: @event.GetType());
+			string serialized = JsonSerializer.Serialize(value: @event, inputType: @event.GetType(), options: FinanceTrackerJsonOptions.Payload);
 			string? eventType = @event.GetType().GetCustomAttribute<EventTypeAttribute>()?.Name;
 			if (eventType is null)
 			{
@@ -123,10 +124,13 @@ public sealed class PostgresEventStore(
 				Id = Guid.CreateVersion7(),
 				AggregateId = aggregateId,
 				AggregateType = aggregateType,
-				Payload = JsonSerializer.Serialize(value: new OutboxPayload(
-					AggregateId: aggregateId,
-					Events: envelopes
-				)),
+				Payload = JsonSerializer.Serialize(
+					value: new OutboxPayload(
+						AggregateId: aggregateId,
+						Events: envelopes
+					), 
+					options: FinanceTrackerJsonOptions.Payload
+				),
 				UpdatedAt = dateProvider.UtcNow,
 				ProcessedAt = null
 			},
@@ -173,7 +177,7 @@ public sealed class PostgresEventStore(
 		List<IEvent> events = entities.Select(selector: entity =>
 		{
 			Type type = eventTypeResolver.ResolveType(typeName: entity.EventType);
-			return (IEvent)JsonSerializer.Deserialize(json: entity.Payload, returnType: type)!;
+			return (IEvent)JsonSerializer.Deserialize(json: entity.Payload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
 		}).ToList();
 
 		SnapshotData? snapshotData = snapshot is null ? null : new SnapshotData(

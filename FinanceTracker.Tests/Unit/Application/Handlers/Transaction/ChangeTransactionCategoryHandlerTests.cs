@@ -3,6 +3,7 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.CategoryTotals;
+using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	private ITransactionWriteRepository _transactionWriteRepository = null!;
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
 	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
+	private IOperationsWriteRepository _operationsWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ChangeTransactionCategoryHandler _handler = null!;
 
@@ -24,6 +26,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		_transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
+		_operationsWriteRepository = Substitute.For<IOperationsWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -37,6 +40,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		_handler = new ChangeTransactionCategoryHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
+			operationsWriteRepository: _operationsWriteRepository,
 			unitOfWork: _unitOfWork,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
 			logger: Substitute.For<ILogger<ChangeTransactionCategoryHandler>>()

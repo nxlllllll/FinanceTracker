@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Configurations.Options;
@@ -100,7 +101,7 @@ public sealed class OutboxPublisherJob(
             )).ToList()
         );
 
-        byte[] body = Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: brokerMessage));
+        byte[] body = Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: brokerMessage, options: FinanceTrackerJsonOptions.Payload));
 
         await channel.BasicPublishAsync(
             exchange: _rabbitOptions.ExchangeName,

@@ -1,10 +1,15 @@
-﻿using FinanceTracker.Core.Repositories.User;
+﻿using System.Text.Json;
+using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Domains.Operation;
+using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
-public class UserReadRepository(
+public sealed class UserReadRepository(
 	FinanceTrackerContext context
 ) : IUserReadRepository
 {
@@ -12,8 +17,7 @@ public class UserReadRepository(
 		Guid userId,
 		CancellationToken ct = default)
 	{
-		return await context.Users.AsNoTracking()
-			.Where(predicate: user => user.Id == userId)
+		return await context.Users.AsNoTracking().Where(predicate: user => user.Id == userId)
 			.Select(selector: user => Core.Domains.User.User.Reconstitute(
 				id: user.Id,
 				email: user.Email,
@@ -27,8 +31,7 @@ public class UserReadRepository(
 		string email,
 		CancellationToken ct = default)
 	{
-		return await context.Users.AsNoTracking()
-			.Where(predicate: user => user.Email == email)
+		return await context.Users.AsNoTracking().Where(predicate: user => user.Email == email)
 			.Select(selector: user => Core.Domains.User.User.Reconstitute(
 				id: user.Id,
 				email: user.Email,
@@ -36,5 +39,126 @@ public class UserReadRepository(
 				baseCurrencyCode: user.BaseCurrencyCode,
 				createdAt: user.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
+	}
+
+	public async Task<decimal> GetTotalBalanceAsync(
+	    Guid userId,
+	    Core.ValueObjects.Currency baseCurrency,
+	    DateOnly date,
+	    CancellationToken ct = default)
+	{
+	    return await context.Accounts.AsNoTracking().Where(predicate: a => a.UserId == userId && !a.IsArchived)
+			.Join(
+	            inner: context.AccountBalances,
+	            outerKeySelector: a => a.Id,
+	            innerKeySelector: b => b.AccountId,
+	            resultSelector: (a, b) => new { a.Currency, b.Balance }
+	        ).Select(selector: x => new
+	        {
+	            x.Currency,
+	            x.Balance,
+	            ExactRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value && r.ActualAt == date)
+	                .Select(r => (decimal?)r.Rate)
+					.FirstOrDefault(),
+	            LatestRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value)
+	                .OrderByDescending(r => r.ActualAt)
+	                .Select(r => (decimal?)r.Rate)
+	                .FirstOrDefault()
+	        }).SumAsync(selector: x => x.Currency == baseCurrency.Value ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? 1m), cancellationToken: ct);
+	}
+
+	public async Task<(decimal Income, decimal Expense)> GetIncomeExpenseSummaryAsync(
+		Guid userId,
+		DateOnly period,
+		CancellationToken ct = default)
+	{
+		List<(Core.Domains.Category.CategoryType Type, decimal Sum)> results = await context.CategoryTotals.AsNoTracking()
+			.Where(predicate: total => total.UserId == userId && total.Period == period)
+			.Join(
+				inner: context.Categories.Where(predicate: category => !category.IsArchived),
+				outerKeySelector: total => total.CategoryId,
+				innerKeySelector: category => category.Id,
+				resultSelector: (total, category) => new { total.Total, category.Type }
+			).GroupBy(keySelector: x => x.Type)
+			.Select(selector: g => ValueTuple.Create(g.Key, g.Sum(x => x.Total)))
+			.ToListAsync(cancellationToken: ct);
+
+		decimal income  = results.FirstOrDefault(predicate: x => x.Type == Core.Domains.Category.CategoryType.Income).Sum;
+		decimal expense = results.FirstOrDefault(predicate: x => x.Type == Core.Domains.Category.CategoryType.Expense).Sum;
+
+		return (income, expense);
+	}
+
+	public async Task<IReadOnlyList<OperationDto>> GetHistoryAsync(
+	    Guid userId,
+	    OperationFilterType? type = null,
+	    DateTime? dateFrom = null,
+	    DateTime? dateTo = null,
+	    DateTime? cursorOccurredAt = null,
+	    Guid? cursorId = null,
+	    int pageSize = 20,
+	    CancellationToken ct = default)
+	{
+	    IQueryable<OperationEntity> query = type switch
+	    {
+	        OperationFilterType.Income => context.Operations
+	            .FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Credit'")
+	            .AsNoTracking(),
+	        OperationFilterType.Expense => context.Operations
+	            .FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Debit'")
+	            .AsNoTracking(),
+	        OperationFilterType.Transfer => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId && o.Type == OperationType.Transfer),
+	        _ => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId)
+	    };
+
+	    if (dateFrom is not null)
+	        query = query.Where(predicate: o => o.OccurredAt >= dateFrom);
+
+	    if (dateTo is not null)
+	        query = query.Where(predicate: o => o.OccurredAt <= dateTo);
+
+	    if (cursorOccurredAt is not null && cursorId is not null)
+	        query = query.Where(predicate: o => o.OccurredAt < cursorOccurredAt || o.OccurredAt == cursorOccurredAt && o.Id < cursorId);
+
+	    List<OperationEntity> entities = await query
+	        .OrderByDescending(keySelector: o => o.OccurredAt)
+	        .ThenByDescending(keySelector: o => o.Id)
+	        .Take(count: pageSize)
+	        .ToListAsync(cancellationToken: ct);
+
+	    return entities.Select(selector: e =>
+	    {
+	        OperationPayload payload = e.Type switch
+	        {
+	            OperationType.Transaction => JsonSerializer.Deserialize<TransactionPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
+	            OperationType.Transfer => JsonSerializer.Deserialize<TransferPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
+	            _ => throw new InvalidOperationException(message: $"Unknown operation type: {e.Type}")
+	        };
+
+	        return new OperationDto(
+	            Id: e.Id,
+	            Type: payload is TransactionPayload tp
+	                ? tp.Direction == Core.Domains.Account.DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense
+	                : OperationFilterType.Transfer,
+	            Description: e.Description,
+	            OccurredAt: e.OccurredAt,
+	            Transaction: payload is TransactionPayload txp ? new TransactionDetailsDto(
+	                AccountId: txp.AccountId,
+	                CategoryId: txp.CategoryId,
+	                Amount: txp.Amount,
+	                Currency: txp.Currency,
+	                Direction: txp.Direction,
+	                IsExcluded: txp.IsExcluded
+	            ) : null,
+	            Transfer: payload is TransferPayload trp ? new TransferDetailsDto(
+	                FromAccountId: trp.FromAccountId,
+	                ToAccountId: trp.ToAccountId,
+	                AmountFrom: trp.AmountFrom,
+	                CurrencyFrom: trp.CurrencyFrom,
+	                AmountTo: trp.AmountTo,
+	                CurrencyTo: trp.CurrencyTo
+	            ) : null
+	        );
+	    }).ToList();
 	}
 }
