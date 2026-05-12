@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Operation;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
@@ -72,19 +73,20 @@ public sealed class UserReadRepository(
 		DateOnly period,
 		CancellationToken ct = default)
 	{
-		List<(Core.Domains.Category.CategoryType Type, decimal Sum)> results = await context.CategoryTotals.AsNoTracking()
-			.Where(predicate: total => total.UserId == userId && total.Period == period)
-			.Join(
-				inner: context.Categories.Where(predicate: category => !category.IsArchived),
-				outerKeySelector: total => total.CategoryId,
-				innerKeySelector: category => category.Id,
-				resultSelector: (total, category) => new { total.Total, category.Type }
-			).GroupBy(keySelector: x => x.Type)
-			.Select(selector: g => ValueTuple.Create(g.Key, g.Sum(x => x.Total)))
-			.ToListAsync(cancellationToken: ct);
+		var results = await context.CategoryTotals.AsNoTracking()
+		    .Where(predicate: total => total.UserId == userId && total.Period == period)
+		    .Join(
+		        inner: context.Categories.Where(c => !c.IsArchived),
+		        outerKeySelector: total => total.CategoryId,
+		        innerKeySelector: category => category.Id,
+		        resultSelector: (total, category) => new { total.Total, category.Type }
+		    )
+		    .GroupBy(keySelector: x => x.Type)
+		    .Select(selector: g => new { Type = g.Key, Sum = g.Sum(x => x.Total) })
+		    .ToListAsync(cancellationToken: ct);
 
-		decimal income  = results.FirstOrDefault(predicate: x => x.Type == Core.Domains.Category.CategoryType.Income).Sum;
-		decimal expense = results.FirstOrDefault(predicate: x => x.Type == Core.Domains.Category.CategoryType.Expense).Sum;
+		decimal income  = results.FirstOrDefault(predicate: x => x.Type == CategoryType.Income)?.Sum ?? 0;
+		decimal expense = results.FirstOrDefault(predicate: x => x.Type == CategoryType.Expense)?.Sum ?? 0;
 
 		return (income, expense);
 	}

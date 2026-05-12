@@ -52,9 +52,11 @@ public static class DbContextExtensions
         string tableName = entityType.GetTableName()!;
         string jsonValue = JsonSerializer.Serialize(value: value, options: FinanceTrackerJsonOptions.Payload);
 
+        string sql = "UPDATE \"" + tableName + "\" SET payload = jsonb_set(payload, '{{" + jsonKey + "}}', @p0::jsonb) WHERE id = @p1";
+
 #pragma warning disable EF1002
         return context.Database.ExecuteSqlRawAsync(
-            sql: $$"""UPDATE "{{tableName}}" SET payload = jsonb_set(payload, '{{{jsonKey}}}', @p0::jsonb) WHERE id = @p1""",
+            sql: sql,
             parameters: [
                 new NpgsqlParameter(parameterName: "p0", value: jsonValue),
                 new NpgsqlParameter(parameterName: "p1", value: id)

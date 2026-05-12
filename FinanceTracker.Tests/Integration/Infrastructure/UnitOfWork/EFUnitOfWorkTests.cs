@@ -187,4 +187,66 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
         int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
         await Assert.That(value: count).IsEqualTo(expected: 0);
     }
+
+    [Test]
+    public async Task ExecuteInTransactionAsync_WithOnError_WhenOperationThrows_ShouldCallOnErrorAndRethrow()
+    {
+        bool onErrorCalled = false;
+
+        await Assert.That(action: async () =>
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(
+                operation: async () =>
+                {
+                    Context.Currencies.Add(new CurrencyEntity
+                    {
+                        Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+                        Name = "Test",
+                        Symbol = "T",
+                        IsActive = true
+                    });
+                    await Context.SaveChangesAsync();
+                    throw new InvalidOperationException("Simulated failure");
+                },
+                onError: _ =>
+                {
+                    onErrorCalled = true;
+                    return Task.CompletedTask;
+                }
+            );
+        }).Throws<InvalidOperationException>();
+
+        int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
+        await Assert.That(value: count).IsEqualTo(expected: 0);
+        await Assert.That(value: onErrorCalled).IsTrue();
+    }
+
+    [Test]
+    public async Task ExecuteInTransactionAsync_WithOnError_WhenOperationSucceeds_ShouldNotCallOnError()
+    {
+        bool onErrorCalled = false;
+
+        await _unitOfWork.ExecuteInTransactionAsync(
+            operation: async () =>
+            {
+                Context.Currencies.Add(new CurrencyEntity
+                {
+                    Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+                    Name = "Test",
+                    Symbol = "T",
+                    IsActive = true
+                });
+                await Context.SaveChangesAsync();
+            },
+            onError: _ =>
+            {
+                onErrorCalled = true;
+                return Task.CompletedTask;
+            }
+        );
+
+        await Assert.That(value: onErrorCalled).IsFalse();
+        int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
+        await Assert.That(value: count).IsEqualTo(expected: 1);
+    }
 }
