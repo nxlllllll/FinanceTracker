@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Worker.Shared.RabbitMQ;
+﻿namespace FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 
 public sealed class RabbitMqOptions
 {

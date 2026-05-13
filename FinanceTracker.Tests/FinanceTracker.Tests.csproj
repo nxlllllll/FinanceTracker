@@ -21,6 +21,7 @@
       <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
       <ProjectReference Include="..\FinanceTracker.Worker.AccountProjection\FinanceTracker.Worker.AccountProjection.csproj" />
       <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransactionProjection\FinanceTracker.Worker.RecurringTransactionProjection.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransaction\FinanceTracker.Worker.RecurringTransaction.csproj" />
     </ItemGroup>
 
 </Project>

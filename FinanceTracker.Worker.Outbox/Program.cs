@@ -2,6 +2,8 @@ using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Worker.Outbox.Jobs;
 using FinanceTracker.Worker.Shared.RabbitMQ;
+using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
+using FinanceTracker.Worker.Shared.RabbitMQ.Publish;
 using Quartz;
 
 namespace FinanceTracker.Worker.Outbox;
@@ -19,6 +21,7 @@ public sealed class Program
             .ValidateOnStart();
 
         builder.Services.AddSingleton<RabbitMqConnectionFactory>();
+        builder.Services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
 
         OutboxOptions outboxOptions = builder.Configuration
             .GetSection(key: OutboxOptions.SectionName)

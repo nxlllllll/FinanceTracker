@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
-namespace FinanceTracker.Worker.Shared.RabbitMQ;
+namespace FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 
 public sealed class RabbitMqConnectionFactory(IOptions<RabbitMqOptions> options)
 {

@@ -8,51 +8,53 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
+using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.EntityFrameworkCore;
 using ZLogger;
 
 namespace FinanceTracker.Worker.AccountProjection.Consumers;
 
 public sealed class AccountEventsConsumer(
-    Projection.AccountProjection projection,
-    IEventTypeResolver eventTypeResolver,
-    FinanceTrackerContext context,
-    IUnitOfWork unitOfWork,
-    IDateProvider dateProvider,
-    ILogger<AccountEventsConsumer> logger)
+	Projection.AccountProjection projection,
+	IEventTypeResolver eventTypeResolver,
+	FinanceTrackerContext context,
+	IUnitOfWork unitOfWork,
+	IDateProvider dateProvider,
+	ILogger<AccountEventsConsumer> logger
+) : IMessageHandler<AccountEventsMessage>
 {
-    public async Task HandleAsync(AccountEventsMessage message, CancellationToken ct)
-    {
-        await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-        {
-            bool alreadyProcessed = await context.ProcessedMessages.AnyAsync(
-                predicate: m => m.MessageId == message.MessageId, 
-                cancellationToken: ct
-            );
+	public async Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
+	{
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			bool alreadyProcessed = await context.ProcessedMessages.AnyAsync(
+				predicate: m => m.MessageId == message.MessageId,
+				cancellationToken: ct
+			);
 
-            if (alreadyProcessed)
-            {
-                logger.ZLogWarning(message: $"Message {message.MessageId} already processed, skipping.");
-                return;
-            }
+			if (alreadyProcessed)
+			{
+				logger.ZLogWarning(message: $"Message {message.MessageId} already processed, skipping.");
+				return;
+			}
 
-            List<IEvent> events = message.Events.Select(selector: e =>
-            {
-                Type type = eventTypeResolver.ResolveType(typeName: e.EventType);
-                return (IEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
-            }).ToList();
+			List<IEvent> events = message.Events.Select(selector: e =>
+			{
+				Type type = eventTypeResolver.ResolveType(typeName: e.EventType);
+				return (IEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
+			}).ToList();
 
-            await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: ct);
+			await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: ct);
 
-            await context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
-            {
-                MessageId = message.MessageId,
-                ProcessedAt = dateProvider.UtcNow
-            }, cancellationToken: ct);
+			await context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
+			{
+				MessageId = message.MessageId,
+				ProcessedAt = dateProvider.UtcNow
+			}, cancellationToken: ct);
 
-            await context.SaveChangesAsync(cancellationToken: ct);
+			await context.SaveChangesAsync(cancellationToken: ct);
 
-            logger.ZLogInformation(message: $"Projected {events.Count} event(s) for Account {message.AggregateId}.");
-        }, ct: ct);
-    }
+			logger.ZLogInformation(message: $"Projected {events.Count} event(s) for Account {message.AggregateId}.");
+		}, ct: ct);
+	}
 }
