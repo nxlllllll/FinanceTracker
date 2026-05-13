@@ -1,6 +1,6 @@
 ﻿namespace FinanceTracker.Contracts.Messages.Account;
 
-public sealed record AccountEventEnvelope(
+public sealed record EventEnvelope(
 	string EventType,
 	string EventPayload
 );

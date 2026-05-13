@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -19,14 +20,12 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 	private AccountEventsConsumer _consumer = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private IAccountWriteRepository _accountWriteRepository = null!;
-	private IEventTypeResolver _eventTypeResolver = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_accountWriteRepository = Substitute.For<IAccountWriteRepository>();
-		_eventTypeResolver = Substitute.For<IEventTypeResolver>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -40,20 +39,87 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
 		_consumer = new AccountEventsConsumer(
 			projection: projection,
-			eventTypeResolver: _eventTypeResolver,
+			eventTypeResolver: Substitute.For<IEventTypeResolver>(),
 			context: Context,
 			unitOfWork: _unitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<AccountEventsConsumer>>()
 		);
 	}
-
-	private static AccountEventsMessage BuildMessage(Guid? messageId = null)
+	
+	private static AggregateEventsMessage BuildMessage(
+		Guid? messageId = null,
+		string aggregateType = AggregateTypeNames.Account)
 	{
-		return new AccountEventsMessage(
+		return new AggregateEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: Guid.CreateVersion7(),
+			AggregateType: aggregateType,
 			Events: []
+		);
+	}
+
+	[Test]
+	public async Task AccountEventsConsumer_ShouldImplement_IMessageHandler()
+		=> await Assert.That(value: _consumer is IMessageHandler<AggregateEventsMessage> result).IsTrue();
+	
+	[Test]
+	public async Task HandleAsync_WhenAggregateTypeIsNotAccount_ShouldSkipWithoutTransaction()
+	{
+		AggregateEventsMessage message = BuildMessage(aggregateType: AggregateTypeNames.Transaction);
+
+		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
+
+		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenAggregateTypeIsNotAccount_ShouldNotCallProjection()
+	{
+		await _consumer.HandleAsync(
+			message: BuildMessage(aggregateType: AggregateTypeNames.Budget),
+			ct: CancellationToken.None
+		);
+
+		await _accountWriteRepository.DidNotReceive().CreateAsync(
+			@event: Arg.Any<AccountCreated>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	[Arguments(nameof(AggregateTypeNames.Transaction))]
+	[Arguments(nameof(AggregateTypeNames.Budget))]
+	[Arguments(nameof(AggregateTypeNames.Category))]
+	[Arguments(nameof(AggregateTypeNames.User))]
+	[Arguments("UnknownAggregate")]
+	public async Task HandleAsync_WhenAggregateTypeIsNotAccount_ShouldAlwaysSkip(string aggregateType)
+	{
+		await _consumer.HandleAsync(
+			message: BuildMessage(aggregateType: aggregateType),
+			ct: CancellationToken.None
+		);
+
+		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenAggregateTypeIsAccount_ShouldExecuteTransaction()
+	{
+		await _consumer.HandleAsync(
+			message: BuildMessage(aggregateType: AggregateTypeNames.Account),
+			ct: CancellationToken.None
+		);
+
+		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
@@ -91,25 +157,12 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
 		int countBefore = Context.ProcessedMessages.Count();
 
-		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
-
-		int countAfter = Context.ProcessedMessages.Count();
-
-		await Assert.That(value: countAfter).IsEqualTo(expected: countBefore);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenMessageNotProcessed_ShouldCallExecuteInTransaction()
-	{
 		await _consumer.HandleAsync(
-			message: BuildMessage(),
+			message: BuildMessage(messageId: messageId),
 			ct: CancellationToken.None
 		);
 
-		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await Assert.That(value: Context.ProcessedMessages.Count()).IsEqualTo(expected: countBefore);
 	}
 
 	[Test]
@@ -127,20 +180,13 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 	[Test]
 	public async Task HandleAsync_WhenCalledTwiceWithSameId_ShouldSaveProcessedMessageOnce()
 	{
-		Guid messageId = Guid.CreateVersion7();
-		AccountEventsMessage message = BuildMessage(messageId: messageId);
+		AggregateEventsMessage message = BuildMessage();
 
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 
-		int count = Context.ProcessedMessages.Count(predicate: m => m.MessageId == messageId);
+		int count = Context.ProcessedMessages.Count(predicate: m => m.MessageId == message.MessageId);
 
 		await Assert.That(value: count).IsEqualTo(expected: 1);
-	}
-	
-	[Test]
-	public async Task AccountEventsConsumer_ShouldImplement_IMessageHandler()
-	{
-		await Assert.That(value: _consumer is IMessageHandler<AccountEventsMessage> result).IsTrue();
 	}
 }

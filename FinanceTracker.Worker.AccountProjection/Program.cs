@@ -15,7 +15,7 @@ public sealed class Program
  
 		builder.Services.AddScoped<Projection.AccountProjection>();
 		builder.Services.AddRabbitMqCore(configuration: builder.Configuration);
-		builder.Services.AddRabbitMqListener<AccountEventsMessage, AccountEventsConsumer>();
+		builder.Services.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
  
 		IHost app = builder.Build();
 		app.Run();

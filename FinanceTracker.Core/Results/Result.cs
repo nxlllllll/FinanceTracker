@@ -2,7 +2,8 @@
 
 namespace FinanceTracker.Core.Results;
 
-public readonly struct Result<TValue, TError> : IResult<Result<TValue, TError>, TError> where TError : AppException
+public readonly struct Result<TValue, TError> : IResult, IResult<Result<TValue, TError>, TError>
+	where TError : AppException
 {
 	private readonly TValue? _value;
 	private readonly TError? _error;

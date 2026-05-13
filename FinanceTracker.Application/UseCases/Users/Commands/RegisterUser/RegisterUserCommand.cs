@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+﻿using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
 
@@ -8,4 +9,7 @@ public sealed record RegisterUserCommand(
 	string Email,
 	string PasswordHash,
 	string BaseCurrencyCode
-) : IRequest<Result<Guid, DomainException>>;
+) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>
+{
+	public Guid IdempotencyKey { get; init; }
+}

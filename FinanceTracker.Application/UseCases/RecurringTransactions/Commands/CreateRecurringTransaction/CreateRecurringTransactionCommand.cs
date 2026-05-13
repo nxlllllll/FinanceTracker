@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -15,4 +16,7 @@ public sealed record CreateRecurringTransactionCommand(
 	DirectionType Direction,
 	int DayOfMonth,
 	string? Description
-) : IRequest<Result<Guid, DomainException>>, IAuthorizable;
+) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>, IAuthorizable
+{
+	public Guid IdempotencyKey { get; init; }
+}

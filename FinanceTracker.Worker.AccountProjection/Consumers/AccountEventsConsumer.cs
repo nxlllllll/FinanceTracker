@@ -21,10 +21,16 @@ public sealed class AccountEventsConsumer(
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
 	ILogger<AccountEventsConsumer> logger
-) : IMessageHandler<AccountEventsMessage>
+) : IMessageHandler<AggregateEventsMessage>
 {
-	public async Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
+	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
+		if (message.AggregateType != AggregateTypeNames.Account)
+		{
+			logger.ZLogDebug(message: $"Skipping message for aggregate type '{message.AggregateType}'.");
+			return;
+		}
+		
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			bool alreadyProcessed = await context.ProcessedMessages.AnyAsync(

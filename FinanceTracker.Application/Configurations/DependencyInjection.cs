@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.ConcurrencyRetry;
+using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Accounts.Authorization;
@@ -26,11 +27,17 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 		
+		services.AddOptions<IdempotencyOptions>()
+			.BindConfiguration(configSectionPath: IdempotencyOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+		
 		services.AddMediatR(configuration: cfg =>
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
- 
+
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ConcurrencyRetryBehavior<,>));
+			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(IdempotencyBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ValidationBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(QueryValidationBehavior<,>));
 		});

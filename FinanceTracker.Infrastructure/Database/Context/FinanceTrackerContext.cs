@@ -41,6 +41,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	
 	public DbSet<OperationEntity> Operations => Set<OperationEntity>();
 	
+	public DbSet<IdempotentCommandEntity> IdempotentCommands => Set<IdempotentCommandEntity>();
+	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);
 }

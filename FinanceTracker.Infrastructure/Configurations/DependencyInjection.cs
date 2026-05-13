@@ -7,6 +7,7 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Transaction;
@@ -25,6 +26,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
+using FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
 using FinanceTracker.Infrastructure.Database.Repositories.Operations;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
@@ -91,6 +93,9 @@ public static class DependencyInjection
 		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
 
 		services.AddScoped<IOperationsWriteRepository, OperationsWriteRepository>();
+		
+		services.AddScoped<IIdempotencyReadRepository, IdempotencyReadRepository>();
+		services.AddScoped<IIdempotencyWriteRepository, IdempotencyWriteRepository>();
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<IDateProvider, DateProvider>();

@@ -75,10 +75,11 @@ public sealed class OutboxPublisherJob(
 		OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
 			?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
 
-		AccountEventsMessage brokerMessage = new AccountEventsMessage(
+		AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
 			MessageId: message.Id,
 			AggregateId: payload.AggregateId,
-			Events: payload.Events.Select(selector: e => new AccountEventEnvelope(
+			AggregateType: message.AggregateType,
+			Events: payload.Events.Select(selector: e => new EventEnvelope(
 				EventType: e.EventType,
 				EventPayload: e.EventPayload
 			)).ToList()
