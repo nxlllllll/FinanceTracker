@@ -1,49 +1,64 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Worker.RecurringTransaction.Jobs;
+using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.RabbitMQ;
-using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
-using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
+using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
+using Microsoft.AspNetCore.Builder;
 using Quartz;
 
 namespace FinanceTracker.Worker.RecurringTransaction;
 
 public sealed class Program
 {
-    public static void Main(string[] args)
-    {
-        HostApplicationBuilder builder = Host.CreateApplicationBuilder(args: args);
+	public static void Main(string[] args)
+	{
+		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
 
-        builder.Services.AddInfrastructure(configuration: builder.Configuration);
+		builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
-        builder.Services.AddOptions<RabbitMqOptions>()
-            .BindConfiguration(configSectionPath: RabbitMqOptions.SectionName)
-            .ValidateOnStart();
+		builder.Services
+			.AddRabbitMqCore(configuration: builder.Configuration)
+			.AddRabbitMqPublisher();
 
-        builder.Services.AddSingleton<RabbitMqConnectionFactory>();
-        builder.Services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
-        
-        RecurringTransactionJobOptions recurringOptions = builder.Configuration
-            .GetSection(key: RecurringTransactionJobOptions.SectionName)
-            .Get<RecurringTransactionJobOptions>() ?? new RecurringTransactionJobOptions();
+		RecurringTransactionJobOptions recurringOptions = builder.Configuration
+			.GetSection(key: RecurringTransactionJobOptions.SectionName)
+			.Get<RecurringTransactionJobOptions>() ?? new RecurringTransactionJobOptions();
 
-        builder.Services.AddQuartz(configure: q =>
-        {
-            q.AddJob<RecurringTransactionHandlingJob>(configure: j => j.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group));
+		builder.Services.AddQuartz(configure: q =>
+		{
+			q.AddJob<RecurringTransactionHandlingJob>(configure: j =>
+				j.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group)
+			);
+			q.AddTrigger(configure: t => t
+				.ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: recurringOptions.Group)
+				.WithIdentity(name: recurringOptions.TriggerName, group: recurringOptions.Group)
+				.WithCronSchedule(
+					cronExpression: recurringOptions.CronExpression,
+					schedule => schedule
+						.InTimeZone(tz: TimeZoneInfo.Utc)
+						.WithMisfireHandlingInstructionFireAndProceed()
+				)
+			);
+		});
 
-            q.AddTrigger(configure: t => t
-                .ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: recurringOptions.Group)
-                .WithIdentity(name: recurringOptions.TriggerName, group: recurringOptions.Group)
-                .WithCronSchedule(
-                    cronExpression: recurringOptions.CronExpression,
-                    schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
-                )
-            );
-        });
+		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
 
-        builder.Services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);
+		string connectionString = builder.Configuration.GetConnectionString(
+			name: "FinanceTrackerContext"
+		)!;
 
-        IHost app = builder.Build();
-        app.Run();
-    }
+		builder.Services
+			.AddWorkerHealthChecks(connectionString: connectionString)
+			.AddCheck<RabbitMqHealthCheck>(name: "rabbitmq", tags: ["ready", "broker"])
+			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
+
+		builder.Services.AddWorkerMetrics(workerName: "Worker.RecurringTransaction");
+
+		WebApplication app = builder.Build();
+
+		app.MapWorkerEndpoints();
+
+		app.Run();
+	}
 }

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using ZLogger;
@@ -19,6 +20,7 @@ public sealed class DeadLetterMonitoringJob(
 			.OrderBy(keySelector: m => m.FailedAt)
 			.ToListAsync(cancellationToken: executionContext.CancellationToken);
  
+		WorkerMetrics.DeadLetterCount.Record(value: deadLetters.Count);
 		if (deadLetters.Count == 0)
 			return;
  

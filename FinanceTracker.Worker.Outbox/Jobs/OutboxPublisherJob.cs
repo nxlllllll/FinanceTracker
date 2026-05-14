@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Diagnostics;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Persistence;
@@ -7,6 +8,7 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
+using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -48,11 +50,13 @@ public sealed class OutboxPublisherJob(
 			int published = 0;
 			foreach (OutboxMessageEntity message in messages)
 			{
+				Stopwatch sw = Stopwatch.StartNew();
 				try
 				{
 					await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 					{
 						await PublishMessageAsync(message: message, ct: ct);
+						WorkerMetrics.OutboxPublished.Add(delta: 1);
 						logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
 					}, ct: ct);
 				}
@@ -64,6 +68,10 @@ public sealed class OutboxPublisherJob(
 					logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
 
 					await UpdateRetryStateAsync(message: message, ct: ct);
+				}
+				finally
+				{
+					WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
 				}
 			}
 		}, onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch publishing failed."), ct: ct);
@@ -105,6 +113,7 @@ public sealed class OutboxPublisherJob(
 				if (message.RetryCount >= _outboxOptions.MaxRetries)
 				{
 					message.FailedAt = dateProvider.UtcNow;
+					WorkerMetrics.OutboxFailed.Add(delta: 1);
 					logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {_outboxOptions.MaxRetries} retries.");
 				}
 

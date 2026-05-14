@@ -1,15 +1,17 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Worker.DeadLetterMonitor.Jobs;
+using FinanceTracker.Worker.Shared.HealthChecks;
+using Microsoft.AspNetCore.Builder;
 using Quartz;
 
 namespace FinanceTracker.Worker.DeadLetterMonitor;
 
 public sealed class Program
 {
-    public static void Main(string[] args)
-    {
-        HostApplicationBuilder builder = Host.CreateApplicationBuilder(args: args);
+	public static void Main(string[] args)
+	{
+		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
 
         builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
@@ -32,10 +34,20 @@ public sealed class Program
             );
         });
 
-        builder.Services.AddQuartzHostedService(configure: options =>
-            options.WaitForJobsToComplete = true);
+		builder.Services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);
 
-        IHost app = builder.Build();
-        app.Run();
-    }
+		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
+		builder.Services
+			.AddWorkerHealthChecks(connectionString: connectionString)
+			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
+
+		builder.Services.AddWorkerMetrics(workerName: "Worker.DeadLetterMonitor");
+
+		WebApplication app = builder.Build();
+
+		app.MapWorkerEndpoints();
+
+		app.Run();
+	}
 }
