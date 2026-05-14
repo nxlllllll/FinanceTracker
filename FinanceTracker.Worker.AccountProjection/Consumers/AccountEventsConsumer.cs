@@ -2,6 +2,9 @@
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;

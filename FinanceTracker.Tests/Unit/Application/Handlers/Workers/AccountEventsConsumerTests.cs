@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;

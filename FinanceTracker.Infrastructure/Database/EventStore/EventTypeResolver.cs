@@ -1,6 +1,9 @@
 ﻿using System.Collections.Frozen;
 using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -10,6 +13,7 @@ namespace FinanceTracker.Infrastructure.Database.EventStore;
 public sealed class EventTypeResolver : IEventTypeResolver
 {
 	private readonly FrozenDictionary<string, Type> _eventTypes;
+	private readonly FrozenDictionary<string, int> _eventVersions;
  
 	public EventTypeResolver(
 		Assembly assembly,
@@ -30,6 +34,11 @@ public sealed class EventTypeResolver : IEventTypeResolver
 		}
  
 		_eventTypes = eventTypes.ToFrozenDictionary(keySelector: type => type.GetCustomAttribute<EventTypeAttribute>()!.Name);
+		
+		_eventVersions = eventTypes.ToFrozenDictionary(
+			keySelector: type => type.GetCustomAttribute<EventTypeAttribute>()!.Name,
+			elementSelector: type => type.GetCustomAttribute<EventVersionAttribute>()?.Version ?? 1
+		);
 	}
  
 	public Type ResolveType(string typeName)
@@ -39,4 +48,7 @@ public sealed class EventTypeResolver : IEventTypeResolver
  
 		return type;
 	}
+	
+	public int GetCurrentVersion(string typeName)
+		=> _eventVersions.GetValueOrDefault(key: typeName, defaultValue: 1);
 }

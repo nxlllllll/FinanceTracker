@@ -10,4 +10,5 @@ public sealed class EventEntity
 	public string Payload { get; init; } = String.Empty;
 	public DateTime OccurredAt { get; init; }
 	public DateTime CreatedAt { get; init; }
+	public int SchemaVersion { get; init; }
 }

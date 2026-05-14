@@ -1,4 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.Account;

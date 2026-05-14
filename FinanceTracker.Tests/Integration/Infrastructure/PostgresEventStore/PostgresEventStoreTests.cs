@@ -1,4 +1,8 @@
-﻿using FinanceTracker.Core.Domains.Abstractions;
+﻿using System.Text.Json;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -22,6 +26,13 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 
     private FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore CreateEventStore()
     {
+        IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
+        upcasterRegistry.Apply(
+             eventType: Arg.Any<string>(),
+             source: Arg.Any<JsonDocument>(),
+             storedVersion: Arg.Any<int>(),
+             currentVersion: Arg.Any<int>()
+         ).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
         return new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
             context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()
                 .UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
@@ -33,6 +44,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             ),
             dateProvider: FakeDateProvider.Default,
             correlationContext: Substitute.For<ICorrelationContext>(),
+            upcasterRegistry: upcasterRegistry,
             options: Options.Create(options: new EventStoreOptions()),
             logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
         );

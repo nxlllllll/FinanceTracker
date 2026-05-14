@@ -28,7 +28,7 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<EventEntity>
 
 		builder.Property(propertyExpression: e => e.Version)
 			.HasColumnName(name: "version");
-
+		
 		builder.Property(propertyExpression: e => e.Payload)
 			.HasColumnName(name: "payload")
 			.HasColumnType(typeName: "jsonb");
@@ -39,6 +39,9 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<EventEntity>
 		builder.Property(propertyExpression: e => e.CreatedAt)
 			.HasColumnName(name: "created_at");
 
+		builder.Property(propertyExpression: e => e.SchemaVersion)
+			.HasColumnName(name: "schema_version");
+		
 		builder.HasIndex(indexExpression: e => new { e.AggregateId, e.Version })
 			.IsUnique();
 	}

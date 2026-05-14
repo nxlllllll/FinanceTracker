@@ -1,4 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 

@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using NetArchTest.Rules;
@@ -30,7 +32,8 @@ public sealed class ArchitectureTests
 		"Npgsql",
 		"Quartz",
 		"Microsoft.Extensions",
-		"ZLogger"
+		"ZLogger",
+		"Scrutor"
 	];
 
 	[Test]

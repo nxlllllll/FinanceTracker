@@ -1,4 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.AccountType;
@@ -58,6 +61,14 @@ public static class DependencyInjection
 			assembly: typeof(IEvent).Assembly,
 			logger: s.GetService<ILogger<EventTypeResolver>>()!
 		));
+		
+		services.Scan(scan => scan
+		    .FromAssemblyOf<EventUpcasterRegistry>()
+		    .AddClasses(classes => classes.AssignableTo<IEventUpcaster>())
+		    .AsImplementedInterfaces()
+		    .WithSingletonLifetime()
+		);
+		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		

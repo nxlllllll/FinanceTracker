@@ -1,4 +1,7 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions;
+﻿using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+
+namespace FinanceTracker.Core.Domains.Abstractions.Aggregate;
 
 public abstract class AggregateRoot
 {

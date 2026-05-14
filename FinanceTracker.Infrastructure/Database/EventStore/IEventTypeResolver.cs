@@ -3,4 +3,5 @@
 public interface IEventTypeResolver
 {
 	Type ResolveType(string typeName);
+	int GetCurrentVersion(string typeName);
 }

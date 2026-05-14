@@ -1,7 +1,10 @@
 ﻿using System.Reflection;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -25,7 +28,8 @@ public sealed class PostgresEventStore(
 	IDateProvider dateProvider,
 	ILogger<PostgresEventStore> logger,
 	IOptions<EventStoreOptions> options,
-	ICorrelationContext correlationContext
+	ICorrelationContext correlationContext,
+	IEventUpcasterRegistry upcasterRegistry
 ) : IEventStore
 {
 	private (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
@@ -58,6 +62,7 @@ public sealed class PostgresEventStore(
 				AggregateId = aggregateId,
 				AggregateType = aggregateType,
 				EventType = eventType,
+				SchemaVersion = eventTypeResolver.GetCurrentVersion(typeName: eventType),
 				Version = ++currentVersion,
 				Payload = serialized,
 				OccurredAt = @event.OccurredAt,
@@ -179,7 +184,22 @@ public sealed class PostgresEventStore(
 		List<IEvent> events = entities.Select(selector: entity =>
 		{
 			Type type = eventTypeResolver.ResolveType(typeName: entity.EventType);
-			return (IEvent)JsonSerializer.Deserialize(json: entity.Payload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
+			int currentVersion = eventTypeResolver.GetCurrentVersion(typeName: entity.EventType);
+ 
+			int storedVersion = entity.SchemaVersion;
+ 
+			using JsonDocument raw = JsonDocument.Parse(json: entity.Payload);
+			using JsonDocument upcasted = upcasterRegistry.Apply(
+				eventType: entity.EventType,
+				source: raw,
+				storedVersion: storedVersion,
+				currentVersion: currentVersion
+			);
+ 
+			return (IEvent)upcasted.RootElement.Deserialize(
+				returnType: type,
+				options: FinanceTrackerJsonOptions.Payload
+			)!;
 		}).ToList();
 
 		SnapshotData? snapshotData = snapshot is null ? null : new SnapshotData(

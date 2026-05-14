@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions;
+﻿namespace FinanceTracker.Core.Domains.Abstractions.ES.Event;
 
 public interface IEvent
 {
