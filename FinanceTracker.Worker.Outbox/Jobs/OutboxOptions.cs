@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace FinanceTracker.Infrastructure.Configurations.Options;
+namespace FinanceTracker.Worker.Outbox.Jobs;
 
 public sealed class OutboxOptions
 {

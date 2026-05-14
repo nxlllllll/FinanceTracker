@@ -27,10 +27,12 @@ public sealed class AccountEventsConsumer(
 	{
 		if (message.AggregateType != AggregateTypeNames.Account)
 		{
-			logger.ZLogDebug(message: $"Skipping message for aggregate type '{message.AggregateType}'.");
+			logger.ZLogDebug(message: $"[{message.CorrelationId}] Skipping message for aggregate type '{message.AggregateType}'.");
 			return;
 		}
-		
+
+		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
+
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			bool alreadyProcessed = await context.ProcessedMessages.AnyAsync(
@@ -40,7 +42,7 @@ public sealed class AccountEventsConsumer(
 
 			if (alreadyProcessed)
 			{
-				logger.ZLogWarning(message: $"Message {message.MessageId} already processed, skipping.");
+				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed, skipping.");
 				return;
 			}
 
@@ -60,7 +62,7 @@ public sealed class AccountEventsConsumer(
 
 			await context.SaveChangesAsync(cancellationToken: ct);
 
-			logger.ZLogInformation(message: $"Projected {events.Count} event(s) for Account {message.AggregateId}.");
+			logger.ZLogInformation(message: $"[{message.CorrelationId}] Projected {events.Count} event(s) for Account {message.AggregateId}.");
 		}, ct: ct);
 	}
 }

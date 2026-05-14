@@ -4,7 +4,7 @@ using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
-using FinanceTracker.Infrastructure.Services;
+using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;

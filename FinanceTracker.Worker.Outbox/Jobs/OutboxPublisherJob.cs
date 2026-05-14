@@ -3,12 +3,11 @@ using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
-using FinanceTracker.Worker.Shared.RabbitMQ.Publish;
+using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -77,15 +76,20 @@ public sealed class OutboxPublisherJob(
 
 		AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
 			MessageId: message.Id,
-			AggregateId: payload.AggregateId,
+			AggregateId: message.AggregateId,
 			AggregateType: message.AggregateType,
+			CorrelationId: payload.CorrelationId,
 			Events: payload.Events.Select(selector: e => new EventEnvelope(
 				EventType: e.EventType,
 				EventPayload: e.EventPayload
 			)).ToList()
 		);
 
-		await publisher.PublishAsync(message: brokerMessage, ct: ct);
+		await publisher.PublishAsync(
+			message: brokerMessage,
+			correlationId: payload.CorrelationId,
+			ct: ct
+		);
 
 		message.ProcessedAt = dateProvider.UtcNow;
 		await context.SaveChangesAsync(cancellationToken: ct);

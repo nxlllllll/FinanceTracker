@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;
@@ -64,12 +65,9 @@ public sealed class ArchitectureTests
 	public async Task AllIEventClasses_ShouldHaveEventTypeAttribute()
 	{
 		TestResult result = Types.InAssembly(assembly: CoreAssembly)
-			.That()
-			.ImplementInterface(interfaceType: typeof(IEvent))
-			.And()
-			.AreClasses()
-			.Should()
-			.HaveCustomAttribute(attribute: typeof(EventTypeAttribute))
+			.That().ImplementInterface(interfaceType: typeof(IEvent))
+			.And().AreClasses()
+			.Should().HaveCustomAttribute(attribute: typeof(EventTypeAttribute))
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
@@ -80,12 +78,9 @@ public sealed class ArchitectureTests
 	public async Task AllIRequestHandlerClasses_ShouldHaveHandlerSuffix()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.That()
-			.ImplementInterface(interfaceType: typeof(MediatR.IRequestHandler<,>))
-			.And()
-			.DoNotHaveNameStartingWith(start: "AuthorizedHandlerAdapter")
-			.Should()
-			.HaveNameEndingWith(end: "Handler")
+			.That().ImplementInterface(interfaceType: typeof(MediatR.IRequestHandler<,>))
+			.And().DoNotHaveNameStartingWith(start: "AuthorizedHandlerAdapter")
+			.Should().HaveNameEndingWith(end: "Handler")
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
@@ -96,10 +91,8 @@ public sealed class ArchitectureTests
 	public async Task AllIValidatorClasses_ShouldHaveValidatorSuffix()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.That()
-			.ImplementInterface(interfaceType: typeof(FluentValidation.IValidator<>))
-			.Should()
-			.HaveNameEndingWith(end: "Validator")
+			.That().ImplementInterface(interfaceType: typeof(FluentValidation.IValidator<>))
+			.Should().HaveNameEndingWith(end: "Validator")
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
@@ -110,14 +103,10 @@ public sealed class ArchitectureTests
 	public async Task AllDomainClasses_ShouldBeSealed()
 	{
 		TestResult result = Types.InAssembly(assembly: CoreAssembly)
-			.That()
-			.ResideInNamespaceStartingWith(name: "FinanceTracker.Core.Domains")
-			.And()
-			.AreClasses()
-			.And()
-			.AreNotAbstract()
-			.Should()
-			.BeSealed()
+			.That().ResideInNamespaceStartingWith(name: "FinanceTracker.Core.Domains")
+			.And().AreClasses()
+			.And().AreNotAbstract()
+			.Should().BeSealed()
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
@@ -128,15 +117,34 @@ public sealed class ArchitectureTests
 	public async Task Application_UseCases_ShouldResideInUseCasesNamespace()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.That()
-			.HaveNameEndingWith(end: "Handler")
-			.Or()
-			.HaveNameEndingWith(end: "Loader")
-			.Should()
-			.ResideInNamespaceStartingWith(name: "FinanceTracker.Application.UseCases")
+			.That().HaveNameEndingWith(end: "Handler")
+			.Or().HaveNameEndingWith(end: "Loader")
+			.Should().ResideInNamespaceStartingWith(name: "FinanceTracker.Application.UseCases")
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
 			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+	}
+	
+	[Test]
+	public async Task Account_ShouldHandleAllAccountEvents_InApplyMethod()
+	{
+		Type[] accountEventTypes = CoreAssembly.GetTypes().Where(predicate: t => typeof(IEvent).IsAssignableFrom(c: t) && t is
+		{
+			IsClass: true,
+			IsAbstract: false,
+			Namespace: "FinanceTracker.Core.Domains.Account.Events"
+		}).ToArray();
+
+		HashSet<Type> handledTypes = typeof(Account)
+			.GetMethods(bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance)
+			.Where(predicate: m => m.Name == "Apply" && m.GetParameters().Length == 1 && typeof(IEvent).IsAssignableFrom(c: m.GetParameters()[0].ParameterType))
+			.Select(selector: m => m.GetParameters()[0].ParameterType)
+			.ToHashSet();
+
+		Type[] unhandled = accountEventTypes.Where(predicate: e => !handledTypes.Contains(item: e)).ToArray();
+
+		await Assert.That(value: unhandled).IsEmpty()
+			.Because(message: $"Account.Apply() is missing handlers for: {String.Join(separator: ", ", values: unhandled.Select(selector: t => t.Name))}");
 	}
 }

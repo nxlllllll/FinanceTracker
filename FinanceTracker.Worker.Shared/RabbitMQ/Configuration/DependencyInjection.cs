@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
-using FinanceTracker.Worker.Shared.RabbitMQ.Publish;
+using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

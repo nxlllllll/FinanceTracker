@@ -1,8 +1,9 @@
 ﻿using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.RecurringTransaction.Jobs;
-using FinanceTracker.Worker.Shared.RabbitMQ.Publish;
+using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -12,6 +13,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Workers;
 
 public sealed class RecurringTransactionHandlingJobTests
 {
+	private ICorrelationContext _correlationContext = null!;
 	private IRecurringTransactionReadRepository _readRepository = null!;
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
 	private IRabbitMqPublisher _publisher = null!;
@@ -21,6 +23,8 @@ public sealed class RecurringTransactionHandlingJobTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
+		_correlationContext = Substitute.For<ICorrelationContext>();
+		_correlationContext.CorrelationId.Returns(returnThis: Guid.CreateVersion7());
 		_readRepository = Substitute.For<IRecurringTransactionReadRepository>();
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_publisher = Substitute.For<IRabbitMqPublisher>();
@@ -31,6 +35,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_job = new RecurringTransactionHandlingJob(
 			recurringTransactionReadRepository: _readRepository,
 			recurringTransactionWriteRepository: _writeRepository,
+			correlationContext: _correlationContext,
 			publisher: _publisher,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()
@@ -102,6 +107,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _publisher.Received(requiredNumberOfCalls: 3).PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -118,8 +124,9 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(message: Arg.Is<RecurringTransactionTriggeredMessage>(m =>
 			m.RecurringTransactionId == transaction.Id &&
 			m.AccountId == transaction.AccountId &&
-			m.UserId == transaction.UserId
-		), ct: Arg.Any<CancellationToken>());
+			m.UserId == transaction.UserId &&
+			m.CorrelationId == _correlationContext.CorrelationId
+		), correlationId: _correlationContext.CorrelationId, ct: Arg.Any<CancellationToken>());
 	}
 
 	[Test]
@@ -173,6 +180,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		_publisher.PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "RabbitMQ unavailable"));
 
@@ -197,6 +205,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		int callCount = 0;
 		_publisher.PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: _ =>
 		{

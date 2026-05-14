@@ -79,7 +79,8 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			Currency: "RUB",
 			Direction: "Credit",
 			Description: "Зарплата",
-			OccurredAt: FakeDateProvider.Default.UtcNow
+			OccurredAt: FakeDateProvider.Default.UtcNow,
+			CorrelationId: Guid.CreateVersion7()
 		);
 	}
 

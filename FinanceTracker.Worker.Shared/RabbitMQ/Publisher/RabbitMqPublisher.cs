@@ -5,7 +5,7 @@ using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
-namespace FinanceTracker.Worker.Shared.RabbitMQ.Publish;
+namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 
 public sealed class RabbitMqPublisher(
 	RabbitMqConnectionFactory connectionFactory,
@@ -13,21 +13,28 @@ public sealed class RabbitMqPublisher(
 ) : IRabbitMqPublisher
 {
 	private readonly RabbitMqOptions _options = options.Value;
-
 	private IConnection? _connection;
 	private IChannel? _channel;
 
 	public async Task PublishAsync<TMessage>(
 		TMessage message,
+		Guid correlationId = default,
 		CancellationToken ct = default) where TMessage : class
 	{
 		IChannel channel = await GetOrCreateChannelAsync(ct: ct);
 
 		byte[] body = Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: message, options: FinanceTrackerJsonOptions.Payload));
 
+		BasicProperties props = new BasicProperties();
+
+		if (correlationId != Guid.Empty)
+			props.CorrelationId = correlationId.ToString();
+
 		await channel.BasicPublishAsync(
 			exchange: _options.ExchangeName,
 			routingKey: String.Empty,
+			mandatory: false,
+			basicProperties: props,
 			body: body,
 			cancellationToken: ct
 		);

@@ -13,6 +13,7 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.CurrencyConversion;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Configurations.Options;
@@ -33,7 +34,9 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
-using FinanceTracker.Infrastructure.Services;
+using FinanceTracker.Infrastructure.Services.Correlation;
+using FinanceTracker.Infrastructure.Services.Currency;
+using FinanceTracker.Infrastructure.Services.Date;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -99,14 +102,10 @@ public static class DependencyInjection
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<IDateProvider, DateProvider>();
+		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		
-		services.AddOptions<DeadLetterMonitoringOptions>()
-			.BindConfiguration(configSectionPath: DeadLetterMonitoringOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
-
 		services.AddOptions<EventStoreOptions>()
 			.BindConfiguration(configSectionPath: EventStoreOptions.SectionName)
 			.ValidateDataAnnotations()

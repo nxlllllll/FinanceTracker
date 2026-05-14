@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -64,6 +65,12 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		consumer.ReceivedAsync += async (_, ea) =>
 		{
 			await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
+
+			ICorrelationContext? correlationContext = scope.ServiceProvider.GetService<ICorrelationContext>();
+			
+			if (correlationContext is not null && Guid.TryParse(input: ea.BasicProperties?.CorrelationId, result: out Guid correlationId))
+				correlationContext.Set(correlationId: correlationId);
+
 			THandler handler = scope.ServiceProvider.GetRequiredService<THandler>();
 
 			try

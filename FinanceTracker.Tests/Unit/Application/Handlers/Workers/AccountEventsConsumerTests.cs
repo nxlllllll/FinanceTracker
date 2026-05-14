@@ -55,6 +55,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: Guid.CreateVersion7(),
 			AggregateType: aggregateType,
+			CorrelationId: Guid.CreateVersion7(),
 			Events: []
 		);
 	}

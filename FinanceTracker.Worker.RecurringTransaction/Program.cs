@@ -3,7 +3,7 @@ using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Worker.RecurringTransaction.Jobs;
 using FinanceTracker.Worker.Shared.RabbitMQ;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
-using FinanceTracker.Worker.Shared.RabbitMQ.Publish;
+using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Quartz;
 
 namespace FinanceTracker.Worker.RecurringTransaction;

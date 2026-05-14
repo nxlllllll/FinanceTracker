@@ -10,5 +10,6 @@ public sealed record RecurringTransactionTriggeredMessage(
 	string Currency,
 	string Direction,
 	string? Description,
-	DateTime OccurredAt
+	DateTime OccurredAt,
+	Guid CorrelationId
 );

@@ -5,6 +5,7 @@ using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -23,7 +24,8 @@ public sealed class PostgresEventStore(
 	IEventTypeResolver eventTypeResolver,
 	IDateProvider dateProvider,
 	ILogger<PostgresEventStore> logger,
-	IOptions<EventStoreOptions> options
+	IOptions<EventStoreOptions> options,
+	ICorrelationContext correlationContext
 ) : IEventStore
 {
 	private (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
@@ -118,19 +120,19 @@ public sealed class PostgresEventStore(
 			now: dateProvider.UtcNow
 		);
 
+		string payload = JsonSerializer.Serialize(value: new OutboxPayload(
+			AggregateId: aggregateId,
+			CorrelationId: correlationContext.CorrelationId,
+			Events: envelopes
+		), options: FinanceTrackerJsonOptions.Payload);
+		
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
 		await context.OutboxMessages.AddAsync(
 			entity: new OutboxMessageEntity() {
 				Id = Guid.CreateVersion7(),
 				AggregateId = aggregateId,
 				AggregateType = aggregateType,
-				Payload = JsonSerializer.Serialize(
-					value: new OutboxPayload(
-						AggregateId: aggregateId,
-						Events: envelopes
-					), 
-					options: FinanceTrackerJsonOptions.Payload
-				),
+				Payload = payload,
 				UpdatedAt = dateProvider.UtcNow,
 				ProcessedAt = null
 			},

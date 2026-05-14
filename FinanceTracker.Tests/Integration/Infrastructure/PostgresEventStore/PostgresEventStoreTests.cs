@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -31,6 +32,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 logger: Substitute.For<ILogger<EventTypeResolver>>()
             ),
             dateProvider: FakeDateProvider.Default,
+            correlationContext: Substitute.For<ICorrelationContext>(),
             options: Options.Create(options: new EventStoreOptions()),
             logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
         );

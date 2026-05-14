@@ -27,13 +27,17 @@ public sealed class RecurringTransactionConsumer(
 	ILogger<RecurringTransactionConsumer> logger
 ) : IMessageHandler<RecurringTransactionTriggeredMessage>
 {
-	public async Task HandleAsync(RecurringTransactionTriggeredMessage message, CancellationToken ct)
+	public async Task HandleAsync(
+		RecurringTransactionTriggeredMessage message,
+		CancellationToken ct = default)
 	{
+		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
+
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			if (await context.ProcessedMessages.AnyAsync(predicate: m => m.MessageId == message.MessageId, cancellationToken: ct))
 			{
-				logger.ZLogWarning(message: $"Message {message.MessageId} already processed, skipping.");
+				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed, skipping.");
 				return;
 			}
 
@@ -44,7 +48,7 @@ public sealed class RecurringTransactionConsumer(
 
 			if (recurringTransaction is null)
 			{
-				logger.ZLogWarning(message: $"Recurring transaction {message.RecurringTransactionId} not found, skipping.");
+				logger.ZLogWarning(message: $"[{message.CorrelationId}] Recurring transaction {message.RecurringTransactionId} not found, skipping.");
 				return;
 			}
 
@@ -52,7 +56,7 @@ public sealed class RecurringTransactionConsumer(
 
 			if (account is null)
 			{
-				logger.ZLogError(message: $"Account {message.AccountId} not found while processing recurring transaction {message.RecurringTransactionId}.");
+				logger.ZLogError(message: $"[{message.CorrelationId}] Account {message.AccountId} not found while processing recurring transaction {message.RecurringTransactionId}.");
 				throw new NotFoundException(message: "Account not found.", id: message.AccountId);
 			}
 
@@ -70,7 +74,7 @@ public sealed class RecurringTransactionConsumer(
 				Description: message.Description,
 				OccurredAt: message.OccurredAt
 			), account: account, ct: ct);
-			
+
 			await context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 			{
 				MessageId = message.MessageId,
@@ -79,7 +83,7 @@ public sealed class RecurringTransactionConsumer(
 
 			await context.SaveChangesAsync(cancellationToken: ct);
 
-			logger.ZLogInformation(message: $"Created transaction for recurring transaction {message.RecurringTransactionId}.");
+			logger.ZLogInformation(message: $"[{message.CorrelationId}] Created transaction for recurring transaction {message.RecurringTransactionId}.");
 		}, ct: ct);
 	}
 }

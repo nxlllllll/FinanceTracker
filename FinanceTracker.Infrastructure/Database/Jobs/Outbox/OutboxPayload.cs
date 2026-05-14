@@ -2,5 +2,6 @@
 
 public sealed record OutboxPayload(
 	Guid AggregateId,
+	Guid CorrelationId,
 	IReadOnlyList<OutboxEventEnvelope> Events
 );

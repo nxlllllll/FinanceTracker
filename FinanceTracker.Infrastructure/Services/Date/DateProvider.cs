@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Core.Services.DateProvider;
 
-namespace FinanceTracker.Infrastructure.Services;
+namespace FinanceTracker.Infrastructure.Services.Date;
 
 public sealed class DateProvider : IDateProvider
 {
