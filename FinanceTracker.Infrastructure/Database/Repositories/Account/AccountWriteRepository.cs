@@ -129,6 +129,16 @@ public sealed class AccountWriteRepository(
 			ct: ct
 		);
 	}
+	public async Task RefundTransferAsync(
+		AccountTransferRefunded @event,
+		CancellationToken ct = default)
+	{
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: @event.Amount,
+			ct: ct
+		);
+	}
 
 	public async Task RenameAsync(
 		AccountRenamed @event,

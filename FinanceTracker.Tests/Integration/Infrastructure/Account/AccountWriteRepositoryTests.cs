@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
@@ -88,7 +89,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             OccurredAt: DateTime.UtcNow
         ));
 
-        string? name = await Context.Accounts
+        string name = await Context.Accounts
             .Where(predicate: a => a.Id == created.AccountId)
             .Select(selector: a => a.Name)
             .FirstOrDefaultAsync();
@@ -209,5 +210,125 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             .FirstAsync();
 
         await Assert.That(value: balance).IsEqualTo(expected: 1000m);
+    }
+    
+    [Test]
+    public async Task TransferDebitAsync_ShouldDecreaseBalance()
+    {
+        AccountCreated created = await CreateAccountAsync();
+
+        await _writeRepository.TransferDebitAsync(@event: new AccountTransferDebited(
+            Id: Guid.CreateVersion7(),
+            AccountId: created.AccountId,
+            TransferId: Guid.CreateVersion7(),
+            ToAccountId: Guid.CreateVersion7(),
+            Amount: 3000m,
+            ForexRate: 1m,
+            Description: null,
+            OccurredAt: DateTime.UtcNow
+        ));
+
+        decimal balance = await Context.AccountBalances
+            .Where(predicate: b => b.AccountId == created.AccountId)
+            .Select(selector: b => b.Balance)
+            .FirstAsync();
+
+        await Assert.That(value: balance).IsEqualTo(expected: 7000m);
+    }
+
+    [Test]
+    public async Task TransferCreditAsync_WithExchangeRate_ShouldIncreaseBalanceByConvertedAmount()
+    {
+        AccountCreated created = await CreateAccountAsync();
+
+        await _writeRepository.TransferCreditAsync(@event: new AccountTransferCredited(
+            Id: Guid.CreateVersion7(),
+            AccountId: created.AccountId,
+            TransferId: Guid.CreateVersion7(),
+            FromAccountId: Guid.CreateVersion7(),
+            Amount: 100m,
+            ExchangeRate: 90m,
+            Description: null,
+            OccurredAt: DateTime.UtcNow
+        ));
+
+        decimal balance = await Context.AccountBalances
+            .Where(predicate: b => b.AccountId == created.AccountId)
+            .Select(selector: b => b.Balance)
+            .FirstAsync();
+
+        await Assert.That(value: balance).IsEqualTo(expected: 19000m);
+    }
+
+    [Test]
+    public async Task RefundTransferAsync_ShouldIncreaseBalance()
+    {
+        AccountCreated created = await CreateAccountAsync();
+
+        await _writeRepository.RefundTransferAsync(@event: new AccountTransferRefunded(
+            Id: Guid.CreateVersion7(),
+            AccountId: created.AccountId,
+            TransferId: Guid.CreateVersion7(),
+            Amount: 2500m,
+            Description: "Refund: ToAccount not found.",
+            OccurredAt: DateTime.UtcNow
+        ));
+
+        decimal balance = await Context.AccountBalances
+            .Where(predicate: b => b.AccountId == created.AccountId)
+            .Select(selector: b => b.Balance)
+            .FirstAsync();
+
+        await Assert.That(value: balance).IsEqualTo(expected: 12500m);
+    }
+
+    [Test]
+    public async Task AdjustBalanceAsync_WithPositiveDelta_ShouldIncreaseBalance()
+    {
+        AccountCreated created = await CreateAccountAsync();
+
+        await _writeRepository.AdjustBalanceAsync(@event: new AccountBalanceAdjusted(
+            Id: Guid.CreateVersion7(),
+            AccountId: created.AccountId,
+            SourceId: Guid.CreateVersion7(),
+            SourceType: AggregateTypeNames.Transaction,
+            OldRate: 85m,
+            NewRate: 90m,
+            Amount: 1000m,
+            Delta: 5000m,
+            OccurredAt: DateTime.UtcNow
+        ));
+
+        decimal balance = await Context.AccountBalances
+            .Where(predicate: b => b.AccountId == created.AccountId)
+            .Select(selector: b => b.Balance)
+            .FirstAsync();
+
+        await Assert.That(value: balance).IsEqualTo(expected: 15000m);
+    }
+
+    [Test]
+    public async Task AdjustBalanceAsync_WithNegativeDelta_ShouldDecreaseBalance()
+    {
+        AccountCreated created = await CreateAccountAsync();
+
+        await _writeRepository.AdjustBalanceAsync(@event: new AccountBalanceAdjusted(
+            Id: Guid.CreateVersion7(),
+            AccountId: created.AccountId,
+            SourceId: Guid.CreateVersion7(),
+            SourceType: AggregateTypeNames.Transaction,
+            OldRate: 90m,
+            NewRate: 85m,
+            Amount: 1000m,
+            Delta: -5000m,
+            OccurredAt: DateTime.UtcNow
+        ));
+
+        decimal balance = await Context.AccountBalances
+            .Where(predicate: b => b.AccountId == created.AccountId)
+            .Select(selector: b => b.Balance)
+            .FirstAsync();
+
+        await Assert.That(value: balance).IsEqualTo(expected: 5000m);
     }
 }

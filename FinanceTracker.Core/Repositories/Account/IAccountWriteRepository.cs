@@ -33,6 +33,11 @@ public interface IAccountWriteRepository
 		AccountTransferCredited @event,
 		CancellationToken ct = default
 	);
+ 
+	Task RefundTransferAsync(
+		AccountTransferRefunded @event,
+		CancellationToken ct = default
+	);
 	
 	Task RenameAsync(
 		AccountRenamed @event,

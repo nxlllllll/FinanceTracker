@@ -27,6 +27,7 @@ public sealed class AccountProjection(
 			AccountCredited e => HandleAsync(@event: e, ct: ct),
 			AccountTransferDebited e => HandleAsync(@event: e, ct: ct),
 			AccountTransferCredited e => HandleAsync(@event: e, ct: ct),
+			AccountTransferRefunded e => HandleAsync(@event: e, ct: ct),
 			AccountBalanceAdjusted e => HandleAsync(@event: e, ct: ct),
 			_ => throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType())
 		};
@@ -57,6 +58,9 @@ public sealed class AccountProjection(
 	
 	private async Task HandleAsync(AccountTransferCredited @event, CancellationToken ct)
 		=> await accountWriteRepository.TransferCreditAsync(@event: @event, ct: ct);
+
+	private async Task HandleAsync(AccountTransferRefunded @event, CancellationToken ct)
+		=> await accountWriteRepository.RefundTransferAsync(@event: @event, ct: ct);
 	
 	private async Task HandleAsync(AccountBalanceAdjusted @event, CancellationToken ct)
 		=> await accountWriteRepository.AdjustBalanceAsync(@event: @event, ct: ct);

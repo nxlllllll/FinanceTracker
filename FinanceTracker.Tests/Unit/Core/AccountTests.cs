@@ -1,5 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -381,5 +383,181 @@ public sealed class AccountTests
 		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 11m);
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: account.Events[0]).IsTypeOf<AccountTransferCredited>();
+	}
+	
+	[Test]
+	public async Task Debit_WithInsufficientFunds_ShouldReturnInsufficientFundsException()
+	{
+	    Account account = AccountFactory.Create(balance: 100m).Value!;
+
+	    Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
+	        occurredAt: Now,
+	        transactionId: Guid.CreateVersion7(),
+	        categoryId: Guid.CreateVersion7(),
+	        amount: 500m,
+	        exchangeRate: 1m,
+	        description: null
+	    );
+
+	    await Assert.That(value: result.IsFailure).IsTrue();
+	    await Assert.That(value: result.Error).IsTypeOf<InsufficientFundsException>();
+	}
+
+	[Test]
+	public async Task Debit_WithExchangeRateCausingInsufficientFunds_ShouldReturnInsufficientFundsException()
+	{
+	    Account account = AccountFactory.Create(balance: 1000m).Value!;
+
+	    Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
+	        occurredAt: Now,
+	        transactionId: Guid.CreateVersion7(),
+	        categoryId: Guid.CreateVersion7(),
+	        amount: 100m,
+	        exchangeRate: 90m,
+	        description: null
+	    );
+
+	    await Assert.That(value: result.IsFailure).IsTrue();
+	    await Assert.That(value: result.Error).IsTypeOf<InsufficientFundsException>();
+	}
+
+	[Test]
+	public async Task DebitTransfer_OnArchivedAccount_ShouldReturnArchivedAccountOperationException()
+	{
+	    Account account = AccountFactory.Create(balance: 5000m).Value!;
+	    account.Archive(occurredAt: Now);
+
+	    Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.DebitTransfer(
+	        occurredAt: Now,
+	        transferId: Guid.CreateVersion7(),
+	        toAccountId: Guid.CreateVersion7(),
+	        amount: 1000m,
+	        forexRate: 1m,
+	        description: null
+	    );
+
+	    await Assert.That(value: result.IsFailure).IsTrue();
+	    await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+	}
+
+	[Test]
+	public async Task DebitTransfer_WithInsufficientFunds_ShouldReturnInsufficientFundsException()
+	{
+	    Account account = AccountFactory.Create(balance: 100m).Value!;
+
+	    Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.DebitTransfer(
+	        occurredAt: Now,
+	        transferId: Guid.CreateVersion7(),
+	        toAccountId: Guid.CreateVersion7(),
+	        amount: 500m,
+	        forexRate: 1m,
+	        description: null
+	    );
+
+	    await Assert.That(value: result.IsFailure).IsTrue();
+	    await Assert.That(value: result.Error).IsTypeOf<InsufficientFundsException>();
+	}
+
+	[Test]
+	public async Task CreditTransfer_OnArchivedAccount_ShouldReturnArchivedAccountOperationException()
+	{
+	    Account account = AccountFactory.Create(balance: 0m).Value!;
+	    account.Archive(occurredAt: Now);
+
+	    Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.CreditTransfer(
+	        occurredAt: Now,
+	        transferId: Guid.CreateVersion7(),
+	        fromAccountId: Guid.CreateVersion7(),
+	        amount: 1000m,
+	        exchangeRate: 1m,
+	        description: null
+	    );
+
+	    await Assert.That(value: result.IsFailure).IsTrue();
+	    await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+	}
+
+	[Test]
+	public async Task RefundTransfer_ShouldIncreaseBalanceAndRaiseAccountTransferRefundedEvent()
+	{
+	    Account account = AccountFactory.Create(balance: 500m).Value!;
+	    account.ClearEvents();
+
+	    account.RefundTransfer(
+	        occurredAt: Now,
+	        transferId: Guid.CreateVersion7(),
+	        amount: 1000m,
+	        description: "Refund: ToAccount not found."
+	    );
+
+	    await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 1500m);
+	    await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
+	    await Assert.That(value: account.Events[0]).IsTypeOf<AccountTransferRefunded>();
+	}
+
+	[Test]
+	public async Task Reconstitute_FromSnapshotAndEvents_ShouldRestoreCorrectState()
+	{
+	    Account original = AccountFactory.Create(balance: 10000m).Value!;
+
+	    original.Debit(
+	        occurredAt: Now,
+	        transactionId: Guid.CreateVersion7(),
+	        categoryId: Guid.CreateVersion7(),
+	        amount: 2000m,
+	        exchangeRate: 1m,
+	        description: null
+	    );
+
+	    string snapshotJson = original.TakeSnapshot();
+	    SnapshotData snapshot = new SnapshotData(
+	        AggregateId: original.Id,
+	        AggregateType: AggregateTypeNames.Account,
+	        Version: original.Version,
+	        State: snapshotJson
+	    );
+
+	    original.Credit(
+	        occurredAt: Now,
+	        transactionId: Guid.CreateVersion7(),
+	        categoryId: Guid.CreateVersion7(),
+	        amount: 500m,
+	        exchangeRate: 1m,
+	        description: null
+	    );
+
+	    IReadOnlyList<IEvent> postSnapshotEvents = original.Events.Where(predicate: e => e is AccountCredited).ToList().AsReadOnly();
+
+	    Account reconstituted = Account.Reconstitute(snapshot: snapshot, events: postSnapshotEvents);
+
+	    await Assert.That(value: reconstituted.Id).IsEqualTo(expected: original.Id);
+	    await Assert.That(value: reconstituted.Balance.Amount).IsEqualTo(expected: 8500m);
+	    await Assert.That(value: reconstituted.UserId).IsEqualTo(expected: original.UserId);
+	    await Assert.That(value: reconstituted.IsArchived).IsFalse();
+	}
+
+	[Test]
+	public async Task TakeSnapshot_AndRestore_ShouldPreserveAllState()
+	{
+	    Guid userId = Guid.CreateVersion7();
+	    Account account = AccountFactory.Create(userId: userId, balance: 9999m).Value!;
+	    account.Archive(occurredAt: Now);
+
+	    string snapshotJson = account.TakeSnapshot();
+	    SnapshotData snapshot = new SnapshotData(
+	        AggregateId: account.Id,
+	        AggregateType: AggregateTypeNames.Account,
+	        Version: account.Version,
+	        State: snapshotJson
+	    );
+
+	    Account restored = Account.Reconstitute(snapshot: snapshot, events: []);
+
+	    await Assert.That(value: restored.Id).IsEqualTo(expected: account.Id);
+	    await Assert.That(value: restored.UserId).IsEqualTo(expected: userId);
+	    await Assert.That(value: restored.Balance.Amount).IsEqualTo(expected: 9999m);
+	    await Assert.That(value: restored.Currency.Value).IsEqualTo(expected: "RUB");
+	    await Assert.That(value: restored.IsArchived).IsTrue();
+	    await Assert.That(value: restored.Version).IsEqualTo(expected: account.Version);
 	}
 }

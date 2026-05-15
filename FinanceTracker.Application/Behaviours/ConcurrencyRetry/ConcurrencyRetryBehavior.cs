@@ -45,8 +45,8 @@ public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 
 	private static int CalculateDelay(int attempt, int baseDelayMs, bool useJitter)
 	{
-		// Exponential backoff: baseDelayMs * 2^(attempt-1)
-		int exponential = baseDelayMs * (1 << (attempt - 1));
+		// Exponential backoff: baseDelayMs * 2^(attempt)
+		int exponential = baseDelayMs * (1 << attempt);
 
 		if (!useJitter)
 			return exponential;
