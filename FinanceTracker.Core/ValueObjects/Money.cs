@@ -40,7 +40,11 @@ public readonly record struct Money
 		=> new Money(amount: left.Amount + right, currency: left.Currency);
 
 	public static Money operator -(Money left, decimal right)
-		=> new Money(amount: left.Amount - right, currency: left.Currency);
+	{
+		if (left.Amount - right < 0)
+			throw new InvalidOperationException(message: "Money amount cannot be negative.");
+		return new Money(amount: left.Amount - right, currency: left.Currency);
+	}
 
 	public static Money operator *(Money left, decimal right)
 		=> new Money(amount: left.Amount * right, currency: left.Currency);

@@ -97,6 +97,9 @@ public sealed class Transaction
 
     public Result<Unit, DomainException> ChangeCategory(Guid categoryId)
 	{
+		if (categoryId == Guid.Empty)
+			return Result<Unit, DomainException>.Failure(error: new NotFoundException(message: "Category not found.", id: categoryId));
+
 		CategoryId = categoryId;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}

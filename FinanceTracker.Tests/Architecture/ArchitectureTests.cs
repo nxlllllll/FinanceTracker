@@ -174,9 +174,7 @@ public sealed class ArchitectureTests
 					args[0],
 					resultOpen.MakeGenericType(args[2], args[3])
 				);
-				return services.Any(predicate: sd => sd.ServiceType == requestHandlerInterface)
-					? null
-					: $"{impl.Name} → {requestHandlerInterface.Name}";
+				return services.Any(predicate: sd => sd.ServiceType == requestHandlerInterface) ? null : $"{impl.Name} → {requestHandlerInterface.Name}";
 			}))
 	        .Where(predicate: x => x is not null)
 	        .ToList()!;
