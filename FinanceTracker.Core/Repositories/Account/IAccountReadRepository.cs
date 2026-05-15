@@ -6,6 +6,7 @@ public interface IAccountReadRepository
 {
 	Task<AccountDto?> GetByIdAsync(
 		Guid accountId,
+		Guid userId,
 		CancellationToken ct = default
 	);
 	

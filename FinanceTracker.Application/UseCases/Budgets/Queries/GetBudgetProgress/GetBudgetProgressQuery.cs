@@ -3,4 +3,4 @@ using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgetProgress;
 
-public sealed record GetBudgetProgressQuery(Guid BudgetId) : IRequest<BudgetProgressDto?>;
+public sealed record GetBudgetProgressQuery(Guid BudgetId, Guid UserId) : IRequest<BudgetProgressDto?>;

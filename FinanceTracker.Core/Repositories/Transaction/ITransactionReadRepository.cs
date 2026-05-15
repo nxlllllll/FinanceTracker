@@ -6,6 +6,7 @@ public interface ITransactionReadRepository
 {
 	Task<Domains.Transaction.Transaction?> GetByIdAsync(
 		Guid transactionId,
+		Guid userId,
 		CancellationToken ct = default
 	);
 	

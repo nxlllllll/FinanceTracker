@@ -11,6 +11,8 @@ public sealed class GetBudgetProgressHandlerTests
 	private IBudgetProgressReadRepository _budgetProgressReadRepository = null!;
 	private GetBudgetProgressHandler _handler = null!;
 
+	private static readonly Guid UserId = Guid.CreateVersion7();
+
 	[Before(hookType: Test)]
 	public void Setup()
 	{
@@ -26,11 +28,12 @@ public sealed class GetBudgetProgressHandlerTests
 
 		_budgetProgressReadRepository.GetByBudgetIdAsync(
 			budgetId: budgetId,
+			userId: UserId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: progress);
 
 		BudgetProgressDto? result = await _handler.Handle(
-			query: new GetBudgetProgressQuery(BudgetId: budgetId),
+			query: new GetBudgetProgressQuery(BudgetId: budgetId, UserId: UserId),
 			ct: CancellationToken.None
 		);
 
@@ -45,14 +48,38 @@ public sealed class GetBudgetProgressHandlerTests
 	{
 		_budgetProgressReadRepository.GetByBudgetIdAsync(
 			budgetId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetProgressDto?>(result: null));
+		).Returns(returnThis: Task.FromResult<BudgetProgressDto?>(null));
 
 		BudgetProgressDto? result = await _handler.Handle(
-			query: new GetBudgetProgressQuery(BudgetId: Guid.CreateVersion7()),
+			query: new GetBudgetProgressQuery(BudgetId: Guid.CreateVersion7(), UserId: UserId),
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result).IsNull();
+	}
+
+	[Test]
+	public async Task Handle_ShouldPassBothBudgetIdAndUserIdToRepository()
+	{
+		Guid budgetId = Guid.CreateVersion7();
+
+		_budgetProgressReadRepository.GetByBudgetIdAsync(
+			budgetId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<BudgetProgressDto?>(null));
+
+		await _handler.Handle(
+			query: new GetBudgetProgressQuery(BudgetId: budgetId, UserId: UserId),
+			ct: CancellationToken.None
+		);
+
+		await _budgetProgressReadRepository.Received(requiredNumberOfCalls: 1).GetByBudgetIdAsync(
+			budgetId: budgetId,
+			userId: UserId,
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

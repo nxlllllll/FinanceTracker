@@ -11,5 +11,5 @@ public sealed class GetTransactionHandler(
 	public async Task<Transaction?> Handle(
 		GetTransactionQuery query,
 		CancellationToken ct = default
-	) => await transactionReadRepository.GetByIdAsync(transactionId: query.TransactionId, ct: ct);
+	) => await transactionReadRepository.GetByIdAsync(transactionId: query.TransactionId, userId: query.UserId, ct: ct);
 }

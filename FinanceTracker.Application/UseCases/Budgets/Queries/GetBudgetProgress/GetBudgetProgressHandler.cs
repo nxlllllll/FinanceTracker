@@ -11,5 +11,5 @@ public sealed class GetBudgetProgressHandler(
 	public async Task<BudgetProgressDto?> Handle(
 		GetBudgetProgressQuery query,
 		CancellationToken ct = default
-	) => await budgetProgressReadRepository.GetByBudgetIdAsync(budgetId: query.BudgetId, ct: ct);
+	) => await budgetProgressReadRepository.GetByBudgetIdAsync(budgetId: query.BudgetId, userId: query.UserId, ct: ct);
 }

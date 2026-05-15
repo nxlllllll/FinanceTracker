@@ -26,6 +26,7 @@ public sealed class CategoryLoaderTests
 	{
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Category?>(result: null));
 
@@ -39,19 +40,20 @@ public sealed class CategoryLoaderTests
 	}
 
 	[Test]
-	public async Task LoadAsync_WhenCategoryBelongsToAnotherUser_ShouldThrowNotFoundException()
+	public async Task LoadAsync_WhenCategoryBelongsToAnotherUser_ShouldReturnNotFoundException()
 	{
 		Category category = CategoryFactory.Create().Value!;
 		_categoryRepository.GetByIdAsync(
-			categoryId: Arg.Any<Guid>(),
+			categoryId: category.Id,
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: category);
+		).Returns(returnThis: Task.FromResult<Category?>(null));
 
 		Result<Category, NotFoundException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: category.Id),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
@@ -62,6 +64,7 @@ public sealed class CategoryLoaderTests
 		Category category = CategoryFactory.Create().Value!;
 		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 

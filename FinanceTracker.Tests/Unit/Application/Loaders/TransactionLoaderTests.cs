@@ -38,6 +38,7 @@ public sealed class TransactionLoaderTests
 	{
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Transaction?>(result: null));
 
@@ -56,6 +57,7 @@ public sealed class TransactionLoaderTests
 		Transaction transaction = TransactionFactory.Create();
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
 
@@ -75,10 +77,12 @@ public sealed class TransactionLoaderTests
 		Category category = CategoryFactory.Create().Value!;
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
 		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
@@ -135,6 +139,7 @@ public sealed class TransactionLoaderTests
 		).Returns(returnThis: account);
 		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 

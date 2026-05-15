@@ -13,9 +13,10 @@ public sealed class TransactionReadRepository(
 {
 	public async Task<Core.Domains.Transaction.Transaction?> GetByIdAsync(
         Guid transactionId,
+        Guid userId,
         CancellationToken ct = default)
     {
-        return await context.Transactions.AsNoTracking().Where(predicate: t => t.Id == transactionId)
+        return await context.Transactions.AsNoTracking().Where(predicate: t => t.Id == transactionId && t.UserId == userId)
             .Select(selector: t => Core.Domains.Transaction.Transaction.Reconstitute(
                 id: t.Id,
                 accountId: t.AccountId,

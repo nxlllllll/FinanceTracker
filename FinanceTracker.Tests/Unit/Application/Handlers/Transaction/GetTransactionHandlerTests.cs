@@ -10,6 +10,8 @@ public sealed class GetTransactionHandlerTests
 	private ITransactionReadRepository _transactionReadRepository = null!;
 	private GetTransactionHandler _handler = null!;
 
+	private static readonly Guid UserId = Guid.CreateVersion7();
+
 	[Before(hookType: Test)]
 	public void Setup()
 	{
@@ -24,11 +26,12 @@ public sealed class GetTransactionHandlerTests
 
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
 
 		FinanceTracker.Core.Domains.Transaction.Transaction? result = await _handler.Handle(
-			query: new GetTransactionQuery(TransactionId: transaction.Id),
+			query: new GetTransactionQuery(TransactionId: transaction.Id, UserId: UserId),
 			ct: CancellationToken.None
 		);
 
@@ -41,11 +44,12 @@ public sealed class GetTransactionHandlerTests
 	{
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.Transaction.Transaction?)null);
 
 		FinanceTracker.Core.Domains.Transaction.Transaction? result = await _handler.Handle(
-			query: new GetTransactionQuery(TransactionId: Guid.CreateVersion7()),
+			query: new GetTransactionQuery(TransactionId: Guid.CreateVersion7(), UserId: UserId),
 			ct: CancellationToken.None
 		);
 
@@ -53,22 +57,24 @@ public sealed class GetTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_ShouldPassTransactionIdToRepository()
+	public async Task Handle_ShouldPassBothTransactionIdAndUserIdToRepository()
 	{
 		Guid transactionId = Guid.CreateVersion7();
 
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.Transaction.Transaction?)null);
 
 		await _handler.Handle(
-			query: new GetTransactionQuery(TransactionId: transactionId),
+			query: new GetTransactionQuery(TransactionId: transactionId, UserId: UserId),
 			ct: CancellationToken.None
 		);
 
 		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetByIdAsync(
 			transactionId: transactionId,
+			userId: UserId,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

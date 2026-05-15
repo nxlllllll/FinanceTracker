@@ -11,5 +11,5 @@ public sealed class GetCategoryHandler(
 	public async Task<Category?> Handle(
 		GetCategoryQuery query,
 		CancellationToken ct = default
-	) => await categoryRepository.GetByIdAsync(categoryId: query.CategoryId, ct: ct);
+	) => await categoryRepository.GetByIdAsync(categoryId: query.CategoryId, userId: query.UserId, ct: ct);
 }

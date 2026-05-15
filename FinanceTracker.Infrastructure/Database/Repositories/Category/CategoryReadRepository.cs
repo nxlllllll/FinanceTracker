@@ -13,10 +13,11 @@ public sealed class CategoryReadRepository(
 {
 	public async Task<Core.Domains.Category.Category?> GetByIdAsync(
 		Guid categoryId,
+		Guid userId,
 		CancellationToken ct = default)
 	{
 		CategoryEntity? category = await context.Categories.AsNoTracking()
-			.Where(predicate: category => category.Id == categoryId)
+			.Where(predicate: category => category.Id == categoryId && category.UserId == userId)
 			.FirstOrDefaultAsync(cancellationToken: ct);
 
 		if (category is null)

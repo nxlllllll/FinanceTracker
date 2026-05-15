@@ -33,7 +33,7 @@ public sealed class TransactionLoader(
 		if (account.IsFailure)
 			return Result<Account, DomainException>.Failure(error: account.Error!);
 		
-		DomainException? exception = await ValidateCategoryDirection(categoryId: request.CategoryId, direction: request.Direction, ct: ct);
+		DomainException? exception = await ValidateCategoryDirection(categoryId: request.CategoryId, userId: request.UserId, direction: request.Direction, ct: ct);
 		if (exception is not null)
 			return Result<Account, DomainException>.Failure(error: exception);
 			
@@ -48,7 +48,7 @@ public sealed class TransactionLoader(
 		if (transaction.IsFailure)
 			return Result<Transaction, DomainException>.Failure(error: transaction.Error!);
 
-		DomainException? exception = await ValidateCategoryDirection(categoryId: request.CategoryId, direction: transaction.Value!.Direction, ct: ct);
+		DomainException? exception = await ValidateCategoryDirection(categoryId: request.CategoryId, userId: request.UserId, direction: transaction.Value!.Direction, ct: ct);
 		if (exception is not null)
 			return Result<Transaction, DomainException>.Failure(error: exception);
 
@@ -72,8 +72,8 @@ public sealed class TransactionLoader(
 	
 	private async Task<Result<Transaction, DomainException>> LoadAndAuthorize(Guid transactionId, Guid userId, CancellationToken ct)
 	{
-		Transaction? transaction = await transactionReadRepository.GetByIdAsync(transactionId: transactionId, ct: ct);
-		if (transaction is null || transaction.UserId != userId)
+		Transaction? transaction = await transactionReadRepository.GetByIdAsync(transactionId: transactionId, userId: userId, ct: ct);
+		if (transaction is null)
 			return Result<Transaction, DomainException>.Failure(error: new NotFoundException(message: "Transaction not found.", id: transactionId));
 		
 		return Result<Transaction, DomainException>.Success(value: transaction);
@@ -90,10 +90,11 @@ public sealed class TransactionLoader(
 	
 	private async Task<DomainException?> ValidateCategoryDirection(
 		Guid categoryId,
+		Guid userId,
 		DirectionType direction,
 		CancellationToken ct)
 	{
-		Category? category = await categoryRepository.GetByIdAsync(categoryId: categoryId, ct: ct);
+		Category? category = await categoryRepository.GetByIdAsync(categoryId: categoryId, userId: userId, ct: ct);
 		if (category is null)
 			return new NotFoundException(message: "Category not found.", id: categoryId);
 		

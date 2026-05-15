@@ -100,7 +100,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WithNonExistentAccount_ShouldReturnNull()
     {
-        AccountDto? result = await _readRepository.GetByIdAsync(accountId: Guid.CreateVersion7());
+        AccountDto? result = await _readRepository.GetByIdAsync(accountId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());;
         await Assert.That(value: result).IsNull();
     }
 
@@ -109,7 +109,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
     {
         AccountCreated @event = await CreateAccountAsync();
 
-        AccountDto? result = await _readRepository.GetByIdAsync(accountId: @event.AccountId);
+        AccountDto? result = await _readRepository.GetByIdAsync(accountId: @event.AccountId, userId: @event.UserId);
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: @event.AccountId);
@@ -236,5 +236,18 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+    }
+    
+    [Test]
+    public async Task GetByIdAsync_WithWrongUserId_ShouldReturnNull()
+    {
+        AccountCreated @event = await CreateAccountAsync();
+
+        AccountDto? result = await _readRepository.GetByIdAsync(
+            accountId: @event.AccountId,
+            userId: Guid.CreateVersion7() 
+        );
+
+        await Assert.That(value: result).IsNull();
     }
 }

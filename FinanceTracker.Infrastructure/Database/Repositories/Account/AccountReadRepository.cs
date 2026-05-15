@@ -12,9 +12,10 @@ public sealed class AccountReadRepository(
 {
 	public async Task<AccountDto?> GetByIdAsync(
 		Guid accountId,
+		Guid userId,
 		CancellationToken ct = default)
 	{
-		return await context.Accounts.AsNoTracking().Where(predicate: account => account.Id == accountId).Join(
+		return await context.Accounts.AsNoTracking().Where(predicate: account => account.Id == accountId && account.UserId == userId).Join(
 			inner: context.AccountBalances,
 			outerKeySelector: account => account.Id,
 			innerKeySelector: balance => balance.AccountId,

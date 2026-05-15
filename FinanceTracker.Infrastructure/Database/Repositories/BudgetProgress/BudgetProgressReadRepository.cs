@@ -11,10 +11,11 @@ public sealed class BudgetProgressReadRepository(
 {
     public async Task<BudgetProgressDto?> GetByBudgetIdAsync(
         Guid budgetId,
+        Guid userId,
         CancellationToken ct = default)
     {
         return await context.BudgetProgresses.AsNoTracking().Where(predicate: p => p.BudgetId == budgetId).Join(
-            inner: context.Budgets,
+            inner: context.Budgets.Where(predicate: b => b.UserId == userId),
             outerKeySelector: p => p.BudgetId,
             innerKeySelector: b => b.Id,
             resultSelector: (progress, budget) => new BudgetProgressDto(

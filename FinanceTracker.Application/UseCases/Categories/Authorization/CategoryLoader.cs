@@ -32,8 +32,8 @@ public sealed class CategoryLoader(
 
 	private async Task<Result<Category, NotFoundException>> LoadAndAuthorize(Guid categoryId, Guid userId, CancellationToken ct)
 	{
-		Category? category = await categoryReadRepository.GetByIdAsync(categoryId: categoryId, ct: ct);
-		if (category is null || category.UserId != userId)
+		Category? category = await categoryReadRepository.GetByIdAsync(categoryId: categoryId, userId: userId, ct: ct);
+		if (category is null)
 			return Result<Category, NotFoundException>.Failure(error: new NotFoundException(message: "Category not found.", id: categoryId));
 
 		return Result<Category, NotFoundException>.Success(value: category);

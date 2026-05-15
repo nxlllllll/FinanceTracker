@@ -3,4 +3,4 @@ using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Categories.Queries.GetCategory;
 
-public sealed record GetCategoryQuery(Guid CategoryId) : IRequest<Category?>;
+public sealed record GetCategoryQuery(Guid CategoryId, Guid UserId) : IRequest<Category?>;

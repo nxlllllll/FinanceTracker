@@ -44,7 +44,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByIdAsync_WithNonExistentCategory_ShouldReturnNull()
     {
-        Core.Domains.Category.Category? result = await _readRepository.GetByIdAsync(categoryId: Guid.CreateVersion7());
+        Core.Domains.Category.Category? result = await _readRepository.GetByIdAsync(categoryId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());
         await Assert.That(value: result).IsNull();
     }
 
@@ -54,7 +54,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
         Guid userId = Guid.CreateVersion7();
         Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync(userId: userId);
 
-        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id);
+        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: userId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: category.Id);
@@ -71,7 +71,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
         Core.Domains.Category.Category parent = await CreateAndSaveCategoryAsync(userId: userId);
         Core.Domains.Category.Category child = await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
 
-        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: child.Id);
+        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: child.Id, userId: userId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.ParentId).IsEqualTo(expected: parent.Id);

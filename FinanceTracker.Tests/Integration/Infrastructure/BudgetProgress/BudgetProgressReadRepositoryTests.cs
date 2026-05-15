@@ -35,7 +35,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
                 .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: DateTime.UtcNow)
             );
 
-        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId);
+        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId, userId: userId);
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.BudgetId).IsEqualTo(expected: budgetId);
@@ -47,7 +47,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByBudgetIdAsync_WhenNotExists_ShouldReturnNull()
     {
-        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: Guid.CreateVersion7());
+        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());
 
         await Assert.That(value: result).IsNull();
     }
@@ -59,7 +59,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId);
+        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId, userId: userId);
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Spent).IsEqualTo(expected: 0m);

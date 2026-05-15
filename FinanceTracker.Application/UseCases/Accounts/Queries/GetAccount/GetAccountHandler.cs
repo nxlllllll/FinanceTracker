@@ -11,5 +11,5 @@ public sealed class GetAccountHandler(
 	public async Task<AccountDto?> Handle(
 		GetAccountQuery query,
 		CancellationToken ct
-	) => await accountReadRepository.GetByIdAsync(accountId: query.AccountId, ct: ct);
+	) => await accountReadRepository.GetByIdAsync(accountId: query.AccountId, userId: query.UserId, ct: ct);
 }
