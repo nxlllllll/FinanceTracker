@@ -1,9 +1,13 @@
 ﻿using System.Reflection;
-using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Abstractions.ES;
+using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
+using MediatR;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;
 
@@ -149,5 +153,57 @@ public sealed class ArchitectureTests
 
 		await Assert.That(value: unhandled).IsEmpty()
 			.Because(message: $"Account.Apply() is missing handlers for: {String.Join(separator: ", ", values: unhandled.Select(selector: t => t.Name))}");
+	}
+	
+	[Test]
+	public async Task AllIAuthorizedHandlers_ShouldHaveRegisteredRequestHandler()
+	{
+	    IServiceCollection services = new ServiceCollection();
+	    services.AddApplication(configuration: new ConfigurationBuilder().Build());
+
+	    Type authorizedHandlerOpen = typeof(IAuthorizedHandler<,,,>);
+	    Type requestHandlerOpen = typeof(IRequestHandler<,>);
+	    Type resultOpen = typeof(Result<,>);
+
+	    List<string> missing = ApplicationAssembly.GetTypes().Where(predicate: t => t is { IsClass: true, IsAbstract: false } && t.GetInterfaces().Any(
+				predicate: i => i.IsGenericType && i.GetGenericTypeDefinition() == authorizedHandlerOpen
+			)).SelectMany(selector: impl => impl.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == authorizedHandlerOpen).Select(selector: handlerInterface =>
+			{
+				Type[] args = handlerInterface.GetGenericArguments();
+				Type requestHandlerInterface = requestHandlerOpen.MakeGenericType(
+					args[0],
+					resultOpen.MakeGenericType(args[2], args[3])
+				);
+				return services.Any(predicate: sd => sd.ServiceType == requestHandlerInterface)
+					? null
+					: $"{impl.Name} → {requestHandlerInterface.Name}";
+			}))
+	        .Where(predicate: x => x is not null)
+	        .ToList()!;
+
+	    await Assert.That(value: missing).IsEmpty()
+	        .Because(message: $"Missing IRequestHandler registrations for: {String.Join(separator: ", ", values: missing)}");
+	}
+
+	[Test]
+	public async Task AllIEntityLoaders_ShouldBeRegisteredForAllTheirInterfaces()
+	{
+	    IServiceCollection services = new ServiceCollection();
+	    services.AddApplication(configuration: new ConfigurationBuilder().Build());
+
+	    Type entityLoaderOpen = typeof(IEntityLoader<,,>);
+
+	    List<string> missing = ApplicationAssembly.GetTypes()
+	        .Where(predicate: t => t is { IsClass: true, IsAbstract: false } && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == entityLoaderOpen))
+	        .SelectMany(selector: impl => impl.GetInterfaces()
+	            .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == entityLoaderOpen)
+	            .Select(selector: loaderInterface =>
+	                services.Any(predicate: sd => sd.ServiceType == loaderInterface) ? null : $"{impl.Name} as {loaderInterface.GetGenericArguments()[0].Name}")
+				)
+	        .Where(predicate: x => x is not null)
+	        .ToList()!;
+
+	    await Assert.That(value: missing).IsEmpty()
+	        .Because(message: $"Missing IEntityLoader registrations: {String.Join(separator: ", ", values: missing)}");
 	}
 }
