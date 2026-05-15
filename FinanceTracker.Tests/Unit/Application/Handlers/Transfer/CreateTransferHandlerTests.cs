@@ -74,7 +74,7 @@ public sealed class CreateTransferHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_ShouldSaveBothAccounts()
+	public async Task HandleAsync_ShouldSaveOnlyFromAccount()
 	{
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateAccountWithArchivation(balance: 5000m);
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
@@ -96,7 +96,7 @@ public sealed class CreateTransferHandlerTests
 			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Id == fromAccount.Id),
 			ct: Arg.Any<CancellationToken>()
 		);
-		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+		await _accountRepository.DidNotReceive().SaveAsync(
 			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Id == toAccount.Id),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -122,6 +122,5 @@ public sealed class CreateTransferHandlerTests
 		);
 
 		await Assert.That(value: fromAccount.Balance.Amount).IsEqualTo(expected: 4000m);
-		await Assert.That(value: toAccount.Balance.Amount).IsEqualTo(expected: 2000m);
 	}
 }

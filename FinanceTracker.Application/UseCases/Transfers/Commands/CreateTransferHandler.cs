@@ -73,25 +73,13 @@ public sealed class CreateTransferHandler(
 		if (debitResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: debitResult.Error!);
 
-		Result<Unit, DomainException> creditResult = toAccount.CreditTransfer(
-			occurredAt: now,
-			transferId: transfer.Id,
-			fromAccountId: command.FromAccountId,
-			amount: command.Amount,
-			exchangeRate: conversion.Rate,
-			description: command.Description
-		);
-		if (creditResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: creditResult.Error!);
-
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transferWriteRepository.CreateAsync(transfer: transfer, ct: ct);
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
-			await accountRepository.SaveAsync(account: toAccount, ct: ct);
 			await operationsWriteRepository.CreateFromTransferAsync(transfer: transfer, ct: ct);
-		}, 
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create transfer {fromAccount.Id} → {toAccount.Id}."),
+		},
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {fromAccount.Id} → {toAccount.Id}."),
 		ct: ct);
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);

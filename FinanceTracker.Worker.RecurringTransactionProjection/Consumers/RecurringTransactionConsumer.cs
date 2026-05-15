@@ -35,9 +35,14 @@ public sealed class RecurringTransactionConsumer(
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			if (await context.ProcessedMessages.AnyAsync(predicate: m => m.MessageId == message.MessageId, cancellationToken: ct))
+			bool alreadyProcessed = await context.ProcessedMessages.AnyAsync(
+				predicate: m => m.MessageId == message.MessageId && m.ConsumerType == nameof(RecurringTransactionConsumer),
+				cancellationToken: ct
+			);
+
+			if (alreadyProcessed)
 			{
-				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed, skipping.");
+				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
 				return;
 			}
 
@@ -48,7 +53,7 @@ public sealed class RecurringTransactionConsumer(
 
 			if (recurringTransaction is null)
 			{
-				logger.ZLogWarning(message: $"[{message.CorrelationId}] Recurring transaction {message.RecurringTransactionId} not found, skipping.");
+				logger.ZLogWarning(message: $"[{message.CorrelationId}] Recurring transaction {message.RecurringTransactionId} not found.");
 				return;
 			}
 
@@ -56,7 +61,7 @@ public sealed class RecurringTransactionConsumer(
 
 			if (account is null)
 			{
-				logger.ZLogError(message: $"[{message.CorrelationId}] Account {message.AccountId} not found while processing recurring transaction {message.RecurringTransactionId}.");
+				logger.ZLogError(message: $"[{message.CorrelationId}] Account {message.AccountId} not found.");
 				throw new NotFoundException(message: "Account not found.", id: message.AccountId);
 			}
 
@@ -78,6 +83,7 @@ public sealed class RecurringTransactionConsumer(
 			await context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 			{
 				MessageId = message.MessageId,
+				ConsumerType = nameof(RecurringTransactionConsumer),
 				ProcessedAt = dateProvider.UtcNow
 			}, cancellationToken: ct);
 

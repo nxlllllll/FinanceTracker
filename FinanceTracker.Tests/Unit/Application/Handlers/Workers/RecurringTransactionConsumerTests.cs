@@ -92,6 +92,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
+			ConsumerType = nameof(RecurringTransactionConsumer),
 			ProcessedAt = FakeDateProvider.Default.UtcNow
 		});
 		await Context.SaveChangesAsync();
@@ -113,6 +114,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
+			ConsumerType = nameof(RecurringTransactionConsumer),
 			ProcessedAt = FakeDateProvider.Default.UtcNow
 		});
 		await Context.SaveChangesAsync();

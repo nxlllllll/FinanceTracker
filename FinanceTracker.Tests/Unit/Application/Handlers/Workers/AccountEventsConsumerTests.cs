@@ -133,6 +133,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
+			ConsumerType = nameof(AccountEventsConsumer),
 			ProcessedAt = FakeDateProvider.Default.UtcNow
 		});
 		await Context.SaveChangesAsync();
@@ -153,6 +154,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
+			ConsumerType = nameof(AccountEventsConsumer),
 			ProcessedAt = FakeDateProvider.Default.UtcNow
 		});
 		await Context.SaveChangesAsync();

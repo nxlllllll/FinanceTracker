@@ -144,6 +144,9 @@ public sealed class Account : AggregateRoot
 	private void Apply(AccountTransferCredited @event)
 		=> Balance += @event.Amount * @event.ExchangeRate;
 
+	private void Apply(AccountTransferRefunded @event)
+		=> Balance += @event.Amount;
+	
 	private void Apply(AccountRenamed @event)
 		=> Name = @event.NewName;
 	
@@ -176,6 +179,7 @@ public sealed class Account : AggregateRoot
 			case AccountBalanceAdjusted e: Apply(@event: e); break;
 			case AccountTransferDebited e: Apply(@event: e); break;
 			case AccountTransferCredited e: Apply(@event: e); break;
+			case AccountTransferRefunded e: Apply(@event: e); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
@@ -266,6 +270,24 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
  
+	public Result<Unit, DomainException> RefundTransfer(
+		DateTime occurredAt,
+		Guid transferId,
+		decimal amount,
+		string? description)
+	{
+		RaiseEvent(@event: new AccountTransferRefunded(
+			Id: Guid.CreateVersion7(),
+			AccountId: Id,
+			TransferId: transferId,
+			Amount: amount,
+			Description: description,
+			OccurredAt: occurredAt
+		));
+ 
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+	
 	public Result<Unit, DomainException> Credit(
 		DateTime occurredAt,
 		Guid transactionId,

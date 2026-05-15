@@ -1,9 +1,7 @@
 ﻿using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
-using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.DateProvider;
@@ -30,7 +28,7 @@ public sealed class AccountEventsConsumer(
 	{
 		if (message.AggregateType != AggregateTypeNames.Account)
 		{
-			logger.ZLogDebug(message: $"[{message.CorrelationId}] Skipping message for aggregate type '{message.AggregateType}'.");
+			logger.ZLogDebug(message: $"[{message.CorrelationId}] Skipping '{message.AggregateType}'.");
 			return;
 		}
 
@@ -39,13 +37,13 @@ public sealed class AccountEventsConsumer(
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			bool alreadyProcessed = await context.ProcessedMessages.AnyAsync(
-				predicate: m => m.MessageId == message.MessageId,
+				predicate: m => m.MessageId == message.MessageId && m.ConsumerType == nameof(AccountEventsConsumer),
 				cancellationToken: ct
 			);
 
 			if (alreadyProcessed)
 			{
-				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed, skipping.");
+				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
 				return;
 			}
 
@@ -55,11 +53,15 @@ public sealed class AccountEventsConsumer(
 				return (IEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
 			}).ToList();
 
-			await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: ct);
+			await projection.Handle(notification: new AccountEventsNotification(
+				AccountId: message.AggregateId,
+				Events: events
+			), ct: ct);
 
 			await context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 			{
 				MessageId = message.MessageId,
+				ConsumerType = nameof(AccountEventsConsumer),
 				ProcessedAt = dateProvider.UtcNow
 			}, cancellationToken: ct);
 
