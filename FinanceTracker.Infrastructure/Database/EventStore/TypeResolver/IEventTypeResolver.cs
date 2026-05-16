@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.EventStore;
+﻿namespace FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 
 public interface IEventTypeResolver
 {

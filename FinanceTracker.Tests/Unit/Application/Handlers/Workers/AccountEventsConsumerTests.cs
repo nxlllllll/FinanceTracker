@@ -6,6 +6,7 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumers;

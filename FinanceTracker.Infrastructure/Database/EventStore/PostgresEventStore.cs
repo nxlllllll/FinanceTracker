@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json;
+using FinanceTracker.Contracts.Events.Account;
+using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
@@ -13,6 +15,8 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
+using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,6 +29,8 @@ namespace FinanceTracker.Infrastructure.Database.EventStore;
 public sealed class PostgresEventStore(
 	FinanceTrackerContext context,
 	IEventTypeResolver eventTypeResolver,
+	IIntegrationEventMapper integrationEventMapper,
+	IIntegrationEventTypeResolver integrationEventTypeResolver,
 	IDateProvider dateProvider,
 	ILogger<PostgresEventStore> logger,
 	IOptions<EventStoreOptions> options,
@@ -49,11 +55,8 @@ public sealed class PostgresEventStore(
 			string? eventType = @event.GetType().GetCustomAttribute<EventTypeAttribute>()?.Name;
 			if (eventType is null)
 			{
-				logger.ZLogError(message: $"Configuration error: {@event.GetType().Name} are missing [EventType] attribute.");
-				throw new UnknownEventTypeException(
-					message: "The following IEvent classes are missing [EventType] attribute.",
-					eventTypes: [@event.GetType().Name]
-				);
+				logger.ZLogError(message: $"Configuration error: {@event.GetType().Name} is missing [EventType] attribute.");
+				throw new UnknownEventTypeException(message: "The following IEvent classes are missing [EventType] attribute.", eventTypes: [@event.GetType().Name]);
 			}
 
 			entities.Add(item: new EventEntity()
@@ -69,19 +72,25 @@ public sealed class PostgresEventStore(
 				CreatedAt = now
 			});
 
-			envelopes.Add(item: new OutboxEventEnvelope(
-				EventType: eventType,
-				EventPayload: serialized
-			));
+			IAccountIntegrationEvent? integrationEvent = integrationEventMapper.Map(domainEvent: @event);
+
+			(string outboxEventType, string outboxPayload) = (eventType, serialized);
+			if (integrationEvent is not null)
+			{
+				outboxEventType = integrationEventTypeResolver.ResolveTypeName(eventType: integrationEvent.GetType());
+				outboxPayload = JsonSerializer.Serialize(value: integrationEvent, inputType: integrationEvent.GetType(), options: FinanceTrackerJsonOptions.Payload);
+			}
+
+			envelopes.Add(item: new OutboxEventEnvelope(EventType: outboxEventType, EventPayload: outboxPayload));
 		}
 
 		return (entities, envelopes);
 	}
-	
+
 	private async Task ApplySnapshot(
-		Guid aggregateId, 
-		string aggregateType, 
-		int expectedVersion, 
+		Guid aggregateId,
+		string aggregateType,
+		int expectedVersion,
 		Func<string>? snapshotFactory,
 		int eventsCount,
 		CancellationToken ct = default)
@@ -92,9 +101,9 @@ public sealed class PostgresEventStore(
 
 		if (snapshotFactory is null || newThreshold <= previousThreshold)
 			return;
-		
+
 		string snapshot = snapshotFactory();
-		
+
 		await context.Snapshots.AddAsync(entity: new SnapshotEntity()
 		{
 			AggregateId = aggregateId,
@@ -104,7 +113,7 @@ public sealed class PostgresEventStore(
 			CreatedAt = dateProvider.UtcNow
 		}, cancellationToken: ct);
 	}
-	
+
 	public async Task SaveAsync(
 		Guid aggregateId,
 		string aggregateType,
@@ -130,10 +139,11 @@ public sealed class PostgresEventStore(
 			CorrelationId: correlationContext.CorrelationId,
 			Events: envelopes
 		), options: FinanceTrackerJsonOptions.Payload);
-		
+
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
 		await context.OutboxMessages.AddAsync(
-			entity: new OutboxMessageEntity() {
+			entity: new OutboxMessageEntity()
+			{
 				Id = Guid.CreateVersion7(),
 				AggregateId = aggregateId,
 				AggregateType = aggregateType,
@@ -143,7 +153,7 @@ public sealed class PostgresEventStore(
 			},
 			cancellationToken: ct
 		);
-		
+
 		await ApplySnapshot(
 			aggregateId: aggregateId,
 			aggregateType: aggregateType,
@@ -160,7 +170,10 @@ public sealed class PostgresEventStore(
 		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
 		{
 			logger.ZLogWarning(exception: exception, message: $"Concurrency conflict: {aggregateType} {aggregateId} was modified by another request.");
-			throw new ConcurrencyConflictException(message: "Conflict: aggregate was modified by another request.", id: aggregateId);
+			throw new ConcurrencyConflictException(
+				message: "Conflict: aggregate was modified by another request.",
+				id: aggregateId
+			);
 		}
 	}
 
@@ -170,24 +183,25 @@ public sealed class PostgresEventStore(
 		CancellationToken ct = default)
 	{
 		SnapshotEntity? snapshot = await context.Snapshots.AsNoTracking()
-		    .Where(s => s.AggregateId == aggregateId && s.AggregateType == aggregateType)
-		    .OrderByDescending(s => s.Version)
-		    .FirstOrDefaultAsync(cancellationToken: ct);
+			.Where(s => s.AggregateId == aggregateId && s.AggregateType == aggregateType)
+			.OrderByDescending(s => s.Version)
+			.FirstOrDefaultAsync(cancellationToken: ct);
 
 		int fromVersion = snapshot?.Version ?? 0;
 
 		List<EventEntity> entities = await context.Events.AsNoTracking()
-			.Where(predicate: e => e.AggregateId == aggregateId && e.Version > fromVersion && e.AggregateType == aggregateType)
+			.Where(predicate: e => e.AggregateId == aggregateId
+				&& e.Version > fromVersion
+				&& e.AggregateType == aggregateType)
 			.OrderBy(keySelector: e => e.Version)
 			.ToListAsync(cancellationToken: ct);
 
-		List<IEvent> events = entities.Select(selector: entity =>
+		List<IEvent> domainEvents = entities.Select(selector: entity =>
 		{
 			Type type = eventTypeResolver.ResolveType(typeName: entity.EventType);
 			int currentVersion = eventTypeResolver.GetCurrentVersion(typeName: entity.EventType);
- 
 			int storedVersion = entity.SchemaVersion;
- 
+
 			using JsonDocument raw = JsonDocument.Parse(json: entity.Payload);
 			using JsonDocument upcasted = upcasterRegistry.Apply(
 				eventType: entity.EventType,
@@ -195,7 +209,7 @@ public sealed class PostgresEventStore(
 				storedVersion: storedVersion,
 				currentVersion: currentVersion
 			);
- 
+
 			return (IEvent)upcasted.RootElement.Deserialize(
 				returnType: type,
 				options: FinanceTrackerJsonOptions.Payload
@@ -209,6 +223,6 @@ public sealed class PostgresEventStore(
 			State: snapshot.State
 		);
 
-		return new EventStoreResult(Snapshot: snapshotData, Events: events);
+		return new EventStoreResult(Snapshot: snapshotData, Events: domainEvents);
 	}
 }

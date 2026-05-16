@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
@@ -11,6 +12,8 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
+using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -28,11 +31,12 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     {
         IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
         upcasterRegistry.Apply(
-             eventType: Arg.Any<string>(),
-             source: Arg.Any<JsonDocument>(),
-             storedVersion: Arg.Any<int>(),
-             currentVersion: Arg.Any<int>()
-         ).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
+            eventType: Arg.Any<string>(),
+            source: Arg.Any<JsonDocument>(),
+            storedVersion: Arg.Any<int>(),
+            currentVersion: Arg.Any<int>()
+        ).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
+
         return new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
             context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()
                 .UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
@@ -41,6 +45,11 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             eventTypeResolver: new EventTypeResolver(
                 assembly: typeof(IEvent).Assembly,
                 logger: Substitute.For<ILogger<EventTypeResolver>>()
+            ),
+            integrationEventMapper: new AccountIntegrationEventMapper(),
+            integrationEventTypeResolver: new IntegrationEventTypeResolver(
+                contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+                logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
             ),
             dateProvider: FakeDateProvider.Default,
             correlationContext: Substitute.For<ICorrelationContext>(),

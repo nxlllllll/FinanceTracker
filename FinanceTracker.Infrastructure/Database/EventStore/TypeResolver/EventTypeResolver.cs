@@ -1,14 +1,12 @@
 ﻿using System.Collections.Frozen;
 using System.Reflection;
-using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 
-namespace FinanceTracker.Infrastructure.Database.EventStore;
+namespace FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 
 public sealed class EventTypeResolver : IEventTypeResolver
 {
@@ -27,10 +25,7 @@ public sealed class EventTypeResolver : IEventTypeResolver
 		if (missingAttribute.Count > 0)
 		{
 			logger.ZLogError(message: $"Configuration error: {String.Join(separator: ", ", missingAttribute)} are missing [EventType] attribute.");
-			throw new UnknownEventTypeException(
-				message: "The following IEvent classes are missing [EventType] attribute.", 
-				eventTypes: missingAttribute
-			);
+			throw new UnknownEventTypeException(message: "The following IEvent classes are missing [EventType] attribute.", eventTypes: missingAttribute);
 		}
  
 		_eventTypes = eventTypes.ToFrozenDictionary(keySelector: type => type.GetCustomAttribute<EventTypeAttribute>()!.Name);

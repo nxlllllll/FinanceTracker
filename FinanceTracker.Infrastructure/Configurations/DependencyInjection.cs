@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Abstractions;
+﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
@@ -22,6 +23,8 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
+using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
@@ -60,6 +63,13 @@ public static class DependencyInjection
 		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: s => new EventTypeResolver(
 			assembly: typeof(IEvent).Assembly,
 			logger: s.GetService<ILogger<EventTypeResolver>>()!
+		));
+		
+		services.AddSingleton<IIntegrationEventMapper, AccountIntegrationEventMapper>();
+
+		services.AddSingleton<IIntegrationEventTypeResolver, IntegrationEventTypeResolver>(implementationFactory: s => new IntegrationEventTypeResolver(
+			contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+			logger: s.GetRequiredService<ILogger<IntegrationEventTypeResolver>>()
 		));
 		
 		services.Scan(scan => scan

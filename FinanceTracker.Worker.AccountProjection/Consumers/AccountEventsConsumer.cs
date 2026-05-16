@@ -8,6 +8,7 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.EntityFrameworkCore;
