@@ -184,7 +184,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "RabbitMQ unavailable"));
 
-		await Assert.ThrowsAsync<InvalidOperationException>(action: async () => await _job.Execute(executionContext: _jobContext));
+		await _job.Execute(executionContext: _jobContext);
 
 		await _writeRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -215,7 +215,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			return Task.CompletedTask;
 		});
 
-		await Assert.ThrowsAsync<InvalidOperationException>(action: async () => await _job.Execute(executionContext: _jobContext));
+		await _job.Execute(executionContext: _jobContext);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: first.Id,
@@ -225,6 +225,12 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _writeRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: second.Id,
+			executedAt: Arg.Any<DateTime>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
+			recurringTransactionId: third.Id,
 			executedAt: Arg.Any<DateTime>(),
 			ct: Arg.Any<CancellationToken>()
 		);
