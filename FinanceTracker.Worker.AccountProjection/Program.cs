@@ -19,7 +19,7 @@ public sealed class Program
 		builder.Services.AddScoped<Projection.AccountProjection>();
 		builder.Services.AddScoped<AccountEventApplier>();
 		builder.Services.AddRabbitMqCore(configuration: builder.Configuration)
-															.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
+			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
  
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
  
