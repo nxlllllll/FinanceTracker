@@ -19,6 +19,16 @@ public sealed class CurrencyReadRepository(
 		)).ToListAsync(cancellationToken: ct);
 	}
 
+	public async Task<IReadOnlyList<CurrencyDto>> GetAllActiveAsync(CancellationToken ct = default)
+	{
+		return await context.Currencies.AsNoTracking().Where(predicate: currency => currency.IsActive).Select(selector: currency => new CurrencyDto(
+			Code: currency.Code,
+			Name: currency.Name,
+			Symbol: currency.Symbol,
+			IsActive: currency.IsActive
+		)).ToListAsync(cancellationToken: ct);
+	}
+
 	public async Task<CurrencyDto?> GetByCodeAsync(
 		string code,
 		CancellationToken ct = default)

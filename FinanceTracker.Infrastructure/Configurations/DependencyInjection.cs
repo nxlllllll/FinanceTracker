@@ -107,6 +107,7 @@ public static class DependencyInjection
 		services.AddScoped<ICurrencyReadRepository, CurrencyReadRepository>();
 		
 		services.AddScoped<ICurrencyRateReadRepository, CurrencyRateReadRepository>();
+		services.AddScoped<ICurrencyRateWriteRepository, CurrencyRateWriteRepository>();
 		
 		services.AddScoped<IRecurringTransactionReadRepository, RecurringTransactionReadRepository>();
 		services.AddScoped<IRecurringTransactionWriteRepository, RecurringTransactionWriteRepository>();
