@@ -7,6 +7,7 @@ using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumers;
@@ -41,13 +42,14 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			accountRepository: _accountRepository,
 			transactionCreationService: _transactionCreationService,
 			recurringTransactionReadRepository: _recurringTransactionReadRepository,
+			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
+			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
 			unitOfWork: _unitOfWork,
-			context: Context,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<RecurringTransactionConsumer>>()
 		);
 	}
-	
+
 	private void SetupValidDependencies()
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
@@ -125,7 +127,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await Assert.That(value: Context.ProcessedMessages.Count()).IsEqualTo(expected: countBefore);
 	}
-	
+
 	[Test]
 	public async Task HandleAsync_WhenRecurringTransactionNotFound_ShouldNotCreateTransaction()
 	{
@@ -158,7 +160,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await Assert.ThrowsAsync<NotFoundException>(action: async () => await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None));
 	}
-	
+
 	[Test]
 	public async Task HandleAsync_WhenValid_ShouldCreateTransaction()
 	{
@@ -181,7 +183,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		Guid messageId = Guid.CreateVersion7();
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		bool saved = Context.ProcessedMessages.Any(predicate: m => m.MessageId == messageId);
+		bool saved = Context.ProcessedMessages.Any(predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(RecurringTransactionConsumer));
 
 		await Assert.That(value: saved).IsTrue();
 	}
@@ -201,7 +203,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task HandleAsync_WhenCalledTwiceWithSameId_ShouldCreateTransactionOnce()
 	{
@@ -218,10 +220,8 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task RecurringTransactionConsumer_ShouldImplement_IMessageHandler()
-	{
-		await Assert.That(value: _consumer is IMessageHandler<RecurringTransactionTriggeredMessage> result).IsTrue();
-	}
+		=> await Assert.That(value: _consumer is IMessageHandler<RecurringTransactionTriggeredMessage> result).IsTrue();
 }

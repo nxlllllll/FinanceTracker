@@ -1,6 +1,7 @@
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.AccountProjection.Consumers;
+using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using Microsoft.AspNetCore.Builder;
@@ -16,8 +17,9 @@ public sealed class Program
 		builder.Services.AddInfrastructure(configuration: builder.Configuration);
  
 		builder.Services.AddScoped<Projection.AccountProjection>();
+		builder.Services.AddScoped<AccountEventApplier>();
 		builder.Services.AddRabbitMqCore(configuration: builder.Configuration)
-			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
+															.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
  
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
  

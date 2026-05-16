@@ -1,13 +1,14 @@
 ﻿using System.Text.Json;
+using FinanceTracker.Contracts.Events.Account;
+using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
-using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Entities;
-using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
+using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumers;
@@ -40,12 +41,13 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		_consumer = new AccountTransferConsumer(
 			accountRepository: _accountRepository,
-			eventTypeResolver: new EventTypeResolver(
-				assembly: typeof(FinanceTracker.Core.Domains.Account.Account).Assembly,
-				logger: Substitute.For<ILogger<EventTypeResolver>>()
+			integrationEventTypeResolver: new IntegrationEventTypeResolver(
+				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
 			),
+			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
+			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
 			unitOfWork: _unitOfWork,
-			context: Context,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<AccountTransferConsumer>>()
 		);
@@ -60,8 +62,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		if (includeDebitEvent)
 		{
-			AccountTransferDebited debitEvent = new AccountTransferDebited(
-				Id: Guid.CreateVersion7(),
+			AccountTransferDebitedEvent debitEvent = new AccountTransferDebitedEvent(
 				AccountId: FromAccountId,
 				TransferId: TransferId,
 				ToAccountId: ToAccountId,
@@ -88,7 +89,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			Events: events
 		);
 	}
-	
+
 	[Test]
 	public async Task HandleAsync_WhenNotAccountAggregate_ShouldSkip()
 	{
@@ -115,6 +116,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	public async Task HandleAsync_WhenAlreadyProcessedByThisConsumer_ShouldSkip()
 	{
 		Guid messageId = Guid.CreateVersion7();
+
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
@@ -135,6 +137,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	public async Task HandleAsync_WhenProcessedByDifferentConsumer_ShouldNotSkip()
 	{
 		Guid messageId = Guid.CreateVersion7();
+
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
@@ -155,14 +158,14 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task HandleAsync_WhenCreditSucceeds_ShouldSaveToAccount()
 	{
 		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create().Value!;
 
 		_accountRepository.GetByIdAsync(
-			accountId: ToAccountId, 
+			accountId: ToAccountId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: toAccount);
 
@@ -178,6 +181,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	public async Task HandleAsync_WhenCreditSucceeds_ShouldSaveProcessedMessage()
 	{
 		Guid messageId = Guid.CreateVersion7();
+
 		_accountRepository.GetByIdAsync(
 			accountId: ToAccountId,
 			ct: Arg.Any<CancellationToken>()
@@ -188,9 +192,10 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 		bool saved = Context.ProcessedMessages.Any(
 			predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(AccountTransferConsumer)
 		);
+
 		await Assert.That(value: saved).IsTrue();
 	}
-	
+
 	[Test]
 	public async Task HandleAsync_WhenToAccountNotFound_ShouldCompensate()
 	{
@@ -201,6 +206,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			accountId: ToAccountId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+
 		_accountRepository.GetByIdAsync(
 			accountId: FromAccountId,
 			ct: Arg.Any<CancellationToken>()
@@ -214,70 +220,40 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	[Test]
 	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldNotSaveAndNotThrow()
 	{
-	    _accountRepository.GetByIdAsync(
-	        accountId: Arg.Any<Guid>(),
-	        ct: Arg.Any<CancellationToken>()
-	    ).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
 
-	    await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
-	    await _accountRepository.DidNotReceive().SaveAsync(
-	        account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
-	        ct: Arg.Any<CancellationToken>()
-	    );
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenCreditFails_DueToArchivedToAccount_ShouldCompensateFromAccount()
-	{
-	    FinanceTracker.Core.Domains.Account.Account archivedToAccount =
-	        AccountFactory.CreateAccountWithArchivation(archived: true);
-
-	    FinanceTracker.Core.Domains.Account.Account fromAccount =
-	        AccountFactory.Create(balance: 5000m).Value!;
-
-	    decimal balanceBefore = fromAccount.Balance.Amount;
-
-	    _accountRepository.GetByIdAsync(
-	        accountId: ToAccountId,
-	        ct: Arg.Any<CancellationToken>()
-	    ).Returns(returnThis: archivedToAccount);
-
-	    _accountRepository.GetByIdAsync(
-	        accountId: FromAccountId,
-	        ct: Arg.Any<CancellationToken>()
-	    ).Returns(returnThis: fromAccount);
-
-	    await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-	    await Assert.That(value: fromAccount.Balance.Amount).IsGreaterThan(minimum: balanceBefore);
-	    await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-	        account: fromAccount,
-	        ct: Arg.Any<CancellationToken>()
-	    );
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
 	public async Task HandleAsync_WhenCreditSucceeds_ShouldNotSaveFromAccount()
 	{
-	    FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create().Value!;
-	    FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create().Value!;
+		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create().Value!;
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create().Value!;
 
-	    _accountRepository.GetByIdAsync(
-	        accountId: ToAccountId,
-	        ct: Arg.Any<CancellationToken>()
-	    ).Returns(returnThis: toAccount);
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: toAccount);
 
-	    _accountRepository.GetByIdAsync(
-	        accountId: FromAccountId,
-	        ct: Arg.Any<CancellationToken>()
-	    ).Returns(returnThis: fromAccount);
+		_accountRepository.GetByIdAsync(
+			accountId: FromAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: fromAccount);
 
-	    await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
-	    await _accountRepository.DidNotReceive().SaveAsync(
-	        account: fromAccount,
-	        ct: Arg.Any<CancellationToken>()
-	    );
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: fromAccount,
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

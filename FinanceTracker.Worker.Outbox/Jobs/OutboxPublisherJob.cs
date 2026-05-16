@@ -3,14 +3,12 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
-using FinanceTracker.Infrastructure.Database.Extensions;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -19,7 +17,8 @@ namespace FinanceTracker.Worker.Outbox.Jobs;
 
 [DisallowConcurrentExecution]
 public sealed class OutboxPublisherJob(
-	FinanceTrackerContext context,
+	IOutboxReadRepository outboxReadRepository,
+	IOutboxWriteRepository outboxWriteRepository,
 	IRabbitMqPublisher publisher,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
@@ -36,11 +35,10 @@ public sealed class OutboxPublisherJob(
 	{
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			List<OutboxMessageEntity> messages = await context.WithSkipLocked<OutboxMessageEntity>()
-				.Where(predicate: m => m.ProcessedAt == null && m.FailedAt == null)
-				.OrderBy(keySelector: m => m.UpdatedAt)
-				.Take(count: _outboxOptions.BatchSize)
-				.ToListAsync(cancellationToken: ct);
+			IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.GetPendingBatchAsync(
+				batchSize: _outboxOptions.BatchSize,
+				ct: ct
+			);
 
 			if (messages.Count == 0)
 				return;
@@ -48,7 +46,7 @@ public sealed class OutboxPublisherJob(
 			logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
 
 			int published = 0;
-			foreach (OutboxMessageEntity message in messages)
+			foreach (PendingOutboxMessage message in messages)
 			{
 				Stopwatch sw = Stopwatch.StartNew();
 				try
@@ -77,7 +75,7 @@ public sealed class OutboxPublisherJob(
 		}, onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch publishing failed."), ct: ct);
 	}
 
-	private async Task PublishMessageAsync(OutboxMessageEntity message, CancellationToken ct)
+	private async Task PublishMessageAsync(PendingOutboxMessage message, CancellationToken ct)
 	{
 		OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
 			?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
@@ -93,31 +91,31 @@ public sealed class OutboxPublisherJob(
 			)).ToList()
 		);
 
-		await publisher.PublishAsync(
-			message: brokerMessage,
-			correlationId: payload.CorrelationId,
-			ct: ct
-		);
-
-		message.ProcessedAt = dateProvider.UtcNow;
-		await context.SaveChangesAsync(cancellationToken: ct);
+		await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
+		await outboxWriteRepository.MarkAsPublishedAsync(messageId: message.Id, processedAt: dateProvider.UtcNow, ct: ct);
 	}
 
-	private async Task UpdateRetryStateAsync(OutboxMessageEntity message, CancellationToken ct)
+	private async Task UpdateRetryStateAsync(PendingOutboxMessage message, CancellationToken ct)
 	{
 		try
 		{
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
-				++message.RetryCount;
-				if (message.RetryCount >= _outboxOptions.MaxRetries)
+				int newRetryCount = message.RetryCount + 1;
+				DateTime? failedAt = newRetryCount >= _outboxOptions.MaxRetries ? dateProvider.UtcNow : null;
+
+				if (failedAt is not null)
 				{
-					message.FailedAt = dateProvider.UtcNow;
 					WorkerMetrics.OutboxFailed.Add(delta: 1);
 					logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {_outboxOptions.MaxRetries} retries.");
 				}
 
-				await context.SaveChangesAsync(cancellationToken: ct);
+				await outboxWriteRepository.MarkAsFailedAsync(
+					messageId: message.Id,
+					retryCount: newRetryCount,
+					failedAt: failedAt,
+					ct: ct
+				);
 			}, ct: ct);
 		}
 		catch (Exception innerException)

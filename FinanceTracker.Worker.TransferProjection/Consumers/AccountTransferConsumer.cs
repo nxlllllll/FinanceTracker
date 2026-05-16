@@ -1,29 +1,27 @@
 ﻿using System.Text.Json;
+using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
-using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
-using Microsoft.EntityFrameworkCore;
 using ZLogger;
 
 namespace FinanceTracker.Worker.TransferProjection.Consumers;
 
 public sealed class AccountTransferConsumer(
 	IAccountRepository accountRepository,
-	IEventTypeResolver eventTypeResolver,
+	IIntegrationEventTypeResolver integrationEventTypeResolver,
+	IProcessedMessageReadRepository processedMessageReadRepository,
+	IProcessedMessageWriteRepository processedMessageWriteRepository,
 	IUnitOfWork unitOfWork,
-	FinanceTrackerContext context,
 	IDateProvider dateProvider,
 	ILogger<AccountTransferConsumer> logger
 ) : IMessageHandler<AggregateEventsMessage>
@@ -33,7 +31,7 @@ public sealed class AccountTransferConsumer(
 		if (message.AggregateType != AggregateTypeNames.Account)
 			return;
 
-		AccountTransferDebited? debitEvent = ExtractDebitEvent(message: message);
+		AccountTransferDebitedEvent? debitEvent = ExtractDebitEvent(message: message);
 		if (debitEvent is null)
 			return;
 
@@ -41,12 +39,7 @@ public sealed class AccountTransferConsumer(
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			bool alreadyProcessed = await context.ProcessedMessages.AnyAsync(
-				predicate: m => m.MessageId == message.MessageId && m.ConsumerType == nameof(AccountTransferConsumer),
-				cancellationToken: ct
-			);
-
-			if (alreadyProcessed)
+			if (await processedMessageReadRepository.IsProcessedAsync(messageId: message.MessageId, consumerType: nameof(AccountTransferConsumer), ct: ct))
 			{
 				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
 				return;
@@ -54,19 +47,17 @@ public sealed class AccountTransferConsumer(
 
 			await ExecuteCreditAsync(debitEvent: debitEvent, correlationId: message.CorrelationId, ct: ct);
 
-			await context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
-			{
-				MessageId = message.MessageId,
-				ConsumerType = nameof(AccountTransferConsumer),
-				ProcessedAt = dateProvider.UtcNow
-			}, cancellationToken: ct);
-
-			await context.SaveChangesAsync(cancellationToken: ct);
+			await processedMessageWriteRepository.MarkAsProcessedAsync(
+				messageId: message.MessageId,
+				consumerType: nameof(AccountTransferConsumer),
+				processedAt: dateProvider.UtcNow,
+				ct: ct
+			);
 		}, ct: ct);
 	}
 
 	private async Task ExecuteCreditAsync(
-		AccountTransferDebited debitEvent,
+		AccountTransferDebitedEvent debitEvent,
 		Guid correlationId,
 		CancellationToken ct)
 	{
@@ -101,7 +92,7 @@ public sealed class AccountTransferConsumer(
 	}
 
 	private async Task CompensateAsync(
-		AccountTransferDebited debitEvent,
+		AccountTransferDebitedEvent debitEvent,
 		Guid correlationId,
 		string? reason,
 		CancellationToken ct)
@@ -121,17 +112,17 @@ public sealed class AccountTransferConsumer(
 		logger.ZLogWarning(message: $"[{correlationId}] Compensation executed: refunded {debitEvent.Amount} to {debitEvent.AccountId} for transfer {debitEvent.TransferId}.");
 	}
 
-	private AccountTransferDebited? ExtractDebitEvent(AggregateEventsMessage message)
+	private AccountTransferDebitedEvent? ExtractDebitEvent(AggregateEventsMessage message)
 	{
 		foreach (EventEnvelope envelope in message.Events)
 		{
 			try
 			{
-				Type type = eventTypeResolver.ResolveType(typeName: envelope.EventType);
-				if (type != typeof(AccountTransferDebited))
+				Type type = integrationEventTypeResolver.ResolveType(eventType: envelope.EventType);
+				if (type != typeof(AccountTransferDebitedEvent))
 					continue;
 
-				return (AccountTransferDebited)JsonSerializer.Deserialize(
+				return (AccountTransferDebitedEvent)JsonSerializer.Deserialize(
 					json: envelope.EventPayload,
 					returnType: type,
 					options: FinanceTrackerJsonOptions.Payload

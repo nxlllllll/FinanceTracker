@@ -1,12 +1,12 @@
-﻿using FinanceTracker.Contracts.Messages.Account;
-using FinanceTracker.Core.Domains.Abstractions;
+﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Entities;
-using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
+using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumers;
@@ -34,21 +34,24 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: call => call.Arg<Func<Task>>()());
 
-		AccountProjection projection = new AccountProjection(
-			accountWriteRepository: _accountWriteRepository,
-			logger: Substitute.For<ILogger<AccountProjection>>()
-		);
+		AccountEventApplier applier = new AccountEventApplier(repository: _accountWriteRepository);
+
+		AccountProjection projection = new AccountProjection(applier: applier, logger: Substitute.For<ILogger<AccountProjection>>());
 
 		_consumer = new AccountEventsConsumer(
 			projection: projection,
-			eventTypeResolver: Substitute.For<IEventTypeResolver>(),
-			context: Context,
+			integrationEventTypeResolver: new IntegrationEventTypeResolver(
+				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
+			),
+			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
+			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
 			unitOfWork: _unitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<AccountEventsConsumer>>()
 		);
 	}
-	
+
 	private static AggregateEventsMessage BuildMessage(
 		Guid? messageId = null,
 		string aggregateType = AggregateTypeNames.Account)
@@ -65,13 +68,11 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 	[Test]
 	public async Task AccountEventsConsumer_ShouldImplement_IMessageHandler()
 		=> await Assert.That(value: _consumer is IMessageHandler<AggregateEventsMessage> result).IsTrue();
-	
+
 	[Test]
 	public async Task HandleAsync_WhenAggregateTypeIsNotAccount_ShouldSkipWithoutTransaction()
 	{
-		AggregateEventsMessage message = BuildMessage(aggregateType: AggregateTypeNames.Transaction);
-
-		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
+		await _consumer.HandleAsync(message: BuildMessage(aggregateType: AggregateTypeNames.Transaction), ct: CancellationToken.None);
 
 		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -177,7 +178,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		bool saved = Context.ProcessedMessages.Any(predicate: m => m.MessageId == messageId);
+		bool saved = Context.ProcessedMessages.Any(predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(AccountEventsConsumer));
 
 		await Assert.That(value: saved).IsTrue();
 	}
@@ -190,7 +191,9 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 
-		int count = Context.ProcessedMessages.Count(predicate: m => m.MessageId == message.MessageId);
+		int count = Context.ProcessedMessages.Count(
+			predicate: m => m.MessageId == message.MessageId && m.ConsumerType == nameof(AccountEventsConsumer)
+		);
 
 		await Assert.That(value: count).IsEqualTo(expected: 1);
 	}
