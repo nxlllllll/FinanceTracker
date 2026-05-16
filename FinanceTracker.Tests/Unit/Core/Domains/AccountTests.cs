@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account;
@@ -9,7 +8,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 
-namespace FinanceTracker.Tests.Unit.Core;
+namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class AccountTests
 {
@@ -559,5 +558,112 @@ public sealed class AccountTests
 	    await Assert.That(value: restored.Currency.Value).IsEqualTo(expected: "RUB");
 	    await Assert.That(value: restored.IsArchived).IsTrue();
 	    await Assert.That(value: restored.Version).IsEqualTo(expected: account.Version);
+	}
+	
+	[Test]
+	public async Task RefundTransfer_OnArchivedAccount_ShouldReturnArchivedAccountOperationException()
+	{
+		Account account = AccountFactory.Create(balance: 500m).Value!;
+		account.Archive(occurredAt: Now);
+		account.ClearEvents();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.RefundTransfer(
+			occurredAt: Now,
+			transferId: Guid.CreateVersion7(),
+			amount: 500m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+	}
+
+	[Test]
+	public async Task RefundTransfer_WithZeroAmount_ShouldReturnInvalidAmountException()
+	{
+		Account account = AccountFactory.Create(balance: 500m).Value!;
+		account.ClearEvents();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.RefundTransfer(
+			occurredAt: Now,
+			transferId: Guid.CreateVersion7(),
+			amount: 0m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
+	}
+
+	[Test]
+	public async Task RefundTransfer_WithNegativeAmount_ShouldReturnInvalidAmountException()
+	{
+		Account account = AccountFactory.Create(balance: 500m).Value!;
+		account.ClearEvents();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.RefundTransfer(
+			occurredAt: Now,
+			transferId: Guid.CreateVersion7(),
+			amount: -100m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
+	}
+	
+	[Test]
+	public async Task Credit_WithZeroAmount_ShouldReturnInvalidAmountException()
+	{
+		Account account = AccountFactory.Create(balance: 1000m).Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Credit(
+			occurredAt: Now,
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
+			amount: 0m,
+			exchangeRate: 1m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
+	}
+
+	[Test]
+	public async Task DebitTransfer_WithZeroAmount_ShouldReturnInvalidAmountException()
+	{
+		Account account = AccountFactory.Create(balance: 1000m).Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.DebitTransfer(
+			occurredAt: Now,
+			transferId: Guid.CreateVersion7(),
+			toAccountId: Guid.CreateVersion7(),
+			amount: 0m,
+			forexRate: 1m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
+	}
+
+	[Test]
+	public async Task Debit_WithExactBalance_ShouldSucceedAndLeaveZeroBalance()
+	{
+		Account account = AccountFactory.Create(balance: 1000m).Value!;
+		account.ClearEvents();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
+			occurredAt: Now,
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
+			amount: 1000m,
+			exchangeRate: 1m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 0m);
 	}
 }

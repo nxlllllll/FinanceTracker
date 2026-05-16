@@ -4,7 +4,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 
-namespace FinanceTracker.Tests.Unit.Core;
+namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class TransactionTests
 {

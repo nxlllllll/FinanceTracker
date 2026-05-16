@@ -66,6 +66,7 @@ public sealed class PostgresEventStore(
 				AggregateType = aggregateType,
 				EventType = eventType,
 				SchemaVersion = eventTypeResolver.GetCurrentVersion(typeName: eventType),
+				CorrelationId = correlationContext.CorrelationId,
 				Version = ++currentVersion,
 				Payload = serialized,
 				OccurredAt = @event.OccurredAt,

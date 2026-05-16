@@ -15,16 +15,22 @@ public static class AccountFactory
 		string currency = "RUB",
 		decimal balance = 1000m)
 	{
-		Result<Account, DomainException> result = Account.Create(
+		Result<Name, DomainException> nameResult = Name.Create(value: name);
+		if (nameResult.IsFailure)
+			return Result<Account, DomainException>.Failure(error: nameResult.Error!);
+
+		Result<Currency, DomainException> currencyResult = Currency.Create(value: currency);
+		if (currencyResult.IsFailure)
+			return Result<Account, DomainException>.Failure(error: currencyResult.Error!);
+
+		return Account.Create(
 			occurredAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.CreateVersion7(),
-			name: Name.Create(value: name).Value,
+			name: nameResult.Value,
 			type: type,
-			currency: Currency.Create(value: currency).Value,
+			currency: currencyResult.Value,
 			balance: balance
 		);
-		
-		return result;
 	}
 	
 	public static Account CreateAccountWithArchivation(

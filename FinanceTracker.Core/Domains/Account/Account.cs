@@ -52,9 +52,6 @@ public sealed class Account : AggregateRoot
 		Currency currency,
 		decimal balance)
 	{
-		if (String.IsNullOrWhiteSpace(value: name))
-			return Result<Account, DomainException>.Failure(error: new NameException(message: "The account name cannot be empty."));
- 
 		if (balance < 0)
 			return Result<Account, DomainException>.Failure(error: new InvalidInitialBalanceException(message: "The initial account balance cannot be negative."));
  
@@ -96,13 +93,15 @@ public sealed class Account : AggregateRoot
 			options: FinanceTrackerJsonOptions.Payload
 		)!;
 
-		Account account = new Account();
-		account.Id = state.Id;
-		account.UserId = state.UserId;
-		account.Name = state.Name;
-		account.Type = state.Type;
-		account.Balance = state.Balance;
-		account.IsArchived = state.IsArchived;
+		Account account = new Account
+		{
+			Id = state.Id,
+			UserId = state.UserId,
+			Name = state.Name,
+			Type = state.Type,
+			Balance = state.Balance,
+			IsArchived = state.IsArchived
+		};
 		account.RestoreVersion(version: state.Version);
 		return account;
 	}
@@ -276,6 +275,9 @@ public sealed class Account : AggregateRoot
 		decimal amount,
 		string? description)
 	{
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
+		if (constraints.IsFailure) return constraints;
+		
 		RaiseEvent(@event: new AccountTransferRefunded(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,

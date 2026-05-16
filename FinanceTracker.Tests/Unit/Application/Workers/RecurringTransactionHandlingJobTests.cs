@@ -9,7 +9,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Quartz;
 
-namespace FinanceTracker.Tests.Unit.Application.Handlers.Workers;
+namespace FinanceTracker.Tests.Unit.Application.Workers;
 
 public sealed class RecurringTransactionHandlingJobTests
 {

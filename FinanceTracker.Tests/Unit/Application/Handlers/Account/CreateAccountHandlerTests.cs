@@ -46,15 +46,4 @@ public sealed class CreateAccountHandlerTests
 			), ct: Arg.Any<CancellationToken>()
 		);
 	}
-
-	[Test]
-	public async Task Handle_WithEmptyName_ShouldThrowArgumentException()
-	{
-		CreateAccountCommand command = CreateAccountCommandFactory.Create(name: String.Empty);
-
-		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
-		
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<NameException>();
-	}
 }

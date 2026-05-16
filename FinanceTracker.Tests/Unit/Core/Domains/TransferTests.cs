@@ -1,7 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Tests.Unit.Helpers;
 
-namespace FinanceTracker.Tests.Unit.Core;
+namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class TransferTests
 {

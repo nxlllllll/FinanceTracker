@@ -40,6 +40,8 @@ public sealed class OutboxPublisherJob(
 				ct: ct
 			);
 
+			WorkerMetrics.OutboxPending.Record(value: messages.Count);
+			
 			if (messages.Count == 0)
 				return;
 

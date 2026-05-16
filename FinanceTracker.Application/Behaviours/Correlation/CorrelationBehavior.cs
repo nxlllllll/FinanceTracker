@@ -18,8 +18,15 @@ public sealed class CorrelationBehavior<TRequest, TResponse>(
 	{
 		if (request is IHasCorrelationId { CorrelationId: var id } && id != Guid.Empty)
 			correlationContext.Set(correlationId: id);
- 
-		using (logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = correlationContext.CorrelationId }))
-			return await next(t: cancellationToken);
+		else
+			correlationContext.Set(correlationId: Guid.CreateVersion7());
+
+		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object>
+		{
+			["CorrelationId"] = correlationContext.CorrelationId,
+			["RequestType"] = typeof(TRequest).Name
+		});
+		
+		return await next(t: cancellationToken);
 	}
 }

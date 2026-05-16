@@ -8,6 +8,7 @@ public sealed class EventEntity
 	public string EventType { get; init; } = String.Empty;
 	public int Version { get; init; }
 	public string Payload { get; init; } = String.Empty;
+	public Guid CorrelationId { get; init; }
 	public DateTime OccurredAt { get; init; }
 	public DateTime CreatedAt { get; init; }
 	public int SchemaVersion { get; init; }
