@@ -9,6 +9,7 @@ using MediatR;
 namespace FinanceTracker.Application.UseCases.Budgets.Commands.CreateBudget;
 
 public sealed class CreateBudgetHandler(
+	IBudgetReadRepository budgetReadRepository,
 	IBudgetWriteRepository budgetWriteRepository,
 	IDateProvider dateProvider
 ) : IRequestHandler<CreateBudgetCommand, Result<Guid, DomainException>>
@@ -18,13 +19,24 @@ public sealed class CreateBudgetHandler(
 		CancellationToken ct = default)
 	{
 		Result<Currency, DomainException> currencyResult = Currency.Create(value: command.Currency);
-		if (currencyResult.IsFailure) 
+		if (currencyResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: currencyResult.Error!);
 
 		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: currencyResult.Value);
-		if (currencyResult.IsFailure) 
+		if (moneyResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: moneyResult.Error!);
- 
+
+		bool hasOverlap = await budgetReadRepository.HasOverlappingAsync(
+			userId: command.UserId,
+			categoryId: command.CategoryId,
+			from: command.From,
+			to: command.To,
+			ct: ct
+		);
+
+		if (hasOverlap)
+			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
+
 		Result<Budget, DomainException> budgetResult = Budget.Create(
 			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
@@ -33,12 +45,12 @@ public sealed class CreateBudgetHandler(
 			from: command.From,
 			to: command.To
 		);
-		if (currencyResult.IsFailure) 
+		if (budgetResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: budgetResult.Error!);
- 
-		Budget budget = budgetResult.Value!;
 
+		Budget budget = budgetResult.Value!;
 		await budgetWriteRepository.CreateAsync(budget: budget, ct: ct);
+
 		return Result<Guid, DomainException>.Success(value: budget.Id);
 	}
 }

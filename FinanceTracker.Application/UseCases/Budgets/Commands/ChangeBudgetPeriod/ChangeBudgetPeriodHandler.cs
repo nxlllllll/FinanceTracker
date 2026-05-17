@@ -11,42 +11,55 @@ using ZLogger;
 namespace FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetPeriod;
 
 public sealed class ChangeBudgetPeriodHandler(
-	IBudgetWriteRepository budgetWriteRepository,
-	IBudgetProgressWriteRepository budgetProgressWriteRepository,
-	IUnitOfWork unitOfWork,
-	ILogger<ChangeBudgetPeriodHandler> logger
+    IBudgetReadRepository budgetReadRepository,
+    IBudgetWriteRepository budgetWriteRepository,
+    IBudgetProgressWriteRepository budgetProgressWriteRepository,
+    IUnitOfWork unitOfWork,
+    ILogger<ChangeBudgetPeriodHandler> logger
 ) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Budget, Guid, DomainException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
-		ChangeBudgetPeriodCommand command,
-		Budget budget,
-		CancellationToken ct = default)
-	{
-		Result<Unit, DomainException> result = budget.ChangePeriod(from: command.From, to: command.To);
-		if (result.IsFailure) 
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+    public async Task<Result<Guid, DomainException>> HandleAsync(
+        ChangeBudgetPeriodCommand command,
+        Budget budget,
+        CancellationToken ct = default)
+    {
+        bool hasOverlap = await budgetReadRepository.HasOverlappingAsync(
+            userId: command.UserId,
+            categoryId: budget.CategoryId,
+            from: command.From,
+            to: command.To,
+            excludeBudgetId: budget.Id,
+            ct: ct
+        );
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
-			await budgetWriteRepository.ChangePeriodAsync(
-				budgetId: budget.Id,
-				from: command.From,
-				to: command.To,
-				ct: ct
-			);
+        if (hasOverlap)
+            return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
-			await budgetProgressWriteRepository.RecalculateForBudgetAsync(
-				budgetId: budget.Id,
-				userId: command.UserId,
-				categoryId: budget.CategoryId,
-				fromDate: command.From,
-				toDate: command.To,
-				ct: ct
-			);
-		}, 
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {budget.Id} ({command.From} → {command.To})."),
-		ct: ct);
-		
-		return Result<Guid, DomainException>.Success(value: budget.Id);
-	}
+        Result<Unit, DomainException> result = budget.ChangePeriod(from: command.From, to: command.To);
+        if (result.IsFailure)
+            return Result<Guid, DomainException>.Failure(error: result.Error!);
+
+        await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+        {
+            await budgetWriteRepository.ChangePeriodAsync(
+                budgetId: budget.Id,
+                from: command.From,
+                to: command.To,
+                ct: ct
+            );
+
+            await budgetProgressWriteRepository.RecalculateForBudgetAsync(
+                budgetId: budget.Id,
+                userId: command.UserId,
+                categoryId: budget.CategoryId,
+                fromDate: command.From,
+                toDate: command.To,
+                ct: ct
+            );
+        },
+        onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {budget.Id} ({command.From} → {command.To})."),
+        ct: ct);
+
+        return Result<Guid, DomainException>.Success(value: budget.Id);
+    }
 }

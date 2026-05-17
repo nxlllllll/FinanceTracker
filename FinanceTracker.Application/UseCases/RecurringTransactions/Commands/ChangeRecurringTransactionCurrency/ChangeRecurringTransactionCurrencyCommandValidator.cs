@@ -13,6 +13,7 @@ public sealed class ChangeRecurringTransactionCurrencyCommandValidator : Abstrac
 			.NotEmpty().WithMessage(errorMessage: "The recurring transaction cannot be empty.");
 
 		RuleFor(expression: command => command.Currency)
-			.Length(exactLength: 3).WithMessage(errorMessage: "The currency must be 3 characters.");
+			.NotEmpty().WithMessage(errorMessage: "The currency cannot be empty.")
+			.Matches(expression: "^[A-Z]{3}$").WithMessage(errorMessage: "The currency must be 3 uppercase letters (e.g. 'USD').");
 	}
 }

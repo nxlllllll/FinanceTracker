@@ -19,7 +19,8 @@ public sealed class CreateRecurringTransactionCommandValidator : AbstractValidat
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The amount must be greater than zero.");
 
 		RuleFor(expression: command => command.Currency)
-			.Length(exactLength: 3).WithMessage(errorMessage: "The currency must be 3 characters.");
+			.NotEmpty().WithMessage(errorMessage: "The currency cannot be empty.")
+			.Matches(expression: "^[A-Z]{3}$").WithMessage(errorMessage: "The currency must be 3 uppercase letters (e.g. 'USD').");
 
 		RuleFor(expression: command => command.Direction)
 			.IsInEnum().WithMessage(errorMessage: "The direction type can only be 'Credit' or 'Debit'.");

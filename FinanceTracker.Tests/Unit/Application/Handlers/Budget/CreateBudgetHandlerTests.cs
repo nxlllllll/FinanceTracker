@@ -9,57 +9,126 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
 
 public sealed class CreateBudgetHandlerTests
 {
-	private IBudgetWriteRepository _budgetWriteRepository = null!;
-	private CreateBudgetHandler _handler = null!;
+    private IBudgetReadRepository _budgetReadRepository = null!;
+    private IBudgetWriteRepository _budgetWriteRepository = null!;
+    private CreateBudgetHandler _handler = null!;
 
-	[Before(hookType: Test)]
-	public void Setup()
-	{
-		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
-		_handler = new CreateBudgetHandler(budgetWriteRepository: _budgetWriteRepository, dateProvider: FakeDateProvider.Default);
-	}
+    [Before(hookType: Test)]
+    public void Setup()
+    {
+        _budgetReadRepository = Substitute.For<IBudgetReadRepository>();
+        _budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 
-	[Test]
-	public async Task Handle_WithValidCommand_ShouldReturnBudgetId()
-	{
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: "RUB",
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
+        _budgetReadRepository.HasOverlappingAsync(
+            userId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            from: Arg.Any<DateOnly>(),
+            to: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: false);
 
-		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+        _handler = new CreateBudgetHandler(
+            budgetReadRepository: _budgetReadRepository,
+            budgetWriteRepository: _budgetWriteRepository,
+            dateProvider: FakeDateProvider.Default
+        );
+    }
 
-		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value).IsNotEqualTo(notExpected: Guid.Empty);
-	}
+    [Test]
+    public async Task Handle_WithValidCommand_ShouldReturnBudgetId()
+    {
+        CreateBudgetCommand command = new CreateBudgetCommand(
+            UserId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
+            Currency: "RUB",
+            Amount: 10000m,
+            From: new DateOnly(year: 2025, month: 1, day: 1),
+            To: new DateOnly(year: 2025, month: 1, day: 31)
+        );
 
-	[Test]
-	public async Task Handle_WithValidCommand_ShouldCallCreateAsync()
-	{
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: "RUB",
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
+        Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _handler.Handle(command: command, ct: CancellationToken.None);
+        await Assert.That(value: result.IsSuccess).IsTrue();
+        await Assert.That(value: result.Value).IsNotEqualTo(notExpected: Guid.Empty);
+    }
 
-		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			budget: Arg.Is<FinanceTracker.Core.Domains.Budget.Budget>(b =>
-				b.UserId == command.UserId &&
-				b.CategoryId == command.CategoryId &&
-				b.Amount.Currency == command.Currency &&
-				b.Amount.Amount == command.Amount &&
-				b.From == command.From &&
-				b.To == command.To),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
+    [Test]
+    public async Task Handle_WithValidCommand_ShouldCallCreateAsync()
+    {
+        CreateBudgetCommand command = new CreateBudgetCommand(
+            UserId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
+            Currency: "RUB",
+            Amount: 10000m,
+            From: new DateOnly(year: 2025, month: 1, day: 1),
+            To: new DateOnly(year: 2025, month: 1, day: 31)
+        );
+
+        await _handler.Handle(command: command, ct: CancellationToken.None);
+
+        await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
+            budget: Arg.Is<FinanceTracker.Core.Domains.Budget.Budget>(b =>
+                b.UserId == command.UserId &&
+                b.CategoryId == command.CategoryId &&
+                b.Amount.Currency == command.Currency &&
+                b.Amount.Amount == command.Amount &&
+                b.From == command.From &&
+                b.To == command.To),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task Handle_WhenOverlappingBudgetExists_ShouldReturnFailure()
+    {
+        _budgetReadRepository.HasOverlappingAsync(
+            userId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            from: Arg.Any<DateOnly>(),
+            to: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: true);
+
+        CreateBudgetCommand command = new CreateBudgetCommand(
+            UserId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
+            Currency: "RUB",
+            Amount: 10000m,
+            From: new DateOnly(year: 2025, month: 1, day: 1),
+            To: new DateOnly(year: 2025, month: 1, day: 31)
+        );
+
+        Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<OverlappingBudgetException>();
+    }
+
+    [Test]
+    public async Task Handle_WhenOverlappingBudgetExists_ShouldNotCallCreateAsync()
+    {
+        _budgetReadRepository.HasOverlappingAsync(
+            userId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            from: Arg.Any<DateOnly>(),
+            to: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: true);
+
+        CreateBudgetCommand command = new CreateBudgetCommand(
+            UserId: Guid.CreateVersion7(),
+            CategoryId: Guid.CreateVersion7(),
+            Currency: "RUB",
+            Amount: 10000m,
+            From: new DateOnly(year: 2025, month: 1, day: 1),
+            To: new DateOnly(year: 2025, month: 1, day: 31)
+        );
+
+        await _handler.Handle(command: command, ct: CancellationToken.None);
+
+        await _budgetWriteRepository.DidNotReceive().CreateAsync(
+            budget: Arg.Any<FinanceTracker.Core.Domains.Budget.Budget>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
 }

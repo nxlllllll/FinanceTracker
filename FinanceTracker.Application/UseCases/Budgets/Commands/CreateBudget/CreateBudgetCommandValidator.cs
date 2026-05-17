@@ -14,7 +14,7 @@ public sealed class CreateBudgetCommandValidator : AbstractValidator<CreateBudge
 
 		RuleFor(expression: command => command.Currency)
 			.NotEmpty().WithMessage(errorMessage: "The currency cannot be empty.")
-			.Length(exactLength: 3).WithMessage(errorMessage: "The currency code must be 3 characters.");
+			.Matches(expression: "^[A-Z]{3}$").WithMessage(errorMessage: "The currency must be 3 uppercase letters (e.g. 'USD').");
 
 		RuleFor(expression: command => command.Amount)
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The amount must be greater than 0.");

@@ -15,6 +15,11 @@ public sealed class Program
 
         builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
+        builder.Services.AddOptions<BalanceAdjustmentJobOptions>()
+            .BindConfiguration(configSectionPath: BalanceAdjustmentJobOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         BalanceAdjustmentJobOptions jobOptions = builder.Configuration
             .GetSection(key: BalanceAdjustmentJobOptions.SectionName)
             .Get<BalanceAdjustmentJobOptions>() ?? new BalanceAdjustmentJobOptions();
@@ -41,7 +46,7 @@ public sealed class Program
 
         builder.Services.AddWorkerMetrics(workerName: "Worker.BalanceAdjustment");
         builder.Services.AddWorkerTracing(workerName: "Worker.BalanceAdjustment");
-        
+
         WebApplication app = builder.Build();
 
         app.MapWorkerEndpoints();

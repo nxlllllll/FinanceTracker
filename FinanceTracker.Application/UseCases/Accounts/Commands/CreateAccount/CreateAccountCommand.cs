@@ -11,7 +11,7 @@ public sealed record CreateAccountCommand(
 	Guid UserId,
 	Name Name,
 	AccountType Type,
-	string Currency,
+	Currency Currency,
 	decimal InitialBalance
 ) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>
 {

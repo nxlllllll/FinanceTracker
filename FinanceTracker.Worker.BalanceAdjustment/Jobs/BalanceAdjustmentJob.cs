@@ -1,7 +1,7 @@
-﻿using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Currency;
@@ -9,7 +9,7 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.ValueObjects;
+using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
 
@@ -25,9 +25,13 @@ public sealed class BalanceAdjustmentJob(
     ICurrencyRateReadRepository currencyRateReadRepository,
     IUnitOfWork unitOfWork,
     IDateProvider dateProvider,
+    IOptions<BalanceAdjustmentJobOptions> options,
     ILogger<BalanceAdjustmentJob> logger
 ) : IJob
 {
+    private readonly BalanceAdjustmentJobOptions _options = options.Value;
+    private static readonly Random Jitter = Random.Shared;
+
     public async Task Execute(IJobExecutionContext executionContext)
         => await ProcessAsync(ct: executionContext.CancellationToken);
 
@@ -35,6 +39,29 @@ public sealed class BalanceAdjustmentJob(
     {
         await ProcessTransactionsAsync(ct: ct);
         await ProcessTransfersAsync(ct: ct);
+    }
+
+    private async Task ExecuteWithRetryAsync(Func<CancellationToken, Task> operation, CancellationToken ct)
+    {
+        for (int attempt = 0; attempt <= _options.MaxRetries; attempt++)
+        {
+            try
+            {
+                await operation(ct);
+                return;
+            }
+            catch (ConcurrencyConflictException) when (attempt < _options.MaxRetries)
+            {
+                int exponential = _options.BaseDelayMs * (1 << attempt);
+                int delayMs = exponential;
+
+                if (_options.UseJitter)
+                    delayMs = Jitter.Next(minValue: 0, maxValue: exponential + 1);
+                
+                logger.ZLogWarning(message: $"[ConcurrencyRetry] Attempt {attempt + 1}/{_options.MaxRetries} failed. Retrying in {delayMs}ms.");
+                await Task.Delay(millisecondsDelay: delayMs, cancellationToken: ct);
+            }
+        }
     }
 
     private async Task ProcessTransactionsAsync(CancellationToken ct)
@@ -79,34 +106,37 @@ public sealed class BalanceAdjustmentJob(
                     continue;
                 }
 
-                Account? account = await accountRepository.GetByIdAsync(accountId: item.AccountId, ct: ct);
-
-                if (account is null)
+                await ExecuteWithRetryAsync(operation: async innerCt =>
                 {
-                    logger.ZLogWarning(message: $"Account {item.AccountId} not found for transaction {item.TransactionId}. Skipping.");
-                    continue;
-                }
+                    Account? account = await accountRepository.GetByIdAsync(accountId: item.AccountId, ct: innerCt);
 
-                Result<Unit, Core.Exceptions.DomainExceptions.DomainException> adjustResult = account.AdjustBalance(
-                    occurredAt: dateProvider.UtcNow,
-                    sourceId: item.TransactionId,
-                    sourceType: AggregateTypeNames.Transaction,
-                    direction: item.Direction,
-                    oldRate: item.CurrentRate,
-                    newRate: newRate.Value,
-                    amount: item.Amount
-                );
+                    if (account is null)
+                    {
+                        logger.ZLogWarning(message: $"Account {item.AccountId} not found for transaction {item.TransactionId}. Skipping.");
+                        return;
+                    }
 
-                if (adjustResult.IsFailure)
-                {
-                    logger.ZLogWarning(message: $"AdjustBalance failed for transaction {item.TransactionId}: {adjustResult.Error!.Message}. Skipping.");
-                    continue;
-                }
+                    Result<Unit, DomainException> adjustResult = account.AdjustBalance(
+                        occurredAt: dateProvider.UtcNow,
+                        sourceId: item.TransactionId,
+                        sourceType: AggregateTypeNames.Transaction,
+                        direction: item.Direction,
+                        oldRate: item.CurrentRate,
+                        newRate: newRate.Value,
+                        amount: item.Amount
+                    );
 
-                await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-                {
-                    await accountRepository.SaveAsync(account: account, ct: ct);
-                    await transactionWriteRepository.UpdateRateAsync(transactionId: item.TransactionId, newRate: newRate.Value, ct: ct);
+                    if (adjustResult.IsFailure)
+                    {
+                        logger.ZLogWarning(message: $"AdjustBalance failed for transaction {item.TransactionId}: {adjustResult.Error!.Message}. Skipping.");
+                        return;
+                    }
+
+                    await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+                    {
+                        await accountRepository.SaveAsync(account: account, ct: innerCt);
+                        await transactionWriteRepository.UpdateRateAsync(transactionId: item.TransactionId, newRate: newRate.Value, ct: innerCt);
+                    }, ct: innerCt);
                 }, ct: ct);
 
                 adjusted++;
@@ -164,53 +194,55 @@ public sealed class BalanceAdjustmentJob(
                     continue;
                 }
 
-                Account? fromAccount = await accountRepository.GetByIdAsync(accountId: item.FromAccountId, ct: ct);
-
-                Account? toAccount = await accountRepository.GetByIdAsync(accountId: item.ToAccountId, ct: ct);
-
-                if (fromAccount is null || toAccount is null)
+                await ExecuteWithRetryAsync(operation: async innerCt =>
                 {
-                    logger.ZLogWarning(message: $"Account(s) not found for transfer {item.TransferId}. Skipping.");
-                    continue;
-                }
+                    Account? fromAccount = await accountRepository.GetByIdAsync(accountId: item.FromAccountId, ct: innerCt);
+                    Account? toAccount = await accountRepository.GetByIdAsync(accountId: item.ToAccountId, ct: innerCt);
 
-                Result<Unit, Core.Exceptions.DomainExceptions.DomainException> fromResult = fromAccount.AdjustBalance(
-                    occurredAt: dateProvider.UtcNow,
-                    sourceId: item.TransferId,
-                    sourceType: AggregateTypeNames.Transfer,
-                    direction: DirectionType.Debit,
-                    oldRate: item.CurrentRate,
-                    newRate: newRate.Value,
-                    amount: item.AmountFrom
-                );
+                    if (fromAccount is null || toAccount is null)
+                    {
+                        logger.ZLogWarning(message: $"Account(s) not found for transfer {item.TransferId}. Skipping.");
+                        return;
+                    }
 
-                if (fromResult.IsFailure)
-                {
-                    logger.ZLogWarning(message: $"AdjustBalance failed for from-account on transfer {item.TransferId}: {fromResult.Error!.Message}. Skipping.");
-                    continue;
-                }
+                    Result<Unit, DomainException> fromResult = fromAccount.AdjustBalance(
+                        occurredAt: dateProvider.UtcNow,
+                        sourceId: item.TransferId,
+                        sourceType: AggregateTypeNames.Transfer,
+                        direction: DirectionType.Debit,
+                        oldRate: item.CurrentRate,
+                        newRate: newRate.Value,
+                        amount: item.AmountFrom
+                    );
 
-                Result<Unit, Core.Exceptions.DomainExceptions.DomainException> toResult = toAccount.AdjustBalance(
-                    occurredAt: dateProvider.UtcNow,
-                    sourceId: item.TransferId,
-                    sourceType: AggregateTypeNames.Transfer,
-                    direction: DirectionType.Credit,
-                    oldRate: item.CurrentRate,
-                    newRate: newRate.Value,
-                    amount: item.AmountFrom
-                );
+                    if (fromResult.IsFailure)
+                    {
+                        logger.ZLogWarning(message: $"AdjustBalance failed for from-account on transfer {item.TransferId}: {fromResult.Error!.Message}. Skipping.");
+                        return;
+                    }
 
-                if (toResult.IsFailure)
-                {
-                    logger.ZLogWarning(message: $"AdjustBalance failed for to-account on transfer {item.TransferId}: {toResult.Error!.Message}. Skipping.");
-                    continue;
-                }
+                    Result<Unit, DomainException> toResult = toAccount.AdjustBalance(
+                        occurredAt: dateProvider.UtcNow,
+                        sourceId: item.TransferId,
+                        sourceType: AggregateTypeNames.Transfer,
+                        direction: DirectionType.Credit,
+                        oldRate: item.CurrentRate,
+                        newRate: newRate.Value,
+                        amount: item.AmountFrom
+                    );
 
-                await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-                {
-                    await accountRepository.SaveAsync(account: fromAccount, ct: ct);
-                    await accountRepository.SaveAsync(account: toAccount, ct: ct);
-                    await transferWriteRepository.UpdateRateAsync(transferId: item.TransferId, newRate: newRate.Value, ct: ct);
+                    if (toResult.IsFailure)
+                    {
+                        logger.ZLogWarning(message: $"AdjustBalance failed for to-account on transfer {item.TransferId}: {toResult.Error!.Message}. Skipping.");
+                        return;
+                    }
+
+                    await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+                    {
+                        await accountRepository.SaveAsync(account: fromAccount, ct: innerCt);
+                        await accountRepository.SaveAsync(account: toAccount, ct: innerCt);
+                        await transferWriteRepository.UpdateRateAsync(transferId: item.TransferId, newRate: newRate.Value, ct: innerCt);
+                    }, ct: innerCt);
                 }, ct: ct);
 
                 adjusted++;

@@ -10,13 +10,12 @@ public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAcco
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
 
 		RuleFor(expression: command => command.InitialBalance)
-			.GreaterThanOrEqualTo(valueToCompare: 0)
-			.WithMessage(errorMessage: "The initial balance cannot be negative.");
-		
+			.GreaterThanOrEqualTo(valueToCompare: 0).WithMessage(errorMessage: "The initial balance cannot be negative.");
+
 		RuleFor(expression: command => command.Type)
 			.IsInEnum().WithMessage(errorMessage: "The account type is invalid.");
 
 		RuleFor(expression: command => command.Currency)
-			.Length(exactLength: 3).WithMessage(errorMessage: "The currency must be 3 characters.");
+			.Must(predicate: c => c != default).WithMessage(errorMessage: "The currency cannot be empty.");
 	}
 }

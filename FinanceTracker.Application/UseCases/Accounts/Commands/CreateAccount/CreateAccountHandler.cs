@@ -17,16 +17,12 @@ public sealed class CreateAccountHandler(
 		CreateAccountCommand command,
 		CancellationToken ct = default)
 	{
-		Result<Currency, DomainException> currencyResult = Currency.Create(value: command.Currency);
-		if (currencyResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: currencyResult.Error!);
- 
 		Result<Account, DomainException> accountResult = Account.Create(
 			occurredAt: dateProvider.UtcNow,
 			userId: command.UserId,
 			name: command.Name,
 			type: command.Type,
-			currency: currencyResult.Value,
+			currency: command.Currency,
 			balance: command.InitialBalance
 		);
 		if (accountResult.IsFailure)

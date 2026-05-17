@@ -8,6 +8,8 @@ namespace FinanceTracker.Core.ValueObjects;
 [JsonConverter(converterType: typeof(NameJsonConverter))]
 public readonly record struct Name
 {
+	private const int MaxLength = 100;
+
 	public string Value { get; }
 
 	private Name(string value)
@@ -18,7 +20,12 @@ public readonly record struct Name
 		if (String.IsNullOrWhiteSpace(value: value))
 			return Result<Name, DomainException>.Failure(error: new NameException(message: "The name cannot be empty."));
 
-		return Result<Name, DomainException>.Success(value: new Name(value: value.Trim()));
+		string trimmed = value.Trim();
+
+		if (trimmed.Length > MaxLength)
+			return Result<Name, DomainException>.Failure(error: new NameException(message: $"The name cannot exceed {MaxLength} characters."));
+
+		return Result<Name, DomainException>.Success(value: new Name(value: trimmed));
 	}
 
 	public static Name Reconstitute(string value)

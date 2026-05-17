@@ -46,6 +46,24 @@ public sealed class BudgetReadRepository(
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
+    public async Task<bool> HasOverlappingAsync(
+        Guid userId,
+        Guid categoryId,
+        DateOnly from,
+        DateOnly to,
+        Guid? excludeBudgetId = null,
+        CancellationToken ct = default)
+    {
+        IQueryable<BudgetEntity> query = context.Budgets.AsNoTracking().Where(
+            predicate: b => b.UserId == userId && b.CategoryId == categoryId && b.From < to && b.To > from
+        );
+
+        if (excludeBudgetId is not null)
+            query = query.Where(predicate: b => b.Id != excludeBudgetId);
+
+        return await query.AnyAsync(cancellationToken: ct);
+    }
+    
     public async Task<IReadOnlyList<Core.Domains.Budget.Budget>> GetAllAsync(
         Guid userId,
         DateTime? cursorCreatedAt = null,

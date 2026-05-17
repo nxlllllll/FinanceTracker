@@ -17,7 +17,7 @@ public static class CreateAccountCommandFactory
 			UserId: userId ?? Guid.CreateVersion7(),
 			Name: Name.Create(value: name).Value,
 			Type: type,
-			Currency: currency,
+			Currency: Currency.Create(value: currency).Value,
 			InitialBalance: initialBalance
 		);
 	}
