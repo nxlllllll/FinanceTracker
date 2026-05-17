@@ -1,7 +1,9 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Tracing;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -122,6 +124,14 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
     private async Task HandleMessageAsync(object sender, BasicDeliverEventArgs ea)
     {
+        ActivityContext parentContext = ExtractParentContext(headers: ea.BasicProperties?.Headers);
+
+        using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(
+            name: $"rabbitmq.consume {typeof(TMessage).Name}",
+            kind: ActivityKind.Consumer,
+            parentContext
+        );
+        
         await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
 
         ICorrelationContext? correlationContext = scope.ServiceProvider.GetService<ICorrelationContext>();
@@ -140,14 +150,45 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
             await handler.HandleAsync(message: message, ct: CancellationToken.None);
 
+            activity?.SetStatus(code: ActivityStatusCode.Ok);
             await _channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
         }
         catch (Exception ex)
         {
-            logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Failed to process message {ea.DeliveryTag}.");
+            activity?.SetStatus(code: ActivityStatusCode.Error, description: ex.Message);
+            activity?.AddException(exception: ex);
 
+            logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Failed to process message {ea.DeliveryTag}.");
             await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
         }
+    }
+
+    private static ActivityContext ExtractParentContext(IDictionary<string, object?>? headers)
+    {
+        if (headers is null || !headers.TryGetValue(key: "traceparent", out object? value))
+            return default;
+
+        string? traceparent = value is byte[] bytes ? Encoding.UTF8.GetString(bytes: bytes) : value as string;
+
+        if (traceparent is null)
+            return default;
+
+        string[] parts = traceparent.Split(separator: '-');
+        if (parts.Length != 4)
+            return default;
+
+        ActivityTraceId traceId = ActivityTraceId.CreateFromString(idData: parts[1]);
+        
+        ActivitySpanId spanId = ActivitySpanId.CreateFromString(idData: parts[2]);
+        
+        ActivityTraceFlags flags = parts[3] == "01" ? ActivityTraceFlags.Recorded : ActivityTraceFlags.None;
+
+        return new ActivityContext(
+            traceId: traceId,
+            spanId: spanId,
+            traceFlags: flags,
+            isRemote: true
+        );
     }
 
     public override async Task StopAsync(CancellationToken ct)

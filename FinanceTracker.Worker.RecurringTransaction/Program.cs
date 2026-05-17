@@ -4,6 +4,7 @@ using FinanceTracker.Worker.RecurringTransaction.Jobs;
 using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.RabbitMQ;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
+using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
 
@@ -27,17 +28,13 @@ public sealed class Program
 
 		builder.Services.AddQuartz(configure: q =>
 		{
-			q.AddJob<RecurringTransactionHandlingJob>(configure: j =>
-				j.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group)
-			);
+			q.AddJob<RecurringTransactionHandlingJob>(configure: j => j.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group));
 			q.AddTrigger(configure: t => t
 				.ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: recurringOptions.Group)
 				.WithIdentity(name: recurringOptions.TriggerName, group: recurringOptions.Group)
 				.WithCronSchedule(
 					cronExpression: recurringOptions.CronExpression,
-					schedule => schedule
-						.InTimeZone(tz: TimeZoneInfo.Utc)
-						.WithMisfireHandlingInstructionFireAndProceed()
+					schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
 				)
 			);
 		});
@@ -54,7 +51,7 @@ public sealed class Program
 			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
 
 		builder.Services.AddWorkerMetrics(workerName: "Worker.RecurringTransaction");
-
+		builder.Services.AddWorkerTracing(workerName: "Worker.RecurringTransaction");
 		WebApplication app = builder.Build();
 
 		app.MapWorkerEndpoints();

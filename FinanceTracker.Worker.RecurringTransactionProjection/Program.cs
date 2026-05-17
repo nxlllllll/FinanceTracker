@@ -4,6 +4,7 @@ using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumers;
 using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
+using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 
 namespace FinanceTracker.Worker.RecurringTransactionProjection;
@@ -26,7 +27,7 @@ public sealed class Program
 			.AddCheck<RabbitMqHealthCheck>(name: "rabbitmq", tags: ["ready", "broker"]);
  
 		builder.Services.AddWorkerMetrics(workerName: "Worker.RecurringTransactionProjection");
- 
+		builder.Services.AddWorkerTracing(workerName: "Worker.RecurringTransactionProjection");
 		WebApplication app = builder.Build();
  
 		app.MapWorkerEndpoints();

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
@@ -29,6 +30,17 @@ public sealed class RabbitMqPublisher(
 
 		if (correlationId != Guid.Empty)
 			props.CorrelationId = correlationId.ToString();
+
+		if (Activity.Current is { } current)
+		{
+			props.Headers ??= new Dictionary<string, object?>();
+			props.Headers["traceparent"] = Encoding.UTF8.GetBytes(
+				s: $"00-{current.TraceId}-{current.SpanId}-{(current.ActivityTraceFlags.HasFlag(ActivityTraceFlags.Recorded) ? "01" : "00")}"
+			);
+
+			if (!String.IsNullOrEmpty(value: current.TraceStateString))
+				props.Headers["tracestate"] = Encoding.UTF8.GetBytes(s: current.TraceStateString);
+		}
 
 		await channel.BasicPublishAsync(
 			exchange: _options.ExchangeName,

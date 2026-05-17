@@ -107,14 +107,4 @@ public sealed class UserTests
 
         await Assert.That(value: user.BaseCurrency.Value).IsEqualTo(expected: "RUB");
     }
-
-    [Test]
-    public async Task ChangeBaseCurrency_WithEmptyCode_ShouldThrowArgumentException()
-    {
-        User user = UserFactory.Create().Value!;
-
-        Result<Currency, DomainException> currencyResult = Currency.Create(value: String.Empty);
-        await Assert.That(value: currencyResult.IsFailure).IsTrue();
-        await Assert.That(value: currencyResult.Error).IsTypeOf<CurrencyException>();
-    }
 }

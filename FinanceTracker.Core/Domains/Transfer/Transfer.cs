@@ -1,4 +1,6 @@
-﻿using FinanceTracker.Core.ValueObjects;
+﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Transfer;
 
@@ -30,14 +32,22 @@ public sealed class Transfer
         string? description,
         DateTime occurredAt)
     {
+        Result<Money, DomainException> amountFromResult = Money.Create(amount: amountFrom, currency: currencyFrom);
+        if (amountFromResult.IsFailure)
+            throw amountFromResult.Error!;
+
+        Result<Money, DomainException> amountToResult = Money.Create(amount: amountTo, currency: currencyTo);
+        if (amountToResult.IsFailure)
+            throw amountFromResult.Error!;
+        
         return new Transfer
         {
             Id = Guid.CreateVersion7(),
             UserId = userId,
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,
-            AmountFrom = Money.Create(amount: amountFrom, currency: currencyFrom).Value,
-            AmountTo = Money.Create(amount: amountTo, currency: currencyTo).Value,
+            AmountFrom = amountFromResult.Value,
+            AmountTo = amountToResult.Value,
             ExchangeRate = exchangeRate,
             IsRatePending = isRatePending,
             Description = description,
@@ -59,14 +69,22 @@ public sealed class Transfer
         string? description,
         DateTime occurredAt)
     {
+        Result<Money, DomainException> amountFromResult = Money.Create(amount: amountFrom, currency: currencyFrom);
+        if (amountFromResult.IsFailure)
+            throw amountFromResult.Error!;
+
+        Result<Money, DomainException> amountToResult = Money.Create(amount: amountTo, currency: currencyTo);
+        if (amountToResult.IsFailure)
+            throw amountToResult.Error!;
+        
         return new Transfer
         {
             Id = id,
             UserId = userId,
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,
-            AmountFrom = Money.Create(amount: amountFrom, currency: Currency.Create(value: currencyFrom).Value).Value,
-            AmountTo = Money.Create(amount: amountTo, currency: Currency.Create(value: currencyTo).Value).Value,
+            AmountFrom = amountFromResult.Value,
+            AmountTo = amountToResult.Value,
             ExchangeRate = exchangeRate,
             IsRatePending = isRatePending,
             Description = description,

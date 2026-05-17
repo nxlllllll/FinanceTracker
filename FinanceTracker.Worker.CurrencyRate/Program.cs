@@ -2,6 +2,7 @@ using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.CurrencyRate.Client;
 using FinanceTracker.Worker.CurrencyRate.Jobs;
 using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
 
@@ -48,7 +49,7 @@ public sealed class Program
             .AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
 
         builder.Services.AddWorkerMetrics(workerName: "Worker.CurrencyRate");
-
+        builder.Services.AddWorkerTracing(workerName: "Worker.CurrencyRate");
         WebApplication app = builder.Build();
 
         app.MapWorkerEndpoints();

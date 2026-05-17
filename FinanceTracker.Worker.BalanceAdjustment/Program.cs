@@ -1,6 +1,7 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.BalanceAdjustment.Jobs;
 using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
 
@@ -39,7 +40,8 @@ public sealed class Program
             .AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
 
         builder.Services.AddWorkerMetrics(workerName: "Worker.BalanceAdjustment");
-
+        builder.Services.AddWorkerTracing(workerName: "Worker.BalanceAdjustment");
+        
         WebApplication app = builder.Build();
 
         app.MapWorkerEndpoints();

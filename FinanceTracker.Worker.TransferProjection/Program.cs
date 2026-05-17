@@ -2,6 +2,7 @@ using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
+using FinanceTracker.Worker.Shared.Tracing;
 using FinanceTracker.Worker.TransferProjection.Consumers;
 using Microsoft.AspNetCore.Builder;
 
@@ -24,7 +25,7 @@ public sealed class Program
 			.AddCheck<RabbitMqHealthCheck>(name: "rabbitmq", tags: ["ready", "broker"]);
 
 		builder.Services.AddWorkerMetrics(workerName: "Worker.TransferProjection");
-
+		builder.Services.AddWorkerTracing(workerName: "Worker.TransferProjection");
 		WebApplication app = builder.Build();
 		app.MapWorkerEndpoints();
 		app.Run();

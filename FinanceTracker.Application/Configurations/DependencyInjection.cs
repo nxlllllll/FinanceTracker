@@ -3,6 +3,7 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Behaviours.ConcurrencyRetry;
 using FinanceTracker.Application.Behaviours.Correlation;
 using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Accounts.Authorization;
@@ -41,7 +42,8 @@ public static class DependencyInjection
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 
-			cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CorrelationBehavior<,>));
+			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(TracingBehavior<,>));
+			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(CorrelationBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ConcurrencyRetryBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(IdempotencyBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ValidationBehavior<,>));

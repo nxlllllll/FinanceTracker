@@ -8,6 +8,7 @@ using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using Quartz;
 using ZLogger;
@@ -23,6 +24,7 @@ public sealed class BalanceAdjustmentJob(
     IAccountRepository accountRepository,
     ICurrencyRateReadRepository currencyRateReadRepository,
     IUnitOfWork unitOfWork,
+    IDateProvider dateProvider,
     ILogger<BalanceAdjustmentJob> logger
 ) : IJob
 {
@@ -86,7 +88,7 @@ public sealed class BalanceAdjustmentJob(
                 }
 
                 Result<Unit, Core.Exceptions.DomainExceptions.DomainException> adjustResult = account.AdjustBalance(
-                    occurredAt: DateTime.UtcNow,
+                    occurredAt: dateProvider.UtcNow,
                     sourceId: item.TransactionId,
                     sourceType: AggregateTypeNames.Transaction,
                     direction: item.Direction,
@@ -173,7 +175,7 @@ public sealed class BalanceAdjustmentJob(
                 }
 
                 Result<Unit, Core.Exceptions.DomainExceptions.DomainException> fromResult = fromAccount.AdjustBalance(
-                    occurredAt: DateTime.UtcNow,
+                    occurredAt: dateProvider.UtcNow,
                     sourceId: item.TransferId,
                     sourceType: AggregateTypeNames.Transfer,
                     direction: DirectionType.Debit,
@@ -189,7 +191,7 @@ public sealed class BalanceAdjustmentJob(
                 }
 
                 Result<Unit, Core.Exceptions.DomainExceptions.DomainException> toResult = toAccount.AdjustBalance(
-                    occurredAt: DateTime.UtcNow,
+                    occurredAt: dateProvider.UtcNow,
                     sourceId: item.TransferId,
                     sourceType: AggregateTypeNames.Transfer,
                     direction: DirectionType.Credit,

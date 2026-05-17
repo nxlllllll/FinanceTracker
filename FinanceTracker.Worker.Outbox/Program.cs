@@ -2,6 +2,7 @@ using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Outbox.Jobs;
 using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
+using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
 
@@ -48,7 +49,7 @@ public sealed class Program
 			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
 
 		builder.Services.AddWorkerMetrics(workerName: "Worker.Outbox");
-
+		builder.Services.AddWorkerTracing(workerName: "Worker.Outbox");
 		WebApplication app = builder.Build();
 
 		app.MapWorkerEndpoints();

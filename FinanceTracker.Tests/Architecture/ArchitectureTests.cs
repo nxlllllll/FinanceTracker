@@ -2,6 +2,7 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
@@ -203,5 +204,34 @@ public sealed class ArchitectureTests
 
 	    await Assert.That(value: missing).IsEmpty()
 	        .Because(message: $"Missing IEntityLoader registrations: {String.Join(separator: ", ", values: missing)}");
+	}
+	
+	[Test]
+	public async Task AllEventUpcasterChains_ShouldHaveNoGaps()
+	{
+	    IEnumerable<IEventUpcaster> upcasters = InfrastructureAssembly.GetTypes()
+			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IEventUpcaster).IsAssignableFrom(c: t))
+			.Select(selector: t => (IEventUpcaster)Activator.CreateInstance(type: t)!)
+			.ToList();
+
+	    Dictionary<string, List<IEventUpcaster>> chains = upcasters.GroupBy(keySelector: u => u.EventType)
+			.ToDictionary(
+				keySelector: g => g.Key,
+				elementSelector: g => g.OrderBy(keySelector: u => u.FromVersion).ToList()
+			);
+
+	    List<string> gaps = [];
+
+	    foreach ((string eventType, List<IEventUpcaster> chain) in chains)
+	    {
+	        for (int i = 0; i < chain.Count - 1; i++)
+	        {
+	            if (chain[i].ToVersion != chain[i + 1].FromVersion)
+	                gaps.Add(item: $"'{eventType}': gap between v{chain[i].ToVersion} and v{chain[i + 1].FromVersion}");
+	        }
+	    }
+
+	    await Assert.That(value: gaps).IsEmpty()
+			.Because(message: $"Upcaster chain gaps detected:\n{String.Join(separator: "\n", values: gaps)}");
 	}
 }

@@ -2,6 +2,7 @@ using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Worker.DeadLetterMonitor.Jobs;
 using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
 
@@ -27,10 +28,7 @@ public sealed class Program
             q.AddTrigger(configure: t => t
                 .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: deadLetterOptions.Group)
                 .WithIdentity(name: deadLetterOptions.TriggerName, group: deadLetterOptions.Group)
-                .WithSimpleSchedule(action: s => s
-                    .WithIntervalInMinutes(minutes: deadLetterOptions.IntervalMinutes)
-                    .RepeatForever()
-                )
+                .WithSimpleSchedule(action: s => s.WithIntervalInMinutes(minutes: deadLetterOptions.IntervalMinutes).RepeatForever())
             );
         });
 
@@ -43,7 +41,7 @@ public sealed class Program
 			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
 
 		builder.Services.AddWorkerMetrics(workerName: "Worker.DeadLetterMonitor");
-
+		builder.Services.AddWorkerTracing(workerName: "Worker.DeadLetterMonitor");
 		WebApplication app = builder.Build();
 
 		app.MapWorkerEndpoints();
