@@ -6,4 +6,10 @@ public interface ITransferWriteRepository
 		Domains.Transfer.Transfer transfer,
 		CancellationToken ct = default
 	);
+	
+	Task UpdateRateAsync(
+		Guid transferId,
+		decimal newRate,
+		CancellationToken ct = default
+	);
 }

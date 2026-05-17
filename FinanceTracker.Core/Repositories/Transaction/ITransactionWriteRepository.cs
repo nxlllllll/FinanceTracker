@@ -28,4 +28,10 @@ public interface ITransactionWriteRepository
 		Guid transactionId,
 		CancellationToken ct = default
 	);
+	
+	Task UpdateRateAsync(
+		Guid transactionId,
+		decimal newRate,
+		CancellationToken ct = default
+	);
 }

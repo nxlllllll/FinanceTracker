@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -83,14 +84,22 @@ public sealed class TransactionReadRepository(
             )).ToListAsync(cancellationToken: ct);
     }
 
-    public async Task<bool> ExistsAsync(
-        Guid userId,
-        Guid transactionId,
-        CancellationToken ct = default)
+    public async Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(CancellationToken ct = default)
     {
-        return await context.Transactions.AsNoTracking().AnyAsync(
-            predicate: t => t.Id == transactionId && t.UserId == userId,
-            cancellationToken: ct
-        );
+        return await context.Transactions.AsNoTracking().Where(predicate: t => t.IsRatePending).Join(
+            inner: context.Users,
+            outerKeySelector: t => t.UserId,
+            innerKeySelector: u => u.Id,
+            resultSelector: (t, u) => new PendingRateTransaction(
+                TransactionId: t.Id,
+                AccountId: t.AccountId,
+                Amount: t.Amount,
+                TransactionCurrency: t.Currency,
+                BaseCurrency: u.BaseCurrencyCode,
+                CurrentRate: t.ExchangeRate,
+                Direction: t.Direction,
+                OccurredAt: t.OccurredAt
+            )
+        ).ToListAsync(cancellationToken: ct);
     }
 }

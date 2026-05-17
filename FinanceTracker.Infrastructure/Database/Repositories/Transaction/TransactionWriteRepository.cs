@@ -81,4 +81,16 @@ public sealed class TransactionWriteRepository(
             cancellationToken: ct
         );
     }
+
+    public async Task UpdateRateAsync(
+        Guid transactionId,
+        decimal newRate,
+        CancellationToken ct = default)
+    {
+        await context.Transactions.Where(predicate: t => t.Id == transactionId).ExecuteUpdateAsync(
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
+                .SetProperty(propertyExpression: t => t.IsRatePending, valueExpression: false),
+            cancellationToken: ct
+        );
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -65,5 +66,19 @@ public sealed class TransferReadRepository(
                 description: t.Description,
                 occurredAt: t.OccurredAt
             )).ToListAsync(cancellationToken: ct);
+    }
+
+    public async Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(CancellationToken ct = default)
+    {
+        return await context.Transfers.AsNoTracking().Where(predicate: t => t.IsRatePending).Select(selector: t => new PendingRateTransfer(
+            TransferId: t.Id,
+            FromAccountId: t.FromAccountId,
+            ToAccountId: t.ToAccountId,
+            AmountFrom: t.AmountFrom,
+            CurrencyFrom: t.CurrencyFrom,
+            CurrencyTo: t.CurrencyTo,
+            CurrentRate: t.ExchangeRate,
+            OccurredAt: t.OccurredAt
+        )).ToListAsync(cancellationToken: ct);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Dtos;
 
 namespace FinanceTracker.Core.Repositories.Transaction;
 
@@ -23,9 +24,7 @@ public interface ITransactionReadRepository
 		CancellationToken ct = default
 	);
 	
-	Task<bool> ExistsAsync(
-		Guid userId,
-		Guid transactionId,
+	Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(
 		CancellationToken ct = default
 	);
 }

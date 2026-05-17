@@ -149,35 +149,6 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
     }
 
     [Test]
-    public async Task ExistsAsync_WithNonExistentTransaction_ShouldReturnFalse()
-    {
-        bool result = await _readRepository.ExistsAsync(
-            userId: Guid.CreateVersion7(),
-            transactionId: Guid.CreateVersion7()
-        );
-
-        await Assert.That(value: result).IsFalse();
-    }
-
-    [Test]
-    public async Task ExistsAsync_WithExistingTransaction_ShouldReturnTrue()
-    {
-        (Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
-        Guid transactionId = await CreateTransactionAsync(
-            userId: userId,
-            accountId: accountId,
-            categoryId: categoryId
-        );
-
-        bool result = await _readRepository.ExistsAsync(
-            userId: userId,
-            transactionId: transactionId
-        );
-
-        await Assert.That(value: result).IsTrue();
-    }
-
-    [Test]
     public async Task GetAllAsync_WithNoTransactions_ShouldReturnEmptyList()
     {
         IReadOnlyList<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(accountId: Guid.CreateVersion7());

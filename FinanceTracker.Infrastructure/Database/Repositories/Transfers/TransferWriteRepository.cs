@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 
@@ -28,5 +29,17 @@ public sealed class TransferWriteRepository(
 		}, cancellationToken: ct);
 
 		await context.SaveChangesAsync(cancellationToken: ct);
+	}
+	
+	public async Task UpdateRateAsync(
+	    Guid transferId,
+	    decimal newRate,
+	    CancellationToken ct = default)
+	{
+	    await context.Transfers.Where(predicate: t => t.Id == transferId).ExecuteUpdateAsync(
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
+				.SetProperty(propertyExpression: t => t.IsRatePending, valueExpression: false),
+            cancellationToken: ct
+        );
 	}
 }

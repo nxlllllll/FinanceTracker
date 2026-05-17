@@ -1,0 +1,49 @@
+using FinanceTracker.Infrastructure.Configurations;
+using FinanceTracker.Worker.BalanceAdjustment.Jobs;
+using FinanceTracker.Worker.Shared.HealthChecks;
+using Microsoft.AspNetCore.Builder;
+using Quartz;
+
+namespace FinanceTracker.Worker.BalanceAdjustment;
+
+public sealed class Program
+{
+    public static void Main(string[] args)
+    {
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+
+        builder.Services.AddInfrastructure(configuration: builder.Configuration);
+
+        BalanceAdjustmentJobOptions jobOptions = builder.Configuration
+            .GetSection(key: BalanceAdjustmentJobOptions.SectionName)
+            .Get<BalanceAdjustmentJobOptions>() ?? new BalanceAdjustmentJobOptions();
+
+        builder.Services.AddQuartz(configure: q =>
+        {
+            q.AddJob<BalanceAdjustmentJob>(configure: j => j.WithIdentity(name: nameof(BalanceAdjustmentJob), group: jobOptions.Group));
+            q.AddTrigger(configure: t => t
+                .ForJob(jobName: nameof(BalanceAdjustmentJob), jobGroup: jobOptions.Group)
+                .WithIdentity(name: jobOptions.TriggerName, group: jobOptions.Group)
+                .WithCronSchedule(
+                    cronExpression: jobOptions.CronExpression,
+                    schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
+                )
+            );
+        });
+
+        builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
+
+        string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
+        builder.Services.AddWorkerHealthChecks(connectionString: connectionString)
+            .AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
+
+        builder.Services.AddWorkerMetrics(workerName: "Worker.BalanceAdjustment");
+
+        WebApplication app = builder.Build();
+
+        app.MapWorkerEndpoints();
+
+        app.Run();
+    }
+}
