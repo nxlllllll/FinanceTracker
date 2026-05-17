@@ -35,9 +35,9 @@ public sealed class EFUnitOfWork(
 			throw new InvalidOperationException(message: "No active transaction to commit.");
 		}
  
-		if (_savepoints.Count > 0)
+		if (_savepoints.TryPop(result: out string? savepointName))
 		{
-			_savepoints.Pop();
+			await _transaction.ReleaseSavepointAsync(name: savepointName, cancellationToken: ct);
 			return;
 		}
  

@@ -5,6 +5,7 @@ namespace FinanceTracker.Contracts.Events.Account;
 
 [IntegrationEventType(domainEventType: typeof(AccountBalanceAdjusted))]
 public sealed record AccountBalanceAdjustedEvent(
+	Guid EventId,
 	Guid AccountId,
 	Guid SourceId,
 	string SourceType,

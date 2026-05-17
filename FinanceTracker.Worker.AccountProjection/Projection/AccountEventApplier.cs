@@ -12,7 +12,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 	public Task ApplyAsync(IAccountIntegrationEvent @event, CancellationToken ct) => @event switch
 	{
 		AccountCreatedEvent e => repository.CreateAsync(new AccountCreated(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			UserId: e.UserId,
 			Name: Name.Reconstitute(value: e.Name),
@@ -22,7 +22,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountDebitedEvent e => repository.DebitAsync(new AccountDebited(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			TransactionId: e.TransactionId,
 			CategoryId: e.CategoryId,
@@ -32,7 +32,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountCreditedEvent e => repository.CreditAsync(new AccountCredited(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			TransactionId: e.TransactionId,
 			CategoryId: e.CategoryId,
@@ -42,23 +42,23 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountRenamedEvent e => repository.RenameAsync(new AccountRenamed(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			NewName: Name.Reconstitute(value: e.NewName),
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountArchivedEvent e => repository.ArchiveAsync(new AccountArchived(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountUnarchivedEvent e => repository.UnarchiveAsync(new AccountUnarchived(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountTransferDebitedEvent e => repository.TransferDebitAsync(new AccountTransferDebited(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			TransferId: e.TransferId,
 			ToAccountId: e.ToAccountId,
@@ -68,7 +68,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountTransferCreditedEvent e => repository.TransferCreditAsync(new AccountTransferCredited(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			TransferId: e.TransferId,
 			FromAccountId: e.FromAccountId,
@@ -78,7 +78,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountTransferRefundedEvent e => repository.RefundTransferAsync(new AccountTransferRefunded(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			TransferId: e.TransferId,
 			Amount: e.Amount,
@@ -86,7 +86,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountBalanceAdjustedEvent e => repository.AdjustBalanceAsync(new AccountBalanceAdjusted(
-			Id: Guid.CreateVersion7(),
+			Id: e.EventId,
 			AccountId: e.AccountId,
 			SourceId: e.SourceId,
 			SourceType: e.SourceType,

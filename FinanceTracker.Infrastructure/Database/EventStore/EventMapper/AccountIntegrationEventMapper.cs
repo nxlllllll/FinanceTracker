@@ -11,6 +11,7 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 	public IAccountIntegrationEvent? Map(IEvent domainEvent) => domainEvent switch
 	{
 		AccountCreated e => new AccountCreatedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			UserId: e.UserId,
 			Name: e.Name,
@@ -20,6 +21,7 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 			OccurredAt: e.OccurredAt
 		),
 		AccountDebited e => new AccountDebitedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			TransactionId: e.TransactionId,
 			CategoryId: e.CategoryId,
@@ -29,6 +31,7 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 			OccurredAt: e.OccurredAt
 		),
 		AccountCredited e => new AccountCreditedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			TransactionId: e.TransactionId,
 			CategoryId: e.CategoryId,
@@ -38,19 +41,23 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 			OccurredAt: e.OccurredAt
 		),
 		AccountRenamed e => new AccountRenamedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			NewName: e.NewName,
 			OccurredAt: e.OccurredAt
 		),
 		AccountArchived e => new AccountArchivedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			OccurredAt: e.OccurredAt
 		),
 		AccountUnarchived e => new AccountUnarchivedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			OccurredAt: e.OccurredAt
 		),
 		AccountTransferDebited e => new AccountTransferDebitedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			TransferId: e.TransferId,
 			ToAccountId: e.ToAccountId,
@@ -60,6 +67,7 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 			OccurredAt: e.OccurredAt
 		),
 		AccountTransferCredited e => new AccountTransferCreditedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			TransferId: e.TransferId,
 			FromAccountId: e.FromAccountId,
@@ -69,6 +77,7 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 			OccurredAt: e.OccurredAt
 		),
 		AccountTransferRefunded e => new AccountTransferRefundedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			TransferId: e.TransferId,
 			Amount: e.Amount,
@@ -76,6 +85,7 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 			OccurredAt: e.OccurredAt
 		),
 		AccountBalanceAdjusted e => new AccountBalanceAdjustedEvent(
+			EventId: e.Id,
 			AccountId: e.AccountId,
 			SourceId: e.SourceId,
 			SourceType: e.SourceType,

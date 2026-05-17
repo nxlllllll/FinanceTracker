@@ -161,7 +161,7 @@ public sealed class Account : AggregateRoot
 		UserId = @event.UserId;
 		Name = @event.Name;
 		Type = @event.Type;
-		Balance = Money.Create(amount: @event.Balance, currency: Currency.Create(value: @event.Currency).Value).Value;
+		Balance = Money.Reconstitute(amount: @event.Balance, currency: Currency.Reconstitute(value: @event.Currency));
 		IsArchived = false;
 	}
 

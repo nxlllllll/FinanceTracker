@@ -63,7 +63,6 @@ public sealed class TransactionCreationService(
         Account account,
         CancellationToken ct = default)
     {
-        DateTime now = dateProvider.UtcNow;
         Result<Currency, DomainException> fromCurrencyResult = Currency.Create(value: command.Currency);
         if (fromCurrencyResult.IsFailure)
             return Result<Guid, DomainException>.Failure(error: fromCurrencyResult.Error!);
@@ -88,7 +87,7 @@ public sealed class TransactionCreationService(
             exchangeRate: conversion.Rate,
             isRatePending: conversion.IsPending,
             description: command.Description,
-            occurredAt: now
+            occurredAt: command.OccurredAt
         );
 
         Result<Unit, DomainException> result = ApplyDirection(
@@ -96,7 +95,7 @@ public sealed class TransactionCreationService(
             command: command,
             transactionId: transaction.Id,
             rate: conversion.Rate,
-            occurredAt: now
+            occurredAt: dateProvider.UtcNow
         );
         if (result.IsFailure)
             return Result<Guid, DomainException>.Failure(error: result.Error!);

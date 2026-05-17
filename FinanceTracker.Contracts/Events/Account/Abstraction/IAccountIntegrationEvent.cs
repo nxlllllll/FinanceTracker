@@ -2,6 +2,7 @@
 
 public interface IAccountIntegrationEvent
 {
+	Guid EventId { get; }
 	Guid AccountId { get; }
 	DateTime OccurredAt { get; }
 }

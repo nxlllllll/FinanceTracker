@@ -5,6 +5,7 @@ namespace FinanceTracker.Contracts.Events.Account;
 
 [IntegrationEventType(domainEventType: typeof(AccountRenamed))]
 public sealed record AccountRenamedEvent(
+	Guid EventId,
 	Guid AccountId,
 	string NewName,
 	DateTime OccurredAt

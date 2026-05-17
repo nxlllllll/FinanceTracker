@@ -5,6 +5,7 @@ namespace FinanceTracker.Contracts.Events.Account;
 
 [IntegrationEventType(domainEventType: typeof(AccountUnarchived))]
 public sealed record AccountUnarchivedEvent(
+	Guid EventId,
 	Guid AccountId,
 	DateTime OccurredAt
 ) : IAccountIntegrationEvent;

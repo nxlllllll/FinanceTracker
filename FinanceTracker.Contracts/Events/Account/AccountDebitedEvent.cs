@@ -5,6 +5,7 @@ namespace FinanceTracker.Contracts.Events.Account;
 
 [IntegrationEventType(domainEventType: typeof(AccountDebited))]
 public sealed record AccountDebitedEvent(
+	Guid EventId,
 	Guid AccountId,
 	Guid TransactionId,
 	Guid CategoryId,

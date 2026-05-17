@@ -63,6 +63,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 		if (includeDebitEvent)
 		{
 			AccountTransferDebitedEvent debitEvent = new AccountTransferDebitedEvent(
+				EventId: Guid.CreateVersion7(),
 				AccountId: FromAccountId,
 				TransferId: TransferId,
 				ToAccountId: ToAccountId,
