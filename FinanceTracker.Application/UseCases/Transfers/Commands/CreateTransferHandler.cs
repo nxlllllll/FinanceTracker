@@ -31,17 +31,10 @@ public sealed class CreateTransferHandler(
 		CancellationToken ct = default)
 	{
 		(Account fromAccount, Account toAccount) = accounts;
-		Result<Currency, DomainException> fromCurrencyResult = Currency.Create(value: command.CurrencyFrom);
-		if (fromCurrencyResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: fromCurrencyResult.Error!);
-
-		Result<Currency, DomainException> toCurrencyResult = Currency.Create(value: command.CurrencyTo);
-		if (toCurrencyResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: toCurrencyResult.Error!);
 
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
-			fromCurrency: fromCurrencyResult.Value,
-			toCurrency: toCurrencyResult.Value,
+			fromCurrency: command.CurrencyFrom,
+			toCurrency: command.CurrencyTo,
 			date: DateOnly.FromDateTime(dateTime: command.OccurredAt),
 			ct: ct
 		);
@@ -51,9 +44,9 @@ public sealed class CreateTransferHandler(
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,
 			amountFrom: command.Amount,
-			currencyFrom: fromCurrencyResult.Value,
+			currencyFrom: command.CurrencyFrom,
 			amountTo: command.Amount * conversion.Rate,
-			currencyTo: toCurrencyResult.Value,
+			currencyTo: command.CurrencyTo,
 			exchangeRate: conversion.Rate,
 			isRatePending: conversion.IsPending,
 			description: command.Description,

@@ -19,11 +19,7 @@ public sealed class CreateRecurringTransactionHandler(
 		Account account,
 		CancellationToken ct = default)
 	{
-		Result<Currency, DomainException> currencyResult = Currency.Create(value: command.Currency);
-		if (currencyResult.IsFailure) 
-			return Result<Guid, DomainException>.Failure(error: currencyResult.Error!);
- 
-		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: currencyResult.Value!);
+		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: command.Currency);
 		if (moneyResult.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: moneyResult.Error!);
  
@@ -32,7 +28,7 @@ public sealed class CreateRecurringTransactionHandler(
 			userId: command.UserId,
 			accountId: command.AccountId,
 			categoryId: command.CategoryId,
-			amount: moneyResult.Value!,
+			amount: moneyResult.Value,
 			direction: command.Direction,
 			dayOfMonth: command.DayOfMonth,
 			description: command.Description

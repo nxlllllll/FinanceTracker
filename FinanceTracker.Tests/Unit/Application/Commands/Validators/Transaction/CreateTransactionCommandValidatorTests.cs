@@ -1,15 +1,31 @@
 ﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;
 
 public sealed class CreateTransactionCommandValidatorTests
 {
-	private readonly CreateTransactionCommandValidator _validator = new CreateTransactionCommandValidator(dateProvider: FakeDateProvider.Default);
+    private ICurrencyReadRepository _currencyReadRepository = null!;
+    private CreateTransactionCommandValidator _validator = null!;
 
+    [Before(hookType: Test)]
+    public void Setup()
+    {
+        _currencyReadRepository = Substitute.For<ICurrencyReadRepository>();
+
+        _currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
+
+        _validator = new CreateTransactionCommandValidator(
+            dateProvider: FakeDateProvider.Default,
+            currencyReadRepository: _currencyReadRepository
+        );
+    }
+    
     [Test]
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
     {
@@ -28,9 +44,7 @@ public sealed class CreateTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.Amount)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Amount))).IsTrue();
     }
 
     [Test]
@@ -50,9 +64,7 @@ public sealed class CreateTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.OccurredAt)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.OccurredAt))).IsTrue();
     }
 
     [Test]
@@ -63,9 +75,7 @@ public sealed class CreateTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.Description)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Description))).IsTrue();
     }
     
     [Test]
@@ -76,9 +86,7 @@ public sealed class CreateTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.AccountId)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.AccountId))).IsTrue();
     }
 
     [Test]
@@ -89,9 +97,7 @@ public sealed class CreateTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.UserId)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.UserId))).IsTrue();
     }
 
     [Test]
@@ -102,9 +108,7 @@ public sealed class CreateTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.CategoryId)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.CategoryId))).IsTrue();
     }
 
     [Test]
@@ -115,8 +119,19 @@ public sealed class CreateTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: e => e.PropertyName == nameof(command.Direction)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Direction))).IsTrue();
+    }
+        
+    [Test]
+    public async Task Validate_WithNonExistentCurrency_ShouldHaveError()
+    {
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(currency: "XYZ");
+
+        _currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: false);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsFalse();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(CreateTransactionCommand.Currency))).IsTrue();
     }
 }

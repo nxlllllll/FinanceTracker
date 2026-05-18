@@ -18,11 +18,7 @@ public sealed class CreateBudgetHandler(
 		CreateBudgetCommand command,
 		CancellationToken ct = default)
 	{
-		Result<Currency, DomainException> currencyResult = Currency.Create(value: command.Currency);
-		if (currencyResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: currencyResult.Error!);
-
-		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: currencyResult.Value);
+		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: command.Currency);
 		if (moneyResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: moneyResult.Error!);
 

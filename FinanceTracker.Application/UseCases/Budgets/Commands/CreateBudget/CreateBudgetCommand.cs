@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Budgets.Commands.CreateBudget;
@@ -8,7 +9,7 @@ namespace FinanceTracker.Application.UseCases.Budgets.Commands.CreateBudget;
 public sealed record CreateBudgetCommand(
 	Guid UserId,
 	Guid CategoryId,
-	string Currency,
+	Currency Currency,
 	decimal Amount,
 	DateOnly From,
 	DateOnly To

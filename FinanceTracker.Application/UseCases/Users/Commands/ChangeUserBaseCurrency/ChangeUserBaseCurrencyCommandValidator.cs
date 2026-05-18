@@ -1,16 +1,17 @@
-﻿using FluentValidation;
+﻿using FinanceTracker.Core.Repositories.Currency;
+using FluentValidation;
 
 namespace FinanceTracker.Application.UseCases.Users.Commands.ChangeUserBaseCurrency;
 
 public sealed class ChangeUserBaseCurrencyCommandValidator : AbstractValidator<ChangeUserBaseCurrencyCommand>
 {
-	public ChangeUserBaseCurrencyCommandValidator()
+	public ChangeUserBaseCurrencyCommandValidator(ICurrencyReadRepository currencyReadRepository)
 	{
 		RuleFor(expression: command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
 		
 		RuleFor(expression: command => command.NewBaseCurrency)
-			.NotEmpty().WithMessage(errorMessage: "The base currency code cannot be empty.")
-			.Length(exactLength: 3).WithMessage(errorMessage: "The base currency code must be 3 characters.");
+			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))
+			.WithMessage(errorMessage: "The currency code does not exist.");
 	}
 }

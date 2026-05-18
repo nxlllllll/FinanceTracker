@@ -1,13 +1,27 @@
-﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.CreateRecurringTransaction;
+﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
+using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.CreateRecurringTransaction;
+using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.RecurringTransaction;
 
 public sealed class CreateRecurringTransactionCommandValidatorTests
 {
-    private readonly CreateRecurringTransactionCommandValidator _validator = new CreateRecurringTransactionCommandValidator();
+    private ICurrencyReadRepository _currencyReadRepository = null!;
+    private CreateRecurringTransactionCommandValidator _validator = null!;
 
+    [Before(hookType: Test)]
+    public void Setup()
+    {
+        _currencyReadRepository = Substitute.For<ICurrencyReadRepository>();
+
+        _currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
+
+        _validator = new CreateRecurringTransactionCommandValidator(currencyReadRepository: _currencyReadRepository);
+    }
+    
     [Test]
     public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
     {
@@ -24,9 +38,7 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: error => error.PropertyName == nameof(command.UserId)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.UserId))).IsTrue();
     }
 
     [Test]
@@ -37,9 +49,7 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: error => error.PropertyName == nameof(command.AccountId)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.AccountId))).IsTrue();
     }
 
     [Test]
@@ -50,9 +60,7 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: error => error.PropertyName == nameof(command.CategoryId)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.CategoryId))).IsTrue();
     }
 
     [Test]
@@ -65,9 +73,7 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: error => error.PropertyName == nameof(command.Amount)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.Amount))).IsTrue();
     }
 
     [Test]
@@ -81,9 +87,7 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: error => error.PropertyName == nameof(command.DayOfMonth)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.DayOfMonth))).IsTrue();
     }
 
     [Test]
@@ -98,19 +102,6 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
     }
 
     [Test]
-    public async Task Validate_WithInvalidCurrencyLength_ShouldHaveError()
-    {
-        CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(currency: "US");
-
-        ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-        await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: error => error.PropertyName == nameof(command.Currency)
-        )).IsTrue();
-    }
-
-    [Test]
     public async Task Validate_WithDescriptionExceeding255Chars_ShouldHaveError()
     {
         CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(description: new string(c: 'x', count: 256));
@@ -118,8 +109,19 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 
         await Assert.That(value: result.IsValid).IsFalse();
-        await Assert.That(value: result.Errors.Any(
-            predicate: error => error.PropertyName == nameof(command.Description)
-        )).IsTrue();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.Description))).IsTrue();
+    }
+    
+    [Test]
+    public async Task Validate_WithNonExistentCurrency_ShouldHaveError()
+    {
+        CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(currency: "XYZ");
+
+        _currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: false);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsFalse();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(ChangeRecurringTransactionCurrencyCommand.Currency))).IsTrue();
     }
 }

@@ -2,6 +2,7 @@
 using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Transfers.Commands;
@@ -9,9 +10,9 @@ namespace FinanceTracker.Application.UseCases.Transfers.Commands;
 public sealed record CreateTransferCommand(
 	Guid UserId,
 	Guid FromAccountId,
-	string CurrencyFrom,
+	Currency CurrencyFrom,
 	Guid ToAccountId,
-	string CurrencyTo,
+	Currency CurrencyTo,
 	decimal Amount,
 	string? Description,
 	DateTime OccurredAt

@@ -24,7 +24,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
 		await _handler.HandleAsync(
-			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: "USD"),
+			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: Currency.Create(value: "USD").Value),
 			user: user,
 			ct: CancellationToken.None
 		);

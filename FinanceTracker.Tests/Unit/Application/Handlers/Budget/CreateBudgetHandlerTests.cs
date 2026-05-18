@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -40,7 +41,7 @@ public sealed class CreateBudgetHandlerTests
         CreateBudgetCommand command = new CreateBudgetCommand(
             UserId: Guid.CreateVersion7(),
             CategoryId: Guid.CreateVersion7(),
-            Currency: "RUB",
+            Currency: Currency.Create(value: "RUB").Value,
             Amount: 10000m,
             From: new DateOnly(year: 2025, month: 1, day: 1),
             To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -58,7 +59,7 @@ public sealed class CreateBudgetHandlerTests
         CreateBudgetCommand command = new CreateBudgetCommand(
             UserId: Guid.CreateVersion7(),
             CategoryId: Guid.CreateVersion7(),
-            Currency: "RUB",
+            Currency: Currency.Create(value: "RUB").Value,
             Amount: 10000m,
             From: new DateOnly(year: 2025, month: 1, day: 1),
             To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -92,7 +93,7 @@ public sealed class CreateBudgetHandlerTests
         CreateBudgetCommand command = new CreateBudgetCommand(
             UserId: Guid.CreateVersion7(),
             CategoryId: Guid.CreateVersion7(),
-            Currency: "RUB",
+            Currency: Currency.Create(value: "RUB").Value,
             Amount: 10000m,
             From: new DateOnly(year: 2025, month: 1, day: 1),
             To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -118,7 +119,7 @@ public sealed class CreateBudgetHandlerTests
         CreateBudgetCommand command = new CreateBudgetCommand(
             UserId: Guid.CreateVersion7(),
             CategoryId: Guid.CreateVersion7(),
-            Currency: "RUB",
+            Currency: Currency.Create(value: "RUB").Value,
             Amount: 10000m,
             From: new DateOnly(year: 2025, month: 1, day: 1),
             To: new DateOnly(year: 2025, month: 1, day: 31)

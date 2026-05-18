@@ -24,7 +24,11 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create().Value!;
 
 		await _handler.HandleAsync(
-			command: new ChangeRecurringTransactionCurrencyCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id, Currency: "USD"),
+			command: new ChangeRecurringTransactionCurrencyCommand(
+				UserId: recurringTransaction.UserId, 
+				RecurringTransactionId: recurringTransaction.Id, 
+				Currency: Currency.Create(value: "USD").Value
+			),
 			recurringTransaction: recurringTransaction,
 			ct: CancellationToken.None
 		);

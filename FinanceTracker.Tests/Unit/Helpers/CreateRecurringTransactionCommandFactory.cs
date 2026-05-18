@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.CreateRecurringTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -20,7 +21,7 @@ public static class CreateRecurringTransactionCommandFactory
 			AccountId: accountId ?? Guid.CreateVersion7(),
 			CategoryId: categoryId ?? Guid.CreateVersion7(),
 			Amount: amount,
-			Currency: currency,
+			Currency: Currency.Create(value: currency).Value,
 			Direction: direction,
 			DayOfMonth: dayOfMonth,
 			Description: description

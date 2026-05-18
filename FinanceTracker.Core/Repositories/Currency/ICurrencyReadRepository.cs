@@ -12,4 +12,9 @@ public interface ICurrencyReadRepository
 		string code,
 		CancellationToken ct = default
 	);
+	
+	Task<bool> ExistsAsync(
+		string code,
+		CancellationToken ct = default
+	);
 }

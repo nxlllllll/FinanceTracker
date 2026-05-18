@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -12,7 +13,7 @@ public static class RegisterUserCommandFactory
 		return new RegisterUserCommand(
 			Email: email,
 			Password: password,
-			BaseCurrencyCode: baseCurrencyCode
+			BaseCurrencyCode: Currency.Create(value: baseCurrencyCode).Value
 		);
 	}
 }

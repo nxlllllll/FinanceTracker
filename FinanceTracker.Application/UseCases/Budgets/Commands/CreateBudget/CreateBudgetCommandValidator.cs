@@ -1,10 +1,11 @@
-﻿using FluentValidation;
+﻿using FinanceTracker.Core.Repositories.Currency;
+using FluentValidation;
 
 namespace FinanceTracker.Application.UseCases.Budgets.Commands.CreateBudget;
 
 public sealed class CreateBudgetCommandValidator : AbstractValidator<CreateBudgetCommand>
 {
-	public CreateBudgetCommandValidator()
+	public CreateBudgetCommandValidator(ICurrencyReadRepository currencyReadRepository)
 	{
 		RuleFor(expression: command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
@@ -13,8 +14,8 @@ public sealed class CreateBudgetCommandValidator : AbstractValidator<CreateBudge
 			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.");
 
 		RuleFor(expression: command => command.Currency)
-			.NotEmpty().WithMessage(errorMessage: "The currency cannot be empty.")
-			.Matches(expression: "^[A-Z]{3}$").WithMessage(errorMessage: "The currency must be 3 uppercase letters (e.g. 'USD').");
+			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))
+			.WithMessage(errorMessage: "The currency code does not exist.");
 
 		RuleFor(expression: command => command.Amount)
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The amount must be greater than 0.");

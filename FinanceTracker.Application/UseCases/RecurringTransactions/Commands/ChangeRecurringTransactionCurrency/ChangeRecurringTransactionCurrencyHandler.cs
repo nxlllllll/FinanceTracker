@@ -16,17 +16,13 @@ public sealed class ChangeRecurringTransactionCurrencyHandler(
 		RecurringTransaction recurringTransaction,
 		CancellationToken ct = default)
 	{
-		Result<Currency, DomainException> currencyResult = Currency.Create(value: command.Currency);
-		if (currencyResult.IsFailure) 
-			return Result<Guid, DomainException>.Failure(error: currencyResult.Error!);
- 
-		Result<Unit, DomainException> result = recurringTransaction.ChangeCurrency(currency: currencyResult.Value!);
+		Result<Unit, DomainException> result = recurringTransaction.ChangeCurrency(currency: command.Currency);
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
 		await recurringTransactionWriteRepository.ChangeCurrencyAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			currency: currencyResult.Value,
+			currency: command.Currency,
 			ct: ct
 		);
 		

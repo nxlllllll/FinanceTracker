@@ -1,10 +1,11 @@
-﻿using FluentValidation;
+﻿using FinanceTracker.Core.Repositories.Currency;
+using FluentValidation;
 
 namespace FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;
 
 public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAccountCommand>
 {
-	public CreateAccountCommandValidator()
+	public CreateAccountCommandValidator(ICurrencyReadRepository currencyReadRepository)
 	{
 		RuleFor(expression: command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
@@ -16,6 +17,7 @@ public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAcco
 			.IsInEnum().WithMessage(errorMessage: "The account type is invalid.");
 
 		RuleFor(expression: command => command.Currency)
-			.Must(predicate: c => c != default).WithMessage(errorMessage: "The currency cannot be empty.");
+			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))
+			.WithMessage(errorMessage: "The currency code does not exist.");
 	}
 }

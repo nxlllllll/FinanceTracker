@@ -16,17 +16,13 @@ public sealed class ChangeUserBaseCurrencyHandler(
 		User user,
 		CancellationToken ct = default)
 	{
-		Result<Currency, DomainException> newBaseCurrencyResult = Currency.Create(value: command.NewBaseCurrency);
-		if (newBaseCurrencyResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: newBaseCurrencyResult.Error!);
-		
-		Result<Unit, DomainException> result = user.ChangeBaseCurrency(newBaseCurrency: newBaseCurrencyResult.Value);
+		Result<Unit, DomainException> result = user.ChangeBaseCurrency(newBaseCurrency: command.NewBaseCurrency);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await userWriteRepository.ChangeBaseCurrencyAsync(
 			userId: command.UserId,
-			newBaseCurrencyCode: newBaseCurrencyResult.Value,
+			newBaseCurrencyCode: command.NewBaseCurrency,
 			ct: ct
 		);
 		

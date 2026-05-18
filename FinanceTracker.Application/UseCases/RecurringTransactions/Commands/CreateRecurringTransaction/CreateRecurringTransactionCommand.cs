@@ -3,6 +3,7 @@ using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransactions.Commands.CreateRecurringTransaction;
@@ -12,7 +13,7 @@ public sealed record CreateRecurringTransactionCommand(
 	Guid AccountId,
 	Guid CategoryId,
 	decimal Amount,
-	string Currency,
+	Currency Currency,
 	DirectionType Direction,
 	int DayOfMonth,
 	string? Description
