@@ -38,7 +38,8 @@ public sealed class ArchitectureTests
 		"Quartz",
 		"Microsoft.Extensions",
 		"ZLogger",
-		"Scrutor"
+		"Scrutor",
+		"Konscious.Security.Cryptography"
 	];
 
 	[Test]

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Retry;
+﻿namespace FinanceTracker.Core.Utilities.Retry;
 
 public static class RetryDelayCalculator
 {

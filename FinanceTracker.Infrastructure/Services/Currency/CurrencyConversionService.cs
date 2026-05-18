@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Currency;
-using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.Currency;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 

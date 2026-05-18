@@ -6,12 +6,12 @@ public static class RegisterUserCommandFactory
 {
 	public static RegisterUserCommand Create(
 		string email = "test@test.com",
-		string passwordHash = "hash",
+		string password = "password123",
 		string baseCurrencyCode = "RUB")
 	{
 		return new RegisterUserCommand(
 			Email: email,
-			PasswordHash: passwordHash,
+			Password: password,
 			BaseCurrencyCode: baseCurrencyCode
 		);
 	}

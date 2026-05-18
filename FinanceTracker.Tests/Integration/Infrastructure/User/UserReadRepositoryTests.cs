@@ -3,7 +3,7 @@ using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;

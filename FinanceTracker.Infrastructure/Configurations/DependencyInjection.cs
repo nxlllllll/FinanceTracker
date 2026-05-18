@@ -20,8 +20,9 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Correlation;
-using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
@@ -47,6 +48,7 @@ using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Infrastructure.Services.Correlation;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
+using FinanceTracker.Infrastructure.Services.Password;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,6 +62,16 @@ public static class DependencyInjection
 		this IServiceCollection services,
 		IConfiguration configuration)
 	{
+		services.AddOptions<Argon2Options>()
+			.BindConfiguration(configSectionPath: Argon2Options.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddOptions<EventStoreOptions>()
+			.BindConfiguration(configSectionPath: EventStoreOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+		
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
@@ -83,6 +95,8 @@ public static class DependencyInjection
 		    .WithSingletonLifetime()
 		);
 		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
+		
+		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		
@@ -137,11 +151,6 @@ public static class DependencyInjection
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
-		
-		services.AddOptions<EventStoreOptions>()
-			.BindConfiguration(configSectionPath: EventStoreOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
 		
 		return services;
 	}

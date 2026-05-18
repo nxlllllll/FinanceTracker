@@ -9,7 +9,7 @@ using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Logging;

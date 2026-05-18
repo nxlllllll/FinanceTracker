@@ -10,5 +10,9 @@
     <ItemGroup>
         <InternalsVisibleTo Include="FinanceTracker.Tests" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Utilities\" />
+    </ItemGroup>
     
 </Project>

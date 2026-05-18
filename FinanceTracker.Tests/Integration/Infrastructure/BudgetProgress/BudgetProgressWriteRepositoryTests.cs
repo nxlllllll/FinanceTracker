@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.CurrencyConversion;
+﻿using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;

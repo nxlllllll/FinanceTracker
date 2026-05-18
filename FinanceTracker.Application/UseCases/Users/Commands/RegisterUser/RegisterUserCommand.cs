@@ -7,7 +7,7 @@ namespace FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
 
 public sealed record RegisterUserCommand(
 	string Email,
-	string PasswordHash,
+	string Password,
 	string BaseCurrencyCode
 ) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>
 {

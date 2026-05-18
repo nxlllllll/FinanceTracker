@@ -1,7 +1,7 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.User;
-using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;

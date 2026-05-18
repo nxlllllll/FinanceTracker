@@ -9,7 +9,7 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.Retry;
+using FinanceTracker.Core.Utilities.Retry;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;

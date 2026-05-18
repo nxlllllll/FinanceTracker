@@ -3,6 +3,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ namespace FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
 public sealed class RegisterUserHandler(
 	IUserReadRepository userReadRepository,
 	IUserWriteRepository userWriteRepository,
+	IPasswordHasher passwordHasher,
 	IDateProvider dateProvider,
 	ILogger<RegisterUserHandler> logger
 ) : IRequestHandler<RegisterUserCommand, Result<Guid, DomainException>>
@@ -33,10 +35,12 @@ public sealed class RegisterUserHandler(
 		if (currencyResult.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: currencyResult.Error!);
  
+		string passwordHash = await passwordHasher.Hash(password: command.Password);
+
 		Result<User, DomainException> userResult = User.Register(
 			createdAt: dateProvider.UtcNow,
 			email: emailResult.Value!,
-			passwordHash: command.PasswordHash,
+			passwordHash: passwordHash,
 			baseCurrency: currencyResult.Value!
 		);
 		if (userResult.IsFailure) 
@@ -46,6 +50,7 @@ public sealed class RegisterUserHandler(
 
 		await userWriteRepository.CreateAsync(user: user, ct: ct);
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
+
 		return Result<Guid, DomainException>.Success(value: user.Id);
 	}
 }

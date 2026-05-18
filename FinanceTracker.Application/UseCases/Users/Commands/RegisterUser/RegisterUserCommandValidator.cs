@@ -10,8 +10,9 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
 			.NotEmpty().WithMessage(errorMessage: "The email cannot be empty.")
 			.EmailAddress().WithMessage(errorMessage: "The email is invalid.");
 
-		RuleFor(expression: command => command.PasswordHash)
-			.NotEmpty().WithMessage(errorMessage: "The password hash cannot be empty.");
+		RuleFor(expression: command => command.Password)
+			.NotEmpty().WithMessage(errorMessage: "The password cannot be empty.")
+			.MinimumLength(minimumLength: 8).WithMessage(errorMessage: "The password must be at least 8 characters.");
 
 		RuleFor(expression: command => command.BaseCurrencyCode)
 			.NotEmpty().WithMessage(errorMessage: "The base currency code cannot be empty.")

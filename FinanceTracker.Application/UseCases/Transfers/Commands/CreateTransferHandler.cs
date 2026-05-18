@@ -7,7 +7,7 @@ using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.CurrencyConversion;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Logging;

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Services.Retry;
+using FinanceTracker.Core.Utilities.Retry;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
