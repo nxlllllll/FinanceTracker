@@ -81,8 +81,6 @@ public sealed class IntegrationEventArchitectureTests
 	[Test]
 	public async Task AccountIntegrationEventMapper_ShouldMapAllAccountDomainEvents()
 	{
-		AccountIntegrationEventMapper mapper = new AccountIntegrationEventMapper();
-
 		List<string> mappedDomainTypes = IntegrationEventTypes.Select(selector: t => t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType.Name).ToList();
 
 		List<string> unmapped = AccountDomainEventTypes.Where(predicate: t => !mappedDomainTypes.Contains(value: t.Name))

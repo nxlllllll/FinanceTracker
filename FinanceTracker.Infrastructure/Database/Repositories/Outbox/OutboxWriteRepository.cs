@@ -13,13 +13,13 @@ public sealed class OutboxWriteRepository(
 		DateTime processedAt,
 		CancellationToken ct = default)
 	{
-		await context.OutboxMessages
-			.Where(predicate: m => m.Id == messageId)
-			.ExecuteUpdateAsync(
-				setPropertyCalls: builder => builder
-					.SetProperty(e => e.ProcessedAt, processedAt),
-				cancellationToken: ct
-			);
+		await context.OutboxMessages.Where(predicate: x => x.Id == messageId).ExecuteUpdateAsync(
+			setPropertyCalls: s => s.SetProperty(
+				propertyExpression: x => x.ProcessedAt, 
+				valueExpression: processedAt
+			),
+			cancellationToken: ct
+		);
 	}
 
 	public async Task MarkAsFailedAsync(
@@ -28,13 +28,34 @@ public sealed class OutboxWriteRepository(
 		DateTime? failedAt,
 		CancellationToken ct = default)
 	{
-		await context.OutboxMessages
-			.Where(predicate: m => m.Id == messageId)
-			.ExecuteUpdateAsync(
-				setPropertyCalls: builder => builder
-					.SetProperty(e => e.RetryCount, retryCount)
-					.SetProperty(e => e.FailedAt, failedAt),
-				cancellationToken: ct
-			);
+		await context.OutboxMessages.Where(predicate: x => x.Id == messageId).ExecuteUpdateAsync(
+			setPropertyCalls: s => s
+				.SetProperty(propertyExpression: x => x.RetryCount, valueExpression: retryCount)
+				.SetProperty(propertyExpression: x => x.FailedAt, valueExpression: failedAt)
+				.SetProperty(propertyExpression: x => x.UpdatedAt, valueExpression: DateTime.UtcNow),
+			cancellationToken: ct
+		);
+	}
+
+	public async Task<int> DeleteProcessedAsync(
+		DateTime before,
+		int batchSize,
+		CancellationToken ct = default)
+	{
+		return await context.OutboxMessages.Where(predicate: x => x.ProcessedAt != null && x.ProcessedAt < before)
+			.OrderBy(keySelector: x => x.ProcessedAt)
+			.Take(count: batchSize)
+			.ExecuteDeleteAsync(cancellationToken: ct);
+	}
+
+	public async Task<int> DeleteFailedAsync(
+		DateTime before,
+		int batchSize,
+		CancellationToken ct = default)
+	{
+		return await context.OutboxMessages.Where(predicate: x => x.FailedAt != null && x.FailedAt < before)
+			.OrderBy(keySelector: x => x.FailedAt)
+			.Take(count: batchSize)
+			.ExecuteDeleteAsync(cancellationToken: ct);
 	}
 }

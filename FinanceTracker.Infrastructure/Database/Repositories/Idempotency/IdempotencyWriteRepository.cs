@@ -1,13 +1,12 @@
 ﻿using FinanceTracker.Core.Repositories.Idempotency;
-using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
 
 public sealed class IdempotencyWriteRepository(
-	FinanceTrackerContext context,
-	IDateProvider dateProvider
+	FinanceTrackerContext context
 ) : IIdempotencyWriteRepository
 {
 	public async Task StoreAsync(
@@ -22,10 +21,21 @@ public sealed class IdempotencyWriteRepository(
 			IdempotencyKey = idempotencyKey,
 			CommandType = commandType,
 			ResponseJson = responseJson,
-			CreatedAt = dateProvider.UtcNow,
+			CreatedAt = DateTime.UtcNow,
 			ExpiresAt = expiresAt
 		}, cancellationToken: ct);
 
 		await context.SaveChangesAsync(cancellationToken: ct);
+	}
+
+	public async Task<int> DeleteExpiredAsync(
+		DateTime before,
+		int batchSize,
+		CancellationToken ct = default)
+	{
+		return await context.IdempotentCommands.Where(predicate: x => x.ExpiresAt < before)
+			.OrderBy(keySelector: x => x.ExpiresAt)
+			.Take(count: batchSize)
+			.ExecuteDeleteAsync(cancellationToken: ct);
 	}
 }

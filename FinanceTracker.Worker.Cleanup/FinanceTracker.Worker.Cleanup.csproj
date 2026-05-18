@@ -4,19 +4,19 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>dotnet-FinanceTracker.Worker.BalanceAdjustment-35393345-cc57-41b2-b6b2-97e2845d89d1</UserSecretsId>
+        <UserSecretsId>dotnet-FinanceTracker.Worker.Cleanup-3d78fe01-6a6e-46e9-a88e-7d7c922bf5b9</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
         <PackageReference Include="Quartz" Version="3.18.1" />
         <PackageReference Include="Quartz.Extensions.Hosting" Version="3.18.1" />
         <PackageReference Include="ZLogger" Version="2.5.10" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
-        <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
-        <ProjectReference Include="..\FinanceTracker.Worker.Shared\FinanceTracker.Worker.Shared.csproj" />
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+      <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Worker.Shared\FinanceTracker.Worker.Shared.csproj" />
     </ItemGroup>
 </Project>

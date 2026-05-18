@@ -15,7 +15,7 @@ using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Workers;
+namespace FinanceTracker.Tests.Unit.Workers;
 
 public sealed class AccountEventsConsumerTests : DatabaseFixture
 {

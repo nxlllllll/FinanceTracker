@@ -16,7 +16,7 @@ using FinanceTracker.Worker.TransferProjection.Consumers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Workers;
+namespace FinanceTracker.Tests.Unit.Workers;
 
 public sealed class AccountTransferConsumerTests : DatabaseFixture
 {

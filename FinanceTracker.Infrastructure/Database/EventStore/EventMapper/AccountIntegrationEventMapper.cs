@@ -2,11 +2,14 @@
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
 
-public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
+public sealed class AccountIntegrationEventMapper(
+	ILogger<AccountIntegrationEventMapper> logger
+) : IIntegrationEventMapper
 {
 	public IAccountIntegrationEvent? Map(IEvent domainEvent) => domainEvent switch
 	{
@@ -95,6 +98,15 @@ public sealed class AccountIntegrationEventMapper : IIntegrationEventMapper
 			Delta: e.Delta,
 			OccurredAt: e.OccurredAt
 		),
-		_ => throw new UnknownEventException(message: "Event is unknown.", eventType: domainEvent.GetType())
+		_ => ExecuteDefaultCase(@event: domainEvent)
 	};
+
+	private IAccountIntegrationEvent? ExecuteDefaultCase(IEvent @event)
+	{
+		logger.ZLogWarning(message: 
+			$"[IntegrationEventMapper] No integration event mapping defined for domain event '{@event.GetType().Name}'. " +
+			$"The event will not be published to the outbox. Add a mapping if outbox propagation is required."
+		);
+		return null;
+	}
 }

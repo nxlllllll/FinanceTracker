@@ -46,7 +46,9 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 assembly: typeof(IEvent).Assembly,
                 logger: Substitute.For<ILogger<EventTypeResolver>>()
             ),
-            integrationEventMapper: new AccountIntegrationEventMapper(),
+            integrationEventMapper: new AccountIntegrationEventMapper(
+                logger: Substitute.For<ILogger<AccountIntegrationEventMapper>>()
+            ),
             integrationEventTypeResolver: new IntegrationEventTypeResolver(
                 contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
                 logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Services.Retry;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -29,7 +30,7 @@ public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 			}
 			catch (ConcurrencyConflictException exception) when (attempt < _retryOptions.MaxRetries)
 			{
-				int delayMs = CalculateDelay(attempt: attempt, baseDelayMs: _retryOptions.BaseDelayMs, useJitter: _retryOptions.UseJitter);
+				int delayMs = RetryDelayCalculator.Calculate(attempt: attempt, baseDelayMs: _retryOptions.BaseDelayMs, useJitter: _retryOptions.UseJitter);
 
 				logger.ZLogWarning(exception: exception, message: $"""
 					Concurrency conflict on {typeof(TRequest).Name} {exception.Id}
@@ -41,18 +42,5 @@ public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 		}
 
 		throw new UnreachableException();
-	}
-
-	private static int CalculateDelay(int attempt, int baseDelayMs, bool useJitter)
-	{
-		// Exponential backoff: baseDelayMs * 2^(attempt)
-		int exponential = baseDelayMs * (1 << attempt);
-
-		if (!useJitter)
-			return exponential;
-
-		// Full jitter: random in [0, exponential]
-		// Рассеивает retry-волны при высоком параллелизме
-		return Jitter.Next(minValue: 0, maxValue: exponential + 1);
 	}
 }

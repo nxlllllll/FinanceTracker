@@ -9,6 +9,7 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.Retry;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -52,11 +53,7 @@ public sealed class BalanceAdjustmentJob(
             }
             catch (ConcurrencyConflictException) when (attempt < _options.MaxRetries)
             {
-                int exponential = _options.BaseDelayMs * (1 << attempt);
-                int delayMs = exponential;
-
-                if (_options.UseJitter)
-                    delayMs = Jitter.Next(minValue: 0, maxValue: exponential + 1);
+                int delayMs = RetryDelayCalculator.Calculate(attempt: attempt, baseDelayMs: _options.BaseDelayMs, useJitter: _options.UseJitter);
                 
                 logger.ZLogWarning(message: $"[ConcurrencyRetry] Attempt {attempt + 1}/{_options.MaxRetries} failed. Retrying in {delayMs}ms.");
                 await Task.Delay(millisecondsDelay: delayMs, cancellationToken: ct);

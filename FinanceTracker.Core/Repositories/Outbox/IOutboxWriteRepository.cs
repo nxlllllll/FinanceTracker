@@ -14,4 +14,16 @@ public interface IOutboxWriteRepository
 		DateTime? failedAt,
 		CancellationToken ct = default
 	);
+
+	Task<int> DeleteProcessedAsync(
+		DateTime before,
+		int batchSize,
+		CancellationToken ct = default
+	);
+
+	Task<int> DeleteFailedAsync(
+		DateTime before,
+		int batchSize,
+		CancellationToken ct = default
+	);
 }
