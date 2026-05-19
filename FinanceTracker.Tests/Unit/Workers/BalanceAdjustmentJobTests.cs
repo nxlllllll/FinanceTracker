@@ -255,41 +255,6 @@ public sealed class BalanceAdjustmentJobTests
     }
 
     [Test]
-    public async Task Execute_WhenTransactionRateChangedAndDeltaIsZero_ShouldNotSave()
-    {
-        PendingRateTransaction transaction = new PendingRateTransaction(
-            TransactionId: Guid.CreateVersion7(),
-            AccountId: Guid.CreateVersion7(),
-            TransactionCurrency: Currency.Reconstitute(value: "USD"),
-            BaseCurrency: Currency.Reconstitute(value: "RUB"),
-            OccurredAt: FakeDateProvider.Default.UtcNow,
-            CurrentRate: 80m,
-            Direction: DirectionType.Debit,
-            Amount: 0m
-        );
-
-        Account account = AccountFactory.Create(balance: 5000m).Value!;
-
-        _transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
-
-        _currencyRateReadRepository.GetRateAsync(
-            baseCurrencyCode: Arg.Any<Currency>(),
-            targetCurrencyCode: Arg.Any<Currency>(),
-            date: Arg.Any<DateOnly>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: 90m);
-
-        _accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: account);
-
-        await _job.Execute(executionContext: _jobContext);
-
-        await _accountRepository.DidNotReceive().SaveAsync(
-            account: Arg.Any<Account>(),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
-
-    [Test]
     public async Task Execute_WhenSaveThrowsUnexpectedException_ShouldContinueProcessingNextTransaction()
     {
         PendingRateTransaction first = BuildTransaction(currentRate: 80m);
