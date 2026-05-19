@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -14,8 +15,27 @@ public sealed class GetRecurringTransactionsHandlerTests
 	public void Setup()
 	{
 		_readRepository = Substitute.For<IRecurringTransactionReadRepository>();
-		_handler = new GetRecurringTransactionsHandler(
-			recurringTransactionReadRepository: _readRepository
+		_handler = new GetRecurringTransactionsHandler(recurringTransactionReadRepository: _readRepository);
+	}
+
+	private static PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> EmptyPage()
+	{
+		return new PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(
+			Items: [],
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
+		);
+	}
+
+	private static PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> PageOf(
+		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> items)
+	{
+		return new PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(
+			Items: items,
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
 		);
 	}
 
@@ -23,38 +43,43 @@ public sealed class GetRecurringTransactionsHandlerTests
 	public async Task Handle_ShouldReturnAllUserTransactions()
 	{
 		Guid userId = Guid.CreateVersion7();
-		List<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> dtos = 
-		[
-			RecurringTransactionFactory.Create(userId: userId).Value!, 
+		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> items = [
+			RecurringTransactionFactory.Create(userId: userId).Value!,
 			RecurringTransactionFactory.Create(userId: userId).Value!
 		];
-		_readRepository.GetByUserIdAsync(
-			userId: userId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: dtos);
 
-		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
+		_readRepository.GetByUserIdAsync(
+			userId: Arg.Any<Guid>(),
+			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: PageOf(items: items));
+
+		PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
 			query: new GetRecurringTransactionsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
 	}
 
 	[Test]
 	public async Task Handle_WhenNoTransactions_ShouldReturnEmptyList()
 	{
-		Guid userId = Guid.CreateVersion7();
 		_readRepository.GetByUserIdAsync(
-			userId: userId,
+			userId: Arg.Any<Guid>(),
+			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new List<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>());
+		).Returns(returnThis: EmptyPage());
 
-		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
-			query: new GetRecurringTransactionsQuery(UserId: userId),
+		PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
+			query: new GetRecurringTransactionsQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Count).IsEqualTo(expected: 0);
+		await Assert.That(value: result.Items).IsEmpty();
 	}
 }

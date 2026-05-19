@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Results;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
@@ -11,4 +12,4 @@ public sealed record GetOperationsHistoryQuery(
 	DateTime? CursorOccurredAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
-) : IRequest<IReadOnlyList<OperationDto>>;
+) : IRequest<PagedResult<OperationDto>>;

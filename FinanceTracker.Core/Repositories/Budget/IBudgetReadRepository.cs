@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Core.Repositories.Budget;
+﻿using FinanceTracker.Core.Results;
+
+namespace FinanceTracker.Core.Repositories.Budget;
 
 public interface IBudgetReadRepository
 {
@@ -24,7 +26,7 @@ public interface IBudgetReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<Domains.Budget.Budget>> GetAllAsync(
+	Task<PagedResult<Domains.Budget.Budget>> GetAllAsync(
 		Guid userId,
 		DateTime? cursorCreatedAt = null,
 		Guid? cursorId = null,

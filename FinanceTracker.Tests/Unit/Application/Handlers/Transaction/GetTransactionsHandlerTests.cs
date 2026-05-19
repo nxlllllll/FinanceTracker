@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -8,222 +9,277 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 
 public sealed class GetTransactionsHandlerTests
 {
-    private ITransactionReadRepository _transactionReadRepository = null!;
-    private GetTransactionsHandler _handler = null!;
+	private ITransactionReadRepository _transactionReadRepository = null!;
+	private GetTransactionsHandler _handler = null!;
 
-    [Before(hookType: Test)]
-    public void Setup()
-    {
-        _transactionReadRepository = Substitute.For<ITransactionReadRepository>();
-        _handler = new GetTransactionsHandler(transactionReadRepository: _transactionReadRepository);
-    }
+	[Before(hookType: Test)]
+	public void Setup()
+	{
+		_transactionReadRepository = Substitute.For<ITransactionReadRepository>();
+		_handler = new GetTransactionsHandler(transactionReadRepository: _transactionReadRepository);
+	}
 
-    [Test]
-    public async Task Handle_ShouldReturnAllTransactions()
-    {
-        Guid accountId = Guid.CreateVersion7();
-        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [
-            TransactionFactory.Create(accountId: accountId), 
-            TransactionFactory.Create(accountId: accountId)
-        ];
+	private static PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> EmptyPage()
+	{
+		return new PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction>(
+			Items: [],
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
+		);
+	}
 
-        _transactionReadRepository.GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: transactions);
+	private static PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> PageOf(IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> items)
+	{
+		return new PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction>(
+			Items: items,
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
+		);
+	}
 
-        GetTransactionsQuery query = new GetTransactionsQuery(AccountId: accountId);
-        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
-            query: query,
-            ct: CancellationToken.None
-        );
+	[Test]
+	public async Task Handle_ShouldReturnAllTransactions()
+	{
+		Guid accountId = Guid.CreateVersion7();
+		IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [
+			TransactionFactory.Create(accountId: accountId),
+			TransactionFactory.Create(accountId: accountId)
+		];
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 2);
-    }
+		_transactionReadRepository.GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: PageOf(items: transactions));
 
-    [Test]
-    public async Task Handle_ShouldPassCategoryIdFilterToRepository()
-    {
-        Guid categoryId = Guid.CreateVersion7();
+		PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
+			query: new GetTransactionsQuery(AccountId: accountId),
+			ct: CancellationToken.None
+		);
 
-        _transactionReadRepository.GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
+	}
 
-        await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), CategoryId: categoryId),
-            ct: CancellationToken.None
-        );
+	[Test]
+	public async Task Handle_ShouldPassCategoryIdFilterToRepository()
+	{
+		Guid categoryId = Guid.CreateVersion7();
 
-        await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: categoryId,
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+		_transactionReadRepository.GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: EmptyPage());
 
-    [Test]
-    public async Task Handle_ShouldPassDirectionFilterToRepository()
-    {
-        _transactionReadRepository.GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+		await _handler.Handle(
+			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), CategoryId: categoryId),
+			ct: CancellationToken.None
+		);
 
-        await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), Direction: DirectionType.Credit),
-            ct: CancellationToken.None
-        );
+		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: categoryId,
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-        await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: DirectionType.Credit,
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+	[Test]
+	public async Task Handle_ShouldPassDirectionFilterToRepository()
+	{
+		_transactionReadRepository.GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: EmptyPage());
 
-    [Test]
-    public async Task Handle_ShouldPassIsExcludedFilterToRepository()
-    {
-        _transactionReadRepository.GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+		await _handler.Handle(
+			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), Direction: DirectionType.Credit),
+			ct: CancellationToken.None
+		);
 
-        await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), IsExcluded: false),
-            ct: CancellationToken.None
-        );
+		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: DirectionType.Credit,
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-        await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: false,
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+	[Test]
+	public async Task Handle_ShouldPassIsExcludedFilterToRepository()
+	{
+		_transactionReadRepository.GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: EmptyPage());
 
-    [Test]
-    public async Task Handle_ShouldPassDateRangeFilterToRepository()
-    {
-        DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -7);
-        DateTime dateTo = FakeDateProvider.Default.UtcNow;
+		await _handler.Handle(
+			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), IsExcluded: false),
+			ct: CancellationToken.None
+		);
 
-        _transactionReadRepository.GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: false,
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-        await _handler.Handle(query: new GetTransactionsQuery(
-            AccountId: Guid.CreateVersion7(),
-            DateFrom: dateFrom,
-            DateTo: dateTo
-        ), ct: CancellationToken.None);
+	[Test]
+	public async Task Handle_ShouldPassDateRangeFilterToRepository()
+	{
+		DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -7);
+		DateTime dateTo = FakeDateProvider.Default.UtcNow;
 
-        await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: dateFrom,
-            dateTo: dateTo,
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
-    
-    [Test]
-    public async Task Handle_WhenNoTransactions_ShouldReturnEmptyList()
-    {
-        _transactionReadRepository.GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+		_transactionReadRepository.GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: EmptyPage());
 
-        IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
-            query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7()),
-            ct: CancellationToken.None
-        );
+		await _handler.Handle(query: new GetTransactionsQuery(
+			AccountId: Guid.CreateVersion7(),
+			DateFrom: dateFrom,
+			DateTo: dateTo
+		), ct: CancellationToken.None);
 
-        await Assert.That(value: result).IsEmpty();
-    }
+		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: dateFrom,
+			dateTo: dateTo,
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 
-    [Test]
-    public async Task Handle_ShouldPassAllFiltersToRepository()
-    {
-        Guid accountId = Guid.CreateVersion7();
-        Guid categoryId = Guid.CreateVersion7();
-        DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
-        DateTime dateTo = FakeDateProvider.Default.UtcNow;
+	[Test]
+	public async Task Handle_WhenNoTransactions_ShouldReturnEmptyList()
+	{
+		_transactionReadRepository.GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: EmptyPage());
 
-        _transactionReadRepository.GetAllAsync(
-            accountId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid?>(),
-            direction: Arg.Any<DirectionType?>(),
-            isExcluded: Arg.Any<bool?>(),
-            dateFrom: Arg.Any<DateTime?>(),
-            dateTo: Arg.Any<DateTime?>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+		PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
+			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7()),
+			ct: CancellationToken.None
+		);
 
-        await _handler.Handle(query: new GetTransactionsQuery(
-            AccountId: accountId,
-            CategoryId: categoryId,
-            Direction: DirectionType.Debit,
-            IsExcluded: false,
-            DateFrom: dateFrom,
-            DateTo: dateTo
-        ), ct: CancellationToken.None);
+		await Assert.That(value: result.Items).IsEmpty();
+	}
 
-        await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
-            accountId: accountId,
-            categoryId: categoryId,
-            direction: DirectionType.Debit,
-            isExcluded: false,
-            dateFrom: dateFrom,
-            dateTo: dateTo,
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
+	[Test]
+	public async Task Handle_ShouldPassAllFiltersToRepository()
+	{
+		Guid accountId = Guid.CreateVersion7();
+		Guid categoryId = Guid.CreateVersion7();
+		DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
+		DateTime dateTo = FakeDateProvider.Default.UtcNow;
+
+		_transactionReadRepository.GetAllAsync(
+			accountId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid?>(),
+			direction: Arg.Any<DirectionType?>(),
+			isExcluded: Arg.Any<bool?>(),
+			dateFrom: Arg.Any<DateTime?>(),
+			dateTo: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: EmptyPage());
+
+		await _handler.Handle(query: new GetTransactionsQuery(
+			AccountId: accountId,
+			CategoryId: categoryId,
+			Direction: DirectionType.Debit,
+			IsExcluded: false,
+			DateFrom: dateFrom,
+			DateTo: dateTo
+		), ct: CancellationToken.None);
+
+		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			accountId: accountId,
+			categoryId: categoryId,
+			direction: DirectionType.Debit,
+			isExcluded: false,
+			dateFrom: dateFrom,
+			dateTo: dateTo,
+			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 }

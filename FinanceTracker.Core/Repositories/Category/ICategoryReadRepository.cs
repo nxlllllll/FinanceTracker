@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Category;
 
@@ -10,7 +11,7 @@ public interface ICategoryReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<Domains.Category.Category>> GetAllAsync(
+	Task<PagedResult<Domains.Category.Category>> GetAllAsync(
 		Guid userId,
 		CategoryType? type = null,
 		bool? isArchived = null,

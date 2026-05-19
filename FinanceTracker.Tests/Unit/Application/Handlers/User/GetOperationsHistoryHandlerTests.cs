@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -20,11 +21,30 @@ public sealed class GetOperationsHistoryHandlerTests
 		_handler = new GetOperationsHistoryHandler(userReadRepository: _userReadRepository);
 	}
 
+	private static PagedResult<OperationDto> EmptyPage()
+	{
+		return new PagedResult<OperationDto>(
+			Items: [],
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
+		);
+	}
+
+	private static PagedResult<OperationDto> PageOf(IReadOnlyList<OperationDto> items)
+	{
+		return new PagedResult<OperationDto>(
+			Items: items,
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
+		);
+	}
+
 	[Test]
 	public async Task Handle_ShouldReturnOperations()
 	{
-		IReadOnlyList<OperationDto> operations =
-		[
+		IReadOnlyList<OperationDto> operations = [
 			new OperationDto(
 				Id: Guid.CreateVersion7(),
 				Type: OperationFilterType.Income,
@@ -51,14 +71,14 @@ public sealed class GetOperationsHistoryHandlerTests
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: operations);
+		).Returns(returnThis: PageOf(items: operations));
 
-		IReadOnlyList<OperationDto> result = await _handler.Handle(
+		PagedResult<OperationDto> result = await _handler.Handle(
 			query: new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
 	}
 
 	[Test]
@@ -79,7 +99,7 @@ public sealed class GetOperationsHistoryHandlerTests
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: []);
+		).Returns(returnThis: EmptyPage());
 
 		await _handler.Handle(query: new GetOperationsHistoryQuery(
 			UserId: userId,
@@ -115,13 +135,13 @@ public sealed class GetOperationsHistoryHandlerTests
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: []);
+		).Returns(returnThis: EmptyPage());
 
-		IReadOnlyList<OperationDto> result = await _handler.Handle(
+		PagedResult<OperationDto> result = await _handler.Handle(
 			query: new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsEmpty();
+		await Assert.That(value: result.Items).IsEmpty();
 	}
 }

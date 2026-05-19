@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -31,7 +32,7 @@ public sealed class RecurringTransactionReadRepository(
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
+    public async Task<PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
         Guid userId,
         DateTime? cursorCreatedAt = null,
         Guid? cursorId = null,
@@ -42,12 +43,12 @@ public sealed class RecurringTransactionReadRepository(
             .Where(predicate: r => r.UserId == userId);
 
         if (cursorCreatedAt is not null && cursorId is not null)
-            query = query.Where(predicate: r => r.CreatedAt < cursorCreatedAt || (r.CreatedAt == cursorCreatedAt && r.Id < cursorId));
+			query = query.Where(predicate: r => r.CreatedAt < cursorCreatedAt || r.CreatedAt == cursorCreatedAt && r.Id < cursorId);
 
-        return await query
+        List<Core.Domains.RecurringTransaction.RecurringTransaction> items = await query
             .OrderByDescending(keySelector: r => r.CreatedAt)
             .ThenByDescending(keySelector: r => r.Id)
-            .Take(count: pageSize)
+            .Take(count: pageSize + 1)
             .Select(selector: r => Core.Domains.RecurringTransaction.RecurringTransaction.Reconstitute(
                 id: r.Id,
                 userId: r.UserId,
@@ -61,6 +62,19 @@ public sealed class RecurringTransactionReadRepository(
                 lastExecutedAt: r.LastExecutedAt,
                 createdAt: r.CreatedAt
             )).ToListAsync(cancellationToken: ct);
+        
+        bool hasNextPage = items.Count > pageSize;
+        if (hasNextPage)
+            items.RemoveAt(items.Count - 1);
+
+        Core.Domains.RecurringTransaction.RecurringTransaction? last = items.Count > 0 ? items[^1] : null;
+
+        return new PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction>(
+            Items: items.AsReadOnly(),
+            HasNextPage: hasNextPage,
+            NextCursorDate: hasNextPage ? last?.CreatedAt : null,
+            NextCursorId: hasNextPage ? last?.Id : null
+        );
     }
 
     public async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetDueTodayAsync(

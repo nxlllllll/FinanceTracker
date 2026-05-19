@@ -236,9 +236,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
 
-        IReadOnlyList<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
 
-        await Assert.That(value: result).IsEmpty();
+        await Assert.That(value: result.Items).IsEmpty();
+        await Assert.That(value: result.HasNextPage).IsFalse();
     }
 
     [Test]
@@ -258,12 +259,12 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         );
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: transaction);
 
-        IReadOnlyList<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-        await Assert.That(value: result[0].Type).IsEqualTo(expected: OperationFilterType.Income);
-        await Assert.That(value: result[0].Transaction).IsNotNull();
-        await Assert.That(value: result[0].Transfer).IsNull();
+        await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+        await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: OperationFilterType.Income);
+        await Assert.That(value: result.Items[0].Transaction).IsNotNull();
+        await Assert.That(value: result.Items[0].Transfer).IsNull();
     }
 
     [Test]
@@ -282,12 +283,12 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         ).Value!;
         await _operationsWriteRepository.CreateFromTransferAsync(transfer: transfer);
 
-        IReadOnlyList<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-        await Assert.That(value: result[0].Type).IsEqualTo(expected: OperationFilterType.Transfer);
-        await Assert.That(value: result[0].Transfer).IsNotNull();
-        await Assert.That(value: result[0].Transaction).IsNull();
+        await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+        await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: OperationFilterType.Transfer);
+        await Assert.That(value: result.Items[0].Transfer).IsNotNull();
+        await Assert.That(value: result.Items[0].Transaction).IsNull();
     }
 
     [Test]
@@ -314,12 +315,13 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: income);
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: expense);
 
-        IReadOnlyList<OperationDto> result = await _readRepository.GetHistoryAsync(
-            userId: userId, type: OperationFilterType.Income
+        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(
+            userId: userId,
+            type: OperationFilterType.Income
         );
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-        await Assert.That(value: result[0].Type).IsEqualTo(expected: OperationFilterType.Income);
+        await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+        await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: OperationFilterType.Income);
     }
 
     [Test]
@@ -341,11 +343,15 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             await _operationsWriteRepository.CreateFromTransactionAsync(transaction: tx);
         }
 
-        IReadOnlyList<OperationDto> result = await _readRepository.GetHistoryAsync(
-            userId: userId, pageSize: 3
+        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(
+            userId: userId,
+            pageSize: 3
         );
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 3);
+        await Assert.That(value: result.Items.Count).IsEqualTo(expected: 3);
+        await Assert.That(value: result.HasNextPage).IsTrue();
+        await Assert.That(value: result.NextCursorDate).IsNotNull();
+        await Assert.That(value: result.NextCursorId).IsNotNull();
     }
 
     [Test]
@@ -375,10 +381,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: first);
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: second);
 
-        IReadOnlyList<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
 
-        await Assert.That(value: result[0].Description).IsEqualTo(expected: "Later");
-        await Assert.That(value: result[1].Description).IsEqualTo(expected: "Earlier");
+        await Assert.That(value: result.Items[0].Description).IsEqualTo(expected: "Later");
+        await Assert.That(value: result.Items[1].Description).IsEqualTo(expected: "Earlier");
     }
 
     [Test]
@@ -447,7 +453,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     public async Task GetTotalBalanceAsync_ShouldExcludeArchivedAccounts()
     {
         Core.Domains.User.User user = await CreateAndSaveUserAsync();
-        Guid activeAccountId = await _accountBuilder.CreateAsync(
+        _ = await _accountBuilder.CreateAsync(
             userId: user.Id, currencyCode: "RUB", balance: 5000m
         );
         Guid archivedAccountId = await _accountBuilder.CreateAsync(

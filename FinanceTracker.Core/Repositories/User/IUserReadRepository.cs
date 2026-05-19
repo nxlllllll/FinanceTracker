@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.User;
 
@@ -8,12 +9,12 @@ public interface IUserReadRepository
 		Guid userId,
 		CancellationToken ct = default
 	);
-	
+
 	Task<Domains.User.User?> GetByEmailAsync(
 		string email,
 		CancellationToken ct = default
 	);
-	
+
 	Task<decimal> GetTotalBalanceAsync(
 		Guid userId,
 		ValueObjects.Currency baseCurrency,
@@ -27,7 +28,7 @@ public interface IUserReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<OperationDto>> GetHistoryAsync(
+	Task<PagedResult<OperationDto>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
 		DateTime? dateFrom = null,

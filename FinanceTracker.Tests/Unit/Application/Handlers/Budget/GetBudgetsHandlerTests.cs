@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgets;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -17,6 +18,26 @@ public sealed class GetBudgetsHandlerTests
 		_handler = new GetBudgetsHandler(budgetReadRepository: _budgetReadRepository);
 	}
 
+	private static PagedResult<FinanceTracker.Core.Domains.Budget.Budget> EmptyPage()
+	{
+		return new PagedResult<FinanceTracker.Core.Domains.Budget.Budget>(
+			Items: [],
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
+		);
+	}
+
+	private static PagedResult<FinanceTracker.Core.Domains.Budget.Budget> PageOf(IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> items)
+	{
+		return new PagedResult<FinanceTracker.Core.Domains.Budget.Budget>(
+			Items: items,
+			HasNextPage: false,
+			NextCursorDate: null,
+			NextCursorId: null
+		);
+	}
+
 	[Test]
 	public async Task Handle_ShouldReturnAllBudgets()
 	{
@@ -27,16 +48,19 @@ public sealed class GetBudgetsHandlerTests
 		];
 
 		_budgetReadRepository.GetAllAsync(
-			userId: userId,
+			userId: Arg.Any<Guid>(),
+			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: budgets);
+		).Returns(returnThis: PageOf(items: budgets));
 
-		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> result = await _handler.Handle(
+		PagedResult<FinanceTracker.Core.Domains.Budget.Budget> result = await _handler.Handle(
 			query: new GetBudgetsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
 	}
 
 	[Test]
@@ -44,14 +68,17 @@ public sealed class GetBudgetsHandlerTests
 	{
 		_budgetReadRepository.GetAllAsync(
 			userId: Arg.Any<Guid>(),
+			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorId: Arg.Any<Guid?>(),
+			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: []);
+		).Returns(returnThis: EmptyPage());
 
-		IReadOnlyList<FinanceTracker.Core.Domains.Budget.Budget> result = await _handler.Handle(
+		PagedResult<FinanceTracker.Core.Domains.Budget.Budget> result = await _handler.Handle(
 			query: new GetBudgetsQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsEmpty();
+		await Assert.That(value: result.Items).IsEmpty();
 	}
 }

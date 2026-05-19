@@ -1,14 +1,15 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Results;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
 
 public sealed class GetOperationsHistoryHandler(
 	IUserReadRepository userReadRepository
-) : IRequestHandler<GetOperationsHistoryQuery, IReadOnlyList<OperationDto>>
+) : IRequestHandler<GetOperationsHistoryQuery, PagedResult<OperationDto>>
 {
-	public async Task<IReadOnlyList<OperationDto>> Handle(
+	public async Task<PagedResult<OperationDto>> Handle(
 		GetOperationsHistoryQuery query,
 		CancellationToken ct = default)
 	{

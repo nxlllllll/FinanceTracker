@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Results;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
@@ -14,4 +15,4 @@ public sealed record GetTransactionsQuery(
 	DateTime? CursorOccurredAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
-) : IRequest<IReadOnlyList<Transaction>>;
+) : IRequest<PagedResult<Transaction>>;

@@ -1,18 +1,18 @@
-﻿using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Repositories.Category;
+﻿using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
 
 public sealed class GetCategoriesHandler(
-	ICategoryReadRepository categoryRepository
-) : IRequestHandler<GetCategoriesQuery, IReadOnlyList<Category>>
+	ICategoryReadRepository categoryReadRepository
+) : IRequestHandler<GetCategoriesQuery, PagedResult<Core.Domains.Category.Category>>
 {
-	public async Task<IReadOnlyList<Category>> Handle(
+	public async Task<PagedResult<Core.Domains.Category.Category>> Handle(
 		GetCategoriesQuery query,
-		CancellationToken ct)
+		CancellationToken ct = default)
 	{
-		return await categoryRepository.GetAllAsync(
+		return await categoryReadRepository.GetAllAsync(
 			userId: query.UserId,
 			type: query.Type,
 			isArchived: query.IsArchived,

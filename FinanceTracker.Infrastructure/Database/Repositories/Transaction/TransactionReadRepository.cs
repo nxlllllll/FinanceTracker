@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -33,7 +34,7 @@ public sealed class TransactionReadRepository(
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<Core.Domains.Transaction.Transaction>> GetAllAsync(
+	public async Task<PagedResult<Core.Domains.Transaction.Transaction>> GetAllAsync(
         Guid accountId,
         Guid? categoryId = null,
         DirectionType? direction = null,
@@ -66,22 +67,35 @@ public sealed class TransactionReadRepository(
         if (cursorOccurredAt is not null && cursorId is not null)
             query = query.Where(predicate: t => t.OccurredAt < cursorOccurredAt || t.OccurredAt == cursorOccurredAt && t.Id < cursorId);
         
-        return await query.OrderByDescending(keySelector: t => t.OccurredAt)
-            .ThenByDescending(keySelector: t => t.Id)
-            .Take(count: pageSize)
-            .Select(selector: t => Core.Domains.Transaction.Transaction.Reconstitute(
-                id: t.Id,
-                accountId: t.AccountId,
-                userId: t.UserId,
-                categoryId: t.CategoryId,
-                amount: Money.Reconstitute(amount: t.Amount, currency: t.Currency),
-                direction: t.Direction,
-                exchangeRate: t.ExchangeRate,
-                isExcluded: t.IsExcluded,
-                isRatePending: t.IsRatePending,
-                description: t.Description,
-                occurredAt: t.OccurredAt
-            )).ToListAsync(cancellationToken: ct);
+        List<Core.Domains.Transaction.Transaction> items = await query.OrderByDescending(keySelector: t => t.OccurredAt)
+		.ThenByDescending(keySelector: t => t.Id)
+		.Take(count: pageSize + 1)
+		.Select(selector: t => Core.Domains.Transaction.Transaction.Reconstitute(
+			id: t.Id,
+			accountId: t.AccountId,
+			userId: t.UserId,
+			categoryId: t.CategoryId,
+			amount: Money.Reconstitute(amount: t.Amount, currency: t.Currency),
+			direction: t.Direction,
+			exchangeRate: t.ExchangeRate,
+			isExcluded: t.IsExcluded,
+			isRatePending: t.IsRatePending,
+			description: t.Description,
+			occurredAt: t.OccurredAt
+		)).ToListAsync(cancellationToken: ct);
+		
+		bool hasNextPage = items.Count > pageSize;
+		if (hasNextPage)
+			items.RemoveAt(items.Count - 1);
+
+		Core.Domains.Transaction.Transaction? last = items.Count > 0 ? items[^1] : null;
+
+		return new PagedResult<Core.Domains.Transaction.Transaction>(
+			Items: items.AsReadOnly(),
+			HasNextPage: hasNextPage,
+			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
+			NextCursorId: hasNextPage ? last?.Id : null
+		);
     }
 
     public async Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(CancellationToken ct = default)

@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Operation;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -91,76 +92,89 @@ public sealed class UserReadRepository(
 		return (income, expense);
 	}
 
-	public async Task<IReadOnlyList<OperationDto>> GetHistoryAsync(
-	    Guid userId,
-	    OperationFilterType? type = null,
-	    DateTime? dateFrom = null,
-	    DateTime? dateTo = null,
-	    DateTime? cursorOccurredAt = null,
-	    Guid? cursorId = null,
-	    int pageSize = 20,
-	    CancellationToken ct = default)
+	public async Task<PagedResult<OperationDto>> GetHistoryAsync(
+		Guid userId,
+		OperationFilterType? type = null,
+		DateTime? dateFrom = null,
+		DateTime? dateTo = null,
+		DateTime? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
+		CancellationToken ct = default)
 	{
-	    IQueryable<OperationEntity> query = type switch
-	    {
-	        OperationFilterType.Income => context.Operations
-	            .FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Credit'")
-	            .AsNoTracking(),
-	        OperationFilterType.Expense => context.Operations
-	            .FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Debit'")
-	            .AsNoTracking(),
-	        OperationFilterType.Transfer => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId && o.Type == OperationType.Transfer),
-	        _ => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId)
-	    };
+		IQueryable<OperationEntity> query = type switch
+		{
+			OperationFilterType.Income => context.Operations
+				.FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Credit'")
+				.AsNoTracking(),
+			OperationFilterType.Expense => context.Operations
+				.FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Debit'")
+				.AsNoTracking(),
+			OperationFilterType.Transfer => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId && o.Type == OperationType.Transfer),
+			_ => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId)
+		};
 
-	    if (dateFrom is not null)
-	        query = query.Where(predicate: o => o.OccurredAt >= dateFrom);
+		if (dateFrom is not null)
+			query = query.Where(predicate: o => o.OccurredAt >= dateFrom);
 
-	    if (dateTo is not null)
-	        query = query.Where(predicate: o => o.OccurredAt <= dateTo);
+		if (dateTo is not null)
+			query = query.Where(predicate: o => o.OccurredAt <= dateTo);
 
-	    if (cursorOccurredAt is not null && cursorId is not null)
-	        query = query.Where(predicate: o => o.OccurredAt < cursorOccurredAt || o.OccurredAt == cursorOccurredAt && o.Id < cursorId);
+		if (cursorOccurredAt is not null && cursorId is not null)
+			query = query.Where(predicate: o => o.OccurredAt < cursorOccurredAt || o.OccurredAt == cursorOccurredAt && o.Id < cursorId);
 
-	    List<OperationEntity> entities = await query
-	        .OrderByDescending(keySelector: o => o.OccurredAt)
-	        .ThenByDescending(keySelector: o => o.Id)
-	        .Take(count: pageSize)
-	        .ToListAsync(cancellationToken: ct);
+		List<OperationEntity> entities = await query
+			.OrderByDescending(keySelector: o => o.OccurredAt)
+			.ThenByDescending(keySelector: o => o.Id)
+			.Take(count: pageSize + 1)
+			.ToListAsync(cancellationToken: ct);
 
-	    return entities.Select(selector: e =>
-	    {
-	        OperationPayload payload = e.Type switch
-	        {
-	            OperationType.Transaction => JsonSerializer.Deserialize<TransactionPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
-	            OperationType.Transfer => JsonSerializer.Deserialize<TransferPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
-	            _ => throw new InvalidOperationException(message: $"Unknown operation type: {e.Type}")
-	        };
+		bool hasNextPage = entities.Count > pageSize;
+		if (hasNextPage)
+			entities.RemoveAt(entities.Count - 1);
 
-	        return new OperationDto(
-	            Id: e.Id,
-	            Type: payload is TransactionPayload tp
-	                ? tp.Direction == Core.Domains.Account.DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense
-	                : OperationFilterType.Transfer,
-	            Description: e.Description,
-	            OccurredAt: e.OccurredAt,
-	            Transaction: payload is TransactionPayload txp ? new TransactionDetailsDto(
-	                AccountId: txp.AccountId,
-	                CategoryId: txp.CategoryId,
-	                Amount: txp.Amount,
-	                Currency: txp.Currency,
-	                Direction: txp.Direction,
-	                IsExcluded: txp.IsExcluded
-	            ) : null,
-	            Transfer: payload is TransferPayload trp ? new TransferDetailsDto(
-	                FromAccountId: trp.FromAccountId,
-	                ToAccountId: trp.ToAccountId,
-	                AmountFrom: trp.AmountFrom,
-	                CurrencyFrom: trp.CurrencyFrom,
-	                AmountTo: trp.AmountTo,
-	                CurrencyTo: trp.CurrencyTo
-	            ) : null
-	        );
-	    }).ToList();
+		OperationEntity? last = entities.Count > 0 ? entities[^1] : null;
+
+		List<OperationDto> dtos = entities.Select(selector: e =>
+		{
+			OperationPayload payload = e.Type switch
+			{
+				OperationType.Transaction => JsonSerializer.Deserialize<TransactionPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
+				OperationType.Transfer => JsonSerializer.Deserialize<TransferPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
+				_ => throw new InvalidOperationException(message: $"Unknown operation type: {e.Type}")
+			};
+
+			return new OperationDto(
+				Id: e.Id,
+				Type: payload is TransactionPayload tp
+					? tp.Direction == Core.Domains.Account.DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense
+					: OperationFilterType.Transfer,
+				Description: e.Description,
+				OccurredAt: e.OccurredAt,
+				Transaction: payload is TransactionPayload txp ? new TransactionDetailsDto(
+					AccountId: txp.AccountId,
+					CategoryId: txp.CategoryId,
+					Amount: txp.Amount,
+					Currency: txp.Currency,
+					Direction: txp.Direction,
+					IsExcluded: txp.IsExcluded
+				) : null,
+				Transfer: payload is TransferPayload trp ? new TransferDetailsDto(
+					FromAccountId: trp.FromAccountId,
+					ToAccountId: trp.ToAccountId,
+					AmountFrom: trp.AmountFrom,
+					CurrencyFrom: trp.CurrencyFrom,
+					AmountTo: trp.AmountTo,
+					CurrencyTo: trp.CurrencyTo
+				) : null
+			);
+		}).ToList();
+
+		return new PagedResult<OperationDto>(
+			Items: dtos.AsReadOnly(),
+			HasNextPage: hasNextPage,
+			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
+			NextCursorId: hasNextPage ? last?.Id : null
+		);
 	}
 }

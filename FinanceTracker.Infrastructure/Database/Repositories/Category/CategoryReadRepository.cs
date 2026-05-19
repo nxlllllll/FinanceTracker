@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -34,7 +35,7 @@ public sealed class CategoryReadRepository(
 		);
 	}
 	
-	public async Task<IReadOnlyList<Core.Domains.Category.Category>> GetAllAsync(
+	public async Task<PagedResult<Core.Domains.Category.Category>> GetAllAsync(
 		Guid userId,
 		CategoryType? type = null,
 		bool? isArchived = null,
@@ -44,24 +45,24 @@ public sealed class CategoryReadRepository(
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<CategoryEntity> categories = context.Categories.AsNoTracking().Where(predicate: c => c.UserId == userId);
- 
+		IQueryable<CategoryEntity> query = context.Categories.AsNoTracking().Where(predicate: c => c.UserId == userId);
+
 		if (type is not null)
-			categories = categories.Where(predicate: c => c.Type == type);
+			query = query.Where(predicate: c => c.Type == type);
  
 		if (isArchived is not null)
-			categories = categories.Where(predicate: c => c.IsArchived == isArchived);
+			query = query.Where(predicate: c => c.IsArchived == isArchived);
  
 		if (parentId is not null)
-			categories = categories.Where(predicate: c => c.ParentId == parentId);
+			query = query.Where(predicate: c => c.ParentId == parentId);
  
 		if (cursorCreatedAt is not null && cursorId is not null)
-			categories = categories.Where(predicate: c => c.CreatedAt < cursorCreatedAt || c.CreatedAt == cursorCreatedAt && c.Id < cursorId);
+			query = query.Where(predicate: c => c.CreatedAt < cursorCreatedAt || c.CreatedAt == cursorCreatedAt && c.Id < cursorId);
  
-		return await categories
+		List<Core.Domains.Category.Category> items = await query
 			.OrderByDescending(keySelector: c => c.CreatedAt)
 			.ThenByDescending(keySelector: c => c.Id)
-			.Take(count: pageSize)
+			.Take(count: pageSize + 1)
 			.Select(selector: c => Core.Domains.Category.Category.Reconstitute(
 				id: c.Id,
 				userId: c.UserId,
@@ -71,5 +72,18 @@ public sealed class CategoryReadRepository(
 				isArchived: c.IsArchived,
 				createdAt: c.CreatedAt
 			)).ToListAsync(cancellationToken: ct);
+
+		bool hasNextPage = items.Count > pageSize;
+		if (hasNextPage)
+			items.RemoveAt(items.Count - 1);
+
+		Core.Domains.Category.Category? last = items.Count > 0 ? items[^1] : null;
+
+		return new PagedResult<Core.Domains.Category.Category>(
+			Items: items.AsReadOnly(),
+			HasNextPage: hasNextPage,
+			NextCursorDate: hasNextPage ? last?.CreatedAt : null,
+			NextCursorId: hasNextPage ? last?.Id : null
+		);
 	}
 }
