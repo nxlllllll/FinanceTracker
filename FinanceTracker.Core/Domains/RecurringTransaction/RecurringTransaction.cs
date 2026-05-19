@@ -103,6 +103,9 @@ public sealed class RecurringTransaction
         if (money.IsFailure)
             return Result<Unit, DomainException>.Failure(error: money.Error!);
 
+        if (!IsActive)
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+ 
         Amount = money.Value;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
@@ -113,6 +116,9 @@ public sealed class RecurringTransaction
         if (money.IsFailure)
             return Result<Unit, DomainException>.Failure(error: money.Error!);
         
+        if (!IsActive)
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+ 
         Amount = money.Value;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
@@ -122,10 +128,19 @@ public sealed class RecurringTransaction
         if (dayOfMonth is < 1 or > 31)
             return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
  
+        if (!IsActive)
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+ 
         DayOfMonth = dayOfMonth;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
     
-    public void MarkExecuted(DateTime executedAt)
-        => LastExecutedAt = executedAt;
+    public Result<Unit, DomainException> MarkExecuted(DateTime executedAt)
+    {
+        if (!IsActive)
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+ 
+        LastExecutedAt = executedAt;
+        return Result<Unit, DomainException>.Success(value: Unit.Default);
+    }
 }

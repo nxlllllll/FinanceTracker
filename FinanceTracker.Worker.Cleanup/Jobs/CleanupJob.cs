@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
+using FinanceTracker.Core.Repositories.Snapshot;
 using FinanceTracker.Core.Services.DateProvider;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -13,6 +14,7 @@ public sealed class CleanupJob(
 	IIdempotencyWriteRepository idempotencyRepository,
 	IOutboxWriteRepository outboxRepository,
 	IProcessedMessageWriteRepository processedMessageRepository,
+	ISnapshotWriteRepository snapshotRepository,
 	IDateProvider dateProvider,
 	IOptions<CleanupOptions> options,
 	ILogger<CleanupJob> logger
@@ -31,6 +33,7 @@ public sealed class CleanupJob(
 		await CleanupProcessedMessagesAsync(now: now, ct: ct);
 		await CleanupOutboxProcessedAsync(now: now, ct: ct);
 		await CleanupOutboxFailedAsync(now: now, ct: ct);
+		await CleanupSnapshotsAsync(ct: ct);
 	}
 
 	private async Task CleanupIdempotentCommandsAsync(DateTime now, CancellationToken ct)
@@ -81,6 +84,17 @@ public sealed class CleanupJob(
 
 		if (total > 0)
 			logger.ZLogInformation(message: $"[Cleanup] outbox_messages (failed): deleted {total} row(s) older than {_options.OutboxFailedRetentionDays} day(s).");
+	}
+
+	private async Task CleanupSnapshotsAsync(CancellationToken ct)
+	{
+		int total = await DeleteInBatchesAsync(
+			deleteFunc: batchSize => snapshotRepository.DeleteOldAsync(batchSize: batchSize, ct: ct),
+			ct: ct
+		);
+
+		if (total > 0)
+			logger.ZLogInformation(message: $"[Cleanup] snapshots: deleted {total} non-latest row(s).");
 	}
 
 	private async Task<int> DeleteInBatchesAsync(

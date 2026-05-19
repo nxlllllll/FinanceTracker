@@ -1,5 +1,7 @@
 ﻿using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -94,9 +96,15 @@ public sealed class RecurringTransactionHandlingJob(
         Core.Domains.RecurringTransaction.RecurringTransaction transaction,
         CancellationToken ct)
     {
+        DateTime now = dateProvider.UtcNow;
+        
+        Result<Unit, DomainException> result = transaction.MarkExecuted(executedAt: now);
+        if (result.IsFailure)
+            throw result.Error!;
+        
         await recurringTransactionWriteRepository.MarkExecutedAsync(
             recurringTransactionId: transaction.Id,
-            executedAt: dateProvider.UtcNow,
+            executedAt: now,
             ct: ct
         );
     }

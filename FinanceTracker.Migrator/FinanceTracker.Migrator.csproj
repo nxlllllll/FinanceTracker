@@ -24,6 +24,8 @@
       <EmbeddedResource Include="Migrations\V002__add_outbox_indexes.sql" />
       <None Remove="Migrations\V003__add_unresolvable_events.sql" />
       <EmbeddedResource Include="Migrations\V003__add_unresolvable_events.sql" />
+      <None Remove="Migrations\V004__fix_indexes.sql" />
+      <EmbeddedResource Include="Migrations\V004__fix_indexes.sql" />
     </ItemGroup>
 
 </Project>
