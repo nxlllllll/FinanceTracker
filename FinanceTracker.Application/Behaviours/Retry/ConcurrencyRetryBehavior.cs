@@ -15,7 +15,6 @@ public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 ) : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
 {
 	private readonly RetryOptions _retryOptions = options.Value;
-	private static readonly Random Jitter = Random.Shared;
 
 	public async Task<TResponse> Handle(
 		TRequest request,

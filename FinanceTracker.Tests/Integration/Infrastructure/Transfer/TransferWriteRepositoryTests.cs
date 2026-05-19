@@ -39,7 +39,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
             isRatePending: false,
             description: "Test transfer",
             occurredAt: DateTime.UtcNow
-        );
+        ).Value!;
 
         await _writeRepository.CreateAsync(transfer: transfer);
 

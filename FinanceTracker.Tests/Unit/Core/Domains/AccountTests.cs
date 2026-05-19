@@ -174,8 +174,8 @@ public sealed class AccountTests
 			description: null
 		);
 		
-        await Assert.That(result.IsFailure).IsTrue();
-        await Assert.That(result.Error).IsTypeOf<ArchivedAccountOperationException>();
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
     }
 
     [Test]
@@ -192,8 +192,8 @@ public sealed class AccountTests
 			description: null
 		);
 		
-		await Assert.That(result.IsFailure).IsTrue();
-		await Assert.That(result.Error).IsTypeOf<InvalidAmountException>();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
 	}
 	
 	[Test]
@@ -230,8 +230,8 @@ public sealed class AccountTests
 			exchangeRate: 1m,
 			description: null
 		);
-		await Assert.That(result.IsFailure).IsTrue();
-		await Assert.That(result.Error).IsTypeOf<ArchivedAccountOperationException>();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
 	}
 	
 	[Test]

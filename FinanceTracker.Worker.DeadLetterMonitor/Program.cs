@@ -1,5 +1,4 @@
 using FinanceTracker.Infrastructure.Configurations;
-using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Worker.DeadLetterMonitor.Jobs;
 using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.Tracing;

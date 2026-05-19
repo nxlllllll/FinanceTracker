@@ -32,7 +32,7 @@ public sealed class RecurringTransaction
         string? description)
     {
         if (dayOfMonth is < 1 or > 31)
-            return Result<RecurringTransaction, DomainException>.Failure(error: new InvalidDayOfMonthException("Day of month must be between 1 and 31."));
+            return Result<RecurringTransaction, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
  
         return Result<RecurringTransaction, DomainException>.Success(value: new RecurringTransaction
         {
@@ -82,7 +82,7 @@ public sealed class RecurringTransaction
     public Result<Unit, DomainException> Activate()
     {
         if (IsActive)
-            return Result<Unit, DomainException>.Failure(error: new ActivatingException("Recurring transaction is already active."));
+            return Result<Unit, DomainException>.Failure(error: new ActivatingException(message: "Recurring transaction is already active."));
  
         IsActive = true;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -91,7 +91,7 @@ public sealed class RecurringTransaction
     public Result<Unit, DomainException> Deactivate()
     {
         if (!IsActive)
-            return Result<Unit, DomainException>.Failure(error: new DeactivatingException("Recurring transaction is already inactive."));
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is already inactive."));
  
         IsActive = false;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -120,7 +120,7 @@ public sealed class RecurringTransaction
     public Result<Unit, DomainException> ChangeDayOfMonth(int dayOfMonth)
     {
         if (dayOfMonth is < 1 or > 31)
-            return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException("Day of month must be between 1 and 31."));
+            return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
  
         DayOfMonth = dayOfMonth;
         return Result<Unit, DomainException>.Success(value: Unit.Default);

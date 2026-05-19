@@ -1,6 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Abstractions.ES;
-using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+﻿using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account.Events;

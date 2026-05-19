@@ -34,4 +34,24 @@ public sealed class RenameAccountHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
+	
+	[Test]
+	public async Task HandleAsync_WhenNameUnchanged_ShouldNotSaveAccount()
+	{
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(name: "Карта Сбер").Value!;
+		Name sameName = Name.Create(value: "Карта Сбер").Value!;
+
+		account.ClearEvents();
+		
+		await _handler.HandleAsync(
+			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: sameName),
+			account: account,
+			ct: CancellationToken.None
+		);
+
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
 }

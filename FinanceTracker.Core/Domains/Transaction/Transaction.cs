@@ -80,7 +80,7 @@ public sealed class Transaction
     public Result<Unit, DomainException> Exclude()
 	{
 		if (IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new ExcludingException("Transaction is already excluded."));
+			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is already excluded."));
 
 		IsExcluded = true;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -89,7 +89,7 @@ public sealed class Transaction
 	public Result<Unit, DomainException> Include()
 	{
 		if (!IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new IncludingException("Transaction is not excluded."));
+			return Result<Unit, DomainException>.Failure(error: new IncludingException(message: "Transaction is not excluded."));
 
 		IsExcluded = false;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);

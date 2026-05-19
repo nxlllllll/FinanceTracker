@@ -125,8 +125,27 @@ public sealed class AccountTransferConsumer(
 			return;
 		}
 
-		fromAccount.RefundTransfer(occurredAt: dateProvider.UtcNow, transferId: debitEvent.TransferId, amount: debitEvent.Amount, description: $"Refund: {reason}");
+		Result<Unit, DomainException> refundResult = fromAccount.RefundTransfer(
+			occurredAt: dateProvider.UtcNow, 
+			transferId: debitEvent.TransferId, 
+			amount: debitEvent.Amount,
+			description: $"Refund: {reason}"
+		);
 
+		if (refundResult.IsFailure)
+		{
+			logger.ZLogError(message: $"[{correlationId}] Refund failed for transfer {debitEvent.TransferId}: {refundResult.Error!.Message}. Manual resolution required.");
+			await unresolvableEventWriteRepository.CreateAsync(
+				type: UnresolvableEventType.TransferCompensation,
+				referenceId: debitEvent.TransferId,
+				reason: refundResult.Error!.Message,
+				payload: JsonSerializer.Serialize(value: new { FromAccountId = debitEvent.AccountId }),
+				occurredAt: dateProvider.UtcNow,
+				ct: ct
+			);
+			return;
+		}
+		
 		await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 
 		logger.ZLogWarning(message: $"[{correlationId}] Compensation executed: refunded {debitEvent.Amount} to {debitEvent.AccountId} for transfer {debitEvent.TransferId}.");

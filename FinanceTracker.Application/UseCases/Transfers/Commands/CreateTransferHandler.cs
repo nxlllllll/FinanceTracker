@@ -9,7 +9,6 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 
@@ -39,7 +38,7 @@ public sealed class CreateTransferHandler(
 			ct: ct
 		);
 
-		Transfer transfer = Transfer.Create(
+		Result<Transfer, DomainException> transferResult = Transfer.Create(
 			userId: command.UserId,
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,
@@ -52,7 +51,11 @@ public sealed class CreateTransferHandler(
 			description: command.Description,
 			occurredAt: command.OccurredAt
 		);
-
+		if (transferResult.IsFailure)
+			return Result<Guid, DomainException>.Failure(error: transferResult.Error!);
+		
+		Transfer transfer = transferResult.Value!;
+		
 		DateTime now = dateProvider.UtcNow;
 
 		Result<Unit, DomainException> debitResult = fromAccount.DebitTransfer(

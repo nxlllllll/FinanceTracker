@@ -21,7 +21,7 @@ public sealed class User
 		Currency baseCurrency)
 	{
 		if (String.IsNullOrWhiteSpace(value: passwordHash))
-			return Result<User, DomainException>.Failure(error: new PasswordException("The password hash cannot be empty."));
+			return Result<User, DomainException>.Failure(error: new PasswordException(message: "The password hash cannot be empty."));
  
 		return Result<User, DomainException>.Success(value: new User()
 		{

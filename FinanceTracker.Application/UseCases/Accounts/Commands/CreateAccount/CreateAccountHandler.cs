@@ -3,7 +3,6 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;

@@ -1,6 +1,4 @@
 ﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
-using FinanceTracker.Core.Domains.Abstractions;
-using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Core.Persistence;

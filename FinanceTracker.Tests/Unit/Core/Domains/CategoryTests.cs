@@ -33,15 +33,6 @@ public sealed class CategoryTests
 	}
 
 	[Test]
-	public async Task Create_WithEmptyName_ShouldThrowEmptyNameException()
-	{
-		Result<Category, DomainException> result = CategoryFactory.Create(name: String.Empty);
-		
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<NameException>();
-	}
-
-	[Test]
 	public async Task Rename_WithValidName_ShouldChangeName()
 	{
 		Category category = CategoryFactory.Create().Value!;

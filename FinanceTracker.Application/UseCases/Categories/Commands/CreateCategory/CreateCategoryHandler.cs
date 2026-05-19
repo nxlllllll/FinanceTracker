@@ -21,17 +21,14 @@ public sealed class CreateCategoryHandler(
 		if (nameResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: nameResult.Error!);
 		
-		Result<Category, DomainException> categoryResult = Category.Create(
+		Category category = Category.Create(
 			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
 			name: nameResult.Value,
 			parentId: command.ParentId,
 			type: command.Type
 		);
-		if (categoryResult.IsFailure) 
-			return Result<Guid, DomainException>.Failure(error: categoryResult.Error!);
- 
-		Category category = categoryResult.Value!;
+		
 		await categoryWriteRepository.CreateAsync(category: category, ct: ct);
 		return Result<Guid, DomainException>.Success(value: category.Id);
 	}

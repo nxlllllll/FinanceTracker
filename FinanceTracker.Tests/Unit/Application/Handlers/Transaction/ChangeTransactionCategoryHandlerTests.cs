@@ -51,6 +51,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	public async Task HandleAsync_WithDebitNotExcluded_ShouldUpdateCategoryTotalsAndBudget()
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
+		Guid oldCategoryId = transaction.CategoryId;
 		Guid newCategoryId = Guid.CreateVersion7();
 
 		await _handler.HandleAsync(
@@ -61,7 +62,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 
 		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).ChangeCategoryAsync(
 			userId: transaction.UserId,
-			oldCategoryId: transaction.CategoryId,
+			oldCategoryId: oldCategoryId,
 			newCategoryId: newCategoryId,
 			currency: transaction.Amount.Currency,
 			amount: transaction.Amount.Amount,
@@ -70,7 +71,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		);
 		await _budgetProgressWriteRepository.Received(requiredNumberOfCalls: 1).ChangeCategoryAsync(
 			userId: transaction.UserId,
-			oldCategoryId: transaction.CategoryId,
+			oldCategoryId: oldCategoryId,
 			newCategoryId: newCategoryId,
 			currencyCode: transaction.Amount.Currency,
 			amount: transaction.Amount.Amount,

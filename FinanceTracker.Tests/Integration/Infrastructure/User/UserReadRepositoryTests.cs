@@ -10,7 +10,6 @@ using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
 using FinanceTracker.Infrastructure.Database.Repositories.Operations;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
-using FinanceTracker.Infrastructure.Services;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -280,7 +279,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             amountTo: 1000m, currencyTo: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             exchangeRate: 1m, isRatePending: false, description: null,
             occurredAt: FakeDateProvider.Default.UtcNow
-        );
+        ).Value!;
         await _operationsWriteRepository.CreateFromTransferAsync(transfer: transfer);
 
         IReadOnlyList<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);

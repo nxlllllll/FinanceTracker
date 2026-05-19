@@ -1,6 +1,5 @@
 ﻿using FinanceTracker.Application.UseCases.Users.Queries.GetIncomeExpenseSummary;
 using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

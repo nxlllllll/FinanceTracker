@@ -7,7 +7,7 @@ using MediatR;
 namespace FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
 
 public sealed record RegisterUserCommand(
-	string Email,
+	Email Email,
 	string Password,
 	Currency BaseCurrencyCode
 ) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>

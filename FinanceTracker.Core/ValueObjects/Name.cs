@@ -33,7 +33,7 @@ public readonly record struct Name
 
 	public static implicit operator string(Name name)
 		=> name.Value;
-
+	
 	public override string ToString()
 		=> Value;
 }

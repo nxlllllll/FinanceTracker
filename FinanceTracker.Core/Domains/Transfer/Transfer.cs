@@ -19,7 +19,7 @@ public sealed class Transfer
 
     private Transfer() { }
 
-    public static Transfer Create(
+    public static Result<Transfer, DomainException> Create(
         Guid userId,
         Guid fromAccountId,
         Guid toAccountId,
@@ -34,13 +34,13 @@ public sealed class Transfer
     {
         Result<Money, DomainException> amountFromResult = Money.Create(amount: amountFrom, currency: currencyFrom);
         if (amountFromResult.IsFailure)
-            throw amountFromResult.Error!;
+            return Result<Transfer, DomainException>.Failure(error: amountFromResult.Error!);
 
         Result<Money, DomainException> amountToResult = Money.Create(amount: amountTo, currency: currencyTo);
         if (amountToResult.IsFailure)
-            throw amountFromResult.Error!;
+            return Result<Transfer, DomainException>.Failure(error: amountToResult.Error!);
         
-        return new Transfer
+        return Result<Transfer, DomainException>.Success(value: new Transfer
         {
             Id = Guid.CreateVersion7(),
             UserId = userId,
@@ -52,7 +52,7 @@ public sealed class Transfer
             IsRatePending = isRatePending,
             Description = description,
             OccurredAt = occurredAt
-        };
+        });
     }
 
     public static Transfer Reconstitute(
@@ -69,22 +69,14 @@ public sealed class Transfer
         string? description,
         DateTime occurredAt)
     {
-        Result<Money, DomainException> amountFromResult = Money.Create(amount: amountFrom, currency: currencyFrom);
-        if (amountFromResult.IsFailure)
-            throw amountFromResult.Error!;
-
-        Result<Money, DomainException> amountToResult = Money.Create(amount: amountTo, currency: currencyTo);
-        if (amountToResult.IsFailure)
-            throw amountToResult.Error!;
-        
         return new Transfer
         {
             Id = id,
             UserId = userId,
             FromAccountId = fromAccountId,
             ToAccountId = toAccountId,
-            AmountFrom = amountFromResult.Value,
-            AmountTo = amountToResult.Value,
+            AmountFrom = Money.Reconstitute(amount: amountFrom, currency: currencyFrom),
+            AmountTo = Money.Reconstitute(amount: amountTo, currency: currencyTo),
             ExchangeRate = exchangeRate,
             IsRatePending = isRatePending,
             Description = description,

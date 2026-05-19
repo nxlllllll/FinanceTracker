@@ -1,7 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;

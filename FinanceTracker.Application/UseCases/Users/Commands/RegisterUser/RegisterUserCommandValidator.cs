@@ -8,8 +8,7 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
 	public RegisterUserCommandValidator(ICurrencyReadRepository currencyReadRepository)
 	{
 		RuleFor(expression: command => command.Email)
-			.NotEmpty().WithMessage(errorMessage: "The email cannot be empty.")
-			.EmailAddress().WithMessage(errorMessage: "The email is invalid.");
+			.Must(predicate: email => email != default).WithMessage(errorMessage: "The email cannot be empty.");
 
 		RuleFor(expression: command => command.Password)
 			.NotEmpty().WithMessage(errorMessage: "The password cannot be empty.")

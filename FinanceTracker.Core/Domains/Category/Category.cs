@@ -16,17 +16,14 @@ public sealed class Category
 
 	private Category() { }
 
-	public static Result<Category, DomainException> Create(
+	public static Category Create(
 		DateTime createdAt,
 		Guid userId,
 		Name name,
 		CategoryType type,
 		Guid? parentId)
 	{
-		if (String.IsNullOrWhiteSpace(value: name))
-			return Result<Category, DomainException>.Failure(error: new NameException(message: "The category name cannot be empty."));
- 
-		return Result<Category, DomainException>.Success(value: new Category()
+		return new Category()
 		{
 			Id = Guid.CreateVersion7(),
 			UserId = userId,
@@ -35,7 +32,7 @@ public sealed class Category
 			Type = type,
 			IsArchived = false,
 			CreatedAt = createdAt
-		});
+		};
 	}
 
 	public static Category Reconstitute(

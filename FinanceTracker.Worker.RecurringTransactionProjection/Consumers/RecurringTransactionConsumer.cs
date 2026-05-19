@@ -60,7 +60,7 @@ public sealed class RecurringTransactionConsumer(
 
 			Result<Currency, DomainException> currencyResult = Currency.Create(value: message.Currency);
 			if (currencyResult.IsFailure)
-				throw new NotFoundException(message: $"Invalid currency: {message.Currency}", id: message.RecurringTransactionId);
+				throw currencyResult.Error!;
 
 			await transactionCreationService.CreateAsync(command: new CreateTransactionCommand(
 				AccountId: message.AccountId,

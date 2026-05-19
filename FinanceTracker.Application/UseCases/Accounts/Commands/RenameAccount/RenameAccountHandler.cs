@@ -4,7 +4,6 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Application.UseCases.Accounts.Commands.RenameAccount;
 
@@ -22,7 +21,9 @@ public sealed class RenameAccountHandler(
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await accountRepository.SaveAsync(account: account, ct: ct);
+		if (account.Events.Count > 0)
+			await accountRepository.SaveAsync(account: account, ct: ct);
+		
 		return Result<Guid, DomainException>.Success(value: account.Id);
 	}
 }

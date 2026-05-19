@@ -14,17 +14,13 @@ public static class CategoryFactory
 		Guid? parentId = null,
 		bool archived = false)
 	{
-		Result<Category, DomainException> result = Category.Create(
+		Category category = Category.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.CreateVersion7(),
 			name: Name.Create(value: name).Value,
 			type: type,
 			parentId: parentId
 		);
-		if (result.IsFailure)
-			return Result<Category, DomainException>.Failure(error: result.Error!);
-		
-		Category category = result.Value!;
 
 		if (archived)
 			category.Archive();

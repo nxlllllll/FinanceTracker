@@ -11,7 +11,7 @@ public static class RegisterUserCommandFactory
 		string baseCurrencyCode = "RUB")
 	{
 		return new RegisterUserCommand(
-			Email: email,
+			Email: Email.Create(value: email).Value,
 			Password: password,
 			BaseCurrencyCode: Currency.Create(value: baseCurrencyCode).Value
 		);

@@ -77,7 +77,7 @@ public sealed class OperationsWriteRepositoryTests : DatabaseFixture
             isRatePending: false,
             description: description,
             occurredAt: FakeDateProvider.Default.UtcNow
-        );
+        ).Value!;
     }
 
     [Test]

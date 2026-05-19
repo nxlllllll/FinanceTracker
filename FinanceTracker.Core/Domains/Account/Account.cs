@@ -1,7 +1,5 @@
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
-using FinanceTracker.Core.Domains.Abstractions.ES;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account.Events;
@@ -123,7 +121,7 @@ public sealed class Account : AggregateRoot
 	private Result<Unit, DomainException> CheckSufficientFunds(decimal amount, decimal rate = 1m)
 	{
 		if (amount * rate > Balance.Amount)
-			return Result<Unit, DomainException>.Failure(error: new InsufficientFundsException("The amount of funds on the balance is insufficient.", balance: Balance));
+			return Result<Unit, DomainException>.Failure(error: new InsufficientFundsException(message: "The amount of funds on the balance is insufficient.", balance: Balance));
  
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}

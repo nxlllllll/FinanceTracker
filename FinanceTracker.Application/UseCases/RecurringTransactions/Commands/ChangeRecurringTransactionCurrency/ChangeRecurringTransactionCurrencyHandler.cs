@@ -3,7 +3,6 @@ using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
 

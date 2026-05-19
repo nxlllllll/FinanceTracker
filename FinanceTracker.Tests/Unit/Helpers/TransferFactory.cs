@@ -29,6 +29,6 @@ public static class TransferFactory
 			isRatePending: isRatePending,
 			description: description,
 			occurredAt: FakeDateProvider.Default.UtcNow
-		);
+		).Value!;
 	}
 }

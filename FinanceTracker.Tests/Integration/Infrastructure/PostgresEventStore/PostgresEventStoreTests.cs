@@ -11,7 +11,6 @@ using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;

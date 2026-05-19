@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
-using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.ES;

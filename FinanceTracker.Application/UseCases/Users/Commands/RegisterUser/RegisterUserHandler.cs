@@ -4,7 +4,6 @@ using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Password;
-using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -26,22 +25,14 @@ public sealed class RegisterUserHandler(
 		User? existing = await userReadRepository.GetByEmailAsync(email: command.Email, ct: ct);
 		if (existing is not null)
 			return Result<Guid, DomainException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.Email));
- 
-		Result<Email, DomainException> emailResult = Email.Create(value: command.Email);
-		if (emailResult.IsFailure) 
-			return Result<Guid, DomainException>.Failure(error: emailResult.Error!);
- 
-		Result<Currency, DomainException> currencyResult = Currency.Create(value: command.BaseCurrencyCode);
-		if (currencyResult.IsFailure) 
-			return Result<Guid, DomainException>.Failure(error: currencyResult.Error!);
- 
+		
 		string passwordHash = await passwordHasher.Hash(password: command.Password);
 
 		Result<User, DomainException> userResult = User.Register(
 			createdAt: dateProvider.UtcNow,
-			email: emailResult.Value!,
+			email: command.Email,
 			passwordHash: passwordHash,
-			baseCurrency: currencyResult.Value!
+			baseCurrency: command.BaseCurrencyCode
 		);
 		if (userResult.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: userResult.Error!);

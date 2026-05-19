@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Worker.CurrencyRate.Client;
 using Quartz;
@@ -12,6 +13,7 @@ public sealed class CurrencyRateJob(
     ExchangeRateApiClient apiClient,
     ICurrencyReadRepository currencyReadRepository,
     ICurrencyRateWriteRepository currencyRateWriteRepository,
+    IDateProvider dateProvider,
     ILogger<CurrencyRateJob> logger
 ) : IJob
 {
@@ -29,7 +31,7 @@ public sealed class CurrencyRateJob(
         }
 
         HashSet<string> knownCodes = currencies.Select(selector: c => c.Code).ToHashSet();
-        DateOnly today = DateOnly.FromDateTime(dateTime: DateTime.UtcNow);
+        DateOnly today = dateProvider.UtcToday;
 
         logger.ZLogInformation(message: $"Fetching rates for {currencies.Count} currencies.");
 

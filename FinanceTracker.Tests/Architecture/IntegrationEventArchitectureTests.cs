@@ -2,7 +2,6 @@
 using FinanceTracker.Contracts.Events;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
-using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
