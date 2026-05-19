@@ -1,14 +1,19 @@
-﻿using FinanceTracker.Core.Repositories.Budget;
+﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Budget;
 
 public sealed class BudgetWriteRepository(
 	FinanceTrackerContext context,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	IUnitOfWork unitOfWork,
+	ILogger<BudgetWriteRepository> logger
 ) : IBudgetWriteRepository
 {
 	public async Task CreateAsync(
@@ -34,7 +39,11 @@ public sealed class BudgetWriteRepository(
 			UpdatedAt = dateProvider.UtcNow
 		}, cancellationToken: ct);
 		
-		await context.SaveChangesAsync(cancellationToken: ct);
+		await unitOfWork.ExecuteInTransactionAsync(
+			operation: async () => await context.SaveChangesAsync(cancellationToken: ct), 
+			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create budget {budget.Id}."),
+			ct: ct
+		);
 	}
 
 	public async Task ChangeAmountAsync(

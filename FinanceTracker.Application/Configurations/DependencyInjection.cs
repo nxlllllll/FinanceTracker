@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using FinanceTracker.Application.Behaviours.Authorization;
-using FinanceTracker.Application.Behaviours.ConcurrencyRetry;
 using FinanceTracker.Application.Behaviours.Correlation;
 using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;

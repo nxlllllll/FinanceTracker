@@ -20,6 +20,10 @@
     <ItemGroup>
       <None Remove="Migrations\V001__init.sql" />
       <EmbeddedResource Include="Migrations\V001__init.sql" />
+      <None Remove="Migrations\V002__add_outbox_indexes.sql" />
+      <EmbeddedResource Include="Migrations\V002__add_outbox_indexes.sql" />
+      <None Remove="Migrations\V003__add_unresolvable_events.sql" />
+      <EmbeddedResource Include="Migrations\V003__add_unresolvable_events.sql" />
     </ItemGroup>
 
 </Project>

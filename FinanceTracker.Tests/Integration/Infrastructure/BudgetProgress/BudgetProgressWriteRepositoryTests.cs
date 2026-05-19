@@ -1,10 +1,13 @@
-﻿using FinanceTracker.Core.Services.Currency;
+﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.BudgetProgress;
@@ -13,6 +16,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 {
     private BudgetProgressWriteRepository _writeRepository = null!;
     private ICurrencyConversionService _currencyConversionService = null!;
+    private IUnitOfWork _unitOfWork = null!;
     private UserBuilder _userBuilder = null!;
     private CategoryBuilder _categoryBuilder = null!;
     private BudgetBuilder _budgetBuilder = null!;
@@ -35,9 +39,20 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             currencyConversionService: _currencyConversionService,
             dateProvider: FakeDateProvider.Default
         );
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            onError: Arg.Any<Func<Exception, Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+        
         _userBuilder = new UserBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);
-        _budgetBuilder = new BudgetBuilder(context: Context);
+        _budgetBuilder = new BudgetBuilder(
+            context: Context,
+            unitOfWork: _unitOfWork,
+            logger: Substitute.For<ILogger<BudgetWriteRepository>>()
+        );
         _accountBuilder = new AccountBuilder(context: Context);
         _transactionBuilder = new TransactionBuilder(context: Context);
     }

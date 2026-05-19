@@ -4,8 +4,10 @@ using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
@@ -21,6 +23,7 @@ namespace FinanceTracker.Tests.Unit.Workers;
 public sealed class AccountTransferConsumerTests : DatabaseFixture
 {
 	private IAccountRepository _accountRepository = null!;
+	private IUnresolvableEventWriteRepository _unresolvableEventWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private AccountTransferConsumer _consumer = null!;
 
@@ -33,7 +36,8 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-
+		_unresolvableEventWriteRepository = Substitute.For<IUnresolvableEventWriteRepository>();
+		
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -41,6 +45,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		_consumer = new AccountTransferConsumer(
 			accountRepository: _accountRepository,
+			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
 				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
 				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
@@ -254,6 +259,26 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _accountRepository.DidNotReceive().SaveAsync(
 			account: fromAccount,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+	
+	[Test]
+	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldCreateUnresolvableEvent()
+	{
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
+			type: UnresolvableEventType.TransferCompensation,
+			referenceId: TransferId,
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTime>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

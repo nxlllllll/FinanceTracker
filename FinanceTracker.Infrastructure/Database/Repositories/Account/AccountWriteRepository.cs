@@ -41,8 +41,6 @@ public sealed class AccountWriteRepository(
         AccountCreated @event,
         CancellationToken ct = default)
 	{
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
 			await context.Accounts.AddAsync(entity: new AccountEntity()
 			{
 				Id = @event.AccountId,
@@ -62,9 +60,11 @@ public sealed class AccountWriteRepository(
 				UpdatedAt = @event.OccurredAt
 			}, cancellationToken: ct);
 			
-			await context.SaveChangesAsync(cancellationToken: ct);
-		}, onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create account {@event.AccountId}."),
-		ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(
+			operation: async () => await context.SaveChangesAsync(cancellationToken: ct), 
+			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create account {@event.AccountId}."),
+			ct: ct
+		);
 	}
 
 	public async Task AdjustBalanceAsync(

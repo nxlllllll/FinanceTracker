@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ZLogger;
 
-namespace FinanceTracker.Application.Behaviours.ConcurrencyRetry;
+namespace FinanceTracker.Application.Behaviours.Retry;
 
 public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 	ILogger<ConcurrencyRetryBehavior<TRequest, TResponse>> logger,

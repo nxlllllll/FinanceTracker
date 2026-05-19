@@ -3,11 +3,13 @@ using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
@@ -18,6 +20,7 @@ namespace FinanceTracker.Worker.TransferProjection.Consumers;
 
 public sealed class AccountTransferConsumer(
 	IAccountRepository accountRepository,
+    IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
 	IIntegrationEventTypeResolver integrationEventTypeResolver,
 	IProcessedMessageReadRepository processedMessageReadRepository,
 	IProcessedMessageWriteRepository processedMessageWriteRepository,
@@ -102,6 +105,23 @@ public sealed class AccountTransferConsumer(
 		if (fromAccount is null)
 		{
 			logger.ZLogError(message: $"[{correlationId}] Compensation FAILED: fromAccount {debitEvent.AccountId} not found. Transfer {debitEvent.TransferId} requires manual resolution.");
+			
+			string payload = JsonSerializer.Serialize(value: new
+			{
+				fromAccountId = debitEvent.AccountId,
+				amount = debitEvent.Amount,
+				correlationId = correlationId
+			});
+
+			await unresolvableEventWriteRepository.CreateAsync(
+				type: UnresolvableEventType.TransferCompensation,
+				referenceId: debitEvent.TransferId,
+				reason: reason ?? "fromAccount not found.",
+				payload: payload,
+				occurredAt: dateProvider.UtcNow,
+				ct: ct
+			);
+
 			return;
 		}
 
@@ -130,7 +150,7 @@ public sealed class AccountTransferConsumer(
 			}
 			catch (Exception exception)
 			{
-				logger.ZLogWarning(exception: exception, message: $"{exception.Message}");
+				logger.ZLogWarning(exception: exception, message: $"Failed to deserialize envelope with event type '{envelope.EventType}'.");
 			}
 		}
 

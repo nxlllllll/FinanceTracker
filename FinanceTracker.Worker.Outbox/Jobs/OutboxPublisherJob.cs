@@ -2,10 +2,11 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Outbox;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Jobs.Outbox;
 using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -17,19 +18,20 @@ namespace FinanceTracker.Worker.Outbox.Jobs;
 
 [DisallowConcurrentExecution]
 public sealed class OutboxPublisherJob(
-	IOutboxReadRepository outboxReadRepository,
-	IOutboxWriteRepository outboxWriteRepository,
-	IRabbitMqPublisher publisher,
-	IUnitOfWork unitOfWork,
-	IDateProvider dateProvider,
-	IOptions<OutboxOptions> outboxOptions,
-	ILogger<OutboxPublisherJob> logger
+    IOutboxReadRepository outboxReadRepository,
+    IOutboxWriteRepository outboxWriteRepository,
+    IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
+    IRabbitMqPublisher publisher,
+    IUnitOfWork unitOfWork,
+    IDateProvider dateProvider,
+    IOptions<OutboxOptions> outboxOptions,
+    ILogger<OutboxPublisherJob> logger
 ) : IJob
 {
-	private readonly OutboxOptions _outboxOptions = outboxOptions.Value;
+    private readonly OutboxOptions _outboxOptions = outboxOptions.Value;
 
-	public async Task Execute(IJobExecutionContext executionContext)
-		=> await ProcessBatchAsync(ct: executionContext.CancellationToken);
+    public async Task Execute(IJobExecutionContext executionContext)
+        => await ProcessBatchAsync(ct: executionContext.CancellationToken);
 
 	private async Task ProcessBatchAsync(CancellationToken ct)
 	{
@@ -106,23 +108,39 @@ public sealed class OutboxPublisherJob(
 				int newRetryCount = message.RetryCount + 1;
 				DateTime? failedAt = newRetryCount >= _outboxOptions.MaxRetries ? dateProvider.UtcNow : null;
 
-				if (failedAt is not null)
-				{
-					WorkerMetrics.OutboxFailed.Add(delta: 1);
-					logger.ZLogError(message: $"Outbox message {message.Id} moved to dead letter after {_outboxOptions.MaxRetries} retries.");
-				}
+                if (failedAt is not null)
+                {
+                    WorkerMetrics.OutboxFailed.Add(delta: 1);
+                    logger.ZLogError(message: $"Outbox message {message.Id} exceeded max retries ({_outboxOptions.MaxRetries}). Moving to unresolvable events.");
 
-				await outboxWriteRepository.MarkAsFailedAsync(
-					messageId: message.Id,
-					retryCount: newRetryCount,
-					failedAt: failedAt,
-					ct: ct
-				);
-			}, ct: ct);
-		}
-		catch (Exception innerException)
-		{
-			logger.ZLogError(exception: innerException, message: $"Failed to update retry state for outbox message {message.Id}.");
-		}
-	}
+                    string payload = JsonSerializer.Serialize(value: new
+                    {
+                        aggregateId = message.AggregateId,
+                        aggregateType = message.AggregateType,
+                        retryCount = newRetryCount
+                    });
+
+					await unresolvableEventWriteRepository.CreateAsync(
+						type: UnresolvableEventType.OutboxDeadLetter,
+						referenceId: message.Id,
+						reason: $"Max retries ({_outboxOptions.MaxRetries}) exceeded.",
+						payload: payload,
+						occurredAt: dateProvider.UtcNow,
+						ct: ct
+					);
+                }
+
+                await outboxWriteRepository.MarkAsFailedAsync(
+                    messageId: message.Id,
+                    retryCount: newRetryCount,
+                    failedAt: failedAt,
+                    ct: ct
+                );
+            }, ct: ct);
+        }
+        catch (Exception innerException)
+        {
+            logger.ZLogError(exception: innerException, message: $"Failed to update retry state for outbox message {message.Id}.");
+        }
+    }
 }

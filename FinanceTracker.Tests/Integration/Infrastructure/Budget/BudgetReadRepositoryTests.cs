@@ -1,12 +1,16 @@
-﻿using FinanceTracker.Infrastructure.Database.Repositories.Budget;
+﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Budget;
 
 public sealed class BudgetReadRepositoryTests : DatabaseFixture
 {
     private BudgetReadRepository _readRepository = null!;
+    private IUnitOfWork _unitOfWork = null!;
     private UserBuilder _userBuilder = null!;
     private CategoryBuilder _categoryBuilder = null!;
     private BudgetBuilder _budgetBuilder = null!;
@@ -17,7 +21,17 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
         _readRepository = new BudgetReadRepository(context: Context);
         _userBuilder = new UserBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);
-        _budgetBuilder = new BudgetBuilder(context: Context);
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+        _budgetBuilder = new BudgetBuilder(
+            context: Context,
+            unitOfWork: _unitOfWork,
+            logger: Substitute.For<ILogger<BudgetWriteRepository>>()
+        );
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            onError: Arg.Any<Func<Exception, Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
     }
 
     [Test]

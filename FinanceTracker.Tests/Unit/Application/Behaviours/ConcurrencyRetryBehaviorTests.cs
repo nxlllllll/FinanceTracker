@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.ConcurrencyRetry;
+﻿using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using MediatR;

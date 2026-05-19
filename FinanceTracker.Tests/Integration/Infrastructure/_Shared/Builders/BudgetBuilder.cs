@@ -1,15 +1,26 @@
 ﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
-public class BudgetBuilder(FinanceTrackerContext context)
+public class BudgetBuilder(
+	FinanceTrackerContext context,
+	IUnitOfWork unitOfWork,
+	ILogger<BudgetWriteRepository> logger)
 {
-	private readonly BudgetWriteRepository _writeRepository = new BudgetWriteRepository(context: context, dateProvider: FakeDateProvider.Default);
+	private readonly IBudgetWriteRepository _writeRepository = new BudgetWriteRepository(
+		context: context, 
+		dateProvider: FakeDateProvider.Default,
+		unitOfWork: unitOfWork,
+		logger: logger
+	);
 
 	public async Task<Guid> CreateAsync(
 		Guid userId,
