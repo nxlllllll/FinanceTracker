@@ -23,8 +23,9 @@ public sealed class Program
 			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
  
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
  
-		builder.Services.AddWorkerHealthChecks(connectionString: connectionString)
+		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)
 			.AddCheck<RabbitMqHealthCheck>(name: "rabbitmq", tags: ["ready", "broker"]);
  
 		builder.Services.AddWorkerMetrics(workerName: "Worker.AccountProjection");

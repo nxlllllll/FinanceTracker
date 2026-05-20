@@ -9,13 +9,13 @@ namespace FinanceTracker.Worker.Shared.HealthChecks;
 
 public static class WorkerHealthCheckExtensions
 {
-	public static IHealthChecksBuilder AddWorkerHealthChecks(this IServiceCollection services, string connectionString)
+	public static IHealthChecksBuilder AddWorkerHealthChecks(
+		this IServiceCollection services,
+		string connectionString,
+		string redisConnectionString)
 	{
-		return services.AddHealthChecks().AddNpgSql(
-			connectionString: connectionString,
-			name: "postgres",
-			tags: ["ready", "db"]
-		);
+		return services.AddHealthChecks().AddNpgSql(connectionString: connectionString, name: "postgres", tags: ["ready", "db"])
+			.AddRedis(redisConnectionString: redisConnectionString, name: "redis", tags: ["ready", "cache"]);
 	}
 
 	public static IServiceCollection AddWorkerMetrics(this IServiceCollection services, string workerName)

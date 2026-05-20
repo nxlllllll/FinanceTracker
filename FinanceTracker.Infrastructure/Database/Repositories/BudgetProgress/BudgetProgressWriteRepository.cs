@@ -36,24 +36,27 @@ public sealed class BudgetProgressWriteRepository(
 
         foreach (BudgetEntity budget in budgets)
         {
-            ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
-                fromCurrency: currencyCode,
-                toCurrency: budget.Currency,
-                date: date,
-                ct: ct
-            );
+            decimal additionSpent = amount * delta;
+            if (budget.Currency != currencyCode)
+            {
+                ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
+                    fromCurrency: currencyCode,
+                    toCurrency: budget.Currency,
+                    date: date,
+                    ct: ct
+                );
+                additionSpent *= conversion.Rate;
+            }
             
-            await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
-                setPropertyCalls: builder => builder
-                    .SetProperty(
-                        propertyExpression: p => p.Spent,
-                        valueExpression: p => p.Spent + amount * conversion.Rate * delta
-                    )
-                    .SetProperty(
-                        propertyExpression: p => p.UpdatedAt,
-                        valueExpression: dateProvider.UtcNow
-                    ),
-                cancellationToken: ct
+            await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(setPropertyCalls: builder => builder
+                .SetProperty(
+                    propertyExpression: p => p.Spent,
+                    valueExpression: p => p.Spent + additionSpent
+                )
+                .SetProperty(
+                    propertyExpression: p => p.UpdatedAt,
+                    valueExpression: dateProvider.UtcNow
+                ), cancellationToken: ct
             );
         }
     }

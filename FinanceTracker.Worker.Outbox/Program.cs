@@ -42,9 +42,9 @@ public sealed class Program
 		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
 
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
-
-		builder.Services
-			.AddWorkerHealthChecks(connectionString: connectionString)
+		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
+ 
+		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)
 			.AddCheck<RabbitMqHealthCheck>(name: "rabbitmq", tags: ["ready", "broker"])
 			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
 

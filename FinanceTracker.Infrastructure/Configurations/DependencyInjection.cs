@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.AccountType;
@@ -17,11 +18,13 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Snapshot;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Password;
+using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
@@ -43,6 +46,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Snapshot;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
+using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Infrastructure.Services.Correlation;
@@ -71,10 +75,24 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: EventStoreOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
-		
+
+		services.AddOptions<RedisOptions>()
+			.BindConfiguration(configSectionPath: RedisOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
+
+		RedisOptions redisOptions = configuration.GetSection(key: RedisOptions.SectionName).Get<RedisOptions>()
+			?? throw new ConfigurationException(message: "Redis configuration is missing.");
+
+		services.AddStackExchangeRedisCache(setupAction: options =>
+		{
+			options.Configuration = redisOptions.ConnectionString;
+			options.InstanceName = redisOptions.InstanceName;
+		});
 
 		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: s => new EventTypeResolver(
 			assembly: typeof(IEvent).Assembly,
@@ -105,6 +123,7 @@ public static class DependencyInjection
 		services.AddScoped<IAccountWriteRepository, AccountWriteRepository>();
 
 		services.AddScoped<IAccountTypeReadRepository, AccountTypeReadRepository>();
+		services.Decorate<IAccountTypeReadRepository, CachedAccountTypeReadRepository>();
 		
 		services.AddScoped<IBudgetReadRepository, BudgetReadRepository>();
 		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();
@@ -119,8 +138,10 @@ public static class DependencyInjection
 		services.AddScoped<ICategoryTotalReadRepository, CategoryTotalReadRepository>();
 		
 		services.AddScoped<ICurrencyReadRepository, CurrencyReadRepository>();
+		services.Decorate<ICurrencyReadRepository, CachedCurrencyReadRepository>();
 		
 		services.AddScoped<ICurrencyRateReadRepository, CurrencyRateReadRepository>();
+		services.Decorate<ICurrencyRateReadRepository, CachedCurrencyRateReadRepository>();
 		services.AddScoped<ICurrencyRateWriteRepository, CurrencyRateWriteRepository>();
 		
 		services.AddScoped<IRecurringTransactionReadRepository, RecurringTransactionReadRepository>();
@@ -131,6 +152,9 @@ public static class DependencyInjection
 
 		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
 		services.AddScoped<ITransferReadRepository, TransferReadRepository>();
+
+		services.AddScoped<IUnresolvableEventReadRepository, UnresolvableEventReadRepository>();
+		services.AddScoped<IUnresolvableEventWriteRepository, UnresolvableEventWriteRepository>();
 		
 		services.AddScoped<IUserReadRepository, UserReadRepository>();
 		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
@@ -153,6 +177,8 @@ public static class DependencyInjection
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
+		
+		services.AddSingleton<RedisCache>();
 		
 		return services;
 	}
