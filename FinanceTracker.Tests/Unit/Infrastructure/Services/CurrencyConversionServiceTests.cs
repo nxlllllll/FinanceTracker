@@ -6,7 +6,7 @@ using FinanceTracker.Infrastructure.Services.Currency;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
-namespace FinanceTracker.Tests.Unit.Application.Services;
+namespace FinanceTracker.Tests.Unit.Infrastructure.Services;
 
 public sealed class CurrencyConversionServiceTests
 {

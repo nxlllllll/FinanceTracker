@@ -8,12 +8,12 @@ insert into unresolvable_event_types (code, name) values
     ('transfer_compensation', 'Transfer Compensation Failure');
 
 create table unresolvable_events (
-    id           UUID        primary key,
+    id           uuid        primary key,
     type_code    varchar(50) not null references unresolvable_event_types(code),
-    reference_id UUID        not null,
-    reason       TEXT        not null,
-    payload      JSONB       not null,
-    occurred_at  TIMESTAMPTZ not null
+    reference_id uuid        not null,
+    reason       text        not null,
+    payload      jsonb       not null,
+    occurred_at  timestamptz not null
 );
 
 create index idx_unresolvable_events_occurred_at on unresolvable_events (occurred_at desc);

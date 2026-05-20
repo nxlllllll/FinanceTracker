@@ -45,6 +45,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	
 	public DbSet<UnresolvableEventEntity> UnresolvableEvents => Set<UnresolvableEventEntity>();
 	
+	public DbSet<UserSessionEntity> UserSessions => Set<UserSessionEntity>();
+	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);
 }

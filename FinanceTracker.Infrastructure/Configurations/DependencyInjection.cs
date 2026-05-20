@@ -20,10 +20,13 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Repositories.UserSession;
+using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Password;
+using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -48,11 +51,14 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
+using FinanceTracker.Infrastructure.Database.Repositories.UserSession;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
+using FinanceTracker.Infrastructure.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Correlation;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
 using FinanceTracker.Infrastructure.Services.Password;
+using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,6 +87,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<JwtOptions>()
+			.BindConfiguration(configSectionPath: JwtOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+		
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
@@ -159,6 +170,9 @@ public static class DependencyInjection
 		services.AddScoped<IUserReadRepository, UserReadRepository>();
 		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
 
+		services.AddScoped<IUserSessionReadRepository, UserSessionReadRepository>();
+		services.AddScoped<IUserSessionWriteRepository, UserSessionWriteRepository>();
+		
 		services.AddScoped<IOperationsWriteRepository, OperationsWriteRepository>();
 		
 		services.AddScoped<IIdempotencyReadRepository, IdempotencyReadRepository>();
@@ -175,6 +189,8 @@ public static class DependencyInjection
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<IDateProvider, DateProvider>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
+		services.AddScoped<ITokenService, JwtTokenService>();
+		services.AddScoped<ISessionIssuer, SessionIssuer>();	
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		

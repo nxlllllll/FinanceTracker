@@ -39,7 +39,9 @@ public sealed class ArchitectureTests
 		"Microsoft.Extensions",
 		"ZLogger",
 		"Scrutor",
-		"Konscious.Security.Cryptography"
+		"Konscious.Security.Cryptography",
+		"Microsoft.IdentityModel.Tokens",
+		"Blake3"
 	];
 
 	[Test]
@@ -61,7 +63,7 @@ public sealed class ArchitectureTests
 	{
 		IEnumerable<string> violations = InfrastructureAssembly
 			.GetReferencedAssemblies()
-			.Select(selector: a => a.Name ?? string.Empty)
+			.Select(selector: a => a.Name ?? String.Empty)
 			.Where(predicate: name => !InfrastructureAllowedAssemblyPrefixes.Any(
 				predicate: prefix => name.StartsWith(value: prefix, comparisonType: StringComparison.OrdinalIgnoreCase)
 			));
