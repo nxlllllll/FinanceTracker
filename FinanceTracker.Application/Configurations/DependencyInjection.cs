@@ -9,7 +9,6 @@ using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Results;
 using FluentValidation;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -17,9 +16,7 @@ namespace FinanceTracker.Application.Configurations;
 
 public static class DependencyInjection
 {
-	public static IServiceCollection AddApplication(
-		this IServiceCollection services,
-		IConfiguration configuration)
+	public static IServiceCollection AddApplication(this IServiceCollection services)
 	{
 		services.AddOptions<RetryOptions>()
 			.BindConfiguration(configSectionPath: RetryOptions.SectionName)

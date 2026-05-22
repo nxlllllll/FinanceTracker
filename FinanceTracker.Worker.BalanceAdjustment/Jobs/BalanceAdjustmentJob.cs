@@ -44,25 +44,6 @@ public sealed class BalanceAdjustmentJob(
         await ProcessTransfersAsync(ct: ct);
     }
 
-    private async Task<T> ExecuteWithRetryAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken ct)
-    {
-        for (int attempt = 0; attempt <= _options.MaxRetries; attempt++)
-        {
-            try
-            {
-                return await operation(ct);
-            }
-            catch (ConcurrencyConflictException) when (attempt < _options.MaxRetries)
-            {
-                int delayMs = RetryDelayCalculator.Calculate(attempt: attempt, baseDelayMs: _options.BaseDelayMs, useJitter: _options.UseJitter);
-                logger.ZLogWarning(message: $"[ConcurrencyRetry] Attempt {attempt + 1}/{_options.MaxRetries} failed. Retrying in {delayMs}ms.");
-                await Task.Delay(millisecondsDelay: delayMs, cancellationToken: ct);
-            }
-        }
-
-        throw new UnreachableException();
-    }
-
     private async Task<AdjustResult> TryAdjustAsync(
         Guid itemId,
         Func<CancellationToken, Task<AdjustResult>> work,
@@ -70,7 +51,17 @@ public sealed class BalanceAdjustmentJob(
     {
         try
         {
-            return await ExecuteWithRetryAsync(operation: work, ct: ct);
+            return await RetryDelayCalculator.ExecuteWithRetryAsync(
+                operation: work,
+                logging: (exception, attempt, delay) => logger.ZLogWarning(exception: exception, message: $"""
+                    [ConcurrencyRetry] Attempt {attempt + 1}/{_options.MaxRetries} failed.
+                    Retrying in {delay}ms.
+                """),
+                maxRetries: _options.MaxRetries,
+                baseDelayMs: _options.BaseDelayMs,
+                useJitter: _options.UseJitter,
+                ct: ct
+            );
         }
         catch (Exception ex)
         {

@@ -4,7 +4,6 @@ using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
-using FinanceTracker.Core.Repositories.AccountType;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.Category;
@@ -34,7 +33,6 @@ using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
-using FinanceTracker.Infrastructure.Database.Repositories.AccountType;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
@@ -132,9 +130,6 @@ public static class DependencyInjection
 		services.AddScoped<IAccountRepository, AccountRepository>();
 		services.AddScoped<IAccountReadRepository, AccountReadRepository>();
 		services.AddScoped<IAccountWriteRepository, AccountWriteRepository>();
-
-		services.AddScoped<IAccountTypeReadRepository, AccountTypeReadRepository>();
-		services.Decorate<IAccountTypeReadRepository, CachedAccountTypeReadRepository>();
 		
 		services.AddScoped<IBudgetReadRepository, BudgetReadRepository>();
 		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();

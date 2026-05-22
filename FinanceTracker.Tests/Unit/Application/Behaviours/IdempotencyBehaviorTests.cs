@@ -43,8 +43,8 @@ public sealed class IdempotencyBehaviorTests
 	private IdempotencyBehavior<TReq, Result<Guid, DomainException>> BuildBehavior<TReq>(int expiryHours = 24) where TReq : notnull
 	{
 		return new IdempotencyBehavior<TReq, Result<Guid, DomainException>>(
-			readRepository: _readRepository,
-			writeRepository: _writeRepository,
+			idempotencyReadRepository: _readRepository,
+			idempotencyWriteRepository: _writeRepository,
 			options: Options.Create(options: new IdempotencyOptions { ExpiryHours = expiryHours }),
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<IdempotencyBehavior<TReq, Result<Guid, DomainException>>>>()

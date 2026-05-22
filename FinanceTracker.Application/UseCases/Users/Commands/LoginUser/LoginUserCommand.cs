@@ -4,9 +4,9 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
-namespace FinanceTracker.Application.UseCases.Users.Commands.Login;
+namespace FinanceTracker.Application.UseCases.Users.Commands.LoginUser;
 
-public sealed record LoginCommand(
+public sealed record LoginUserCommand(
 	Email Email,
 	string Password
 ) : IRequest<Result<TokenResponse, DomainException>>;

@@ -6,15 +6,11 @@ namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
 public class AccountBuilder(FinanceTrackerContext context)
 {
-	private readonly AccountTypeBuilder _accountTypeBuilder = new AccountTypeBuilder(context: context);
-	
 	public async Task<Guid> CreateAsync(
 		Guid userId,
 		string currencyCode = "RUB",
 		decimal balance = 0)
 	{
-		await _accountTypeBuilder.CreateAsync();
-
 		Guid accountId = Guid.CreateVersion7();
 		await context.Accounts.AddAsync(new AccountEntity()
 		{

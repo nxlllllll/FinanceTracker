@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ValueObjects;
@@ -16,7 +17,6 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 {
     private AccountWriteRepository _writeRepository = null!;
     private CurrencyBuilder _currencyBuilder = null!;
-    private AccountTypeBuilder _accountTypeBuilder = null!;
     private UserBuilder _userBuilder = null!;
     private IUnitOfWork _unitOfWork = null!;
     
@@ -40,14 +40,12 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             logger: Substitute.For<ILogger<AccountWriteRepository>>()
         );
         _currencyBuilder = new CurrencyBuilder(context: Context);
-        _accountTypeBuilder = new AccountTypeBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
     }
 
     private async Task<AccountCreated> CreateAccountAsync()
     {
         Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
-        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         AccountCreated @event = new AccountCreated(
@@ -55,7 +53,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
             Name: Name.Create(value: "Карта Сбер").Value,
-            Type: accountType,
+            Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow

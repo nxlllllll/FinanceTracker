@@ -11,8 +11,8 @@ using ZLogger;
 namespace FinanceTracker.Application.Behaviours.Idempotency;
 
 public sealed class IdempotencyBehavior<TRequest, TResponse>(
-	IIdempotencyReadRepository readRepository,
-	IIdempotencyWriteRepository writeRepository,
+	IIdempotencyReadRepository idempotencyReadRepository,
+	IIdempotencyWriteRepository idempotencyWriteRepository,
 	IOptions<IdempotencyOptions> options,
 	IDateProvider dateProvider,
 	ILogger<IdempotencyBehavior<TRequest, TResponse>> logger
@@ -33,7 +33,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 		if (request is not IIdempotentCommand idempotent || idempotent.IdempotencyKey == Guid.Empty)
 			return await next(t: cancellationToken);
 
-		string? cached = await readRepository.GetAsync(idempotencyKey: idempotent.IdempotencyKey, ct: cancellationToken);
+		string? cached = await idempotencyReadRepository.GetAsync(idempotencyKey: idempotent.IdempotencyKey, ct: cancellationToken);
 
 		if (cached is not null)
 		{
@@ -47,7 +47,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 		{
 			DateTime expiresAt = dateProvider.UtcNow.AddHours(value: options.Value.ExpiryHours);
 
-			await writeRepository.StoreAsync(
+			await idempotencyWriteRepository.StoreAsync(
 				idempotencyKey: idempotent.IdempotencyKey,
 				commandType: typeof(TRequest).Name,
 				responseJson: JsonSerializer.Serialize(value: response, options: JsonOptions),

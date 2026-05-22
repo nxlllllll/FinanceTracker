@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
 
-namespace FinanceTracker.Application.UseCases.Users.Commands.Login;
+namespace FinanceTracker.Application.UseCases.Users.Commands.LoginUser;
 
-public sealed class LoginCommandValidator : AbstractValidator<LoginCommand>
+public sealed class LoginUserCommandValidator : AbstractValidator<LoginUserCommand>
 {
-	public LoginCommandValidator()
+	public LoginUserCommandValidator()
 	{
 		RuleFor(expression: x => x.Email)
 			.Must(predicate: email => email != default).WithMessage(errorMessage: "The email cannot be empty.");

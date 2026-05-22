@@ -17,8 +17,6 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	
 	public DbSet<CurrencyEntity> Currencies => Set<CurrencyEntity>();
 	
-	public DbSet<AccountTypeEntity> AccountTypes => Set<AccountTypeEntity>();
-	
 	public DbSet<UserEntity> Users => Set<UserEntity>();
 	
 	public DbSet<OutboxMessageEntity> OutboxMessages => Set<OutboxMessageEntity>();

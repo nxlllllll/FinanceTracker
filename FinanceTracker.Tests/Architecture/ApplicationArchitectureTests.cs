@@ -3,7 +3,6 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Results;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;
@@ -97,7 +96,7 @@ public sealed class ApplicationArchitectureTests
 	public async Task AllIAuthorizedHandlers_ShouldHaveRegisteredRequestHandler()
 	{
 		IServiceCollection services = new ServiceCollection();
-		services.AddApplication(configuration: new ConfigurationBuilder().Build());
+		services.AddApplication();
 
 		Type authorizedHandlerOpen = typeof(IAuthorizedHandler<,,,>);
 		Type requestHandlerOpen = typeof(IRequestHandler<,>);
@@ -126,7 +125,7 @@ public sealed class ApplicationArchitectureTests
 	public async Task AllIEntityLoaders_ShouldBeRegisteredForAllTheirInterfaces()
 	{
 		IServiceCollection services = new ServiceCollection();
-		services.AddApplication(configuration: new ConfigurationBuilder().Build());
+		services.AddApplication();
 
 		Type entityLoaderOpen = typeof(IEntityLoader<,,>);
 

@@ -20,7 +20,6 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     private TransactionWriteRepository _writeRepository = null!;
     private AccountWriteRepository _accountWriteRepository = null!;
     private CurrencyBuilder _currencyBuilder = null!;
-    private AccountTypeBuilder _accountTypeBuilder = null!;
     private UserBuilder _userBuilder = null!;
     private IUnitOfWork _unitOfWork = null!;
 
@@ -45,14 +44,12 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             logger: Substitute.For<ILogger<AccountWriteRepository>>()
         );
         _currencyBuilder = new CurrencyBuilder(context: Context);
-        _accountTypeBuilder = new AccountTypeBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
     }
 
     private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
     {
         string currencyCode = await _currencyBuilder.CreateAsync();
-        Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
         Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
         Guid accountId = Guid.CreateVersion7();
@@ -61,7 +58,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             AccountId: accountId,
             UserId: userId,
             Name: Name.Create(value: "Карта Сбер").Value,
-            Type: accountType,
+            Type: AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
             Balance: 10000m,
             OccurredAt: DateTime.UtcNow

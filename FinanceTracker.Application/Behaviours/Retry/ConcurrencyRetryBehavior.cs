@@ -21,25 +21,16 @@ public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
-		for (int attempt = 0; attempt <= _retryOptions.MaxRetries; attempt++)
-		{
-			try
-			{
-				return await next(t: cancellationToken);
-			}
-			catch (ConcurrencyConflictException exception) when (attempt < _retryOptions.MaxRetries)
-			{
-				int delayMs = RetryDelayCalculator.Calculate(attempt: attempt, baseDelayMs: _retryOptions.BaseDelayMs, useJitter: _retryOptions.UseJitter);
-
-				logger.ZLogWarning(exception: exception, message: $"""
-					Concurrency conflict on {typeof(TRequest).Name} {exception.Id}
-					Retry {attempt + 1}/{_retryOptions.MaxRetries} in {delayMs}ms.
-				""");
-
-				await Task.Delay(millisecondsDelay: delayMs, cancellationToken: cancellationToken);
-			}
-		}
-
-		throw new UnreachableException();
+		return await RetryDelayCalculator.ExecuteWithRetryAsync(
+			operation: async ct => await next(t: ct),
+			logging: (exception, attempt, delay) => logger.ZLogWarning(exception: exception, message: $"""
+				Concurrency conflict on {typeof(TRequest).Name} {exception.Id}
+				Retry {attempt + 1}/{_retryOptions.MaxRetries} in {delay}ms.
+			"""),
+			maxRetries: _retryOptions.MaxRetries,
+			baseDelayMs: _retryOptions.BaseDelayMs, 
+			useJitter: _retryOptions.UseJitter,
+			ct: cancellationToken
+		);
 	}
 }

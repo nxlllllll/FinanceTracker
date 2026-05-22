@@ -6,21 +6,21 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Password;
 using MediatR;
 
-namespace FinanceTracker.Application.UseCases.Users.Commands.Login;
+namespace FinanceTracker.Application.UseCases.Users.Commands.LoginUser;
 
-public sealed class LoginHandler(
+public sealed class LoginUserHandler(
 	IUserReadRepository userReadRepository,
 	IPasswordHasher passwordHasher,
 	ISessionIssuer sessionIssuer
-) : IRequestHandler<LoginCommand, Result<TokenResponse, DomainException>>
+) : IRequestHandler<LoginUserCommand, Result<TokenResponse, DomainException>>
 {
 	public async Task<Result<TokenResponse, DomainException>> Handle(
-		LoginCommand command,
+		LoginUserCommand userCommand,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User? user = await userReadRepository.GetByEmailAsync(email: command.Email.Value, ct: ct);
+		Core.Domains.User.User? user = await userReadRepository.GetByEmailAsync(email: userCommand.Email.Value, ct: ct);
 
-		if (user is null || !await passwordHasher.Verify(password: command.Password, hash: user.PasswordHash))
+		if (user is null || !await passwordHasher.Verify(password: userCommand.Password, hash: user.PasswordHash))
 			return Result<TokenResponse, DomainException>.Failure(error: new InvalidCredentialsException());
 
 		TokenResponse response = await sessionIssuer.IssueAsync(user: user, ct: ct);

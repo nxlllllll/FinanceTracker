@@ -21,7 +21,6 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	private TransactionWriteRepository _writeRepository = null!;
 	private AccountWriteRepository _accountWriteRepository = null!;
 	private CurrencyBuilder _currencyBuilder = null!;
-	private AccountTypeBuilder _accountTypeBuilder = null!;
 	private UserBuilder _userBuilder = null!;
 	private AccountBuilder _accountBuilder = null!;
 	private CategoryBuilder _categoryBuilder = null!;
@@ -50,7 +49,6 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			logger: Substitute.For<ILogger<AccountWriteRepository>>()
 		);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
-		_accountTypeBuilder = new AccountTypeBuilder(context: Context);
 		_userBuilder = new UserBuilder(context: Context);
 		_accountBuilder = new AccountBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);
@@ -60,7 +58,6 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	private async Task<(Guid accountId, Guid categoryId, Guid userId)> CreateAccountAndCategoryAsync()
 	{
 		string currencyCode = await _currencyBuilder.CreateAsync();
-		Core.Domains.Account.AccountType accountType = await _accountTypeBuilder.CreateAsync();
 		Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
 		Guid accountId = Guid.CreateVersion7();
@@ -69,7 +66,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			AccountId: accountId,
 			UserId: userId,
 			Name: Name.Create(value: "Карта Сбер").Value,
-			Type: accountType,
+			Type: AccountType.Checking,
 			Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			Balance: 10000m,
 			OccurredAt: DateTime.UtcNow
