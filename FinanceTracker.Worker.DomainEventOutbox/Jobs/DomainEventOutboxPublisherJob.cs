@@ -21,19 +21,27 @@ public sealed class DomainEventOutboxPublisherJob(
 	IRabbitMqPublisher publisher,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
-	IOptions<DomainEventOutboxPublisherJobOptions> options,
+	IOptionsMonitor<DomainEventOutboxPublisherJobOptions> options,
 	ILogger<DomainEventOutboxPublisherJob> logger
 ) : IJob
 {
-	private readonly DomainEventOutboxPublisherJobOptions _options = options.Value;
-
 	public async Task Execute(IJobExecutionContext executionContext)
-		=> await ProcessBatchAsync(ct: executionContext.CancellationToken);
+	{
+		DomainEventOutboxPublisherJobOptions currentOptions = options.CurrentValue;
 
-	private async Task ProcessBatchAsync(CancellationToken ct)
+		if (!currentOptions.IsEnabled)
+		{
+			logger.ZLogInformation(message: $"[{nameof(DomainEventOutboxPublisherJob)}] Disabled. Skipping.");
+			return;
+		}
+
+		await ProcessBatchAsync(options: currentOptions, ct: executionContext.CancellationToken);
+	}
+
+	private async Task ProcessBatchAsync(DomainEventOutboxPublisherJobOptions options, CancellationToken ct)
 	{
 		IReadOnlyList<PendingDomainEvent> events = await readRepository.GetPendingBatchAsync(
-			batchSize: _options.BatchSize,
+			batchSize: options.BatchSize,
 			ct: ct
 		);
 
@@ -80,7 +88,7 @@ public sealed class DomainEventOutboxPublisherJob(
 					return;
 
 				logger.ZLogError(exception: exception, message: $"Failed to publish domain event {@event.Id} ({@event.EventType}).");
-				await UpdateRetryStateAsync(@event: @event, ct: ct);
+				await UpdateRetryStateAsync(@event: @event, options: options, ct: ct);
 			}
 			finally
 			{
@@ -89,21 +97,21 @@ public sealed class DomainEventOutboxPublisherJob(
 		}
 	}
 
-	private async Task UpdateRetryStateAsync(PendingDomainEvent @event, CancellationToken ct)
+	private async Task UpdateRetryStateAsync(PendingDomainEvent @event, DomainEventOutboxPublisherJobOptions options, CancellationToken ct)
 	{
 		try
 		{
 			int newRetryCount = @event.RetryCount + 1;
-			DateTime? failedAt = newRetryCount >= _options.MaxRetries ? dateProvider.UtcNow : null;
+			DateTime? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
 
 			if (failedAt is not null)
 			{
-				logger.ZLogError(message: $"Domain event {@event.Id} exceeded max retries ({_options.MaxRetries}). Moving to unresolvable events.");
+				logger.ZLogError(message: $"Domain event {@event.Id} exceeded max retries ({options.MaxRetries}). Moving to unresolvable events.");
 
 				await unresolvableEventWriteRepository.CreateAsync(
 					type: UnresolvableEventType.OutboxDeadLetter,
 					referenceId: @event.Id,
-					reason: $"Max retries ({_options.MaxRetries}) exceeded.",
+					reason: $"Max retries ({options.MaxRetries}) exceeded.",
 					payload: @event.Payload,
 					occurredAt: dateProvider.UtcNow,
 					ct: ct

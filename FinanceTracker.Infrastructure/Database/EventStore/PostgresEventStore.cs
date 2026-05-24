@@ -34,11 +34,13 @@ public sealed class PostgresEventStore(
 	IIntegrationEventTypeResolver integrationEventTypeResolver,
 	IDateProvider dateProvider,
 	ILogger<PostgresEventStore> logger,
-	IOptions<EventStoreOptions> options,
+	IOptionsMonitor<EventStoreOptions> options,
 	ICorrelationContext correlationContext,
 	IEventUpcasterRegistry upcasterRegistry
 ) : IEventStore
 {
+	private readonly EventStoreOptions _options = options.CurrentValue;
+	
 	private (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
 		Guid aggregateId,
 		string aggregateType,
@@ -98,8 +100,8 @@ public sealed class PostgresEventStore(
 		CancellationToken ct = default)
 	{
 		int newVersion = expectedVersion + eventsCount;
-		int previousThreshold = expectedVersion / options.Value.SnapshotThreshold;
-		int newThreshold = newVersion / options.Value.SnapshotThreshold;
+		int previousThreshold = expectedVersion / _options.SnapshotThreshold;
+		int newThreshold = newVersion / _options.SnapshotThreshold;
 
 		if (snapshotFactory is null || newThreshold <= previousThreshold)
 			return;

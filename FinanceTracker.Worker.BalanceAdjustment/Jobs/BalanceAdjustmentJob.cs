@@ -29,23 +29,32 @@ public sealed class BalanceAdjustmentJob(
     ICurrencyRateReadRepository currencyRateReadRepository,
     IUnitOfWork unitOfWork,
     IDateProvider dateProvider,
-    IOptions<BalanceAdjustmentJobOptions> options,
+    IOptionsMonitor<BalanceAdjustmentJobOptions> options,
     ILogger<BalanceAdjustmentJob> logger
 ) : IJob
 {
-    private readonly BalanceAdjustmentJobOptions _options = options.Value;
-
     public async Task Execute(IJobExecutionContext executionContext)
-        => await ProcessAsync(ct: executionContext.CancellationToken);
-
-    private async Task ProcessAsync(CancellationToken ct)
     {
-        await ProcessTransactionsAsync(ct: ct);
-        await ProcessTransfersAsync(ct: ct);
+        BalanceAdjustmentJobOptions currentOptions = options.CurrentValue;
+
+        if (!currentOptions.IsEnabled)
+        {
+            logger.ZLogInformation(message: $"[{nameof(BalanceAdjustmentJob)}] Disabled. Skipping.");
+            return;
+        }
+
+        await ProcessAsync(options: currentOptions, ct: executionContext.CancellationToken);
+    }
+
+    private async Task ProcessAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
+    {
+        await ProcessTransactionsAsync(options: options, ct: ct);
+        await ProcessTransfersAsync(options: options, ct: ct);
     }
 
     private async Task<AdjustResult> TryAdjustAsync(
         Guid itemId,
+        BalanceAdjustmentJobOptions options,
         Func<CancellationToken, Task<AdjustResult>> work,
         CancellationToken ct)
     {
@@ -54,12 +63,12 @@ public sealed class BalanceAdjustmentJob(
             return await RetryDelayCalculator.ExecuteWithRetryAsync(
                 operation: work,
                 logging: (exception, attempt, delay) => logger.ZLogWarning(exception: exception, message: $"""
-                    [ConcurrencyRetry] Attempt {attempt + 1}/{_options.MaxRetries} failed.
+                    [ConcurrencyRetry] Attempt {attempt + 1}/{options.MaxRetries} failed.
                     Retrying in {delay}ms.
-                """),
-                maxRetries: _options.MaxRetries,
-                baseDelayMs: _options.BaseDelayMs,
-                useJitter: _options.UseJitter,
+                    """),
+                maxRetries: options.MaxRetries,
+                baseDelayMs: options.BaseDelayMs,
+                useJitter: options.UseJitter,
                 ct: ct
             );
         }
@@ -71,12 +80,11 @@ public sealed class BalanceAdjustmentJob(
     }
 
     private void LogSummary(string entityName, int total, int adjusted, int skipped, int failed)
-    {
-        logger.ZLogInformation(message: $"{entityName}s complete. Total: {total}, adjusted: {adjusted}, skipped: {skipped}, failed: {failed}.");
-    }
+        => logger.ZLogInformation(message: $"{entityName}s complete. Total: {total}, adjusted: {adjusted}, skipped: {skipped}, failed: {failed}.");
 
     private async Task ProcessPendingAsync<T>(
         IReadOnlyList<T> pending,
+        BalanceAdjustmentJobOptions options,
         string entityName,
         Func<T, Guid> getId,
         Func<T, decimal> getCurrentRate,
@@ -121,6 +129,7 @@ public sealed class BalanceAdjustmentJob(
 
             AdjustResult result = await TryAdjustAsync(
                 itemId: getId(item),
+                options: options,
                 work: innerCt => onAdjustAsync(item, newRate.Value, innerCt),
                 ct: ct
             );
@@ -136,12 +145,13 @@ public sealed class BalanceAdjustmentJob(
         LogSummary(entityName: entityName, total: pending.Count, adjusted: adjusted, skipped: skipped, failed: failed);
     }
 
-    private async Task ProcessTransactionsAsync(CancellationToken ct)
+    private async Task ProcessTransactionsAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
     {
         IReadOnlyList<PendingRateTransaction> pending = await transactionReadRepository.GetPendingRateAsync(ct: ct);
 
         await ProcessPendingAsync(
             pending: pending,
+            options: options,
             entityName: nameof(Transaction),
             getId: item => item.TransactionId,
             getCurrentRate: item => item.CurrentRate,
@@ -196,12 +206,13 @@ public sealed class BalanceAdjustmentJob(
         );
     }
 
-    private async Task ProcessTransfersAsync(CancellationToken ct)
+    private async Task ProcessTransfersAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
     {
         IReadOnlyList<PendingRateTransfer> pending = await transferReadRepository.GetPendingRateAsync(ct: ct);
 
         await ProcessPendingAsync(
             pending: pending,
+            options: options,
             entityName: nameof(Transfer),
             getId: item => item.TransferId,
             getCurrentRate: item => item.CurrentRate,

@@ -6,13 +6,19 @@ namespace FinanceTracker.Worker.CurrencyRate.Client;
 
 public sealed class ExchangeRateApiClient(
 	HttpClient httpClient,
-	IOptions<ExchangeRateApiOptions> options,
+	IOptionsMonitor<ExchangeRateApiOptions> options,
 	ILogger<ExchangeRateApiClient> logger)
 {
-	private readonly ExchangeRateApiOptions _options = options.Value;
+	private readonly ExchangeRateApiOptions _options = options.CurrentValue;
 
 	public async Task<ExchangeRateApiResponse?> GetRatesAsync(string baseCurrency, CancellationToken ct = default)
 	{
+		if (!_options.IsEnabled)
+		{
+			logger.ZLogInformation(message: $"[{nameof(ExchangeRateApiClient)}] Disabled. Skipping fetch for {baseCurrency}.");
+			return null;
+		}
+
 		string url = $"{_options.BaseUrl}/{_options.ApiKey}/latest/{baseCurrency}";
 
 		try
@@ -28,7 +34,6 @@ public sealed class ExchangeRateApiClient(
 			
 			logger.ZLogWarning(message: $"ExchangeRateApi returned non-success result for {baseCurrency}: {result?.Result}.");
 			return null;
-
 		}
 		catch (Exception ex)
 		{

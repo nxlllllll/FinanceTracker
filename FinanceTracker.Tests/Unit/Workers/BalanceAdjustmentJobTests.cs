@@ -65,7 +65,7 @@ public sealed class BalanceAdjustmentJobTests
             currencyRateReadRepository: _currencyRateReadRepository,
             unitOfWork: _unitOfWork,
             dateProvider: FakeDateProvider.Default,
-            options: Options.Create(options: DefaultOptions),
+            options: new FakeOptionsMonitor<BalanceAdjustmentJobOptions>(value: DefaultOptions),
             logger: Substitute.For<ILogger<BalanceAdjustmentJob>>()
         );
     }

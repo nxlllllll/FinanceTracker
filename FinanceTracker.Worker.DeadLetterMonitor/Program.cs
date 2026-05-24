@@ -15,14 +15,18 @@ public sealed class Program
 
         builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
+		builder.Services.AddOptions<DeadLetterMonitoringOptions>()
+			.BindConfiguration(configSectionPath: DeadLetterMonitoringOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+		
         DeadLetterMonitoringOptions deadLetterOptions = builder.Configuration
             .GetSection(key: DeadLetterMonitoringOptions.SectionName)
             .Get<DeadLetterMonitoringOptions>() ?? new DeadLetterMonitoringOptions();
 
         builder.Services.AddQuartz(configure: q =>
         {
-            q.AddJob<DeadLetterMonitoringJob>(configure: j =>
-                j.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: deadLetterOptions.Group));
+            q.AddJob<DeadLetterMonitoringJob>(configure: j => j.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: deadLetterOptions.Group));
 
             q.AddTrigger(configure: t => t
                 .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: deadLetterOptions.Group)
@@ -41,6 +45,7 @@ public sealed class Program
 
 		builder.Services.AddWorkerMetrics(workerName: "Worker.DeadLetterMonitor");
 		builder.Services.AddWorkerTracing(workerName: "Worker.DeadLetterMonitor");
+
 		WebApplication app = builder.Build();
 
 		app.MapWorkerEndpoints();

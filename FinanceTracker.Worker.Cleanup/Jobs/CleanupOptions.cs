@@ -6,6 +6,8 @@ public sealed class CleanupOptions
 {
 	public const string SectionName = "Cleanup";
 
+	public bool IsEnabled { get; init; } = true;
+
 	public string Group { get; init; } = "cleanup";
 	public string TriggerName { get; init; } = "cleanup-trigger";
 

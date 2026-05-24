@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ public sealed class ConcurrencyRetryBehaviorTests
 		int baseDelayMs = 0,
 		bool useJitter = false)
 	{
-		IOptions<RetryOptions> options = Options.Create(options: new RetryOptions
+		IOptionsMonitor<RetryOptions> options = new FakeOptionsMonitor<RetryOptions>(value: new RetryOptions
 		{
 			MaxRetries = maxRetries,
 			BaseDelayMs = baseDelayMs,

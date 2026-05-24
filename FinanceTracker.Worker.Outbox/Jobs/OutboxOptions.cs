@@ -4,7 +4,9 @@ namespace FinanceTracker.Worker.Outbox.Jobs;
 
 public sealed class OutboxOptions
 {
-	public const string SectionName = "Jobs:Outbox";
+	public const string SectionName = "Outbox";
+
+	public bool IsEnabled { get; init; } = true;
 
 	[Range(minimum: 1, maximum: 60)]
 	public int IntervalSeconds { get; init; } = 3;

@@ -38,6 +38,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			correlationContext: _correlationContext,
 			publisher: _publisher,
 			dateProvider: FakeDateProvider.Default,
+			options: new FakeOptionsMonitor<RecurringTransactionJobOptions>(value: new RecurringTransactionJobOptions()),
 			logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()
 		);
 	}

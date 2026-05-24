@@ -5,6 +5,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
+using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
 
@@ -17,11 +18,20 @@ public sealed class RecurringTransactionHandlingJob(
     IRabbitMqPublisher publisher,
     ICorrelationContext correlationContext,
     IDateProvider dateProvider,
+    IOptionsMonitor<RecurringTransactionJobOptions> options,
     ILogger<RecurringTransactionHandlingJob> logger
 ) : IJob
 {
     public async Task Execute(IJobExecutionContext executionContext)
-        => await ProcessTransactionsAsync(ct: executionContext.CancellationToken);
+    {
+        if (!options.CurrentValue.IsEnabled)
+        {
+            logger.ZLogInformation(message: $"[{nameof(RecurringTransactionHandlingJob)}] Disabled. Skipping.");
+            return;
+        }
+
+        await ProcessTransactionsAsync(ct: executionContext.CancellationToken);
+    }
 
     private async Task ProcessTransactionsAsync(CancellationToken ct)
     {
@@ -97,11 +107,11 @@ public sealed class RecurringTransactionHandlingJob(
         CancellationToken ct)
     {
         DateTime now = dateProvider.UtcNow;
-        
+
         Result<Unit, DomainException> result = transaction.MarkExecuted(executedAt: now);
         if (result.IsFailure)
             throw result.Error!;
-        
+
         await recurringTransactionWriteRepository.MarkExecutedAsync(
             recurringTransactionId: transaction.Id,
             executedAt: now,

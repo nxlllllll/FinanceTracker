@@ -4,7 +4,9 @@ namespace FinanceTracker.Worker.DomainEventOutbox.Jobs;
 
 public sealed class DomainEventOutboxPublisherJobOptions
 {
-	public const string SectionName = "Jobs:DomainEventOutbox";
+	public const string SectionName = "DomainEventOutbox";
+
+	public bool IsEnabled { get; init; } = true;
 
 	[Range(minimum: 1, maximum: 60)]
 	public int IntervalSeconds { get; init; } = 3;

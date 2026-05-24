@@ -4,7 +4,9 @@ namespace FinanceTracker.Worker.RecurringTransaction.Jobs;
 
 public sealed class RecurringTransactionJobOptions
 {
-	public const string SectionName = "Jobs:RecurringTransaction";
+	public const string SectionName = "RecurringTransaction";
+
+	public bool IsEnabled { get; init; } = true;
 
 	[Required]
 	public string CronExpression { get; init; } = "0 0 3 * * ?";

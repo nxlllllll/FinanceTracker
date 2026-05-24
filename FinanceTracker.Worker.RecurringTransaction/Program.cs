@@ -16,9 +16,13 @@ public sealed class Program
 
 		builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
-		builder.Services
-			.AddRabbitMqCore(configuration: builder.Configuration)
+		builder.Services.AddRabbitMqCore(configuration: builder.Configuration)
 			.AddRabbitMqPublisher();
+
+		builder.Services.AddOptions<RecurringTransactionJobOptions>()
+			.BindConfiguration(configSectionPath: RecurringTransactionJobOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
 
 		RecurringTransactionJobOptions recurringOptions = builder.Configuration
 			.GetSection(key: RecurringTransactionJobOptions.SectionName)
@@ -27,6 +31,7 @@ public sealed class Program
 		builder.Services.AddQuartz(configure: q =>
 		{
 			q.AddJob<RecurringTransactionHandlingJob>(configure: j => j.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group));
+
 			q.AddTrigger(configure: t => t
 				.ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: recurringOptions.Group)
 				.WithIdentity(name: recurringOptions.TriggerName, group: recurringOptions.Group)
@@ -48,6 +53,7 @@ public sealed class Program
 
 		builder.Services.AddWorkerMetrics(workerName: "Worker.RecurringTransaction");
 		builder.Services.AddWorkerTracing(workerName: "Worker.RecurringTransaction");
+
 		WebApplication app = builder.Build();
 
 		app.MapWorkerEndpoints();

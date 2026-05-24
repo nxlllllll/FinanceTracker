@@ -24,94 +24,101 @@ public sealed class OutboxPublisherJob(
     IRabbitMqPublisher publisher,
     IUnitOfWork unitOfWork,
     IDateProvider dateProvider,
-    IOptions<OutboxOptions> outboxOptions,
+    IOptionsMonitor<OutboxOptions> options,
     ILogger<OutboxPublisherJob> logger
 ) : IJob
 {
-    private readonly OutboxOptions _outboxOptions = outboxOptions.Value;
-
     public async Task Execute(IJobExecutionContext executionContext)
-        => await ProcessBatchAsync(ct: executionContext.CancellationToken);
+    {
+        OutboxOptions currentOptions = options.CurrentValue;
 
-	private async Task ProcessBatchAsync(CancellationToken ct)
-	{
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
-			IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.GetPendingBatchAsync(
-				batchSize: _outboxOptions.BatchSize,
-				ct: ct
-			);
+        if (!currentOptions.IsEnabled)
+        {
+            logger.ZLogInformation(message: $"[{nameof(OutboxPublisherJob)}] Disabled. Skipping.");
+            return;
+        }
 
-			WorkerMetrics.OutboxPending.Record(value: messages.Count);
-			
-			if (messages.Count == 0)
-				return;
+        await ProcessBatchAsync(options: currentOptions, ct: executionContext.CancellationToken);
+    }
 
-			logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
+    private async Task ProcessBatchAsync(OutboxOptions options, CancellationToken ct)
+    {
+        await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+        {
+            IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.GetPendingBatchAsync(
+                batchSize: options.BatchSize,
+                ct: ct
+            );
 
-			int published = 0;
-			foreach (PendingOutboxMessage message in messages)
-			{
-				Stopwatch sw = Stopwatch.StartNew();
-				try
-				{
-					await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-					{
-						await PublishMessageAsync(message: message, ct: ct);
-						WorkerMetrics.OutboxPublished.Add(delta: 1);
-						logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
-					}, ct: ct);
-				}
-				catch (Exception exception)
-				{
-					if (ct.IsCancellationRequested)
-						return;
+            WorkerMetrics.OutboxPending.Record(value: messages.Count);
 
-					logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
+            if (messages.Count == 0)
+                return;
 
-					await UpdateRetryStateAsync(message: message, ct: ct);
-				}
-				finally
-				{
-					WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
-				}
-			}
-		}, onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch publishing failed."), ct: ct);
-	}
+            logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
 
-	private async Task PublishMessageAsync(PendingOutboxMessage message, CancellationToken ct)
-	{
-		OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
-			?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
+            int published = 0;
+            foreach (PendingOutboxMessage message in messages)
+            {
+                Stopwatch sw = Stopwatch.StartNew();
+                try
+                {
+                    await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+                    {
+                        await PublishMessageAsync(message: message, ct: ct);
+                        WorkerMetrics.OutboxPublished.Add(delta: 1);
+                        logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
+                    }, ct: ct);
+                }
+                catch (Exception exception)
+                {
+                    if (ct.IsCancellationRequested)
+                        return;
 
-		AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
-			MessageId: message.Id,
-			AggregateId: message.AggregateId,
-			AggregateType: message.AggregateType,
-			CorrelationId: payload.CorrelationId,
-			Events: payload.Events.Select(selector: e => new EventEnvelope(
-				EventType: e.EventType,
-				EventPayload: e.EventPayload
-			)).ToList()
-		);
+                    logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
+                    await UpdateRetryStateAsync(message: message, options: options, ct: ct);
+                }
+                finally
+                {
+                    WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
+                }
+            }
+        }, onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch publishing failed."), ct: ct);
+    }
 
-		await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
-		await outboxWriteRepository.MarkAsPublishedAsync(messageId: message.Id, processedAt: dateProvider.UtcNow, ct: ct);
-	}
+    private async Task PublishMessageAsync(PendingOutboxMessage message, CancellationToken ct)
+    {
+        OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
+            ?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
 
-	private async Task UpdateRetryStateAsync(PendingOutboxMessage message, CancellationToken ct)
-	{
-		try
-		{
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-			{
-				int newRetryCount = message.RetryCount + 1;
-				DateTime? failedAt = newRetryCount >= _outboxOptions.MaxRetries ? dateProvider.UtcNow : null;
+        AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
+            MessageId: message.Id,
+            AggregateId: message.AggregateId,
+            AggregateType: message.AggregateType,
+            CorrelationId: payload.CorrelationId,
+            Events: payload.Events.Select(selector: e => new EventEnvelope(
+                EventType: e.EventType,
+                EventPayload: e.EventPayload
+            )).ToList()
+        );
+
+        await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
+        await outboxWriteRepository.MarkAsPublishedAsync(messageId: message.Id, processedAt: dateProvider.UtcNow, ct: ct);
+    }
+
+    private async Task UpdateRetryStateAsync(PendingOutboxMessage message, OutboxOptions options, CancellationToken ct)
+    {
+        try
+        {
+            await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+            {
+                int newRetryCount = message.RetryCount + 1;
+                DateTime? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
 
                 if (failedAt is not null)
                 {
                     WorkerMetrics.OutboxFailed.Add(delta: 1);
-                    logger.ZLogError(message: $"Outbox message {message.Id} exceeded max retries ({_outboxOptions.MaxRetries}). Moving to unresolvable events.");
+                    logger.ZLogError(message: $"Outbox message {message.Id} exceeded max retries ({options.MaxRetries}). Moving to unresolvable events.");
 
                     string payload = JsonSerializer.Serialize(value: new
                     {
@@ -120,14 +127,14 @@ public sealed class OutboxPublisherJob(
                         retryCount = newRetryCount
                     });
 
-					await unresolvableEventWriteRepository.CreateAsync(
-						type: UnresolvableEventType.OutboxDeadLetter,
-						referenceId: message.Id,
-						reason: $"Max retries ({_outboxOptions.MaxRetries}) exceeded.",
-						payload: payload,
-						occurredAt: dateProvider.UtcNow,
-						ct: ct
-					);
+                    await unresolvableEventWriteRepository.CreateAsync(
+                        type: UnresolvableEventType.OutboxDeadLetter,
+                        referenceId: message.Id,
+                        reason: $"Max retries ({options.MaxRetries}) exceeded.",
+                        payload: payload,
+                        occurredAt: dateProvider.UtcNow,
+                        ct: ct
+                    );
                 }
 
                 await outboxWriteRepository.MarkAsFailedAsync(

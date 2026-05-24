@@ -6,6 +6,8 @@ public sealed class BalanceAdjustmentJobOptions
 {
 	public const string SectionName = "BalanceAdjustmentJob";
 
+	public bool IsEnabled { get; init; } = true;
+
 	public string Group { get; init; } = "BalanceAdjustment";
 	public string TriggerName { get; init; } = "BalanceAdjustmentTrigger";
 

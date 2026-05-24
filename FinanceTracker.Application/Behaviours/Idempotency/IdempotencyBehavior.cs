@@ -13,13 +13,14 @@ namespace FinanceTracker.Application.Behaviours.Idempotency;
 public sealed class IdempotencyBehavior<TRequest, TResponse>(
 	IIdempotencyReadRepository idempotencyReadRepository,
 	IIdempotencyWriteRepository idempotencyWriteRepository,
-	IOptions<IdempotencyOptions> options,
+	IOptionsMonitor<IdempotencyOptions> options,
 	IDateProvider dateProvider,
 	ILogger<IdempotencyBehavior<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : notnull
 	where TResponse : notnull
 {
+	private readonly IdempotencyOptions _options = options.CurrentValue;
 	private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
 	{
 		Converters = { new ResultJsonConverterFactory() }
@@ -45,7 +46,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 
 		if (response is IResult { IsSuccess: true })
 		{
-			DateTime expiresAt = dateProvider.UtcNow.AddHours(value: options.Value.ExpiryHours);
+			DateTime expiresAt = dateProvider.UtcNow.AddHours(value: _options.ExpiryHours);
 
 			await idempotencyWriteRepository.StoreAsync(
 				idempotencyKey: idempotent.IdempotencyKey,

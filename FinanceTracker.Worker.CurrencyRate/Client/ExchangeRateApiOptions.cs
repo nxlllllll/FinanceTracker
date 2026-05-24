@@ -6,6 +6,8 @@ public sealed class ExchangeRateApiOptions
 {
 	public const string SectionName = "ExchangeRateApi";
 
+	public bool IsEnabled { get; init; } = true;
+
 	[Required]
 	public string ApiKey { get; init; } = null!;
 

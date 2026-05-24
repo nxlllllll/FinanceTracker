@@ -184,11 +184,6 @@ create table outbox_messages
     failed_at       timestamptz
 );
 
-create index idx_outbox_messages_unprocessed
-    on outbox_messages (updated_at)
-    where processed_at is null
-        and failed_at  is null;
-
 create table processed_messages
 (
     message_id    uuid                                  not null,

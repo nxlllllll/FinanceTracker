@@ -11,10 +11,10 @@ namespace FinanceTracker.Application.Behaviours.Retry;
 
 public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 	ILogger<ConcurrencyRetryBehavior<TRequest, TResponse>> logger,
-	IOptions<RetryOptions> options
+	IOptionsMonitor<RetryOptions> options
 ) : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
 {
-	private readonly RetryOptions _retryOptions = options.Value;
+	private readonly RetryOptions _retryOptions = options.CurrentValue;
 
 	public async Task<TResponse> Handle(
 		TRequest request,

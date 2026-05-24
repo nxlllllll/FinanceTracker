@@ -26,6 +26,7 @@ public sealed class DeadLetterMonitoringJobTests
 
         _job = new DeadLetterMonitoringJob(
             unresolvableEventReadRepository: _readRepository,
+            options: new FakeOptionsMonitor<DeadLetterMonitoringOptions>(new DeadLetterMonitoringOptions()),
             logger: _logger
         );
     }

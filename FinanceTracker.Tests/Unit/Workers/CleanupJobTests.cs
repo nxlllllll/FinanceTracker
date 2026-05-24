@@ -77,7 +77,7 @@ public sealed class CleanupJobTests
 			processedMessageRepository: _processedMessageWriteRepository,
 			snapshotRepository: _snapshotWriteRepository,
 			dateProvider: _dateProvider,
-			options: Options.Create(options: DefaultOptions),
+			options: new FakeOptionsMonitor<CleanupOptions>(value: DefaultOptions),
 			logger: _logger
 		);
 	}

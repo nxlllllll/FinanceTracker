@@ -55,7 +55,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             dateProvider: FakeDateProvider.Default,
             correlationContext: Substitute.For<ICorrelationContext>(),
             upcasterRegistry: upcasterRegistry,
-            options: Options.Create(options: new EventStoreOptions()),
+            options: new FakeOptionsMonitor<EventStoreOptions>(value: new EventStoreOptions()),
             logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
         );
     }
