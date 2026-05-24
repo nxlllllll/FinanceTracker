@@ -1,8 +1,11 @@
 ﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,7 +16,10 @@ namespace FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
 public sealed class RegisterUserHandler(
 	IUserReadRepository userReadRepository,
 	IUserWriteRepository userWriteRepository,
+	IDomainEventOutboxWriter domainEventOutboxWriter,
 	IPasswordHasher passwordHasher,
+	IUnitOfWork unitOfWork,
+	ICorrelationContext correlationContext,
 	IDateProvider dateProvider,
 	ILogger<RegisterUserHandler> logger
 ) : IRequestHandler<RegisterUserCommand, Result<Guid, DomainException>>
@@ -41,7 +47,11 @@ public sealed class RegisterUserHandler(
 
 		try
 		{
-			await userWriteRepository.CreateAsync(user: user, ct: ct);
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			{
+				await userWriteRepository.CreateAsync(user: user, ct: ct);
+				await domainEventOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
+			}, ct: ct);
 		}
 		catch (EmailException exception)
 		{

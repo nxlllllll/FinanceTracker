@@ -19,7 +19,7 @@ public sealed class RabbitMqPublisher(
 
 	public async Task PublishAsync<TMessage>(
 		TMessage message,
-		Guid correlationId = default,
+		Guid? correlationId = default,
 		CancellationToken ct = default) where TMessage : class
 	{
 		IChannel channel = await GetOrCreateChannelAsync(ct: ct);
@@ -28,7 +28,7 @@ public sealed class RabbitMqPublisher(
 
 		BasicProperties props = new BasicProperties();
 
-		if (correlationId != Guid.Empty)
+		if (correlationId is not null && correlationId != Guid.Empty)
 			props.CorrelationId = correlationId.ToString();
 
 		if (Activity.Current is { } current)

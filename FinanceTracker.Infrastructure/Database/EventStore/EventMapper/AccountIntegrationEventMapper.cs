@@ -11,15 +11,15 @@ public sealed class AccountIntegrationEventMapper(
 	ILogger<AccountIntegrationEventMapper> logger
 ) : IIntegrationEventMapper
 {
-	public IAccountIntegrationEvent? Map(IEvent domainEvent) => domainEvent switch
+	public IAccountIntegrationEvent? Map(IEvent @event) => @event switch
 	{
 		AccountCreated e => new AccountCreatedEvent(
 			EventId: e.Id,
 			AccountId: e.AccountId,
 			UserId: e.UserId,
-			Name: e.Name,
+			Name: e.Name.Value,
 			AccountType: e.Type.ToString(),
-			Currency: e.Currency,
+			Currency: e.Currency.Value,
 			Balance: e.Balance,
 			OccurredAt: e.OccurredAt
 		),
@@ -46,7 +46,7 @@ public sealed class AccountIntegrationEventMapper(
 		AccountRenamed e => new AccountRenamedEvent(
 			EventId: e.Id,
 			AccountId: e.AccountId,
-			NewName: e.NewName,
+			NewName: e.NewName.Value,
 			OccurredAt: e.OccurredAt
 		),
 		AccountArchived e => new AccountArchivedEvent(
@@ -98,7 +98,7 @@ public sealed class AccountIntegrationEventMapper(
 			Delta: e.Delta,
 			OccurredAt: e.OccurredAt
 		),
-		_ => ExecuteDefaultCase(@event: domainEvent)
+		_ => ExecuteDefaultCase(@event: @event)
 	};
 
 	private IAccountIntegrationEvent? ExecuteDefaultCase(IEvent @event)

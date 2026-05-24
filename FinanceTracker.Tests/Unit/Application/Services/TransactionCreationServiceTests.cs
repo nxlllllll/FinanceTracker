@@ -55,7 +55,6 @@ public sealed class TransactionCreationServiceTests
             unitOfWork: _unitOfWork,
             categoryTotalWriteRepository: _categoryTotalWriteRepository,
             budgetProgressWriteRepository: _budgetProgressWriteRepository,
-            dateProvider: FakeDateProvider.Default,
             operationsWriteRepository: _operationsWriteRepository,
             logger: Substitute.For<ILogger<TransactionCreationService>>()
         );

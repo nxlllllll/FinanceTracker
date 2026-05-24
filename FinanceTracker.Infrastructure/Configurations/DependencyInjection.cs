@@ -9,6 +9,7 @@ using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Repositories.DomainEventOutbox;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Outbox;
@@ -24,11 +25,13 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Domain.EventMapper;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
@@ -39,6 +42,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
+using FinanceTracker.Infrastructure.Database.Repositories.DomainEventOutbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
 using FinanceTracker.Infrastructure.Database.Repositories.Operations;
 using FinanceTracker.Infrastructure.Database.Repositories.Outbox;
@@ -55,6 +59,7 @@ using FinanceTracker.Infrastructure.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Correlation;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
+using FinanceTracker.Infrastructure.Services.DomainEvents;
 using FinanceTracker.Infrastructure.Services.Password;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.EntityFrameworkCore;
@@ -122,8 +127,15 @@ public static class DependencyInjection
 		    .WithSingletonLifetime()
 		);
 		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
-		
-		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
+				
+		services.Scan(scan => scan
+		    .FromAssemblyOf<UserDomainEventMapper>()
+		    .AddClasses(classes => classes.AssignableTo<IDomainEventMapper>())
+		    .AsImplementedInterfaces()
+		    .WithSingletonLifetime()
+		);
+
+		services.AddScoped<IDomainEventOutboxWriter, DomainEventOutboxWriter>();
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		
@@ -179,6 +191,9 @@ public static class DependencyInjection
 		services.AddScoped<IOutboxReadRepository, OutboxReadRepository>();
 		services.AddScoped<IOutboxWriteRepository, OutboxWriteRepository>();
 
+		services.AddScoped<IDomainEventOutboxReadRepository, DomainEventOutboxReadRepository>();
+		services.AddScoped<IDomainEventOutboxWriteRepository, DomainEventOutboxWriteRepository>();
+		
 		services.AddScoped<ISnapshotWriteRepository, SnapshotWriteRepository>();
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
@@ -186,6 +201,7 @@ public static class DependencyInjection
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		services.AddScoped<ITokenService, JwtTokenService>();
 		services.AddScoped<ISessionIssuer, SessionIssuer>();	
+		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		

@@ -37,7 +37,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTime.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(domainEvent: @event);
+		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsTypeOf<AccountCreatedEvent>();
 	}
@@ -56,7 +56,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTime.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(domainEvent: @event);
+		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsTypeOf<AccountDebitedEvent>();
 	}
@@ -75,7 +75,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTime.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(domainEvent: @event);
+		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsTypeOf<AccountCreditedEvent>();
 	}
@@ -88,7 +88,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTime.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(domainEvent: @event);
+		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -96,7 +96,7 @@ public sealed class AccountIntegrationEventMapperTests
 	[Test]
 	public async Task Map_UnknownEvent_LogsWarning()
 	{
-		_mapper.Map(domainEvent: new UnknownTestEvent(
+		_mapper.Map(@event: new UnknownTestEvent(
 			Id: Guid.CreateVersion7(),
 			OccurredAt: DateTime.UtcNow
 		));
@@ -107,7 +107,7 @@ public sealed class AccountIntegrationEventMapperTests
 	[Test]
 	public async Task Map_KnownEvent_DoesNotLogWarning()
 	{
-		_mapper.Map(domainEvent: new AccountRenamed(
+		_mapper.Map(@event: new AccountRenamed(
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
 			NewName: Name.Reconstitute(value: "Новое имя"),

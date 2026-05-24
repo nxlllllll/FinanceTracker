@@ -5,5 +5,5 @@ namespace FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
 
 public interface IIntegrationEventMapper
 {
-	IAccountIntegrationEvent? Map(IEvent domainEvent);
+	IAccountIntegrationEvent? Map(IEvent @event);
 }

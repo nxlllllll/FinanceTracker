@@ -4,7 +4,7 @@ public interface IRabbitMqPublisher : IAsyncDisposable
 {
 	Task PublishAsync<TMessage>(
 		TMessage message,
-		Guid correlationId = default,
+		Guid? correlationId = default,
 		CancellationToken ct = default
 	) where TMessage : class;
 }

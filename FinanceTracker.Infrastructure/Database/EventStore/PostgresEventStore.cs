@@ -74,7 +74,7 @@ public sealed class PostgresEventStore(
 				CreatedAt = now
 			});
 
-			IAccountIntegrationEvent? integrationEvent = integrationEventMapper.Map(domainEvent: @event);
+			IAccountIntegrationEvent? integrationEvent = integrationEventMapper.Map(@event: @event);
 
 			(string outboxEventType, string outboxPayload) = (eventType, serialized);
 			if (integrationEvent is not null)
