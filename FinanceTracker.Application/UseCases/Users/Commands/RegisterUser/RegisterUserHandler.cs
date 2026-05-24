@@ -25,7 +25,7 @@ public sealed class RegisterUserHandler(
 		User? existing = await userReadRepository.GetByEmailAsync(email: command.Email, ct: ct);
 		if (existing is not null)
 			return Result<Guid, DomainException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.Email));
-		
+
 		string passwordHash = await passwordHasher.Hash(password: command.Password);
 
 		Result<User, DomainException> userResult = User.Register(
@@ -34,12 +34,20 @@ public sealed class RegisterUserHandler(
 			passwordHash: passwordHash,
 			baseCurrency: command.BaseCurrencyCode
 		);
-		if (userResult.IsFailure) 
+		if (userResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: userResult.Error!);
- 
+
 		User user = userResult.Value!;
 
-		await userWriteRepository.CreateAsync(user: user, ct: ct);
+		try
+		{
+			await userWriteRepository.CreateAsync(user: user, ct: ct);
+		}
+		catch (EmailException exception)
+		{
+			return Result<Guid, DomainException>.Failure(error: exception);
+		}
+
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
 
 		return Result<Guid, DomainException>.Success(value: user.Id);

@@ -24,17 +24,24 @@ public sealed class ChangeUserEmailHandler(
 		Result<Email, DomainException> newEmailResult = Email.Create(value: command.NewEmail);
 		if (newEmailResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: newEmailResult.Error!);
-		
+
 		Result<Unit, DomainException> result = user.ChangeEmail(newEmail: newEmailResult.Value);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
-		await userWriteRepository.ChangeEmailAsync(
-			userId: command.UserId,
-			newEmail: newEmailResult.Value,
-			ct: ct
-		);
-		
+
+		try
+		{
+			await userWriteRepository.ChangeEmailAsync(
+				userId: command.UserId,
+				newEmail: newEmailResult.Value,
+				ct: ct
+			);
+		}
+		catch (EmailException exception)
+		{
+			return Result<Guid, DomainException>.Failure(error: exception);
+		}
+
 		return Result<Guid, DomainException>.Success(value: user.Id);
 	}
 }
