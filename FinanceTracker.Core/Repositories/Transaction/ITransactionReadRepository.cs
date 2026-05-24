@@ -13,6 +13,7 @@ public interface ITransactionReadRepository
 	);
 
 	Task<PagedResult<Domains.Transaction.Transaction>> GetAllAsync(
+		Guid userId,
 		Guid accountId,
 		Guid? categoryId = null,
 		DirectionType? direction = null,

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -8,4 +9,4 @@ namespace FinanceTracker.Application.UseCases.Categories.Commands.ArchiveCategor
 public sealed record ArchiveCategoryCommand(
 	Guid UserId,
 	Guid CategoryId
-) : IRequest<Result<Guid, DomainException>>, IAuthorizable;
+) : IRequest<Result<Guid, DomainException>>, IAuthorizable, IUserScopedRequest;

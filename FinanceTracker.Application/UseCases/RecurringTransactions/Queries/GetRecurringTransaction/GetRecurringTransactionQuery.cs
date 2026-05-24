@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.RecurringTransaction;
+﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransaction;
@@ -6,4 +7,4 @@ namespace FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetR
 public sealed record GetRecurringTransactionQuery(
 	Guid UserId,
 	Guid RecurringTransactionId
-) : IRequest<RecurringTransaction>;
+) : IRequest<RecurringTransaction>, IUserScopedRequest;

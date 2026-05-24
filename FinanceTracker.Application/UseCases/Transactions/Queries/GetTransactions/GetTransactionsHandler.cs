@@ -14,6 +14,7 @@ public sealed class GetTransactionsHandler(
 		CancellationToken ct = default)
 	{
 		return await transactionReadRepository.GetAllAsync(
+			userId: query.UserId,
 			accountId: query.AccountId,
 			categoryId: query.CategoryId,
 			direction: query.Direction,

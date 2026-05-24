@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -6,6 +7,7 @@ using MediatR;
 namespace FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
 
 public sealed record GetTransactionsQuery(
+	Guid UserId,
 	Guid AccountId,
 	Guid? CategoryId = null,
 	DirectionType? Direction = null,
@@ -15,4 +17,4 @@ public sealed record GetTransactionsQuery(
 	DateTime? CursorOccurredAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
-) : IRequest<PagedResult<Transaction>>;
+) : IRequest<PagedResult<Transaction>>, IUserScopedRequest;

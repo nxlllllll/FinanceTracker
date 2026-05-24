@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.Dtos;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Categories.Queries.GetTotalsByPeriod;
@@ -6,4 +7,4 @@ namespace FinanceTracker.Application.UseCases.Categories.Queries.GetTotalsByPeri
 public sealed record GetTotalsByPeriodQuery(
 	Guid UserId,
 	DateOnly Period
-) : IRequest<IReadOnlyList<CategoryTotalDto>>;
+) : IRequest<IReadOnlyList<CategoryTotalDto>>, IUserScopedRequest;

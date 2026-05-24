@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -9,4 +10,4 @@ public sealed record ChangeTransactionCategoryCommand(
 	Guid UserId,
 	Guid TransactionId,
 	Guid CategoryId
-) : IRequest<Result<Guid, DomainException>>, IAuthorizable;
+) : IRequest<Result<Guid, DomainException>>, IAuthorizable, IUserScopedRequest;

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -13,7 +14,7 @@ public sealed record CreateAccountCommand(
 	AccountType Type,
 	Currency Currency,
 	decimal InitialBalance
-) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>
+) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
 }

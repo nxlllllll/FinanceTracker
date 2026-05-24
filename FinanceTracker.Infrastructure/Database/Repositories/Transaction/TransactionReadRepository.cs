@@ -35,6 +35,7 @@ public sealed class TransactionReadRepository(
     }
 
 	public async Task<PagedResult<Core.Domains.Transaction.Transaction>> GetAllAsync(
+		Guid userId,
         Guid accountId,
         Guid? categoryId = null,
         DirectionType? direction = null,
@@ -47,7 +48,7 @@ public sealed class TransactionReadRepository(
         CancellationToken ct = default)
     {
         IQueryable<TransactionEntity> query = context.Transactions.AsNoTracking()
-            .Where(predicate: t => t.AccountId == accountId);
+            .Where(predicate: t => t.AccountId == accountId && t.UserId == userId);
 
         if (categoryId is not null)
             query = query.Where(predicate: t => t.CategoryId == categoryId);

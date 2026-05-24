@@ -42,13 +42,15 @@ public sealed class GetTransactionsHandlerTests
 	[Test]
 	public async Task Handle_ShouldReturnAllTransactions()
 	{
+		Guid userId = Guid.CreateVersion7();
 		Guid accountId = Guid.CreateVersion7();
 		IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [
-			TransactionFactory.Create(accountId: accountId),
-			TransactionFactory.Create(accountId: accountId)
+			TransactionFactory.Create(userId: userId, accountId: accountId),
+			TransactionFactory.Create(userId: userId, accountId: accountId)
 		];
 
 		_transactionReadRepository.GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -62,7 +64,7 @@ public sealed class GetTransactionsHandlerTests
 		).Returns(returnThis: PageOf(items: transactions));
 
 		PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
-			query: new GetTransactionsQuery(AccountId: accountId),
+			query: new GetTransactionsQuery(UserId: userId, AccountId: accountId),
 			ct: CancellationToken.None
 		);
 
@@ -75,6 +77,7 @@ public sealed class GetTransactionsHandlerTests
 		Guid categoryId = Guid.CreateVersion7();
 
 		_transactionReadRepository.GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -88,11 +91,12 @@ public sealed class GetTransactionsHandlerTests
 		).Returns(returnThis: EmptyPage());
 
 		await _handler.Handle(
-			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), CategoryId: categoryId),
+			query: new GetTransactionsQuery(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7(), CategoryId: categoryId),
 			ct: CancellationToken.None
 		);
 
 		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: categoryId,
 			direction: Arg.Any<DirectionType?>(),
@@ -110,6 +114,7 @@ public sealed class GetTransactionsHandlerTests
 	public async Task Handle_ShouldPassDirectionFilterToRepository()
 	{
 		_transactionReadRepository.GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -123,11 +128,12 @@ public sealed class GetTransactionsHandlerTests
 		).Returns(returnThis: EmptyPage());
 
 		await _handler.Handle(
-			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), Direction: DirectionType.Credit),
+			query: new GetTransactionsQuery(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7(), Direction: DirectionType.Credit),
 			ct: CancellationToken.None
 		);
 
 		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: DirectionType.Credit,
@@ -145,6 +151,7 @@ public sealed class GetTransactionsHandlerTests
 	public async Task Handle_ShouldPassIsExcludedFilterToRepository()
 	{
 		_transactionReadRepository.GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -158,11 +165,12 @@ public sealed class GetTransactionsHandlerTests
 		).Returns(returnThis: EmptyPage());
 
 		await _handler.Handle(
-			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7(), IsExcluded: false),
+			query: new GetTransactionsQuery(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7(), IsExcluded: false),
 			ct: CancellationToken.None
 		);
 
 		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -183,6 +191,7 @@ public sealed class GetTransactionsHandlerTests
 		DateTime dateTo = FakeDateProvider.Default.UtcNow;
 
 		_transactionReadRepository.GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -196,12 +205,14 @@ public sealed class GetTransactionsHandlerTests
 		).Returns(returnThis: EmptyPage());
 
 		await _handler.Handle(query: new GetTransactionsQuery(
+			UserId: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
 			DateFrom: dateFrom,
 			DateTo: dateTo
 		), ct: CancellationToken.None);
 
 		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -219,6 +230,7 @@ public sealed class GetTransactionsHandlerTests
 	public async Task Handle_WhenNoTransactions_ShouldReturnEmptyList()
 	{
 		_transactionReadRepository.GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -232,7 +244,7 @@ public sealed class GetTransactionsHandlerTests
 		).Returns(returnThis: EmptyPage());
 
 		PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
-			query: new GetTransactionsQuery(AccountId: Guid.CreateVersion7()),
+			query: new GetTransactionsQuery(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
@@ -242,12 +254,14 @@ public sealed class GetTransactionsHandlerTests
 	[Test]
 	public async Task Handle_ShouldPassAllFiltersToRepository()
 	{
+		Guid userId = Guid.CreateVersion7();
 		Guid accountId = Guid.CreateVersion7();
 		Guid categoryId = Guid.CreateVersion7();
 		DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
 		DateTime dateTo = FakeDateProvider.Default.UtcNow;
 
 		_transactionReadRepository.GetAllAsync(
+			userId: Arg.Any<Guid>(),
 			accountId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
@@ -261,6 +275,7 @@ public sealed class GetTransactionsHandlerTests
 		).Returns(returnThis: EmptyPage());
 
 		await _handler.Handle(query: new GetTransactionsQuery(
+			UserId: userId,
 			AccountId: accountId,
 			CategoryId: categoryId,
 			Direction: DirectionType.Debit,
@@ -270,6 +285,7 @@ public sealed class GetTransactionsHandlerTests
 		), ct: CancellationToken.None);
 
 		await _transactionReadRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(
+			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
 			direction: DirectionType.Debit,

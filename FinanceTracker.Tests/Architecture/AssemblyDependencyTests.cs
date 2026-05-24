@@ -33,7 +33,8 @@ public sealed class AssemblyDependencyTests
 		"Scrutor",
 		"Konscious.Security.Cryptography",
 		"Microsoft.IdentityModel.Tokens",
-		"Blake3"
+		"Blake3",
+		"StackExchange.Redis"
 	];
 
 	[Test]
@@ -77,7 +78,7 @@ public sealed class AssemblyDependencyTests
 	{
 		IEnumerable<string> violations = InfrastructureAssembly
 			.GetReferencedAssemblies()
-			.Select(selector: a => a.Name ?? string.Empty)
+			.Select(selector: a => a.Name ?? String.Empty)
 			.Where(predicate: name => !InfrastructureAllowedAssemblyPrefixes.Any(
 				predicate: prefix => name.StartsWith(value: prefix, comparisonType: StringComparison.OrdinalIgnoreCase)
 			));

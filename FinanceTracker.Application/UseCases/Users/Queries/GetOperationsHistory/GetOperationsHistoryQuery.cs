@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Results;
 using MediatR;
 
@@ -12,4 +13,4 @@ public sealed record GetOperationsHistoryQuery(
 	DateTime? CursorOccurredAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
-) : IRequest<PagedResult<OperationDto>>;
+) : IRequest<PagedResult<OperationDto>>, IUserScopedRequest;

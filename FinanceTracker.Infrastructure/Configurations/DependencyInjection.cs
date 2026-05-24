@@ -27,6 +27,7 @@ using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
+using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
@@ -61,11 +62,13 @@ using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
 using FinanceTracker.Infrastructure.Services.DomainEvents;
 using FinanceTracker.Infrastructure.Services.Password;
+using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace FinanceTracker.Infrastructure.Configurations;
 
@@ -108,6 +111,9 @@ public static class DependencyInjection
 			options.InstanceName = redisOptions.InstanceName;
 		});
 
+		services.AddSingleton<IConnectionMultiplexer>(implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisOptions.ConnectionString));
+		services.AddScoped<IRateLimiter, RedisRateLimiter>();
+		
 		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: s => new EventTypeResolver(
 			assembly: typeof(IEvent).Assembly,
 			logger: s.GetService<ILogger<EventTypeResolver>>()!

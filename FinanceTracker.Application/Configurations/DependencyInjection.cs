@@ -2,6 +2,7 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Behaviours.Correlation;
 using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
@@ -28,12 +29,18 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 		
+		services.AddOptions<RateLimitOptions>()
+			.BindConfiguration(configSectionPath: RateLimitOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+		
 		services.AddMediatR(configuration: cfg =>
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(TracingBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(CorrelationBehavior<,>));
+			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(RateLimitingBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ConcurrencyRetryBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(IdempotencyBehavior<,>));
 			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ValidationBehavior<,>));
