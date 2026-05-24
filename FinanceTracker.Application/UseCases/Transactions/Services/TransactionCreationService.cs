@@ -95,7 +95,7 @@ public sealed class TransactionCreationService(
             command: command,
             transactionId: transaction.Id,
             rate: conversion.Rate,
-            occurredAt: dateProvider.UtcNow
+            occurredAt: command.OccurredAt
         );
         if (result.IsFailure)
             return Result<Guid, DomainException>.Failure(error: result.Error!);
