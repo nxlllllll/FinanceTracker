@@ -65,4 +65,20 @@ public static class DbContextExtensions
         );
 #pragma warning restore EF1002
     }
+    
+    public static Task InsertIdempotentCommandAsync(
+        this DbContext context,
+        Guid idempotencyKey,
+        string commandType,
+        string responseJson,
+        DateTime createdAt,
+        DateTime expiresAt,
+        CancellationToken ct = default)
+    {
+        return context.Database.ExecuteSqlAsync(sql: $"""
+            INSERT INTO idempotent_commands (idempotency_key, command_type, response_json, created_at, expires_at)
+            VALUES ({idempotencyKey}, {commandType}, {responseJson}, {createdAt}, {expiresAt})
+            ON CONFLICT (idempotency_key) DO NOTHING
+            """, cancellationToken: ct);
+    }
 }
