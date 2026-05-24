@@ -97,12 +97,18 @@ public sealed class Transaction
 
     public Result<Unit, DomainException> ChangeCategory(Guid categoryId)
 	{
+		if (IsExcluded)
+			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is excluded."));
+
 		CategoryId = categoryId;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
 	public Result<Unit, DomainException> ChangeDescription(string? description)
 	{
+		if (IsExcluded)
+			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is excluded."));
+		
 		Description = description;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}

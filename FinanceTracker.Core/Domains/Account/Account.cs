@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
@@ -13,13 +14,13 @@ namespace FinanceTracker.Core.Domains.Account;
 public sealed class Account : AggregateRoot
 {
 	private sealed record AccountSnapshotState(
-		Guid Id,
-		Guid UserId,
-		Name Name,
-		AccountType Type,
-		Money Balance,
-		bool IsArchived,
-		int Version
+		[property: JsonPropertyName("id")] Guid Id,
+		[property: JsonPropertyName("user_id")] Guid UserId,
+		[property: JsonPropertyName("name")] Name Name,
+		[property: JsonPropertyName("type")] AccountType Type,
+		[property: JsonPropertyName("balance")] Money Balance,
+		[property: JsonPropertyName("is_archived")] bool IsArchived,
+		[property: JsonPropertyName("version")] int Version
 	);
 	
 	public Guid UserId { get; private set; }
