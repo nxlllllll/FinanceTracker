@@ -8,6 +8,7 @@ namespace FinanceTracker.Core.Domains.User.Events;
 public sealed record UserBaseCurrencyChanged(
 	Guid Id,
 	Guid AggregateId,
+	Currency OldBaseCurrency,
 	Currency NewBaseCurrency,
 	DateTime OccurredAt
 ) : IDomainEvent;

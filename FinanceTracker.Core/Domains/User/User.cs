@@ -77,11 +77,13 @@ public sealed class User : IHasDomainEvents
 		if (Email == newEmail)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
+		Email oldEmail = Email;
 		Email = newEmail;
 
 		RaiseDomainEvent(@event: new UserEmailChanged(
 			Id: Guid.CreateVersion7(),
 			AggregateId: Id,
+			OldEmail: oldEmail,
 			NewEmail: newEmail,
 			OccurredAt: occurredAt
 		));
@@ -99,7 +101,6 @@ public sealed class User : IHasDomainEvents
 		RaiseDomainEvent(@event: new UserPasswordChanged(
 			Id: Guid.CreateVersion7(),
 			AggregateId: Id,
-			NewPassword: newPasswordHash,
 			OccurredAt: occurredAt
 		));
 		
@@ -111,11 +112,13 @@ public sealed class User : IHasDomainEvents
 		if (BaseCurrency == newBaseCurrency)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
+		Currency oldBaseCurrency = BaseCurrency;
 		BaseCurrency = newBaseCurrency;
 
 		RaiseDomainEvent(@event: new UserBaseCurrencyChanged(
 			Id: Guid.CreateVersion7(),
 			AggregateId: Id,
+			OldBaseCurrency: oldBaseCurrency,
 			NewBaseCurrency: newBaseCurrency,
 			OccurredAt: occurredAt
 		));

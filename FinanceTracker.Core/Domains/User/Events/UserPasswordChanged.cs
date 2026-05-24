@@ -7,6 +7,5 @@ namespace FinanceTracker.Core.Domains.User.Events;
 public sealed record UserPasswordChanged(
 	Guid Id,
 	Guid AggregateId,
-	string NewPassword,
 	DateTime OccurredAt
 ) : IDomainEvent;

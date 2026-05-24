@@ -7,6 +7,7 @@ namespace FinanceTracker.Contracts.Events.User;
 public sealed record UserBaseCurrencyChangedEvent(
 	Guid EventId,
 	Guid UserId,
+	string OldBaseCurrency,
 	string NewBaseCurrency,
 	DateTime OccurredAt
 ) : IUserIntegrationEvent;

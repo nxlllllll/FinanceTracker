@@ -23,16 +23,10 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct)
 	{
 		await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: e => e.Balance,
-				valueExpression: e => e.Balance + delta
-			).SetProperty(
-				propertyExpression: e => e.LastVersion,
-				valueExpression: e => e.LastVersion + 1
-			).SetProperty(
-				propertyExpression: e => e.UpdatedAt,
-				valueExpression: dateProvider.UtcNow
-			),
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.Balance, valueExpression: e => e.Balance + delta)
+				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: e => e.LastVersion + 1)
+				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);
 	}
@@ -41,24 +35,24 @@ public sealed class AccountWriteRepository(
         AccountCreated @event,
         CancellationToken ct = default)
 	{
-			await context.Accounts.AddAsync(entity: new AccountEntity()
-			{
-				Id = @event.AccountId,
-				UserId = @event.UserId,
-				Name = @event.Name,
-				AccountType = @event.Type,
-				Currency = @event.Currency,
-				IsArchived = false,
-				CreatedAt = @event.OccurredAt
-			}, cancellationToken: ct);
+		await context.Accounts.AddAsync(entity: new AccountEntity()
+		{
+			Id = @event.AccountId,
+			UserId = @event.UserId,
+			Name = @event.Name,
+			AccountType = @event.Type,
+			Currency = @event.Currency,
+			IsArchived = false,
+			CreatedAt = @event.OccurredAt
+		}, cancellationToken: ct);
 
-			await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity()
-			{
-				AccountId = @event.AccountId,
-				Balance = @event.Balance,
-				LastVersion = 1,
-				UpdatedAt = @event.OccurredAt
-			}, cancellationToken: ct);
+		await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity()
+		{
+			AccountId = @event.AccountId,
+			Balance = @event.Balance,
+			LastVersion = 1,
+			UpdatedAt = @event.OccurredAt
+		}, cancellationToken: ct);
 			
 		await unitOfWork.ExecuteInTransactionAsync(
 			operation: async () => await context.SaveChangesAsync(cancellationToken: ct), 
@@ -72,16 +66,10 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.AccountBalances.Where(predicate: balance => balance.AccountId == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: balance => balance.Balance,
-				valueExpression: balance => balance.Balance + @event.Delta
-			).SetProperty(
-				propertyExpression: balance => balance.LastVersion,
-				valueExpression: balance => balance.LastVersion + 1
-			).SetProperty(
-				propertyExpression: e => e.UpdatedAt,
-				valueExpression: dateProvider.UtcNow
-			),
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: balance => balance.Balance, valueExpression: balance => balance.Balance + @event.Delta)
+				.SetProperty(propertyExpression: balance => balance.LastVersion, valueExpression: balance => balance.LastVersion + 1)
+				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);
 	}
@@ -145,10 +133,8 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: e => e.Name,
-				valueExpression: @event.NewName
-			), cancellationToken: ct
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Name, valueExpression: @event.NewName),
+			cancellationToken: ct
 		);
 	}
 
@@ -157,10 +143,8 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: e => e.IsArchived,
-				valueExpression: true
-			), cancellationToken: ct
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: true), 
+			cancellationToken: ct
 		);
 	}
 
@@ -169,10 +153,8 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: e => e.IsArchived,
-				valueExpression: false
-			), cancellationToken: ct
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: false), 
+			cancellationToken: ct
 		);
 	}
 }

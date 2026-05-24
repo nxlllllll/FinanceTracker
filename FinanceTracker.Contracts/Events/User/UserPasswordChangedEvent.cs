@@ -7,6 +7,5 @@ namespace FinanceTracker.Contracts.Events.User;
 public sealed record UserPasswordChangedEvent(
 	Guid EventId,
 	Guid UserId,
-	string NewPassword,
 	DateTime OccurredAt
 ) : IUserIntegrationEvent;

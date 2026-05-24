@@ -23,19 +23,20 @@ public sealed class UserDomainEventMapper(
 		UserEmailChanged e => new UserEmailChangedEvent(
 			EventId: e.Id,
 			UserId: e.AggregateId,
+			OldEmail: e.OldEmail.Value,
 			NewEmail: e.NewEmail.Value,
 			OccurredAt: e.OccurredAt
 		),
 		UserBaseCurrencyChanged e => new UserBaseCurrencyChangedEvent(
 			EventId: e.Id,
 			UserId: e.AggregateId,
+			OldBaseCurrency: e.OldBaseCurrency.Value,
 			NewBaseCurrency: e.NewBaseCurrency.Value,
 			OccurredAt: e.OccurredAt
 		),
 		UserPasswordChanged e => new UserPasswordChangedEvent(
 			EventId: e.Id,
 			UserId: e.AggregateId,
-			NewPassword: e.NewPassword,
 			OccurredAt: e.OccurredAt
 		),
 		_ => ExecuteDefaultCase(@event: @event)

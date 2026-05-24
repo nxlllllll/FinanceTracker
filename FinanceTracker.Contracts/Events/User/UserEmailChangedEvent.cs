@@ -7,6 +7,7 @@ namespace FinanceTracker.Contracts.Events.User;
 public sealed record UserEmailChangedEvent(
 	Guid EventId,
 	Guid UserId,
+	string OldEmail,
 	string NewEmail,
 	DateTime OccurredAt
 ) : IUserIntegrationEvent;

@@ -8,6 +8,7 @@ namespace FinanceTracker.Core.Domains.User.Events;
 public sealed record UserEmailChanged(
 	Guid Id,
 	Guid AggregateId,
+	Email OldEmail,
 	Email NewEmail,
 	DateTime OccurredAt
 ) : IDomainEvent;
