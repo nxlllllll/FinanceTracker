@@ -9,6 +9,12 @@
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -17,6 +23,12 @@
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   rabbitmq:
     image: rabbitmq:4.3.0-alpine
@@ -31,6 +43,12 @@
       - rabbitmq_data:/var/lib/rabbitmq
     command: >
       sh -c "echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins && rabbitmq-server"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
 volumes:
   postgres_data:
