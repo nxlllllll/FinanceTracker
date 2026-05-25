@@ -128,22 +128,22 @@ public sealed class Account : AggregateRoot
 	}
 
 	private void Apply(AccountBalanceAdjusted @event)
-		=> Balance += @event.Delta;
+		=> Balance = Balance.Add(amount: @event.Delta);
 	
 	private void Apply(AccountDebited @event)
-		=> Balance -= @event.Amount * @event.ExchangeRate;
+		=> Balance = Balance.Subtract(amount: @event.Amount * @event.ExchangeRate);
 
 	private void Apply(AccountCredited @event)
-		=> Balance += @event.Amount * @event.ExchangeRate;
+		=> Balance = Balance.Add(amount: @event.Amount * @event.ExchangeRate);
 	
 	private void Apply(AccountTransferDebited @event)
-		=> Balance -= @event.Amount;
+		=> Balance = Balance.Subtract(amount: @event.Amount);
 
 	private void Apply(AccountTransferCredited @event)
-		=> Balance += @event.Amount * @event.ExchangeRate;
+		=> Balance = Balance.Add(amount: @event.Amount * @event.ExchangeRate);
 
 	private void Apply(AccountTransferRefunded @event)
-		=> Balance += @event.Amount;
+		=> Balance = Balance.Add(amount: @event.Amount);
 	
 	private void Apply(AccountRenamed @event)
 		=> Name = @event.NewName;

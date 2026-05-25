@@ -33,18 +33,37 @@ public readonly record struct Money
 		return Result<Money, DomainException>.Success(value: new Money(amount: amount, currency: currency));
 	}
 	
+	public Money Add(decimal amount)
+		=> new Money(amount: Amount + amount, currency: Currency);
+	
+	public Money Subtract(decimal amount) 
+		=> new Money(amount: Amount - amount, currency: Currency);
+	
+	public Money Add(Money value)
+	{
+		if (Currency != value.Currency)
+			throw new CurrencyException(message: $"Cannot add amounts of different currencies: {Currency} and {value.Currency}.");
+
+		return new Money(amount: Amount + value.Amount, currency: Currency);
+	}
+	
+	public Money Subtract(Money value)
+	{
+		if (Currency != value.Currency)
+			throw new CurrencyException(message: $"Cannot add amounts of different currencies: {Currency} and {value.Currency}.");
+
+		return new Money(amount: Amount - value.Amount, currency: Currency);
+	}
+
 	public static Money Reconstitute(decimal amount, Currency currency)
 		=> new Money(amount: amount, currency: currency);
 
-	public static Money operator +(Money left, decimal right)
-		=> new Money(amount: left.Amount + right, currency: left.Currency);
-
-	public static Money operator -(Money left, decimal right)
-		=> new Money(amount: left.Amount - right, currency: left.Currency);
-
-	public static Money operator *(Money left, decimal right)
-		=> new Money(amount: left.Amount * right, currency: left.Currency);
-
+	public static Money operator +(Money left, Money right)
+		=> left.Add(value: right);
+	
+	public static Money operator -(Money left, Money right)
+		=> left.Subtract(value: right);
+	
 	public override string ToString()
 		=> $"{Amount.ToString(format: null, provider: System.Globalization.CultureInfo.InvariantCulture)} {Currency}";
 }
