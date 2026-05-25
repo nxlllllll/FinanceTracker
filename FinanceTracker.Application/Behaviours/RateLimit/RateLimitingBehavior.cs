@@ -5,6 +5,16 @@ using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Application.Behaviours.RateLimit;
 
+/// <summary>
+/// Enforces per-user rate limiting for requests implementing <see cref="IUserScopedRequest"/>.
+/// </summary>
+/// <remarks>
+/// Intentionally throws <see cref="RateLimitExceededException"/> instead of returning
+/// <c>Result.Failure</c> when the limit is exceeded.
+/// </remarks>
+/// <exception cref="RateLimitExceededException">
+/// Thrown when the request exceeds the configured rate limit for the user.
+/// </exception>
 public sealed class RateLimitingBehavior<TRequest, TResponse>(
 	IRateLimiter rateLimiter,
 	IOptionsMonitor<RateLimitOptions> options
