@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Tests.Unit.Helpers;

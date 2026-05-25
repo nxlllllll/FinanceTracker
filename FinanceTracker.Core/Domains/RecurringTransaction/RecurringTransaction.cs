@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -16,13 +16,13 @@ public sealed class RecurringTransaction
     public int DayOfMonth { get; private set; }
     public string? Description { get; private set; }
     public bool IsActive { get; private set; }
-    public DateTime? LastExecutedAt { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset? LastExecutedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     private RecurringTransaction() { }
 
     public static Result<RecurringTransaction, DomainException> Create(
-        DateTime createdAt,
+        DateTimeOffset createdAt,
         Guid userId,
         Guid accountId,
         Guid categoryId,
@@ -60,8 +60,8 @@ public sealed class RecurringTransaction
         int dayOfMonth,
         string? description,
         bool isActive,
-        DateTime? lastExecutedAt,
-        DateTime createdAt)
+        DateTimeOffset? lastExecutedAt,
+        DateTimeOffset createdAt)
     {
         return new RecurringTransaction
         {
@@ -135,7 +135,7 @@ public sealed class RecurringTransaction
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
     
-    public Result<Unit, DomainException> MarkExecuted(DateTime executedAt)
+    public Result<Unit, DomainException> MarkExecuted(DateTimeOffset executedAt)
     {
         if (!IsActive)
             return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));

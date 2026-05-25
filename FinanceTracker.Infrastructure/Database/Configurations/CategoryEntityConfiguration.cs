@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;

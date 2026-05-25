@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
+using FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
@@ -65,9 +65,9 @@ public sealed class GetOperationsHistoryHandlerTests
 		_userReadRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -85,17 +85,17 @@ public sealed class GetOperationsHistoryHandlerTests
 	public async Task Handle_ShouldPassAllFiltersToRepository()
 	{
 		Guid userId = Guid.CreateVersion7();
-		DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
-		DateTime dateTo = FakeDateProvider.Default.UtcNow;
-		DateTime cursorOccurredAt = FakeDateProvider.Default.UtcNow.AddDays(value: -1);
+		DateTimeOffset dateFrom = FakeDateProvider.Default.UtcNow.AddDays(days: -30);
+		DateTimeOffset dateTo = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset cursorOccurredAt = FakeDateProvider.Default.UtcNow.AddDays(days: -1);
 		Guid cursorId = Guid.CreateVersion7();
 
 		_userReadRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -129,9 +129,9 @@ public sealed class GetOperationsHistoryHandlerTests
 		_userReadRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

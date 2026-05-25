@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
+using FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;

@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 
@@ -16,18 +16,18 @@ public class AccountBuilder(FinanceTrackerContext context)
 		{
 			Id = accountId,
 			UserId = userId,
-			Name = Name.Create(value: "–¢–µ—Å—Ç–æ–≤—ã–π —Å—á—ë—Ç").Value,
+			Name = Name.Create(value: "“ÂÒÚÓ‚˚È Ò˜∏Ú").Value,
 			AccountType = Core.Domains.Account.AccountType.Checking,
 			Currency = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			IsArchived = false,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await context.AccountBalances.AddAsync(new AccountBalanceEntity()
 		{
 			AccountId = accountId,
 			Balance = balance,
 			LastVersion = 0,
-			UpdatedAt = DateTime.UtcNow
+			UpdatedAt = DateTimeOffset.UtcNow
 		});
 		await context.SaveChangesAsync();
 		return accountId;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Account.Events;
 
 namespace FinanceTracker.Contracts.Events.Account;
@@ -12,5 +12,5 @@ public sealed record AccountTransferDebitedEvent(
 	decimal Amount,
 	decimal ForexRate,
 	string? Description,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

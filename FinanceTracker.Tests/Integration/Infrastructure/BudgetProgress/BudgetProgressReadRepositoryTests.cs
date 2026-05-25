@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
@@ -47,7 +47,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
         await Context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId)
             .ExecuteUpdateAsync(setPropertyCalls: builder => builder
                 .SetProperty(propertyExpression: p => p.Spent, valueExpression: 3000m)
-                .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: DateTime.UtcNow)
+                .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: DateTimeOffset.UtcNow)
             );
 
         BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId, userId: userId);

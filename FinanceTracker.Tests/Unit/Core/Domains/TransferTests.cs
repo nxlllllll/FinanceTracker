@@ -1,4 +1,4 @@
-п»їusing FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core.Domains;
@@ -64,9 +64,9 @@ public sealed class TransferTests
     [Test]
     public async Task Create_WithDescription_ShouldSetDescription()
     {
-        Transfer transfer = TransferFactory.Create(description: "РќР° РѕС‚РїСѓСЃРє");
+        Transfer transfer = TransferFactory.Create(description: "На отпуск");
 
-        await Assert.That(value: transfer.Description).IsEqualTo(expected: "РќР° РѕС‚РїСѓСЃРє");
+        await Assert.That(value: transfer.Description).IsEqualTo(expected: "На отпуск");
     }
 
     [Test]

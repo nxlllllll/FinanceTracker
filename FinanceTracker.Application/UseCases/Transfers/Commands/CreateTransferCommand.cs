@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -16,7 +16,7 @@ public sealed record CreateTransferCommand(
 	Currency CurrencyTo,
 	decimal Amount,
 	string? Description,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Correlation;
+namespace FinanceTracker.Core.Services.Correlation;
 
 public interface ICorrelationContext
 {

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
@@ -16,5 +16,5 @@ public sealed class TransactionEntity
 	public bool IsExcluded { get; set; }
 	public string? Description { get; set; }
 	public bool IsRatePending { get; set; }
-	public DateTime OccurredAt { get; init; }
+	public DateTimeOffset OccurredAt { get; init; }
 }

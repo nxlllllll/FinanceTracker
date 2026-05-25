@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Results;
+namespace FinanceTracker.Core.Results;
 
 public readonly struct Unit
 {

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 
@@ -14,7 +14,7 @@ public class TransactionBuilder(FinanceTrackerContext context)
 		string currencyCode = "RUB",
 		DirectionType direction = DirectionType.Debit,
 		bool isExcluded = false,
-		DateTime? occurredAt = null)
+		DateTimeOffset? occurredAt = null)
 	{
 		Guid transactionId = Guid.CreateVersion7();
 
@@ -31,7 +31,7 @@ public class TransactionBuilder(FinanceTrackerContext context)
 			IsExcluded = isExcluded,
 			IsRatePending = false,
 			Description = null,
-			OccurredAt = occurredAt ?? DateTime.UtcNow
+			OccurredAt = occurredAt ?? DateTimeOffset.UtcNow
 		});
 
 		await context.SaveChangesAsync();

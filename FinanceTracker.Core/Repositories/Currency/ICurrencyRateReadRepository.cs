@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Currency;
+namespace FinanceTracker.Core.Repositories.Currency;
 
 public interface ICurrencyRateReadRepository
 {

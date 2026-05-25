@@ -1,3 +1,3 @@
-﻿namespace FinanceTracker.Core.Services.Token;
+namespace FinanceTracker.Core.Services.Token;
 
-public sealed record AccessTokenResult(string Token, DateTime ExpiresAt);
+public sealed record AccessTokenResult(string Token, DateTimeOffset ExpiresAt);

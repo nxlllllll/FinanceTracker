@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -29,7 +29,7 @@ public sealed class CurrencyRateReadRepositoryTests : DatabaseFixture
             TargetCode = targetCode,
             Rate = rate,
             ActualAt = date,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow
         });
         await Context.SaveChangesAsync();
     }
@@ -40,7 +40,7 @@ public sealed class CurrencyRateReadRepositoryTests : DatabaseFixture
         decimal? result = await _readRepository.GetRateAsync(
             baseCurrencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             targetCurrencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-            date: DateOnly.FromDateTime(DateTime.UtcNow)
+            date: DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime)
         );
 
         await Assert.That(value: result).IsEqualTo(expected: 1m);
@@ -52,7 +52,7 @@ public sealed class CurrencyRateReadRepositoryTests : DatabaseFixture
         await _currencyBuilder.CreateAsync(code: "USD");
         await _currencyBuilder.CreateAsync(code: "RUB");
 
-        DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
+        DateOnly date = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
         await SeedRateAsync(
             baseCode: Core.ValueObjects.Currency.Create(value: "USD").Value, 
             targetCode: Core.ValueObjects.Currency.Create(value: "RUB").Value, 
@@ -75,7 +75,7 @@ public sealed class CurrencyRateReadRepositoryTests : DatabaseFixture
         decimal? result = await _readRepository.GetRateAsync(
             baseCurrencyCode: Core.ValueObjects.Currency.Create(value: "USD").Value,
             targetCurrencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-            date: DateOnly.FromDateTime(DateTime.UtcNow)
+            date: DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime)
         );
 
         await Assert.That(value: result).IsNull();
@@ -102,19 +102,19 @@ public sealed class CurrencyRateReadRepositoryTests : DatabaseFixture
             baseCode: Core.ValueObjects.Currency.Create(value: "USD").Value, 
             targetCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             rate: 85m,
-            date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(value: -2))
+            date: DateOnly.FromDateTime(DateTimeOffset.UtcNow.AddDays(days: -2).UtcDateTime)
         );
         await SeedRateAsync(
             baseCode: Core.ValueObjects.Currency.Create(value: "USD").Value, 
             targetCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             rate: 90m,
-            date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(value: -1))
+            date: DateOnly.FromDateTime(DateTimeOffset.UtcNow.AddDays(days: -1).UtcDateTime)
         );
         await SeedRateAsync(
             baseCode: Core.ValueObjects.Currency.Create(value: "USD").Value, 
             targetCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             rate: 92m,
-            date: DateOnly.FromDateTime(DateTime.UtcNow)
+            date: DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime)
         );
 
         decimal? result = await _readRepository.GetLatestRateAsync(

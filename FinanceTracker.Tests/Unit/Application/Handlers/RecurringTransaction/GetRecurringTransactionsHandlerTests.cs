@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
+using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -50,7 +50,7 @@ public sealed class GetRecurringTransactionsHandlerTests
 
 		_readRepository.GetByUserIdAsync(
 			userId: Arg.Any<Guid>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -69,7 +69,7 @@ public sealed class GetRecurringTransactionsHandlerTests
 	{
 		_readRepository.GetByUserIdAsync(
 			userId: Arg.Any<Guid>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

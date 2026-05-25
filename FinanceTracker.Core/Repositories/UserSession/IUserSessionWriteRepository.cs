@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.UserSession;
+namespace FinanceTracker.Core.Repositories.UserSession;
 
 public interface IUserSessionWriteRepository
 {
@@ -9,7 +9,7 @@ public interface IUserSessionWriteRepository
 
 	Task RevokeAsync(
 		Guid sessionId,
-		DateTime revokedAt,
+		DateTimeOffset revokedAt,
 		CancellationToken ct = default
 	);
 }

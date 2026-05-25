@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.RecurringTransaction;
 
@@ -11,7 +11,7 @@ public interface IRecurringTransactionReadRepository
 
 	Task<PagedResult<Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
 		Guid userId,
-		DateTime? cursorCreatedAt = null,
+		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default
@@ -20,7 +20,7 @@ public interface IRecurringTransactionReadRepository
 	Task<IReadOnlyList<Domains.RecurringTransaction.RecurringTransaction>> GetDueTodayAsync(
 		int dayOfMonth,
 		int daysInCurrentMonth,
-		DateTime currentMonthStart,
+		DateTimeOffset currentMonthStart,
 		CancellationToken ct = default
 	);
 }

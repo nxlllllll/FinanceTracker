@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
@@ -18,7 +18,7 @@ public sealed class DeadLetterMonitoringJob(
 	{
 		if (!options.CurrentValue.IsEnabled)
 		{
-			logger.ZLogInformation(message: $"[{nameof(DeadLetterMonitoringJob)}] Disabled on {DateTime.Now}. Skipping.");
+			logger.ZLogInformation(message: $"[{nameof(DeadLetterMonitoringJob)}] Disabled on {DateTimeOffset.Now}. Skipping.");
 			return;
 		}
 

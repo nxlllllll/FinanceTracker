@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
+using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RabbitMQ.Client;
 

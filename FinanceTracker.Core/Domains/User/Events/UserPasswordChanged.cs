@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
+using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 
 namespace FinanceTracker.Core.Domains.User.Events;
@@ -7,5 +7,5 @@ namespace FinanceTracker.Core.Domains.User.Events;
 public sealed record UserPasswordChanged(
 	Guid Id,
 	Guid AggregateId,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IDomainEvent;

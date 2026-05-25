@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Currencies.Queries.GetCurrency;

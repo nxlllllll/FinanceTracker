@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
@@ -6,5 +6,5 @@ namespace FinanceTracker.Core.Domains.Account.Events;
 public sealed record AccountArchived(
 	Guid Id,
 	Guid AccountId,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IEvent;

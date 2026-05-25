@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 
@@ -12,8 +12,8 @@ public sealed class UserSessionTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: "hash",
-			expiresAt: DateTime.UtcNow.AddHours(value: 1),
-			createdAt: DateTime.UtcNow,
+			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+			createdAt: DateTimeOffset.UtcNow,
 			revokedAt: null
 		);
 	}
@@ -24,8 +24,8 @@ public sealed class UserSessionTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: "hash",
-			expiresAt: DateTime.UtcNow.AddHours(value: -1),
-			createdAt: DateTime.UtcNow.AddHours(value: -2),
+			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: -1),
+			createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
 			revokedAt: null
 		);
 	}
@@ -36,9 +36,9 @@ public sealed class UserSessionTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: "hash",
-			expiresAt: DateTime.UtcNow.AddHours(value: 1),
-			createdAt: DateTime.UtcNow,
-			revokedAt: DateTime.UtcNow.AddMinutes(value: -5)
+			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+			createdAt: DateTimeOffset.UtcNow,
+			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
 		);
 	}
 
@@ -67,8 +67,8 @@ public sealed class UserSessionTests
 	public async Task Create_ShouldSetCorrectProperties()
 	{
 		Guid userId = Guid.CreateVersion7();
-		DateTime expiresAt = DateTime.UtcNow.AddDays(value: 7);
-		DateTime createdAt = DateTime.UtcNow;
+		DateTimeOffset expiresAt = DateTimeOffset.UtcNow.AddDays(days: 7);
+		DateTimeOffset createdAt = DateTimeOffset.UtcNow;
 
 		UserSession session = UserSession.Create(
 			userId: userId,
@@ -88,7 +88,7 @@ public sealed class UserSessionTests
 	public async Task Revoke_WhenActive_ShouldSetRevokedAt()
 	{
 		UserSession session = CreateActive();
-		DateTime revokedAt = DateTime.UtcNow;
+		DateTimeOffset revokedAt = DateTimeOffset.UtcNow;
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: revokedAt);
 
@@ -102,7 +102,7 @@ public sealed class UserSessionTests
 	{
 		UserSession session = CreateRevoked();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: DateTime.UtcNow);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: DateTimeOffset.UtcNow);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTokenException>();
@@ -113,7 +113,7 @@ public sealed class UserSessionTests
 	{
 		UserSession session = CreateExpired();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: DateTime.UtcNow);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: DateTimeOffset.UtcNow);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTokenException>();

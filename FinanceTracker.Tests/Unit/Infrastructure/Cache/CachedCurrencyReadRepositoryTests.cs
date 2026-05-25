@@ -1,4 +1,4 @@
-п»їusing System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Cache;
@@ -16,8 +16,8 @@ public sealed class CachedCurrencyReadRepositoryTests
 
 	private static readonly CurrencyDto RubDto = new CurrencyDto(
 		Code: "RUB",
-		Name: "Р РѕСЃСЃРёР№СЃРєРёР№ СЂСѓР±Р»СЊ",
-		Symbol: "в‚Ѕ",
+		Name: "Российский рубль",
+		Symbol: "?",
 		IsActive: true
 	);
 

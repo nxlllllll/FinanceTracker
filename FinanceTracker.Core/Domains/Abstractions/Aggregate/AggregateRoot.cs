@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 
 namespace FinanceTracker.Core.Domains.Abstractions.Aggregate;
 

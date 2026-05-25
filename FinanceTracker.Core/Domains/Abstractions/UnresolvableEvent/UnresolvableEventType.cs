@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+namespace FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 
 public enum UnresolvableEventType
 {

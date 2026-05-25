@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 
@@ -13,7 +13,7 @@ public static class CreateTransactionCommandFactory
 		decimal amount = 1000m,
 		string currency = "RUB",
 		DirectionType direction = DirectionType.Debit,
-		string? description = "–û–±–µ–¥")
+		string? description = "Œ·Â‰")
 	{
 		return new CreateTransactionCommand(
 			AccountId: accountId ?? Guid.CreateVersion7(),

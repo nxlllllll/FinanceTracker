@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
+using FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
@@ -52,7 +52,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -74,7 +74,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -96,7 +96,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -112,7 +112,7 @@ public sealed class GetCategoriesHandlerTests
 			type: CategoryType.Income,
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -127,7 +127,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -143,7 +143,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: false,
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -160,7 +160,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -176,7 +176,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: parentId,
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -186,7 +186,7 @@ public sealed class GetCategoriesHandlerTests
 	[Test]
 	public async Task Handle_ShouldPassCursorToRepository()
 	{
-		DateTime cursorCreatedAt = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset cursorCreatedAt = FakeDateProvider.Default.UtcNow;
 		Guid cursorId = Guid.CreateVersion7();
 
 		_categoryReadRepository.GetAllAsync(
@@ -194,7 +194,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -229,7 +229,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -245,7 +245,7 @@ public sealed class GetCategoriesHandlerTests
 			type: Arg.Any<CategoryType?>(),
 			isArchived: Arg.Any<bool?>(),
 			parentId: Arg.Any<Guid?>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: 50,
 			ct: Arg.Any<CancellationToken>()

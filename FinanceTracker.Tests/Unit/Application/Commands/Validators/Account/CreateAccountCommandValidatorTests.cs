@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;
+using FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Currency;

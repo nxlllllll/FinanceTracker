@@ -1,7 +1,7 @@
-﻿namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Dtos;
 
 public sealed record TokenResponse(
 	string AccessToken,
 	string RefreshToken,
-	DateTime AccessTokenExpiresAt
+	DateTimeOffset AccessTokenExpiresAt
 );

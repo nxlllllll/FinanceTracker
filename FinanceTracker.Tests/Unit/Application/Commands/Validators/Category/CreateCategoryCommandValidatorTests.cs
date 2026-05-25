@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
+using FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
@@ -14,7 +14,7 @@ public sealed class CreateCategoryCommandValidatorTests
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Create(value: "–ï–¥–∞").Value,
+			Name: Name.Create(value: "≈‰‡").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);
@@ -29,7 +29,7 @@ public sealed class CreateCategoryCommandValidatorTests
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Create(value: "–ï–¥–∞").Value,
+			Name: Name.Create(value: "≈‰‡").Value,
 			Type: (CategoryType)99,
 			ParentId: null
 		);
@@ -47,7 +47,7 @@ public sealed class CreateCategoryCommandValidatorTests
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.Empty,
-			Name: Name.Create(value: "–ï–¥–∞").Value,
+			Name: Name.Create(value: "≈‰‡").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);

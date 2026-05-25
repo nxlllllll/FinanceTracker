@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Currency;
+namespace FinanceTracker.Core.Services.Currency;
 
 public sealed record ConversionResult(
 	decimal Rate,

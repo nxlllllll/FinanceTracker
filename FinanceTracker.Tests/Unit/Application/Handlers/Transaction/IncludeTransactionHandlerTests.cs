@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.IncludeTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.IncludeTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -116,7 +116,7 @@ public sealed class IncludeTransactionHandlerTests
 			categoryId: Arg.Any<Guid>(),
 			amount: Arg.Any<decimal>(), 
 			currency: Arg.Any<Currency>(),
-			occurredAt: Arg.Any<DateTime>(), 
+			occurredAt: Arg.Any<DateTimeOffset>(), 
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

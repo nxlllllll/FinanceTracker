@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Budget;
+namespace FinanceTracker.Core.Repositories.Budget;
 
 public interface IBudgetWriteRepository
 {

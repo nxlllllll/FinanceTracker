@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ActivateRecurringTransaction;
 using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionAmount;
 using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;

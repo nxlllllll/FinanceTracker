@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Operation;
+namespace FinanceTracker.Core.Domains.Operation;
 
 public enum OperationType
 {

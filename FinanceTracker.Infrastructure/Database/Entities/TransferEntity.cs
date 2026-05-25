@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
 
@@ -14,6 +14,6 @@ public sealed class TransferEntity
 	public Currency CurrencyTo { get; set; }
 	public decimal ExchangeRate { get; set; }
 	public string? Description { get; set; }
-	public DateTime OccurredAt { get; set; }
+	public DateTimeOffset OccurredAt { get; set; }
 	public bool IsRatePending { get; set; }
 }

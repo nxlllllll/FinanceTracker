@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
+using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.ValueObjects;
 
@@ -10,5 +10,5 @@ public sealed record UserRegistered(
 	Guid AggregateId,
 	Email Email,
 	Currency BaseCurrency,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IDomainEvent;

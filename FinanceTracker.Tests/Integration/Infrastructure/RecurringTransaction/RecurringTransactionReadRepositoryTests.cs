@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -86,12 +86,12 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		DateTime now = DateTime.UtcNow;
+		DateTimeOffset now = DateTimeOffset.UtcNow;
 		int today = now.Day;
 
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: today);
 
-		DateTime currentMonthStart = new DateTime(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
@@ -108,14 +108,14 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		DateTime now = DateTime.UtcNow;
+		DateTimeOffset now = DateTimeOffset.UtcNow;
 		int today = now.Day;
 
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: today);
 
-		await _writeRepository.MarkExecutedAsync(recurringTransactionId: id, executedAt: DateTime.UtcNow);
+		await _writeRepository.MarkExecutedAsync(recurringTransactionId: id, executedAt: DateTimeOffset.UtcNow);
 
-		DateTime currentMonthStart = new DateTime(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
@@ -132,14 +132,14 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		DateTime now = DateTime.UtcNow;
+		DateTimeOffset now = DateTimeOffset.UtcNow;
 		int today = now.Day;
 
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: today);
 
 		await _writeRepository.DeactivateAsync(recurringTransactionId: id);
 
-		DateTime currentMonthStart = new DateTime(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
@@ -156,13 +156,13 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		DateTime now = DateTime.UtcNow;
+		DateTimeOffset now = DateTimeOffset.UtcNow;
 		int today = now.Day;
 		int otherDay = today == 1 ? 2 : 1;
 
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: otherDay);
 
-		DateTime currentMonthStart = new DateTime(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
@@ -186,7 +186,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: 31);
 
-		DateTime currentMonthStart = new DateTime(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: daysInMonth,
@@ -210,7 +210,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: 31);
 
-		DateTime currentMonthStart = new DateTime(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: 15,

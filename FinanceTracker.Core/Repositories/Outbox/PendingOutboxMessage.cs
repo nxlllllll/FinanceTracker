@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Outbox;
+namespace FinanceTracker.Core.Repositories.Outbox;
 
 public sealed record PendingOutboxMessage(
 	Guid Id,

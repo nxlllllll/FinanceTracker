@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transactions.Services;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
@@ -242,7 +242,7 @@ public sealed class TransactionCreationServiceTests
             categoryId: Arg.Any<Guid>(),
             amount: Arg.Any<decimal>(),
             currency: Arg.Any<Currency>(),
-            occurredAt: Arg.Any<DateTime>(),
+            occurredAt: Arg.Any<DateTimeOffset>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

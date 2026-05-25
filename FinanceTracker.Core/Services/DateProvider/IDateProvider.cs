@@ -1,7 +1,7 @@
-﻿namespace FinanceTracker.Core.Services.DateProvider;
+namespace FinanceTracker.Core.Services.DateProvider;
 
 public interface IDateProvider
 {
-	DateTime UtcNow { get; }
+	DateTimeOffset UtcNow { get; }
 	DateOnly UtcToday { get; }
 }

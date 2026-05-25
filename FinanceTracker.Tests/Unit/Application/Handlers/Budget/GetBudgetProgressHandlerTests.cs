@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgetProgress;
+using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgetProgress;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Tests.Unit.Helpers;

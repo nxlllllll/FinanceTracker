@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
@@ -53,7 +53,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
             categoryId: categoryId,
             amount: 1000m,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         CategoryTotalEntity? entity = await Context.CategoryTotals.FirstOrDefaultAsync(predicate: ct =>
@@ -72,7 +72,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId,
@@ -102,7 +102,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId,
@@ -138,14 +138,14 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
             categoryId: categoryId,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 2000m,
-            occurredAt: new DateTime(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         int count = await Context.CategoryTotals.CountAsync(
@@ -159,9 +159,9 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     public async Task ChangeCategoryAsync_ShouldSubtractFromOldAndAddToNew()
     {
         Guid userId = await _userBuilder.CreateAsync();
-        Guid oldCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "–ï–¥–∞");
-        Guid newCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "–¢—Ä–∞–Ω—Å–ø–æ—Ä—Ç");
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        Guid oldCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "≈‰‡");
+        Guid newCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "“‡ÌÒÔÓÚ");
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId,

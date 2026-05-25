@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
@@ -158,10 +158,10 @@ public sealed class BalanceAdjustmentJob(
             getNewRateAsync: (item, innerCt) => currencyRateReadRepository.GetRateAsync(
                 baseCurrencyCode: item.TransactionCurrency,
                 targetCurrencyCode: item.BaseCurrency,
-                date: DateOnly.FromDateTime(dateTime: item.OccurredAt),
+                date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
                 ct: innerCt
             ),
-            buildSkipMessage: item => $"Rate not found for transaction {item.TransactionId} ({item.TransactionCurrency} → {item.BaseCurrency} on {item.OccurredAt:d}).",
+            buildSkipMessage: item => $"Rate not found for transaction {item.TransactionId} ({item.TransactionCurrency} > {item.BaseCurrency} on {item.OccurredAt:d}).",
             onRateUnchangedAsync: (item, rate, innerCt) => transactionWriteRepository.UpdateRateAsync(
                 transactionId: item.TransactionId, 
                 newRate: rate, 
@@ -199,7 +199,7 @@ public sealed class BalanceAdjustmentJob(
                     await transactionWriteRepository.UpdateRateAsync(transactionId: item.TransactionId, newRate: newRate, ct: innerCt);
                 }, ct: innerCt);
 
-                logger.ZLogInformation(message: $"Adjusted transaction {item.TransactionId}: rate {item.CurrentRate} → {newRate}.");
+                logger.ZLogInformation(message: $"Adjusted transaction {item.TransactionId}: rate {item.CurrentRate} > {newRate}.");
                 return AdjustResult.Adjusted;
             },
             ct: ct
@@ -219,10 +219,10 @@ public sealed class BalanceAdjustmentJob(
             getNewRateAsync: (item, innerCt) => currencyRateReadRepository.GetRateAsync(
                 baseCurrencyCode: item.CurrencyFrom,
                 targetCurrencyCode: item.CurrencyTo,
-                date: DateOnly.FromDateTime(dateTime: item.OccurredAt),
+                date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
                 ct: innerCt
             ),
-            buildSkipMessage: item => $"Rate not found for transfer {item.TransferId} ({item.CurrencyFrom} → {item.CurrencyTo} on {item.OccurredAt:d}).",
+            buildSkipMessage: item => $"Rate not found for transfer {item.TransferId} ({item.CurrencyFrom} > {item.CurrencyTo} on {item.OccurredAt:d}).",
             onRateUnchangedAsync: (item, rate, innerCt) => transferWriteRepository.UpdateRateAsync(
                 transferId: item.TransferId,
                 newRate: rate,
@@ -278,7 +278,7 @@ public sealed class BalanceAdjustmentJob(
                     await transferWriteRepository.UpdateRateAsync(transferId: item.TransferId, newRate: newRate, ct: innerCt);
                 }, ct: innerCt);
 
-                logger.ZLogInformation(message: $"Adjusted transfer {item.TransferId}: rate {item.CurrentRate} → {newRate}.");
+                logger.ZLogInformation(message: $"Adjusted transfer {item.TransferId}: rate {item.CurrentRate} > {newRate}.");
                 return AdjustResult.Adjusted;
             },
             ct: ct

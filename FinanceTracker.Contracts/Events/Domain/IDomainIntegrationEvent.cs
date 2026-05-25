@@ -1,7 +1,7 @@
-﻿namespace FinanceTracker.Contracts.Events.Domain;
+namespace FinanceTracker.Contracts.Events.Domain;
 
 public interface IDomainIntegrationEvent
 {
 	Guid EventId { get; }
-	DateTime OccurredAt { get; }
+	DateTimeOffset OccurredAt { get; }
 }

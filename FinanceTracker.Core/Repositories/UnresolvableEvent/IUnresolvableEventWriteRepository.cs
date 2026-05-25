@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 
 namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
 
@@ -9,7 +9,7 @@ public interface IUnresolvableEventWriteRepository
 		Guid referenceId,
 		string reason,
 		string payload,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
 }

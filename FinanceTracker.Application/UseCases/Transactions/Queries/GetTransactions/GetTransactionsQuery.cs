@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Results;
@@ -12,9 +12,9 @@ public sealed record GetTransactionsQuery(
 	Guid? CategoryId = null,
 	DirectionType? Direction = null,
 	bool? IsExcluded = null,
-	DateTime? DateFrom = null,
-	DateTime? DateTo = null,
-	DateTime? CursorOccurredAt = null,
+	DateTimeOffset? DateFrom = null,
+	DateTimeOffset? DateTo = null,
+	DateTimeOffset? CursorOccurredAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
 ) : IRequest<PagedResult<Transaction>>, IUserScopedRequest;

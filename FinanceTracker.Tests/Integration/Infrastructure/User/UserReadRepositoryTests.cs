@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -78,7 +78,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             TargetCode = Core.ValueObjects.Currency.Create(value: targetCode).Value,
             Rate = rate,
             ActualAt = date,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow
         });
         await Context.SaveChangesAsync();
     }
@@ -142,15 +142,15 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid incomeCategory = await _categoryBuilder.CreateAsync(
             userId: userId, 
-            name: "–ó–∞—Ä–ø–ª–∞—Ç–∞",
+            name: "«‡ÔÎ‡Ú‡",
             type: CategoryType.Income
         );
         Guid expenseCategory = await _categoryBuilder.CreateAsync(
             userId: userId, 
-            name: "–ï–¥–∞",
+            name: "≈‰‡",
             type: CategoryType.Expense
         );
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _categoryTotalWriteRepository.AddAsync(
             userId: userId, 
@@ -180,10 +180,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid expenseCategory = await _categoryBuilder.CreateAsync(
             userId: userId, 
-            name: "–ï–¥–∞",
+            name: "≈‰‡",
             type: CategoryType.Expense
         );
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _categoryTotalWriteRepository.AddAsync(
             userId: userId, 
@@ -209,18 +209,18 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid expenseCategory = await _categoryBuilder.CreateAsync(
-            userId: userId, name: "–ï–¥–∞", type: CategoryType.Expense
+            userId: userId, name: "≈‰‡", type: CategoryType.Expense
         );
 
         await _categoryTotalWriteRepository.AddAsync(
             userId: userId, categoryId: expenseCategory,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value, amount: 1000m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
         await _categoryTotalWriteRepository.AddAsync(
             userId: userId, categoryId: expenseCategory,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value, amount: 2000m,
-            occurredAt: new DateTime(year: 2025, month: 2, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 2, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         (_, decimal expenseJan) = await _readRepository.GetIncomeExpenseSummaryAsync(
@@ -361,8 +361,8 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        DateTime earlier = FakeDateProvider.Default.UtcNow.AddHours(value: -1);
-        DateTime later = FakeDateProvider.Default.UtcNow;
+        DateTimeOffset earlier = FakeDateProvider.Default.UtcNow.AddHours(hours: -1);
+        DateTimeOffset later = FakeDateProvider.Default.UtcNow;
 
         Core.Domains.Transaction.Transaction first = Core.Domains.Transaction.Transaction.Reconstitute(
             id: Guid.CreateVersion7(), accountId: accountId, userId: userId, categoryId: categoryId,
@@ -395,7 +395,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         decimal result = await _readRepository.GetTotalBalanceAsync(
             userId: user.Id,
             baseCurrency: user.BaseCurrency,
-            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow)
+            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
         );
 
         await Assert.That(value: result).IsEqualTo(expected: 0m);
@@ -410,7 +410,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         decimal result = await _readRepository.GetTotalBalanceAsync(
             userId: user.Id,
             baseCurrency: user.BaseCurrency,
-            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow)
+            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
         );
 
         await Assert.That(value: result).IsEqualTo(expected: 5000m);
@@ -426,7 +426,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         decimal result = await _readRepository.GetTotalBalanceAsync(
             userId: user.Id,
             baseCurrency: user.BaseCurrency,
-            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow)
+            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
         );
 
         await Assert.That(value: result).IsEqualTo(expected: 10000m);
@@ -436,7 +436,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     public async Task GetTotalBalanceAsync_WithForeignCurrencyAccount_ShouldConvertUsingRate()
     {
         Core.Domains.User.User user = await CreateAndSaveUserAsync(currencyCode: "RUB");
-        DateOnly today = DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow);
+        DateOnly today = DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime);
         await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 90m, date: today);
         await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
 
@@ -467,7 +467,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         decimal result = await _readRepository.GetTotalBalanceAsync(
             userId: user.Id,
             baseCurrency: user.BaseCurrency,
-            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow)
+            date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
         );
 
         await Assert.That(value: result).IsEqualTo(expected: 5000m);

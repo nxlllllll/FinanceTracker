@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Operation;
@@ -95,9 +95,9 @@ public sealed class UserReadRepository(
 	public async Task<PagedResult<OperationDto>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
-		DateTime? dateFrom = null,
-		DateTime? dateTo = null,
-		DateTime? cursorOccurredAt = null,
+		DateTimeOffset? dateFrom = null,
+		DateTimeOffset? dateTo = null,
+		DateTimeOffset? cursorOccurredAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default)

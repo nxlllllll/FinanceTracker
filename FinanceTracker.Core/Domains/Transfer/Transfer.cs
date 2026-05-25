@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -15,7 +15,7 @@ public sealed class Transfer
     public decimal ExchangeRate { get; private set; }
     public bool IsRatePending { get; private set; }
     public string? Description { get; private set; }
-    public DateTime OccurredAt { get; private set; }
+    public DateTimeOffset OccurredAt { get; private set; }
 
     private Transfer() { }
 
@@ -30,7 +30,7 @@ public sealed class Transfer
         decimal exchangeRate,
         bool isRatePending,
         string? description,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         Result<Money, DomainException> amountFromResult = Money.Create(amount: amountFrom, currency: currencyFrom);
         if (amountFromResult.IsFailure)
@@ -67,7 +67,7 @@ public sealed class Transfer
         decimal exchangeRate,
         bool isRatePending,
         string? description,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         return new Transfer
         {

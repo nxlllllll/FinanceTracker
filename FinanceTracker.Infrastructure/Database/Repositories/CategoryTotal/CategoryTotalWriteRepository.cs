@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
@@ -22,10 +22,10 @@ public sealed class CategoryTotalWriteRepository(
 		decimal amount,
 		Core.ValueObjects.Currency currency,
 		int delta,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct)
 	{
-		DateOnly date = DateOnly.FromDateTime(dateTime: occurredAt);
+		DateOnly date = DateOnly.FromDateTime(dateTime: occurredAt.UtcDateTime);
 		DateOnly period = new DateOnly(year: occurredAt.Year, month: occurredAt.Month, day: 1);
 
 		Core.Domains.User.User user = await userReadRepository.GetByIdAsync(userId: userId, ct: ct)
@@ -55,7 +55,7 @@ public sealed class CategoryTotalWriteRepository(
 		Guid categoryId,
 		decimal amount,
 		Core.ValueObjects.Currency currency,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default)
 	{
 		await ApplyDeltaAsync(
@@ -74,7 +74,7 @@ public sealed class CategoryTotalWriteRepository(
 		Guid categoryId,
 		decimal amount,
 		Core.ValueObjects.Currency currency,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default)
 	{
 		await ApplyDeltaAsync(
@@ -94,7 +94,7 @@ public sealed class CategoryTotalWriteRepository(
 		Guid newCategoryId,
 		decimal amount,
 		Core.ValueObjects.Currency currency,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default)
 	{
 		await ApplyDeltaAsync(

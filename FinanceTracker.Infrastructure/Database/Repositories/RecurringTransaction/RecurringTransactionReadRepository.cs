@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -34,7 +34,7 @@ public sealed class RecurringTransactionReadRepository(
 
     public async Task<PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
         Guid userId,
-        DateTime? cursorCreatedAt = null,
+        DateTimeOffset? cursorCreatedAt = null,
         Guid? cursorId = null,
         int pageSize = 20,
         CancellationToken ct = default)
@@ -80,7 +80,7 @@ public sealed class RecurringTransactionReadRepository(
     public async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetDueTodayAsync(
         int dayOfMonth,
         int daysInCurrentMonth,
-        DateTime currentMonthStart,
+        DateTimeOffset currentMonthStart,
         CancellationToken ct = default)
     {
         bool isLastDayOfMonth = dayOfMonth == daysInCurrentMonth;

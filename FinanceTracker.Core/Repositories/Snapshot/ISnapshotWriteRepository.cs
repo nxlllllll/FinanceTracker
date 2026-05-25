@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Snapshot;
+namespace FinanceTracker.Core.Repositories.Snapshot;
 
 public interface ISnapshotWriteRepository
 {

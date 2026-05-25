@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
 using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionDescription;
 using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Results;
@@ -112,7 +112,7 @@ public sealed class ApplicationArchitectureTests
 					Type requestHandlerInterface = requestHandlerOpen.MakeGenericType(args[0], resultOpen.MakeGenericType(args[2], args[3]));
 					if (services.Any(predicate: sd => sd.ServiceType == requestHandlerInterface))
 						return null;
-					return $"{impl.Name} → {requestHandlerInterface.Name}";
+					return $"{impl.Name} > {requestHandlerInterface.Name}";
 				}))
 			.Where(predicate: x => x is not null)
 			.ToList()!;

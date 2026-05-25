@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
 

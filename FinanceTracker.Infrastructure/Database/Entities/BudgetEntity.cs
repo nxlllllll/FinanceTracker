@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
 
@@ -11,5 +11,5 @@ public sealed class BudgetEntity
 	public DateOnly To { get; init; }
 	public Currency Currency { get; init; }
 	public decimal Amount { get; init; }
-	public DateTime CreatedAt { get; init; }
+	public DateTimeOffset CreatedAt { get; init; }
 }

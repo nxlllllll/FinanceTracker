@@ -1,7 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Cache;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -25,7 +26,7 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 		_distributedCache = Substitute.For<IDistributedCache>();
 
 		RedisCache redisCache = new RedisCache(cache: _distributedCache);
-		_repository = new CachedCurrencyRateReadRepository(inner: _inner, redisCache: redisCache);
+		_repository = new CachedCurrencyRateReadRepository(inner: _inner, redisCache: redisCache, dateProvider: FakeDateProvider.Default);
 
 		_distributedCache.GetAsync(
 			key: Arg.Any<string>(), 

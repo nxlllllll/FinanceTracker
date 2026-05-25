@@ -1,4 +1,4 @@
-Ôªøusing System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.ES;
@@ -72,11 +72,11 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: accountId,
             UserId: Guid.CreateVersion7(),
-            Name: Name.Create(value: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä").Value,
+            Name: Name.Create(value: " ‡Ú‡ —·Â").Value,
             Type: Core.Domains.Account.AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 0,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
 
         await _eventStore.SaveAsync(
@@ -101,11 +101,11 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: accountId,
             UserId: Guid.CreateVersion7(),
-            Name: Name.Create(value: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä").Value,
+            Name: Name.Create(value: " ‡Ú‡ —·Â").Value,
             Type: Core.Domains.Account.AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 1000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
         AccountDebited debited = new AccountDebited(
             Id: Guid.CreateVersion7(),
@@ -115,7 +115,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             Amount: 500m,
             ExchangeRate: 1m,
             Description: null,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
 
         await _eventStore.SaveAsync(
@@ -153,11 +153,11 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: accountId,
             UserId: Guid.CreateVersion7(),
-            Name: Name.Create(value: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä").Value,
+            Name: Name.Create(value: " ‡Ú‡ —·Â").Value,
             Type: Core.Domains.Account.AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             Balance: 0,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
 
         FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore firstStore = CreateEventStore();
@@ -183,7 +183,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                     Amount: 100m,
                     ExchangeRate: 1m,
                     Description: null,
-                    OccurredAt: DateTime.UtcNow
+                    OccurredAt: DateTimeOffset.UtcNow
                 )],
                 expectedVersion: 0
             );
@@ -196,7 +196,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         Result<Core.Domains.Account.Account, DomainException> a = Core.Domains.Account.Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.CreateVersion7(),
-            name: Name.Create(value: "–¢–µ—Å—Ç").Value,
+            name: Name.Create(value: "“ÂÒÚ").Value,
             type: Core.Domains.Account.AccountType.Checking,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             balance: 100m
@@ -250,7 +250,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
         Result<Core.Domains.Account.Account, DomainException> o = Core.Domains.Account.Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.CreateVersion7(),
-            name: Name.Create(value: "–¢–µ—Å—Ç —Å–Ω–∞–ø—à–æ—Ç–∞").Value,
+            name: Name.Create(value: "“ÂÒÚ ÒÌ‡Ô¯ÓÚ‡").Value,
             type: Core.Domains.Account.AccountType.Savings,
             currency: Core.ValueObjects.Currency.Create(value: "USD").Value,
             balance: 1000m

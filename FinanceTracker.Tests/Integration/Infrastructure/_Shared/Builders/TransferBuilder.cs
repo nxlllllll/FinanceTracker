@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
@@ -17,7 +17,7 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		string currencyTo,
 		decimal amountFrom = 1000m,
 		decimal amountTo = 1000m,
-		DateTime? occurredAt = null)
+		DateTimeOffset? occurredAt = null)
 	{
 		Result<Core.Domains.Transfer.Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
 			userId: userId,
@@ -30,7 +30,7 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 			exchangeRate: 1m,
 			isRatePending: false,
 			description: null,
-			occurredAt: occurredAt ?? DateTime.UtcNow
+			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);
 		
 		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;

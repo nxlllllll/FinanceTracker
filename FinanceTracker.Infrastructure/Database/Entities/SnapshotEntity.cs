@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Entities;
+namespace FinanceTracker.Infrastructure.Database.Entities;
 
 public sealed class SnapshotEntity
 {
@@ -6,5 +6,5 @@ public sealed class SnapshotEntity
 	public string AggregateType { get; set; } = String.Empty;
 	public int Version { get; set; }
 	public string State { get; set; } = String.Empty;
-	public DateTime CreatedAt { get; set; }
+	public DateTimeOffset CreatedAt { get; set; }
 }

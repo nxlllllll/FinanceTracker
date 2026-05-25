@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Account.Events;
 
 namespace FinanceTracker.Contracts.Events.Account;
@@ -10,5 +10,5 @@ public sealed record AccountTransferRefundedEvent(
 	Guid TransferId,
 	decimal Amount,
 	string? Description,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

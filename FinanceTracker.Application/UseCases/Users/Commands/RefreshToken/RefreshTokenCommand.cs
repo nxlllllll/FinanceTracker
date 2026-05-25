@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using MediatR;

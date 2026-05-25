@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.ProcessedMessage;
+namespace FinanceTracker.Core.Repositories.ProcessedMessage;
 
 public interface IProcessedMessageReadRepository
 {

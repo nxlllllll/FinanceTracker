@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;

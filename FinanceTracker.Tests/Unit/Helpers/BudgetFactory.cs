@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Budget;
+using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;

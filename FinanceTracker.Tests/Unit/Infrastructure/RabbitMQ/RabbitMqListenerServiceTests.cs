@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
@@ -202,9 +202,9 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqFixture
 
 	private async Task WaitForConsumerAsync()
 	{
-		DateTime deadline = DateTime.UtcNow.AddSeconds(value: 10);
+		DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(seconds: 10);
 
-		while (DateTime.UtcNow < deadline)
+		while (DateTimeOffset.UtcNow < deadline)
 		{
 			QueueDeclareOk result = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
 			if (result.ConsumerCount > 0)

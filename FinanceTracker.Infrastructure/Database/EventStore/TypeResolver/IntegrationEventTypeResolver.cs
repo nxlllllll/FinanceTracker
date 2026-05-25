@@ -1,4 +1,4 @@
-﻿using System.Collections.Frozen;
+using System.Collections.Frozen;
 using System.Reflection;
 using FinanceTracker.Contracts.Events;
 using FinanceTracker.Contracts.Events.Account.Abstraction;

@@ -44,7 +44,7 @@ public sealed class Account : AggregateRoot
 	}
 	
 	public static Result<Account, DomainException> Create(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Guid userId,
 		Name name,
 		AccountType type,
@@ -183,7 +183,7 @@ public sealed class Account : AggregateRoot
 	}
 
 	public Result<Unit, DomainException> AdjustBalance(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Guid sourceId,
 		string sourceType,
 		DirectionType direction,
@@ -213,7 +213,7 @@ public sealed class Account : AggregateRoot
 	}
  
 	public Result<Unit, DomainException> Debit(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Guid transactionId,
 		Guid categoryId,
 		decimal amount,
@@ -241,7 +241,7 @@ public sealed class Account : AggregateRoot
 	}
  
 	public Result<Unit, DomainException> DebitTransfer(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Guid transferId,
 		Guid toAccountId,
 		decimal amount,
@@ -269,7 +269,7 @@ public sealed class Account : AggregateRoot
 	}
  
 	public Result<Unit, DomainException> RefundTransfer(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Guid transferId,
 		decimal amount,
 		string? description)
@@ -290,7 +290,7 @@ public sealed class Account : AggregateRoot
 	}
 	
 	public Result<Unit, DomainException> Credit(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Guid transactionId,
 		Guid categoryId,
 		decimal amount,
@@ -315,7 +315,7 @@ public sealed class Account : AggregateRoot
 	}
  
 	public Result<Unit, DomainException> CreditTransfer(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Guid transferId,
 		Guid fromAccountId,
 		decimal amount,
@@ -340,7 +340,7 @@ public sealed class Account : AggregateRoot
 	}
  
 	public Result<Unit, DomainException> Rename(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		Name newName)
 	{
 		if (Name == newName)
@@ -356,7 +356,7 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
  
-	public Result<Unit, DomainException> Archive(DateTime occurredAt)
+	public Result<Unit, DomainException> Archive(DateTimeOffset occurredAt)
 	{
 		if (IsArchived)
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The account has already been archived before."));
@@ -370,7 +370,7 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
  
-	public Result<Unit, DomainException> Unarchive(DateTime occurredAt)
+	public Result<Unit, DomainException> Unarchive(DateTimeOffset occurredAt)
 	{
 		if (!IsArchived)
 			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The account is already active."));

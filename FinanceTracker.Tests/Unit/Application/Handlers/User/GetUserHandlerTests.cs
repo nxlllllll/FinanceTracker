@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Queries.GetUser;
+using FinanceTracker.Application.UseCases.Users.Queries.GetUser;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

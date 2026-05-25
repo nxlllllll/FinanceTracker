@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserEmail;
+using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserEmail;
 using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;

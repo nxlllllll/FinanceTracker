@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Persistence;
+namespace FinanceTracker.Core.Persistence;
 
 public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {

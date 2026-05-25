@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.DomainEventOutbox;
+namespace FinanceTracker.Core.Repositories.DomainEventOutbox;
 
 public sealed record PendingDomainEvent(
 	Guid Id,
@@ -7,6 +7,6 @@ public sealed record PendingDomainEvent(
 	string AggregateType,
 	Guid? CorrelationId,
 	string Payload,
-	DateTime OccurredAt,
+	DateTimeOffset OccurredAt,
 	int RetryCount
 );

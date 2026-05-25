@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Application.Behaviours.Authorization;
+namespace FinanceTracker.Application.Behaviours.Authorization;
 
 public interface IAuthorizable
 {

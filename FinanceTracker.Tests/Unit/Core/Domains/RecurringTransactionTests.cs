@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -161,7 +161,7 @@ public sealed class RecurringTransactionTests
     public async Task MarkExecuted_ShouldSetLastExecutedAt()
     {
         RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
-        DateTime executedAt = DateTime.UtcNow;
+        DateTimeOffset executedAt = DateTimeOffset.UtcNow;
 
         rt.MarkExecuted(executedAt: executedAt);
 

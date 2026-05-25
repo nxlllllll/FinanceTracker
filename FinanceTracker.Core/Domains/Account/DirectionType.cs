@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Account;
+namespace FinanceTracker.Core.Domains.Account;
 
 public enum DirectionType
 {

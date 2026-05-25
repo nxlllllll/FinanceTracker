@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Dtos;
@@ -11,5 +11,5 @@ public sealed record PendingRateTransaction(
 	Currency BaseCurrency,
 	decimal CurrentRate,
 	DirectionType Direction,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 );

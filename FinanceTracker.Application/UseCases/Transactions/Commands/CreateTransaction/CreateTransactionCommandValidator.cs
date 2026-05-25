@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FluentValidation;
 

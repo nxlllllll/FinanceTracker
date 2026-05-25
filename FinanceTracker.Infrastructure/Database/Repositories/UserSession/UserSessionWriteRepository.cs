@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.UserSession;
+using FinanceTracker.Core.Repositories.UserSession;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +28,7 @@ public class UserSessionWriteRepository(
 	
 	public async Task RevokeAsync(
 		Guid sessionId,
-		DateTime revokedAt,
+		DateTimeOffset revokedAt,
 		CancellationToken ct = default)
 	{
 		await context.UserSessions.Where(predicate: s => s.Id == sessionId).ExecuteUpdateAsync(

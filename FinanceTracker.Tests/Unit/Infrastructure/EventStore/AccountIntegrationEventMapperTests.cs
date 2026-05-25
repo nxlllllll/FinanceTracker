@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Contracts.Events.Account;
+using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Account;
@@ -11,7 +11,7 @@ namespace FinanceTracker.Tests.Unit.Infrastructure.EventStore;
 
 public sealed class AccountIntegrationEventMapperTests
 {
-	private sealed record UnknownTestEvent(Guid Id, DateTime OccurredAt) : IEvent;
+	private sealed record UnknownTestEvent(Guid Id, DateTimeOffset OccurredAt) : IEvent;
 	
 	private CapturingLogger<AccountIntegrationEventMapper> _logger = null!;
 	private AccountIntegrationEventMapper _mapper = null!;
@@ -30,11 +30,11 @@ public sealed class AccountIntegrationEventMapperTests
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Reconstitute(value: "–ö–∞—Ä—Ç–∞"),
+			Name: Name.Reconstitute(value: " ‡Ú‡"),
 			Type: AccountType.Checking,
 			Currency: Currency.Reconstitute(value: "RUB"),
 			Balance: 1000m,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: DateTimeOffset.UtcNow
 		);
 
 		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
@@ -53,7 +53,7 @@ public sealed class AccountIntegrationEventMapperTests
 			Amount: 500m,
 			ExchangeRate: 1m,
 			Description: null,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: DateTimeOffset.UtcNow
 		);
 
 		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
@@ -72,7 +72,7 @@ public sealed class AccountIntegrationEventMapperTests
 			Amount: 300m,
 			ExchangeRate: 1m,
 			Description: null,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: DateTimeOffset.UtcNow
 		);
 
 		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
@@ -85,7 +85,7 @@ public sealed class AccountIntegrationEventMapperTests
 	{
 		UnknownTestEvent @event = new UnknownTestEvent(
 			Id: Guid.CreateVersion7(),
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: DateTimeOffset.UtcNow
 		);
 
 		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
@@ -98,7 +98,7 @@ public sealed class AccountIntegrationEventMapperTests
 	{
 		_mapper.Map(@event: new UnknownTestEvent(
 			Id: Guid.CreateVersion7(),
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: DateTimeOffset.UtcNow
 		));
 
 		await Assert.That(value: _logger.WarningLogged).IsTrue();
@@ -110,8 +110,8 @@ public sealed class AccountIntegrationEventMapperTests
 		_mapper.Map(@event: new AccountRenamed(
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
-			NewName: Name.Reconstitute(value: "–ù–æ–≤–æ–µ –∏–º—è"),
-			OccurredAt: DateTime.UtcNow
+			NewName: Name.Reconstitute(value: "ÕÓ‚ÓÂ ËÏˇ"),
+			OccurredAt: DateTimeOffset.UtcNow
 		));
 
 		await Assert.That(value: _logger.WarningLogged).IsFalse();

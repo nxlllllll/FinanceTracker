@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
 using MediatR;
 using ZLogger;

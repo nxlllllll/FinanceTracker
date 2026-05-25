@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Accounts.Commands.UnarchiveAccount;
+using FinanceTracker.Application.UseCases.Accounts.Commands.UnarchiveAccount;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;

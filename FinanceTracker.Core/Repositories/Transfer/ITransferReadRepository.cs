@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 
 namespace FinanceTracker.Core.Repositories.Transfer;
 
@@ -12,8 +12,8 @@ public interface ITransferReadRepository
 	Task<IReadOnlyList<Domains.Transfer.Transfer>> GetAllAsync(
 		Guid userId,
 		Guid? accountId = null,
-		DateTime? dateFrom = null,
-		DateTime? dateTo = null,
+		DateTimeOffset? dateFrom = null,
+		DateTimeOffset? dateTo = null,
 		CancellationToken ct = default
 	);
 	

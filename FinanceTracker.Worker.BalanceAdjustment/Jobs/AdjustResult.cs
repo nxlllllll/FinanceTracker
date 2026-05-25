@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Worker.BalanceAdjustment.Jobs;
+namespace FinanceTracker.Worker.BalanceAdjustment.Jobs;
 
 public enum AdjustResult
 {

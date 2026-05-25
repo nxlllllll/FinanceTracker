@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.DomainEventOutbox;
+namespace FinanceTracker.Core.Repositories.DomainEventOutbox;
 
 public interface IDomainEventOutboxReadRepository
 {

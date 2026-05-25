@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Commands.RefreshToken;
+using FinanceTracker.Application.UseCases.Users.Commands.RefreshToken;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -39,7 +39,7 @@ public sealed class RefreshTokenHandlerTests
 	private static readonly TokenResponse NewTokenResponse = new TokenResponse(
 		AccessToken: "new.access.token",
 		RefreshToken: "new-refresh-token",
-		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(value: 15)
+		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
 	);
 
 	private static UserSession ActiveSession()
@@ -48,8 +48,8 @@ public sealed class RefreshTokenHandlerTests
 			id: Guid.CreateVersion7(),
 			userId: UserId,
 			refreshTokenHash: TokenHash,
-			expiresAt: DateTime.UtcNow.AddHours(value: 1),
-			createdAt: DateTime.UtcNow,
+			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+			createdAt: DateTimeOffset.UtcNow,
 			revokedAt: null
 		);
 	}
@@ -105,9 +105,9 @@ public sealed class RefreshTokenHandlerTests
 			id: Guid.CreateVersion7(),
 			userId: UserId,
 			refreshTokenHash: TokenHash,
-			expiresAt: DateTime.UtcNow.AddHours(value: 1),
-			createdAt: DateTime.UtcNow,
-			revokedAt: DateTime.UtcNow.AddMinutes(value: -5)
+			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+			createdAt: DateTimeOffset.UtcNow,
+			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashAsync(
 			tokenHash: Arg.Any<string>(), 
@@ -130,8 +130,8 @@ public sealed class RefreshTokenHandlerTests
 			id: Guid.CreateVersion7(),
 			userId: UserId,
 			refreshTokenHash: TokenHash,
-			expiresAt: DateTime.UtcNow.AddHours(value: -1),
-			createdAt: DateTime.UtcNow.AddHours(value: -2),
+			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: -1),
+			createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
 			revokedAt: null
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashAsync(
@@ -189,7 +189,7 @@ public sealed class RefreshTokenHandlerTests
 
 		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAsync(
 			sessionId: session.Id,
-			revokedAt: Arg.Any<DateTime>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

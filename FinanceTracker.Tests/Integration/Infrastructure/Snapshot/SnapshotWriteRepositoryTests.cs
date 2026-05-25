@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Snapshot;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +21,7 @@ public sealed class SnapshotWriteRepositoryTests : DatabaseFixture
 			AggregateType = aggregateType,
 			Version = version,
 			State = "{}",
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await Context.SaveChangesAsync();
 	}

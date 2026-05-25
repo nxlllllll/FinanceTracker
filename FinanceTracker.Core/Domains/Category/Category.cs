@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -12,12 +12,12 @@ public sealed class Category
 	public Name Name { get; private set; }
 	public CategoryType Type { get; private set; }
 	public bool IsArchived { get; private set; }
-	public DateTime CreatedAt { get; private set; }
+	public DateTimeOffset CreatedAt { get; private set; }
 
 	private Category() { }
 
 	public static Category Create(
-		DateTime createdAt,
+		DateTimeOffset createdAt,
 		Guid userId,
 		Name name,
 		CategoryType type,
@@ -42,7 +42,7 @@ public sealed class Category
 		Name name,
 		CategoryType type,
 		bool isArchived,
-		DateTime createdAt)
+		DateTimeOffset createdAt)
 	{
 		return new Category()
 		{

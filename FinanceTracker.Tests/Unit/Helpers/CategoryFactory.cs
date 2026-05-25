@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -9,7 +9,7 @@ public static class CategoryFactory
 {
 	public static Result<Category, DomainException> Create(
 		Guid? userId = null,
-		string name = "–ï–¥–∞",
+		string name = "≈‰‡",
 		CategoryType type = CategoryType.Expense,
 		Guid? parentId = null,
 		bool archived = false)

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -48,7 +48,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_readRepository.GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
 			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Any<DateTime>(),
+			currentMonthStart: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 	}
@@ -67,7 +67,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_readRepository.GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
 			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Any<DateTime>(),
+			currentMonthStart: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transactions);
 	}
@@ -94,7 +94,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _writeRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -139,7 +139,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _writeRepository.Received(requiredNumberOfCalls: 2).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -155,7 +155,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: transaction.Id,
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -189,7 +189,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _writeRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -220,19 +220,19 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: first.Id,
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 
 		await _writeRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: second.Id,
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: third.Id,
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -244,12 +244,12 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _job.Execute(executionContext: _jobContext);
 
-		DateTime now = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
 
 		await _readRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
 			dayOfMonth: now.Day,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
-			currentMonthStart: Arg.Any<DateTime>(),
+			currentMonthStart: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -261,8 +261,8 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _job.Execute(executionContext: _jobContext);
 
-		DateTime now = FakeDateProvider.Default.UtcNow;
-		DateTime expectedMonthStart = new DateTime(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset expectedMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		await _readRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
@@ -276,17 +276,16 @@ public sealed class RecurringTransactionHandlingJobTests
 	public async Task Execute_ShouldPassUtcKindCurrentMonthStartToRepository()
 	{
 		SetupEmptyRepository();
-		DateTime? capturedMonthStart = null;
+		DateTimeOffset? capturedMonthStart = null;
 
 		_readRepository.GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
 			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Do<DateTime>(x => capturedMonthStart = x),
+			currentMonthStart: Arg.Do<DateTimeOffset>(x => capturedMonthStart = x),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 
 		await _job.Execute(executionContext: _jobContext);
 
-		await Assert.That(value: capturedMonthStart!.Value.Kind).IsEqualTo(expected: DateTimeKind.Utc);
-	}
+		await Assert.That(value: capturedMonthStart!.Value.Offset).IsEqualTo(expected: TimeSpan.Zero);	}
 }

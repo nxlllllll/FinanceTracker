@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Account;
+using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;

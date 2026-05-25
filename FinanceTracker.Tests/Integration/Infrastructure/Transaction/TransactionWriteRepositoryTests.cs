@@ -1,4 +1,4 @@
-ï»¿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Persistence;
@@ -57,11 +57,11 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: accountId,
             UserId: userId,
-            Name: Name.Create(value: "ÐšÐ°Ñ€Ñ‚Ð° Ð¡Ð±ÐµÑ€").Value,
+            Name: Name.Create(value: "Êàðòà Ñáåð").Value,
             Type: AccountType.Checking,
             Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
             Balance: 10000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         Guid categoryId = Guid.CreateVersion7();
@@ -70,10 +70,10 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             Id = categoryId,
             UserId = userId,
             ParentId = null,
-            Name = Name.Create(value: "Ð•Ð´Ð°").Value,
+            Name = Name.Create(value: "Åäà").Value,
             Type = CategoryType.Expense,
             IsArchived = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow
         });
         await Context.SaveChangesAsync();
 
@@ -95,9 +95,9 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
-            description: "ÐžÐ±ÐµÐ´",
+            description: "Îáåä",
             isRatePending: false,
-            occurredAt: DateTime.UtcNow
+            occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
@@ -122,9 +122,9 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
-            description: "ÐžÐ±ÐµÐ´",
+            description: "Îáåä",
             isRatePending: false,
-            occurredAt: DateTime.UtcNow
+            occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
@@ -135,7 +135,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
         await Assert.That(value: entity.Amount).IsEqualTo(expected: 1000m);
         await Assert.That(value: entity.Direction).IsEqualTo(expected: DirectionType.Debit);
-        await Assert.That(value: entity.Description).IsEqualTo(expected: "ÐžÐ±ÐµÐ´");
+        await Assert.That(value: entity.Description).IsEqualTo(expected: "Îáåä");
         await Assert.That(value: entity.IsExcluded).IsFalse();
         await Assert.That(value: entity.UserId).IsEqualTo(expected: userId);
     }
@@ -157,7 +157,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             isExcluded: false,
             description: null,
             isRatePending: false,
-            occurredAt: DateTime.UtcNow
+            occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
@@ -168,10 +168,10 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             Id = newCategoryId,
             UserId = Guid.CreateVersion7(),
             ParentId = null,
-            Name = Name.Create(value: "Ð¢Ñ€Ð°Ð½ÑÐ¿Ð¾Ñ€Ñ‚").Value,
+            Name = Name.Create(value: "Òðàíñïîðò").Value,
             Type = CategoryType.Expense,
             IsArchived = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow
         });
         await Context.SaveChangesAsync();
 
@@ -203,21 +203,21 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
-            description: "ÐžÐ±ÐµÐ´",
+            description: "Îáåä",
             isRatePending: false,
-            occurredAt: DateTime.UtcNow
+            occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
 
-        await _writeRepository.ChangeDescriptionAsync(transactionId: transactionId, description: "Ð£Ð¶Ð¸Ð½");
+        await _writeRepository.ChangeDescriptionAsync(transactionId: transactionId, description: "Óæèí");
 
         string? description = await Context.Transactions
             .Where(predicate: t => t.Id == transactionId)
             .Select(selector: t => t.Description)
             .FirstAsync();
 
-        await Assert.That(value: description).IsEqualTo(expected: "Ð£Ð¶Ð¸Ð½");
+        await Assert.That(value: description).IsEqualTo(expected: "Óæèí");
     }
 
     [Test]
@@ -237,7 +237,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             isExcluded: false,
             description: null,
             isRatePending: false,
-            occurredAt: DateTime.UtcNow
+            occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
@@ -269,7 +269,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             isExcluded: false,
             description: null,
             isRatePending: false,
-            occurredAt: DateTime.UtcNow
+            occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);

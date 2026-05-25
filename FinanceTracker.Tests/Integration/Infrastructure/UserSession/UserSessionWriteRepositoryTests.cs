@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Repositories.UserSession;
+using FinanceTracker.Infrastructure.Database.Repositories.UserSession;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -22,14 +22,14 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	private async Task<Core.Domains.User.UserSession> CreateAndPersistSessionAsync(
 		Guid userId,
 		string hash = "default-hash",
-		DateTime? expiresAt = null,
-		DateTime? revokedAt = null)
+		DateTimeOffset? expiresAt = null,
+		DateTimeOffset? revokedAt = null)
 	{
 		Core.Domains.User.UserSession session = Core.Domains.User.UserSession.Reconstitute(
 			id: Guid.CreateVersion7(),
 			userId: userId,
 			refreshTokenHash: hash,
-			expiresAt: expiresAt ?? DateTime.UtcNow.AddDays(value: 7),
+			expiresAt: expiresAt ?? DateTimeOffset.UtcNow.AddDays(days: 7),
 			createdAt: FakeDateProvider.Default.UtcNow,
 			revokedAt: revokedAt
 		);
@@ -45,7 +45,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		Core.Domains.User.UserSession session = Core.Domains.User.UserSession.Create(
 			userId: userId,
 			refreshTokenHash: "testhash",
-			expiresAt: DateTime.UtcNow.AddDays(value: 7),
+			expiresAt: DateTimeOffset.UtcNow.AddDays(days: 7),
 			createdAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -62,7 +62,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		Core.Domains.User.UserSession session = await CreateAndPersistSessionAsync(userId: userId, hash: "revoke-test-hash");
-		DateTime revokedAt = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset revokedAt = FakeDateProvider.Default.UtcNow;
 
 		await _userSessionWriteRepository.RevokeAsync(sessionId: session.Id, revokedAt: revokedAt);
 

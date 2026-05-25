@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Budget;
 
@@ -28,7 +28,7 @@ public interface IBudgetReadRepository
 
 	Task<PagedResult<Domains.Budget.Budget>> GetAllAsync(
 		Guid userId,
-		DateTime? cursorCreatedAt = null,
+		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default

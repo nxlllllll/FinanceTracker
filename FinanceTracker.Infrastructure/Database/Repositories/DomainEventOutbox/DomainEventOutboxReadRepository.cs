@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.DomainEventOutbox;
+using FinanceTracker.Core.Repositories.DomainEventOutbox;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Extensions;

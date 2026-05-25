@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Dtos;
 
 public sealed record CurrencyDto(
 	string Code,

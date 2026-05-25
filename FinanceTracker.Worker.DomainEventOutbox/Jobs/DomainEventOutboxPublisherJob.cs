@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using FinanceTracker.Contracts.Messages.Domain;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
@@ -102,7 +102,7 @@ public sealed class DomainEventOutboxPublisherJob(
 		try
 		{
 			int newRetryCount = @event.RetryCount + 1;
-			DateTime? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
+			DateTimeOffset? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
 
 			if (failedAt is not null)
 			{

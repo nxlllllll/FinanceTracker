@@ -1,4 +1,4 @@
-п»їusing System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Operation;
@@ -105,7 +105,7 @@ public sealed class OperationsWriteRepositoryTests : DatabaseFixture
             accountId: accountId, 
             categoryId: categoryId,
             direction: DirectionType.Credit,
-            description: "Р—Р°СЂРїР»Р°С‚Р°"
+            description: "Зарплата"
         );
 
         await _repository.CreateFromTransactionAsync(transaction: transaction);
@@ -153,7 +153,7 @@ public sealed class OperationsWriteRepositoryTests : DatabaseFixture
             userId: userId, 
             fromAccountId: fromAccountId, 
             toAccountId: toAccountId,
-            description: "РџРµСЂРµРІРѕРґ"
+            description: "Перевод"
         );
 
         await _repository.CreateFromTransferAsync(transfer: transfer);
@@ -185,7 +185,7 @@ public sealed class OperationsWriteRepositoryTests : DatabaseFixture
         );
         await _repository.CreateFromTransactionAsync(transaction: transaction);
 
-        Guid newCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "РўСЂР°РЅСЃРїРѕСЂС‚");
+        Guid newCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
         await _repository.UpdateCategoryAsync(operationId: transaction.Id, categoryId: newCategoryId);
 
         string payload = await Context.Operations
@@ -263,18 +263,18 @@ public sealed class OperationsWriteRepositoryTests : DatabaseFixture
             userId: userId, 
             accountId: accountId,
             categoryId: categoryId,
-            description: "РЎС‚Р°СЂРѕРµ"
+            description: "Старое"
         );
         await _repository.CreateFromTransactionAsync(transaction: transaction);
 
-        await _repository.UpdateDescriptionAsync(operationId: transaction.Id, description: "РќРѕРІРѕРµ");
+        await _repository.UpdateDescriptionAsync(operationId: transaction.Id, description: "Новое");
 
         string? description = await Context.Operations
             .Where(predicate: o => o.Id == transaction.Id)
             .Select(selector: o => o.Description)
             .FirstAsync();
 
-        await Assert.That(value: description).IsEqualTo(expected: "РќРѕРІРѕРµ");
+        await Assert.That(value: description).IsEqualTo(expected: "Новое");
     }
 
     [Test]
@@ -285,7 +285,7 @@ public sealed class OperationsWriteRepositoryTests : DatabaseFixture
             userId: userId, 
             accountId: accountId,
             categoryId: categoryId,
-            description: "РћРїРёСЃР°РЅРёРµ"
+            description: "Описание"
         );
         await _repository.CreateFromTransactionAsync(transaction: transaction);
 

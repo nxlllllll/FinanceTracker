@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
@@ -21,11 +21,11 @@ public sealed class BudgetProgressWriteRepository(
         Guid categoryId,
         Core.ValueObjects.Currency currencyCode,
         decimal amount,
-        DateTime occurredAt,
+        DateTimeOffset occurredAt,
         int delta,
         CancellationToken ct)
     {
-        DateOnly date = DateOnly.FromDateTime(dateTime: occurredAt);
+        DateOnly date = DateOnly.FromDateTime(dateTime: occurredAt.UtcDateTime);
 
         List<BudgetEntity> budgets = await context.Budgets.AsNoTracking().Where(predicate: b =>
             b.UserId == userId &&
@@ -66,7 +66,7 @@ public sealed class BudgetProgressWriteRepository(
         Guid categoryId,
         Core.ValueObjects.Currency currencyCode,
         decimal amount,
-        DateTime occurredAt,
+        DateTimeOffset occurredAt,
         CancellationToken ct = default)
     {
         return ChangeSpentAsync(
@@ -85,7 +85,7 @@ public sealed class BudgetProgressWriteRepository(
         Guid categoryId,
         Core.ValueObjects.Currency currencyCode,
         decimal amount,
-        DateTime occurredAt,
+        DateTimeOffset occurredAt,
         CancellationToken ct = default)
     {
         return ChangeSpentAsync(
@@ -105,7 +105,7 @@ public sealed class BudgetProgressWriteRepository(
         Guid newCategoryId,
         Core.ValueObjects.Currency currencyCode,
         decimal amount,
-        DateTime occurredAt,
+        DateTimeOffset occurredAt,
         CancellationToken ct = default)
     {
         await ChangeSpentAsync(
@@ -143,8 +143,8 @@ public sealed class BudgetProgressWriteRepository(
         if (budget is null)
             return;
 
-        DateTime fromUtc = fromDate.ToDateTime(time: TimeOnly.MinValue, kind: DateTimeKind.Utc);
-        DateTime toUtc = toDate.ToDateTime(time: TimeOnly.MaxValue, kind: DateTimeKind.Utc);
+        DateTimeOffset fromUtc = fromDate.ToDateTime(time: TimeOnly.MinValue, kind: DateTimeKind.Utc);
+        DateTimeOffset toUtc = toDate.ToDateTime(time: TimeOnly.MaxValue, kind: DateTimeKind.Utc);
 
         List<TransactionEntity> transactions = await context.Transactions.AsNoTracking().Where(predicate: t =>
             t.UserId == userId && t.CategoryId == categoryId && !t.IsExcluded && t.Direction == DirectionType.Debit && t.OccurredAt >= fromUtc && t.OccurredAt <= toUtc
@@ -152,7 +152,7 @@ public sealed class BudgetProgressWriteRepository(
 
         HashSet<RateKey> uniquePairs = transactions.Select(selector: t => new RateKey(
             Currency: t.Currency, 
-            Date: DateOnly.FromDateTime(dateTime: t.OccurredAt)
+            Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)
         )).ToHashSet();
 
         Dictionary<RateKey, decimal> rates = new Dictionary<RateKey, decimal>();
@@ -168,7 +168,7 @@ public sealed class BudgetProgressWriteRepository(
         }
 
         decimal spent = transactions.Sum(selector: t =>
-            t.Amount * rates[new RateKey(Currency: t.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt))]
+            t.Amount * rates[new RateKey(Currency: t.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))]
         );
 
         await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(

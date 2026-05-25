@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.User;
@@ -31,9 +31,9 @@ public interface IUserReadRepository
 	Task<PagedResult<OperationDto>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
-		DateTime? dateFrom = null,
-		DateTime? dateTo = null,
-		DateTime? cursorOccurredAt = null,
+		DateTimeOffset? dateFrom = null,
+		DateTimeOffset? dateTo = null,
+		DateTimeOffset? cursorOccurredAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default

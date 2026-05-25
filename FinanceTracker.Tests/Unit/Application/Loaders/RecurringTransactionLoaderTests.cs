@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Authorization;
+using FinanceTracker.Application.UseCases.RecurringTransactions.Authorization;
 using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ActivateRecurringTransaction;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;

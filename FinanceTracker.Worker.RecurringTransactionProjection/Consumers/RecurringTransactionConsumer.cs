@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transactions.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Account;

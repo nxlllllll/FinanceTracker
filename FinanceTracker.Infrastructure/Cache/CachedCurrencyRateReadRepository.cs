@@ -1,16 +1,18 @@
-﻿using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Services.DateProvider;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
 
 public sealed class CachedCurrencyRateReadRepository(
 	ICurrencyRateReadRepository inner,
-	RedisCache redisCache
+	RedisCache redisCache,
+	IDateProvider dateProvider
 ) : ICurrencyRateReadRepository
 {
-	private static DistributedCacheEntryOptions EndOfDay => new DistributedCacheEntryOptions
+	private DistributedCacheEntryOptions EndOfDay => new DistributedCacheEntryOptions
 	{
-		AbsoluteExpiration = DateTimeOffset.UtcNow.Date.AddDays(value: 1)
+		AbsoluteExpiration = dateProvider.UtcNow.AddDays(days: 1)
 	};
 
 	public async Task<decimal?> GetRateAsync(

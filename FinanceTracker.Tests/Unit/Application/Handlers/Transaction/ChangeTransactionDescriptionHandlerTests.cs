@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionDescription;
+using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionDescription;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Operations;
 using FinanceTracker.Core.Repositories.Transaction;

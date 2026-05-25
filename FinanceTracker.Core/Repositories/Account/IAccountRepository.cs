@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Account;
+namespace FinanceTracker.Core.Repositories.Account;
 
 public interface IAccountRepository
 {

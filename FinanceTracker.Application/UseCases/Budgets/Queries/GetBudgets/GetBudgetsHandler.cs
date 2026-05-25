@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using MediatR;
 

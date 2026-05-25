@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -34,7 +34,7 @@ public sealed class CreateTransferHandler(
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: command.CurrencyFrom,
 			toCurrency: command.CurrencyTo,
-			date: DateOnly.FromDateTime(dateTime: command.OccurredAt),
+			date: DateOnly.FromDateTime(dateTime: command.OccurredAt.UtcDateTime),
 			ct: ct
 		);
 
@@ -56,7 +56,7 @@ public sealed class CreateTransferHandler(
 		
 		Transfer transfer = transferResult.Value!;
 		
-		DateTime now = dateProvider.UtcNow;
+		DateTimeOffset now = dateProvider.UtcNow;
 
 		Result<Unit, DomainException> debitResult = fromAccount.DebitTransfer(
 			occurredAt: now,
@@ -75,7 +75,7 @@ public sealed class CreateTransferHandler(
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 			await operationsWriteRepository.CreateFromTransferAsync(transfer: transfer, ct: ct);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {fromAccount.Id} → {toAccount.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {fromAccount.Id} > {toAccount.Id}."),
 		ct: ct);
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);

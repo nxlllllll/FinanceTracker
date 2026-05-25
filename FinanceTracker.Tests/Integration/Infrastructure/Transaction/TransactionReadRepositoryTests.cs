@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Persistence;
@@ -65,11 +65,11 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			Id: Guid.CreateVersion7(),
 			AccountId: accountId,
 			UserId: userId,
-			Name: Name.Create(value: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä").Value,
+			Name: Name.Create(value: " ‡Ú‡ —·Â").Value,
 			Type: AccountType.Checking,
 			Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			Balance: 10000m,
-			OccurredAt: DateTime.UtcNow
+			OccurredAt: DateTimeOffset.UtcNow
 		));
 
 		Guid categoryId = Guid.CreateVersion7();
@@ -78,10 +78,10 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			Id = categoryId,
 			UserId = userId,
 			ParentId = null,
-			Name = Name.Create(value: "–ï–¥–∞").Value,
+			Name = Name.Create(value: "≈‰‡").Value,
 			Type = CategoryType.Expense,
 			IsArchived = false,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await Context.SaveChangesAsync();
 
@@ -94,7 +94,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		Guid userId,
 		DirectionType direction = DirectionType.Debit,
 		bool isExcluded = false,
-		DateTime? occurredAt = null)
+		DateTimeOffset? occurredAt = null)
 	{
 		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
 			id: Guid.CreateVersion7(),
@@ -106,8 +106,8 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			exchangeRate: 1m,
 			isExcluded: false,
 			isRatePending: false,
-			description: "–û–±–µ–¥",
-			occurredAt: occurredAt ?? DateTime.UtcNow
+			description: "Œ·Â‰",
+			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
@@ -223,15 +223,15 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	{
 		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
 
-		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTime.UtcNow.AddDays(value: -10));
-		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTime.UtcNow.AddDays(value: -3));
-		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTime.UtcNow);
+		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow.AddDays(days: -10));
+		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow.AddDays(days: -3));
+		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow);
 
 		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
-			dateFrom: DateTime.UtcNow.AddDays(value: -5),
-			dateTo: DateTime.UtcNow.AddDays(value: 1)
+			dateFrom: DateTimeOffset.UtcNow.AddDays(days: -5),
+			dateTo: DateTimeOffset.UtcNow.AddDays(days: 1)
 		);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
@@ -242,9 +242,9 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	{
 		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
 
-		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTime.UtcNow.AddDays(value: -2));
-		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTime.UtcNow);
-		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTime.UtcNow.AddDays(value: -1));
+		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow.AddDays(days: -2));
+		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow);
+		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow.AddDays(days: -1));
 
 		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
 			userId: userId,
@@ -284,7 +284,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		DateTime baseTime = new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset baseTime = new DateTimeOffset(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		for (int i = 0; i < 5; i++)
 		{
@@ -292,7 +292,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 				userId: userId,
 				accountId: accountId,
 				categoryId: categoryId,
-				occurredAt: baseTime.AddHours(value: i)
+				occurredAt: baseTime.AddHours(hours: i)
 			);
 		}
 
@@ -324,7 +324,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		DateTime baseTime = new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset baseTime = new DateTimeOffset(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		for (int i = 0; i < 6; i++)
 		{
@@ -332,7 +332,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 				userId: userId,
 				accountId: accountId,
 				categoryId: categoryId,
-				occurredAt: baseTime.AddHours(value: i)
+				occurredAt: baseTime.AddHours(hours: i)
 			);
 		}
 
@@ -367,7 +367,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			userId: userId,
 			accountId: accountId,
 			categoryId: categoryId,
-			occurredAt: new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+			occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
 		);
 
 		PagedResult<Core.Domains.Transaction.Transaction> firstPage = await _readRepository.GetAllAsync(
@@ -397,7 +397,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		DateTime baseTime = new DateTime(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+		DateTimeOffset baseTime = new DateTimeOffset(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		for (int i = 0; i < 3; i++)
 		{
@@ -405,7 +405,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 				userId: userId,
 				accountId: accountId,
 				categoryId: categoryId,
-				occurredAt: baseTime.AddHours(value: i)
+				occurredAt: baseTime.AddHours(hours: i)
 			);
 		}
 

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Outbox;
+using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +10,7 @@ public sealed class OutboxWriteRepository(
 {
 	public async Task MarkAsPublishedAsync(
 		Guid messageId,
-		DateTime processedAt,
+		DateTimeOffset processedAt,
 		CancellationToken ct = default)
 	{
 		await context.OutboxMessages.Where(predicate: x => x.Id == messageId).ExecuteUpdateAsync(
@@ -25,20 +25,20 @@ public sealed class OutboxWriteRepository(
 	public async Task MarkAsFailedAsync(
 		Guid messageId,
 		int retryCount,
-		DateTime? failedAt,
+		DateTimeOffset? failedAt,
 		CancellationToken ct = default)
 	{
 		await context.OutboxMessages.Where(predicate: x => x.Id == messageId).ExecuteUpdateAsync(
 			setPropertyCalls: s => s
 				.SetProperty(propertyExpression: x => x.RetryCount, valueExpression: retryCount)
 				.SetProperty(propertyExpression: x => x.FailedAt, valueExpression: failedAt)
-				.SetProperty(propertyExpression: x => x.UpdatedAt, valueExpression: DateTime.UtcNow),
+				.SetProperty(propertyExpression: x => x.UpdatedAt, valueExpression: DateTimeOffset.UtcNow),
 			cancellationToken: ct
 		);
 	}
 
 	public async Task<int> DeleteProcessedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default)
 	{
@@ -49,7 +49,7 @@ public sealed class OutboxWriteRepository(
 	}
 
 	public async Task<int> DeleteFailedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default)
 	{

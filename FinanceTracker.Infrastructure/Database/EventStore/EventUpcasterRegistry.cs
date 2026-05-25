@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -61,6 +61,6 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 	{
 		for (int i = 0; i < chain.Count - 1; i++)
 			if (chain[i].ToVersion != chain[i + 1].FromVersion)
-				logger.ZLogWarning(message: $"[Upcasting] Gap in upcaster chain for '{eventType}': v{chain[i].ToVersion} → v{chain[i + 1].FromVersion}.");
+				logger.ZLogWarning(message: $"[Upcasting] Gap in upcaster chain for '{eventType}': v{chain[i].ToVersion} > v{chain[i + 1].FromVersion}.");
 	}
 }

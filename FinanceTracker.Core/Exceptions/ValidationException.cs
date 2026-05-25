@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Exceptions;
+namespace FinanceTracker.Core.Exceptions;
 
 public sealed class ValidationException(IReadOnlyList<string> errors) : AppException(message: "One or more validation errors occurred.")
 {

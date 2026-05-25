@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.UserSession;
 using FinanceTracker.Core.Services.Auth;
@@ -26,7 +26,7 @@ public sealed class SessionIssuerTests
 
 	private static readonly AccessTokenResult TestAccessToken = new AccessTokenResult(
 		Token: "access.token.value",
-		ExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(value: 15)
+		ExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
 	);
 
 	[Before(hookType: Test)]
@@ -38,7 +38,7 @@ public sealed class SessionIssuerTests
 		_tokenService.GenerateAccessToken(user: Arg.Any<User>()).Returns(returnThis: TestAccessToken);
 		_tokenService.GenerateRefreshToken().Returns(returnThis: "raw-refresh-token");
 		_tokenService.HashRefreshToken(refreshToken: Arg.Any<string>()).Returns(returnThis: "hashed-refresh-token");
-		_tokenService.GetRefreshTokenExpiry().Returns(returnThis: FakeDateProvider.Default.UtcNow.AddDays(value: 7));
+		_tokenService.GetRefreshTokenExpiry().Returns(returnThis: FakeDateProvider.Default.UtcNow.AddDays(days: 7));
 
 		_sessionIssuer = new SessionIssuer(
 			tokenService: _tokenService,

@@ -1,4 +1,4 @@
-п»їusing System.Diagnostics.Metrics;
+using System.Diagnostics.Metrics;
 
 namespace FinanceTracker.Worker.Shared.Metrics;
 
@@ -8,46 +8,46 @@ public static class WorkerMetrics
 
 	private static readonly Meter Meter = new Meter(name: MeterName);
 
-	// outbox.pending вЂ” СЃРєРѕР»СЊРєРѕ СЃРѕРѕР±С‰РµРЅРёР№ Р¶РґСѓС‚ РѕС‚РїСЂР°РІРєРё
+	// outbox.pending — сколько сообщений ждут отправки
 	public static readonly Gauge<int> OutboxPending = Meter.CreateGauge<int>(
 		name: "outbox.pending",
 		description: "Number of outbox messages waiting to be published."
 	);
 
-	// outbox.published вЂ” СЃС‡С‘С‚С‡РёРє СѓСЃРїРµС€РЅРѕ РѕРїСѓР±Р»РёРєРѕРІР°РЅРЅС‹С…
+	// outbox.published — счётчик успешно опубликованных
 	public static readonly Counter<int> OutboxPublished = Meter.CreateCounter<int>(
 		name: "outbox.published",
 		description: "Total number of outbox messages successfully published."
 	);
 
-	// outbox.failed вЂ” СЃС‡С‘С‚С‡РёРє РїРµСЂРµС€РµРґС€РёС… РІ dead letter
+	// outbox.failed — счётчик перешедших в dead letter
 	public static readonly Counter<int> OutboxFailed = Meter.CreateCounter<int>(
 		name: "outbox.failed",
 		description: "Total number of outbox messages moved to dead letter."
 	);
 
-	// dead_letter.count вЂ” С‚РµРєСѓС‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РІ dead letter
+	// dead_letter.count — текущее количество в dead letter
 	public static readonly Gauge<int> DeadLetterCount = Meter.CreateGauge<int>(
 		name: "dead_letter.count",
 		description: "Current number of messages in dead letter queue."
 	);
 
-	// message.processing.duration вЂ” РіРёСЃС‚РѕРіСЂР°РјРјР° РІСЂРµРјРµРЅРё РѕР±СЂР°Р±РѕС‚РєРё
+	// message.processing.duration — гистограмма времени обработки
 	public static readonly Histogram<double> MessageProcessingDuration = Meter.CreateHistogram<double>(
 		name: "message.processing.duration",
 		unit: "ms",
 		description: "Duration of individual message processing in milliseconds."
 	);
 
-	// transfer.credit.pending вЂ” СЃРєРѕР»СЊРєРѕ С‚СЂР°РЅСЃС„РµСЂРѕРІ Р±РµР· РєСЂРµРґРёС‚Р°
-	// Eventual consistency: РґРµР±РµС‚ Рё РєСЂРµРґРёС‚ РїСЂРёРјРµРЅСЏСЋС‚СЃСЏ РІ СЂР°Р·РЅС‹С… С‚СЂР°РЅР·Р°РєС†РёСЏС….
-	// Р•СЃР»Рё СЌС‚Рѕ Р·РЅР°С‡РµРЅРёРµ > 0 РґРѕР»СЊС€Рµ РЅРµСЃРєРѕР»СЊРєРёС… РјРёРЅСѓС‚ вЂ” РєСЂРµРґРёС‚РЅС‹Р№ РІРѕСЂРєРµСЂ Р·Р°РІРёСЃ РёР»Рё СѓРїР°Р».
+	// transfer.credit.pending — сколько трансферов без кредита
+	// Eventual consistency: дебет и кредит применяются в разных транзакциях.
+	// Если это значение > 0 дольше нескольких минут — кредитный воркер завис или упал.
 	public static readonly Gauge<int> TransferCreditPending = Meter.CreateGauge<int>(
 		name: "transfer.credit.pending",
 		description: "Number of transfers where debit was applied but credit has not been recorded yet. Values above 0 for more than a few minutes indicate a stuck or failed transfer projection worker."
 	);
 
-	// transfer.credit.duration вЂ” РІСЂРµРјСЏ РѕС‚ РґРµР±РµС‚Р° РґРѕ РїСЂРёРјРµРЅРµРЅРёСЏ РєСЂРµРґРёС‚Р°
+	// transfer.credit.duration — время от дебета до применения кредита
 	public static readonly Histogram<double> TransferCreditDuration = Meter.CreateHistogram<double>(
 		name: "transfer.credit.duration",
 		unit: "ms",

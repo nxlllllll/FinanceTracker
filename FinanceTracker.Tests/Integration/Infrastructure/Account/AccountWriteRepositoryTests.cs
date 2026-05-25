@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
@@ -52,11 +52,11 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä").Value,
+            Name: Name.Create(value: " ‡Ú‡ —·Â").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 10000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(@event: @event);
@@ -83,8 +83,8 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         await _writeRepository.RenameAsync(@event: new AccountRenamed(
             Id: Guid.CreateVersion7(),
             AccountId: created.AccountId, 
-            NewName: Name.Create(value: "–ö–∞—Ä—Ç–∞ –¢–∏–Ω—å–∫–æ—Ñ—Ñ").Value,
-            OccurredAt: DateTime.UtcNow
+            NewName: Name.Create(value: " ‡Ú‡ “ËÌ¸ÍÓÙÙ").Value,
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         string name = await Context.Accounts
@@ -92,7 +92,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             .Select(selector: a => a.Name)
             .FirstOrDefaultAsync();
 
-        await Assert.That(value: name).IsEqualTo(expected: "–ö–∞—Ä—Ç–∞ –¢–∏–Ω—å–∫–æ—Ñ—Ñ");
+        await Assert.That(value: name).IsEqualTo(expected: " ‡Ú‡ “ËÌ¸ÍÓÙÙ");
     }
 
     [Test]
@@ -103,7 +103,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
             Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         bool isArchived = await Context.Accounts
@@ -122,12 +122,12 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
             Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
         await _writeRepository.UnarchiveAsync(@event: new AccountUnarchived(
             Id: Guid.CreateVersion7(),
             AccountId: created.AccountId,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         bool isArchived = await Context.Accounts
@@ -151,7 +151,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Amount: 1000m,
             ExchangeRate: 1m,
             Description: null,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances
@@ -175,7 +175,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Amount: 500m,
             ExchangeRate: 1m,
             Description: null,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances
@@ -199,7 +199,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Amount: 100m,
             ExchangeRate: 90m,
             Description: null,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances
@@ -223,7 +223,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Amount: 3000m,
             ForexRate: 1m,
             Description: null,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances
@@ -247,7 +247,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Amount: 100m,
             ExchangeRate: 90m,
             Description: null,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances
@@ -269,7 +269,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             TransferId: Guid.CreateVersion7(),
             Amount: 2500m,
             Description: "Refund: ToAccount not found.",
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances
@@ -294,7 +294,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             NewRate: 90m,
             Amount: 1000m,
             Delta: 5000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances
@@ -319,7 +319,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             NewRate: 85m,
             Amount: 1000m,
             Delta: -5000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         decimal balance = await Context.AccountBalances

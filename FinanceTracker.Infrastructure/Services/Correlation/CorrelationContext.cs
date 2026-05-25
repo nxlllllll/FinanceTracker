@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Services.Correlation;
 
 namespace FinanceTracker.Infrastructure.Services.Correlation;
 

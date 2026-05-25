@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
+using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;
@@ -23,7 +23,7 @@ public sealed class GetTransactionsQueryValidatorTests
         GetTransactionsQuery query = new GetTransactionsQuery(
             UserId: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
-            CursorOccurredAt: DateTime.UtcNow,
+            CursorOccurredAt: DateTimeOffset.UtcNow,
             CursorId: Guid.CreateVersion7()
         );
 
@@ -89,7 +89,7 @@ public sealed class GetTransactionsQueryValidatorTests
         GetTransactionsQuery query = new GetTransactionsQuery(
             UserId: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
-            CursorOccurredAt: DateTime.UtcNow
+            CursorOccurredAt: DateTimeOffset.UtcNow
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: query);

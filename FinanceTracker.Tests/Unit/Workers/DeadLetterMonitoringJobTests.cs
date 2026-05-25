@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Tests.Unit.Helpers;

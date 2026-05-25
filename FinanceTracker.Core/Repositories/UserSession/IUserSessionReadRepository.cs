@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.UserSession;
+namespace FinanceTracker.Core.Repositories.UserSession;
 
 public interface IUserSessionReadRepository
 {

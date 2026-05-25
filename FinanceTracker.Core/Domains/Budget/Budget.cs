@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -12,12 +12,12 @@ public sealed class Budget
     public Money Amount { get; private set; }
     public DateOnly From { get; private set; }
     public DateOnly To { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     private Budget() { }
 
     public static Result<Budget, DomainException> Create(
-        DateTime createdAt,
+        DateTimeOffset createdAt,
         Guid userId,
         Guid categoryId,
         Money amount,
@@ -46,7 +46,7 @@ public sealed class Budget
         Money amount,
         DateOnly from,
         DateOnly to,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         return new Budget
         {

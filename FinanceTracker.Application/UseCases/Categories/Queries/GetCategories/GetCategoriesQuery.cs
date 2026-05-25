@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -10,7 +10,7 @@ public sealed record GetCategoriesQuery(
 	CategoryType? Type = null,
 	bool? IsArchived = null,
 	Guid? ParentId = null,
-	DateTime? CursorCreatedAt = null,
+	DateTimeOffset? CursorCreatedAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
 ) : IRequest<PagedResult<Category>>, IUserScopedRequest;

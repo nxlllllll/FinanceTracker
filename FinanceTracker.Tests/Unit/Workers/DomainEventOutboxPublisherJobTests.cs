@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.DomainEventOutbox;
@@ -24,7 +24,7 @@ public sealed class DomainEventOutboxPublisherJobTests
     private IJobExecutionContext _jobContext = null!;
     private DomainEventOutboxPublisherJob _job = null!;
 
-    private static readonly DateTime Now = new DateTime(year: 2025, month: 6, day: 1, hour: 12, minute: 0, second: 0, kind: DateTimeKind.Utc);
+    private static readonly DateTimeOffset Now = new DateTimeOffset(year: 2025, month: 6, day: 1, hour: 12, minute: 0, second: 0, offset: TimeSpan.Zero);
 
     private static readonly DomainEventOutboxPublisherJobOptions DefaultOptions = new DomainEventOutboxPublisherJobOptions
     {
@@ -173,7 +173,7 @@ public sealed class DomainEventOutboxPublisherJobTests
             referenceId: Arg.Any<Guid>(),
             reason: Arg.Any<string>(),
             payload: Arg.Any<string>(),
-            occurredAt: Arg.Any<DateTime>(),
+            occurredAt: Arg.Any<DateTimeOffset>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -240,7 +240,7 @@ public sealed class DomainEventOutboxPublisherJobTests
 
         await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsProcessedAsync(
             id: Arg.Any<Guid>(),
-            processedAt: Arg.Any<DateTime>(),
+            processedAt: Arg.Any<DateTimeOffset>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using DbUp;
 using DbUp.Engine;
 using Microsoft.Extensions.Configuration;
@@ -46,7 +46,7 @@ public sealed class Program
 
 		Console.WriteLine(value: $"[Migrator] Pending migrations ({pending.Count}):");
 		foreach (SqlScript script in pending)
-			Console.WriteLine(value: $"  → {script.Name}");
+			Console.WriteLine(value: $"  > {script.Name}");
 
 		DatabaseUpgradeResult result = upgrader.PerformUpgrade();
 

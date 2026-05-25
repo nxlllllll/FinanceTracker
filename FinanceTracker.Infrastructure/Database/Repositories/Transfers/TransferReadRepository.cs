@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Transfer;
@@ -37,8 +37,8 @@ public sealed class TransferReadRepository(
     public async Task<IReadOnlyList<Transfer>> GetAllAsync(
         Guid userId,
         Guid? accountId = null,
-        DateTime? dateFrom = null,
-        DateTime? dateTo = null,
+        DateTimeOffset? dateFrom = null,
+        DateTimeOffset? dateTo = null,
         CancellationToken ct = default)
     {
         IQueryable<TransferEntity> query = context.Transfers.AsNoTracking().Where(predicate: t => t.UserId == userId);
@@ -86,7 +86,7 @@ public sealed class TransferReadRepository(
 
     public async Task<int> GetPendingCreditCountAsync(TimeSpan gracePeriod, CancellationToken ct = default)
     {
-        DateTime threshold = DateTime.UtcNow - gracePeriod;
+        DateTimeOffset threshold = DateTimeOffset.UtcNow - gracePeriod;
         string eventType = typeof(AccountTransferDebited).GetCustomAttribute<EventTypeAttribute>()!.Name;
 
         return await context.Database.SqlQuery<int>($"""

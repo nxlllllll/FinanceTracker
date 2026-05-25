@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
 
@@ -8,5 +8,5 @@ public sealed class UserEntity
 	public Email Email { get; set; }
 	public string PasswordHash { get; set; } = String.Empty;
 	public Currency BaseCurrencyCode { get; set; }
-	public DateTime CreatedAt { get; init; }
+	public DateTimeOffset CreatedAt { get; init; }
 }

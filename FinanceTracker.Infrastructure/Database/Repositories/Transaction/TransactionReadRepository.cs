@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
@@ -40,9 +40,9 @@ public sealed class TransactionReadRepository(
         Guid? categoryId = null,
         DirectionType? direction = null,
         bool? isExcluded = null,
-        DateTime? dateFrom = null,
-        DateTime? dateTo = null,
-        DateTime? cursorOccurredAt = null,
+        DateTimeOffset? dateFrom = null,
+        DateTimeOffset? dateTo = null,
+        DateTimeOffset? cursorOccurredAt = null,
         Guid? cursorId = null,
         int pageSize = 20,
         CancellationToken ct = default)

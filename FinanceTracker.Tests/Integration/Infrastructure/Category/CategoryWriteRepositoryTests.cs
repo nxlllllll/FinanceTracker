@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
@@ -23,7 +23,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
         Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
             createdAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.CreateVersion7(),
-            name: Name.Create(value: "–ï–¥–∞").Value,
+            name: Name.Create(value: "≈‰‡").Value,
             type: CategoryType.Expense,
             parentId: parentId
         );
@@ -41,7 +41,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: category.Id);
-        await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "–ï–¥–∞");
+        await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "≈‰‡");
         await Assert.That(value: loaded.IsArchived).IsFalse();
     }
 
@@ -50,12 +50,12 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync();
 
-        await _writeRepository.RenameAsync(categoryId: category.Id, newName: Name.Create(value: "–ü—Ä–æ–¥—É–∫—Ç—ã").Value);
+        await _writeRepository.RenameAsync(categoryId: category.Id, newName: Name.Create(value: "œÓ‰ÛÍÚ˚").Value);
 
         Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
-        await Assert.That(value: loaded!.Name.Value).IsEqualTo(expected: "–ü—Ä–æ–¥—É–∫—Ç—ã");
+        await Assert.That(value: loaded!.Name.Value).IsEqualTo(expected: "œÓ‰ÛÍÚ˚");
     }
 
     [Test]

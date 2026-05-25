@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Categories.Commands.ArchiveCategory;
 using FinanceTracker.Application.UseCases.Categories.Commands.RenameCategory;
 using FinanceTracker.Application.UseCases.Categories.Commands.UnarchiveCategory;

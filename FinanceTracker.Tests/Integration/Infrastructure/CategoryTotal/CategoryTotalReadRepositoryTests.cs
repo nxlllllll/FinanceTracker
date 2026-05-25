@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
@@ -46,7 +46,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId,
@@ -100,7 +100,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
             categoryId: categoryId,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 9999m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         CategoryTotalDto? result = await _readRepository.GetByCategoryAsync(
@@ -116,9 +116,9 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     public async Task GetAllByPeriodAsync_ShouldReturnAllCategoriesForPeriod()
     {
         Guid userId = await _userBuilder.CreateAsync();
-        Guid categoryId1 = await _categoryBuilder.CreateAsync(userId: userId, name: "–ï–¥–∞");
-        Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "–¢—Ä–∞–Ω—Å–ø–æ—Ä—Ç");
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        Guid categoryId1 = await _categoryBuilder.CreateAsync(userId: userId, name: "≈‰‡");
+        Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "“‡ÌÒÔÓÚ");
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId, 
@@ -154,14 +154,14 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
             categoryId: categoryId,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 1000m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
         await _writeRepository.AddAsync(
             userId: userId,
             categoryId: categoryId,
             currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 2000m,
-            occurredAt: new DateTime(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         IReadOnlyList<CategoryTotalDto> result = await _readRepository.GetAllByPeriodAsync(

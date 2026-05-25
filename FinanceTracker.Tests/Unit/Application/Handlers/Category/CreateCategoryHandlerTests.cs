@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
+using FinanceTracker.Application.UseCases.Categories.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.ValueObjects;
@@ -24,7 +24,7 @@ public sealed class CreateCategoryHandlerTests
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Create(value: "–ï–¥–∞").Value,
+			Name: Name.Create(value: "≈‰‡").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);
@@ -33,7 +33,7 @@ public sealed class CreateCategoryHandlerTests
 
 		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c =>
-				c.Name == "–ï–¥–∞" &&
+				c.Name == "≈‰‡" &&
 				c.Type == CategoryType.Expense &&
 				c.IsArchived == false
 			),
@@ -47,7 +47,7 @@ public sealed class CreateCategoryHandlerTests
 		Guid parentId = Guid.CreateVersion7();
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Create(value: "–§–∞—Å—Ç—Ñ—É–¥").Value,
+			Name: Name.Create(value: "‘‡ÒÚÙÛ‰").Value,
 			Type: CategoryType.Expense,
 			ParentId: parentId
 		);

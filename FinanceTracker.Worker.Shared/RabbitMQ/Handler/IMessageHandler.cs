@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
+namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 
 public interface IMessageHandler<in TMessage> where TMessage : class
 {

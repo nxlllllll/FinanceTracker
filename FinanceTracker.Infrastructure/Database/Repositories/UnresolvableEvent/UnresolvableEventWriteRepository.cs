@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -14,7 +14,7 @@ public sealed class UnresolvableEventWriteRepository(
 		Guid referenceId,
 		string reason,
 		string payload,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default)
 	{
 		await context.UnresolvableEvents.AddAsync(entity: new UnresolvableEventEntity

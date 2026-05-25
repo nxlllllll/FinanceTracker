@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgets;
+using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgets;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -49,7 +49,7 @@ public sealed class GetBudgetsHandlerTests
 
 		_budgetReadRepository.GetAllAsync(
 			userId: Arg.Any<Guid>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -68,7 +68,7 @@ public sealed class GetBudgetsHandlerTests
 	{
 		_budgetReadRepository.GetAllAsync(
 			userId: Arg.Any<Guid>(),
-			cursorCreatedAt: Arg.Any<DateTime?>(),
+			cursorCreatedAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

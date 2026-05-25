@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
@@ -113,7 +113,7 @@ public sealed class OutboxPublisherJob(
             await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
             {
                 int newRetryCount = message.RetryCount + 1;
-                DateTime? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
+                DateTimeOffset? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
 
                 if (failedAt is not null)
                 {

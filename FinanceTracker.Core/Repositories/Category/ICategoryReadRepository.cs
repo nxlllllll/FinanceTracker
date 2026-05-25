@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Category;
@@ -16,7 +16,7 @@ public interface ICategoryReadRepository
 		CategoryType? type = null,
 		bool? isArchived = null,
 		Guid? parentId = null,
-		DateTime? cursorCreatedAt = null,
+		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default

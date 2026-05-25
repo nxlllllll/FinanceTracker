@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.RateLimit;
 using StackExchange.Redis;
 
@@ -33,7 +33,7 @@ public sealed class RedisRateLimiter(
 	{
 		IDatabase database = connectionMultiplexer.GetDatabase();
 
-		long now = ((DateTimeOffset)dateProvider.UtcNow).ToUnixTimeMilliseconds();
+		long now = dateProvider.UtcNow.ToUnixTimeMilliseconds();
 		long windowMs = windowSeconds * 1000L;
 
 		RedisResult result = await database.ScriptEvaluateAsync(script: SlidingWindowScript, parameters: new

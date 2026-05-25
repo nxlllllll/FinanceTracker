@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserBaseCurrency;
+using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;

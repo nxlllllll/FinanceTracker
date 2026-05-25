@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using Microsoft.Extensions.Logging;

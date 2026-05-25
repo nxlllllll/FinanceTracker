@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.UserSession;
 using FinanceTracker.Core.Services.Auth;

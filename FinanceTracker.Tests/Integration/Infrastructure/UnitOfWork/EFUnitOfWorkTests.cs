@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using Microsoft.EntityFrameworkCore;

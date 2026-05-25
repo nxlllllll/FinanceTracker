@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
@@ -69,7 +69,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             categoryId: categoryId,
             currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 3000m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
@@ -85,7 +85,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId,
@@ -115,7 +115,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId,
@@ -156,7 +156,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             categoryId: categoryId,
             currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             amount: 3000m,
-            occurredAt: new DateTime(year: 2025, month: 2, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 2, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
@@ -184,14 +184,14 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             categoryId: categoryId,
             amount: 3000m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 10, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 10, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
         await _transactionBuilder.CreateAsync(
             userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             amount: 2000m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 20, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 20, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         await _writeRepository.RecalculateForBudgetAsync(
@@ -227,14 +227,14 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             accountId: accountId,
             categoryId: categoryId,
             amount: 3000m,
-            occurredAt: new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
         await _transactionBuilder.CreateAsync(
             userId: userId,
             accountId: accountId,
             categoryId: categoryId,
             amount: 9999m,
-            occurredAt: new DateTime(year: 2025, month: 2, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc)
+            occurredAt: new DateTimeOffset(year: 2025, month: 2, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
         await _writeRepository.RecalculateForBudgetAsync(
@@ -259,7 +259,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _transactionBuilder.CreateAsync(
             userId: userId,
@@ -299,7 +299,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _transactionBuilder.CreateAsync(
             userId: userId,
@@ -340,7 +340,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         await _accountBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
-        DateTime occurredAt = new DateTime(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         await _writeRepository.AddAsync(
             userId: userId,

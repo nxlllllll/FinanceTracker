@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.DomainEvent;
+namespace FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 
 public interface IHasDomainEvents
 {

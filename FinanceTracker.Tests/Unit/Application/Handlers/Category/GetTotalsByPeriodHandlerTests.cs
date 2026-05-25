@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Categories.Queries.GetTotalsByPeriod;
+using FinanceTracker.Application.UseCases.Categories.Queries.GetTotalsByPeriod;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Tests.Unit.Helpers;

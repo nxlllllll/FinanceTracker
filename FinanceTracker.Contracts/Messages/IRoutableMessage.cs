@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Contracts.Messages;
+namespace FinanceTracker.Contracts.Messages;
 
 public interface IRoutableMessage
 {

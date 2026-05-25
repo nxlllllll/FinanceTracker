@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 
 namespace FinanceTracker.Contracts.Messages.RecurringTransaction;
 
@@ -12,7 +12,7 @@ public sealed record RecurringTransactionTriggeredMessage(
 	string Currency,
 	string Direction,
 	string? Description,
-	DateTime OccurredAt,
+	DateTimeOffset OccurredAt,
 	Guid CorrelationId
 ) : IRoutableMessage
 {

@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -71,8 +71,8 @@ public static class DbContextExtensions
         Guid idempotencyKey,
         string commandType,
         string responseJson,
-        DateTime createdAt,
-        DateTime expiresAt,
+        DateTimeOffset createdAt,
+        DateTimeOffset expiresAt,
         CancellationToken ct = default)
     {
         return context.Database.ExecuteSqlAsync(sql: $"""

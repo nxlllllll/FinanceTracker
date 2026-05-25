@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Services.Correlation;
 using MediatR;
 using Microsoft.Extensions.Logging;
 

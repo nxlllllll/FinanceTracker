@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -118,7 +118,7 @@ public sealed class RecurringTransactionWriteRepository(
     
     public async Task MarkExecutedAsync(
         Guid recurringTransactionId,
-        DateTime executedAt,
+        DateTimeOffset executedAt,
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
@@ -24,7 +24,7 @@ public sealed class CurrencyRateWriteRepository(
 		if (rates.Count == 0)
 			return;
 
-		DateTime now = dateProvider.UtcNow;
+		DateTimeOffset now = dateProvider.UtcNow;
 
 		foreach (CurrencyRateDto entry in rates)
 		{

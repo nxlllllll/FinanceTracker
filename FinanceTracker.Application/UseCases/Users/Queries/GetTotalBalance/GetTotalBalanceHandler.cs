@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.DateProvider;
@@ -21,7 +21,7 @@ public sealed class GetTotalBalanceHandler(
 		decimal balance = await userReadRepository.GetTotalBalanceAsync(
 			userId: query.UserId,
 			baseCurrency: user.BaseCurrency,
-			date: DateOnly.FromDateTime(dateTime: dateProvider.UtcNow),
+			date: dateProvider.UtcToday,
 			ct: ct
 		);
 

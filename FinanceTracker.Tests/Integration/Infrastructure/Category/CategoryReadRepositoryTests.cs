@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
@@ -28,7 +28,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
-			name: Name.Create(value: "–ï–¥–∞").Value,
+			name: Name.Create(value: "≈‰‡").Value,
 			type: type,
 			parentId: parentId
 		);
@@ -62,7 +62,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded!.Id).IsEqualTo(expected: category.Id);
-		await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "–ï–¥–∞");
+		await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "≈‰‡");
 		await Assert.That(value: loaded.Type).IsEqualTo(expected: CategoryType.Expense);
 		await Assert.That(value: loaded.IsArchived).IsFalse();
 		await Assert.That(value: loaded.ParentId).IsNull();

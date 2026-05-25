@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
@@ -106,7 +106,7 @@ public sealed class IdempotencyBehaviorTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			responseJson: Arg.Any<string>(),
-			expiresAt: Arg.Any<DateTime>(),
+			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -152,7 +152,7 @@ public sealed class IdempotencyBehaviorTests
 			idempotencyKey: ValidKey,
 			commandType: nameof(TestCommand),
 			responseJson: Arg.Any<string>(),
-			expiresAt: Arg.Any<DateTime>(),
+			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -175,7 +175,7 @@ public sealed class IdempotencyBehaviorTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			responseJson: Arg.Any<string>(),
-			expiresAt: Arg.Any<DateTime>(),
+			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -238,7 +238,7 @@ public sealed class IdempotencyBehaviorTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			responseJson: Arg.Any<string>(),
-			expiresAt: Arg.Any<DateTime>(),
+			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -263,7 +263,7 @@ public sealed class IdempotencyBehaviorTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			responseJson: Arg.Any<string>(),
-			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(value: expiryHours),
+			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: expiryHours),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

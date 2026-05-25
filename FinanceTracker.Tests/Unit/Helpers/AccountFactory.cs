@@ -1,4 +1,4 @@
-ï»¿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -10,7 +10,7 @@ public static class AccountFactory
 {
 	public static Result<Account, DomainException> Create(
 		Guid? userId = null,
-		string name = "ÐšÐ°Ñ€Ñ‚Ð° Ð¡Ð±ÐµÑ€",
+		string name = "Êàðòà Ñáåð",
 		AccountType type = AccountType.Checking,
 		string currency = "RUB",
 		decimal balance = 1000m)
@@ -53,7 +53,7 @@ public static class AccountFactory
 	public static AccountDto CreateAccountDto(
 		Guid? id = null,
 		Guid? userId = null,
-		string name = "ÐšÐ°Ñ€Ñ‚Ð° Ð¡Ð±ÐµÑ€",
+		string name = "Êàðòà Ñáåð",
 		AccountType type = AccountType.Checking,
 		string currency = "RUB",
 		decimal balance = 1000m,

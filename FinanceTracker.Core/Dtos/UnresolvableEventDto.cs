@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 
 namespace FinanceTracker.Core.Dtos;
 
@@ -7,5 +7,5 @@ public sealed record UnresolvableEventDto(
 	UnresolvableEventType Type,
 	Guid ReferenceId,
 	string Reason,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 );

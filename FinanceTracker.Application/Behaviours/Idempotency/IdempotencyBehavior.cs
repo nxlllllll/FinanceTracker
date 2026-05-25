@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
@@ -42,7 +42,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 
 		if (response is IResult { IsSuccess: true })
 		{
-			DateTime expiresAt = dateProvider.UtcNow.AddHours(value: _options.ExpiryHours);
+			DateTimeOffset expiresAt = dateProvider.UtcNow.AddHours(hours: _options.ExpiryHours);
 
 			await idempotencyWriteRepository.StoreAsync(
 				idempotencyKey: idempotent.IdempotencyKey,

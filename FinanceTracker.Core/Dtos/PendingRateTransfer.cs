@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Dtos;
 
@@ -10,5 +10,5 @@ public sealed record PendingRateTransfer(
 	Currency CurrencyFrom,
 	Currency CurrencyTo,
 	decimal CurrentRate,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 );

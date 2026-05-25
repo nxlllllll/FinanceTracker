@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
@@ -11,5 +11,5 @@ public sealed record AccountTransferCredited(
 	decimal Amount,
 	decimal ExchangeRate,
 	string? Description,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IEvent;

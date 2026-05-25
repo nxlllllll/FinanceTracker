@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Budget;
+using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -30,7 +30,7 @@ public sealed class BudgetTests
     public async Task Create_WhenEndDateBeforeStartDate_ShouldThrowInvalidBudgetPeriodException()
     {
         Result<Budget, DomainException> result = Budget.Create(
-            createdAt: DateTime.UtcNow,
+            createdAt: DateTimeOffset.UtcNow,
             userId: Guid.CreateVersion7(),
             categoryId: Guid.CreateVersion7(),
             amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,
@@ -46,7 +46,7 @@ public sealed class BudgetTests
     public async Task Create_WhenEndDateEqualsStartDate_ShouldThrowInvalidBudgetPeriodException()
     {
         Result<Budget, DomainException> result = Budget.Create(
-            createdAt: DateTime.UtcNow,
+            createdAt: DateTimeOffset.UtcNow,
             userId: Guid.CreateVersion7(),
             categoryId: Guid.CreateVersion7(),
             amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,

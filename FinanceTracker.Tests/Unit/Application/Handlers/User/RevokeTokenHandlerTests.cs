@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Commands.RevokeToken;
+using FinanceTracker.Application.UseCases.Users.Commands.RevokeToken;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.UserSession;
@@ -25,8 +25,8 @@ public sealed class RevokeTokenHandlerTests
 		id: Guid.CreateVersion7(),
 		userId: Guid.CreateVersion7(),
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTime.UtcNow.AddHours(value: 1),
-		createdAt: DateTime.UtcNow,
+		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+		createdAt: DateTimeOffset.UtcNow,
 		revokedAt: null
 	);
 
@@ -65,7 +65,7 @@ public sealed class RevokeTokenHandlerTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _userSessionWriteRepository.DidNotReceive().RevokeAsync(
 			sessionId: Arg.Any<Guid>(),
-			revokedAt: Arg.Any<DateTime>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -77,9 +77,9 @@ public sealed class RevokeTokenHandlerTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: TokenHash,
-			expiresAt: DateTime.UtcNow.AddHours(value: 1),
-			createdAt: DateTime.UtcNow,
-			revokedAt: DateTime.UtcNow.AddMinutes(value: -5)
+			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+			createdAt: DateTimeOffset.UtcNow,
+			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashAsync(
 			tokenHash: Arg.Any<string>(), 
@@ -94,7 +94,7 @@ public sealed class RevokeTokenHandlerTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _userSessionWriteRepository.DidNotReceive().RevokeAsync(
 			sessionId: Arg.Any<Guid>(),
-			revokedAt: Arg.Any<DateTime>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -116,7 +116,7 @@ public sealed class RevokeTokenHandlerTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAsync(
 			sessionId: session.Id,
-			revokedAt: Arg.Any<DateTime>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Idempotency;
+using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.Snapshot;
@@ -35,7 +35,7 @@ public sealed class CleanupJob(
 
 	private async Task RunAsync(CleanupOptions options, CancellationToken ct)
 	{
-		DateTime now = dateProvider.UtcNow;
+		DateTimeOffset now = dateProvider.UtcNow;
 
 		await CleanupIdempotentCommandsAsync(options: options, now: now, ct: ct);
 		await CleanupProcessedMessagesAsync(options: options, now: now, ct: ct);
@@ -44,7 +44,7 @@ public sealed class CleanupJob(
 		await CleanupSnapshotsAsync(options: options, ct: ct);
 	}
 
-	private async Task CleanupIdempotentCommandsAsync(CleanupOptions options, DateTime now, CancellationToken ct)
+	private async Task CleanupIdempotentCommandsAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
 	{
 		int total = await DeleteInBatchesAsync(
 			batchSize: options.BatchSize,
@@ -56,9 +56,9 @@ public sealed class CleanupJob(
 			logger.ZLogInformation(message: $"[Cleanup] idempotent_commands: deleted {total} expired row(s).");
 	}
 
-	private async Task CleanupProcessedMessagesAsync(CleanupOptions options, DateTime now, CancellationToken ct)
+	private async Task CleanupProcessedMessagesAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
 	{
-		DateTime before = now.AddDays(value: -options.ProcessedMessageRetentionDays);
+		DateTimeOffset before = now.AddDays(days: -options.ProcessedMessageRetentionDays);
 
 		int total = await DeleteInBatchesAsync(
 			batchSize: options.BatchSize,
@@ -70,9 +70,9 @@ public sealed class CleanupJob(
 			logger.ZLogInformation(message: $"[Cleanup] processed_messages: deleted {total} row(s) older than {options.ProcessedMessageRetentionDays} day(s).");
 	}
 
-	private async Task CleanupOutboxProcessedAsync(CleanupOptions options, DateTime now, CancellationToken ct)
+	private async Task CleanupOutboxProcessedAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
 	{
-		DateTime before = now.AddDays(value: -options.OutboxProcessedRetentionDays);
+		DateTimeOffset before = now.AddDays(days: -options.OutboxProcessedRetentionDays);
 
 		int total = await DeleteInBatchesAsync(
 			batchSize: options.BatchSize,
@@ -84,9 +84,9 @@ public sealed class CleanupJob(
 			logger.ZLogInformation(message: $"[Cleanup] outbox_messages (processed): deleted {total} row(s) older than {options.OutboxProcessedRetentionDays} day(s).");
 	}
 
-	private async Task CleanupOutboxFailedAsync(CleanupOptions options, DateTime now, CancellationToken ct)
+	private async Task CleanupOutboxFailedAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
 	{
-		DateTime before = now.AddDays(value: -options.OutboxFailedRetentionDays);
+		DateTimeOffset before = now.AddDays(days: -options.OutboxFailedRetentionDays);
 
 		int total = await DeleteInBatchesAsync(
 			batchSize: options.BatchSize,

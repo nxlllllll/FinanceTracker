@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
@@ -29,7 +29,7 @@ public sealed class CurrencyConversionServiceTests
         ConversionResult result = await _service.GetConversionRateAsync(
             fromCurrency: Currency.Create(value: "RUB").Value,
             toCurrency: Currency.Create(value: "RUB").Value,
-            date: DateOnly.FromDateTime(DateTime.UtcNow)
+            date: DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime)
         );
 
         await Assert.That(value: result.Rate).IsEqualTo(expected: 1m);
@@ -46,7 +46,7 @@ public sealed class CurrencyConversionServiceTests
     [Test]
     public async Task GetConversionRateAsync_WhenExactRateExists_ShouldReturnRateWithoutPending()
     {
-        DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
+        DateOnly date = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Currency.Create(value: "USD").Value,
@@ -68,7 +68,7 @@ public sealed class CurrencyConversionServiceTests
     [Test]
     public async Task GetConversionRateAsync_WhenExactRateNotExists_ShouldReturnLatestRateWithPending()
     {
-        DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
+        DateOnly date = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Currency.Create(value: "USD").Value,
@@ -96,7 +96,7 @@ public sealed class CurrencyConversionServiceTests
     [Test]
     public async Task GetConversionRateAsync_WhenNoRateExists_ShouldThrowCurrencyRateNotFoundException()
     {
-        DateOnly date = DateOnly.FromDateTime(DateTime.UtcNow);
+        DateOnly date = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Currency.Create(value: "USD").Value,

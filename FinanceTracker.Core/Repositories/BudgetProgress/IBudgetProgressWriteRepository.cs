@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.BudgetProgress;
+namespace FinanceTracker.Core.Repositories.BudgetProgress;
 
 public interface IBudgetProgressWriteRepository
 {
@@ -7,7 +7,7 @@ public interface IBudgetProgressWriteRepository
 		Guid categoryId,
 		ValueObjects.Currency currencyCode,
 		decimal amount,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
 
@@ -16,7 +16,7 @@ public interface IBudgetProgressWriteRepository
 		Guid categoryId,
 		ValueObjects.Currency currencyCode,
 		decimal amount,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
 	
@@ -26,7 +26,7 @@ public interface IBudgetProgressWriteRepository
 		Guid newCategoryId,
 		ValueObjects.Currency currencyCode,
 		decimal amount,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
 	

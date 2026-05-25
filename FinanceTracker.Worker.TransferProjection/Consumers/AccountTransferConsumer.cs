@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
@@ -24,13 +24,13 @@ namespace FinanceTracker.Worker.TransferProjection.Consumers;
 /// <remarks>
 /// Transfer credit is intentionally eventual: debit and credit happen in separate transactions
 /// across separate workers. The debit is applied synchronously in the command handler;
-/// this consumer applies the credit asynchronously via the outbox → RabbitMQ pipeline.
+/// this consumer applies the credit asynchronously via the outbox > RabbitMQ pipeline.
 ///
 /// <b>Failure handling:</b>
 /// <list type="bullet">
-///   <item>If <c>toAccount</c> is not found — <see cref="CompensateAsync"/> refunds <c>fromAccount</c>.</item>
-///   <item>If both accounts are missing — the event is escalated to <c>unresolvable_events</c> for manual resolution.</item>
-///   <item>If this consumer is stuck or dead — <c>transfer.credit.pending</c> metric will rise above 0
+///   <item>If <c>toAccount</c> is not found � <see cref="CompensateAsync"/> refunds <c>fromAccount</c>.</item>
+///   <item>If both accounts are missing � the event is escalated to <c>unresolvable_events</c> for manual resolution.</item>
+///   <item>If this consumer is stuck or dead � <c>transfer.credit.pending</c> metric will rise above 0
 ///         after the configured grace period, triggering an alert.</item>
 /// </list>
 /// </remarks>
@@ -108,7 +108,7 @@ public sealed class AccountTransferConsumer(
 		double durationMs = (dateProvider.UtcNow - debitEvent.OccurredAt).TotalMilliseconds;
 		WorkerMetrics.TransferCreditDuration.Record(value: durationMs);
 
-		logger.ZLogInformation(message: $"[{correlationId}] Transfer {debitEvent.TransferId} completed: {debitEvent.AccountId} → {debitEvent.ToAccountId}.");
+		logger.ZLogInformation(message: $"[{correlationId}] Transfer {debitEvent.TransferId} completed: {debitEvent.AccountId} > {debitEvent.ToAccountId}.");
 	}
 
 	private async Task CompensateAsync(

@@ -1,4 +1,4 @@
-п»їusing System.Diagnostics;
+using System.Diagnostics;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 
 namespace FinanceTracker.Core.Utilities.Retry;
@@ -16,7 +16,7 @@ public static class RetryDelayCalculator
 			return exponential;
 		
 		// Full jitter: random in [0, exponential]
-		// Р Р°СЃСЃРµРёРІР°РµС‚ retry-РІРѕР»РЅС‹ РїСЂРё РІС‹СЃРѕРєРѕРј РїР°СЂР°Р»Р»РµР»РёР·РјРµ
+		// Рассеивает retry-волны при высоком параллелизме
 		return Jitter.Next(minValue: 0, maxValue: exponential + 1);
 	}
 	

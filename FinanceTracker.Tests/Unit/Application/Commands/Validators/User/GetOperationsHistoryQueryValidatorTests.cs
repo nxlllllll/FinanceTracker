@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
+using FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.User;
@@ -23,7 +23,7 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 		ValidationResult result = await _validator.ValidateAsync(
 			instance: new GetOperationsHistoryQuery(
 				UserId: Guid.CreateVersion7(),
-				CursorOccurredAt: DateTime.UtcNow,
+				CursorOccurredAt: DateTimeOffset.UtcNow,
 				CursorId: Guid.CreateVersion7()
 			)
 		);
@@ -78,7 +78,7 @@ public sealed class GetOperationsHistoryQueryValidatorTests
 	{
 		GetOperationsHistoryQuery query = new GetOperationsHistoryQuery(
 			UserId: Guid.CreateVersion7(),
-			CursorOccurredAt: DateTime.UtcNow
+			CursorOccurredAt: DateTimeOffset.UtcNow
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);

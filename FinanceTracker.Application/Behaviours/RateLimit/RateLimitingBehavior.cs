@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Services.RateLimit;
 using MediatR;
 using Microsoft.Extensions.Options;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
+using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
@@ -124,8 +124,8 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 
-        DateTime old = DateTime.UtcNow.AddDays(-10);
-        DateTime recent = DateTime.UtcNow;
+        DateTimeOffset old = DateTimeOffset.UtcNow.AddDays(-10);
+        DateTimeOffset recent = DateTimeOffset.UtcNow;
 
         await _transferBuilder.CreateAsync(
             userId: userId,
@@ -146,7 +146,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 
         IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(
             userId: userId,
-            dateFrom: DateTime.UtcNow.AddDays(-1)
+            dateFrom: DateTimeOffset.UtcNow.AddDays(-1)
         );
 
         await Assert.That(value: result.Count).IsEqualTo(expected: 1);

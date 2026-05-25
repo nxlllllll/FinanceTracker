@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
@@ -15,6 +15,6 @@ public sealed class RecurringTransactionEntity
 	public int DayOfMonth { get; set; }
 	public string? Description { get; init; }
 	public bool IsActive { get; set; }
-	public DateTime? LastExecutedAt { get; set; }
-	public DateTime CreatedAt { get; init; }
+	public DateTimeOffset? LastExecutedAt { get; set; }
+	public DateTimeOffset CreatedAt { get; init; }
 }

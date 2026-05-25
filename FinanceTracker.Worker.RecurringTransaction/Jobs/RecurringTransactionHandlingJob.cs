@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
@@ -70,8 +70,8 @@ public sealed class RecurringTransactionHandlingJob(
 
     private async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetDueTransactionsAsync(CancellationToken ct)
     {
-        DateTime now = dateProvider.UtcNow;
-        DateTime currentMonthStart = new DateTime(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, kind: DateTimeKind.Utc);
+        DateTimeOffset now = dateProvider.UtcNow;
+        DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
         logger.ZLogInformation(message: $"Querying due transactions for day {now.Day}, month start: {currentMonthStart:O}.");
 
@@ -106,7 +106,7 @@ public sealed class RecurringTransactionHandlingJob(
         Core.Domains.RecurringTransaction.RecurringTransaction transaction,
         CancellationToken ct)
     {
-        DateTime now = dateProvider.UtcNow;
+        DateTimeOffset now = dateProvider.UtcNow;
 
         Result<Unit, DomainException> result = transaction.MarkExecuted(executedAt: now);
         if (result.IsFailure)

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+namespace FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
 
 [AttributeUsage(validOn: AttributeTargets.Class, Inherited = false)]
 public sealed class EventVersionAttribute(int version) : Attribute

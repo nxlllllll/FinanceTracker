@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transactions.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -80,7 +80,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			Amount: 5000m,
 			Currency: "RUB",
 			Direction: "Credit",
-			Description: "–ó–∞—Ä–ø–ª–∞—Ç–∞",
+			Description: "«‡ÔÎ‡Ú‡",
 			OccurredAt: FakeDateProvider.Default.UtcNow,
 			CorrelationId: Guid.CreateVersion7()
 		);
@@ -199,7 +199,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await writeRepo.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
-			executedAt: Arg.Any<DateTime>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

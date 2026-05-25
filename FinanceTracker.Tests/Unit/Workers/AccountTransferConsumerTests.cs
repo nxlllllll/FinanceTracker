@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Contracts.Messages.Account;
@@ -266,7 +266,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			referenceId: TransferId,
 			reason: Arg.Any<string>(),
 			payload: Arg.Any<string>(),
-			occurredAt: Arg.Any<DateTime>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

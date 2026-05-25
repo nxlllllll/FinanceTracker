@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -17,12 +17,12 @@ public sealed class Transaction
     public bool IsExcluded { get; private set; }
     public bool IsRatePending { get; private set; }
     public string? Description { get; private set; }
-    public DateTime OccurredAt { get; private set; }
+    public DateTimeOffset OccurredAt { get; private set; }
 
     private Transaction() { }
 
     public static Transaction Create(
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
         Guid accountId,
         Guid userId,
         Guid categoryId,
@@ -59,7 +59,7 @@ public sealed class Transaction
         bool isExcluded,
         bool isRatePending,
         string? description,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         return new Transaction()
         {

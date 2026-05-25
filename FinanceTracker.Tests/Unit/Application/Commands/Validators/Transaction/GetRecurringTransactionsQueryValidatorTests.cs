@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
+using FinanceTracker.Application.UseCases.RecurringTransactions.Queries.GetRecurringTransactions;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;
@@ -22,7 +22,7 @@ public sealed class GetRecurringTransactionsQueryValidatorTests
     {
         GetRecurringTransactionsQuery query = new GetRecurringTransactionsQuery(
             UserId: Guid.CreateVersion7(),
-            CursorCreatedAt: DateTime.UtcNow,
+            CursorCreatedAt: DateTimeOffset.UtcNow,
             CursorId: Guid.CreateVersion7()
         );
 
@@ -84,7 +84,7 @@ public sealed class GetRecurringTransactionsQueryValidatorTests
     {
         GetRecurringTransactionsQuery query = new GetRecurringTransactionsQuery(
             UserId: Guid.CreateVersion7(),
-            CursorCreatedAt: DateTime.UtcNow
+            CursorCreatedAt: DateTimeOffset.UtcNow
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: query);

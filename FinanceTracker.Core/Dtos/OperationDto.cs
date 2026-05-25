@@ -1,10 +1,10 @@
-﻿namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Dtos;
 
 public sealed record OperationDto(
 	Guid Id,
 	OperationFilterType Type,
 	string? Description,
-	DateTime OccurredAt,
+	DateTimeOffset OccurredAt,
 	TransactionDetailsDto? Transaction,
 	TransferDetailsDto? Transfer
 );

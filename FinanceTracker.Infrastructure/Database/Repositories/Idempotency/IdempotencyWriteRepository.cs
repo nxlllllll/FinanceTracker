@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Idempotency;
+using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Extensions;
@@ -15,7 +15,7 @@ public sealed class IdempotencyWriteRepository(
 		Guid idempotencyKey,
 		string commandType,
 		string responseJson,
-		DateTime expiresAt,
+		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
 	{
 		await context.InsertIdempotentCommandAsync(
@@ -29,7 +29,7 @@ public sealed class IdempotencyWriteRepository(
 	}
 
 	public async Task<int> DeleteExpiredAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default)
 	{

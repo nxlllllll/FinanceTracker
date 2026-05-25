@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transfers.Commands;
+using FinanceTracker.Application.UseCases.Transfers.Commands;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;

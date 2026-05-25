@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Entities;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -38,7 +38,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
             exchangeRate: 0.9m,
             isRatePending: false,
             description: "Test transfer",
-            occurredAt: DateTime.UtcNow
+            occurredAt: DateTimeOffset.UtcNow
         ).Value!;
 
         await _writeRepository.CreateAsync(transfer: transfer);

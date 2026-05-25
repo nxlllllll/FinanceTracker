@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Entities;
+namespace FinanceTracker.Infrastructure.Database.Entities;
 
 public sealed class UnresolvableEventTypeEntity
 {

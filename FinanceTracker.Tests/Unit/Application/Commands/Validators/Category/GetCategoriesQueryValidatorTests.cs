@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
+using FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Category;
@@ -22,7 +22,7 @@ public sealed class GetCategoriesQueryValidatorTests
 	{
 		GetCategoriesQuery query = new GetCategoriesQuery(
 			UserId: Guid.CreateVersion7(),
-			CursorCreatedAt: DateTime.UtcNow,
+			CursorCreatedAt: DateTimeOffset.UtcNow,
 			CursorId: Guid.CreateVersion7()
 		);
 
@@ -84,7 +84,7 @@ public sealed class GetCategoriesQueryValidatorTests
 	{
 		GetCategoriesQuery query = new GetCategoriesQuery(
 			UserId: Guid.CreateVersion7(),
-			CursorCreatedAt: DateTime.UtcNow
+			CursorCreatedAt: DateTimeOffset.UtcNow
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: query);

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -32,7 +32,7 @@ public sealed class TransactionCreationService(
         CreateTransactionCommand command,
         Guid transactionId,
         decimal rate,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         return command.Direction switch
         {
@@ -68,7 +68,7 @@ public sealed class TransactionCreationService(
         ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
             fromCurrency: fromCurrencyResult.Value,
             toCurrency: account.Currency,
-            date: DateOnly.FromDateTime(dateTime: command.OccurredAt),
+            date: DateOnly.FromDateTime(dateTime: command.OccurredAt.UtcDateTime),
             ct: ct
         );
 

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Contracts.Events.Domain;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
@@ -26,7 +26,7 @@ public sealed class DomainEventOutboxWriter(
 		if (entity.DomainEvents.Count == 0)
 			return;
 
-		DateTime now = dateProvider.UtcNow;
+		DateTimeOffset now = dateProvider.UtcNow;
 
 		foreach (IDomainEvent domainEvent in entity.DomainEvents)
 		{

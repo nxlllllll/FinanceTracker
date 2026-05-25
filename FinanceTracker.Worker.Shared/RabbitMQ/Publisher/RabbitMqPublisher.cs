@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;

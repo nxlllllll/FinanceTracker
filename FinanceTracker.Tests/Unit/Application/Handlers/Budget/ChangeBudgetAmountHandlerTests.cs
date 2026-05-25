@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetAmount;
+using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetAmount;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

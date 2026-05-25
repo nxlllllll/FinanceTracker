@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Application.Behaviours.RateLimit;
+namespace FinanceTracker.Application.Behaviours.RateLimit;
 
 public interface IUserScopedRequest
 {

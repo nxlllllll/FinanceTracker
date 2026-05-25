@@ -1,4 +1,4 @@
-﻿using RabbitMQ.Client;
+using RabbitMQ.Client;
 using Testcontainers.RabbitMq;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared;

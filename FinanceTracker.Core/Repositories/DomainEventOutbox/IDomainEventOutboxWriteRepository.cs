@@ -1,27 +1,27 @@
-﻿namespace FinanceTracker.Core.Repositories.DomainEventOutbox;
+namespace FinanceTracker.Core.Repositories.DomainEventOutbox;
 
 public interface IDomainEventOutboxWriteRepository
 {
 	Task MarkAsProcessedAsync(
 		Guid id,
-		DateTime processedAt, 
+		DateTimeOffset processedAt, 
 		CancellationToken ct = default
 	);
 
 	Task MarkAsFailedAsync(
 		Guid id,
-		int retryCount, DateTime? failedAt, 
+		int retryCount, DateTimeOffset? failedAt, 
 		CancellationToken ct = default
 	);
 
 	Task<int> DeleteProcessedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize, 
 		CancellationToken ct = default
 	);
 
 	Task<int> DeleteFailedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize, 
 		CancellationToken ct = default
 	);

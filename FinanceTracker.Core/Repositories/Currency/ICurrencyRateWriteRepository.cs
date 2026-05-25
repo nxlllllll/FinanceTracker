@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 
 namespace FinanceTracker.Core.Repositories.Currency;
 

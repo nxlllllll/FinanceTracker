@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.ValueObjects;
@@ -58,7 +58,7 @@ public sealed class CreateTransactionCommandValidatorTests
             Currency: Currency.Create(value: "RUB").Value,
             Direction: DirectionType.Debit,
             Description: null,
-            OccurredAt: FakeDateProvider.Default.UtcNow.AddDays(value: 1)
+            OccurredAt: FakeDateProvider.Default.UtcNow.AddDays(days: 1)
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);

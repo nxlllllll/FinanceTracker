@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Operations;
+namespace FinanceTracker.Core.Repositories.Operations;
 
 public interface IOperationsWriteRepository
 {

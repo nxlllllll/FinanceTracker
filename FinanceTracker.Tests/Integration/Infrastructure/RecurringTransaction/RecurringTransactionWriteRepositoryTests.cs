@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -233,7 +233,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
 
-		DateTime executedAt = DateTime.UtcNow;
+		DateTimeOffset executedAt = DateTimeOffset.UtcNow;
 		await _writeRepository.MarkExecutedAsync(recurringTransactionId: recurringTransaction.Id, executedAt: executedAt);
 
 		RecurringTransactionEntity entity = await Context.RecurringTransactions.AsNoTracking()

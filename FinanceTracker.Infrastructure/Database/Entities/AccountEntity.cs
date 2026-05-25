@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Entities;
@@ -11,5 +11,5 @@ public sealed class AccountEntity
 	public AccountType AccountType { get; init; }
 	public Currency Currency { get; init; }
 	public bool IsArchived { get; set; }
-	public DateTime CreatedAt { get; init; }
+	public DateTimeOffset CreatedAt { get; init; }
 }

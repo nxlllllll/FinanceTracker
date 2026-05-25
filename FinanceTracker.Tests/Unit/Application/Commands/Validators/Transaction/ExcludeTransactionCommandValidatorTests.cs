@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.ExcludeTransaction;
+using FinanceTracker.Application.UseCases.Transactions.Commands.ExcludeTransaction;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;

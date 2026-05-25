@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Core.Results;
 

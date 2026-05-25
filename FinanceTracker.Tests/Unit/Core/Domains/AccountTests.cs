@@ -1,4 +1,4 @@
-п»їusing FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account;
@@ -12,7 +12,7 @@ namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class AccountTests
 {
-	private static DateTime Now => FakeDateProvider.Default.UtcNow;
+	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
 
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
@@ -31,7 +31,7 @@ public sealed class AccountTests
 		Account account = AccountFactory.Create(userId: userId, balance: 10000).Value!;
 
 		await Assert.That(value: account.UserId).IsEqualTo(expected: userId);
-		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "РљР°СЂС‚Р° РЎР±РµСЂ");
+		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "Карта Сбер");
 		await Assert.That(value: account.Type).IsEqualTo(expected: AccountType.Checking);
 		await Assert.That(value: account.Currency.Value).IsEqualTo(expected: "RUB");
 		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000m);
@@ -61,18 +61,18 @@ public sealed class AccountTests
 	{
 		Account account = AccountFactory.Create().Value!;
 
-		_ = account.Rename(occurredAt: Now, newName: Name.Create(value: "РљР°СЂС‚Р° РўРёРЅСЊРєРѕС„С„").Value);
+		_ = account.Rename(occurredAt: Now, newName: Name.Create(value: "Карта Тинькофф").Value);
 
-		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "РљР°СЂС‚Р° РўРёРЅСЊРєРѕС„С„");
+		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "Карта Тинькофф");
 	}
 
 	[Test]
 	public async Task Rename_WithSameName_ShouldReturnFalse()
 	{
-		Account account = AccountFactory.Create(name: "РљР°СЂС‚Р° РЎР±РµСЂ").Value!;
+		Account account = AccountFactory.Create(name: "Карта Сбер").Value!;
 		account.ClearEvents();
 		
-		account.Rename(occurredAt: Now, newName: Name.Create(value: "РљР°СЂС‚Р° РЎР±РµСЂ").Value);
+		account.Rename(occurredAt: Now, newName: Name.Create(value: "Карта Сбер").Value);
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
 	}
@@ -133,7 +133,7 @@ public sealed class AccountTests
             categoryId: Guid.CreateVersion7(),
             amount: 1000m,
             exchangeRate: 1m,
-            description: "РћР±РµРґ"
+            description: "Обед"
         );
 
         await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);
@@ -208,7 +208,7 @@ public sealed class AccountTests
 			categoryId: Guid.CreateVersion7(),
 			amount: 500m,
 			exchangeRate: 1m,
-			description: "Р—Р°СЂРїР»Р°С‚Р°"
+			description: "Зарплата"
 		);
 
 		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 1);

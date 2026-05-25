@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.ProcessedMessage;
+using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +12,7 @@ public sealed class ProcessedMessageWriteRepository(
 	public async Task MarkAsProcessedAsync(
 		Guid messageId,
 		string consumerType,
-		DateTime processedAt,
+		DateTimeOffset processedAt,
 		CancellationToken ct = default)
 	{
 		await context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
@@ -26,7 +26,7 @@ public sealed class ProcessedMessageWriteRepository(
 	}
 
 	public async Task<int> DeleteOldAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default)
 	{

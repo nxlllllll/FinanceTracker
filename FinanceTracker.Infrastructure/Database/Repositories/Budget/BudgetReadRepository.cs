@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -67,7 +67,7 @@ public sealed class BudgetReadRepository(
     
 	public async Task<PagedResult<Core.Domains.Budget.Budget>> GetAllAsync(
         Guid userId,
-        DateTime? cursorCreatedAt = null,
+        DateTimeOffset? cursorCreatedAt = null,
         Guid? cursorId = null,
         int pageSize = 20,
         CancellationToken ct = default)

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Contracts.Messages.Domain;
+namespace FinanceTracker.Contracts.Messages.Domain;
 
 public sealed record DomainEventMessage(
 	Guid MessageId,
@@ -7,7 +7,7 @@ public sealed record DomainEventMessage(
 	string AggregateType,
 	Guid? CorrelationId,
 	string Payload,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IRoutableMessage
 {
 	public string RoutingKey => AggregateType;

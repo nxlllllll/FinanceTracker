@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Users.Commands.LoginUser;
+using FinanceTracker.Application.UseCases.Users.Commands.LoginUser;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
@@ -33,7 +33,7 @@ public sealed class LoginUserHandlerTests
 	private static readonly TokenResponse TestTokenResponse = new TokenResponse(
 		AccessToken: "access.token",
 		RefreshToken: "refresh-token",
-		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(value: 15)
+		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
 	);
 
 	[Before(hookType: Test)]

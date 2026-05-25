@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Idempotency;
+using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.Snapshot;
@@ -22,7 +22,7 @@ public sealed class CleanupJobTests
 	private CleanupJob _job = null!;
 	private IJobExecutionContext _jobContext = null!;
 
-	private static readonly DateTime Now = new DateTime(year: 2025, month: 6, day: 1, hour: 12, minute: 0, second: 0, kind: DateTimeKind.Utc);
+	private static readonly DateTimeOffset Now = new DateTimeOffset(year: 2025, month: 6, day: 1, hour: 12, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 	private static readonly CleanupOptions DefaultOptions = new CleanupOptions
 	{
@@ -47,22 +47,22 @@ public sealed class CleanupJobTests
 		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_idempotencyWriteRepository.DeleteExpiredAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
 		_outboxWriteRepository.DeleteProcessedAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
 		_outboxWriteRepository.DeleteFailedAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
 		_processedMessageWriteRepository.DeleteOldAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
@@ -97,7 +97,7 @@ public sealed class CleanupJobTests
 	[Test]
 	public async Task Execute_ProcessedMessages_DeletesWithCorrectRetentionCutoff()
 	{
-		DateTime expectedCutoff = Now.AddDays(value: -DefaultOptions.ProcessedMessageRetentionDays);
+		DateTimeOffset expectedCutoff = Now.AddDays(days: -DefaultOptions.ProcessedMessageRetentionDays);
 
 		await _job.Execute(context: _jobContext);
 
@@ -111,7 +111,7 @@ public sealed class CleanupJobTests
 	[Test]
 	public async Task Execute_OutboxProcessed_DeletesWithCorrectRetentionCutoff()
 	{
-		DateTime expectedCutoff = Now.AddDays(value: -DefaultOptions.OutboxProcessedRetentionDays);
+		DateTimeOffset expectedCutoff = Now.AddDays(days: -DefaultOptions.OutboxProcessedRetentionDays);
 
 		await _job.Execute(context: _jobContext);
 
@@ -125,7 +125,7 @@ public sealed class CleanupJobTests
 	[Test]
 	public async Task Execute_OutboxFailed_DeletesWithCorrectRetentionCutoff()
 	{
-		DateTime expectedCutoff = Now.AddDays(value: -DefaultOptions.OutboxFailedRetentionDays);
+		DateTimeOffset expectedCutoff = Now.AddDays(days: -DefaultOptions.OutboxFailedRetentionDays);
 
 		await _job.Execute(context: _jobContext);
 
@@ -180,7 +180,7 @@ public sealed class CleanupJobTests
 	public async Task Execute_WhenRepositoryReturnsBatchSize_ContinuesDeletingInBatches()
 	{
 		_idempotencyWriteRepository.DeleteExpiredAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: DefaultOptions.BatchSize, returnThese: 0);
@@ -188,7 +188,7 @@ public sealed class CleanupJobTests
 		await _job.Execute(context: _jobContext);
 
 		await _idempotencyWriteRepository.Received(requiredNumberOfCalls: 2).DeleteExpiredAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -198,7 +198,7 @@ public sealed class CleanupJobTests
 	public async Task Execute_WhenRepositoryReturnsLessThanBatchSize_StopsAfterOneBatch()
 	{
 		_idempotencyWriteRepository.DeleteExpiredAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 500);
@@ -206,7 +206,7 @@ public sealed class CleanupJobTests
 		await _job.Execute(context: _jobContext);
 
 		await _idempotencyWriteRepository.Received(requiredNumberOfCalls: 1).DeleteExpiredAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -224,22 +224,22 @@ public sealed class CleanupJobTests
 	public async Task Execute_WhenRowsDeleted_LogsForEachTable()
 	{
 		_idempotencyWriteRepository.DeleteExpiredAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 10);
 		_processedMessageWriteRepository.DeleteOldAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 20);
 		_outboxWriteRepository.DeleteProcessedAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 5);
 		_outboxWriteRepository.DeleteFailedAsync(
-			before: Arg.Any<DateTime>(),
+			before: Arg.Any<DateTimeOffset>(),
 			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 3);
@@ -262,7 +262,7 @@ public sealed class CleanupJobTests
 
 		int callCount = 0;
 		_idempotencyWriteRepository.DeleteExpiredAsync(
-			before: Arg.Any<DateTime>(), 
+			before: Arg.Any<DateTimeOffset>(), 
 			batchSize: Arg.Any<int>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: _ =>

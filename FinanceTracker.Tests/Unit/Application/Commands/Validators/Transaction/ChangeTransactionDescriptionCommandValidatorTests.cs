@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionDescription;
+using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionDescription;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;
@@ -13,7 +13,7 @@ public sealed class ChangeTransactionDescriptionCommandValidatorTests
         ChangeTransactionDescriptionCommand command = new ChangeTransactionDescriptionCommand(
             UserId: Guid.CreateVersion7(),
             TransactionId: Guid.CreateVersion7(),
-            Description: "–û–±–µ–¥"
+            Description: "Œ·Â‰"
         );
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);

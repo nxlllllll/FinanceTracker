@@ -1,0 +1,17 @@
+﻿global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'finance-tracker-workers'
+    static_configs:
+      - targets:
+          - 'host.docker.internal:5100'  # Worker.Outbox
+          - 'host.docker.internal:5101'  # Worker.AccountProjection
+          - 'host.docker.internal:5102'  # Worker.RecurringTransaction
+          - 'host.docker.internal:5103'  # Worker.RecurringTransactionProjection
+          - 'host.docker.internal:5104'  # Worker.DeadLetterMonitor
+          - 'host.docker.internal:5105'  # Worker.TransferProjection
+          - 'host.docker.internal:5106'  # Worker.CurrencyRate
+          - 'host.docker.internal:5107'  # Worker.BalanceAdjustment
+          - 'host.docker.internal:5108'  # Worker.Cleanup
+          - 'host.docker.internal:5109'  # Worker.DomainEventOutbox

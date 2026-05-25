@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Domain;
+using FinanceTracker.Contracts.Events.Domain;
 using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 
 namespace FinanceTracker.Infrastructure.Database.Domain.EventMapper;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
@@ -12,5 +12,5 @@ public sealed record AccountBalanceAdjusted(
 	decimal NewRate,
 	decimal Amount,
 	decimal Delta,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IEvent;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;

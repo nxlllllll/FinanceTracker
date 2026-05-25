@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 
@@ -31,7 +31,7 @@ public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 			Description = description,
 			IsActive = true,
 			LastExecutedAt = null,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = DateTimeOffset.UtcNow
 		});
 
 		await context.SaveChangesAsync();

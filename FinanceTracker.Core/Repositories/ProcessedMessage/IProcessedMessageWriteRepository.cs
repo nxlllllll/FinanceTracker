@@ -1,16 +1,16 @@
-﻿namespace FinanceTracker.Core.Repositories.ProcessedMessage;
+namespace FinanceTracker.Core.Repositories.ProcessedMessage;
 
 public interface IProcessedMessageWriteRepository
 {
 	Task MarkAsProcessedAsync(
 		Guid messageId,
 		string consumerType,
-		DateTime processedAt,
+		DateTimeOffset processedAt,
 		CancellationToken ct = default
 	);
 
 	Task<int> DeleteOldAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default
 	);

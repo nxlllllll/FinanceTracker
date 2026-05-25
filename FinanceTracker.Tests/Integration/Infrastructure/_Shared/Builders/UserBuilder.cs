@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
 
@@ -19,7 +19,7 @@ public class UserBuilder(FinanceTrackerContext context )
 			Email = Email.Create(value: $"{userId}@test.com").Value,
 			PasswordHash = "hash",
 			BaseCurrencyCode = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await context.SaveChangesAsync();
 		return userId;

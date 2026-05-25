@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Password;
+namespace FinanceTracker.Core.Services.Password;
 
 public interface IPasswordHasher
 {

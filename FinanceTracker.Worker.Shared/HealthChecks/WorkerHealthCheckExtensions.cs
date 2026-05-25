@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Worker.Shared.Metrics;
+using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Validation;
+using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Core.Results;
 using FluentValidation;
 using FluentValidation.Results;

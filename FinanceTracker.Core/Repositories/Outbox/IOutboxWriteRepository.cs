@@ -1,28 +1,28 @@
-﻿namespace FinanceTracker.Core.Repositories.Outbox;
+namespace FinanceTracker.Core.Repositories.Outbox;
 
 public interface IOutboxWriteRepository
 {
 	Task MarkAsPublishedAsync(
 		Guid messageId,
-		DateTime processedAt,
+		DateTimeOffset processedAt,
 		CancellationToken ct = default
 	);
 
 	Task MarkAsFailedAsync(
 		Guid messageId,
 		int retryCount,
-		DateTime? failedAt,
+		DateTimeOffset? failedAt,
 		CancellationToken ct = default
 	);
 
 	Task<int> DeleteProcessedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default
 	);
 
 	Task<int> DeleteFailedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default
 	);

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Validation;
+using FinanceTracker.Application.Behaviours.Validation;
 using FluentValidation;
 using FluentValidation.Results;
 using MediatR;

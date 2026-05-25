@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Persistence;
@@ -53,11 +53,11 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä").Value,
+            Name: Name.Create(value: " ‡Ú‡ —·Â").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 10000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(@event: @event);
@@ -73,11 +73,11 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä").Value,
+            Name: Name.Create(value: " ‡Ú‡ —·Â").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 1000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(@event: @event);
@@ -87,7 +87,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             await _writeRepository.ArchiveAsync(@event: new AccountArchived(
                 Id: Guid.CreateVersion7(),
                 AccountId: @event.AccountId,
-                OccurredAt: DateTime.UtcNow
+                OccurredAt: DateTimeOffset.UtcNow
             ));
         }
 
@@ -110,7 +110,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: @event.AccountId);
-        await Assert.That(value: result.Name).IsEqualTo(expected: "–ö–∞—Ä—Ç–∞ –°–±–µ—Ä");
+        await Assert.That(value: result.Name).IsEqualTo(expected: " ‡Ú‡ —·Â");
         await Assert.That(value: result.Balance).IsEqualTo(expected: 10000m);
         await Assert.That(value: result.IsArchived).IsFalse();
         await Assert.That(value: result.Type).IsEqualTo(expected: AccountType.Checking);
@@ -162,11 +162,11 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "–ê–∫—Ç–∏–≤–Ω—ã–π").Value,
+            Name: Name.Create(value: "¿ÍÚË‚Ì˚È").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 1000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
         await _writeRepository.CreateAsync(@event: active);
 
@@ -174,17 +174,17 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "–ó–∞–∞—Ä—Ö–∏–≤–∏—Ä–æ–≤–∞–Ω–Ω—ã–π").Value,
+            Name: Name.Create(value: "«‡‡ıË‚ËÓ‚‡ÌÌ˚È").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 500m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
         await _writeRepository.CreateAsync(@event: archived);
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
             Id: Guid.CreateVersion7(),
             AccountId: archived.AccountId,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: true);
@@ -203,11 +203,11 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "–ê–∫—Ç–∏–≤–Ω—ã–π").Value,
+            Name: Name.Create(value: "¿ÍÚË‚Ì˚È").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 1000m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
         await _writeRepository.CreateAsync(@event: active);
 
@@ -215,17 +215,17 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "–ó–∞–∞—Ä—Ö–∏–≤–∏—Ä–æ–≤–∞–Ω–Ω—ã–π").Value,
+            Name: Name.Create(value: "«‡‡ıË‚ËÓ‚‡ÌÌ˚È").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 500m,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         );
         await _writeRepository.CreateAsync(@event: archived);
         await _writeRepository.ArchiveAsync(@event: new AccountArchived(
             Id: Guid.CreateVersion7(),
             AccountId: archived.AccountId,
-            OccurredAt: DateTime.UtcNow
+            OccurredAt: DateTimeOffset.UtcNow
         ));
 
         IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);

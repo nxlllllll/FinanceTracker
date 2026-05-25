@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path=".env" />
     <File Path="compose.yaml" />
+    <File Path="prometheus.yml" />
   </Folder>
   <Project Path="FinanceTracker.Application/FinanceTracker.Application.csproj" />
   <Project Path="FinanceTracker.Contracts/FinanceTracker.Contracts.csproj" />

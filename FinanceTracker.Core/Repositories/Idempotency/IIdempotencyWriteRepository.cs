@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Idempotency;
+namespace FinanceTracker.Core.Repositories.Idempotency;
 
 public interface IIdempotencyWriteRepository
 {
@@ -6,12 +6,12 @@ public interface IIdempotencyWriteRepository
 		Guid idempotencyKey,
 		string commandType,
 		string responseJson,
-		DateTime expiresAt,
+		DateTimeOffset expiresAt,
 		CancellationToken ct = default
 	);
 
 	Task<int> DeleteExpiredAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default
 	);

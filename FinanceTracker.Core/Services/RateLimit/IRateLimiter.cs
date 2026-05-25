@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.RateLimit;
+namespace FinanceTracker.Core.Services.RateLimit;
 
 public interface IRateLimiter
 {

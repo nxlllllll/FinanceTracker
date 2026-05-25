@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -40,7 +40,7 @@ public sealed class CategoryReadRepository(
 		CategoryType? type = null,
 		bool? isArchived = null,
 		Guid? parentId = null,
-		DateTime? cursorCreatedAt = null,
+		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default)

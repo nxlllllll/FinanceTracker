@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Domains.Account.Events;
 
 namespace FinanceTracker.Core.Repositories.Account;
 

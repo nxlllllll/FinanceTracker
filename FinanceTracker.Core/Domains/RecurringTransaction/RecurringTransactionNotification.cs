@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 
 namespace FinanceTracker.Core.Domains.RecurringTransaction;
 
@@ -10,5 +10,5 @@ public sealed record RecurringTransactionNotification(
 	string Currency,
 	DirectionType Direction,
 	string? Description,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 );

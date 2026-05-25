@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Categories.Authorization;
+using FinanceTracker.Application.UseCases.Categories.Authorization;
 using FinanceTracker.Application.UseCases.Categories.Commands.ArchiveCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
+using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.BudgetProgress;
@@ -97,7 +97,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			newCategoryId: Arg.Any<Guid>(),
 			currency: transaction.Amount.Currency,
 			amount: Arg.Any<decimal>(),
-			occurredAt: Arg.Any<DateTime>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -119,7 +119,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			newCategoryId: Arg.Any<Guid>(),
 			currency: transaction.Amount.Currency,
 			amount: Arg.Any<decimal>(), 
-			occurredAt: Arg.Any<DateTime>(), 
+			occurredAt: Arg.Any<DateTimeOffset>(), 
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

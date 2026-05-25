@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Entities;
+namespace FinanceTracker.Infrastructure.Database.Entities;
 
 public sealed class CategoryTotalEntity
 {
@@ -8,5 +8,5 @@ public sealed class CategoryTotalEntity
 	public DateOnly Period { get; init; }
 	public decimal Total { get; set; }
 	public int TransactionCount { get; set; }
-	public DateTime UpdatedAt { get; set; }
+	public DateTimeOffset UpdatedAt { get; set; }
 }

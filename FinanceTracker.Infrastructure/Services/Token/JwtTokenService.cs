@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,7 +20,7 @@ public sealed class JwtTokenService(
 
 	public AccessTokenResult GenerateAccessToken(Core.Domains.User.User user)
 	{
-		DateTime expiresAt = dateProvider.UtcNow.AddMinutes(value: _options.AccessTokenTtlMinutes);
+		DateTimeOffset expiresAt = dateProvider.UtcNow.AddMinutes(minutes: _options.AccessTokenTtlMinutes);
 
 		List<Claim> claims =
 		[
@@ -36,7 +36,7 @@ public sealed class JwtTokenService(
 			issuer: _options.Issuer,
 			audience: _options.Audience,
 			claims: claims,
-			expires: expiresAt,
+			expires: expiresAt.UtcDateTime,
 			signingCredentials: credentials
 		);
 
@@ -55,6 +55,6 @@ public sealed class JwtTokenService(
 		return Convert.ToHexString(inArray: hash.AsSpan().ToArray()).ToLowerInvariant();
 	}
 
-	public DateTime GetRefreshTokenExpiry()
-		=> dateProvider.UtcNow.AddDays(value: _options.RefreshTokenTtlDays);
+	public DateTimeOffset GetRefreshTokenExpiry()
+		=> dateProvider.UtcNow.AddDays(days: _options.RefreshTokenTtlDays);
 }

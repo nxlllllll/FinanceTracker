@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 using FinanceTracker.Core.Domains.User.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -15,7 +15,7 @@ public sealed class User : IHasDomainEvents
 	public Email Email { get; private set; }
 	public string PasswordHash { get; private set; } = String.Empty;
 	public Currency BaseCurrency { get; private set; }
-	public DateTime CreatedAt { get; private set; }
+	public DateTimeOffset CreatedAt { get; private set; }
 
 	public string AggregateType => AggregateTypeNames.User;
 	public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -27,7 +27,7 @@ public sealed class User : IHasDomainEvents
 		=> _domainEvents.Add(item: @event);
 
 	public static Result<User, DomainException> Register(
-		DateTime createdAt,
+		DateTimeOffset createdAt,
 		Email email,
 		string passwordHash,
 		Currency baseCurrency)
@@ -60,7 +60,7 @@ public sealed class User : IHasDomainEvents
 		Email email,
 		string passwordHash,
 		Currency baseCurrencyCode,
-		DateTime createdAt)
+		DateTimeOffset createdAt)
 	{
 		return new User()
 		{
@@ -72,7 +72,7 @@ public sealed class User : IHasDomainEvents
 		};
 	}
 
-	public Result<Unit, DomainException> ChangeEmail(Email newEmail, DateTime occurredAt)
+	public Result<Unit, DomainException> ChangeEmail(Email newEmail, DateTimeOffset occurredAt)
 	{
 		if (Email == newEmail)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -91,7 +91,7 @@ public sealed class User : IHasDomainEvents
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	public Result<Unit, DomainException> ChangePassword(string newPasswordHash, DateTime occurredAt)
+	public Result<Unit, DomainException> ChangePassword(string newPasswordHash, DateTimeOffset occurredAt)
 	{
 		if (String.IsNullOrWhiteSpace(value: newPasswordHash))
 			return Result<Unit, DomainException>.Failure(error: new PasswordException(message: "The password hash cannot be empty."));
@@ -107,7 +107,7 @@ public sealed class User : IHasDomainEvents
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	public Result<Unit, DomainException> ChangeBaseCurrency(Currency newBaseCurrency, DateTime occurredAt)
+	public Result<Unit, DomainException> ChangeBaseCurrency(Currency newBaseCurrency, DateTimeOffset occurredAt)
 	{
 		if (BaseCurrency == newBaseCurrency)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);

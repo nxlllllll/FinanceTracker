@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.RecurringTransaction;
+namespace FinanceTracker.Core.Repositories.RecurringTransaction;
 
 public interface IRecurringTransactionWriteRepository
 {
@@ -42,7 +42,7 @@ public interface IRecurringTransactionWriteRepository
 	
 	Task MarkExecutedAsync(
 		Guid recurringTransactionId,
-		DateTime executedAt,
+		DateTimeOffset executedAt,
 		CancellationToken ct = default
 	);
 }

@@ -1,4 +1,4 @@
-п»їusing FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -16,7 +16,7 @@ public sealed class CategoryTests
 
 		await Assert.That(value: category.Id).IsNotDefault();
 		await Assert.That(value: category.UserId).IsEqualTo(expected: userId);
-		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Р•РґР°");
+		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Еда");
 		await Assert.That(value: category.Type).IsEqualTo(expected: CategoryType.Expense);
 		await Assert.That(value: category.ParentId).IsNull();
 		await Assert.That(value: category.IsArchived).IsFalse();
@@ -37,9 +37,9 @@ public sealed class CategoryTests
 	{
 		Category category = CategoryFactory.Create().Value!;
 
-		category.Rename(newName: Name.Create(value: "РџСЂРѕРґСѓРєС‚С‹").Value);
+		category.Rename(newName: Name.Create(value: "Продукты").Value);
 
-		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "РџСЂРѕРґСѓРєС‚С‹");
+		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Продукты");
 	}
 
 	[Test]
@@ -47,9 +47,9 @@ public sealed class CategoryTests
 	{
 		Category category = CategoryFactory.Create().Value!;
 
-		category.Rename(newName: Name.Create(value: "Р•РґР°").Value);
+		category.Rename(newName: Name.Create(value: "Еда").Value);
 
-		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Р•РґР°");
+		await Assert.That(value: category.Name.Value).IsEqualTo(expected: "Еда");
 	}
 
 	[Test]
@@ -59,7 +59,7 @@ public sealed class CategoryTests
 
 		category.Archive();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(newName: Name.Create(value: "РџСЂРѕРґСѓРєС‚С‹").Value);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(newName: Name.Create(value: "Продукты").Value);
 		
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();

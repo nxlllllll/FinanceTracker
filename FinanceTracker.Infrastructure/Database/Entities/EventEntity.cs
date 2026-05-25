@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Entities;
+namespace FinanceTracker.Infrastructure.Database.Entities;
 
 public sealed class EventEntity
 {
@@ -9,7 +9,7 @@ public sealed class EventEntity
 	public int Version { get; init; }
 	public string Payload { get; init; } = String.Empty;
 	public Guid CorrelationId { get; init; }
-	public DateTime OccurredAt { get; init; }
-	public DateTime CreatedAt { get; init; }
+	public DateTimeOffset OccurredAt { get; init; }
+	public DateTimeOffset CreatedAt { get; init; }
 	public int SchemaVersion { get; init; }
 }

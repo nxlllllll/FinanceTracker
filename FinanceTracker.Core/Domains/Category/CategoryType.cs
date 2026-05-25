@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Category;
+namespace FinanceTracker.Core.Domains.Category;
 
 public enum CategoryType
 {

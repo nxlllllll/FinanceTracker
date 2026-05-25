@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;
@@ -80,7 +80,7 @@ public sealed class JwtTokenServiceTests
 	{
 		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser);
 
-		DateTime expected = FakeDateProvider.Default.UtcNow.AddMinutes(value: TestOptions.AccessTokenTtlMinutes);
+		DateTimeOffset expected = FakeDateProvider.Default.UtcNow.AddMinutes(minutes: TestOptions.AccessTokenTtlMinutes);
 		await Assert.That(value: result.ExpiresAt).IsEqualTo(expected: expected);
 	}
 
@@ -133,9 +133,9 @@ public sealed class JwtTokenServiceTests
 	[Test]
 	public async Task GetRefreshTokenExpiry_ShouldBeCurrentTimePlusTtlDays()
 	{
-		DateTime expiry = _tokenService.GetRefreshTokenExpiry();
+		DateTimeOffset expiry = _tokenService.GetRefreshTokenExpiry();
 
-		DateTime expected = FakeDateProvider.Default.UtcNow.AddDays(value: TestOptions.RefreshTokenTtlDays);
+		DateTimeOffset expected = FakeDateProvider.Default.UtcNow.AddDays(days: TestOptions.RefreshTokenTtlDays);
 		await Assert.That(value: expiry).IsEqualTo(expected: expected);
 	}
 }

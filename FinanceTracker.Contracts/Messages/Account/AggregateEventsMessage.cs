@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Contracts.Messages.Account;
+namespace FinanceTracker.Contracts.Messages.Account;
 
 public sealed record AggregateEventsMessage(
 	Guid MessageId,

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.User.Abstraction;
+using FinanceTracker.Contracts.Events.User.Abstraction;
 using FinanceTracker.Core.Domains.User.Events;
 
 namespace FinanceTracker.Contracts.Events.User;
@@ -9,5 +9,5 @@ public sealed record UserRegisteredEvent(
 	Guid UserId,
 	string Email,
 	string BaseCurrency,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IUserIntegrationEvent;

@@ -1,4 +1,4 @@
-п»їusing FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -9,10 +9,10 @@ public sealed class NameTests
     [Test]
     public async Task Create_WithValidName_ShouldSucceed()
     {
-        Result<Name, DomainException> result = Name.Create(value: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        Result<Name, DomainException> result = Name.Create(value: "Карта Сбер");
 
         await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "Карта Сбер");
     }
 
     [Test]
@@ -36,19 +36,19 @@ public sealed class NameTests
     [Test]
     public async Task Create_WithLeadingAndTrailingSpaces_ShouldTrimValue()
     {
-        Result<Name, DomainException> result = Name.Create(value: "  РљР°СЂС‚Р° РЎР±РµСЂ  ");
+        Result<Name, DomainException> result = Name.Create(value: "  Карта Сбер  ");
 
         await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "Карта Сбер");
     }
 
     [Test]
     public async Task Create_WithInternalSpaces_ShouldPreserveThem()
     {
-        Result<Name, DomainException> result = Name.Create(value: "РљР°СЂС‚Р° РўРёРЅСЊРєРѕС„С„ Р‘Р»СЌРє");
+        Result<Name, DomainException> result = Name.Create(value: "Карта Тинькофф Блэк");
 
         await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "РљР°СЂС‚Р° РўРёРЅСЊРєРѕС„С„ Р‘Р»СЌРє");
+        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "Карта Тинькофф Блэк");
     }
 
     [Test]
@@ -63,34 +63,34 @@ public sealed class NameTests
     [Test]
     public async Task Reconstitute_ShouldBypassValidation()
     {
-        Name name = Name.Reconstitute(value: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        Name name = Name.Reconstitute(value: "Карта Сбер");
 
-        await Assert.That(value: name.Value).IsEqualTo(expected: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        await Assert.That(value: name.Value).IsEqualTo(expected: "Карта Сбер");
     }
 
     [Test]
     public async Task ImplicitOperator_ToString_ShouldReturnValue()
     {
-        Name name = Name.Reconstitute(value: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        Name name = Name.Reconstitute(value: "Карта Сбер");
 
         string result = name;
 
-        await Assert.That(value: result).IsEqualTo(expected: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        await Assert.That(value: result).IsEqualTo(expected: "Карта Сбер");
     }
 
     [Test]
     public async Task ToString_ShouldReturnValue()
     {
-        Name name = Name.Reconstitute(value: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        Name name = Name.Reconstitute(value: "Карта Сбер");
 
-        await Assert.That(value: name.ToString()).IsEqualTo(expected: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        await Assert.That(value: name.ToString()).IsEqualTo(expected: "Карта Сбер");
     }
 
     [Test]
     public async Task Equality_SameValue_ShouldBeEqual()
     {
-        Name a = Name.Reconstitute(value: "РљР°СЂС‚Р° РЎР±РµСЂ");
-        Name b = Name.Reconstitute(value: "РљР°СЂС‚Р° РЎР±РµСЂ");
+        Name a = Name.Reconstitute(value: "Карта Сбер");
+        Name b = Name.Reconstitute(value: "Карта Сбер");
 
         await Assert.That(value: a).IsEqualTo(expected: b);
     }
@@ -98,8 +98,8 @@ public sealed class NameTests
     [Test]
     public async Task Equality_DifferentValue_ShouldNotBeEqual()
     {
-        Name a = Name.Reconstitute(value: "РљР°СЂС‚Р° РЎР±РµСЂ");
-        Name b = Name.Reconstitute(value: "РљР°СЂС‚Р° РўРёРЅСЊРєРѕС„С„");
+        Name a = Name.Reconstitute(value: "Карта Сбер");
+        Name b = Name.Reconstitute(value: "Карта Тинькофф");
 
         await Assert.That(value: a).IsNotEqualTo(notExpected: b);
     }
@@ -107,8 +107,8 @@ public sealed class NameTests
     [Test]
     public async Task Equality_SameValueDifferentCase_ShouldNotBeEqual()
     {
-        Name a = Name.Reconstitute(value: "РЎР±РµСЂ");
-        Name b = Name.Reconstitute(value: "СЃР±РµСЂ");
+        Name a = Name.Reconstitute(value: "Сбер");
+        Name b = Name.Reconstitute(value: "сбер");
 
         await Assert.That(value: a).IsNotEqualTo(notExpected: b);
     }

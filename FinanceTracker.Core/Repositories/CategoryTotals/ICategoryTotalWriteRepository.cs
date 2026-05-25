@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.CategoryTotals;
+namespace FinanceTracker.Core.Repositories.CategoryTotals;
 
 public interface ICategoryTotalWriteRepository
 {
@@ -7,7 +7,7 @@ public interface ICategoryTotalWriteRepository
 		Guid categoryId,
 		decimal amount,
 		ValueObjects.Currency currency,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default);
  
 	Task SubtractAsync(
@@ -15,7 +15,7 @@ public interface ICategoryTotalWriteRepository
 		Guid categoryId,
 		decimal amount,
 		ValueObjects.Currency currency,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default);
  
 	Task ChangeCategoryAsync(
@@ -24,6 +24,6 @@ public interface ICategoryTotalWriteRepository
 		Guid newCategoryId,
 		decimal amount,
 		ValueObjects.Currency currency,
-		DateTime occurredAt,
+		DateTimeOffset occurredAt,
 		CancellationToken ct = default);
 }

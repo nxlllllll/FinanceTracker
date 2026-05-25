@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.DateProvider;

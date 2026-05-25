@@ -1,4 +1,4 @@
-п»їusing FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.Dtos;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -53,8 +53,8 @@ public sealed class CurrencyReadRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result.Code).IsEqualTo(expected: "RUB");
-		await Assert.That(value: result.Name).IsEqualTo(expected: "Р РѕСЃСЃРёР№СЃРєРёР№ СЂСѓР±Р»СЊ");
-		await Assert.That(value: result.Symbol).IsEqualTo(expected: "в‚Ѕ");
+		await Assert.That(value: result.Name).IsEqualTo(expected: "Российский рубль");
+		await Assert.That(value: result.Symbol).IsEqualTo(expected: "?");
 		await Assert.That(value: result.IsActive).IsTrue();
 	}
 }

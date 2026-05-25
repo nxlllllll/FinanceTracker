@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
+using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
@@ -55,9 +55,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -82,9 +82,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -101,9 +101,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: categoryId,
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -119,9 +119,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -138,9 +138,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: DirectionType.Credit,
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -156,9 +156,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -175,9 +175,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: false,
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -187,8 +187,8 @@ public sealed class GetTransactionsHandlerTests
 	[Test]
 	public async Task Handle_ShouldPassDateRangeFilterToRepository()
 	{
-		DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -7);
-		DateTime dateTo = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset dateFrom = FakeDateProvider.Default.UtcNow.AddDays(days: -7);
+		DateTimeOffset dateTo = FakeDateProvider.Default.UtcNow;
 
 		_transactionReadRepository.GetAllAsync(
 			userId: Arg.Any<Guid>(),
@@ -196,9 +196,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -219,7 +219,7 @@ public sealed class GetTransactionsHandlerTests
 			isExcluded: Arg.Any<bool?>(),
 			dateFrom: dateFrom,
 			dateTo: dateTo,
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -235,9 +235,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -257,8 +257,8 @@ public sealed class GetTransactionsHandlerTests
 		Guid userId = Guid.CreateVersion7();
 		Guid accountId = Guid.CreateVersion7();
 		Guid categoryId = Guid.CreateVersion7();
-		DateTime dateFrom = FakeDateProvider.Default.UtcNow.AddDays(value: -30);
-		DateTime dateTo = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset dateFrom = FakeDateProvider.Default.UtcNow.AddDays(days: -30);
+		DateTimeOffset dateTo = FakeDateProvider.Default.UtcNow;
 
 		_transactionReadRepository.GetAllAsync(
 			userId: Arg.Any<Guid>(),
@@ -266,9 +266,9 @@ public sealed class GetTransactionsHandlerTests
 			categoryId: Arg.Any<Guid?>(),
 			direction: Arg.Any<DirectionType?>(),
 			isExcluded: Arg.Any<bool?>(),
-			dateFrom: Arg.Any<DateTime?>(),
-			dateTo: Arg.Any<DateTime?>(),
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			dateFrom: Arg.Any<DateTimeOffset?>(),
+			dateTo: Arg.Any<DateTimeOffset?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -292,7 +292,7 @@ public sealed class GetTransactionsHandlerTests
 			isExcluded: false,
 			dateFrom: dateFrom,
 			dateTo: dateTo,
-			cursorOccurredAt: Arg.Any<DateTime?>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
 			cursorId: Arg.Any<Guid?>(),
 			pageSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

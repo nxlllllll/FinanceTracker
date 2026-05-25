@@ -1,4 +1,4 @@
-ï»¿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -91,9 +91,9 @@ public sealed class TransactionTests
 	{
 		Transaction transaction = TransactionFactory.Create();
 
-		transaction.ChangeDescription(description: "Ð£Ð¶Ð¸Ð½");
+		transaction.ChangeDescription(description: "Óæèí");
 
-		await Assert.That(value: transaction.Description).IsEqualTo(expected: "Ð£Ð¶Ð¸Ð½");
+		await Assert.That(value: transaction.Description).IsEqualTo(expected: "Óæèí");
 	}
 
 	[Test]

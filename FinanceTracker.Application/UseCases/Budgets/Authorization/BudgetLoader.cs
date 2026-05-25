@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetAmount;
 using FinanceTracker.Application.UseCases.Budgets.Commands.ChangeBudgetPeriod;
 using FinanceTracker.Application.UseCases.Budgets.Commands.DeleteBudget;

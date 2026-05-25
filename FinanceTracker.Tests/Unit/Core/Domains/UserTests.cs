@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Domains.User.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -9,7 +9,7 @@ namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class UserTests
 {
-	private static DateTime Now => FakeDateProvider.Default.UtcNow;
+	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
 
 	[Test]
 	public async Task Register_WithValidData_ShouldSetCorrectState()

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Idempotency;
+namespace FinanceTracker.Core.Repositories.Idempotency;
 
 public interface IIdempotencyReadRepository
 {

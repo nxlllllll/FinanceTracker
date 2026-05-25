@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
@@ -44,7 +44,7 @@ public sealed class PostgresEventStore(
 		string aggregateType,
 		List<IEvent> eventList,
 		int expectedVersion,
-		DateTime now)
+		DateTimeOffset now)
 	{
 		int currentVersion = expectedVersion;
 		List<EventEntity> entities = new List<EventEntity>(capacity: eventList.Count);

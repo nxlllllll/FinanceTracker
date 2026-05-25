@@ -1,4 +1,4 @@
-Ôªøusing FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Entities;
@@ -9,7 +9,7 @@ public class CategoryBuilder(FinanceTrackerContext context)
 {
 	public async Task<Guid> CreateAsync(
 		Guid userId,
-		string name = "–ï–¥–∞",
+		string name = "≈‰‡",
 		CategoryType type = CategoryType.Expense)
 	{
 		Guid categoryId = Guid.CreateVersion7();
@@ -21,7 +21,7 @@ public class CategoryBuilder(FinanceTrackerContext context)
 			Name = Name.Create(value: name).Value,
 			Type = type,
 			IsArchived = false,
-			CreatedAt = DateTime.UtcNow
+			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await context.SaveChangesAsync();
 		return categoryId;

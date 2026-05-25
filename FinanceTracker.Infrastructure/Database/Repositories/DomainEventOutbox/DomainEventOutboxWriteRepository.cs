@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.DomainEventOutbox;
+using FinanceTracker.Core.Repositories.DomainEventOutbox;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +10,7 @@ public sealed class DomainEventOutboxWriteRepository(
 {
 	public async Task MarkAsProcessedAsync(
 		Guid id,
-		DateTime processedAt,
+		DateTimeOffset processedAt,
 		CancellationToken ct = default)
 	{
 		await context.DomainEventOutbox.Where(predicate: e => e.Id == id).ExecuteUpdateAsync(
@@ -22,7 +22,7 @@ public sealed class DomainEventOutboxWriteRepository(
 	public async Task MarkAsFailedAsync(
 		Guid id,
 		int retryCount,
-		DateTime? failedAt,
+		DateTimeOffset? failedAt,
 		CancellationToken ct = default)
 	{
 		await context.DomainEventOutbox.Where(predicate: e => e.Id == id).ExecuteUpdateAsync(
@@ -34,7 +34,7 @@ public sealed class DomainEventOutboxWriteRepository(
 	}
 
 	public async Task<int> DeleteProcessedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default)
 	{
@@ -45,7 +45,7 @@ public sealed class DomainEventOutboxWriteRepository(
 	}
 
 	public async Task<int> DeleteFailedAsync(
-		DateTime before,
+		DateTimeOffset before,
 		int batchSize,
 		CancellationToken ct = default)
 	{

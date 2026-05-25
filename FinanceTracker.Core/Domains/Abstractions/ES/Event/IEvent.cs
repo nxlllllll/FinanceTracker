@@ -1,7 +1,7 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.ES.Event;
+namespace FinanceTracker.Core.Domains.Abstractions.ES.Event;
 
 public interface IEvent
 {
 	Guid Id { get; }
-	DateTime OccurredAt { get; }
+	DateTimeOffset OccurredAt { get; }
 }

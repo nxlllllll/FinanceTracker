@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;

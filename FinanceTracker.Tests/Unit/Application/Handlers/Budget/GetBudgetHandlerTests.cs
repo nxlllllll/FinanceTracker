@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudget;
+using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudget;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

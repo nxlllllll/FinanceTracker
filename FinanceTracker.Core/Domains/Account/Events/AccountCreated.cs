@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.ES.Event;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account.Events;
@@ -12,5 +12,5 @@ public sealed record AccountCreated(
 	AccountType Type,
 	Currency Currency,
 	decimal Balance,
-	DateTime OccurredAt
+	DateTimeOffset OccurredAt
 ) : IEvent;

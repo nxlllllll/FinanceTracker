@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;
