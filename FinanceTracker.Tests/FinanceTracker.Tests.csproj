@@ -23,6 +23,8 @@
       <ProjectReference Include="..\FinanceTracker.Worker.BalanceAdjustment\FinanceTracker.Worker.BalanceAdjustment.csproj" />
       <ProjectReference Include="..\FinanceTracker.Worker.Cleanup\FinanceTracker.Worker.Cleanup.csproj" />
       <ProjectReference Include="..\FinanceTracker.Worker.DeadLetterMonitor\FinanceTracker.Worker.DeadLetterMonitor.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Worker.DomainEventOutbox\FinanceTracker.Worker.DomainEventOutbox.csproj" />
+      <ProjectReference Include="..\FinanceTracker.Worker.Outbox\FinanceTracker.Worker.Outbox.csproj" />
       <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransactionProjection\FinanceTracker.Worker.RecurringTransactionProjection.csproj" />
       <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransaction\FinanceTracker.Worker.RecurringTransaction.csproj" />
       <ProjectReference Include="..\FinanceTracker.Worker.TransferProjection\FinanceTracker.Worker.TransferProjection.csproj" />
