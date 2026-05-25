@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
@@ -127,7 +128,7 @@ public sealed class OutboxPublisherJobTests
         await _job.Execute(executionContext: _jobContext);
 
         await _publisher.DidNotReceive().PublishAsync(
-            message: Arg.Any<object>(),
+            message: Arg.Any<IRoutableMessage>(),
             correlationId: Arg.Any<Guid?>(),
             ct: Arg.Any<CancellationToken>()
         );
@@ -169,7 +170,7 @@ public sealed class OutboxPublisherJobTests
         ).Returns(returnThis: [message]);
 
         _publisher.PublishAsync(
-            message: Arg.Any<object>(),
+            message: Arg.Any<IRoutableMessage>(),
             correlationId: Arg.Any<Guid?>(),
             ct: Arg.Any<CancellationToken>()
         ).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));
@@ -203,7 +204,7 @@ public sealed class OutboxPublisherJobTests
         ).Returns(returnThis: [message]);
 
         _publisher.PublishAsync(
-            message: Arg.Any<object>(),
+            message: Arg.Any<IRoutableMessage>(),
             correlationId: Arg.Any<Guid?>(),
             ct: Arg.Any<CancellationToken>()
         ).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));

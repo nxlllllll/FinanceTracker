@@ -15,11 +15,11 @@ using ZLogger;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 
-public sealed class RabbitMqListenerService<TMessage, THandler>(
+public sealed class RabbitMqListenerService<TMessage, THandler, TAggregate>(
 	RabbitMqConnectionFactory connectionFactory,
 	IOptions<RabbitMqOptions> options,
 	IServiceScopeFactory scopeFactory,
-	ILogger<RabbitMqListenerService<TMessage, THandler>> logger
+	ILogger<RabbitMqListenerService<TMessage, THandler, TAggregate>> logger
 ) : BackgroundService
 	where TMessage : class
 	where THandler : IMessageHandler<TMessage>
@@ -75,7 +75,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 		await _channel.ExchangeDeclareAsync(
 			exchange: _options.ExchangeName,
-			type: ExchangeType.Fanout,
+			type: ExchangeType.Topic,
 			durable: true,
 			cancellationToken: ct
 		);
@@ -91,7 +91,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		await _channel.QueueBindAsync(
 			queue: _options.QueueName!,
 			exchange: _options.ExchangeName,
-			routingKey: string.Empty,
+			routingKey: typeof(TAggregate).Name,
 			cancellationToken: ct
 		);
 	}

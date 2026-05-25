@@ -26,6 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\FinanceTracker.Contracts\FinanceTracker.Contracts.csproj" />
         <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
     </ItemGroup>
     

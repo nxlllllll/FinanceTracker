@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using FinanceTracker.Contracts.Messages;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
@@ -20,7 +21,7 @@ public sealed class RabbitMqPublisher(
 	public async Task PublishAsync<TMessage>(
 		TMessage message,
 		Guid? correlationId = default,
-		CancellationToken ct = default) where TMessage : class
+		CancellationToken ct = default) where TMessage : class, IRoutableMessage
 	{
 		IChannel channel = await GetOrCreateChannelAsync(ct: ct);
 
@@ -44,7 +45,7 @@ public sealed class RabbitMqPublisher(
 
 		await channel.BasicPublishAsync(
 			exchange: _options.ExchangeName,
-			routingKey: String.Empty,
+			routingKey: message.RoutingKey,
 			mandatory: false,
 			basicProperties: props,
 			body: body,
@@ -62,7 +63,7 @@ public sealed class RabbitMqPublisher(
 
 		await _channel.ExchangeDeclareAsync(
 			exchange: _options.ExchangeName,
-			type: ExchangeType.Fanout,
+			type: ExchangeType.Topic,
 			durable: true,
 			cancellationToken: ct
 		);

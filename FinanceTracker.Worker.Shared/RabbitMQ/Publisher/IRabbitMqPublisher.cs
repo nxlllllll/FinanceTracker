@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
+﻿using FinanceTracker.Contracts.Messages;
+
+namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 
 public interface IRabbitMqPublisher : IAsyncDisposable
 {
@@ -6,5 +8,5 @@ public interface IRabbitMqPublisher : IAsyncDisposable
 		TMessage message,
 		Guid? correlationId = default,
 		CancellationToken ct = default
-	) where TMessage : class;
+	) where TMessage : class, IRoutableMessage;
 }

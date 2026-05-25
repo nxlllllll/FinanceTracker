@@ -6,4 +6,7 @@ public sealed record AggregateEventsMessage(
 	string AggregateType,
 	Guid CorrelationId,
 	IReadOnlyList<EventEnvelope> Events
-);
+) : IRoutableMessage
+{
+	public string RoutingKey => AggregateType;
+}

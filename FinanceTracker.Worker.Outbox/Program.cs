@@ -16,8 +16,7 @@ public sealed class Program
 
 		builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
-		builder.Services
-			.AddRabbitMqCore(configuration: builder.Configuration)
+		builder.Services.AddRabbitMqCore()
 			.AddRabbitMqPublisher();
 
 		OutboxOptions outboxOptions = builder.Configuration

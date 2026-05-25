@@ -60,7 +60,6 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 	private AggregateEventsMessage BuildMessage(
 		Guid? messageId = null,
-		string aggregateType = AggregateTypeNames.Account,
 		bool includeDebitEvent = true)
 	{
 		List<EventEnvelope> events = [];
@@ -90,20 +89,9 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 		return new AggregateEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: FromAccountId,
-			AggregateType: aggregateType,
+			AggregateType: AggregateTypeNames.Account,
 			CorrelationId: Guid.CreateVersion7(),
 			Events: events
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenNotAccountAggregate_ShouldSkip()
-	{
-		await _consumer.HandleAsync(message: BuildMessage(aggregateType: "transaction"), ct: CancellationToken.None);
-
-		await _accountRepository.DidNotReceive().GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
 		);
 	}
 

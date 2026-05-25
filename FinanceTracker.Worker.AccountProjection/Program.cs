@@ -1,4 +1,5 @@
 using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.AccountProjection.Consumers;
 using FinanceTracker.Worker.AccountProjection.Projection;
@@ -19,8 +20,9 @@ public sealed class Program
  
 		builder.Services.AddScoped<Projection.AccountProjection>();
 		builder.Services.AddScoped<AccountEventApplier>();
-		builder.Services.AddRabbitMqCore(configuration: builder.Configuration)
-			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
+
+		builder.Services.AddRabbitMqCore()
+			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer, Account>();
  
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;

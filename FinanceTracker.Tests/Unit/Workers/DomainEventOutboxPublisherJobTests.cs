@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+﻿using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.DomainEventOutbox;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
@@ -112,7 +113,7 @@ public sealed class DomainEventOutboxPublisherJobTests
         await _job.Execute(executionContext: _jobContext);
 
         await _publisher.DidNotReceive().PublishAsync(
-            message: Arg.Any<object>(),
+            message: Arg.Any<IRoutableMessage>(),
             correlationId: Arg.Any<Guid?>(),
             ct: Arg.Any<CancellationToken>()
         );
@@ -154,7 +155,7 @@ public sealed class DomainEventOutboxPublisherJobTests
         ).Returns(returnThis: [@event]);
 
         _publisher.PublishAsync(
-            message: Arg.Any<object>(),
+            message: Arg.Any<IRoutableMessage>(),
             correlationId: Arg.Any<Guid?>(),
             ct: Arg.Any<CancellationToken>()
         ).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));
@@ -188,7 +189,7 @@ public sealed class DomainEventOutboxPublisherJobTests
         ).Returns(returnThis: [@event]);
 
         _publisher.PublishAsync(
-            message: Arg.Any<object>(),
+            message: Arg.Any<IRoutableMessage>(),
             correlationId: Arg.Any<Guid?>(),
             ct: Arg.Any<CancellationToken>()
         ).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));
@@ -226,7 +227,7 @@ public sealed class DomainEventOutboxPublisherJobTests
         ).Returns(returnThis: [event1, event2]);
 
         _publisher.PublishAsync(
-            message: Arg.Any<object>(),
+            message: Arg.Any<IRoutableMessage>(),
             correlationId: Arg.Any<Guid?>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: _ =>

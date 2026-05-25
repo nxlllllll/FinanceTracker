@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Contracts.Messages.RecurringTransaction;
+﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+
+namespace FinanceTracker.Contracts.Messages.RecurringTransaction;
 
 public sealed record RecurringTransactionTriggeredMessage(
 	Guid MessageId,
@@ -12,4 +14,7 @@ public sealed record RecurringTransactionTriggeredMessage(
 	string? Description,
 	DateTime OccurredAt,
 	Guid CorrelationId
-);
+) : IRoutableMessage
+{
+	public string RoutingKey => AggregateTypeNames.RecurringTransaction;
+}

@@ -25,12 +25,6 @@ public sealed class AccountEventsConsumer(
 {
 	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
-		if (message.AggregateType != AggregateTypeNames.Account)
-		{
-			logger.ZLogDebug(message: $"[{message.CorrelationId}] Skipping '{message.AggregateType}'.");
-			return;
-		}
-
 		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>

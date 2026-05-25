@@ -8,4 +8,7 @@ public sealed record DomainEventMessage(
 	Guid? CorrelationId,
 	string Payload,
 	DateTime OccurredAt
-);
+) : IRoutableMessage
+{
+	public string RoutingKey => AggregateType;
+}

@@ -1,4 +1,5 @@
 using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.HealthChecks;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
@@ -16,8 +17,8 @@ public sealed class Program
 
 		builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
-		builder.Services.AddRabbitMqCore(configuration: builder.Configuration)
-			.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
+		builder.Services.AddRabbitMqCore()
+			.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer, Account>();
 
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;

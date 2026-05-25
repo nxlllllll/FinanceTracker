@@ -31,9 +31,6 @@ public sealed class AccountTransferConsumer(
 {
 	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
-		if (message.AggregateType != AggregateTypeNames.Account)
-			return;
-
 		AccountTransferDebitedEvent? debitEvent = ExtractDebitEvent(message: message);
 		if (debitEvent is null)
 			return;

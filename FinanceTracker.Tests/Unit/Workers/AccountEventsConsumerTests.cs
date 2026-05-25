@@ -52,14 +52,12 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		);
 	}
 
-	private static AggregateEventsMessage BuildMessage(
-		Guid? messageId = null,
-		string aggregateType = AggregateTypeNames.Account)
+	private static AggregateEventsMessage BuildMessage(Guid? messageId = null)
 	{
 		return new AggregateEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: Guid.CreateVersion7(),
-			AggregateType: aggregateType,
+			AggregateType: AggregateTypeNames.Account,
 			CorrelationId: Guid.CreateVersion7(),
 			Events: []
 		);
@@ -70,56 +68,9 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		=> await Assert.That(value: _consumer is IMessageHandler<AggregateEventsMessage> result).IsTrue();
 
 	[Test]
-	public async Task HandleAsync_WhenAggregateTypeIsNotAccount_ShouldSkipWithoutTransaction()
-	{
-		await _consumer.HandleAsync(message: BuildMessage(aggregateType: AggregateTypeNames.Transaction), ct: CancellationToken.None);
-
-		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenAggregateTypeIsNotAccount_ShouldNotCallProjection()
-	{
-		await _consumer.HandleAsync(
-			message: BuildMessage(aggregateType: AggregateTypeNames.Budget),
-			ct: CancellationToken.None
-		);
-
-		await _accountWriteRepository.DidNotReceive().CreateAsync(
-			@event: Arg.Any<AccountCreated>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	[Arguments(nameof(AggregateTypeNames.Transaction))]
-	[Arguments(nameof(AggregateTypeNames.Budget))]
-	[Arguments(nameof(AggregateTypeNames.Category))]
-	[Arguments(nameof(AggregateTypeNames.User))]
-	[Arguments("UnknownAggregate")]
-	public async Task HandleAsync_WhenAggregateTypeIsNotAccount_ShouldAlwaysSkip(string aggregateType)
-	{
-		await _consumer.HandleAsync(
-			message: BuildMessage(aggregateType: aggregateType),
-			ct: CancellationToken.None
-		);
-
-		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
 	public async Task HandleAsync_WhenAggregateTypeIsAccount_ShouldExecuteTransaction()
 	{
-		await _consumer.HandleAsync(
-			message: BuildMessage(aggregateType: AggregateTypeNames.Account),
-			ct: CancellationToken.None
-		);
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
 		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),

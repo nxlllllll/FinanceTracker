@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Transactions.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumers;
 using FinanceTracker.Worker.Shared.HealthChecks;
@@ -18,8 +19,9 @@ public sealed class Program
 		builder.Services.AddInfrastructure(configuration: builder.Configuration);
  
 		builder.Services.AddScoped<ITransactionCreationService, TransactionCreationService>();
-		builder.Services.AddRabbitMqCore(configuration: builder.Configuration)
-			.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
+		
+		builder.Services.AddRabbitMqCore()
+			.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer, RecurringTransaction>();
  
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
