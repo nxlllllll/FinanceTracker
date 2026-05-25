@@ -2,7 +2,6 @@
 using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -13,11 +12,28 @@ using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
+using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using ZLogger;
 
 namespace FinanceTracker.Worker.TransferProjection.Consumers;
 
+/// <summary>
+/// Applies the credit side of a transfer by consuming <see cref="AccountTransferDebitedEvent"/>.
+/// </summary>
+/// <remarks>
+/// Transfer credit is intentionally eventual: debit and credit happen in separate transactions
+/// across separate workers. The debit is applied synchronously in the command handler;
+/// this consumer applies the credit asynchronously via the outbox → RabbitMQ pipeline.
+///
+/// <b>Failure handling:</b>
+/// <list type="bullet">
+///   <item>If <c>toAccount</c> is not found — <see cref="CompensateAsync"/> refunds <c>fromAccount</c>.</item>
+///   <item>If both accounts are missing — the event is escalated to <c>unresolvable_events</c> for manual resolution.</item>
+///   <item>If this consumer is stuck or dead — <c>transfer.credit.pending</c> metric will rise above 0
+///         after the configured grace period, triggering an alert.</item>
+/// </list>
+/// </remarks>
 public sealed class AccountTransferConsumer(
 	IAccountRepository accountRepository,
     IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
@@ -31,6 +47,7 @@ public sealed class AccountTransferConsumer(
 {
 	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
+
 		AccountTransferDebitedEvent? debitEvent = ExtractDebitEvent(message: message);
 		if (debitEvent is null)
 			return;
@@ -87,6 +104,9 @@ public sealed class AccountTransferConsumer(
 		}
 
 		await accountRepository.SaveAsync(account: toAccount, ct: ct);
+
+		double durationMs = (dateProvider.UtcNow - debitEvent.OccurredAt).TotalMilliseconds;
+		WorkerMetrics.TransferCreditDuration.Record(value: durationMs);
 
 		logger.ZLogInformation(message: $"[{correlationId}] Transfer {debitEvent.TransferId} completed: {debitEvent.AccountId} → {debitEvent.ToAccountId}.");
 	}

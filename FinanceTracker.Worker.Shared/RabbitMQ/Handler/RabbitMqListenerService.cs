@@ -102,7 +102,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler, TAggregate>(
 
 		_connection!.ConnectionShutdownAsync += (_, args) =>
 		{
-			logger.ZLogWarning(message: $"[{typeof(TMessage).Name}] Connection shutdown: {args.ReplyText}.");
+			logger.ZLogInformation(message: $"[{typeof(TMessage).Name}] Connection shutdown: {args.ReplyText}.");
 			connectionDropped.TrySetResult();
 			return Task.CompletedTask;
 		};

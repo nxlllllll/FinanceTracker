@@ -17,7 +17,10 @@ public interface ITransferReadRepository
 		CancellationToken ct = default
 	);
 	
-	Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(
+	Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(CancellationToken ct = default);
+
+	Task<int> GetPendingCreditCountAsync(
+		TimeSpan gracePeriod,
 		CancellationToken ct = default
 	);
 }
