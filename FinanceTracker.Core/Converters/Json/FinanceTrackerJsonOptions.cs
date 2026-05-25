@@ -15,4 +15,13 @@ public static class FinanceTrackerJsonOptions
 			new JsonStringEnumConverter()
 		}
 	};
+	
+	public static readonly JsonSerializerOptions Application = BuildApplication();
+ 
+	private static JsonSerializerOptions BuildApplication()
+	{
+		JsonSerializerOptions opts = new JsonSerializerOptions(options: Payload);
+		opts.Converters.Add(item: new ResultJsonConverterFactory());
+		return opts;
+	}
 }

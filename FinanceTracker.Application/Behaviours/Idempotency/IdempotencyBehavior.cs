@@ -21,10 +21,6 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 	where TResponse : notnull
 {
 	private readonly IdempotencyOptions _options = options.CurrentValue;
-	private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
-	{
-		Converters = { new ResultJsonConverterFactory() }
-	};
 
 	public async Task<TResponse> Handle(
 		TRequest request,
@@ -39,7 +35,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 		if (cached is not null)
 		{
 			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {typeof(TRequest).Name} (key: {idempotent.IdempotencyKey}).");
-			return JsonSerializer.Deserialize<TResponse>(json: cached, options: JsonOptions)!;
+			return JsonSerializer.Deserialize<TResponse>(json: cached, options: FinanceTrackerJsonOptions.Application)!;
 		}
 
 		TResponse response = await next(t: cancellationToken);
@@ -51,7 +47,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 			await idempotencyWriteRepository.StoreAsync(
 				idempotencyKey: idempotent.IdempotencyKey,
 				commandType: typeof(TRequest).Name,
-				responseJson: JsonSerializer.Serialize(value: response, options: JsonOptions),
+				responseJson: JsonSerializer.Serialize(value: response, options: FinanceTrackerJsonOptions.Application),
 				expiresAt: expiresAt,
 				ct: cancellationToken
 			);
