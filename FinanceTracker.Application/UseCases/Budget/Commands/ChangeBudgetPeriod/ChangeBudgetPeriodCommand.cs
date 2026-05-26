@@ -1,0 +1,14 @@
+using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
+using MediatR;
+
+namespace FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetPeriod;
+
+public sealed record ChangeBudgetPeriodCommand(
+	Guid UserId,
+	Guid BudgetId,
+	DateOnly From,
+	DateOnly To
+) : IRequest<Result<Guid, DomainException>>, IAuthorizable, IUserScopedRequest;

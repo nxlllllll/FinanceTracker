@@ -3,7 +3,6 @@ using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Core.ValueObjects;
-using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Services.Token;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Options;

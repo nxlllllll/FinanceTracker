@@ -2,7 +2,7 @@ using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.DeadLetterMonitor.Jobs;
+using FinanceTracker.Worker.DeadLetterMonitor.Job;
 using NSubstitute;
 using Quartz;
 

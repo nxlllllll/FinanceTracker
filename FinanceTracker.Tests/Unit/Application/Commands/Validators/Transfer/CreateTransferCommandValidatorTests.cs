@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transfers.Commands;
+using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;

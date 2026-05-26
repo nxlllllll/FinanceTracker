@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionAmount;
+using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionAmount;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

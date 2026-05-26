@@ -1,0 +1,45 @@
+using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Infrastructure.Database.Context;
+using Microsoft.EntityFrameworkCore;
+
+namespace FinanceTracker.Infrastructure.Database.Repositories.Currency;
+
+public class CurrencyRateReadRepository(
+	FinanceTrackerContext context
+) : ICurrencyRateReadRepository
+{
+	public async Task<decimal?> GetRateAsync(
+		Core.ValueObjects.Currency baseCurrencyCode,
+		Core.ValueObjects.Currency targetCurrencyCode,
+		DateOnly date,
+		CancellationToken ct = default)
+	{
+		if (baseCurrencyCode == targetCurrencyCode)
+			return 1m;
+
+		return await context.CurrencyRates.AsNoTracking()
+			.Where(predicate: rate =>
+				rate.BaseCode == baseCurrencyCode &&
+				rate.TargetCode == targetCurrencyCode &&
+				rate.ActualAt == date
+			).Select(selector: rate => (decimal?)rate.Rate)
+			.FirstOrDefaultAsync(cancellationToken: ct);
+	}
+
+	public async Task<decimal?> GetLatestRateAsync(
+		Core.ValueObjects.Currency baseCurrencyCode,
+		Core.ValueObjects.Currency targetCurrencyCode,
+		CancellationToken ct = default)
+	{
+		if (baseCurrencyCode == targetCurrencyCode)
+            return 1m;
+
+        return await context.CurrencyRates.AsNoTracking()
+			.Where(predicate: rate =>
+			    rate.BaseCode == baseCurrencyCode &&
+			    rate.TargetCode == targetCurrencyCode
+			).OrderByDescending(keySelector: rate => rate.ActualAt)
+			.Select(selector: r => (decimal?)r.Rate)
+			.FirstOrDefaultAsync(cancellationToken: ct);
+	}
+}

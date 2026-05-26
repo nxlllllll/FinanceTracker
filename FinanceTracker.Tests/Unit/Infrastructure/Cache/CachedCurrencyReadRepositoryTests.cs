@@ -3,7 +3,6 @@ using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Cache;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Cache;
@@ -16,7 +15,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 
 	private static readonly CurrencyDto RubDto = new CurrencyDto(
 		Code: "RUB",
-		Name: "Российский рубль",
+		Name: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ",
 		Symbol: "?",
 		IsActive: true
 	);

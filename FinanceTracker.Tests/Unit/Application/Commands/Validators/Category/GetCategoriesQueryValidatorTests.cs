@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
+using FinanceTracker.Application.UseCases.Category.Queries.GetCategories;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Category;

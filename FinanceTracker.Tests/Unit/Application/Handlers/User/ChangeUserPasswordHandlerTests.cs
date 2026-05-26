@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserPassword;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -16,7 +16,7 @@ public sealed class ChangeUserPasswordHandlerTests
 {
 	private IUserWriteRepository _userWriteRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
-	private IDomainEventOutboxWriter _domainEventOutboxWriter = null!;
+	private IDomainOutboxWriter _domainOutboxWriter = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ICorrelationContext _correlationContext = null!;
 	private ChangeUserPasswordHandler _handler = null!;
@@ -28,7 +28,7 @@ public sealed class ChangeUserPasswordHandlerTests
 	{
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
-		_domainEventOutboxWriter = Substitute.For<IDomainEventOutboxWriter>();
+		_domainOutboxWriter = Substitute.For<IDomainOutboxWriter>();
 		_correlationContext = Substitute.For<ICorrelationContext>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
@@ -42,7 +42,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		_handler = new ChangeUserPasswordHandler(
 			userWriteRepository: _userWriteRepository,
 			passwordHasher: _passwordHasher,
-			domainEventOutboxWriter: _domainEventOutboxWriter,
+			domainOutboxWriter: _domainOutboxWriter,
 			unitOfWork: _unitOfWork,
 			correlationContext: _correlationContext,
 			dateProvider: FakeDateProvider.Default
@@ -92,7 +92,7 @@ public sealed class ChangeUserPasswordHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _domainEventOutboxWriter.Received(requiredNumberOfCalls: 1).WriteAsync(
+		await _domainOutboxWriter.Received(requiredNumberOfCalls: 1).WriteAsync(
 			entity: Arg.Is<IHasDomainEvents>(e => e is FinanceTracker.Core.Domains.User.User),
 			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -129,7 +129,7 @@ public sealed class ChangeUserPasswordHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _domainEventOutboxWriter.DidNotReceive().WriteAsync(
+		await _domainOutboxWriter.DidNotReceive().WriteAsync(
 			entity: Arg.Any<IHasDomainEvents>(),
 			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

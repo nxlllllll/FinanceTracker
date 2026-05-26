@@ -1,4 +1,17 @@
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.Account;
+using FinanceTracker.Infrastructure.Database.Context.Budget;
+using FinanceTracker.Infrastructure.Database.Context.Category;
+using FinanceTracker.Infrastructure.Database.Context.Currency;
+using FinanceTracker.Infrastructure.Database.Context.EventStore;
+using FinanceTracker.Infrastructure.Database.Context.Idempotency;
+using FinanceTracker.Infrastructure.Database.Context.Operation;
+using FinanceTracker.Infrastructure.Database.Context.Outbox;
+using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
+using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
+using FinanceTracker.Infrastructure.Database.Context.Transaction;
+using FinanceTracker.Infrastructure.Database.Context.Transfer;
+using FinanceTracker.Infrastructure.Database.Context.UnresolvableEvent;
+using FinanceTracker.Infrastructure.Database.Context.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Context;

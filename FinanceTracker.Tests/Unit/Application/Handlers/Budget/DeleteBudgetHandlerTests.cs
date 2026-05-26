@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Budgets.Commands.DeleteBudget;
+using FinanceTracker.Application.UseCases.Budget.Commands.DeleteBudget;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

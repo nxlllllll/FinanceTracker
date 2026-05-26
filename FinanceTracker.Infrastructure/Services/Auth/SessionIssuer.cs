@@ -1,6 +1,6 @@
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.UserSession;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;

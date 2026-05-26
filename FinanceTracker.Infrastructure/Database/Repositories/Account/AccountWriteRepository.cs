@@ -3,7 +3,7 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.Account;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ZLogger;

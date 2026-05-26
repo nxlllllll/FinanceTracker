@@ -2,7 +2,7 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;

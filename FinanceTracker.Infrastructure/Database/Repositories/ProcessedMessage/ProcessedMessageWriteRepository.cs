@@ -1,6 +1,6 @@
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;

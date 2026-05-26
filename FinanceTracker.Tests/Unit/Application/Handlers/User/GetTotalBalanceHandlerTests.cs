@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Queries.GetTotalBalance;
+using FinanceTracker.Application.UseCases.User.Queries.GetTotalBalance;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;

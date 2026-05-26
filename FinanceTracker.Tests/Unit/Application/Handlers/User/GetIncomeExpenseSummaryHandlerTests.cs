@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Queries.GetIncomeExpenseSummary;
+using FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;

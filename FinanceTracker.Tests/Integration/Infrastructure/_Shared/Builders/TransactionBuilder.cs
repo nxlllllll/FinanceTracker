@@ -1,6 +1,6 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.Transaction;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 

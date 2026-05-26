@@ -1,5 +1,5 @@
-using FinanceTracker.Core.Domains.Abstractions.ES;
-using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 
 namespace FinanceTracker.Core.Persistence;
 

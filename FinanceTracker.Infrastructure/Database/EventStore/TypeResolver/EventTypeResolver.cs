@@ -1,7 +1,7 @@
 using System.Collections.Frozen;
 using System.Reflection;
-using FinanceTracker.Core.Domains.Abstractions.ES.Event;
-using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using Microsoft.Extensions.Logging;
 using ZLogger;

@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Converters\Enum\" />
       <Folder Include="Utilities\" />
     </ItemGroup>
     

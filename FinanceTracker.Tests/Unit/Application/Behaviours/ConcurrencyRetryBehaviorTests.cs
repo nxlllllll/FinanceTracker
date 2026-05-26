@@ -1,5 +1,4 @@
 using FinanceTracker.Application.Behaviours.Retry;
-using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;

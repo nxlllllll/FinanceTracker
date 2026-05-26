@@ -1,6 +1,6 @@
 using FinanceTracker.Infrastructure.Configurations;
-using FinanceTracker.Worker.RecurringTransaction.Jobs;
-using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.RecurringTransaction.Job;
+using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;

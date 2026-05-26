@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Commands.LoginUser;
+using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;

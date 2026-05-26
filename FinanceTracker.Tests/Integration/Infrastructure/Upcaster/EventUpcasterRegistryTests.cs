@@ -1,5 +1,5 @@
 using System.Text.Json;
-using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;

@@ -1,5 +1,5 @@
 using System.Text.Json;
-using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 

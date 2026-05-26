@@ -1,6 +1,6 @@
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.Account;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
@@ -16,7 +16,7 @@ public class AccountBuilder(FinanceTrackerContext context)
 		{
 			Id = accountId,
 			UserId = userId,
-			Name = Name.Create(value: "Тестовый счёт").Value,
+			Name = Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ").Value,
 			AccountType = Core.Domains.Account.AccountType.Checking,
 			Currency = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			IsArchived = false,

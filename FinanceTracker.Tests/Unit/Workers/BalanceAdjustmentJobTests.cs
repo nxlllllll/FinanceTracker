@@ -8,9 +8,8 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.BalanceAdjustment.Jobs;
+using FinanceTracker.Worker.BalanceAdjustment.Job;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using Quartz;
 

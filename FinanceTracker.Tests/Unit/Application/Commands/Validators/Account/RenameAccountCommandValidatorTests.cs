@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Accounts.Commands.RenameAccount;
+using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
 
@@ -14,7 +14,7 @@ public sealed class RenameAccountCommandValidatorTests
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
-			NewName: Name.Create(value: "Карта Тинькофф").Value
+			NewName: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value
 		);
 
 		ValidationResult? result = await _validator.ValidateAsync(instance: command);
@@ -27,7 +27,7 @@ public sealed class RenameAccountCommandValidatorTests
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: Guid.Empty,
 			AccountId: Guid.CreateVersion7(),
-			NewName: Name.Create(value: "Карта Тинькофф").Value
+			NewName: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -44,7 +44,7 @@ public sealed class RenameAccountCommandValidatorTests
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: Guid.CreateVersion7(),
 			AccountId: Guid.Empty,
-			NewName: Name.Create(value: "Карта Тинькофф").Value
+			NewName: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);

@@ -4,7 +4,6 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Cache;

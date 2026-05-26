@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Categories.Commands.RenameCategory;
+using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -22,7 +22,7 @@ public sealed class RenameCategoryHandlerTests
 	public async Task HandleAsync_ShouldCallRenameWithNewName()
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
-		Name name = Name.Create(value: "Транспорт").Value;
+		Name name = Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value;
 		
 		await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: name),

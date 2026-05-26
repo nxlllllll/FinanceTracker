@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserBaseCurrency;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -15,7 +15,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 public sealed class ChangeUserBaseCurrencyHandlerTests
 {
 	private IUserWriteRepository _userWriteRepository = null!;
-	private IDomainEventOutboxWriter _domainEventOutboxWriter = null!;
+	private IDomainOutboxWriter _domainOutboxWriter = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ICorrelationContext _correlationContext = null!;
 	private ChangeUserBaseCurrencyHandler _handler = null!;
@@ -24,7 +24,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 	public void Setup()
 	{
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
-		_domainEventOutboxWriter = Substitute.For<IDomainEventOutboxWriter>();
+		_domainOutboxWriter = Substitute.For<IDomainOutboxWriter>();
 		_correlationContext = Substitute.For<ICorrelationContext>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
@@ -36,7 +36,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 
 		_handler = new ChangeUserBaseCurrencyHandler(
 			userWriteRepository: _userWriteRepository,
-			domainEventOutboxWriter: _domainEventOutboxWriter,
+			domainOutboxWriter: _domainOutboxWriter,
 			unitOfWork: _unitOfWork,
 			correlationContext: _correlationContext,
 			dateProvider: FakeDateProvider.Default
@@ -72,7 +72,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _domainEventOutboxWriter.Received(requiredNumberOfCalls: 1).WriteAsync(
+		await _domainOutboxWriter.Received(requiredNumberOfCalls: 1).WriteAsync(
 			entity: Arg.Is<IHasDomainEvents>(e => e is FinanceTracker.Core.Domains.User.User),
 			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

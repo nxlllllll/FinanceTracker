@@ -1,5 +1,5 @@
-using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
-using FinanceTracker.Application.UseCases.Transactions.Services;
+using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;

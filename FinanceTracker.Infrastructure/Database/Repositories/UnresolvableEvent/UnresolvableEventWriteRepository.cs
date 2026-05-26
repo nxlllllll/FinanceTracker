@@ -1,7 +1,7 @@
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.UnresolvableEvent;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 

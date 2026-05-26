@@ -1,5 +1,5 @@
 using System.Reflection;
-using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;

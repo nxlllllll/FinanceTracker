@@ -1,11 +1,11 @@
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Configurations;
-using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
-using FinanceTracker.Worker.TransferProjection.Consumers;
-using FinanceTracker.Worker.TransferProjection.Jobs;
+using FinanceTracker.Worker.TransferProjection.Consumer;
+using FinanceTracker.Worker.TransferProjection.Job;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
 

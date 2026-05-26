@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Accounts.Commands.RenameAccount;
+using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -24,13 +24,13 @@ public sealed class RenameAccountHandlerTests
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
 
 		await _handler.HandleAsync(
-			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: Name.Create(value: "Новое название").Value),
+			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value),
 			account: account,
 			ct: CancellationToken.None
 		);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Name.Value == "Новое название"),
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Name.Value == "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ"),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -38,8 +38,8 @@ public sealed class RenameAccountHandlerTests
 	[Test]
 	public async Task HandleAsync_WhenNameUnchanged_ShouldNotSaveAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(name: "Карта Сбер").Value!;
-		Name sameName = Name.Create(value: "Карта Сбер").Value!;
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(name: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ").Value!;
+		Name sameName = Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ").Value!;
 
 		account.ClearEvents();
 		

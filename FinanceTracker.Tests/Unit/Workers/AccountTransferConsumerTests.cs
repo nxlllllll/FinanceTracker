@@ -8,13 +8,13 @@ using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.AccountProjection.Consumers;
-using FinanceTracker.Worker.TransferProjection.Consumers;
+using FinanceTracker.Worker.AccountProjection.Consumer;
+using FinanceTracker.Worker.TransferProjection.Consumer;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 

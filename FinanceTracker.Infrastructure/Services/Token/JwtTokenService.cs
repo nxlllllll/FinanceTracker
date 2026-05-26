@@ -5,9 +5,8 @@ using System.Text;
 using Blake3;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;
-using FinanceTracker.Infrastructure.Configurations.Options;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace FinanceTracker.Infrastructure.Services.Token;
 

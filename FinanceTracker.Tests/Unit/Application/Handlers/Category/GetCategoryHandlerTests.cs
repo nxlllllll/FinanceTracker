@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Categories.Queries.GetCategory;
+using FinanceTracker.Application.UseCases.Category.Queries.GetCategory;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

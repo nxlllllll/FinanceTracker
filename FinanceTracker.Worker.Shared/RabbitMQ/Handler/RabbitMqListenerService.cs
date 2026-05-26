@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Services.Correlation;
-using FinanceTracker.Core.Tracing;
+using FinanceTracker.Core.Services.Tracing;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Categories.Queries.GetCategories;
+using FinanceTracker.Application.UseCases.Category.Queries.GetCategories;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;

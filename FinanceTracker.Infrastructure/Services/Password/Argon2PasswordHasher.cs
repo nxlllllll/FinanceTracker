@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using FinanceTracker.Core.Services.Password;
-using FinanceTracker.Infrastructure.Configurations.Options;
 using Konscious.Security.Cryptography;
 using Microsoft.Extensions.Options;
 

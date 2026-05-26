@@ -2,7 +2,7 @@ using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.RecurringTransaction.Jobs;
+using FinanceTracker.Worker.RecurringTransaction.Job;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.Extensions.Logging;
 using NSubstitute;

@@ -1,5 +1,5 @@
-using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
-using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.CreateRecurringTransaction;
+using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionCurrency;
+using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;

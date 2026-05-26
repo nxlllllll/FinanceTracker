@@ -1,6 +1,6 @@
-using FinanceTracker.Application.UseCases.Budgets.Queries.GetBudgetProgress;
+using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;
 using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.BudgetProgress;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 

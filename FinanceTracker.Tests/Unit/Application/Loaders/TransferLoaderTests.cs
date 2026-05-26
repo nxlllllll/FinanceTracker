@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transfers.Authorization;
+using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;

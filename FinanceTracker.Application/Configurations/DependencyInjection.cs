@@ -6,7 +6,6 @@ using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
-using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Results;
 using FluentValidation;
 using MediatR;

@@ -1,7 +1,7 @@
-using FinanceTracker.Contracts.Messages;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.Options;

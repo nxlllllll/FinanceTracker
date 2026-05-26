@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using FinanceTracker.Core.Tracing;
+using FinanceTracker.Core.Services.Tracing;
 using MediatR;
 
 namespace FinanceTracker.Application.Behaviours.Tracing;

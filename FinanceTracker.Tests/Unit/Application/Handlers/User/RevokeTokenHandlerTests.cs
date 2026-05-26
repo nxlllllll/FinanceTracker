@@ -1,7 +1,7 @@
-using FinanceTracker.Application.UseCases.Users.Commands.RevokeToken;
+using FinanceTracker.Application.UseCases.User.Commands.RevokeToken;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Repositories.UserSession;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;

@@ -1,7 +1,7 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
+using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 

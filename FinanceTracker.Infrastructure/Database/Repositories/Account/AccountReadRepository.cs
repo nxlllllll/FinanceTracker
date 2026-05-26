@@ -1,7 +1,7 @@
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.Account;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;

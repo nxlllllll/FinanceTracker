@@ -1,7 +1,7 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.CurrencyRate.Client;
-using FinanceTracker.Worker.CurrencyRate.Jobs;
-using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.CurrencyRate.Job;
+using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;

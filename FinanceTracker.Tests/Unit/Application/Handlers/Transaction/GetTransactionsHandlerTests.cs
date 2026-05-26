@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
+using FinanceTracker.Application.UseCases.Transaction.Queries.GetTransactions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;

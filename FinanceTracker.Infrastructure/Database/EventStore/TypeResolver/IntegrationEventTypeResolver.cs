@@ -2,7 +2,7 @@ using System.Collections.Frozen;
 using System.Reflection;
 using FinanceTracker.Contracts.Events;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
-using FinanceTracker.Core.Domains.Abstractions.ES.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 

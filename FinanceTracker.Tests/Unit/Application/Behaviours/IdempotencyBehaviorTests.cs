@@ -6,7 +6,6 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;

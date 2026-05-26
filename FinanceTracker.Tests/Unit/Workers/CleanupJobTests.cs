@@ -4,8 +4,7 @@ using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.Snapshot;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.Cleanup.Jobs;
-using Microsoft.Extensions.Options;
+using FinanceTracker.Worker.Cleanup.Job;
 using NSubstitute;
 using Quartz;
 

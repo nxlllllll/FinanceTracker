@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.Category;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Npgsql;

@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Queries.GetOperationsHistory;
+using FinanceTracker.Application.UseCases.User.Queries.GetOperationsHistory;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.User;

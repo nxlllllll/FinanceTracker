@@ -1,17 +1,14 @@
 using FinanceTracker.Contracts.Events.Account.Abstraction;
-using FinanceTracker.Core.Domains.Abstractions.ES.Event;
-using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Budget;
-using FinanceTracker.Core.Repositories.BudgetProgress;
 using FinanceTracker.Core.Repositories.Category;
-using FinanceTracker.Core.Repositories.CategoryTotals;
 using FinanceTracker.Core.Repositories.Currency;
-using FinanceTracker.Core.Repositories.DomainEventOutbox;
 using FinanceTracker.Core.Repositories.Idempotency;
-using FinanceTracker.Core.Repositories.Operations;
+using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -20,7 +17,6 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.User;
-using FinanceTracker.Core.Repositories.UserSession;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
@@ -32,30 +28,25 @@ using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Domain.EventMapper;
 using FinanceTracker.Infrastructure.Database.EventStore;
-using FinanceTracker.Infrastructure.Database.EventStore.EventMapper;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
-using FinanceTracker.Infrastructure.Database.Repositories.BudgetProgress;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
-using FinanceTracker.Infrastructure.Database.Repositories.CategoryTotal;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
-using FinanceTracker.Infrastructure.Database.Repositories.CurrencyRate;
-using FinanceTracker.Infrastructure.Database.Repositories.DomainEventOutbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
-using FinanceTracker.Infrastructure.Database.Repositories.Operations;
+using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Snapshot;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
-using FinanceTracker.Infrastructure.Database.Repositories.Transfers;
+using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
-using FinanceTracker.Infrastructure.Database.Repositories.UserSession;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
+using FinanceTracker.Infrastructure.EventMapping.Domain;
+using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Infrastructure.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Correlation;
 using FinanceTracker.Infrastructure.Services.Currency;
@@ -65,7 +56,6 @@ using FinanceTracker.Infrastructure.Services.Password;
 using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -142,7 +132,7 @@ public static class DependencyInjection
 		    .WithSingletonLifetime()
 		);
 
-		services.AddScoped<IDomainEventOutboxWriter, DomainEventOutboxWriter>();
+		services.AddScoped<IDomainOutboxWriter, DomainOutboxWriter>();
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		
@@ -198,8 +188,8 @@ public static class DependencyInjection
 		services.AddScoped<IOutboxReadRepository, OutboxReadRepository>();
 		services.AddScoped<IOutboxWriteRepository, OutboxWriteRepository>();
 
-		services.AddScoped<IDomainEventOutboxReadRepository, DomainEventOutboxReadRepository>();
-		services.AddScoped<IDomainEventOutboxWriteRepository, DomainEventOutboxWriteRepository>();
+		services.AddScoped<IDomainOutboxReadRepository, DomainOutboxReadRepository>();
+		services.AddScoped<IDomainOutboxWriteRepository, DomainOutboxWriteRepository>();
 		
 		services.AddScoped<ISnapshotWriteRepository, SnapshotWriteRepository>();
 		

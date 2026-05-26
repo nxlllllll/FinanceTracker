@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Commands.ChangeUserEmail;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.User;

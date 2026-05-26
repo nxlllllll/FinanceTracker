@@ -1,5 +1,5 @@
-using FinanceTracker.Application.UseCases.Accounts.Commands.CreateAccount;
-using FinanceTracker.Application.UseCases.RecurringTransactions.Commands.ChangeRecurringTransactionCurrency;
+using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;

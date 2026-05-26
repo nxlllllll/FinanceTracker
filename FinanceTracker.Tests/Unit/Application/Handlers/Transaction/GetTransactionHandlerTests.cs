@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Queries.GetTransaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

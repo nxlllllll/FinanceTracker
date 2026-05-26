@@ -1,6 +1,6 @@
 using FinanceTracker.Infrastructure.Configurations;
-using FinanceTracker.Worker.DeadLetterMonitor.Jobs;
-using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.DeadLetterMonitor.Job;
+using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;

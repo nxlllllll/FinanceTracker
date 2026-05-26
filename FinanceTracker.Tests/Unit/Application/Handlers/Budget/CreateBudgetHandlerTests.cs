@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Budgets.Commands.CreateBudget;
+using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;

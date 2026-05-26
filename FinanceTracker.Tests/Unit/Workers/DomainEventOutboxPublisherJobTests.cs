@@ -1,11 +1,11 @@
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.DomainEventOutbox;
+using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.DomainEventOutbox.Jobs;
+using FinanceTracker.Worker.DomainEventOutbox.Job;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -15,8 +15,8 @@ namespace FinanceTracker.Tests.Unit.Workers;
 
 public sealed class DomainEventOutboxPublisherJobTests
 {
-    private IDomainEventOutboxReadRepository _readRepository = null!;
-    private IDomainEventOutboxWriteRepository _writeRepository = null!;
+    private IDomainOutboxReadRepository _readRepository = null!;
+    private IDomainOutboxWriteRepository _writeRepository = null!;
     private IUnresolvableEventWriteRepository _unresolvableEventWriteRepository = null!;
     private IRabbitMqPublisher _publisher = null!;
     private IUnitOfWork _unitOfWork = null!;
@@ -50,8 +50,8 @@ public sealed class DomainEventOutboxPublisherJobTests
     [Before(hookType: Test)]
     public void Setup()
     {
-        _readRepository = Substitute.For<IDomainEventOutboxReadRepository>();
-        _writeRepository = Substitute.For<IDomainEventOutboxWriteRepository>();
+        _readRepository = Substitute.For<IDomainOutboxReadRepository>();
+        _writeRepository = Substitute.For<IDomainOutboxWriteRepository>();
         _unresolvableEventWriteRepository = Substitute.For<IUnresolvableEventWriteRepository>();
         _publisher = Substitute.For<IRabbitMqPublisher>();
         _unitOfWork = Substitute.For<IUnitOfWork>();

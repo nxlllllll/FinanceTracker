@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Users.Commands.RegisterUser;
+using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;

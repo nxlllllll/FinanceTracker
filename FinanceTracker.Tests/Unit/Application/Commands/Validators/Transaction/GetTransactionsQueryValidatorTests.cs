@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transactions.Queries.GetTransactions;
+using FinanceTracker.Application.UseCases.Transaction.Queries.GetTransactions;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;

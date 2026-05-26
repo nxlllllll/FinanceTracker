@@ -1,6 +1,6 @@
 using System.Reflection;
-using FinanceTracker.Core.Domains.Abstractions.ES.Event;
-using FinanceTracker.Core.Domains.Abstractions.ES.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;

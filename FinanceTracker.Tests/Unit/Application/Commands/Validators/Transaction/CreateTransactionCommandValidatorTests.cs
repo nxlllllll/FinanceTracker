@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.ValueObjects;

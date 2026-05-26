@@ -1,9 +1,9 @@
-using FinanceTracker.Application.UseCases.Transactions.Services;
+using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Infrastructure.Configurations;
-using FinanceTracker.Worker.RecurringTransactionProjection.Consumers;
-using FinanceTracker.Worker.Shared.HealthChecks;
+using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
+using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;

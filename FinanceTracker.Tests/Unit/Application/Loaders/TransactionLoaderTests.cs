@@ -1,5 +1,5 @@
-using FinanceTracker.Application.UseCases.Transactions.Authorization;
-using FinanceTracker.Application.UseCases.Transactions.Commands.ChangeTransactionCategory;
+using FinanceTracker.Application.UseCases.Transaction.Authorization;
+using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;

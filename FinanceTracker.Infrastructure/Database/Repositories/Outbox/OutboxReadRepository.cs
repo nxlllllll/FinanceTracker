@@ -1,6 +1,6 @@
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 

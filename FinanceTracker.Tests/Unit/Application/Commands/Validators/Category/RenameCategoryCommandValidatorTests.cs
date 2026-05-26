@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Categories.Commands.RenameCategory;
+using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
 
@@ -14,7 +14,7 @@ public sealed class RenameCategoryCommandValidatorTests
 		RenameCategoryCommand command = new RenameCategoryCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
-			NewName: Name.Create(value: "Продукты").Value
+			NewName: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -27,7 +27,7 @@ public sealed class RenameCategoryCommandValidatorTests
 		RenameCategoryCommand command = new RenameCategoryCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.Empty,
-			NewName: Name.Create(value: "Продукты").Value
+			NewName: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);

@@ -1,16 +1,16 @@
-using FinanceTracker.Application.UseCases.Transactions.Commands.CreateTransaction;
-using FinanceTracker.Application.UseCases.Transactions.Services;
+using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Infrastructure.Database.Entities;
+using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared;
+using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.RecurringTransactionProjection.Consumers;
+using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -80,7 +80,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			Amount: 5000m,
 			Currency: "RUB",
 			Direction: "Credit",
-			Description: "Зарплата",
+			Description: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ",
 			OccurredAt: FakeDateProvider.Default.UtcNow,
 			CorrelationId: Guid.CreateVersion7()
 		);

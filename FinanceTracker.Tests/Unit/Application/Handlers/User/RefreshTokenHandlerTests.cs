@@ -1,9 +1,8 @@
-using FinanceTracker.Application.UseCases.Users.Commands.RefreshToken;
+using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
-using FinanceTracker.Core.Repositories.UserSession;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.DateProvider;

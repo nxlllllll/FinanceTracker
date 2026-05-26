@@ -1,10 +1,10 @@
-using FinanceTracker.Application.UseCases.Transactions.Commands.IncludeTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.BudgetProgress;
-using FinanceTracker.Core.Repositories.CategoryTotals;
-using FinanceTracker.Core.Repositories.Operations;
+using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
