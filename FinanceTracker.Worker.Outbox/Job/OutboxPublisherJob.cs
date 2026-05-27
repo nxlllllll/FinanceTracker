@@ -15,6 +15,11 @@ using ZLogger;
 
 namespace FinanceTracker.Worker.Outbox.Job;
 
+/// <summary>
+/// Guarantees at-least-once delivery: RabbitMQ publish is not transactional with PostgreSQL,
+/// so a message may be published but not marked as processed if the outer transaction rolls back.
+/// Consumers must be idempotent — duplicates are handled via the processed_messages table.
+/// </summary>
 [DisallowConcurrentExecution]
 public sealed class OutboxPublisherJob(
     IOutboxReadRepository outboxReadRepository,

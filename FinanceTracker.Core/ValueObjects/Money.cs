@@ -50,7 +50,7 @@ public readonly record struct Money
 	public Money Subtract(Money value)
 	{
 		if (Currency != value.Currency)
-			throw new CurrencyException(message: $"Cannot add amounts of different currencies: {Currency} and {value.Currency}.");
+			throw new CurrencyException(message: $"Cannot subtract amounts of different currencies: {Currency} and {value.Currency}.");
 
 		return new Money(amount: Amount - value.Amount, currency: Currency);
 	}

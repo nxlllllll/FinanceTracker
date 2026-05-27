@@ -16,7 +16,6 @@ public static class RetryDelayCalculator
 			return exponential;
 		
 		// Full jitter: random in [0, exponential]
-		// Рассеивает retry-волны при высоком параллелизме
 		return Jitter.Next(minValue: 0, maxValue: exponential + 1);
 	}
 	
