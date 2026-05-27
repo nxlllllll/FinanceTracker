@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 
 namespace FinanceTracker.Contracts.Messages.RecurringTransaction;
 
+[RoutingKey(routingKey: AggregateTypeNames.RecurringTransaction)]
 public sealed record RecurringTransactionTriggeredMessage(
 	Guid MessageId,
 	Guid RecurringTransactionId,

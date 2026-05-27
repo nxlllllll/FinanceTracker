@@ -26,13 +26,13 @@ public static class DependencyInjection
 		return services;
 	}
 
-	public static IServiceCollection AddRabbitMqListener<TMessage, THandler, TAggregate>(
+	public static IServiceCollection AddRabbitMqListener<TMessage, THandler>(
 		this IServiceCollection services)
 		where TMessage : class, IRoutableMessage
 		where THandler : class, IMessageHandler<TMessage>
 	{
 		services.AddScoped<THandler>();
-		services.AddHostedService<RabbitMqListenerService<TMessage, THandler, TAggregate>>();
+		services.AddHostedService<RabbitMqListenerService<TMessage, THandler>>();
 		return services;
 	}
 }

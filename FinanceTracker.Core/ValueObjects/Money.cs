@@ -33,10 +33,10 @@ public readonly record struct Money
 		return Result<Money, DomainException>.Success(value: new Money(amount: amount, currency: currency));
 	}
 	
-	public Money Add(decimal amount)
+	internal Money Add(decimal amount)
 		=> new Money(amount: Amount + amount, currency: Currency);
 	
-	public Money Subtract(decimal amount) 
+	internal Money Subtract(decimal amount) 
 		=> new Money(amount: Amount - amount, currency: Currency);
 	
 	public Money Add(Money value)

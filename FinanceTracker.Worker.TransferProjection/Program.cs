@@ -20,7 +20,7 @@ public sealed class Program
 		builder.Services.AddInfrastructure(configuration: builder.Configuration);
 
 		builder.Services.AddRabbitMqCore()
-			.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer, Account>();
+			.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
 
 		builder.Services.AddOptions<TransferCreditLagOptions>()
 			.BindConfiguration(configSectionPath: TransferCreditLagOptions.SectionName)

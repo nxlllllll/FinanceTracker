@@ -22,7 +22,7 @@ public sealed class Program
 		builder.Services.AddScoped<AccountEventApplier>();
 
 		builder.Services.AddRabbitMqCore()
-			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer, Account>();
+			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
  
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;

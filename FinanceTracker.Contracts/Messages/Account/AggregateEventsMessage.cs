@@ -1,5 +1,8 @@
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+
 namespace FinanceTracker.Contracts.Messages.Account;
 
+[RoutingKey(routingKey: AggregateTypeNames.Account)]
 public sealed record AggregateEventsMessage(
 	Guid MessageId,
 	Guid AggregateId,

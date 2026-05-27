@@ -21,7 +21,7 @@ public sealed class Program
 		builder.Services.AddScoped<ITransactionCreationService, TransactionCreationService>();
 		
 		builder.Services.AddRabbitMqCore()
-			.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer, RecurringTransaction>();
+			.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
  
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;

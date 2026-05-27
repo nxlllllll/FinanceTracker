@@ -64,7 +64,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqFixture
 	private IConnection _setupConnection = null!;
 	private IChannel _setupChannel = null!;
 	private RabbitMqPublisher _publisher = null!;
-	private RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler, Core.Domains.Account.Account> _listener = null!;
+	private RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> _listener = null!;
 	private ServiceProvider _serviceProvider = null!;
 	private TestHandlerState _handlerState = null!;
 
@@ -119,11 +119,11 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqFixture
 			options: Options.Create(options: options)
 		);
 
-		_listener = new RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler, Core.Domains.Account.Account>(
+		_listener = new RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler>(
 			connectionFactory: connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
-			logger: NullLogger<RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler, Core.Domains.Account.Account>>.Instance
+			logger: NullLogger<RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler>>.Instance
 		);
 	}
 

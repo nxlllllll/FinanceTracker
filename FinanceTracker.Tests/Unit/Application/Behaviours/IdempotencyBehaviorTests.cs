@@ -266,4 +266,29 @@ public sealed class IdempotencyBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
+	
+	[Test]
+	public async Task Handle_WhenIdempotencyKeyIsEmpty_ShouldSkipCheckAndCallNext()
+	{
+		Result<Guid, DomainException> expected = Ok();
+
+		Result<Guid, DomainException> result = await _behavior.Handle(
+			request: new TestCommand(IdempotencyKey: Guid.Empty),
+			next: _ => Task.FromResult(result: expected),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _readRepository.DidNotReceive().GetAsync(
+			idempotencyKey: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _writeRepository.DidNotReceive().StoreAsync(
+			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			responseJson: Arg.Any<string>(),
+			expiresAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await Assert.That(value: result).IsEqualTo(expected: expected);
+	}
 }

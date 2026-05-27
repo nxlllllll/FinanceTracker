@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Tracing;
@@ -15,23 +17,33 @@ using ZLogger;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 
-public sealed class RabbitMqListenerService<TMessage, THandler, TAggregate>(
+public sealed class RabbitMqListenerService<TMessage, THandler>(
 	RabbitMqConnectionFactory connectionFactory,
 	IOptions<RabbitMqOptions> options,
 	IServiceScopeFactory scopeFactory,
-	ILogger<RabbitMqListenerService<TMessage, THandler, TAggregate>> logger
+	ILogger<RabbitMqListenerService<TMessage, THandler>> logger
 ) : BackgroundService
 	where TMessage : class
 	where THandler : IMessageHandler<TMessage>
 {
 	private readonly RabbitMqOptions _options = options.Value;
+	private readonly string _routingKey = GetRoutingKey();
 
 	private IConnection? _connection;
 	private IChannel? _channel;
 
+	private static string GetRoutingKey()
+	{
+		return typeof(TMessage).GetCustomAttribute<RoutingKeyAttribute>()?.RoutingKey
+			?? throw new InvalidOperationException(message: $"{typeof(TMessage).Name} is missing [RabbitMqRoutingKey] attribute.");
+	}
+
 	public override async Task StartAsync(CancellationToken ct)
 	{
-		logger.ZLogInformation(message: $"[{typeof(TMessage).Name}] Listener starting. Queue: '{_options.QueueName}', Exchange: '{_options.ExchangeName}'.");
+		logger.ZLogInformation(message: $"""
+			[{typeof(TMessage).Name}] Listener starting. Queue: '{_options.QueueName}', 
+			Exchange: '{_options.ExchangeName}', RoutingKey: '{_routingKey}'.
+		""");
 		await base.StartAsync(cancellationToken: ct);
 	}
 
@@ -91,7 +103,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler, TAggregate>(
 		await _channel.QueueBindAsync(
 			queue: _options.QueueName!,
 			exchange: _options.ExchangeName,
-			routingKey: typeof(TAggregate).Name,
+			routingKey: _routingKey,
 			cancellationToken: ct
 		);
 	}

@@ -26,7 +26,10 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 		CancellationToken cancellationToken = default)
 	{
 		if (request is not IIdempotentCommand idempotent || idempotent.IdempotencyKey == Guid.Empty)
+		{
+			logger.ZLogWarning(message: $"[Idempotency] {typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty. Idempotency check skipped.");
 			return await next(t: cancellationToken);
+		}
 
 		string? cached = await idempotencyReadRepository.GetAsync(idempotencyKey: idempotent.IdempotencyKey, ct: cancellationToken);
 
