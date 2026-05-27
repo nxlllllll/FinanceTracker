@@ -15,4 +15,10 @@ public interface IAccountReadRepository
 		bool? isArchived = null,
 		CancellationToken ct = default
 	);
+	
+	Task<bool> ExistAsync(
+		Guid accountId,
+		Guid userId,
+		CancellationToken ct = default
+	);
 }

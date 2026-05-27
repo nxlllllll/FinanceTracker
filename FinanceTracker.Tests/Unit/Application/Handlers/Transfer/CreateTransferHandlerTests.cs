@@ -65,7 +65,7 @@ public sealed class CreateTransferHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccount.Id),
-			accounts: (fromAccount, toAccount),
+			account: fromAccount,
 			ct: CancellationToken.None
 		);
 
@@ -88,7 +88,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccount.Id),
-			accounts: (fromAccount, toAccount),
+			account: fromAccount,
 			ct: CancellationToken.None
 		);
 
@@ -117,7 +117,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccount.Id, amount: 1000m),
-			accounts: (fromAccount, toAccount),
+			account: fromAccount,
 			ct: CancellationToken.None
 		);
 

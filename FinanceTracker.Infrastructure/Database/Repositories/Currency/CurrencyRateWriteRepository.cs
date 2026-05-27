@@ -1,20 +1,15 @@
 using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Currency;
 
 public sealed class CurrencyRateWriteRepository(
 	FinanceTrackerContext context,
-	IDateProvider dateProvider,
-	IUnitOfWork unitOfWork,
-	ILogger<CurrencyRateWriteRepository> logger
+	IDateProvider dateProvider
 ) : ICurrencyRateWriteRepository
 {
 	public async Task UpsertRatesAsync(
@@ -46,10 +41,6 @@ public sealed class CurrencyRateWriteRepository(
 			}, cancellationToken: ct);
 		}
 
-		await unitOfWork.ExecuteInTransactionAsync(
-			operation: async () => await context.SaveChangesAsync(cancellationToken: ct), 
-			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create currency rates."),
-			ct: ct
-		);
+		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 }

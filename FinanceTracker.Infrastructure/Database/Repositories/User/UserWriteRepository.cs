@@ -37,14 +37,7 @@ public sealed class UserWriteRepository(
 			CreatedAt = user.CreatedAt
 		}, cancellationToken: ct);
 
-		try
-		{
-			await context.SaveChangesAsync(cancellationToken: ct);
-		}
-		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
-		{
-			throw new EmailException(message: "The user with this email address already exists.", email: user.Email.Value);
-		}
+		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task ChangeEmailAsync(
@@ -52,18 +45,11 @@ public sealed class UserWriteRepository(
 		Email newEmail,
 		CancellationToken ct = default)
 	{
-		try
-		{
-			await ChangeUserPropertyAsync(
-				userId: userId,
-				changePropertyAction: builder => builder.SetProperty(propertyExpression: user => user.Email, valueExpression: newEmail),
-				ct: ct
-			);
-		}
-		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
-		{
-			throw new EmailException(message: "The user with this email address already exists.", email: newEmail.Value);
-		}
+		await ChangeUserPropertyAsync(
+			userId: userId,
+			changePropertyAction: builder => builder.SetProperty(propertyExpression: user => user.Email, valueExpression: newEmail),
+			ct: ct
+		);
 	}
 
 	public async Task ChangePasswordAsync(

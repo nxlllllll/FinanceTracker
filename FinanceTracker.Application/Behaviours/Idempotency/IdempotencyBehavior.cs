@@ -20,8 +20,6 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 	where TRequest : notnull
 	where TResponse : notnull
 {
-	private readonly IdempotencyOptions _options = options.CurrentValue;
-
 	public async Task<TResponse> Handle(
 		TRequest request,
 		RequestHandlerDelegate<TResponse> next,
@@ -42,7 +40,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 
 		if (response is IResult { IsSuccess: true })
 		{
-			DateTimeOffset expiresAt = dateProvider.UtcNow.AddHours(hours: _options.ExpiryHours);
+			DateTimeOffset expiresAt = dateProvider.UtcNow.AddHours(hours: options.CurrentValue.ExpiryHours);
 
 			await idempotencyWriteRepository.StoreAsync(
 				idempotencyKey: idempotent.IdempotencyKey,

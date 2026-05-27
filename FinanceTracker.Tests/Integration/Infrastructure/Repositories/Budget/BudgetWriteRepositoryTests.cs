@@ -8,7 +8,6 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Budget;
@@ -26,9 +25,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _writeRepository = new BudgetWriteRepository(
             context: Context,
-            dateProvider: FakeDateProvider.Default,
-            unitOfWork: _unitOfWork,
-            logger: Substitute.For<ILogger<BudgetWriteRepository>>()
+            dateProvider: FakeDateProvider.Default
         );
         _unitOfWork.ExecuteInTransactionAsync(
             operation: Arg.Any<Func<Task>>(),

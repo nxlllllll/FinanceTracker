@@ -7,7 +7,6 @@ using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
@@ -36,9 +35,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
         ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
         _writeRepository = new AccountWriteRepository(
             context: Context,
-            dateProvider: FakeDateProvider.Default,
-            unitOfWork: _unitOfWork,
-            logger: Substitute.For<ILogger<AccountWriteRepository>>()
+            dateProvider: FakeDateProvider.Default
         );
         _currencyBuilder = new CurrencyBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
@@ -53,7 +50,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "Карта Сбер").Value,
+            Name: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 10000m,
@@ -73,7 +70,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "Карта Сбер").Value,
+            Name: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 1000m,
@@ -110,7 +107,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Id).IsEqualTo(expected: @event.AccountId);
-        await Assert.That(value: result.Name).IsEqualTo(expected: "Карта Сбер");
+        await Assert.That(value: result.Name).IsEqualTo(expected: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ");
         await Assert.That(value: result.Balance).IsEqualTo(expected: 10000m);
         await Assert.That(value: result.IsArchived).IsFalse();
         await Assert.That(value: result.Type).IsEqualTo(expected: AccountType.Checking);
@@ -162,7 +159,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "Активный").Value,
+            Name: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 1000m,
@@ -174,7 +171,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "Заархивированный").Value,
+            Name: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 500m,
@@ -203,7 +200,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "Активный").Value,
+            Name: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 1000m,
@@ -215,7 +212,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "Заархивированный").Value,
+            Name: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 500m,

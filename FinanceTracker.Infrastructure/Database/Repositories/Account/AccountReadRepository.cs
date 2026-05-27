@@ -57,4 +57,10 @@ public sealed class AccountReadRepository(
 				CreatedAt: account.CreatedAt)
 		).ToListAsync(cancellationToken: ct);
 	}
+
+	public async Task<bool> ExistAsync(
+		Guid accountId,
+		Guid userId,
+		CancellationToken ct = default
+	) => await context.Accounts.AsNoTracking().AnyAsync(predicate: account => account.Id == accountId && account.UserId == userId, cancellationToken: ct);
 }

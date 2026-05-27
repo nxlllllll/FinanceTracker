@@ -24,7 +24,7 @@ public sealed class RevokeTokenHandler(
 
 		UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: tokenHash, ct: ct);
 
-		if (session is null || !session.IsActive)
+		if (session is null || !session.IsActive(now: dateProvider.UtcNow))
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		await userSessionWriteRepository.RevokeAsync(

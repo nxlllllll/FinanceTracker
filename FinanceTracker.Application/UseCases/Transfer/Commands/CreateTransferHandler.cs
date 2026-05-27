@@ -20,15 +20,13 @@ public sealed class CreateTransferHandler(
 	IDateProvider dateProvider,
 	ILogger<CreateTransferHandler> logger,
 	IOperationsWriteRepository operationsWriteRepository
-) : IAuthorizedHandler<CreateTransferCommand, (Core.Domains.Account.Account, Core.Domains.Account.Account), Guid, DomainException>
+) : IAuthorizedHandler<CreateTransferCommand, Core.Domains.Account.Account, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		CreateTransferCommand command,
-		(Core.Domains.Account.Account, Core.Domains.Account.Account) accounts,
+		Core.Domains.Account.Account account,
 		CancellationToken ct = default)
 	{
-		(Core.Domains.Account.Account fromAccount, Core.Domains.Account.Account toAccount) = accounts;
-
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: command.CurrencyFrom,
 			toCurrency: command.CurrencyTo,
@@ -56,7 +54,7 @@ public sealed class CreateTransferHandler(
 		
 		DateTimeOffset now = dateProvider.UtcNow;
 
-		Result<Unit, DomainException> debitResult = fromAccount.DebitTransfer(
+		Result<Unit, DomainException> debitResult = account.DebitTransfer(
 			occurredAt: now,
 			transferId: transfer.Id,
 			toAccountId: command.ToAccountId,
@@ -70,10 +68,10 @@ public sealed class CreateTransferHandler(
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transferWriteRepository.CreateAsync(transfer: transfer, ct: ct);
-			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
+			await accountRepository.SaveAsync(account: account, ct: ct);
 			await operationsWriteRepository.CreateFromTransferAsync(transfer: transfer, ct: ct);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {fromAccount.Id} > {toAccount.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {account.Id} > {command.ToAccountId}."),
 		ct: ct);
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);

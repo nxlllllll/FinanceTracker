@@ -10,7 +10,6 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Transaction;
@@ -44,9 +43,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
 		_accountWriteRepository = new AccountWriteRepository(
 			context: Context,
-			dateProvider: FakeDateProvider.Default,
-			unitOfWork: _unitOfWork,
-			logger: Substitute.For<ILogger<AccountWriteRepository>>()
+			dateProvider: FakeDateProvider.Default
 		);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
 		_userBuilder = new UserBuilder(context: Context);

@@ -8,7 +8,6 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
@@ -35,9 +34,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
         _writeRepository = new AccountWriteRepository(
             context: Context,
-            dateProvider: FakeDateProvider.Default,
-            unitOfWork: _unitOfWork,
-            logger: Substitute.For<ILogger<AccountWriteRepository>>()
+            dateProvider: FakeDateProvider.Default
         );
         _currencyBuilder = new CurrencyBuilder(context: Context);
         _userBuilder = new UserBuilder(context: Context);
@@ -52,7 +49,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "Карта Сбер").Value,
+            Name: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 10000m,
@@ -83,7 +80,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         await _writeRepository.RenameAsync(@event: new AccountRenamed(
             Id: Guid.CreateVersion7(),
             AccountId: created.AccountId, 
-            NewName: Name.Create(value: "Карта Тинькофф").Value,
+            NewName: Name.Create(value: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ").Value,
             OccurredAt: DateTimeOffset.UtcNow
         ));
 
@@ -92,7 +89,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             .Select(selector: a => a.Name)
             .FirstOrDefaultAsync();
 
-        await Assert.That(value: name).IsEqualTo(expected: "Карта Тинькофф");
+        await Assert.That(value: name).IsEqualTo(expected: "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ");
     }
 
     [Test]

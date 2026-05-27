@@ -3,7 +3,6 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Budget;
@@ -23,11 +22,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		_userBuilder = new UserBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_budgetBuilder = new BudgetBuilder(
-			context: Context,
-			unitOfWork: _unitOfWork,
-			logger: Substitute.For<ILogger<BudgetWriteRepository>>()
-		);
+		_budgetBuilder = new BudgetBuilder(context: Context);
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),

@@ -31,7 +31,7 @@ public sealed class AccountTests
 		Account account = AccountFactory.Create(userId: userId, balance: 10000).Value!;
 
 		await Assert.That(value: account.UserId).IsEqualTo(expected: userId);
-		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "����� ����");
+		await Assert.That(value: account.Name.Value).IsEqualTo(expected: "Карта Сбер");
 		await Assert.That(value: account.Type).IsEqualTo(expected: AccountType.Checking);
 		await Assert.That(value: account.Currency.Value).IsEqualTo(expected: "RUB");
 		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 10000m);

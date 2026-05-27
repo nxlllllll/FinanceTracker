@@ -11,13 +11,18 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 public sealed class TransferLoaderTests
 {
 	private IAccountRepository _accountRepository = null!;
+	private IAccountReadRepository _accountReadRepository = null!;
 	private TransferLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_loader = new TransferLoader(accountRepository: _accountRepository);
+		_accountReadRepository = Substitute.For<IAccountReadRepository>();
+		_loader = new TransferLoader(
+			accountRepository: _accountRepository,
+			accountReadRepository: _accountReadRepository
+		);
 	}
 
 	[Test]
@@ -25,7 +30,7 @@ public sealed class TransferLoaderTests
 	{
 		Guid accountId = Guid.CreateVersion7();
 
-		Result<(Account, Account), DomainException> result = await _loader.LoadAsync(
+		Result<Account, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: accountId, 
 				toAccountId: accountId,
@@ -42,9 +47,9 @@ public sealed class TransferLoaderTests
 	public async Task LoadAsync_WhenFromAccountNotFound_ShouldThrowNotFoundException()
 	{
 		_accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(result: null));
+			.Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		Result<(Account, Account), DomainException> result = await _loader.LoadAsync(
+		Result<Account, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(),
 			ct: CancellationToken.None
 		);
@@ -64,7 +69,7 @@ public sealed class TransferLoaderTests
 		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: toAccount);
 
-		Result<(Account, Account), DomainException> resultFrom = await _loader.LoadAsync(
+		Result<Account, DomainException> resultFrom = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: fromAccount.Id,
 				toAccountId: toAccount.Id,
@@ -88,7 +93,7 @@ public sealed class TransferLoaderTests
 		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: toAccount);
 
-		Result<(Account, Account), DomainException> resultTo = await _loader.LoadAsync(
+		Result<Account, DomainException> resultTo = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
@@ -108,12 +113,17 @@ public sealed class TransferLoaderTests
 		Account fromAccount = AccountFactory.CreateAccountWithArchivation();
 		Account toAccount = AccountFactory.CreateAccountWithArchivation(userId: fromAccount.UserId);
 
-		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: fromAccount);
-		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: toAccount);
+		_accountRepository.GetByIdAsync(
+			accountId: fromAccount.Id,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: fromAccount);
+		_accountReadRepository.ExistAsync(
+			userId: fromAccount.UserId,
+			accountId: toAccount.Id,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: true);
 
-		Result<(Account FromAccount, Account ToAccount), DomainException> result = await _loader.LoadAsync(
+		Result<Account, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
@@ -124,7 +134,6 @@ public sealed class TransferLoaderTests
 		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value.FromAccount.Id).IsEqualTo(expected: fromAccount.Id);
-		await Assert.That(value: result.Value.ToAccount.Id).IsEqualTo(expected: toAccount.Id);
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: fromAccount.Id);
 	}
 }

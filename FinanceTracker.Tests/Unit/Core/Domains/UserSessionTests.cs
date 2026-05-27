@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core.Domains;
 
@@ -12,8 +13,8 @@ public sealed class UserSessionTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: "hash",
-			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-			createdAt: DateTimeOffset.UtcNow,
+			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: 1),
+			createdAt: FakeDateProvider.Default.UtcNow,
 			revokedAt: null
 		);
 	}
@@ -24,8 +25,8 @@ public sealed class UserSessionTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: "hash",
-			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: -1),
-			createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
+			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: -1),
+			createdAt: FakeDateProvider.Default.UtcNow.AddHours(hours: -2),
 			revokedAt: null
 		);
 	}
@@ -36,9 +37,9 @@ public sealed class UserSessionTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: "hash",
-			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-			createdAt: DateTimeOffset.UtcNow,
-			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
+			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: 1),
+			createdAt: FakeDateProvider.Default.UtcNow,
+			revokedAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: -5)
 		);
 	}
 
@@ -46,29 +47,35 @@ public sealed class UserSessionTests
 	public async Task IsActive_WhenNotRevokedAndNotExpired_ShouldBeTrue()
 	{
 		UserSession session = CreateActive();
-		await Assert.That(value: session.IsActive).IsTrue();
+		bool result = session.IsActive(now: FakeDateProvider.Default.UtcNow);
+
+		await Assert.That(value: result).IsTrue();
 	}
 
 	[Test]
 	public async Task IsActive_WhenExpired_ShouldBeFalse()
 	{
 		UserSession session = CreateExpired();
-		await Assert.That(value: session.IsActive).IsFalse();
+		bool result = session.IsActive(now: FakeDateProvider.Default.UtcNow);
+
+		await Assert.That(value: result).IsFalse();
 	}
 
 	[Test]
 	public async Task IsActive_WhenRevoked_ShouldBeFalse()
 	{
 		UserSession session = CreateRevoked();
-		await Assert.That(value: session.IsActive).IsFalse();
+		bool result = session.IsActive(now: FakeDateProvider.Default.UtcNow);
+
+		await Assert.That(value: result).IsFalse();
 	}
 
 	[Test]
 	public async Task Create_ShouldSetCorrectProperties()
 	{
 		Guid userId = Guid.CreateVersion7();
-		DateTimeOffset expiresAt = DateTimeOffset.UtcNow.AddDays(days: 7);
-		DateTimeOffset createdAt = DateTimeOffset.UtcNow;
+		DateTimeOffset expiresAt = FakeDateProvider.Default.UtcNow.AddDays(days: 7);
+		DateTimeOffset createdAt = FakeDateProvider.Default.UtcNow;
 
 		UserSession session = UserSession.Create(
 			userId: userId,
@@ -76,25 +83,27 @@ public sealed class UserSessionTests
 			expiresAt: expiresAt,
 			createdAt: createdAt
 		);
+		bool result = session.IsActive(now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: session.UserId).IsEqualTo(expected: userId);
 		await Assert.That(value: session.RefreshTokenHash).IsEqualTo(expected: "testhash");
 		await Assert.That(value: session.ExpiresAt).IsEqualTo(expected: expiresAt);
 		await Assert.That(value: session.RevokedAt).IsNull();
-		await Assert.That(value: session.IsActive).IsTrue();
+		await Assert.That(value: result).IsTrue();
 	}
 
 	[Test]
 	public async Task Revoke_WhenActive_ShouldSetRevokedAt()
 	{
 		UserSession session = CreateActive();
-		DateTimeOffset revokedAt = DateTimeOffset.UtcNow;
+		DateTimeOffset revokedAt = FakeDateProvider.Default.UtcNow;
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: revokedAt);
+		bool isActive = session.IsActive(now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: session.RevokedAt).IsEqualTo(expected: revokedAt);
-		await Assert.That(value: session.IsActive).IsFalse();
+		await Assert.That(value: isActive).IsFalse();
 	}
 
 	[Test]
@@ -102,7 +111,7 @@ public sealed class UserSessionTests
 	{
 		UserSession session = CreateRevoked();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: DateTimeOffset.UtcNow);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTokenException>();
@@ -113,7 +122,7 @@ public sealed class UserSessionTests
 	{
 		UserSession session = CreateExpired();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: DateTimeOffset.UtcNow);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = session.Revoke(revokedAt: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTokenException>();

@@ -29,7 +29,7 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 			id: Guid.CreateVersion7(),
 			userId: userId,
 			refreshTokenHash: hash,
-			expiresAt: expiresAt ?? DateTimeOffset.UtcNow.AddDays(days: 7),
+			expiresAt: expiresAt ?? FakeDateProvider.Default.UtcNow.AddDays(days: 7),
 			createdAt: FakeDateProvider.Default.UtcNow,
 			revokedAt: revokedAt
 		);
@@ -68,8 +68,9 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 		await CreateAndPersistSessionAsync(userId: userId, hash: "revoked-hash", revokedAt: revokedAt);
 
 		Core.Domains.User.UserSession? result = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "revoked-hash");
+		bool? isActive = result?.IsActive(now: FakeDateProvider.Default.UtcNow);
 
-		await Assert.That(value: result!.RevokedAt).IsNotNull();
-		await Assert.That(value: result.IsActive).IsFalse();
+		await Assert.That(value: result?.RevokedAt).IsNotNull();
+		await Assert.That(value: isActive).IsFalse();
 	}
 }

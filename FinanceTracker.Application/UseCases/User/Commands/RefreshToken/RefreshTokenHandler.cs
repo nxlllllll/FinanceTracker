@@ -27,7 +27,7 @@ public sealed class RefreshTokenHandler(
 
 		UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: tokenHash, ct: ct);
 
-		if (session is null || !session.IsActive)
+		if (session is null || !session.IsActive(now: dateProvider.UtcNow))
 			return Result<TokenResponse, DomainException>.Failure(error: new InvalidTokenException());
 
 		Core.Domains.User.User? user = await userReadRepository.GetByIdAsync(userId: session.UserId, ct: ct);

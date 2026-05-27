@@ -67,8 +67,10 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		await _userSessionWriteRepository.RevokeAsync(sessionId: session.Id, revokedAt: revokedAt);
 
 		Core.Domains.User.UserSession? revoked = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "revoke-test-hash");
+		bool? isActive = revoked?.IsActive(now: FakeDateProvider.Default.UtcNow);
+
 		await Assert.That(value: revoked!.RevokedAt).IsNotNull();
-		await Assert.That(value: revoked.IsActive).IsFalse();
+		await Assert.That(value: isActive).IsFalse();
 	}
 
 	[Test]
@@ -81,7 +83,9 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		await _userSessionWriteRepository.RevokeAsync(sessionId: session1.Id, revokedAt: FakeDateProvider.Default.UtcNow);
 
 		Core.Domains.User.UserSession? notRevoked = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "hash-2");
+		bool? isActive = notRevoked?.IsActive(now: FakeDateProvider.Default.UtcNow);
+
 		await Assert.That(value: notRevoked!.RevokedAt).IsNull();
-		await Assert.That(value: notRevoked.IsActive).IsTrue();
+		await Assert.That(value: isActive).IsTrue();
 	}
 }

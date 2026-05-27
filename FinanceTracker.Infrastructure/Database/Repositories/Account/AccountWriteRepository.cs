@@ -1,20 +1,16 @@
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Account;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
 public sealed class AccountWriteRepository(
 	FinanceTrackerContext context,
-	IDateProvider dateProvider,
-	IUnitOfWork unitOfWork,
-	ILogger<AccountWriteRepository> logger
+	IDateProvider dateProvider
 ) : IAccountWriteRepository
 {
 	private async Task ApplyBalanceChangeAsync(
@@ -53,12 +49,8 @@ public sealed class AccountWriteRepository(
 			LastVersion = 1,
 			UpdatedAt = @event.OccurredAt
 		}, cancellationToken: ct);
-			
-		await unitOfWork.ExecuteInTransactionAsync(
-			operation: async () => await context.SaveChangesAsync(cancellationToken: ct), 
-			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create account {@event.AccountId}."),
-			ct: ct
-		);
+
+		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task AdjustBalanceAsync(

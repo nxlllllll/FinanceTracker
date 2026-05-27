@@ -44,18 +44,11 @@ public sealed class RegisterUserHandler(
 
 		Core.Domains.User.User user = userResult.Value!;
 
-		try
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-			{
-				await userWriteRepository.CreateAsync(user: user, ct: ct);
-				await domainOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
-			}, ct: ct);
-		}
-		catch (EmailException exception)
-		{
-			return Result<Guid, DomainException>.Failure(error: exception);
-		}
+			await userWriteRepository.CreateAsync(user: user, ct: ct);
+			await domainOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
+		}, ct: ct);
 
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
 

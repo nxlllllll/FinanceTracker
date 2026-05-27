@@ -11,9 +11,7 @@ public sealed class UserSession
 	public DateTimeOffset ExpiresAt { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 	public DateTimeOffset? RevokedAt { get; private set; }
-
-	public bool IsActive => RevokedAt is null && DateTimeOffset.UtcNow < ExpiresAt;
-
+	
 	private UserSession() { }
 
 	public static UserSession Create(
@@ -53,10 +51,14 @@ public sealed class UserSession
 
 	public Result<Unit, DomainException> Revoke(DateTimeOffset revokedAt)
 	{
-		if (!IsActive)
+		if (!IsActive(now: revokedAt))
 			return Result<Unit, DomainException>.Failure(error: new InvalidTokenException(message: "Session is already revoked or expired."));
 
 		RevokedAt = revokedAt;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
+	
+	public bool IsActive(DateTimeOffset now)
+		=> RevokedAt is null && now < ExpiresAt;
+	
 }
