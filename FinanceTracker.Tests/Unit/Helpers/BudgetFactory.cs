@@ -1,6 +1,6 @@
-using FinanceTracker.Core.Domains.Budget;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -24,7 +24,7 @@ public static class BudgetFactory
 		return result;
 	}
 
-	public static BudgetProgressDto CreateProgress(
+	public static BudgetProgress CreateProgress(
 		Guid? budgetId = null,
 		decimal spent = 0m)
 	{
@@ -32,7 +32,7 @@ public static class BudgetFactory
 		decimal remaining = amount - spent;
 		decimal percentage = amount == 0 ? 0 : spent / amount;
 
-		return new BudgetProgressDto(
+		return new BudgetProgress(
 			BudgetId: budgetId ?? Guid.CreateVersion7(),
 			Spent: spent,
 			Remaining: remaining,

@@ -61,8 +61,8 @@ public sealed class TransferLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenFromAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		Account fromAccount = AccountFactory.CreateAccountWithArchivation();
-		Account toAccount = AccountFactory.CreateAccountWithArchivation();
+		Account fromAccount = AccountFactory.CreateWithArchivation();
+		Account toAccount = AccountFactory.CreateWithArchivation();
 
 		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: fromAccount);
@@ -85,8 +85,8 @@ public sealed class TransferLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenToAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		Account fromAccount = AccountFactory.CreateAccountWithArchivation();
-		Account toAccount = AccountFactory.CreateAccountWithArchivation();
+		Account fromAccount = AccountFactory.CreateWithArchivation();
+		Account toAccount = AccountFactory.CreateWithArchivation();
 
 		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: fromAccount);
@@ -110,8 +110,8 @@ public sealed class TransferLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenBothAccountsOwnedByUser_ShouldReturnTuple()
 	{
-		Account fromAccount = AccountFactory.CreateAccountWithArchivation();
-		Account toAccount = AccountFactory.CreateAccountWithArchivation(userId: fromAccount.UserId);
+		Account fromAccount = AccountFactory.CreateWithArchivation();
+		Account toAccount = AccountFactory.CreateWithArchivation(userId: fromAccount.UserId);
 
 		_accountRepository.GetByIdAsync(
 			accountId: fromAccount.Id,

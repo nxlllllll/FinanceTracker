@@ -1,6 +1,5 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
@@ -13,233 +12,238 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
 
 public sealed class AccountReadRepositoryTests : DatabaseFixture
 {
-    private AccountReadRepository _readRepository = null!;
-    private AccountWriteRepository _writeRepository = null!;
-    private CurrencyBuilder _currencyBuilder = null!;
-    private UserBuilder _userBuilder = null!;
-    private IUnitOfWork _unitOfWork = null!;
-    
-    [Before(hookType: Test)]
-    public void SetupRepositories()
-    {
-        _readRepository = new AccountReadRepository(context: Context);
-        _unitOfWork = Substitute.For<IUnitOfWork>();
-        _unitOfWork.ExecuteInTransactionAsync(
-            operation: Arg.Any<Func<Task>>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
-        _unitOfWork.ExecuteInTransactionAsync(
-            operation: Arg.Any<Func<Task>>(),
-            onError: Arg.Any<Func<Exception, Task>>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
-        _writeRepository = new AccountWriteRepository(
-            context: Context,
-            dateProvider: FakeDateProvider.Default
-        );
-        _currencyBuilder = new CurrencyBuilder(context: Context);
-        _userBuilder = new UserBuilder(context: Context);
-    }
+	private AccountReadRepository _readRepository = null!;
+	private AccountWriteRepository _writeRepository = null!;
+	private CurrencyBuilder _currencyBuilder = null!;
+	private UserBuilder _userBuilder = null!;
+	private IUnitOfWork _unitOfWork = null!;
 
-    private async Task<AccountCreated> CreateAccountAsync()
-    {
-        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
-        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
+	[Before(hookType: Test)]
+	public void SetupRepositories()
+	{
+		_readRepository = new AccountReadRepository(context: Context);
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			onError: Arg.Any<Func<Exception, Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+		_writeRepository = new AccountWriteRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
+		_currencyBuilder = new CurrencyBuilder(context: Context);
+		_userBuilder = new UserBuilder(context: Context);
+	}
 
-        AccountCreated @event = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: Guid.CreateVersion7(),
-            UserId: userId,
-            Name: Name.Create(value: "����� ����").Value,
-            Type: AccountType.Checking,
-            Currency: currencyCode,
-            Balance: 10000m,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
+	private async Task<AccountCreated> CreateAccountAsync()
+	{
+		Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
+		Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
-        await _writeRepository.CreateAsync(@event: @event);
-        return @event;
-    }
+		AccountCreated @event = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
+			UserId: userId,
+			Name: Name.Create(value: "Карта Сбер").Value,
+			Type: AccountType.Checking,
+			Currency: currencyCode,
+			Balance: 10000m,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
 
-    private async Task<(Guid userId, AccountCreated @event)> CreateAccountWithArchivationAsync(bool archived = false)
-    {
-        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
-        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
+		await _writeRepository.CreateAsync(@event: @event);
+		return @event;
+	}
 
-        AccountCreated @event = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: Guid.CreateVersion7(),
-            UserId: userId,
-            Name: Name.Create(value: "����� ����").Value,
-            Type: AccountType.Checking,
-            Currency: currencyCode,
-            Balance: 1000m,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
+	private async Task<(Guid userId, AccountCreated @event)> CreateAccountWithArchivationAsync(bool archived = false)
+	{
+		Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
+		Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
-        await _writeRepository.CreateAsync(@event: @event);
+		AccountCreated @event = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
+			UserId: userId,
+			Name: Name.Create(value: "Карта Сбер").Value,
+			Type: AccountType.Checking,
+			Currency: currencyCode,
+			Balance: 1000m,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
 
-        if (archived)
-        {
-            await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-                Id: Guid.CreateVersion7(),
-                AccountId: @event.AccountId,
-                OccurredAt: DateTimeOffset.UtcNow
-            ));
-        }
+		await _writeRepository.CreateAsync(@event: @event);
 
-        return (userId, @event);
-    }
+		if (archived)
+		{
+			await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+				Id: Guid.CreateVersion7(),
+				AccountId: @event.AccountId,
+				OccurredAt: DateTimeOffset.UtcNow
+			));
+		}
 
-    [Test]
-    public async Task GetByIdAsync_WithNonExistentAccount_ShouldReturnNull()
-    {
-        AccountDto? result = await _readRepository.GetByIdAsync(accountId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());;
-        await Assert.That(value: result).IsNull();
-    }
+		return (userId, @event);
+	}
 
-    [Test]
-    public async Task GetByIdAsync_WithExistingAccount_ShouldReturnCorrectDto()
-    {
-        AccountCreated @event = await CreateAccountAsync();
+	[Test]
+	public async Task GetByIdAsync_WithNonExistentAccount_ShouldReturnNull()
+	{
+		Core.Domains.Account.Account? result = await _readRepository.GetByIdAsync(
+			accountId: Guid.CreateVersion7(),
+			userId: Guid.CreateVersion7()
+		);
+		await Assert.That(value: result).IsNull();
+	}
 
-        AccountDto? result = await _readRepository.GetByIdAsync(accountId: @event.AccountId, userId: @event.UserId);
+	[Test]
+	public async Task GetByIdAsync_WithExistingAccount_ShouldReturnCorrectAccount()
+	{
+		AccountCreated @event = await CreateAccountAsync();
 
-        await Assert.That(value: result).IsNotNull();
-        await Assert.That(value: result!.Id).IsEqualTo(expected: @event.AccountId);
-        await Assert.That(value: result.Name).IsEqualTo(expected: "����� ����");
-        await Assert.That(value: result.Balance).IsEqualTo(expected: 10000m);
-        await Assert.That(value: result.IsArchived).IsFalse();
-        await Assert.That(value: result.Type).IsEqualTo(expected: AccountType.Checking);
-        await Assert.That(value: result.Currency.Value).IsEqualTo(expected: "RUB");
-    }
+		Core.Domains.Account.Account? result = await _readRepository.GetByIdAsync(
+			accountId: @event.AccountId,
+			userId: @event.UserId
+		);
 
-    [Test]
-    public async Task GetAllAsync_WithNoAccounts_ShouldReturnEmptyList()
-    {
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
+		await Assert.That(value: result).IsNotNull();
+		await Assert.That(value: result!.Id).IsEqualTo(expected: @event.AccountId);
+		await Assert.That(value: result.Name.Value).IsEqualTo(expected: "Карта Сбер");
+		await Assert.That(value: result.Balance.Amount).IsEqualTo(expected: 10000m);
+		await Assert.That(value: result.IsArchived).IsFalse();
+		await Assert.That(value: result.Type).IsEqualTo(expected: AccountType.Checking);
+		await Assert.That(value: result.Currency.Value).IsEqualTo(expected: "RUB");
+	}
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 0);
-    }
+	[Test]
+	public async Task GetAllAsync_WithNoAccounts_ShouldReturnEmptyList()
+	{
+		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
+		await Assert.That(value: result.Count).IsEqualTo(expected: 0);
+	}
 
-    [Test]
-    public async Task GetAllAsync_ShouldReturnOnlyUserAccounts()
-    {
-        (Guid userId, _) = await CreateAccountWithArchivationAsync();
-        await CreateAccountWithArchivationAsync();
+	[Test]
+	public async Task GetAllAsync_ShouldReturnOnlyUserAccounts()
+	{
+		(Guid userId, _) = await CreateAccountWithArchivationAsync();
+		await CreateAccountWithArchivationAsync();
 
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId);
+		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: userId);
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-        await Assert.That(value: result[0].UserId).IsEqualTo(expected: userId);
-    }
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result[0].UserId).IsEqualTo(expected: userId);
+	}
 
-    [Test]
-    public async Task GetAllAsync_WithIsArchivedFalse_ShouldReturnOnlyActiveAccounts()
-    {
-        (Guid userId, _) = await CreateAccountWithArchivationAsync(archived: false);
-        await CreateAccountWithArchivationAsync(archived: true);
+	[Test]
+	public async Task GetAllAsync_WithIsArchivedFalse_ShouldReturnOnlyActiveAccounts()
+	{
+		(Guid userId, _) = await CreateAccountWithArchivationAsync(archived: false);
+		await CreateAccountWithArchivationAsync(archived: true);
 
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(
-            userId: userId,
-            isArchived: false
-        );
+		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(
+			userId: userId,
+			isArchived: false
+		);
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-        await Assert.That(value: result[0].IsArchived).IsFalse();
-    }
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result[0].IsArchived).IsFalse();
+	}
 
-    [Test]
-    public async Task GetAllAsync_WithIsArchivedTrue_ShouldReturnOnlyArchivedAccounts()
-    {
-        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
-        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
+	[Test]
+	public async Task GetAllAsync_WithIsArchivedTrue_ShouldReturnOnlyArchivedAccounts()
+	{
+		Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
+		Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
-        AccountCreated active = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: Guid.CreateVersion7(),
-            UserId: userId,
-            Name: Name.Create(value: "��������").Value,
-            Type: AccountType.Checking,
-            Currency: currencyCode,
-            Balance: 1000m,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
-        await _writeRepository.CreateAsync(@event: active);
+		AccountCreated active = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
+			UserId: userId,
+			Name: Name.Create(value: "Активный").Value,
+			Type: AccountType.Checking,
+			Currency: currencyCode,
+			Balance: 1000m,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+		await _writeRepository.CreateAsync(@event: active);
 
-        AccountCreated archived = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: Guid.CreateVersion7(),
-            UserId: userId,
-            Name: Name.Create(value: "����������������").Value,
-            Type: AccountType.Checking,
-            Currency: currencyCode,
-            Balance: 500m,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
-        await _writeRepository.CreateAsync(@event: archived);
-        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.CreateVersion7(),
-            AccountId: archived.AccountId,
-            OccurredAt: DateTimeOffset.UtcNow
-        ));
+		AccountCreated archived = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
+			UserId: userId,
+			Name: Name.Create(value: "Архивированный").Value,
+			Type: AccountType.Checking,
+			Currency: currencyCode,
+			Balance: 500m,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+		await _writeRepository.CreateAsync(@event: archived);
+		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+			Id: Guid.CreateVersion7(),
+			AccountId: archived.AccountId,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
 
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: true);
+		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: userId, isArchived: true);
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-        await Assert.That(value: result[0].IsArchived).IsTrue();
-    }
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result[0].IsArchived).IsTrue();
+	}
 
-    [Test]
-    public async Task GetAllAsync_WithNullIsArchived_ShouldReturnAllAccounts()
-    {
-        Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
-        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
+	[Test]
+	public async Task GetAllAsync_WithNullIsArchived_ShouldReturnAllAccounts()
+	{
+		Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
+		Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
 
-        AccountCreated active = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: Guid.CreateVersion7(),
-            UserId: userId,
-            Name: Name.Create(value: "��������").Value,
-            Type: AccountType.Checking,
-            Currency: currencyCode,
-            Balance: 1000m,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
-        await _writeRepository.CreateAsync(@event: active);
+		AccountCreated active = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
+			UserId: userId,
+			Name: Name.Create(value: "Активный").Value,
+			Type: AccountType.Checking,
+			Currency: currencyCode,
+			Balance: 1000m,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+		await _writeRepository.CreateAsync(@event: active);
 
-        AccountCreated archived = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: Guid.CreateVersion7(),
-            UserId: userId,
-            Name: Name.Create(value: "����������������").Value,
-            Type: AccountType.Checking,
-            Currency: currencyCode,
-            Balance: 500m,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
-        await _writeRepository.CreateAsync(@event: archived);
-        await _writeRepository.ArchiveAsync(@event: new AccountArchived(
-            Id: Guid.CreateVersion7(),
-            AccountId: archived.AccountId,
-            OccurredAt: DateTimeOffset.UtcNow
-        ));
+		AccountCreated archived = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: Guid.CreateVersion7(),
+			UserId: userId,
+			Name: Name.Create(value: "Архивированный").Value,
+			Type: AccountType.Checking,
+			Currency: currencyCode,
+			Balance: 500m,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+		await _writeRepository.CreateAsync(@event: archived);
+		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+			Id: Guid.CreateVersion7(),
+			AccountId: archived.AccountId,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
 
-        IReadOnlyList<AccountDto> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);
+		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);
 
-        await Assert.That(value: result.Count).IsEqualTo(expected: 2);
-    }
-    
-    [Test]
-    public async Task GetByIdAsync_WithWrongUserId_ShouldReturnNull()
-    {
-        AccountCreated @event = await CreateAccountAsync();
+		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+	}
 
-        AccountDto? result = await _readRepository.GetByIdAsync(
-            accountId: @event.AccountId,
-            userId: Guid.CreateVersion7() 
-        );
+	[Test]
+	public async Task GetByIdAsync_WithWrongUserId_ShouldReturnNull()
+	{
+		AccountCreated @event = await CreateAccountAsync();
 
-        await Assert.That(value: result).IsNull();
-    }
+		Core.Domains.Account.Account? result = await _readRepository.GetByIdAsync(
+			accountId: @event.AccountId,
+			userId: Guid.CreateVersion7()
+		);
+
+		await Assert.That(value: result).IsNull();
+	}
 }

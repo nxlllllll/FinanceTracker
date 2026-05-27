@@ -1,5 +1,4 @@
-using System.Text.Json;
-using FinanceTracker.Core.Dtos;
+﻿using System.Text.Json;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Cache;
 using Microsoft.Extensions.Caching.Distributed;
@@ -13,7 +12,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	private IDistributedCache _distributedCache = null!;
 	private CachedCurrencyReadRepository _repository = null!;
 
-	private static readonly CurrencyDto RubDto = new CurrencyDto(
+	private static readonly CurrencyInfo RubDto = new CurrencyInfo(
 		Code: "RUB",
 		Name: "���������� �����",
 		Symbol: "?",
@@ -65,7 +64,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 		_distributedCache.GetAsync(
 			key: Arg.Any<string>(),
 			token: Arg.Any<CancellationToken>()
-		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyDto> { RubDto }));
+		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyInfo> { RubDto }));
 
 		await _repository.GetAllAsync();
 
@@ -78,9 +77,9 @@ public sealed class CachedCurrencyReadRepositoryTests
 		_distributedCache.GetAsync(
 			key: Arg.Any<string>(), 
 			token: Arg.Any<CancellationToken>()
-		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyDto> { RubDto }));
+		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyInfo> { RubDto }));
 
-		IReadOnlyList<CurrencyDto> result = await _repository.GetAllAsync();
+		IReadOnlyList<CurrencyInfo> result = await _repository.GetAllAsync();
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: result[0].Code).IsEqualTo(expected: "RUB");
@@ -118,9 +117,9 @@ public sealed class CachedCurrencyReadRepositoryTests
 		_inner.GetByCodeAsync(
 			code: Arg.Any<string>(), 
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (CurrencyDto?)null);
+		).Returns(returnThis: (CurrencyInfo?)null);
 
-		CurrencyDto? result = await _repository.GetByCodeAsync(code: "XXX");
+		CurrencyInfo? result = await _repository.GetByCodeAsync(code: "XXX");
 
 		await Assert.That(value: result).IsNull();
 		await _distributedCache.Received(requiredNumberOfCalls: 1).SetAsync(
@@ -137,9 +136,9 @@ public sealed class CachedCurrencyReadRepositoryTests
 		_distributedCache.GetAsync(
 			key: Arg.Any<string>(), 
 			token: Arg.Any<CancellationToken>()
-		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: (CurrencyDto?)null));
+		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: (CurrencyInfo?)null));
 
-		CurrencyDto? result = await _repository.GetByCodeAsync(code: "XXX");
+		CurrencyInfo? result = await _repository.GetByCodeAsync(code: "XXX");
 
 		await Assert.That(value: result).IsNull();
 		await _inner.DidNotReceive().GetByCodeAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>());

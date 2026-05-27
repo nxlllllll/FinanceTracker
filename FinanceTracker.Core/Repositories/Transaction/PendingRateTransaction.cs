@@ -1,14 +1,13 @@
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.ValueObjects;
 
-namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Repositories.Transaction;
 
 public sealed record PendingRateTransaction(
 	Guid TransactionId,
 	Guid AccountId,
 	decimal Amount,
-	Currency TransactionCurrency,
-	Currency BaseCurrency,
+	ValueObjects.Currency TransactionCurrency,
+	ValueObjects.Currency BaseCurrency,
 	decimal CurrentRate,
 	DirectionType Direction,
 	DateTimeOffset OccurredAt

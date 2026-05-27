@@ -1,5 +1,4 @@
-using FinanceTracker.Application.UseCases.Category.Queries.GetTotal;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Application.UseCases.Category.Queries.GetTotal;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -25,7 +24,7 @@ public sealed class GetTotalHandlerTests
         Guid categoryId = Guid.CreateVersion7();
         DateOnly period = new DateOnly(2025, 1, 1);
 
-        CategoryTotalDto dto = new CategoryTotalDto(
+        CategoryTotal dto = new CategoryTotal(
             CategoryId: categoryId,
             Period: period,
             Total: 5000m,
@@ -40,7 +39,7 @@ public sealed class GetTotalHandlerTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: dto);
 
-        CategoryTotalDto? result = await _handler.Handle(
+        CategoryTotal? result = await _handler.Handle(
             query: new GetTotalQuery(UserId: userId, CategoryId: categoryId, Period: period),
             ct: CancellationToken.None
         );
@@ -59,9 +58,9 @@ public sealed class GetTotalHandlerTests
             categoryId: Arg.Any<Guid>(),
             period: Arg.Any<DateOnly>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: Task.FromResult<CategoryTotalDto?>(result: null));
+        ).Returns(returnThis: Task.FromResult<CategoryTotal?>(result: null));
 
-        CategoryTotalDto? result = await _handler.Handle(
+        CategoryTotal? result = await _handler.Handle(
             query: new GetTotalQuery(
                 UserId: Guid.CreateVersion7(),
                 CategoryId: Guid.CreateVersion7(),

@@ -38,9 +38,8 @@ public sealed class CreateTransferHandler(
 			userId: command.UserId,
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,
-			amountFrom: command.Amount,
+			amount: command.Amount,
 			currencyFrom: command.CurrencyFrom,
-			amountTo: command.Amount * conversion.Rate,
 			currencyTo: command.CurrencyTo,
 			exchangeRate: conversion.Rate,
 			isRatePending: conversion.IsPending,
@@ -49,13 +48,11 @@ public sealed class CreateTransferHandler(
 		);
 		if (transferResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: transferResult.Error!);
-		
+
 		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;
-		
-		DateTimeOffset now = dateProvider.UtcNow;
 
 		Result<Unit, DomainException> debitResult = account.DebitTransfer(
-			occurredAt: now,
+			occurredAt: dateProvider.UtcNow,
 			transferId: transfer.Id,
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,

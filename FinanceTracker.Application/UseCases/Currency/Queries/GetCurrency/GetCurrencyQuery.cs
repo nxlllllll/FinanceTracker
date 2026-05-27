@@ -1,6 +1,6 @@
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Repositories.Currency;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Currency.Queries.GetCurrency;
 
-public sealed record GetCurrencyQuery(string Code) : IRequest<CurrencyDto?>;
+public sealed record GetCurrencyQuery(string Code) : IRequest<CurrencyInfo?>;

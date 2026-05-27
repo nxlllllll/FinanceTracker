@@ -1,7 +1,7 @@
-using FinanceTracker.Core.Domains.Account;
+﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
@@ -236,7 +236,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
 
-        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationRecord> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items).IsEmpty();
         await Assert.That(value: result.HasNextPage).IsFalse();
@@ -259,7 +259,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         );
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: transaction);
 
-        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationRecord> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: OperationFilterType.Income);
@@ -275,15 +275,20 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Guid toAccountId = await _accountBuilder.CreateAsync(userId: userId);
 
         Core.Domains.Transfer.Transfer transfer = Core.Domains.Transfer.Transfer.Create(
-            userId: userId, fromAccountId: fromAccountId, toAccountId: toAccountId,
-            amountFrom: 1000m, currencyFrom: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-            amountTo: 1000m, currencyTo: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-            exchangeRate: 1m, isRatePending: false, description: null,
+            userId: userId, 
+            fromAccountId: fromAccountId,
+            toAccountId: toAccountId,
+            amount: 1000m,
+            currencyFrom: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+            currencyTo: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+            exchangeRate: 1m,
+            isRatePending: false,
+            description: null,
             occurredAt: FakeDateProvider.Default.UtcNow
         ).Value!;
         await _operationsWriteRepository.CreateFromTransferAsync(transfer: transfer);
 
-        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationRecord> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: OperationFilterType.Transfer);
@@ -315,7 +320,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: income);
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: expense);
 
-        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(
+        PagedResult<OperationRecord> result = await _readRepository.GetHistoryAsync(
             userId: userId,
             type: OperationFilterType.Income
         );
@@ -343,7 +348,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             await _operationsWriteRepository.CreateFromTransactionAsync(transaction: tx);
         }
 
-        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(
+        PagedResult<OperationRecord> result = await _readRepository.GetHistoryAsync(
             userId: userId,
             pageSize: 3
         );
@@ -381,7 +386,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: first);
         await _operationsWriteRepository.CreateFromTransactionAsync(transaction: second);
 
-        PagedResult<OperationDto> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<OperationRecord> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items[0].Description).IsEqualTo(expected: "Later");
         await Assert.That(value: result.Items[1].Description).IsEqualTo(expected: "Earlier");

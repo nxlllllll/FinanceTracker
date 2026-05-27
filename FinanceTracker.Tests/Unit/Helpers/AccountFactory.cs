@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -10,7 +9,7 @@ public static class AccountFactory
 {
 	public static Result<Account, DomainException> Create(
 		Guid? userId = null,
-		string name = "Êàðòà Ñáåð",
+		string name = "ÐšÐ°Ñ€Ñ‚Ð° Ð¡Ð±ÐµÑ€",
 		AccountType type = AccountType.Checking,
 		string currency = "RUB",
 		decimal balance = 1000m)
@@ -32,8 +31,8 @@ public static class AccountFactory
 			balance: balance
 		);
 	}
-	
-	public static Account CreateAccountWithArchivation(
+
+	public static Account CreateWithArchivation(
 		Guid? userId = null,
 		decimal balance = 1000,
 		bool archived = false)
@@ -49,25 +48,26 @@ public static class AccountFactory
 
 		return account;
 	}
-	
-	public static AccountDto CreateAccountDto(
+
+	public static Account CreateForReadModel(
 		Guid? id = null,
 		Guid? userId = null,
-		string name = "Êàðòà Ñáåð",
+		string name = "ÐšÐ°Ñ€Ñ‚Ð° Ð¡Ð±ÐµÑ€",
 		AccountType type = AccountType.Checking,
 		string currency = "RUB",
 		decimal balance = 1000m,
 		bool isArchived = false)
 	{
-		return new AccountDto(
-			Id: id ?? Guid.CreateVersion7(),
-			UserId: userId ?? Guid.CreateVersion7(),
-			Name: name,
-			Type: type,
-			Currency: Currency.Create(value: currency).Value,
-			Balance: balance,
-			IsArchived: isArchived,
-			CreatedAt: FakeDateProvider.Default.UtcNow
+		Currency curr = Currency.Reconstitute(value: currency);
+
+		return Account.Reconstitute(
+			id: id ?? Guid.CreateVersion7(),
+			userId: userId ?? Guid.CreateVersion7(),
+			name: Name.Create(value: name).Value!,
+			type: type,
+			balance: Money.Reconstitute(amount: balance, currency: curr),
+			isArchived: isArchived,
+			createdAt: FakeDateProvider.Default.UtcNow
 		);
 	}
 }

@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.UnresolvableEvent;
+﻿using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,11 +8,11 @@ public sealed class UnresolvableEventReadRepository(
     FinanceTrackerContext context
 ) : IUnresolvableEventReadRepository
 {
-    public async Task<IReadOnlyList<UnresolvableEventDto>> GetAllAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<Core.Repositories.UnresolvableEvent.UnresolvableEvent>> GetAllAsync(CancellationToken ct = default)
     {
         return await context.UnresolvableEvents.AsNoTracking()
             .OrderBy(keySelector: e => e.OccurredAt)
-            .Select(selector: e => new UnresolvableEventDto(
+            .Select(selector: e => new Core.Repositories.UnresolvableEvent.UnresolvableEvent(
                 Id: e.Id,
                 Type: e.Type,
                 ReferenceId: e.ReferenceId,

@@ -1,7 +1,6 @@
-using System.Reflection;
+﻿using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;

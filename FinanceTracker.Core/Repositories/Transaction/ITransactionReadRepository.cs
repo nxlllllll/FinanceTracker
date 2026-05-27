@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Transaction;

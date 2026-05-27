@@ -53,8 +53,8 @@ public sealed class CreateTransferHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldReturnTransferId()
 	{
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateAccountWithArchivation(balance: 5000m);
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
+		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
 			fromCurrency: Arg.Any<Currency>(),
@@ -76,8 +76,8 @@ public sealed class CreateTransferHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldSaveOnlyFromAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateAccountWithArchivation(balance: 5000m);
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
+		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
 			fromCurrency: Arg.Any<Currency>(),
@@ -105,8 +105,8 @@ public sealed class CreateTransferHandlerTests
 	[Test]
 	public async Task HandleAsync_ShouldDebitFromAndCreditTo()
 	{
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateAccountWithArchivation(balance: 5000m);
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateAccountWithArchivation(balance: 1000m);
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
+		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
 			fromCurrency: Arg.Any<Currency>(),

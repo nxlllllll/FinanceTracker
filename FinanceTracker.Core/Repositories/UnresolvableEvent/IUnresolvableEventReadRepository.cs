@@ -1,8 +1,6 @@
-using FinanceTracker.Core.Dtos;
-
-namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
+﻿namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
 
 public interface IUnresolvableEventReadRepository
 {
-	Task<IReadOnlyList<UnresolvableEventDto>> GetAllAsync(CancellationToken ct = default);
+	Task<IReadOnlyList<UnresolvableEvent>> GetAllAsync(CancellationToken ct = default);
 }

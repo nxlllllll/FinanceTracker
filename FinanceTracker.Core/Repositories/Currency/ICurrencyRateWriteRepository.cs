@@ -1,11 +1,11 @@
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Repositories.Currency;
 
 public interface ICurrencyRateWriteRepository
 {
 	Task UpsertRatesAsync(
-		IReadOnlyList<CurrencyRateDto> rates,
+		IReadOnlyList<CurrencyRate> rates,
 		CancellationToken ct = default
 	);
 }

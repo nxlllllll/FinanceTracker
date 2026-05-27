@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.DeadLetterMonitor.Job;
@@ -31,9 +30,9 @@ public sealed class DeadLetterMonitoringJobTests
         );
     }
 
-    private static UnresolvableEventDto BuildDto(UnresolvableEventType type = UnresolvableEventType.OutboxDeadLetter)
+    private static UnresolvableEvent BuildDto(UnresolvableEventType type = UnresolvableEventType.OutboxDeadLetter)
     {
-        return new UnresolvableEventDto(
+        return new UnresolvableEvent(
             Id: Guid.CreateVersion7(),
             Type: type,
             ReferenceId: Guid.CreateVersion7(),

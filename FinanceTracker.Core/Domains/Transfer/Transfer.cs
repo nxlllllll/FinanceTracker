@@ -17,70 +17,73 @@ public sealed class Transfer
     public string? Description { get; private set; }
     public DateTimeOffset OccurredAt { get; private set; }
 
-    private Transfer() { }
+	private Transfer() { }
 
-    public static Result<Transfer, DomainException> Create(
-        Guid userId,
-        Guid fromAccountId,
-        Guid toAccountId,
-        decimal amountFrom,
-        Currency currencyFrom,
-        decimal amountTo,
-        Currency currencyTo,
-        decimal exchangeRate,
-        bool isRatePending,
-        string? description,
-        DateTimeOffset occurredAt)
-    {
-        Result<Money, DomainException> amountFromResult = Money.Create(amount: amountFrom, currency: currencyFrom);
-        if (amountFromResult.IsFailure)
-            return Result<Transfer, DomainException>.Failure(error: amountFromResult.Error!);
+	public static Result<Transfer, DomainException> Create(
+		Guid userId,
+		Guid fromAccountId,
+		Guid toAccountId,
+		decimal amount,
+		Currency currencyFrom,
+		Currency currencyTo,
+		decimal exchangeRate,
+		bool isRatePending,
+		string? description,
+		DateTimeOffset occurredAt)
+	{
+		if (exchangeRate <= 0)
+			return Result<Transfer, DomainException>.Failure(
+				error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
 
-        Result<Money, DomainException> amountToResult = Money.Create(amount: amountTo, currency: currencyTo);
-        if (amountToResult.IsFailure)
-            return Result<Transfer, DomainException>.Failure(error: amountToResult.Error!);
-        
-        return Result<Transfer, DomainException>.Success(value: new Transfer
-        {
-            Id = Guid.CreateVersion7(),
-            UserId = userId,
-            FromAccountId = fromAccountId,
-            ToAccountId = toAccountId,
-            AmountFrom = amountFromResult.Value,
-            AmountTo = amountToResult.Value,
-            ExchangeRate = exchangeRate,
-            IsRatePending = isRatePending,
-            Description = description,
-            OccurredAt = occurredAt
-        });
-    }
+		Result<Money, DomainException> amountFromResult = Money.Create(amount: amount, currency: currencyFrom);
+		if (amountFromResult.IsFailure)
+			return Result<Transfer, DomainException>.Failure(error: amountFromResult.Error!);
 
-    public static Transfer Reconstitute(
-        Guid id,
-        Guid userId,
-        Guid fromAccountId,
-        Guid toAccountId,
-        decimal amountFrom,
-        Currency currencyFrom,
-        decimal amountTo,
-        Currency currencyTo,
-        decimal exchangeRate,
-        bool isRatePending,
-        string? description,
-        DateTimeOffset occurredAt)
-    {
-        return new Transfer
-        {
-            Id = id,
-            UserId = userId,
-            FromAccountId = fromAccountId,
-            ToAccountId = toAccountId,
-            AmountFrom = Money.Reconstitute(amount: amountFrom, currency: currencyFrom),
-            AmountTo = Money.Reconstitute(amount: amountTo, currency: currencyTo),
-            ExchangeRate = exchangeRate,
-            IsRatePending = isRatePending,
-            Description = description,
-            OccurredAt = occurredAt
-        };
-    }
+		Result<Money, DomainException> amountToResult = Money.Create(amount: amount * exchangeRate, currency: currencyTo);
+		if (amountToResult.IsFailure)
+			return Result<Transfer, DomainException>.Failure(error: amountToResult.Error!);
+
+		return Result<Transfer, DomainException>.Success(value: new Transfer
+		{
+			Id = Guid.CreateVersion7(),
+			UserId = userId,
+			FromAccountId = fromAccountId,
+			ToAccountId = toAccountId,
+			AmountFrom = amountFromResult.Value,
+			AmountTo = amountToResult.Value,
+			ExchangeRate = exchangeRate,
+			IsRatePending = isRatePending,
+			Description = description,
+			OccurredAt = occurredAt
+		});
+	}
+
+	public static Transfer Reconstitute(
+		Guid id,
+		Guid userId,
+		Guid fromAccountId,
+		Guid toAccountId,
+		decimal amountFrom,
+		Currency currencyFrom,
+		decimal amountTo,
+		Currency currencyTo,
+		decimal exchangeRate,
+		bool isRatePending,
+		string? description,
+		DateTimeOffset occurredAt)
+	{
+		return new Transfer
+		{
+			Id = id,
+			UserId = userId,
+			FromAccountId = fromAccountId,
+			ToAccountId = toAccountId,
+			AmountFrom = Money.Reconstitute(amount: amountFrom, currency: currencyFrom),
+			AmountTo = Money.Reconstitute(amount: amountTo, currency: currencyTo),
+			ExchangeRate = exchangeRate,
+			IsRatePending = isRatePending,
+			Description = description,
+			OccurredAt = occurredAt
+		};
+	}
 }

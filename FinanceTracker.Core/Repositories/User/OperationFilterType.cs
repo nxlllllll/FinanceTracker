@@ -1,4 +1,4 @@
-namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Repositories.User;
 
 public enum OperationFilterType
 {

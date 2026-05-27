@@ -1,7 +1,7 @@
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.User.Queries.GetTotalBalance;
@@ -9,14 +9,14 @@ namespace FinanceTracker.Application.UseCases.User.Queries.GetTotalBalance;
 public sealed class GetTotalBalanceHandler(
 	IUserReadRepository userReadRepository,
 	IDateProvider dateProvider
-) : IRequestHandler<GetTotalBalanceQuery, TotalBalanceDto>
+) : IRequestHandler<GetTotalBalanceQuery, Money>
 {
-	public async Task<TotalBalanceDto> Handle(
+	public async Task<Money> Handle(
 		GetTotalBalanceQuery query,
 		CancellationToken ct = default)
 	{
 		Core.Domains.User.User user = await userReadRepository.GetByIdAsync(userId: query.UserId, ct: ct)
-			?? throw new NotFoundException(message: "User not found.", id: query.UserId);
+		?? throw new NotFoundException(message: "User not found.", id: query.UserId);
 
 		decimal balance = await userReadRepository.GetTotalBalanceAsync(
 			userId: query.UserId,
@@ -25,6 +25,6 @@ public sealed class GetTotalBalanceHandler(
 			ct: ct
 		);
 
-		return new TotalBalanceDto(Balance: balance, Currency: user.BaseCurrency);
+		return Money.Reconstitute(amount: balance, currency: user.BaseCurrency);
 	}
 }

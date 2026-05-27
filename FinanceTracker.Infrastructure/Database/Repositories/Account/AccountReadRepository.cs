@@ -1,5 +1,5 @@
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Account;
 using Microsoft.EntityFrameworkCore;
@@ -10,29 +10,30 @@ public sealed class AccountReadRepository(
 	FinanceTrackerContext context
 ) : IAccountReadRepository
 {
-	public async Task<AccountDto?> GetByIdAsync(
+	public async Task<Core.Domains.Account.Account?> GetByIdAsync(
 		Guid accountId,
 		Guid userId,
 		CancellationToken ct = default)
 	{
-		return await context.Accounts.AsNoTracking().Where(predicate: account => account.Id == accountId && account.UserId == userId).Join(
+		Core.Domains.Account.Account? raw = await context.Accounts.AsNoTracking().Where(predicate: account => account.Id == accountId && account.UserId == userId).Join(
 			inner: context.AccountBalances,
 			outerKeySelector: account => account.Id,
 			innerKeySelector: balance => balance.AccountId,
-			resultSelector: (account, balance) => new AccountDto(
-				Id: account.Id,
-				UserId: account.UserId,
-				Name: account.Name,
-				Type: account.AccountType,
-				Currency: account.Currency,
-				Balance: balance.Balance,
-				IsArchived: account.IsArchived,
-				CreatedAt: account.CreatedAt
+			resultSelector: (account, balance) => Core.Domains.Account.Account.Reconstitute(
+				id: account.Id,
+				userId: account.UserId,
+				name: account.Name,
+				type: account.AccountType,
+				balance: Money.Reconstitute(amount: balance.Balance, currency: account.Currency),
+				isArchived: account.IsArchived,
+				createdAt: account.CreatedAt
 			)
 		).FirstOrDefaultAsync(cancellationToken: ct);
+
+		return raw;
 	}
 
-	public async Task<IReadOnlyList<AccountDto>> GetAllAsync(
+	public async Task<IReadOnlyList<Core.Domains.Account.Account>> GetAllAsync(
 		Guid userId,
 		bool? isArchived = null,
 		CancellationToken ct = default)
@@ -42,20 +43,21 @@ public sealed class AccountReadRepository(
 		if (isArchived is not null)
 			accounts = accounts.Where(predicate: account => account.IsArchived == isArchived);
 
-		return await accounts.Join(
+		List<Core.Domains.Account.Account> result = await accounts.Join(
 			inner: context.AccountBalances,
 			outerKeySelector: account => account.Id,
 			innerKeySelector: balance => balance.AccountId,
-			resultSelector: (account, balance) => new AccountDto(
-				Id: account.Id,
-				UserId: account.UserId,
-				Name: account.Name,
-				Type: account.AccountType,
-				Currency: account.Currency,
-				Balance: balance.Balance,
-				IsArchived: account.IsArchived,
-				CreatedAt: account.CreatedAt)
-		).ToListAsync(cancellationToken: ct);
+			resultSelector: (account, balance) => Core.Domains.Account.Account.Reconstitute(
+				id: account.Id,
+				userId: account.UserId,
+				name: account.Name,
+				type: account.AccountType,
+				balance: Money.Reconstitute(amount: balance.Balance, currency: account.Currency),
+				isArchived: account.IsArchived,
+				createdAt: account.CreatedAt
+		)).ToListAsync(cancellationToken: ct);
+
+		return result.AsReadOnly();
 	}
 
 	public async Task<bool> ExistAsync(

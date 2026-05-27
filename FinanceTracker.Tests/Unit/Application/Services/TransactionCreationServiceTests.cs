@@ -73,7 +73,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WithValidCommand_ShouldReturnTransactionId()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateWithArchivation();
         SetupConversionRate();
 
         Result<Guid, DomainException> result = await _service.CreateAsync(
@@ -89,7 +89,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WithDebitDirection_ShouldDecreaseAccountBalance()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000m);
+        Account account = AccountFactory.CreateWithArchivation(balance: 10000m);
         SetupConversionRate();
 
         await _service.CreateAsync(
@@ -107,7 +107,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WithCreditDirection_ShouldIncreaseAccountBalance()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation(balance: 10000m);
+        Account account = AccountFactory.CreateWithArchivation(balance: 10000m);
         SetupConversionRate();
 
         await _service.CreateAsync(
@@ -125,7 +125,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WithPendingRate_ShouldCreateTransactionWithIsRatePendingTrue()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateWithArchivation();
         SetupConversionRate(rate: 0.85m, isPending: true);
 
         await _service.CreateAsync(
@@ -143,7 +143,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WhenArchivedAccount_ShouldThrowArchivingException()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
+        Account account = AccountFactory.CreateWithArchivation(archived: true);
         SetupConversionRate();
 
         Result<Guid, DomainException> result = await _service.CreateAsync(
@@ -159,7 +159,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WhenRateNotFound_ShouldThrowCurrencyRateNotFoundException()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateWithArchivation();
 
         _currencyConversionService.GetConversionRateAsync(
             fromCurrency: Arg.Any<Currency>(),
@@ -182,7 +182,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WithDebitDirection_ShouldAddCategoryTotal()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateWithArchivation();
         SetupConversionRate();
 
         CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
@@ -205,7 +205,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WithDebitDirection_ShouldAddBudgetProgress()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateWithArchivation();
         SetupConversionRate();
 
         CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
@@ -228,7 +228,7 @@ public sealed class TransactionCreationServiceTests
     [Test]
     public async Task CreateAsync_WithCreditDirection_ShouldNotAddCategoryTotal()
     {
-        Account account = AccountFactory.CreateAccountWithArchivation();
+        Account account = AccountFactory.CreateWithArchivation();
         SetupConversionRate();
 
         await _service.CreateAsync(

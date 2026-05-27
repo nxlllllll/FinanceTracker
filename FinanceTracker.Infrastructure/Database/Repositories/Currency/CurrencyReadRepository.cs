@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.Currency;
+﻿using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +8,9 @@ public sealed class CurrencyReadRepository(
 	FinanceTrackerContext context
 ) : ICurrencyReadRepository
 {
-	public async Task<IReadOnlyList<CurrencyDto>> GetAllAsync(CancellationToken ct = default)
+	public async Task<IReadOnlyList<CurrencyInfo>> GetAllAsync(CancellationToken ct = default)
 	{
-		return await context.Currencies.AsNoTracking().Select(selector: currency => new CurrencyDto(
+		return await context.Currencies.AsNoTracking().Select(selector: currency => new CurrencyInfo(
 			Code: currency.Code,
 			Name: currency.Name,
 			Symbol: currency.Symbol,
@@ -19,9 +18,9 @@ public sealed class CurrencyReadRepository(
 		)).ToListAsync(cancellationToken: ct);
 	}
 
-	public async Task<IReadOnlyList<CurrencyDto>> GetAllActiveAsync(CancellationToken ct = default)
+	public async Task<IReadOnlyList<CurrencyInfo>> GetAllActiveAsync(CancellationToken ct = default)
 	{
-		return await context.Currencies.AsNoTracking().Where(predicate: currency => currency.IsActive).Select(selector: currency => new CurrencyDto(
+		return await context.Currencies.AsNoTracking().Where(predicate: currency => currency.IsActive).Select(selector: currency => new CurrencyInfo(
 			Code: currency.Code,
 			Name: currency.Name,
 			Symbol: currency.Symbol,
@@ -29,13 +28,13 @@ public sealed class CurrencyReadRepository(
 		)).ToListAsync(cancellationToken: ct);
 	}
 
-	public async Task<CurrencyDto?> GetByCodeAsync(
+	public async Task<CurrencyInfo?> GetByCodeAsync(
 		string code,
 		CancellationToken ct = default)
 	{
 		return await context.Currencies.AsNoTracking()
 			.Where(predicate: currency => currency.Code == code)
-			.Select(selector: currency => new CurrencyDto(
+			.Select(selector: currency => new CurrencyInfo(
 				Code: currency.Code,
 				Name: currency.Name,
 				Symbol: currency.Symbol,

@@ -20,15 +20,17 @@ public sealed class Account : AggregateRoot
 		[property: JsonPropertyName("type")] AccountType Type,
 		[property: JsonPropertyName("balance")] Money Balance,
 		[property: JsonPropertyName("is_archived")] bool IsArchived,
+		[property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
 		[property: JsonPropertyName("version")] int Version
 	);
-	
+
 	public Guid UserId { get; private set; }
 	public Name Name { get; private set; }
 	public AccountType Type { get; private set; }
 	public Money Balance { get; private set; }
 	public Currency Currency => Balance.Currency;
 	public bool IsArchived { get; private set; }
+	public DateTimeOffset CreatedAt { get; private set; }
 
 	private Account() { }
 
@@ -85,6 +87,27 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 	
+	public static Account Reconstitute(
+		Guid id,
+		Guid userId,
+		Name name,
+		AccountType type,
+		Money balance,
+		bool isArchived,
+		DateTimeOffset createdAt)
+	{
+		return new Account
+		{
+			Id = id,
+			UserId = userId,
+			Name = name,
+			Type = type,
+			Balance = balance,
+			IsArchived = isArchived,
+			CreatedAt = createdAt
+		};
+	}
+
 	internal static Account Restore(SnapshotData snapshot)
 	{
 		AccountSnapshotState state = System.Text.Json.JsonSerializer.Deserialize<AccountSnapshotState>(
@@ -99,7 +122,8 @@ public sealed class Account : AggregateRoot
 			Name = state.Name,
 			Type = state.Type,
 			Balance = state.Balance,
-			IsArchived = state.IsArchived
+			IsArchived = state.IsArchived,
+			CreatedAt = state.CreatedAt
 		};
 		account.RestoreVersion(version: state.Version);
 		return account;
@@ -162,6 +186,7 @@ public sealed class Account : AggregateRoot
 		Type = @event.Type;
 		Balance = Money.Reconstitute(amount: @event.Balance, currency: @event.Currency);
 		IsArchived = false;
+		CreatedAt = @event.OccurredAt;
 	}
 
 	protected override void Apply(IEvent @event)
@@ -393,6 +418,7 @@ public sealed class Account : AggregateRoot
 			Type: Type,
 			Balance: Balance,
 			IsArchived: IsArchived,
+			CreatedAt: CreatedAt,
 			Version: Version
 		), options: FinanceTrackerJsonOptions.Payload);
 	}

@@ -114,7 +114,7 @@ public sealed class TransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_CreateTransaction_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateWithArchivation();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
@@ -131,7 +131,7 @@ public sealed class TransactionLoaderTests
 	[Test]
 	public async Task LoadAsync_CreateTransaction_WhenOwner_ShouldReturnAccount()
 	{
-		Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateWithArchivation();
 		Category category = CategoryFactory.Create().Value!;
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(), 

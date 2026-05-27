@@ -1,5 +1,4 @@
-using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -24,7 +23,7 @@ public sealed class GetBudgetProgressHandlerTests
 	public async Task Handle_WhenProgressExists_ShouldReturnBudgetProgressDto()
 	{
 		Guid budgetId = Guid.CreateVersion7();
-		BudgetProgressDto progress = BudgetFactory.CreateProgress(budgetId: budgetId, spent: 3000m);
+		BudgetProgress progress = BudgetFactory.CreateProgress(budgetId: budgetId, spent: 3000m);
 
 		_budgetProgressReadRepository.GetByBudgetIdAsync(
 			budgetId: budgetId,
@@ -32,7 +31,7 @@ public sealed class GetBudgetProgressHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: progress);
 
-		BudgetProgressDto? result = await _handler.Handle(
+		BudgetProgress? result = await _handler.Handle(
 			query: new GetBudgetProgressQuery(BudgetId: budgetId, UserId: UserId),
 			ct: CancellationToken.None
 		);
@@ -50,9 +49,9 @@ public sealed class GetBudgetProgressHandlerTests
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetProgressDto?>(null));
+		).Returns(returnThis: Task.FromResult<BudgetProgress?>(null));
 
-		BudgetProgressDto? result = await _handler.Handle(
+		BudgetProgress? result = await _handler.Handle(
 			query: new GetBudgetProgressQuery(BudgetId: Guid.CreateVersion7(), UserId: UserId),
 			ct: CancellationToken.None
 		);
@@ -69,7 +68,7 @@ public sealed class GetBudgetProgressHandlerTests
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetProgressDto?>(null));
+		).Returns(returnThis: Task.FromResult<BudgetProgress?>(null));
 
 		await _handler.Handle(
 			query: new GetBudgetProgressQuery(BudgetId: budgetId, UserId: UserId),

@@ -1,5 +1,4 @@
 using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -30,7 +29,7 @@ public sealed class LoginUserHandlerTests
 		createdAt: FakeDateProvider.Default.UtcNow
 	);
 
-	private static readonly TokenResponse TestTokenResponse = new TokenResponse(
+	private static readonly SessionToken TestSessionToken = new SessionToken(
 		AccessToken: "access.token",
 		RefreshToken: "refresh-token",
 		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
@@ -54,11 +53,11 @@ public sealed class LoginUserHandlerTests
 	public async Task Handle_WhenUserNotFound_ShouldReturnInvalidCredentials()
 	{
 		_userReadRepository.GetByEmailAsync(
-			email: Arg.Any<string>(), 
+			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
-		Result<TokenResponse, DomainException> result = await _userHandler.Handle(
+		Result<SessionToken, DomainException> result = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
 			ct: CancellationToken.None
 		);
@@ -79,7 +78,7 @@ public sealed class LoginUserHandlerTests
 			hash: Arg.Any<string>()
 		).Returns(returnThis: false);
 
-		Result<TokenResponse, DomainException> result = await _userHandler.Handle(
+		Result<SessionToken, DomainException> result = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrongpassword"),
 			ct: CancellationToken.None
 		);
@@ -92,17 +91,17 @@ public sealed class LoginUserHandlerTests
 	public async Task Handle_WhenValidCredentials_ShouldCallSessionIssuer()
 	{
 		_userReadRepository.GetByEmailAsync(
-			email: Arg.Any<string>(), 
+			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
 		_passwordHasher.Verify(
-			password: RawPassword, 
+			password: RawPassword,
 			hash: PasswordHash
 		).Returns(returnThis: true);
 		_sessionIssuer.IssueAsync(
-			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(), 
+			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: TestTokenResponse);
+		).Returns(returnThis: TestSessionToken);
 
 		await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
@@ -123,33 +122,33 @@ public sealed class LoginUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
 		_passwordHasher.Verify(
-			password: RawPassword, 
+			password: RawPassword,
 			hash: PasswordHash
 		).Returns(returnThis: true);
 		_sessionIssuer.IssueAsync(
 			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: TestTokenResponse);
+		).Returns(returnThis: TestSessionToken);
 
-		Result<TokenResponse, DomainException> result = await _userHandler.Handle(
+		Result<SessionToken, DomainException> result = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value!.AccessToken).IsEqualTo(expected: TestTokenResponse.AccessToken);
-		await Assert.That(value: result.Value.RefreshToken).IsEqualTo(expected: TestTokenResponse.RefreshToken);
+		await Assert.That(value: result.Value!.AccessToken).IsEqualTo(expected: TestSessionToken.AccessToken);
+		await Assert.That(value: result.Value.RefreshToken).IsEqualTo(expected: TestSessionToken.RefreshToken);
 	}
 
 	[Test]
 	public async Task Handle_WhenValidCredentials_ShouldNotExposeWhichFieldFailed()
 	{
 		_userReadRepository.GetByEmailAsync(
-			email: Arg.Any<string>(), 
+			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
-		Result<TokenResponse, DomainException> resultNoUser = await _userHandler.Handle(
+		Result<SessionToken, DomainException> resultNoUser = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
 			ct: CancellationToken.None
 		);
@@ -163,7 +162,7 @@ public sealed class LoginUserHandlerTests
 			hash: Arg.Any<string>()
 		).Returns(returnThis: false);
 
-		Result<TokenResponse, DomainException> resultWrongPassword = await _userHandler.Handle(
+		Result<SessionToken, DomainException> resultWrongPassword = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrong"),
 			ct: CancellationToken.None
 		);

@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.Category;
+﻿using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +8,7 @@ public sealed class CategoryTotalReadRepository(
 	FinanceTrackerContext context
 ) : ICategoryTotalReadRepository
 {
-	public async Task<CategoryTotalDto?> GetByCategoryAsync(
+	public async Task<CategoryTotal?> GetByCategoryAsync(
 		Guid userId,
 		Guid categoryId,
 		DateOnly period,
@@ -17,7 +16,7 @@ public sealed class CategoryTotalReadRepository(
 	{
 		return await context.CategoryTotals.AsNoTracking()
 			.Where(predicate: total => total.UserId == userId && total.CategoryId == categoryId && total.Period == period)
-			.Select(selector: total => new CategoryTotalDto(
+			.Select(selector: total => new CategoryTotal(
 				CategoryId: total.CategoryId,
 				Period: total.Period,
 				Total: total.Total,
@@ -26,13 +25,13 @@ public sealed class CategoryTotalReadRepository(
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
-	public async Task<IReadOnlyList<CategoryTotalDto>> GetAllByPeriodAsync(
+	public async Task<IReadOnlyList<CategoryTotal>> GetAllByPeriodAsync(
 		Guid userId,
 		DateOnly period,
 		CancellationToken ct = default)
 	{
 		return await context.CategoryTotals.AsNoTracking().Where(predicate: total => total.UserId == userId && total.Period == period)
-			.Select(selector: total => new CategoryTotalDto(
+			.Select(selector: total => new CategoryTotal(
 				CategoryId: total.CategoryId,
 				Period: total.Period,
 				Total: total.Total,

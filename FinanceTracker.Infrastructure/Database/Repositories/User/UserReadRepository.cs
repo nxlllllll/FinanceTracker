@@ -1,8 +1,7 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Operation;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -92,7 +91,7 @@ public sealed class UserReadRepository(
 		return (income, expense);
 	}
 
-	public async Task<PagedResult<OperationDto>> GetHistoryAsync(
+	public async Task<PagedResult<OperationRecord>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
 		DateTimeOffset? dateFrom = null,
@@ -135,7 +134,7 @@ public sealed class UserReadRepository(
 
 		OperationEntity? last = entities.Count > 0 ? entities[^1] : null;
 
-		List<OperationDto> dtos = entities.Select(selector: e =>
+		List<OperationRecord> dtos = entities.Select(selector: e =>
 		{
 			OperationPayload payload = e.Type switch
 			{
@@ -144,14 +143,14 @@ public sealed class UserReadRepository(
 				_ => throw new InvalidOperationException(message: $"Unknown operation type: {e.Type}")
 			};
 
-			return new OperationDto(
+			return new OperationRecord(
 				Id: e.Id,
 				Type: payload is TransactionPayload tp
 					? tp.Direction == Core.Domains.Account.DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense
 					: OperationFilterType.Transfer,
 				Description: e.Description,
 				OccurredAt: e.OccurredAt,
-				Transaction: payload is TransactionPayload txp ? new TransactionDetailsDto(
+				Transaction: payload is TransactionPayload txp ? new TransactionDetails(
 					AccountId: txp.AccountId,
 					CategoryId: txp.CategoryId,
 					Amount: txp.Amount,
@@ -159,7 +158,7 @@ public sealed class UserReadRepository(
 					Direction: txp.Direction,
 					IsExcluded: txp.IsExcluded
 				) : null,
-				Transfer: payload is TransferPayload trp ? new TransferDetailsDto(
+				Transfer: payload is TransferPayload trp ? new TransferDetails(
 					FromAccountId: trp.FromAccountId,
 					ToAccountId: trp.ToAccountId,
 					AmountFrom: trp.AmountFrom,
@@ -170,7 +169,7 @@ public sealed class UserReadRepository(
 			);
 		}).ToList();
 
-		return new PagedResult<OperationDto>(
+		return new PagedResult<OperationRecord>(
 			Items: dtos.AsReadOnly(),
 			HasNextPage: hasNextPage,
 			NextCursorDate: hasNextPage ? last?.OccurredAt : null,

@@ -1,10 +1,8 @@
-using FinanceTracker.Core.Dtos;
-
-namespace FinanceTracker.Core.Repositories.Budget;
+﻿namespace FinanceTracker.Core.Repositories.Budget;
 
 public interface IBudgetProgressReadRepository
 {
-	Task<BudgetProgressDto?> GetByBudgetIdAsync(
+	Task<BudgetProgress?> GetByBudgetIdAsync(
 		Guid budgetId,
 		Guid userId,
 		CancellationToken ct = default

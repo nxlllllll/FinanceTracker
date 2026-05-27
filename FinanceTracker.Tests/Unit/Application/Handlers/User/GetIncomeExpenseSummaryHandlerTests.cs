@@ -1,5 +1,5 @@
+using FinanceTracker.Application.Dtos;
 using FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -25,7 +25,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 		DateOnly period = new DateOnly(year: 2024, month: 1, day: 1);
 
 		_userReadRepository.GetByIdAsync(
-			userId: Arg.Any<Guid>(), 
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
 
@@ -35,7 +35,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (Income: 10000m, Expense: 4000m));
 
-		IncomeExpenseSummaryDto result = await _handler.Handle(
+		IncomeExpenseSummary result = await _handler.Handle(
 			query: new GetIncomeExpenseSummaryQuery(UserId: user.Id, Period: period),
 			ct: CancellationToken.None
 		);
@@ -63,7 +63,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (Income: 0m, Expense: 0m));
 
-		IncomeExpenseSummaryDto result = await _handler.Handle(
+		IncomeExpenseSummary result = await _handler.Handle(
 			query: new GetIncomeExpenseSummaryQuery(UserId: user.Id, Period: period),
 			ct: CancellationToken.None
 		);

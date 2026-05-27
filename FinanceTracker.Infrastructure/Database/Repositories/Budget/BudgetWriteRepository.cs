@@ -3,7 +3,6 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Budget;
 using Microsoft.EntityFrameworkCore;
-using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Budget;
 

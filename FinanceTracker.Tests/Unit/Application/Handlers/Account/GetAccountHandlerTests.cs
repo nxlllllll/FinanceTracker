@@ -1,5 +1,4 @@
 using FinanceTracker.Application.UseCases.Account.Queries.GetAccount;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -21,23 +20,23 @@ public sealed class GetAccountHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenAccountExists_ShouldReturnAccountDto()
+	public async Task Handle_WhenAccountExists_ShouldReturnAccount()
 	{
-		AccountDto dto = AccountFactory.CreateAccountDto(userId: UserId);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateForReadModel(userId: UserId);
 
 		_accountReadRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			userId: UserId,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: dto);
+		).Returns(returnThis: account);
 
-		AccountDto? result = await _handler.Handle(
-			query: new GetAccountQuery(AccountId: dto.Id, UserId: UserId),
+		FinanceTracker.Core.Domains.Account.Account? result = await _handler.Handle(
+			query: new GetAccountQuery(AccountId: account.Id, UserId: UserId),
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.Id).IsEqualTo(expected: dto.Id);
+		await Assert.That(value: result!.Id).IsEqualTo(expected: account.Id);
 	}
 
 	[Test]
@@ -47,9 +46,9 @@ public sealed class GetAccountHandlerTests
 			accountId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountDto?>(null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(null));
 
-		AccountDto? result = await _handler.Handle(
+		FinanceTracker.Core.Domains.Account.Account? result = await _handler.Handle(
 			query: new GetAccountQuery(AccountId: Guid.CreateVersion7(), UserId: UserId),
 			ct: CancellationToken.None
 		);
@@ -66,7 +65,7 @@ public sealed class GetAccountHandlerTests
 			accountId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountDto?>(null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(null));
 
 		await _handler.Handle(
 			query: new GetAccountQuery(AccountId: accountId, UserId: UserId),
@@ -87,9 +86,9 @@ public sealed class GetAccountHandlerTests
 			accountId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountDto?>(null));
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Account.Account?>(null));
 
-		AccountDto? result = await _handler.Handle(
+		FinanceTracker.Core.Domains.Account.Account? result = await _handler.Handle(
 			query: new GetAccountQuery(AccountId: Guid.CreateVersion7(), UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);

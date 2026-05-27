@@ -15,26 +15,25 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		string currencyFrom,
 		Guid toAccountId,
 		string currencyTo,
-		decimal amountFrom = 1000m,
-		decimal amountTo = 1000m,
+		decimal amount = 1000m,
+		decimal exchangeRate = 1m,
 		DateTimeOffset? occurredAt = null)
 	{
 		Result<Core.Domains.Transfer.Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
 			userId: userId,
 			fromAccountId: fromAccountId,
 			toAccountId: toAccountId,
-			amountFrom: amountFrom,
+			amount: amount,
 			currencyFrom: Core.ValueObjects.Currency.Create(value: currencyFrom).Value,
-			amountTo: amountTo,
 			currencyTo: Core.ValueObjects.Currency.Create(value: currencyTo).Value,
-			exchangeRate: 1m,
+			exchangeRate: exchangeRate,
 			isRatePending: false,
 			description: null,
 			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);
-		
+
 		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;
-		
+
 		await _writeRepository.CreateAsync(transfer: transfer);
 		return transfer.Id;
 	}

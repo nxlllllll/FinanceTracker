@@ -1,6 +1,4 @@
-using FinanceTracker.Core.Dtos;
-
-namespace FinanceTracker.Core.Repositories.Transfer;
+﻿namespace FinanceTracker.Core.Repositories.Transfer;
 
 public interface ITransferReadRepository
 {

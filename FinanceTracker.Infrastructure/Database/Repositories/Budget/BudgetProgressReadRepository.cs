@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.Budget;
+﻿using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +8,7 @@ public sealed class BudgetProgressReadRepository(
     FinanceTrackerContext context
 ) : IBudgetProgressReadRepository
 {
-    public async Task<BudgetProgressDto?> GetByBudgetIdAsync(
+    public async Task<BudgetProgress?> GetByBudgetIdAsync(
         Guid budgetId,
         Guid userId,
         CancellationToken ct = default)
@@ -18,7 +17,7 @@ public sealed class BudgetProgressReadRepository(
             inner: context.Budgets.Where(predicate: b => b.UserId == userId),
             outerKeySelector: p => p.BudgetId,
             innerKeySelector: b => b.Id,
-            resultSelector: (progress, budget) => new BudgetProgressDto(
+            resultSelector: (progress, budget) => new BudgetProgress(
                 BudgetId: progress.BudgetId,
                 Spent: progress.Spent,
                 Remaining: budget.Amount - progress.Spent,

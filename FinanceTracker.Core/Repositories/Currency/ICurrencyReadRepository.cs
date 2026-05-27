@@ -1,14 +1,12 @@
-using FinanceTracker.Core.Dtos;
-
-namespace FinanceTracker.Core.Repositories.Currency;
+﻿namespace FinanceTracker.Core.Repositories.Currency;
 
 public interface ICurrencyReadRepository
 {
-	Task<IReadOnlyList<CurrencyDto>> GetAllAsync(CancellationToken ct = default);
+	Task<IReadOnlyList<CurrencyInfo>> GetAllAsync(CancellationToken ct = default);
 
-	Task<IReadOnlyList<CurrencyDto>> GetAllActiveAsync(CancellationToken ct = default);
+	Task<IReadOnlyList<CurrencyInfo>> GetAllActiveAsync(CancellationToken ct = default);
 
-	Task<CurrencyDto?> GetByCodeAsync(
+	Task<CurrencyInfo?> GetByCodeAsync(
 		string code,
 		CancellationToken ct = default
 	);

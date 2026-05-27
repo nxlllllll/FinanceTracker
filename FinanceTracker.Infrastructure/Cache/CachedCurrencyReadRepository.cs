@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.Currency;
+﻿using FinanceTracker.Core.Repositories.Currency;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
@@ -17,36 +16,36 @@ public sealed class CachedCurrencyReadRepository(
 	private const string AllKey = "currencies:all";
 	private const string AllActiveKey = "currencies:active";
 
-	public async Task<IReadOnlyList<CurrencyDto>> GetAllAsync(CancellationToken ct = default)
+	public async Task<IReadOnlyList<CurrencyInfo>> GetAllAsync(CancellationToken ct = default)
 	{
-		CacheEntry<IReadOnlyList<CurrencyDto>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyDto>>(key: AllKey, ct: ct);
+		CacheEntry<IReadOnlyList<CurrencyInfo>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyInfo>>(key: AllKey, ct: ct);
 		if (entry.Found)
 			return entry.Value ?? [];
 
-		IReadOnlyList<CurrencyDto> result = await inner.GetAllAsync(ct: ct);
+		IReadOnlyList<CurrencyInfo> result = await inner.GetAllAsync(ct: ct);
 		await redisCache.SetAsync(key: AllKey, value: result, options: Ttl, ct: ct);
 		return result;
 	}
 
-	public async Task<IReadOnlyList<CurrencyDto>> GetAllActiveAsync(CancellationToken ct = default)
+	public async Task<IReadOnlyList<CurrencyInfo>> GetAllActiveAsync(CancellationToken ct = default)
 	{
-		CacheEntry<IReadOnlyList<CurrencyDto>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyDto>>(key: AllActiveKey, ct: ct);
+		CacheEntry<IReadOnlyList<CurrencyInfo>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyInfo>>(key: AllActiveKey, ct: ct);
 		if (entry.Found)
 			return entry.Value ?? [];
 
-		IReadOnlyList<CurrencyDto> result = await inner.GetAllActiveAsync(ct: ct);
+		IReadOnlyList<CurrencyInfo> result = await inner.GetAllActiveAsync(ct: ct);
 		await redisCache.SetAsync(key: AllActiveKey, value: result, options: Ttl, ct: ct);
 		return result;
 	}
 
-	public async Task<CurrencyDto?> GetByCodeAsync(string code, CancellationToken ct = default)
+	public async Task<CurrencyInfo?> GetByCodeAsync(string code, CancellationToken ct = default)
 	{
 		string key = $"currency:{code}";
-		CacheEntry<CurrencyDto?> entry = await redisCache.TryGetAsync<CurrencyDto?>(key: key, ct: ct);
+		CacheEntry<CurrencyInfo?> entry = await redisCache.TryGetAsync<CurrencyInfo?>(key: key, ct: ct);
 		if (entry.Found) 
 			return entry.Value;
 
-		CurrencyDto? result = await inner.GetByCodeAsync(code: code, ct: ct);
+		CurrencyInfo? result = await inner.GetByCodeAsync(code: code, ct: ct);
 		await redisCache.SetAsync(key: key, value: result, options: Ttl, ct: ct);
 		return result;
 	}

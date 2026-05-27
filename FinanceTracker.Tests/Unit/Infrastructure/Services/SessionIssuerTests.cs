@@ -1,6 +1,6 @@
-using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Services.Auth;
@@ -76,7 +76,7 @@ public sealed class SessionIssuerTests
 	[Test]
 	public async Task IssueAsync_ShouldReturnCorrectAccessToken()
 	{
-		TokenResponse response = await _sessionIssuer.IssueAsync(user: TestUser);
+		SessionToken response = await _sessionIssuer.IssueAsync(user: TestUser);
 
 		await Assert.That(value: response.AccessToken).IsEqualTo(expected: TestAccessToken.Token);
 		await Assert.That(value: response.AccessTokenExpiresAt).IsEqualTo(expected: TestAccessToken.ExpiresAt);
@@ -85,7 +85,7 @@ public sealed class SessionIssuerTests
 	[Test]
 	public async Task IssueAsync_ShouldReturnRawRefreshToken()
 	{
-		TokenResponse response = await _sessionIssuer.IssueAsync(user: TestUser);
+		SessionToken response = await _sessionIssuer.IssueAsync(user: TestUser);
 
 		await Assert.That(value: response.RefreshToken).IsEqualTo(expected: "raw-refresh-token");
 	}

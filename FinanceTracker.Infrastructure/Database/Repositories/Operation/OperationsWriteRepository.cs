@@ -1,12 +1,11 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Operation;
-using FinanceTracker.Core.Domains.Transfer;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Extensions;
+using FinanceTracker.Infrastructure.Database.Repositories.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Operation;

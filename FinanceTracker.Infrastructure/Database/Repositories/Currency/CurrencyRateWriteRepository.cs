@@ -1,6 +1,6 @@
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +13,7 @@ public sealed class CurrencyRateWriteRepository(
 ) : ICurrencyRateWriteRepository
 {
 	public async Task UpsertRatesAsync(
-		IReadOnlyList<CurrencyRateDto> rates,
+		IReadOnlyList<CurrencyRate> rates,
 		CancellationToken ct = default)
 	{
 		if (rates.Count == 0)
@@ -21,7 +21,7 @@ public sealed class CurrencyRateWriteRepository(
 
 		DateTimeOffset now = dateProvider.UtcNow;
 
-		foreach (CurrencyRateDto entry in rates)
+		foreach (CurrencyRate entry in rates)
 		{
 			CurrencyRateEntity? existing = await context.CurrencyRates.FirstOrDefaultAsync(
 				predicate: r => r.BaseCode == entry.Base && r.TargetCode == entry.Target && r.ActualAt == entry.Date,

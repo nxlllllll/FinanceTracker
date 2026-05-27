@@ -1,13 +1,12 @@
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.ValueObjects;
 
-namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Repositories.User;
 
-public sealed record TransactionDetailsDto(
+public sealed record TransactionDetails(
 	Guid AccountId,
 	Guid CategoryId,
 	decimal Amount,
-	Currency? Currency,
+	ValueObjects.Currency? Currency,
 	DirectionType Direction,
 	bool IsExcluded
 );

@@ -1,14 +1,13 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.Category;
+﻿using FinanceTracker.Core.Repositories.Category;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Category.Queries.GetTotal;
 
 public sealed class GetTotalHandler(
 	ICategoryTotalReadRepository categoryTotalReadRepository
-) : IRequestHandler<GetTotalQuery, CategoryTotalDto?>
+) : IRequestHandler<GetTotalQuery, CategoryTotal?>
 {
-	public async Task<CategoryTotalDto?> Handle(
+	public async Task<CategoryTotal?> Handle(
 		GetTotalQuery query,
 		CancellationToken ct = default)
 	{

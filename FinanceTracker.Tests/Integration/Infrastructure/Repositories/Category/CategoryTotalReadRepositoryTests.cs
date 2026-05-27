@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
@@ -63,7 +63,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
             occurredAt: occurredAt
         );
 
-        CategoryTotalDto? result = await _readRepository.GetByCategoryAsync(
+        CategoryTotal? result = await _readRepository.GetByCategoryAsync(
             userId: userId,
             categoryId: categoryId,
             period: new DateOnly(year: 2025, month: 1, day: 1)
@@ -79,7 +79,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetTotalByCategoryAsync_WhenNotExists_ShouldReturnNull()
     {
-        CategoryTotalDto? result = await _readRepository.GetByCategoryAsync(
+        CategoryTotal? result = await _readRepository.GetByCategoryAsync(
             userId: Guid.CreateVersion7(),
             categoryId: Guid.CreateVersion7(),
             period: new DateOnly(year: 2025, month: 1, day: 1)
@@ -103,7 +103,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
             occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
-        CategoryTotalDto? result = await _readRepository.GetByCategoryAsync(
+        CategoryTotal? result = await _readRepository.GetByCategoryAsync(
             userId: userId,
             categoryId: categoryId,
             period: new DateOnly(year: 2025, month: 1, day: 1)
@@ -135,7 +135,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
             occurredAt: occurredAt
         );
 
-        IReadOnlyList<CategoryTotalDto> result = await _readRepository.GetAllByPeriodAsync(
+        IReadOnlyList<CategoryTotal> result = await _readRepository.GetAllByPeriodAsync(
             userId: userId,
             period: new DateOnly(year: 2025, month: 1, day: 1)
         );
@@ -164,7 +164,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
             occurredAt: new DateTimeOffset(year: 2025, month: 2, day: 10, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
         );
 
-        IReadOnlyList<CategoryTotalDto> result = await _readRepository.GetAllByPeriodAsync(
+        IReadOnlyList<CategoryTotal> result = await _readRepository.GetAllByPeriodAsync(
             userId: userId,
             period: new DateOnly(year: 2025, month: 1, day: 1)
         );
@@ -176,7 +176,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetAllByPeriodAsync_WhenNoData_ShouldReturnEmptyList()
     {
-        IReadOnlyList<CategoryTotalDto> result = await _readRepository.GetAllByPeriodAsync(
+        IReadOnlyList<CategoryTotal> result = await _readRepository.GetAllByPeriodAsync(
             userId: Guid.CreateVersion7(),
             period: new DateOnly(year: 2025, month: 1, day: 1)
         );

@@ -41,7 +41,7 @@ public sealed class AccountLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
-		Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateWithArchivation();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -59,7 +59,7 @@ public sealed class AccountLoaderTests
 	[Test]
 	public async Task LoadAsync_WhenOwner_ShouldReturnAccount()
 	{
-		Account account = AccountFactory.CreateAccountWithArchivation();
+		Account account = AccountFactory.CreateWithArchivation();
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

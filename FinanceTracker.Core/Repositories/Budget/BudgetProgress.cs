@@ -1,6 +1,6 @@
-namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Repositories.Budget;
 
-public sealed record BudgetProgressDto(
+public sealed record BudgetProgress(
 	Guid BudgetId,
 	decimal Spent,
 	decimal Remaining,

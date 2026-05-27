@@ -1,5 +1,5 @@
 using FinanceTracker.Application.Behaviours.RateLimit;
-using FinanceTracker.Core.Dtos;
+using FinanceTracker.Application.Dtos;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
@@ -7,4 +7,4 @@ namespace FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSumma
 public sealed record GetIncomeExpenseSummaryQuery(
 	Guid UserId,
 	DateOnly Period
-) : IRequest<IncomeExpenseSummaryDto>, IUserScopedRequest;
+) : IRequest<IncomeExpenseSummary>, IUserScopedRequest;

@@ -1,10 +1,8 @@
-using FinanceTracker.Core.Dtos;
-
 namespace FinanceTracker.Core.Services.Auth;
 
 public interface ISessionIssuer
 {
-	Task<TokenResponse> IssueAsync(
+	Task<SessionToken> IssueAsync(
 		Domains.User.User user,
 		CancellationToken ct = default
 	);

@@ -1,6 +1,6 @@
-namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Repositories.Category;
 
-public sealed record CategoryTotalDto(
+public sealed record CategoryTotal(
 	Guid CategoryId,
 	DateOnly Period,
 	decimal Total,

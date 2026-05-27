@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
@@ -20,7 +20,7 @@ public sealed class CurrencyReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithNoCurrencies_ShouldReturnEmptyList()
 	{
-		IReadOnlyList<CurrencyDto> result = await _readRepository.GetAllAsync();
+		IReadOnlyList<CurrencyInfo> result = await _readRepository.GetAllAsync();
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 0);
 	}
@@ -31,7 +31,7 @@ public sealed class CurrencyReadRepositoryTests : DatabaseFixture
 		await _currencyBuilder.CreateAsync(code: "RUB");
 		await _currencyBuilder.CreateAsync(code: "USD");
 
-		IReadOnlyList<CurrencyDto> result = await _readRepository.GetAllAsync();
+		IReadOnlyList<CurrencyInfo> result = await _readRepository.GetAllAsync();
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
 	}
@@ -39,7 +39,7 @@ public sealed class CurrencyReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByCodeAsync_WithNonExistentCode_ShouldReturnNull()
 	{
-		CurrencyDto? result = await _readRepository.GetByCodeAsync(code: "USD");
+		CurrencyInfo? result = await _readRepository.GetByCodeAsync(code: "USD");
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -49,7 +49,7 @@ public sealed class CurrencyReadRepositoryTests : DatabaseFixture
 	{
 		await _currencyBuilder.CreateAsync(code: "RUB");
 
-		CurrencyDto? result = await _readRepository.GetByCodeAsync(code: "RUB");
+		CurrencyInfo? result = await _readRepository.GetByCodeAsync(code: "RUB");
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result.Code).IsEqualTo(expected: "RUB");

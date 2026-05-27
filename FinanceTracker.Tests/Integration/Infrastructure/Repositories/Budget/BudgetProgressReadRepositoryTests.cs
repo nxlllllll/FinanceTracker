@@ -1,5 +1,5 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Persistence;
+﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
@@ -44,7 +44,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
                 .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: DateTimeOffset.UtcNow)
             );
 
-        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId, userId: userId);
+        BudgetProgress? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId, userId: userId);
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.BudgetId).IsEqualTo(expected: budgetId);
@@ -56,7 +56,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
     [Test]
     public async Task GetByBudgetIdAsync_WhenNotExists_ShouldReturnNull()
     {
-        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());
+        BudgetProgress? result = await _readRepository.GetByBudgetIdAsync(budgetId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());
 
         await Assert.That(value: result).IsNull();
     }
@@ -68,7 +68,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
         Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-        BudgetProgressDto? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId, userId: userId);
+        BudgetProgress? result = await _readRepository.GetByBudgetIdAsync(budgetId: budgetId, userId: userId);
 
         await Assert.That(value: result).IsNotNull();
         await Assert.That(value: result!.Spent).IsEqualTo(expected: 0m);

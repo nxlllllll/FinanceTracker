@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.DateProvider;
@@ -13,7 +12,7 @@ public sealed class SessionIssuer(
 	IDateProvider dateProvider
 ) : ISessionIssuer
 {
-	public async Task<TokenResponse> IssueAsync(
+	public async Task<SessionToken> IssueAsync(
 		User user,
 		CancellationToken ct = default)
 	{
@@ -30,7 +29,7 @@ public sealed class SessionIssuer(
 
 		await userSessionWriteRepository.CreateAsync(session: session, ct: ct);
 
-		return new TokenResponse(
+		return new SessionToken(
 			AccessToken: accessToken.Token,
 			RefreshToken: refreshToken,
 			AccessTokenExpiresAt: accessToken.ExpiresAt

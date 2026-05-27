@@ -1,8 +1,8 @@
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 
-namespace FinanceTracker.Core.Dtos;
+namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
 
-public sealed record UnresolvableEventDto(
+public sealed record UnresolvableEvent(
 	Guid Id,
 	UnresolvableEventType Type,
 	Guid ReferenceId,

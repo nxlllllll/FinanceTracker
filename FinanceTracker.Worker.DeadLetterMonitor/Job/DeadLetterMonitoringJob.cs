@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Dtos;
-using FinanceTracker.Core.Repositories.UnresolvableEvent;
+﻿using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -22,7 +21,7 @@ public sealed class DeadLetterMonitoringJob(
 			return;
 		}
 
-		IReadOnlyList<UnresolvableEventDto> events = await unresolvableEventReadRepository.GetAllAsync(ct: executionContext.CancellationToken);
+		IReadOnlyList<UnresolvableEvent> events = await unresolvableEventReadRepository.GetAllAsync(ct: executionContext.CancellationToken);
 
 		WorkerMetrics.DeadLetterCount.Record(value: events.Count);
 
@@ -31,7 +30,7 @@ public sealed class DeadLetterMonitoringJob(
 
 		logger.ZLogWarning(message: $"Found {events.Count} unresolvable event(s) requiring manual intervention.");
 
-		foreach (UnresolvableEventDto @event in events)
+		foreach (UnresolvableEvent @event in events)
 			logger.ZLogWarning(message: $"Unresolvable event: Id={@event.Id}, Type={@event.Type}, ReferenceId={@event.ReferenceId}, Reason={@event.Reason}, OccurredAt={@event.OccurredAt:O}.");
 	}
 }

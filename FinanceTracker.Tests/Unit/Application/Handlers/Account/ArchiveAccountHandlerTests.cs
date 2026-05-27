@@ -22,7 +22,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task HandleAsync_WithActiveAccount_ShouldSaveAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation();
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation();
 
 		await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
@@ -39,7 +39,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task HandleAsync_WhenAccountAlreadyArchived_ShouldThrowArchivingException()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation(archived: true);
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
@@ -54,7 +54,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task HandleAsync_WhenAccountAlreadyArchived_ShouldNotSaveAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateAccountWithArchivation(archived: true);
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation(archived: true);
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),

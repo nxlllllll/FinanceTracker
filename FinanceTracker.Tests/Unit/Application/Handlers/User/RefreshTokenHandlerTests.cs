@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -35,7 +34,7 @@ public sealed class RefreshTokenHandlerTests
 		createdAt: FakeDateProvider.Default.UtcNow
 	);
 
-	private static readonly TokenResponse NewTokenResponse = new TokenResponse(
+	private static readonly SessionToken NewSessionToken = new SessionToken(
 		AccessToken: "new.access.token",
 		RefreshToken: "new-refresh-token",
 		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
@@ -68,7 +67,7 @@ public sealed class RefreshTokenHandlerTests
 		_sessionIssuer.IssueAsync(
 			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: NewTokenResponse);
+		).Returns(returnThis: NewSessionToken);
 
 		_handler = new RefreshTokenHandler(
 			userReadRepository: _userReadRepository,
@@ -84,11 +83,11 @@ public sealed class RefreshTokenHandlerTests
 	public async Task Handle_WhenSessionNotFound_ShouldReturnInvalidToken()
 	{
 		_userSessionReadRepository.GetByRefreshTokenHashAsync(
-			tokenHash: Arg.Any<string>(), 
+			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserSession?)null);
 
-		Result<TokenResponse, DomainException> result = await _handler.Handle(
+		Result<SessionToken, DomainException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken),
 			ct: CancellationToken.None
 		);
@@ -109,11 +108,11 @@ public sealed class RefreshTokenHandlerTests
 			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashAsync(
-			tokenHash: Arg.Any<string>(), 
+			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: revokedSession);
 
-		Result<TokenResponse, DomainException> result = await _handler.Handle(
+		Result<SessionToken, DomainException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken),
 			ct: CancellationToken.None
 		);
@@ -134,11 +133,11 @@ public sealed class RefreshTokenHandlerTests
 			revokedAt: null
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashAsync(
-			tokenHash: Arg.Any<string>(), 
+			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: expiredSession);
 
-		Result<TokenResponse, DomainException> result = await _handler.Handle(
+		Result<SessionToken, DomainException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken),
 			ct: CancellationToken.None
 		);
@@ -151,7 +150,7 @@ public sealed class RefreshTokenHandlerTests
 	public async Task Handle_WhenUserNotFound_ShouldReturnInvalidToken()
 	{
 		_userSessionReadRepository.GetByRefreshTokenHashAsync(
-			tokenHash: Arg.Any<string>(), 
+			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ActiveSession());
 		_userReadRepository.GetByIdAsync(
@@ -159,7 +158,7 @@ public sealed class RefreshTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
-		Result<TokenResponse, DomainException> result = await _handler.Handle(
+		Result<SessionToken, DomainException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken),
 			ct: CancellationToken.None
 		);
@@ -228,13 +227,13 @@ public sealed class RefreshTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
 
-		Result<TokenResponse, DomainException> result = await _handler.Handle(
+		Result<SessionToken, DomainException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken),
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value!.AccessToken).IsEqualTo(expected: NewTokenResponse.AccessToken);
-		await Assert.That(value: result.Value.RefreshToken).IsEqualTo(expected: NewTokenResponse.RefreshToken);
+		await Assert.That(value: result.Value!.AccessToken).IsEqualTo(expected: NewSessionToken.AccessToken);
+		await Assert.That(value: result.Value.RefreshToken).IsEqualTo(expected: NewSessionToken.RefreshToken);
 	}
 }

@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Dtos;
+﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -17,9 +16,9 @@ public sealed class RefreshTokenHandler(
 	ITokenService tokenService,
 	ISessionIssuer sessionIssuer,
 	IDateProvider dateProvider
-) : IRequestHandler<RefreshTokenCommand, Result<TokenResponse, DomainException>>
+) : IRequestHandler<RefreshTokenCommand, Result<SessionToken, DomainException>>
 {
-	public async Task<Result<TokenResponse, DomainException>> Handle(
+	public async Task<Result<SessionToken, DomainException>> Handle(
 		RefreshTokenCommand command,
 		CancellationToken ct = default)
 	{
@@ -28,12 +27,12 @@ public sealed class RefreshTokenHandler(
 		UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: tokenHash, ct: ct);
 
 		if (session is null || !session.IsActive(now: dateProvider.UtcNow))
-			return Result<TokenResponse, DomainException>.Failure(error: new InvalidTokenException());
+			return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
 
 		Core.Domains.User.User? user = await userReadRepository.GetByIdAsync(userId: session.UserId, ct: ct);
 
 		if (user is null)
-			return Result<TokenResponse, DomainException>.Failure(error: new InvalidTokenException());
+			return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
 
 		await userSessionWriteRepository.RevokeAsync(
 			sessionId: session.Id,
@@ -41,7 +40,7 @@ public sealed class RefreshTokenHandler(
 			ct: ct
 		);
 
-		TokenResponse response = await sessionIssuer.IssueAsync(user: user, ct: ct);
-		return Result<TokenResponse, DomainException>.Success(value: response);
+		SessionToken response = await sessionIssuer.IssueAsync(user: user, ct: ct);
+		return Result<SessionToken, DomainException>.Success(value: response);
 	}
 }
