@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
-public class UserSessionReadRepository(
+public sealed class UserSessionReadRepository(
 	FinanceTrackerContext context
 ) : IUserSessionReadRepository
 {

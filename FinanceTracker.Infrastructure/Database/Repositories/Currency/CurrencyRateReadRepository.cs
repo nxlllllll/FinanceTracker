@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Currency;
 
-public class CurrencyRateReadRepository(
+public sealed class CurrencyRateReadRepository(
 	FinanceTrackerContext context
 ) : ICurrencyRateReadRepository
 {

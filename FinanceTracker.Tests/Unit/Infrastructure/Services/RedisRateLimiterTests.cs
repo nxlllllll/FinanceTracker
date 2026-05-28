@@ -10,23 +10,14 @@ public sealed class RedisRateLimiterTests : RedisFixture
 
 	[Before(hookType: Test)]
 	public void Setup()
-	{
-		_rateLimiter = new RedisRateLimiter(
-			connectionMultiplexer: Redis,
-			dateProvider: new DateProvider()
-		);
-	}
+		=> _rateLimiter = new RedisRateLimiter(connectionMultiplexer: Redis, dateProvider: new DateProvider());
 
 	[Test]
 	public async Task IsAllowedAsync_WhenUnderLimit_ShouldAllow()
 	{
 		string key = $"test:ratelimit:{Guid.CreateVersion7():N}";
 
-		bool result = await _rateLimiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: 5,
-			windowSeconds: 10
-		);
+		bool result = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: 5, windowSeconds: 10);
 
 		await Assert.That(value: result).IsTrue();
 	}
@@ -38,19 +29,9 @@ public sealed class RedisRateLimiterTests : RedisFixture
 		const int limit = 3;
 
 		for (int i = 0; i < limit; i++)
-		{
-			await _rateLimiter.IsAllowedAsync(
-				key: key,
-				requestsPerWindow: limit,
-				windowSeconds: 10
-			);
-		}
+			await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: 10);
 
-		bool result = await _rateLimiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: limit,
-			windowSeconds: 10
-		);
+		bool result = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: 10);
 
 		await Assert.That(value: result).IsFalse();
 	}

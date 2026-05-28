@@ -144,4 +144,39 @@ public sealed class ApplicationArchitectureTests
 		await Assert.That(value: missing).IsEmpty()
 			.Because(message: $"Missing IEntityLoader registrations: {String.Join(separator: ", ", values: missing)}");
 	}
+	
+	[Test]
+	public async Task AllPipelineBehaviours_ShouldBeSealed()
+	{
+		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
+			.That().ImplementInterface(interfaceType: typeof(IPipelineBehavior<,>))
+			.And().AreClasses()
+			.Should().BeSealed()
+			.GetResult();
+
+		await Assert.That(value: result.IsSuccessful).IsTrue()
+			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
+	}
+
+	[Test]
+	public async Task AllWriteCommands_ShouldReturnResult()
+	{
+		Type resultOpenType = typeof(Core.Results.Result<,>);
+
+		Type[] violations = ApplicationAssembly.GetTypes()
+			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && t.Name.EndsWith(value: "Command", comparisonType: StringComparison.Ordinal))
+			.Where(predicate: t =>
+			{
+				Type? requestInterface = t.GetInterfaces().FirstOrDefault(predicate: i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+
+				if (requestInterface is null) 
+					return false;
+
+				Type responseType = requestInterface.GetGenericArguments()[0];
+				return !responseType.IsGenericType || responseType.GetGenericTypeDefinition() != resultOpenType;
+			}).ToArray();
+
+		await Assert.That(value: violations.Select(t => t.Name)).IsEmpty()
+			.Because(message: $"Commands not returning Result<,>: {String.Join(separator: ", ", values: violations.Select(t => t.Name))}");
+	}
 }
