@@ -71,13 +71,6 @@ public sealed class Account : AggregateRoot
 		return Result<Account, DomainException>.Success(value: account);
 	}
 	
-	public static Account ReconstituteFromHistory(IReadOnlyList<IEvent> history)
-	{
-		Account account = new Account();
-		account.LoadEventsFromHistory(history: history);
-		return account;
-	}
-	
 	public static Account Reconstitute(
 		SnapshotData? snapshot,
 		IReadOnlyList<IEvent> events)
@@ -216,6 +209,10 @@ public sealed class Account : AggregateRoot
 		decimal newRate,
 		decimal amount)
 	{
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
+		if (constraints.IsFailure) 
+			return constraints;
+			
 		int sign = GetSign(direction: direction);
 		decimal delta = (newRate - oldRate) * amount * sign;
  
@@ -246,10 +243,12 @@ public sealed class Account : AggregateRoot
 		string? description)
 	{
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
-		if (constraints.IsFailure) return constraints;
+		if (constraints.IsFailure) 
+			return constraints;
  
 		Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount, rate: exchangeRate);
-		if (funds.IsFailure) return funds;
+		if (funds.IsFailure)
+			return funds;
  
 		RaiseEvent(@event: new AccountDebited(
 			Id: Guid.CreateVersion7(),

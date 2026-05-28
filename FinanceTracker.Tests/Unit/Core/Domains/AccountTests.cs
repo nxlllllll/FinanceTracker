@@ -257,7 +257,7 @@ public sealed class AccountTests
 			description: null
 		);
 
-		Account reconstituted = Account.ReconstituteFromHistory(history: original.Events.ToList());
+		Account reconstituted = Account.Reconstitute(snapshot: null, events: [..original.Events]);
 
 		await Assert.That(value: reconstituted.Id).IsEqualTo(expected: original.Id);
 		await Assert.That(value: reconstituted.Balance.Amount).IsEqualTo(expected: 9500m);
