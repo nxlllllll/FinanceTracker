@@ -14,6 +14,7 @@ public sealed class Transfer
     public Money AmountTo { get; private set; }
     public decimal ExchangeRate { get; private set; }
     public bool IsRatePending { get; private set; }
+	public TransferStatus Status { get; private set; }
     public string? Description { get; private set; }
     public DateTimeOffset OccurredAt { get; private set; }
 
@@ -53,6 +54,7 @@ public sealed class Transfer
 			AmountTo = amountToResult.Value,
 			ExchangeRate = exchangeRate,
 			IsRatePending = isRatePending,
+			Status = TransferStatus.PendingCredit,
 			Description = description,
 			OccurredAt = occurredAt
 		});
@@ -69,6 +71,7 @@ public sealed class Transfer
 		Currency currencyTo,
 		decimal exchangeRate,
 		bool isRatePending,
+		TransferStatus status,
 		string? description,
 		DateTimeOffset occurredAt)
 	{
@@ -82,8 +85,18 @@ public sealed class Transfer
 			AmountTo = Money.Reconstitute(amount: amountTo, currency: currencyTo),
 			ExchangeRate = exchangeRate,
 			IsRatePending = isRatePending,
+			Status = status,
 			Description = description,
 			OccurredAt = occurredAt
 		};
 	}
+
+	public void MarkCompleted()
+		=> Status = TransferStatus.Completed;
+
+	public void MarkCompensated()
+		=> Status = TransferStatus.Compensated;
+
+	public void MarkFailed() 
+		=> Status = TransferStatus.Failed;
 }

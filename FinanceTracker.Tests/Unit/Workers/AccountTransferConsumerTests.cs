@@ -7,6 +7,7 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
@@ -23,6 +24,7 @@ namespace FinanceTracker.Tests.Unit.Workers;
 public sealed class AccountTransferConsumerTests : DatabaseFixture
 {
 	private IAccountRepository _accountRepository = null!;
+	private ITransferWriteRepository _transferWriteRepository = null!;
 	private IUnresolvableEventWriteRepository _unresolvableEventWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private AccountTransferConsumer _consumer = null!;
@@ -35,6 +37,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
+		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unresolvableEventWriteRepository = Substitute.For<IUnresolvableEventWriteRepository>();
 		
@@ -45,6 +48,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		_consumer = new AccountTransferConsumer(
 			accountRepository: _accountRepository,
+			transferWriteRepository: _transferWriteRepository,
 			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
 				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,

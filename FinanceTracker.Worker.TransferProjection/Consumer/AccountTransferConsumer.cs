@@ -8,6 +8,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
+using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -36,6 +37,7 @@ namespace FinanceTracker.Worker.TransferProjection.Consumer;
 /// </remarks>
 public sealed class AccountTransferConsumer(
 	IAccountRepository accountRepository,
+	ITransferWriteRepository transferWriteRepository,
     IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
 	IIntegrationEventTypeResolver integrationEventTypeResolver,
 	IProcessedMessageReadRepository processedMessageReadRepository,
@@ -104,6 +106,11 @@ public sealed class AccountTransferConsumer(
 		}
 
 		await accountRepository.SaveAsync(account: toAccount, ct: ct);
+		await transferWriteRepository.UpdateStatusAsync(
+			transferId: debitEvent.TransferId, 
+			status: Core.Domains.Transfer.TransferStatus.Completed, 
+			ct: ct
+		);
 
 		double durationMs = (dateProvider.UtcNow - debitEvent.OccurredAt).TotalMilliseconds;
 		WorkerMetrics.TransferCreditDuration.Record(value: durationMs);
@@ -139,6 +146,11 @@ public sealed class AccountTransferConsumer(
 				ct: ct
 			);
 
+			await transferWriteRepository.UpdateStatusAsync(
+				transferId: debitEvent.TransferId, 
+				status: Core.Domains.Transfer.TransferStatus.Failed,
+				ct: ct
+			);
 			return;
 		}
 
@@ -152,6 +164,7 @@ public sealed class AccountTransferConsumer(
 		if (refundResult.IsFailure)
 		{
 			logger.ZLogError(message: $"[{correlationId}] Refund failed for transfer {debitEvent.TransferId}: {refundResult.Error!.Message}. Manual resolution required.");
+
 			await unresolvableEventWriteRepository.CreateAsync(
 				type: UnresolvableEventType.TransferCompensation,
 				referenceId: debitEvent.TransferId,
@@ -160,10 +173,21 @@ public sealed class AccountTransferConsumer(
 				occurredAt: dateProvider.UtcNow,
 				ct: ct
 			);
+
+			await transferWriteRepository.UpdateStatusAsync(
+				transferId: debitEvent.TransferId, 
+				status: Core.Domains.Transfer.TransferStatus.Failed, 
+				ct: ct
+			);
 			return;
 		}
 		
 		await accountRepository.SaveAsync(account: fromAccount, ct: ct);
+		await transferWriteRepository.UpdateStatusAsync(
+			transferId: debitEvent.TransferId, 
+			status: Core.Domains.Transfer.TransferStatus.Compensated, 
+			ct: ct
+		);
 
 		logger.ZLogWarning(message: $"[{correlationId}] Compensation executed: refunded {debitEvent.Amount} to {debitEvent.AccountId} for transfer {debitEvent.TransferId}.");
 	}

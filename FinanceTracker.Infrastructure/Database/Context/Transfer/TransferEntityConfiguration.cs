@@ -1,6 +1,7 @@
 using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.User;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -64,6 +65,18 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
         builder.Property(propertyExpression: t => t.IsRatePending)
             .HasColumnName(name: "is_rate_pending");
 
+        builder.Property(propertyExpression: t => t.Status)
+            .HasColumnName(name: "status")
+            .HasMaxLength(maxLength: 20)
+            .HasConversion(
+                convertToProviderExpression: status => status.ToCode(),
+                convertFromProviderExpression: value => value.FromCode()
+            );
+
+        builder.HasIndex(indexExpression: t => new { t.Status, t.OccurredAt })
+            .HasFilter(sql: "status = 'pending_credit'")
+            .HasDatabaseName(name: "ix_transfers_pending_credit");
+        
         builder.HasOne<UserEntity>().WithMany()
             .HasForeignKey(foreignKeyExpression: t => t.UserId)
             .OnDelete(deleteBehavior: DeleteBehavior.Cascade);

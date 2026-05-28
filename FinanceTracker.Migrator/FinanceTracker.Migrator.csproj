@@ -32,6 +32,8 @@
       <EmbeddedResource Include="Migrations\V006__add_domain_event_outbox.sql" />
       <None Remove="Migrations\V007__add_read-model_Indexes.sql" />
       <EmbeddedResource Include="Migrations\V007__add_read-model_Indexes.sql" />
+      <None Remove="Migrations\V008__add_transfer_status.sql" />
+      <EmbeddedResource Include="Migrations\V008__add_transfer_status.sql" />
     </ItemGroup>
 
 </Project>

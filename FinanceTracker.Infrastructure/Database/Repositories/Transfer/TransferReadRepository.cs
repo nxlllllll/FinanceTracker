@@ -16,20 +16,22 @@ public sealed class TransferReadRepository(
         Guid transferId,
         CancellationToken ct = default)
     {
-        return await context.Transfers.AsNoTracking().Where(predicate: t => t.Id == transferId).Select(selector: t => Core.Domains.Transfer.Transfer.Reconstitute(
-            id: t.Id,
-            userId: t.UserId,
-            fromAccountId: t.FromAccountId,
-            toAccountId: t.ToAccountId,
-            amountFrom: t.AmountFrom,
-            currencyFrom: t.CurrencyFrom,
-            amountTo: t.AmountTo,
-            currencyTo: t.CurrencyTo,
-            exchangeRate: t.ExchangeRate,
-            isRatePending: t.IsRatePending,
-            description: t.Description,
-            occurredAt: t.OccurredAt
-        )).FirstOrDefaultAsync(cancellationToken: ct);
+        return await context.Transfers.AsNoTracking().Where(predicate: t => t.Id == transferId)
+            .Select(selector: t => Core.Domains.Transfer.Transfer.Reconstitute(
+                id: t.Id,
+                userId: t.UserId,
+                fromAccountId: t.FromAccountId,
+                toAccountId: t.ToAccountId,
+                amountFrom: t.AmountFrom,
+                currencyFrom: t.CurrencyFrom,
+                amountTo: t.AmountTo,
+                currencyTo: t.CurrencyTo,
+                exchangeRate: t.ExchangeRate,
+                isRatePending: t.IsRatePending,
+                status: t.Status,
+                description: t.Description,
+                occurredAt: t.OccurredAt
+            )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
     public async Task<IReadOnlyList<Core.Domains.Transfer.Transfer>> GetAllAsync(
@@ -62,6 +64,7 @@ public sealed class TransferReadRepository(
                currencyTo: t.CurrencyTo,
                exchangeRate: t.ExchangeRate,
                isRatePending: t.IsRatePending,
+               status: t.Status,
                description: t.Description,
                occurredAt: t.OccurredAt
             )).ToListAsync(cancellationToken: ct);
@@ -85,16 +88,10 @@ public sealed class TransferReadRepository(
     public async Task<int> GetPendingCreditCountAsync(TimeSpan gracePeriod, CancellationToken ct = default)
     {
         DateTimeOffset threshold = DateTimeOffset.UtcNow - gracePeriod;
-        string eventType = typeof(AccountTransferDebited).GetCustomAttribute<EventTypeAttribute>()!.Name;
 
-        return await context.Database.SqlQuery<int>($"""
-            SELECT COUNT(*)::int AS "Value"
-            FROM events e
-            WHERE e.event_type = '{eventType}' AND e.occurred_at < {threshold} AND NOT EXISTS (
-                SELECT 1 
-                FROM rm_transfers t
-                WHERE t.id = (e.payload::jsonb ->> 'TransferId')::uuid
-            )
-        """).SingleAsync(cancellationToken: ct);
+        return await context.Transfers.AsNoTracking().CountAsync(
+            predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.OccurredAt < threshold,
+            cancellationToken: ct
+        );
     }
 }

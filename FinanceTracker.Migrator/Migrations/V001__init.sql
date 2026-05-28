@@ -258,10 +258,7 @@ create table rm_transfers
     occurred_at         timestamptz                                 not null
 );
 
-create index idx_rm_transfers_user         on rm_transfers (user_id);
-create index idx_rm_transfers_from_account on rm_transfers (from_account_id);
-create index idx_rm_transfers_to_account   on rm_transfers (to_account_id);
-create index idx_rm_transfers_date         on rm_transfers (occurred_at desc);
+create index idx_rm_transfers_date on rm_transfers (occurred_at desc);
 
 
 -- Итоги по категориям за период (для аналитики)

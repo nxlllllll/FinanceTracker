@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Domains.Transfer;
+
 namespace FinanceTracker.Infrastructure.Database.Context.Transfer;
 
 public sealed class TransferEntity
@@ -14,4 +16,5 @@ public sealed class TransferEntity
 	public string? Description { get; set; }
 	public DateTimeOffset OccurredAt { get; set; }
 	public bool IsRatePending { get; set; }
+	public TransferStatus Status { get; set; }
 }

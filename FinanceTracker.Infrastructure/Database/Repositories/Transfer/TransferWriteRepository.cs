@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
@@ -24,21 +25,34 @@ public sealed class TransferWriteRepository(
 			ExchangeRate = transfer.ExchangeRate,
 			Description = transfer.Description,
 			OccurredAt = transfer.OccurredAt,
-			IsRatePending = transfer.IsRatePending
+			IsRatePending = transfer.IsRatePending,
+			Status = transfer.Status
 		}, cancellationToken: ct);
 
 		await context.SaveChangesAsync(cancellationToken: ct);
 	}
-	
+
 	public async Task UpdateRateAsync(
-	    Guid transferId,
-	    decimal newRate,
-	    CancellationToken ct = default)
+		Guid transferId,
+		decimal newRate,
+		CancellationToken ct = default)
 	{
-	    await context.Transfers.Where(predicate: t => t.Id == transferId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
+		await context.Transfers.Where(predicate: t => t.Id == transferId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
 				.SetProperty(propertyExpression: t => t.IsRatePending, valueExpression: false),
-            cancellationToken: ct
-        );
+			cancellationToken: ct
+		);
+	}
+
+	public async Task UpdateStatusAsync(
+		Guid transferId,
+		TransferStatus status,
+		CancellationToken ct = default)
+	{
+		await context.Transfers.Where(predicate: t => t.Id == transferId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: t => t.Status, valueExpression: status),
+			cancellationToken: ct
+		);
 	}
 }
