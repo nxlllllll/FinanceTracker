@@ -10,6 +10,7 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using ZLogger;
 
@@ -62,7 +63,7 @@ public sealed class RecurringTransactionConsumer(
 			if (currencyResult.IsFailure)
 				throw currencyResult.Error!;
 
-			await transactionCreationService.CreateAsync(command: new CreateTransactionCommand(
+			Result<Guid, DomainException> result = await transactionCreationService.CreateAsync(command: new CreateTransactionCommand(
 				AccountId: message.AccountId,
 				UserId: message.UserId,
 				CategoryId: message.CategoryId,
@@ -72,6 +73,9 @@ public sealed class RecurringTransactionConsumer(
 				Description: message.Description,
 				OccurredAt: message.OccurredAt
 			), account: account, ct: ct);
+
+			if (result.IsSuccess)
+				WorkerMetrics.TransactionsCreated.Add(delta: 1, new KeyValuePair<string, object?>(key: "direction", value: message.Direction));
 
 			await processedMessageWriteRepository.MarkAsProcessedAsync(
 				messageId: message.MessageId,

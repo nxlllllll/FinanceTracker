@@ -11,6 +11,7 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Utilities.Retry;
+using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -100,6 +101,9 @@ public sealed class BalanceAdjustmentJob(
 
         logger.ZLogInformation(message: $"Processing {pending.Count} pending rate {entityName}(s).");
 
+        string sourceTypeTag = entityName.ToLowerInvariant();
+        KeyValuePair<string, object?> sourceTag = new KeyValuePair<string, object?>(key: "source_type", value: sourceTypeTag);
+        
         int adjusted = 0;
         int skipped = 0;
         int failed = 0;
@@ -115,6 +119,7 @@ public sealed class BalanceAdjustmentJob(
             {
                 logger.ZLogWarning(message: $"{buildSkipMessage(item)} Skipping.");
                 skipped++;
+				WorkerMetrics.BalanceAdjustmentSkipped.Add(delta: 1, sourceTag);
                 continue;
             }
 
@@ -122,6 +127,7 @@ public sealed class BalanceAdjustmentJob(
             {
                 await onRateUnchangedAsync(item, newRate.Value, ct);
                 adjusted++;
+				WorkerMetrics.BalanceAdjustmentAdjusted.Add(delta: 1, sourceTag);
                 continue;
             }
 
@@ -134,9 +140,18 @@ public sealed class BalanceAdjustmentJob(
 
             switch (result)
             {
-                case AdjustResult.Adjusted: adjusted++; break;
-                case AdjustResult.Skipped: skipped++; break;
-                case AdjustResult.Failed: failed++; break;
+				case AdjustResult.Adjusted:
+					adjusted++;
+					WorkerMetrics.BalanceAdjustmentAdjusted.Add(delta: 1, sourceTag);
+					break;
+				case AdjustResult.Skipped:
+					skipped++;
+					WorkerMetrics.BalanceAdjustmentSkipped.Add(delta: 1, sourceTag);
+					break;
+				case AdjustResult.Failed:
+					failed++;
+					WorkerMetrics.BalanceAdjustmentFailed.Add(delta: 1, sourceTag);
+					break;
             }
         }
 

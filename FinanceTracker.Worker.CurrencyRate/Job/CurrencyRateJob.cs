@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Worker.CurrencyRate.Client;
+using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -59,6 +60,7 @@ public sealed class CurrencyRateJob(
 				if (response is null)
 				{
 					failed++;
+					WorkerMetrics.CurrencyRatesFetchFailed.Add(delta: 1, new KeyValuePair<string, object?>(key: "base_currency", value: baseCurrency.Code));
 					continue;
 				}
 
@@ -74,11 +76,14 @@ public sealed class CurrencyRateJob(
 				await currencyRateWriteRepository.UpsertRatesAsync(rates: entries, ct: ct);
 
 				totalUpserted += entries.Count;
+				WorkerMetrics.CurrencyRatesUpserted.Add(delta: entries.Count, new KeyValuePair<string, object?>(key: "base_currency", value: baseCurrency.Code));
+
 				logger.ZLogInformation(message: $"Upserted {entries.Count} rates for {baseCurrency.Code}.");
 			}
 			catch (Exception ex)
 			{
 				failed++;
+				WorkerMetrics.CurrencyRatesFetchFailed.Add(delta: 1, new KeyValuePair<string, object?>(key: "base_currency", value: baseCurrency.Code));
 				logger.ZLogError(exception: ex, message: $"Failed to process rates for {baseCurrency.Code}.");
 			}
 		}

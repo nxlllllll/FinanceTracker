@@ -112,6 +112,8 @@ public sealed class AccountTransferConsumer(
 			ct: ct
 		);
 
+		WorkerMetrics.TransfersCompleted.Add(delta: 1);
+
 		double durationMs = (dateProvider.UtcNow - debitEvent.OccurredAt).TotalMilliseconds;
 		WorkerMetrics.TransferCreditDuration.Record(value: durationMs);
 
@@ -151,6 +153,8 @@ public sealed class AccountTransferConsumer(
 				status: Core.Domains.Transfer.TransferStatus.Failed,
 				ct: ct
 			);
+			
+			WorkerMetrics.TransfersFailed.Add(delta: 1);
 			return;
 		}
 
@@ -179,6 +183,8 @@ public sealed class AccountTransferConsumer(
 				status: Core.Domains.Transfer.TransferStatus.Failed, 
 				ct: ct
 			);
+			
+			WorkerMetrics.TransfersFailed.Add(delta: 1);
 			return;
 		}
 		
@@ -188,6 +194,8 @@ public sealed class AccountTransferConsumer(
 			status: Core.Domains.Transfer.TransferStatus.Compensated, 
 			ct: ct
 		);
+		
+		WorkerMetrics.TransfersCompensated.Add(delta: 1);
 
 		logger.ZLogWarning(message: $"[{correlationId}] Compensation executed: refunded {debitEvent.Amount} to {debitEvent.AccountId} for transfer {debitEvent.TransferId}.");
 	}
