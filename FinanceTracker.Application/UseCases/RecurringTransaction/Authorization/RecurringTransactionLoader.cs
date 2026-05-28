@@ -11,7 +11,7 @@ using FinanceTracker.Core.Results;
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Authorization;
 
 public sealed class RecurringTransactionLoader(
-	IRecurringTransactionReadRepository recurringTransactionReadRepository
+	IRecurringTransactionRepository recurringTransactionRepository
 ) : IEntityLoader<ActivateRecurringTransactionCommand, Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>,
 	IEntityLoader<ChangeRecurringTransactionAmountCommand, Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>,
 	IEntityLoader<ChangeRecurringTransactionCurrencyCommand, Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>,
@@ -19,36 +19,35 @@ public sealed class RecurringTransactionLoader(
 	IEntityLoader<DeactivateRecurringTransactionCommand, Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>
 {
 	public Task<Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>> LoadAsync(
-		ActivateRecurringTransactionCommand request,
-		CancellationToken ct
-	) => LoadAndAuthorize(recurringTransactionId: request.RecurringTransactionId, userId: request.UserId, ct: ct);
+		ActivateRecurringTransactionCommand request, CancellationToken ct
+	) => LoadAndAuthorize(id: request.RecurringTransactionId, userId: request.UserId, ct: ct);
 
 	public Task<Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>> LoadAsync(
-		ChangeRecurringTransactionAmountCommand request,
-		CancellationToken ct
-	) => LoadAndAuthorize(recurringTransactionId: request.RecurringTransactionId, userId: request.UserId, ct: ct);
+		ChangeRecurringTransactionAmountCommand request, CancellationToken ct
+	) => LoadAndAuthorize(id: request.RecurringTransactionId, userId: request.UserId, ct: ct);
 
 	public Task<Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>> LoadAsync(
-		ChangeRecurringTransactionCurrencyCommand request,
-		CancellationToken ct
-	) => LoadAndAuthorize(recurringTransactionId: request.RecurringTransactionId, userId: request.UserId, ct: ct);
+		ChangeRecurringTransactionCurrencyCommand request, CancellationToken ct
+	) => LoadAndAuthorize(id: request.RecurringTransactionId, userId: request.UserId, ct: ct);
 
 	public Task<Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>> LoadAsync(
-		ChangeRecurringTransactionDayOfMonthCommand request,
-		CancellationToken ct
-	) => LoadAndAuthorize(recurringTransactionId: request.RecurringTransactionId, userId: request.UserId, ct: ct);
+		ChangeRecurringTransactionDayOfMonthCommand request, CancellationToken ct
+	) => LoadAndAuthorize(id: request.RecurringTransactionId, userId: request.UserId, ct: ct);
 
 	public Task<Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>> LoadAsync(
-		DeactivateRecurringTransactionCommand request,
-		CancellationToken ct
-	) => LoadAndAuthorize(recurringTransactionId: request.RecurringTransactionId, userId: request.UserId, ct: ct);
+		DeactivateRecurringTransactionCommand request, CancellationToken ct
+	) => LoadAndAuthorize(id: request.RecurringTransactionId, userId: request.UserId, ct: ct);
 
-	private async Task<Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>> LoadAndAuthorize(Guid recurringTransactionId, Guid userId, CancellationToken ct)
+	private async Task<Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>> LoadAndAuthorize(
+		Guid id,
+		Guid userId,
+		CancellationToken ct)
 	{
-		Core.Domains.RecurringTransaction.RecurringTransaction? recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: recurringTransactionId, ct: ct);
-		if (recurringTransaction is null || recurringTransaction.UserId != userId)
-			return Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>.Failure(error: new NotFoundException(message: "Recurring transaction not found.", id: recurringTransactionId));
+		Core.Domains.RecurringTransaction.RecurringTransaction? rt = await recurringTransactionRepository.GetByIdAsync(recurringTransactionId: id, ct: ct);
 
-		return Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>.Success(value: recurringTransaction);
+		if (rt is null || rt.UserId != userId)
+			return Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>.Failure(error: new NotFoundException(message: "Recurring transaction not found.", id: id));
+
+		return Result<Core.Domains.RecurringTransaction.RecurringTransaction, NotFoundException>.Success(value: rt);
 	}
 }

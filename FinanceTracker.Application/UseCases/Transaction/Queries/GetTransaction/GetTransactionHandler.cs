@@ -1,3 +1,4 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
 using MediatR;
 
@@ -5,9 +6,9 @@ namespace FinanceTracker.Application.UseCases.Transaction.Queries.GetTransaction
 
 public sealed class GetTransactionHandler(
 	ITransactionReadRepository transactionReadRepository
-) : IRequestHandler<GetTransactionQuery, Core.Domains.Transaction.Transaction?>
+) : IRequestHandler<GetTransactionQuery, TransactionReadModel?>
 {
-	public async Task<Core.Domains.Transaction.Transaction?> Handle(
+	public async Task<TransactionReadModel?> Handle(
 		GetTransactionQuery query,
 		CancellationToken ct = default
 	) => await transactionReadRepository.GetByIdAsync(transactionId: query.TransactionId, userId: query.UserId, ct: ct);

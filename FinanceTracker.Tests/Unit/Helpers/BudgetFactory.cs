@@ -1,6 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -22,6 +22,21 @@ public static class BudgetFactory
 		);
 		
 		return result;
+	}
+
+	public static BudgetReadModel CreateReadModel(
+		Guid? userId = null,
+		Guid? categoryId = null)
+	{
+		return new BudgetReadModel(
+			Id: Guid.CreateVersion7(),
+			UserId: userId ?? Guid.CreateVersion7(),
+			CategoryId: categoryId ?? Guid.CreateVersion7(),
+			Amount: Money.Create(amount: 10000m, currency: Currency.Create(value: "RUB").Value).Value,
+			From: new DateOnly(year: 2025, month: 1, day: 1),
+			To: new DateOnly(year: 2025, month: 1, day: 31),
+			CreatedAt: FakeDateProvider.Default.UtcNow
+		);
 	}
 
 	public static BudgetProgress CreateProgress(

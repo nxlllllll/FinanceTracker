@@ -9,7 +9,7 @@ using FinanceTracker.Core.Results;
 namespace FinanceTracker.Application.UseCases.User.Authorization;
 
 public sealed class UserLoader(
-	IUserReadRepository userReadRepository
+	IUserAuthRepository userAuthRepository
 ) : IEntityLoader<ChangeUserBaseCurrencyCommand, Core.Domains.User.User, NotFoundException>,
 	IEntityLoader<ChangeUserEmailCommand, Core.Domains.User.User, NotFoundException>,
 	IEntityLoader<ChangeUserPasswordCommand, Core.Domains.User.User, NotFoundException>
@@ -31,8 +31,9 @@ public sealed class UserLoader(
 
 	private async Task<Result<Core.Domains.User.User, NotFoundException>> LoadAndAuthorize(Guid userId, CancellationToken ct)
 	{
-		Core.Domains.User.User? user = await userReadRepository.GetByIdAsync(userId: userId, ct: ct);
-		if (user is null) 
+		Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(userId: userId, ct: ct);
+
+		if (user is null)
 			return Result<Core.Domains.User.User, NotFoundException>.Failure(error: new NotFoundException(message: "User not found.", id: userId));
 
 		return Result<Core.Domains.User.User, NotFoundException>.Success(value: user);

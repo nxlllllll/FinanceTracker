@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetCategories;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -19,9 +20,9 @@ public sealed class GetCategoriesHandlerTests
 		_handler = new GetCategoriesHandler(categoryReadRepository: _categoryReadRepository);
 	}
 
-	private static PagedResult<FinanceTracker.Core.Domains.Category.Category> EmptyPage()
+	private static PagedResult<CategoryReadModel> EmptyPage()
 	{
-		return new PagedResult<FinanceTracker.Core.Domains.Category.Category>(
+		return new PagedResult<CategoryReadModel>(
 			Items: [],
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -29,9 +30,9 @@ public sealed class GetCategoriesHandlerTests
 		);
 	}
 
-	private static PagedResult<FinanceTracker.Core.Domains.Category.Category> PageOf(IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> items)
+	private static PagedResult<CategoryReadModel> PageOf(IReadOnlyList<CategoryReadModel> items)
 	{
-		return new PagedResult<FinanceTracker.Core.Domains.Category.Category>(
+		return new PagedResult<CategoryReadModel>(
 			Items: items,
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -42,9 +43,9 @@ public sealed class GetCategoriesHandlerTests
 	[Test]
 	public async Task Handle_ShouldReturnAllCategories()
 	{
-		IReadOnlyList<FinanceTracker.Core.Domains.Category.Category> categories = [
-			CategoryFactory.Create().Value!,
-			CategoryFactory.Create().Value!
+		IReadOnlyList<CategoryReadModel> categories = [
+			CategoryFactory.CreateReadModel(),
+			CategoryFactory.CreateReadModel()
 		];
 
 		_categoryReadRepository.GetAllAsync(
@@ -58,7 +59,7 @@ public sealed class GetCategoriesHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: PageOf(items: categories));
 
-		PagedResult<FinanceTracker.Core.Domains.Category.Category> result = await _handler.Handle(
+		PagedResult<CategoryReadModel> result = await _handler.Handle(
 			query: new GetCategoriesQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -80,7 +81,7 @@ public sealed class GetCategoriesHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: EmptyPage());
 
-		PagedResult<FinanceTracker.Core.Domains.Category.Category> result = await _handler.Handle(
+		PagedResult<CategoryReadModel> result = await _handler.Handle(
 			query: new GetCategoriesQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);

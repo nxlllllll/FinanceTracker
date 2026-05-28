@@ -1,16 +1,17 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Budget;
 
-public interface IBudgetReadRepository
+public interface IBudgetReadRepository : IReadRepository<BudgetReadModel>
 {
-	Task<Domains.Budget.Budget?> GetByIdAsync(
+	Task<BudgetReadModel?> GetByIdAsync(
 		Guid budgetId,
 		Guid userId,
 		CancellationToken ct = default
 	);
 
-	Task<Domains.Budget.Budget?> GetActiveByCategoryAsync(
+	Task<BudgetReadModel?> GetActiveByCategoryAsync(
 		Guid userId,
 		Guid categoryId,
 		DateOnly date,
@@ -26,7 +27,7 @@ public interface IBudgetReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<PagedResult<Domains.Budget.Budget>> GetAllAsync(
+	Task<PagedResult<BudgetReadModel>> GetAllAsync(
 		Guid userId,
 		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,

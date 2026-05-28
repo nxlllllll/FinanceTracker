@@ -1,16 +1,12 @@
-﻿using FinanceTracker.Core.Results;
+﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.User;
 
-public interface IUserReadRepository
+public interface IUserQueryRepository : IReadRepository<UserReadModel>
 {
-	Task<Domains.User.User?> GetByIdAsync(
+	Task<UserReadModel?> GetByIdAsync(
 		Guid userId,
-		CancellationToken ct = default
-	);
-
-	Task<Domains.User.User?> GetByEmailAsync(
-		string email,
 		CancellationToken ct = default
 	);
 
@@ -27,7 +23,7 @@ public interface IUserReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<PagedResult<OperationRecord>> GetHistoryAsync(
+	Task<PagedResult<ReadModels.Operation>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
 		DateTimeOffset? dateFrom = null,

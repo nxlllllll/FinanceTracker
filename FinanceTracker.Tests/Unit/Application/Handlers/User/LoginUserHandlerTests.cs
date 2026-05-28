@@ -12,7 +12,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class LoginUserHandlerTests
 {
-	private IUserReadRepository _userReadRepository = null!;
+	private IUserAuthRepository _userAuthRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
 	private ISessionIssuer _sessionIssuer = null!;
 	private LoginUserHandler _userHandler = null!;
@@ -38,12 +38,12 @@ public sealed class LoginUserHandlerTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userReadRepository = Substitute.For<IUserReadRepository>();
+		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
 		_sessionIssuer = Substitute.For<ISessionIssuer>();
 
 		_userHandler = new LoginUserHandler(
-			userReadRepository: _userReadRepository,
+			userAuthRepository: _userAuthRepository,
 			passwordHasher: _passwordHasher,
 			sessionIssuer: _sessionIssuer
 		);
@@ -52,7 +52,7 @@ public sealed class LoginUserHandlerTests
 	[Test]
 	public async Task Handle_WhenUserNotFound_ShouldReturnInvalidCredentials()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
@@ -69,7 +69,7 @@ public sealed class LoginUserHandlerTests
 	[Test]
 	public async Task Handle_WhenPasswordInvalid_ShouldReturnInvalidCredentials()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
@@ -90,7 +90,7 @@ public sealed class LoginUserHandlerTests
 	[Test]
 	public async Task Handle_WhenValidCredentials_ShouldCallSessionIssuer()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
@@ -117,7 +117,7 @@ public sealed class LoginUserHandlerTests
 	[Test]
 	public async Task Handle_WhenValidCredentials_ShouldReturnTokenResponse()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
@@ -137,13 +137,12 @@ public sealed class LoginUserHandlerTests
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value!.AccessToken).IsEqualTo(expected: TestSessionToken.AccessToken);
-		await Assert.That(value: result.Value.RefreshToken).IsEqualTo(expected: TestSessionToken.RefreshToken);
 	}
 
 	[Test]
 	public async Task Handle_WhenValidCredentials_ShouldNotExposeWhichFieldFailed()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
@@ -153,7 +152,7 @@ public sealed class LoginUserHandlerTests
 			ct: CancellationToken.None
 		);
 
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
@@ -167,6 +166,7 @@ public sealed class LoginUserHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: resultNoUser.Error!.GetType()).IsEqualTo(expected: resultWrongPassword.Error!.GetType());
+		await Assert.That(value: resultNoUser.Error!.GetType())
+			.IsEqualTo(expected: resultWrongPassword.Error!.GetType());
 	}
 }

@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.ReadModels;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Budget.Queries.GetBudget;
@@ -6,4 +7,4 @@ namespace FinanceTracker.Application.UseCases.Budget.Queries.GetBudget;
 public sealed record GetBudgetQuery(
 	Guid UserId,
 	Guid BudgetId
-) : IRequest<Core.Domains.Budget.Budget?>, IUserScopedRequest;
+) : IRequest<BudgetReadModel?>, IUserScopedRequest;

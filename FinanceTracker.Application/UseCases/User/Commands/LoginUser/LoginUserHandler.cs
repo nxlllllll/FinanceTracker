@@ -8,7 +8,7 @@ using MediatR;
 namespace FinanceTracker.Application.UseCases.User.Commands.LoginUser;
 
 public sealed class LoginUserHandler(
-	IUserReadRepository userReadRepository,
+	IUserAuthRepository userAuthRepository,
 	IPasswordHasher passwordHasher,
 	ISessionIssuer sessionIssuer
 ) : IRequestHandler<LoginUserCommand, Result<SessionToken, DomainException>>
@@ -17,7 +17,7 @@ public sealed class LoginUserHandler(
 		LoginUserCommand userCommand,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User? user = await userReadRepository.GetByEmailAsync(email: userCommand.Email.Value, ct: ct);
+		Core.Domains.User.User? user = await userAuthRepository.GetByEmailAsync(email: userCommand.Email.Value, ct: ct);
 
 		if (user is null || !await passwordHasher.Verify(password: userCommand.Password, hash: user.PasswordHash))
 			return Result<SessionToken, DomainException>.Failure(error: new InvalidCredentialsException());

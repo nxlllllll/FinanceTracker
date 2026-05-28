@@ -8,11 +8,11 @@ public sealed class UnresolvableEventReadRepository(
     FinanceTrackerContext context
 ) : IUnresolvableEventReadRepository
 {
-    public async Task<IReadOnlyList<Core.Repositories.UnresolvableEvent.UnresolvableEvent>> GetAllAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<Core.ReadModels.UnresolvableEvent>> GetAllAsync(CancellationToken ct = default)
     {
         return await context.UnresolvableEvents.AsNoTracking()
             .OrderBy(keySelector: e => e.OccurredAt)
-            .Select(selector: e => new Core.Repositories.UnresolvableEvent.UnresolvableEvent(
+            .Select(selector: e => new Core.ReadModels.UnresolvableEvent(
                 Id: e.Id,
                 Type: e.Type,
                 ReferenceId: e.ReferenceId,

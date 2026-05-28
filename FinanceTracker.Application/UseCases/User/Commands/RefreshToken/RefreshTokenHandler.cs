@@ -10,7 +10,7 @@ using MediatR;
 namespace FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 
 public sealed class RefreshTokenHandler(
-	IUserReadRepository userReadRepository,
+	IUserAuthRepository userAuthRepository,
 	IUserSessionReadRepository userSessionReadRepository,
 	IUserSessionWriteRepository userSessionWriteRepository,
 	ITokenService tokenService,
@@ -29,8 +29,7 @@ public sealed class RefreshTokenHandler(
 		if (session is null || !session.IsActive(now: dateProvider.UtcNow))
 			return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
 
-		Core.Domains.User.User? user = await userReadRepository.GetByIdAsync(userId: session.UserId, ct: ct);
-
+		Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(userId: session.UserId, ct: ct);
 		if (user is null)
 			return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
 

@@ -1,21 +1,25 @@
-﻿namespace FinanceTracker.Core.Repositories.Transfer;
+﻿using FinanceTracker.Core.ReadModels;
 
-public interface ITransferReadRepository
+namespace FinanceTracker.Core.Repositories.Transfer;
+
+public interface ITransferReadRepository : IReadRepository<TransferReadModel>
 {
-	Task<Domains.Transfer.Transfer?> GetByIdAsync(
+	Task<TransferReadModel?> GetByIdAsync(
 		Guid transferId,
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<Domains.Transfer.Transfer>> GetAllAsync(
+	Task<IReadOnlyList<TransferReadModel>> GetAllAsync(
 		Guid userId,
 		Guid? accountId = null,
 		DateTimeOffset? dateFrom = null,
 		DateTimeOffset? dateTo = null,
 		CancellationToken ct = default
 	);
-	
-	Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(CancellationToken ct = default);
+
+	Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(
+		CancellationToken ct = default
+	);
 
 	Task<int> GetPendingCreditCountAsync(
 		TimeSpan gracePeriod,

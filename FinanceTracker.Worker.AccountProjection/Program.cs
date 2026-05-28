@@ -1,5 +1,4 @@
 using FinanceTracker.Contracts.Messages.Account;
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;

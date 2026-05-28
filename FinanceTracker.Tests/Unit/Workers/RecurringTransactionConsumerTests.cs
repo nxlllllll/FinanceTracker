@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
@@ -55,7 +56,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RecurringTransactionFactory.Create().Value!);
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
@@ -80,7 +81,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			Amount: 5000m,
 			Currency: "RUB",
 			Direction: "Credit",
-			Description: "��������",
+			Description: "Зарплата",
 			OccurredAt: FakeDateProvider.Default.UtcNow,
 			CorrelationId: Guid.CreateVersion7()
 		);
@@ -134,7 +135,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction?)null);
+		).Returns(returnThis: (RecurringTransactionReadModel?)null);
 
 		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
@@ -151,7 +152,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RecurringTransactionFactory.Create().Value!);
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
@@ -183,7 +184,10 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		Guid messageId = Guid.CreateVersion7();
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		bool saved = Context.ProcessedMessages.Any(predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(RecurringTransactionConsumer));
+		bool saved = Context.ProcessedMessages.Any(predicate: m =>
+			m.MessageId == messageId &&
+			m.ConsumerType == nameof(RecurringTransactionConsumer)
+		);
 
 		await Assert.That(value: saved).IsTrue();
 	}

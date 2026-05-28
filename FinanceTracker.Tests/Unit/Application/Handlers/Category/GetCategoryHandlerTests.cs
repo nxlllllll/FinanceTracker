@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetCategory;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -22,7 +23,7 @@ public sealed class GetCategoryHandlerTests
 	[Test]
 	public async Task Handle_WhenCategoryExists_ShouldReturnCategory()
 	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
+		CategoryReadModel category = CategoryFactory.CreateReadModel();
 
 		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
@@ -30,7 +31,7 @@ public sealed class GetCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		FinanceTracker.Core.Domains.Category.Category? result = await _handler.Handle(
+		CategoryReadModel? result = await _handler.Handle(
 			query: new GetCategoryQuery(CategoryId: category.Id, UserId: UserId),
 			ct: CancellationToken.None
 		);
@@ -46,9 +47,9 @@ public sealed class GetCategoryHandlerTests
 			categoryId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(null));
+		).Returns(returnThis: Task.FromResult<CategoryReadModel?>(null));
 
-		FinanceTracker.Core.Domains.Category.Category? result = await _handler.Handle(
+		CategoryReadModel? result = await _handler.Handle(
 			query: new GetCategoryQuery(CategoryId: Guid.CreateVersion7(), UserId: UserId),
 			ct: CancellationToken.None
 		);
@@ -65,7 +66,7 @@ public sealed class GetCategoryHandlerTests
 			categoryId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Category.Category?>(null));
+		).Returns(returnThis: Task.FromResult<CategoryReadModel?>(null));
 
 		await _handler.Handle(
 			query: new GetCategoryQuery(CategoryId: categoryId, UserId: UserId),

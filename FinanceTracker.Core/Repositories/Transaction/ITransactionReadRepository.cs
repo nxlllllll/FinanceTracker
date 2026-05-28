@@ -1,17 +1,18 @@
 ﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Transaction;
 
-public interface ITransactionReadRepository
+public interface ITransactionReadRepository : IReadRepository<TransactionReadModel>
 {
-	Task<Domains.Transaction.Transaction?> GetByIdAsync(
+	Task<TransactionReadModel?> GetByIdAsync(
 		Guid transactionId,
 		Guid userId,
 		CancellationToken ct = default
 	);
 
-	Task<PagedResult<Domains.Transaction.Transaction>> GetAllAsync(
+	Task<PagedResult<TransactionReadModel>> GetAllAsync(
 		Guid userId,
 		Guid accountId,
 		Guid? categoryId = null,
@@ -25,7 +26,5 @@ public interface ITransactionReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(
-		CancellationToken ct = default
-	);
+	Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(CancellationToken ct = default);
 }

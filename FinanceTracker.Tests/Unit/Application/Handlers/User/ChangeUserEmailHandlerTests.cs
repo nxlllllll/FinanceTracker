@@ -14,7 +14,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class ChangeUserEmailHandlerTests
 {
-	private IUserReadRepository _userReadRepository = null!;
+	private IUserAuthRepository _userAuthRepository = null!;
 	private IUserWriteRepository _userWriteRepository = null!;
 	private IDomainOutboxWriter _domainOutboxWriter = null!;
 	private IUnitOfWork _unitOfWork = null!;
@@ -24,7 +24,7 @@ public sealed class ChangeUserEmailHandlerTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userReadRepository = Substitute.For<IUserReadRepository>();
+		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_domainOutboxWriter = Substitute.For<IDomainOutboxWriter>();
 		_correlationContext = Substitute.For<ICorrelationContext>();
@@ -37,7 +37,7 @@ public sealed class ChangeUserEmailHandlerTests
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 
 		_handler = new ChangeUserEmailHandler(
-			userReadRepository: _userReadRepository,
+			userAuthRepository: _userAuthRepository,
 			userWriteRepository: _userWriteRepository,
 			domainOutboxWriter: _domainOutboxWriter,
 			unitOfWork: _unitOfWork,
@@ -51,7 +51,7 @@ public sealed class ChangeUserEmailHandlerTests
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
@@ -74,7 +74,7 @@ public sealed class ChangeUserEmailHandlerTests
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
@@ -98,7 +98,7 @@ public sealed class ChangeUserEmailHandlerTests
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 		FinanceTracker.Core.Domains.User.User anotherUser = UserFactory.Create(email: "new@test.com").Value!;
 
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: anotherUser);
@@ -119,7 +119,7 @@ public sealed class ChangeUserEmailHandlerTests
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 		FinanceTracker.Core.Domains.User.User anotherUser = UserFactory.Create(email: "new@test.com").Value!;
 
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: anotherUser);

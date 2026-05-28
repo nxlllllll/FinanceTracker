@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.Currency;
+﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Currency;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;

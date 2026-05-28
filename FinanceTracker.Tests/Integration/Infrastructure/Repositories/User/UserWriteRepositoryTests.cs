@@ -1,4 +1,6 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
@@ -42,7 +44,7 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.User.User user = await CreateAndSaveUserAsync();
 
-        Core.Domains.User.User? loaded = await _readRepository.GetByIdAsync(userId: user.Id);
+        UserReadModel? loaded = await (_readRepository as IUserQueryRepository).GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: user.Id);
@@ -60,7 +62,7 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
             newEmail: Email.Create(value: "new@test.com").Value
         );
 
-        Core.Domains.User.User? loaded = await _readRepository.GetByIdAsync(userId: user.Id);
+        UserReadModel? loaded = await (_readRepository as IUserQueryRepository).GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Email.Value).IsEqualTo(expected: "new@test.com");
@@ -73,7 +75,7 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
 
         await _writeRepository.ChangePasswordAsync(userId: user.Id, newPasswordHash: "newHash");
 
-        Core.Domains.User.User? loaded = await _readRepository.GetByIdAsync(userId: user.Id);
+        Core.Domains.User.User? loaded = await (_readRepository as IUserAuthRepository).GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.PasswordHash).IsEqualTo(expected: "newHash");
@@ -90,7 +92,7 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
             newBaseCurrencyCode: Core.ValueObjects.Currency.Create(value: "USD").Value
         );
 
-        Core.Domains.User.User? loaded = await _readRepository.GetByIdAsync(userId: user.Id);
+        UserReadModel? loaded = await (_readRepository as IUserQueryRepository).GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.BaseCurrency.Value).IsEqualTo(expected: "USD");

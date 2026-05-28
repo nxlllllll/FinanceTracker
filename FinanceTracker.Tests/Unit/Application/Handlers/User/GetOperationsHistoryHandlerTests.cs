@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Application.UseCases.User.Queries.GetOperationsHistory;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -10,19 +11,19 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class GetOperationsHistoryHandlerTests
 {
-	private IUserReadRepository _userReadRepository = null!;
+	private IUserQueryRepository _userQueryRepository = null!;
 	private GetOperationsHistoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userReadRepository = Substitute.For<IUserReadRepository>();
-		_handler = new GetOperationsHistoryHandler(userReadRepository: _userReadRepository);
+		_userQueryRepository = Substitute.For<IUserQueryRepository>();
+		_handler = new GetOperationsHistoryHandler(userQueryRepository: _userQueryRepository);
 	}
 
-	private static PagedResult<OperationRecord> EmptyPage()
+	private static PagedResult<Operation> EmptyPage()
 	{
-		return new PagedResult<OperationRecord>(
+		return new PagedResult<Operation>(
 			Items: [],
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -30,9 +31,9 @@ public sealed class GetOperationsHistoryHandlerTests
 		);
 	}
 
-	private static PagedResult<OperationRecord> PageOf(IReadOnlyList<OperationRecord> items)
+	private static PagedResult<Operation> PageOf(IReadOnlyList<Operation> items)
 	{
-		return new PagedResult<OperationRecord>(
+		return new PagedResult<Operation>(
 			Items: items,
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -43,25 +44,23 @@ public sealed class GetOperationsHistoryHandlerTests
 	[Test]
 	public async Task Handle_ShouldReturnOperations()
 	{
-		IReadOnlyList<OperationRecord> operations = [
-			new OperationRecord(
-				Id: Guid.CreateVersion7(),
-				Type: OperationFilterType.Income,
-				Description: null,
-				OccurredAt: FakeDateProvider.Default.UtcNow,
-				Transaction: new TransactionDetails(
-					AccountId: Guid.CreateVersion7(),
-					CategoryId: Guid.CreateVersion7(),
-					Amount: 1000m,
-					Currency: Currency.Create(value: "RUB").Value,
-					Direction: DirectionType.Credit,
-					IsExcluded: false
-				),
-				Transfer: null
-			)
-		];
+		IReadOnlyList<Operation> operations = [new Operation(
+			Id: Guid.CreateVersion7(),
+			Type: OperationFilterType.Income,
+			Description: null,
+			OccurredAt: FakeDateProvider.Default.UtcNow,
+			Transaction: new TransactionDetails(
+				AccountId: Guid.CreateVersion7(),
+				CategoryId: Guid.CreateVersion7(),
+				Amount: 1000m,
+				Currency: Currency.Create(value: "RUB").Value,
+				Direction: DirectionType.Credit,
+				IsExcluded: false
+			),
+			Transfer: null
+		)];
 
-		_userReadRepository.GetHistoryAsync(
+		_userQueryRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
 			dateFrom: Arg.Any<DateTimeOffset?>(),
@@ -72,7 +71,7 @@ public sealed class GetOperationsHistoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: PageOf(items: operations));
 
-		PagedResult<OperationRecord> result = await _handler.Handle(
+		PagedResult<Operation> result = await _handler.Handle(
 			query: new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -89,7 +88,7 @@ public sealed class GetOperationsHistoryHandlerTests
 		DateTimeOffset cursorOccurredAt = FakeDateProvider.Default.UtcNow.AddDays(days: -1);
 		Guid cursorId = Guid.CreateVersion7();
 
-		_userReadRepository.GetHistoryAsync(
+		_userQueryRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
 			dateFrom: Arg.Any<DateTimeOffset?>(),
@@ -110,7 +109,7 @@ public sealed class GetOperationsHistoryHandlerTests
 			PageSize: 50
 		), ct: CancellationToken.None);
 
-		await _userReadRepository.Received(requiredNumberOfCalls: 1).GetHistoryAsync(
+		await _userQueryRepository.Received(requiredNumberOfCalls: 1).GetHistoryAsync(
 			userId: userId,
 			type: OperationFilterType.Expense,
 			dateFrom: dateFrom,
@@ -125,7 +124,7 @@ public sealed class GetOperationsHistoryHandlerTests
 	[Test]
 	public async Task Handle_WhenNoOperations_ShouldReturnEmptyList()
 	{
-		_userReadRepository.GetHistoryAsync(
+		_userQueryRepository.GetHistoryAsync(
 			userId: Arg.Any<Guid>(),
 			type: Arg.Any<OperationFilterType?>(),
 			dateFrom: Arg.Any<DateTimeOffset?>(),
@@ -136,7 +135,7 @@ public sealed class GetOperationsHistoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: EmptyPage());
 
-		PagedResult<OperationRecord> result = await _handler.Handle(
+		PagedResult<Operation> result = await _handler.Handle(
 			query: new GetOperationsHistoryQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);

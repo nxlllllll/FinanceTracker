@@ -1,5 +1,5 @@
 ﻿using FinanceTracker.Application.Behaviours.RateLimit;
-using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.ReadModels;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;

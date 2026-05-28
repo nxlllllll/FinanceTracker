@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Queries.GetTransaction;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -22,7 +23,7 @@ public sealed class GetTransactionHandlerTests
 	[Test]
 	public async Task Handle_WhenTransactionExists_ShouldReturnTransaction()
 	{
-		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create();
+		TransactionReadModel transaction = TransactionFactory.CreateReadModel();
 
 		_transactionReadRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
@@ -30,7 +31,7 @@ public sealed class GetTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
 
-		FinanceTracker.Core.Domains.Transaction.Transaction? result = await _handler.Handle(
+		TransactionReadModel? result = await _handler.Handle(
 			query: new GetTransactionQuery(TransactionId: transaction.Id, UserId: UserId),
 			ct: CancellationToken.None
 		);
@@ -46,9 +47,9 @@ public sealed class GetTransactionHandlerTests
 			transactionId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Transaction.Transaction?)null);
+		).Returns(returnThis: (TransactionReadModel?)null);
 
-		FinanceTracker.Core.Domains.Transaction.Transaction? result = await _handler.Handle(
+		TransactionReadModel? result = await _handler.Handle(
 			query: new GetTransactionQuery(TransactionId: Guid.CreateVersion7(), UserId: UserId),
 			ct: CancellationToken.None
 		);
@@ -65,7 +66,7 @@ public sealed class GetTransactionHandlerTests
 			transactionId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Transaction.Transaction?)null);
+		).Returns(returnThis: (TransactionReadModel?)null);
 
 		await _handler.Handle(
 			query: new GetTransactionQuery(TransactionId: transactionId, UserId: UserId),

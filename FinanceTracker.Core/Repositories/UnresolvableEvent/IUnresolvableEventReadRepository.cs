@@ -1,6 +1,6 @@
 ﻿namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
 
-public interface IUnresolvableEventReadRepository
+public interface IUnresolvableEventReadRepository : IReadRepository<ReadModels.UnresolvableEvent>
 {
-	Task<IReadOnlyList<UnresolvableEvent>> GetAllAsync(CancellationToken ct = default);
+	Task<IReadOnlyList<ReadModels.UnresolvableEvent>> GetAllAsync(CancellationToken ct = default);
 }

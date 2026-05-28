@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRecurringTransactions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -18,9 +19,9 @@ public sealed class GetRecurringTransactionsHandlerTests
 		_handler = new GetRecurringTransactionsHandler(recurringTransactionReadRepository: _readRepository);
 	}
 
-	private static PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> EmptyPage()
+	private static PagedResult<RecurringTransactionReadModel> EmptyPage()
 	{
-		return new PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(
+		return new PagedResult<RecurringTransactionReadModel>(
 			Items: [],
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -28,10 +29,10 @@ public sealed class GetRecurringTransactionsHandlerTests
 		);
 	}
 
-	private static PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> PageOf(
-		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> items)
+	private static PagedResult<RecurringTransactionReadModel> PageOf(
+		IReadOnlyList<RecurringTransactionReadModel> items)
 	{
-		return new PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(
+		return new PagedResult<RecurringTransactionReadModel>(
 			Items: items,
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -43,9 +44,9 @@ public sealed class GetRecurringTransactionsHandlerTests
 	public async Task Handle_ShouldReturnAllUserTransactions()
 	{
 		Guid userId = Guid.CreateVersion7();
-		IReadOnlyList<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> items = [
-			RecurringTransactionFactory.Create(userId: userId).Value!,
-			RecurringTransactionFactory.Create(userId: userId).Value!
+		IReadOnlyList<RecurringTransactionReadModel> items = [
+			RecurringTransactionFactory.CreateReadModel(userId: userId),
+			RecurringTransactionFactory.CreateReadModel(userId: userId)
 		];
 
 		_readRepository.GetByUserIdAsync(
@@ -56,7 +57,7 @@ public sealed class GetRecurringTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: PageOf(items: items));
 
-		PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
+		PagedResult<RecurringTransactionReadModel> result = await _handler.Handle(
 			query: new GetRecurringTransactionsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
@@ -75,7 +76,7 @@ public sealed class GetRecurringTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: EmptyPage());
 
-		PagedResult<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction> result = await _handler.Handle(
+		PagedResult<RecurringTransactionReadModel> result = await _handler.Handle(
 			query: new GetRecurringTransactionsQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);

@@ -1,7 +1,6 @@
-﻿using System.Reflection;
-using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
-using FinanceTracker.Core.Domains.Account.Events;
+﻿using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
 using Microsoft.EntityFrameworkCore;
@@ -12,29 +11,27 @@ public sealed class TransferReadRepository(
     FinanceTrackerContext context
 ) : ITransferReadRepository
 {
-    public async Task<Core.Domains.Transfer.Transfer?> GetByIdAsync(
+    public async Task<TransferReadModel?> GetByIdAsync(
         Guid transferId,
         CancellationToken ct = default)
     {
         return await context.Transfers.AsNoTracking().Where(predicate: t => t.Id == transferId)
-            .Select(selector: t => Core.Domains.Transfer.Transfer.Reconstitute(
-                id: t.Id,
-                userId: t.UserId,
-                fromAccountId: t.FromAccountId,
-                toAccountId: t.ToAccountId,
-                amountFrom: t.AmountFrom,
-                currencyFrom: t.CurrencyFrom,
-                amountTo: t.AmountTo,
-                currencyTo: t.CurrencyTo,
-                exchangeRate: t.ExchangeRate,
-                isRatePending: t.IsRatePending,
-                status: t.Status,
-                description: t.Description,
-                occurredAt: t.OccurredAt
+            .Select(selector: t => new TransferReadModel(
+                Id: t.Id,
+                UserId: t.UserId,
+                FromAccountId: t.FromAccountId,
+                ToAccountId: t.ToAccountId,
+                AmountFrom: Money.Reconstitute(amount: t.AmountFrom, currency: t.CurrencyFrom),
+                AmountTo: Money.Reconstitute(amount: t.AmountTo, currency: t.CurrencyTo),
+                ExchangeRate: t.ExchangeRate,
+                IsRatePending: t.IsRatePending,
+                Status: t.Status,
+                Description: t.Description,
+                OccurredAt: t.OccurredAt
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<Core.Domains.Transfer.Transfer>> GetAllAsync(
+    public async Task<IReadOnlyList<TransferReadModel>> GetAllAsync(
         Guid userId,
         Guid? accountId = null,
         DateTimeOffset? dateFrom = null,
@@ -53,20 +50,18 @@ public sealed class TransferReadRepository(
             query = query.Where(predicate: t => t.OccurredAt <= dateTo);
 
         return await query.OrderByDescending(keySelector: t => t.OccurredAt)
-            .Select(selector: t => Core.Domains.Transfer.Transfer.Reconstitute(
-               id: t.Id,
-               userId: t.UserId,
-               fromAccountId: t.FromAccountId,
-               toAccountId: t.ToAccountId,
-               amountFrom: t.AmountFrom,
-               currencyFrom: t.CurrencyFrom,
-               amountTo: t.AmountTo,
-               currencyTo: t.CurrencyTo,
-               exchangeRate: t.ExchangeRate,
-               isRatePending: t.IsRatePending,
-               status: t.Status,
-               description: t.Description,
-               occurredAt: t.OccurredAt
+            .Select(selector: t => new TransferReadModel(
+                Id: t.Id,
+                UserId: t.UserId,
+                FromAccountId: t.FromAccountId,
+                ToAccountId: t.ToAccountId,
+                AmountFrom: Money.Reconstitute(amount: t.AmountFrom, currency: t.CurrencyFrom),
+                AmountTo: Money.Reconstitute(amount: t.AmountTo, currency: t.CurrencyTo),
+                ExchangeRate: t.ExchangeRate,
+                IsRatePending: t.IsRatePending,
+                Status: t.Status,
+                Description: t.Description,
+                OccurredAt: t.OccurredAt
             )).ToListAsync(cancellationToken: ct);
     }
 

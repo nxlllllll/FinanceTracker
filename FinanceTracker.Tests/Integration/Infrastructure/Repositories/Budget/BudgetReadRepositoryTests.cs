@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -37,7 +38,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-		Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(
+		BudgetReadModel? result = await _readRepository.GetByIdAsync(
 			budgetId: budgetId,
 			userId: userId
 		);
@@ -50,7 +51,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WhenNotExists_ShouldReturnNull()
 	{
-		Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(
+		BudgetReadModel? result = await _readRepository.GetByIdAsync(
 			budgetId: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7()
 		);
@@ -65,7 +66,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-		Core.Domains.Budget.Budget? result = await _readRepository.GetByIdAsync(
+		BudgetReadModel? result = await _readRepository.GetByIdAsync(
 			budgetId: budgetId,
 			userId: Guid.CreateVersion7()
 		);
@@ -80,7 +81,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-		Core.Domains.Budget.Budget? result = await _readRepository.GetActiveByCategoryAsync(
+		BudgetReadModel? result = await _readRepository.GetActiveByCategoryAsync(
 			userId: userId,
 			categoryId: categoryId,
 			date: new DateOnly(year: 2025, month: 1, day: 15)
@@ -97,7 +98,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-		Core.Domains.Budget.Budget? result = await _readRepository.GetActiveByCategoryAsync(
+		BudgetReadModel? result = await _readRepository.GetActiveByCategoryAsync(
 			userId: userId,
 			categoryId: categoryId,
 			date: new DateOnly(year: 2025, month: 2, day: 1)
@@ -115,7 +116,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId1);
 		await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId2);
 
-		PagedResult<Core.Domains.Budget.Budget> result = await _readRepository.GetAllAsync(userId: userId);
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
 		await Assert.That(value: result.HasNextPage).IsFalse();
@@ -129,7 +130,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: anotherUserId);
 		await _budgetBuilder.CreateAsync(userId: anotherUserId, categoryId: categoryId);
 
-		PagedResult<Core.Domains.Budget.Budget> result = await _readRepository.GetAllAsync(userId: userId);
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
 		await Assert.That(value: result.Items).IsEmpty();
 		await Assert.That(value: result.HasNextPage).IsFalse();
@@ -145,7 +146,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 		}
 
-		PagedResult<Core.Domains.Budget.Budget> result = await _readRepository.GetAllAsync(
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			pageSize: 3
 		);
@@ -166,14 +167,14 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 		}
 
-		PagedResult<Core.Domains.Budget.Budget> firstPage = await _readRepository.GetAllAsync(
+		PagedResult<BudgetReadModel> firstPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			pageSize: 3
 		);
 
-		Core.Domains.Budget.Budget lastItem = firstPage.Items[^1];
+		BudgetReadModel lastItem = firstPage.Items[^1];
 
-		PagedResult<Core.Domains.Budget.Budget> secondPage = await _readRepository.GetAllAsync(
+		PagedResult<BudgetReadModel> secondPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			cursorCreatedAt: lastItem.CreatedAt,
 			cursorId: lastItem.Id,

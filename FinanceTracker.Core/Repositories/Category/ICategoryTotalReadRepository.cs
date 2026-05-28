@@ -1,6 +1,8 @@
-﻿namespace FinanceTracker.Core.Repositories.Category;
+﻿using FinanceTracker.Core.ReadModels;
 
-public interface ICategoryTotalReadRepository
+namespace FinanceTracker.Core.Repositories.Category;
+
+public interface ICategoryTotalReadRepository : IReadRepository<CategoryTotal>
 {
 	Task<CategoryTotal?> GetByCategoryAsync(
 		Guid userId,
@@ -8,7 +10,7 @@ public interface ICategoryTotalReadRepository
 		DateOnly period,
 		CancellationToken ct = default
 	);
-	
+
 	Task<IReadOnlyList<CategoryTotal>> GetAllByPeriodAsync(
 		Guid userId,
 		DateOnly period,

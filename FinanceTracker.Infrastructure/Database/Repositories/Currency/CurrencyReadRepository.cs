@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.Currency;
+﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,8 +33,7 @@ public sealed class CurrencyReadRepository(
 		string code,
 		CancellationToken ct = default)
 	{
-		return await context.Currencies.AsNoTracking()
-			.Where(predicate: currency => currency.Code == code)
+		return await context.Currencies.AsNoTracking().Where(predicate: currency => currency.Code == code)
 			.Select(selector: currency => new CurrencyInfo(
 				Code: currency.Code,
 				Name: currency.Name,

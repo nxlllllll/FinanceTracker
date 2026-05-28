@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

@@ -11,14 +11,14 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 
 public sealed class CategoryLoaderTests
 {
-	private ICategoryReadRepository _categoryRepository = null!;
+	private ICategoryRepository _categoryRepository = null!;
 	private CategoryLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_categoryRepository = Substitute.For<ICategoryReadRepository>();
-		_loader = new CategoryLoader(categoryReadRepository: _categoryRepository);
+		_categoryRepository = Substitute.For<ICategoryRepository>();
+		_loader = new CategoryLoader(categoryRepository: _categoryRepository);
 	}
 
 	[Test]

@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.Budget;
+﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Budget;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;

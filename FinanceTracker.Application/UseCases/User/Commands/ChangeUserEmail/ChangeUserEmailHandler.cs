@@ -11,7 +11,7 @@ using FinanceTracker.Core.ValueObjects;
 namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 
 public sealed class ChangeUserEmailHandler(
-	IUserReadRepository userReadRepository,
+	IUserAuthRepository userAuthRepository,
 	IUserWriteRepository userWriteRepository,
 	IDomainOutboxWriter domainOutboxWriter,
 	IUnitOfWork unitOfWork,
@@ -24,7 +24,7 @@ public sealed class ChangeUserEmailHandler(
 		Core.Domains.User.User user,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User? existing = await userReadRepository.GetByEmailAsync(email: command.NewEmail, ct: ct);
+		Core.Domains.User.User? existing = await userAuthRepository.GetByEmailAsync(email: command.NewEmail, ct: ct);
 		if (existing is not null)
 			return Result<Guid, DomainException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.NewEmail));
 

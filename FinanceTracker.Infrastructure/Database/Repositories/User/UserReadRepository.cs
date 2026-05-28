@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Operation;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -12,34 +13,48 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
 public sealed class UserReadRepository(
 	FinanceTrackerContext context
-) : IUserReadRepository
+) : IUserAuthRepository, IUserQueryRepository
 {
-	public async Task<Core.Domains.User.User?> GetByIdAsync(
+	async Task<Core.Domains.User.User?> IUserAuthRepository.GetByIdAsync(
 		Guid userId,
 		CancellationToken ct = default)
 	{
-		return await context.Users.AsNoTracking().Where(predicate: user => user.Id == userId)
-			.Select(selector: user => Core.Domains.User.User.Reconstitute(
-				id: user.Id,
-				email: user.Email,
-				passwordHash: user.PasswordHash,
-				baseCurrencyCode: user.BaseCurrencyCode,
-				createdAt: user.CreatedAt
+		return await context.Users.AsNoTracking().Where(predicate: u => u.Id == userId)
+			.Select(selector: u => Core.Domains.User.User.Reconstitute(
+				id: u.Id,
+				email: u.Email,
+				passwordHash: u.PasswordHash,
+				baseCurrencyCode: u.BaseCurrencyCode,
+				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
-	
+
 	public async Task<Core.Domains.User.User?> GetByEmailAsync(
 		string email,
 		CancellationToken ct = default)
 	{
-		return await context.Users.AsNoTracking().Where(predicate: user => user.Email == email)
-			.Select(selector: user => Core.Domains.User.User.Reconstitute(
-				id: user.Id,
-				email: user.Email,
-				passwordHash: user.PasswordHash,
-				baseCurrencyCode: user.BaseCurrencyCode,
-				createdAt: user.CreatedAt
+		return await context.Users.AsNoTracking().Where(predicate: u => u.Email == email)
+			.Select(selector: u => Core.Domains.User.User.Reconstitute(
+				id: u.Id,
+				email: u.Email,
+				passwordHash: u.PasswordHash,
+				baseCurrencyCode: u.BaseCurrencyCode,
+				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
+	}
+	
+	async Task<UserReadModel?> IUserQueryRepository.GetByIdAsync(
+		Guid userId,
+		CancellationToken ct = default)
+	{
+		return await context.Users.AsNoTracking().Where(predicate: u => u.Id == userId)
+			.Select(selector: u => new UserReadModel(
+				Id: u.Id,
+				Email: u.Email,
+				BaseCurrency: u.BaseCurrencyCode,
+				CreatedAt: u.CreatedAt
+			)).FirstOrDefaultAsync(cancellationToken: ct);
+	
 	}
 
 	public async Task<decimal> GetTotalBalanceAsync(
@@ -65,7 +80,10 @@ public sealed class UserReadRepository(
 	                .OrderByDescending(r => r.ActualAt)
 	                .Select(r => (decimal?)r.Rate)
 	                .FirstOrDefault()
-	        }).SumAsync(selector: x => x.Currency == baseCurrency.Value ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? 1m), cancellationToken: ct);
+	        }).SumAsync(
+				selector: x => x.Currency == baseCurrency.Value ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? 1m),
+				cancellationToken: ct
+			);
 	}
 
 	public async Task<(decimal Income, decimal Expense)> GetIncomeExpenseSummaryAsync(
@@ -73,17 +91,15 @@ public sealed class UserReadRepository(
 		DateOnly period,
 		CancellationToken ct = default)
 	{
-		var results = await context.CategoryTotals.AsNoTracking()
-		    .Where(predicate: total => total.UserId == userId && total.Period == period)
-		    .Join(
-		        inner: context.Categories.Where(c => !c.IsArchived),
-		        outerKeySelector: total => total.CategoryId,
-		        innerKeySelector: category => category.Id,
-		        resultSelector: (total, category) => new { total.Total, category.Type }
-		    )
-		    .GroupBy(keySelector: x => x.Type)
-		    .Select(selector: g => new { Type = g.Key, Sum = g.Sum(x => x.Total) })
-		    .ToListAsync(cancellationToken: ct);
+		var results = await context.CategoryTotals.AsNoTracking().Where(predicate: t => t.UserId == userId && t.Period == period)
+			.Join(
+				inner: context.Categories.Where(c => !c.IsArchived),
+				outerKeySelector: t => t.CategoryId,
+				innerKeySelector: c => c.Id,
+				resultSelector: (t, c) => new { t.Total, c.Type }
+			).GroupBy(keySelector: x => x.Type)
+			.Select(selector: g => new { Type = g.Key, Sum = g.Sum(x => x.Total) })
+			.ToListAsync(cancellationToken: ct);
 
 		decimal income  = results.FirstOrDefault(predicate: x => x.Type == CategoryType.Income)?.Sum ?? 0;
 		decimal expense = results.FirstOrDefault(predicate: x => x.Type == CategoryType.Expense)?.Sum ?? 0;
@@ -91,7 +107,7 @@ public sealed class UserReadRepository(
 		return (income, expense);
 	}
 
-	public async Task<PagedResult<OperationRecord>> GetHistoryAsync(
+	public async Task<PagedResult<Core.ReadModels.Operation>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
 		DateTimeOffset? dateFrom = null,
@@ -134,7 +150,7 @@ public sealed class UserReadRepository(
 
 		OperationEntity? last = entities.Count > 0 ? entities[^1] : null;
 
-		List<OperationRecord> dtos = entities.Select(selector: e =>
+		List<Core.ReadModels.Operation> items = entities.Select(selector: e =>
 		{
 			OperationPayload payload = e.Type switch
 			{
@@ -143,7 +159,7 @@ public sealed class UserReadRepository(
 				_ => throw new InvalidOperationException(message: $"Unknown operation type: {e.Type}")
 			};
 
-			return new OperationRecord(
+			return new Core.ReadModels.Operation(
 				Id: e.Id,
 				Type: payload is TransactionPayload tp
 					? tp.Direction == Core.Domains.Account.DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense
@@ -169,8 +185,8 @@ public sealed class UserReadRepository(
 			);
 		}).ToList();
 
-		return new PagedResult<OperationRecord>(
-			Items: dtos.AsReadOnly(),
+		return new PagedResult<Core.ReadModels.Operation>(
+			Items: items.AsReadOnly(),
 			HasNextPage: hasNextPage,
 			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
 			NextCursorId: hasNextPage ? last?.Id : null

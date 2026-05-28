@@ -1,7 +1,6 @@
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
-using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -35,7 +34,7 @@ public sealed class RecurringTransactionHandlingJob(
 
     private async Task ProcessTransactionsAsync(CancellationToken ct)
     {
-        IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> dueTransactions = await GetDueTransactionsAsync(ct: ct);
+        IReadOnlyList<RecurringTransactionReadModel> dueTransactions = await GetDueTransactionsAsync(ct: ct);
 
         if (dueTransactions.Count == 0)
             return;
@@ -45,7 +44,7 @@ public sealed class RecurringTransactionHandlingJob(
         int processed = 0;
         int failed = 0;
 
-        foreach (Core.Domains.RecurringTransaction.RecurringTransaction transaction in dueTransactions)
+        foreach (RecurringTransactionReadModel transaction in dueTransactions)
         {
             if (ct.IsCancellationRequested)
                 break;
@@ -53,8 +52,12 @@ public sealed class RecurringTransactionHandlingJob(
             try
             {
                 await PublishAsync(transaction: transaction, ct: ct);
-                await MarkExecutedAsync(transaction: transaction, ct: ct);
-
+                await recurringTransactionWriteRepository.MarkExecutedAsync(
+                    recurringTransactionId: transaction.Id,
+                    executedAt: dateProvider.UtcNow,
+                    ct: ct
+                );
+                
                 logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processed: {++processed}/{dueTransactions.Count} (id: {transaction.Id}).");
             }
             catch (Exception ex)
@@ -68,7 +71,7 @@ public sealed class RecurringTransactionHandlingJob(
             logger.ZLogWarning(message: $"[{correlationContext.CorrelationId}] Completed with {failed} failure(s) out of {dueTransactions.Count}.");
     }
 
-    private async Task<IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction>> GetDueTransactionsAsync(CancellationToken ct)
+    private async Task<IReadOnlyList<RecurringTransactionReadModel>> GetDueTransactionsAsync(CancellationToken ct)
     {
         DateTimeOffset now = dateProvider.UtcNow;
         DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
@@ -84,7 +87,7 @@ public sealed class RecurringTransactionHandlingJob(
     }
 
     private async Task PublishAsync(
-        Core.Domains.RecurringTransaction.RecurringTransaction transaction,
+        RecurringTransactionReadModel transaction,
         CancellationToken ct)
     {
         await publisher.PublishAsync(message: new RecurringTransactionTriggeredMessage(
@@ -100,22 +103,5 @@ public sealed class RecurringTransactionHandlingJob(
             OccurredAt: dateProvider.UtcNow,
             CorrelationId: correlationContext.CorrelationId
         ), correlationId: correlationContext.CorrelationId, ct: ct);
-    }
-
-    private async Task MarkExecutedAsync(
-        Core.Domains.RecurringTransaction.RecurringTransaction transaction,
-        CancellationToken ct)
-    {
-        DateTimeOffset now = dateProvider.UtcNow;
-
-        Result<Unit, DomainException> result = transaction.MarkExecuted(executedAt: now);
-        if (result.IsFailure)
-            throw result.Error!;
-
-        await recurringTransactionWriteRepository.MarkExecutedAsync(
-            recurringTransactionId: transaction.Id,
-            executedAt: now,
-            ct: ct
-        );
     }
 }

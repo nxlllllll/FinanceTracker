@@ -1,4 +1,4 @@
-namespace FinanceTracker.Core.Repositories.User;
+namespace FinanceTracker.Core.ReadModels;
 
 public enum OperationFilterType
 {

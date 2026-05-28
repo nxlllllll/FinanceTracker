@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Repositories.Transaction;

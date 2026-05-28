@@ -18,7 +18,7 @@ public class UserBuilder(FinanceTrackerContext context )
 			Id = userId,
 			Email = Email.Create(value: $"{userId}@test.com").Value,
 			PasswordHash = "hash",
-			BaseCurrencyCode = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
+			BaseCurrencyCode = Currency.Create(value: currencyCode).Value,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await context.SaveChangesAsync();

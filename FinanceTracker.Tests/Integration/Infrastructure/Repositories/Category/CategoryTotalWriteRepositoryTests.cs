@@ -19,14 +19,14 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
     private CategoryTotalWriteRepository _writeRepository = null!;
     private UserBuilder _userBuilder = null!;
     private CategoryBuilder _categoryBuilder = null!;
-    private IUserReadRepository _userReadRepository = null!;
+    private IUserQueryRepository _userQueryRepository = null!;
     private ICurrencyConversionService _currencyConversionService = null!;
 
 
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
-        _userReadRepository = new UserReadRepository(context: Context);
+        _userQueryRepository = new UserReadRepository(context: Context);
         _currencyConversionService = new CurrencyConversionService(
             currencyRateReadRepository: new CurrencyRateReadRepository(context: Context),
             logger: Substitute.For<ILogger<CurrencyConversionService>>()
@@ -34,7 +34,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
         
         _writeRepository = new CategoryTotalWriteRepository(
             context: Context,
-            userReadRepository:  _userReadRepository,
+            userQueryRepository: _userQueryRepository,
             currencyConversionService: _currencyConversionService,
             dateProvider: FakeDateProvider.Default
         );

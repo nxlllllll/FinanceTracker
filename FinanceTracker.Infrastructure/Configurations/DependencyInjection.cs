@@ -136,61 +136,73 @@ public static class DependencyInjection
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		
+		// Account
 		services.AddScoped<IAccountRepository, AccountRepository>();
 		services.AddScoped<IAccountReadRepository, AccountReadRepository>();
 		services.AddScoped<IAccountWriteRepository, AccountWriteRepository>();
-		
+
+		// Budget
+		services.AddScoped<IBudgetRepository, BudgetRepository>();
 		services.AddScoped<IBudgetReadRepository, BudgetReadRepository>();
 		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();
-
 		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
 
+		// Category
+		services.AddScoped<ICategoryRepository, CategoryRepository>();
 		services.AddScoped<ICategoryReadRepository, CategoryReadRepository>();
 		services.AddScoped<ICategoryWriteRepository, CategoryWriteRepository>();
-		
 		services.AddScoped<ICategoryTotalWriteRepository, CategoryTotalWriteRepository>();
 		services.AddScoped<ICategoryTotalReadRepository, CategoryTotalReadRepository>();
-		
+
+		// Currency
 		services.AddScoped<ICurrencyReadRepository, CurrencyReadRepository>();
 		services.Decorate<ICurrencyReadRepository, CachedCurrencyReadRepository>();
-		
 		services.AddScoped<ICurrencyRateReadRepository, CurrencyRateReadRepository>();
 		services.Decorate<ICurrencyRateReadRepository, CachedCurrencyRateReadRepository>();
 		services.AddScoped<ICurrencyRateWriteRepository, CurrencyRateWriteRepository>();
-		
+
+		// RecurringTransaction
+		services.AddScoped<IRecurringTransactionRepository, RecurringTransactionRepository>();
 		services.AddScoped<IRecurringTransactionReadRepository, RecurringTransactionReadRepository>();
 		services.AddScoped<IRecurringTransactionWriteRepository, RecurringTransactionWriteRepository>();
-		
+
+		// Transaction
+		services.AddScoped<ITransactionRepository, TransactionRepository>();
 		services.AddScoped<ITransactionReadRepository, TransactionReadRepository>();
 		services.AddScoped<ITransactionWriteRepository, TransactionWriteRepository>();
 
+		// Transfer
 		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
 		services.AddScoped<ITransferReadRepository, TransferReadRepository>();
 
-		services.AddScoped<IUnresolvableEventReadRepository, UnresolvableEventReadRepository>();
-		services.AddScoped<IUnresolvableEventWriteRepository, UnresolvableEventWriteRepository>();
-		
-		services.AddScoped<IUserReadRepository, UserReadRepository>();
+		// User
+		services.AddScoped<IUserAuthRepository, UserReadRepository>();
+		services.AddScoped<IUserQueryRepository, UserReadRepository>();
 		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
-
 		services.AddScoped<IUserSessionReadRepository, UserSessionReadRepository>();
 		services.AddScoped<IUserSessionWriteRepository, UserSessionWriteRepository>();
-		
+
+		// UnresolvableEvent
+		services.AddScoped<IUnresolvableEventReadRepository, UnresolvableEventReadRepository>();
+		services.AddScoped<IUnresolvableEventWriteRepository, UnresolvableEventWriteRepository>();
+
+		// Operations
 		services.AddScoped<IOperationsWriteRepository, OperationsWriteRepository>();
-		
+
+		// Idempotency
 		services.AddScoped<IIdempotencyReadRepository, IdempotencyReadRepository>();
 		services.AddScoped<IIdempotencyWriteRepository, IdempotencyWriteRepository>();
-		
+
+		// ProcessedMessage
 		services.AddScoped<IProcessedMessageReadRepository, ProcessedMessageReadRepository>();
 		services.AddScoped<IProcessedMessageWriteRepository, ProcessedMessageWriteRepository>();
 
+		// Outbox
 		services.AddScoped<IOutboxReadRepository, OutboxReadRepository>();
 		services.AddScoped<IOutboxWriteRepository, OutboxWriteRepository>();
-
 		services.AddScoped<IDomainOutboxReadRepository, DomainOutboxReadRepository>();
 		services.AddScoped<IDomainOutboxWriteRepository, DomainOutboxWriteRepository>();
-		
 		services.AddScoped<ISnapshotWriteRepository, SnapshotWriteRepository>();
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();

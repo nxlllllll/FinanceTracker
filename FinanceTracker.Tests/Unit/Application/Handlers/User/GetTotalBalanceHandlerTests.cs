@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Queries.GetTotalBalance;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -9,16 +10,23 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class GetTotalBalanceHandlerTests
 {
-	private IUserReadRepository _userReadRepository = null!;
+	private IUserQueryRepository _userQueryRepository = null!;
 	private GetTotalBalanceHandler _handler = null!;
+
+	private static UserReadModel CreateUserReadModel(string currency = "RUB") => new UserReadModel(
+		Id: Guid.CreateVersion7(),
+		Email: Email.Create(value: "test@test.com").Value!,
+		BaseCurrency: Currency.Create(value: currency).Value,
+		CreatedAt: FakeDateProvider.Default.UtcNow
+	);
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userReadRepository = Substitute.For<IUserReadRepository>();
+		_userQueryRepository = Substitute.For<IUserQueryRepository>();
 
 		_handler = new GetTotalBalanceHandler(
-			userReadRepository: _userReadRepository,
+			userQueryRepository: _userQueryRepository,
 			dateProvider: FakeDateProvider.Default
 		);
 	}
@@ -26,13 +34,13 @@ public sealed class GetTotalBalanceHandlerTests
 	[Test]
 	public async Task Handle_WithSingleAccountInBaseCurrency_ShouldReturnBalance()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
+		UserReadModel user = CreateUserReadModel(currency: "RUB");
 
-		_userReadRepository.GetByIdAsync(
-			userId: Arg.Any<Guid>(), 
+		_userQueryRepository.GetByIdAsync(
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
-		_userReadRepository.GetTotalBalanceAsync(
+		_userQueryRepository.GetTotalBalanceAsync(
 			userId: Arg.Any<Guid>(),
 			baseCurrency: Arg.Any<Currency>(),
 			date: Arg.Any<DateOnly>(),
@@ -51,13 +59,13 @@ public sealed class GetTotalBalanceHandlerTests
 	[Test]
 	public async Task Handle_ShouldPassCorrectCurrencyAndDate()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
+		UserReadModel user = CreateUserReadModel(currency: "RUB");
 
-		_userReadRepository.GetByIdAsync(
+		_userQueryRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
-		_userReadRepository.GetTotalBalanceAsync(
+		_userQueryRepository.GetTotalBalanceAsync(
 			userId: Arg.Any<Guid>(),
 			baseCurrency: Arg.Any<Currency>(),
 			date: Arg.Any<DateOnly>(),
@@ -69,7 +77,7 @@ public sealed class GetTotalBalanceHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _userReadRepository.Received(requiredNumberOfCalls: 1).GetTotalBalanceAsync(
+		await _userQueryRepository.Received(requiredNumberOfCalls: 1).GetTotalBalanceAsync(
 			userId: user.Id,
 			baseCurrency: user.BaseCurrency,
 			date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime),
@@ -80,10 +88,10 @@ public sealed class GetTotalBalanceHandlerTests
 	[Test]
 	public async Task Handle_WhenUserNotFound_ShouldThrow()
 	{
-		_userReadRepository.GetByIdAsync(
+		_userQueryRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
+		).Returns(returnThis: (UserReadModel?)null);
 
 		await Assert.ThrowsAsync<NotFoundException>(
 			action: async () => await _handler.Handle(

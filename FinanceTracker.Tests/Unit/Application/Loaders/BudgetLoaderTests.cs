@@ -11,20 +11,20 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 
 public sealed class BudgetLoaderTests
 {
-	private IBudgetReadRepository _budgetReadRepository = null!;
+	private IBudgetRepository _budgetRepository = null!;
 	private BudgetLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_budgetReadRepository = Substitute.For<IBudgetReadRepository>();
-		_loader = new BudgetLoader(budgetReadRepository: _budgetReadRepository);
+		_budgetRepository = Substitute.For<IBudgetRepository>();
+		_loader = new BudgetLoader(budgetRepository: _budgetRepository);
 	}
 
 	[Test]
 	public async Task LoadAsync_WhenNotFound_ShouldThrowNotFoundException()
 	{
-		_budgetReadRepository.GetByIdAsync(
+		_budgetRepository.GetByIdAsync(
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -43,7 +43,7 @@ public sealed class BudgetLoaderTests
 	public async Task LoadAsync_WhenOwner_ShouldReturnBudget()
 	{
 		Budget budget = BudgetFactory.Create().Value!;
-		_budgetReadRepository.GetByIdAsync(
+		_budgetRepository.GetByIdAsync(
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

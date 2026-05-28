@@ -17,7 +17,7 @@ public sealed class RedisRateLimiterTests : RedisFixture
 	{
 		string key = $"test:ratelimit:{Guid.CreateVersion7():N}";
 
-		bool result = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: 5, windowSeconds: 10);
+		bool result = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: 5, windowSeconds: 30);
 
 		await Assert.That(value: result).IsTrue();
 	}
@@ -29,9 +29,9 @@ public sealed class RedisRateLimiterTests : RedisFixture
 		const int limit = 3;
 
 		for (int i = 0; i < limit; i++)
-			await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: 10);
+			await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: 30);
 
-		bool result = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: 10);
+		bool result = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: 30);
 
 		await Assert.That(value: result).IsFalse();
 	}
@@ -43,9 +43,9 @@ public sealed class RedisRateLimiterTests : RedisFixture
 		string key2 = $"test:ratelimit:{Guid.CreateVersion7():N}";
 		const int limit = 1;
 
-		await _rateLimiter.IsAllowedAsync(key: key1, requestsPerWindow: limit, windowSeconds: 10);
-		bool key1Denied = await _rateLimiter.IsAllowedAsync(key: key1, requestsPerWindow: limit, windowSeconds: 10);
-		bool key2Allowed = await _rateLimiter.IsAllowedAsync(key: key2, requestsPerWindow: limit, windowSeconds: 10);
+		await _rateLimiter.IsAllowedAsync(key: key1, requestsPerWindow: limit, windowSeconds: 30);
+		bool key1Denied = await _rateLimiter.IsAllowedAsync(key: key1, requestsPerWindow: limit, windowSeconds: 30);
+		bool key2Allowed = await _rateLimiter.IsAllowedAsync(key: key2, requestsPerWindow: limit, windowSeconds: 30);
 
 		await Assert.That(value: key1Denied).IsFalse();
 		await Assert.That(value: key2Allowed).IsTrue();

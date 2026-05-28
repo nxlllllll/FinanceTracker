@@ -1,6 +1,6 @@
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 
-namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
+namespace FinanceTracker.Core.ReadModels;
 
 public sealed record UnresolvableEvent(
 	Guid Id,
@@ -8,4 +8,4 @@ public sealed record UnresolvableEvent(
 	Guid ReferenceId,
 	string Reason,
 	DateTimeOffset OccurredAt
-);
+) : IReadModel;

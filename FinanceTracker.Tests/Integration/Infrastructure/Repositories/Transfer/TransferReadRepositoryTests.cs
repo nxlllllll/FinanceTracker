@@ -1,3 +1,4 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
@@ -23,7 +24,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentTransfer_ShouldReturnNull()
 	{
-		Core.Domains.Transfer.Transfer? result = await _readRepository.GetByIdAsync(transferId: Guid.CreateVersion7());
+		TransferReadModel? result = await _readRepository.GetByIdAsync(transferId: Guid.CreateVersion7());
 		await Assert.That(value: result).IsNull();
 	}
 
@@ -44,7 +45,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 			exchangeRate: 0.9m
 		);
 
-		Core.Domains.Transfer.Transfer? result = await _readRepository.GetByIdAsync(transferId: transferId);
+		TransferReadModel? result = await _readRepository.GetByIdAsync(transferId: transferId);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: transferId);
@@ -56,7 +57,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithNoTransfers_ShouldReturnEmptyList()
 	{
-		IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
+		IReadOnlyList<TransferReadModel> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
 		await Assert.That(value: result.Count).IsEqualTo(expected: 0);
 	}
 
@@ -83,7 +84,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 			currencyTo: "RUB"
 		);
 
-		IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(userId: userId);
+		IReadOnlyList<TransferReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: result[0].UserId).IsEqualTo(expected: userId);
@@ -112,7 +113,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 			currencyTo: "RUB"
 		);
 
-		IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(userId: userId, accountId: accountA);
+		IReadOnlyList<TransferReadModel> result = await _readRepository.GetAllAsync(userId: userId, accountId: accountA);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: result[0].FromAccountId).IsEqualTo(expected: accountA);
@@ -144,7 +145,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 			occurredAt: recent
 		);
 
-		IReadOnlyList<Core.Domains.Transfer.Transfer> result = await _readRepository.GetAllAsync(
+		IReadOnlyList<TransferReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			dateFrom: DateTimeOffset.UtcNow.AddDays(-1)
 		);

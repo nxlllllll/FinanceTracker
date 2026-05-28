@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -15,22 +16,20 @@ public sealed class GetRecurringTransactionHandlerTests
 	public void Setup()
 	{
 		_readRepository = Substitute.For<IRecurringTransactionReadRepository>();
-		_handler = new GetRecurringTransactionHandler(
-			recurringTransactionReadRepository: _readRepository
-		);
+		_handler = new GetRecurringTransactionHandler(recurringTransactionReadRepository: _readRepository);
 	}
 
 	[Test]
 	public async Task Handle_WhenFound_ShouldReturnDto()
 	{
 		Guid userId = Guid.CreateVersion7();
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction dto = RecurringTransactionFactory.Create(userId: userId).Value!;
+		RecurringTransactionReadModel dto = RecurringTransactionFactory.CreateReadModel(userId: userId);
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: dto.Id, 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: dto);
 
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction result = await _handler.Handle(
+		RecurringTransactionReadModel result = await _handler.Handle(
 			query: new GetRecurringTransactionQuery(UserId: userId, RecurringTransactionId: dto.Id),
 			ct: CancellationToken.None
 		);
@@ -44,7 +43,7 @@ public sealed class GetRecurringTransactionHandlerTests
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction?)null);
+		).Returns(returnThis: (RecurringTransactionReadModel?)null);
 
 		await Assert.That(action: async () => await _handler.Handle(
 			query: new GetRecurringTransactionQuery(
@@ -61,7 +60,7 @@ public sealed class GetRecurringTransactionHandlerTests
 		_readRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RecurringTransactionFactory.Create(userId: Guid.CreateVersion7()).Value!);
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel(userId: Guid.CreateVersion7()));
 
 		await Assert.That(action: async () => await _handler.Handle(
 			query: new GetRecurringTransactionQuery(

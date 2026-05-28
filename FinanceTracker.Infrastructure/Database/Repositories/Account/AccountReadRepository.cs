@@ -1,3 +1,4 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -10,59 +11,55 @@ public sealed class AccountReadRepository(
 	FinanceTrackerContext context
 ) : IAccountReadRepository
 {
-	public async Task<Core.Domains.Account.Account?> GetByIdAsync(
+	public async Task<AccountReadModel?> GetByIdAsync(
 		Guid accountId,
 		Guid userId,
 		CancellationToken ct = default)
 	{
-		Core.Domains.Account.Account? raw = await context.Accounts.AsNoTracking().Where(predicate: account => account.Id == accountId && account.UserId == userId).Join(
+		return await context.Accounts.AsNoTracking().Where(predicate: a => a.Id == accountId && a.UserId == userId).Join(
 			inner: context.AccountBalances,
-			outerKeySelector: account => account.Id,
-			innerKeySelector: balance => balance.AccountId,
-			resultSelector: (account, balance) => Core.Domains.Account.Account.Reconstitute(
-				id: account.Id,
-				userId: account.UserId,
-				name: account.Name,
-				type: account.AccountType,
-				balance: Money.Reconstitute(amount: balance.Balance, currency: account.Currency),
-				isArchived: account.IsArchived,
-				createdAt: account.CreatedAt
+			outerKeySelector: a => a.Id,
+			innerKeySelector: b => b.AccountId,
+			resultSelector: (a, b) => new AccountReadModel(
+				Id: a.Id,
+				UserId: a.UserId,
+				Name: a.Name,
+				Type: a.AccountType,
+				Balance: Money.Reconstitute(amount: b.Balance, currency: a.Currency),
+				IsArchived: a.IsArchived,
+				CreatedAt: a.CreatedAt
 			)
 		).FirstOrDefaultAsync(cancellationToken: ct);
-
-		return raw;
 	}
 
-	public async Task<IReadOnlyList<Core.Domains.Account.Account>> GetAllAsync(
+	public async Task<IReadOnlyList<AccountReadModel>> GetAllAsync(
 		Guid userId,
 		bool? isArchived = null,
 		CancellationToken ct = default)
 	{
-		IQueryable<AccountEntity> accounts = context.Accounts.AsNoTracking().Where(predicate: account => account.UserId == userId);
+		IQueryable<AccountEntity> accounts = context.Accounts.AsNoTracking().Where(predicate: a => a.UserId == userId);
 
 		if (isArchived is not null)
-			accounts = accounts.Where(predicate: account => account.IsArchived == isArchived);
+			accounts = accounts.Where(predicate: a => a.IsArchived == isArchived);
 
-		List<Core.Domains.Account.Account> result = await accounts.Join(
+		return await accounts.Join(
 			inner: context.AccountBalances,
-			outerKeySelector: account => account.Id,
-			innerKeySelector: balance => balance.AccountId,
-			resultSelector: (account, balance) => Core.Domains.Account.Account.Reconstitute(
-				id: account.Id,
-				userId: account.UserId,
-				name: account.Name,
-				type: account.AccountType,
-				balance: Money.Reconstitute(amount: balance.Balance, currency: account.Currency),
-				isArchived: account.IsArchived,
-				createdAt: account.CreatedAt
+			outerKeySelector: a => a.Id,
+			innerKeySelector: b => b.AccountId,
+			resultSelector: (a, b) => new AccountReadModel(
+				Id: a.Id,
+				UserId: a.UserId,
+				Name: a.Name,
+				Type: a.AccountType,
+				Balance: Money.Reconstitute(amount: b.Balance, currency: a.Currency),
+				IsArchived: a.IsArchived,
+				CreatedAt: a.CreatedAt
 		)).ToListAsync(cancellationToken: ct);
-
-		return result.AsReadOnly();
 	}
 
 	public async Task<bool> ExistAsync(
 		Guid accountId,
 		Guid userId,
 		CancellationToken ct = default
-	) => await context.Accounts.AsNoTracking().AnyAsync(predicate: account => account.Id == accountId && account.UserId == userId, cancellationToken: ct);
+	) => await context.Accounts.AsNoTracking().AnyAsync(predicate: a => a.Id == accountId && a.UserId == userId, cancellationToken: ct);
 }

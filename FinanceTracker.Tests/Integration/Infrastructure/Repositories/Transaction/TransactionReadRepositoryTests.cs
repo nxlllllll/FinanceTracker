@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Category;
@@ -118,7 +119,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentTransaction_ShouldReturnNull()
 	{
-		Core.Domains.Transaction.Transaction? result = await _readRepository.GetByIdAsync(
+		TransactionReadModel? result = await _readRepository.GetByIdAsync(
 			transactionId: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7()
 		);
@@ -136,7 +137,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			categoryId: categoryId
 		);
 
-		Core.Domains.Transaction.Transaction? result = await _readRepository.GetByIdAsync(
+		TransactionReadModel? result = await _readRepository.GetByIdAsync(
 			transactionId: transactionId,
 			userId: userId
 		);
@@ -152,7 +153,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithNoTransactions_ShouldReturnEmptyList()
 	{
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
             userId: Guid.CreateVersion7(),
 			accountId: Guid.CreateVersion7()
 		);
@@ -170,7 +171,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 		await CreateTransactionAsync(userId: anotherUserId, accountId: anotherAccountId, categoryId: anotherCategoryId);
 
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId
 		);
@@ -187,7 +188,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, direction: DirectionType.Debit);
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, direction: DirectionType.Credit);
 
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			direction: DirectionType.Debit
@@ -205,7 +206,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, isExcluded: false);
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, isExcluded: true);
 
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			isExcluded: false
@@ -224,7 +225,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow.AddDays(days: -3));
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow);
 
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			dateFrom: DateTimeOffset.UtcNow.AddDays(days: -5),
@@ -243,7 +244,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow);
 		await CreateTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId, occurredAt: DateTimeOffset.UtcNow.AddDays(days: -1));
 
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId
 		);
@@ -262,7 +263,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 5; i++)
 			await _transactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			pageSize: 3
@@ -293,15 +294,15 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			);
 		}
 
-		PagedResult<Core.Domains.Transaction.Transaction> firstPage = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> firstPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			pageSize: 3
 		);
 
-		Core.Domains.Transaction.Transaction lastItem = firstPage.Items[^1];
+		TransactionReadModel lastItem = firstPage.Items[^1];
 
-		PagedResult<Core.Domains.Transaction.Transaction> secondPage = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> secondPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			cursorOccurredAt: lastItem.OccurredAt,
@@ -333,15 +334,15 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			);
 		}
 
-		PagedResult<Core.Domains.Transaction.Transaction> firstPage = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> firstPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			pageSize: 3
 		);
 
-		Core.Domains.Transaction.Transaction lastItem = firstPage.Items[^1];
+		TransactionReadModel lastItem = firstPage.Items[^1];
 
-		PagedResult<Core.Domains.Transaction.Transaction> secondPage = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> secondPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			cursorOccurredAt: lastItem.OccurredAt,
@@ -367,15 +368,15 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
 		);
 
-		PagedResult<Core.Domains.Transaction.Transaction> firstPage = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> firstPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			pageSize: 3
 		);
 
-		Core.Domains.Transaction.Transaction lastItem = firstPage.Items[^1];
+		TransactionReadModel lastItem = firstPage.Items[^1];
 
-		PagedResult<Core.Domains.Transaction.Transaction> secondPage = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> secondPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			cursorOccurredAt: lastItem.OccurredAt,
@@ -406,7 +407,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			);
 		}
 
-		PagedResult<Core.Domains.Transaction.Transaction> result = await _readRepository.GetAllAsync(
+		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			accountId: accountId,
 			pageSize: 10

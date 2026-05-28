@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Transaction.Queries.GetTransactions;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -19,9 +20,9 @@ public sealed class GetTransactionsHandlerTests
 		_handler = new GetTransactionsHandler(transactionReadRepository: _transactionReadRepository);
 	}
 
-	private static PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> EmptyPage()
+	private static PagedResult<TransactionReadModel> EmptyPage()
 	{
-		return new PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction>(
+		return new PagedResult<TransactionReadModel>(
 			Items: [],
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -29,9 +30,9 @@ public sealed class GetTransactionsHandlerTests
 		);
 	}
 
-	private static PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> PageOf(IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> items)
+	private static PagedResult<TransactionReadModel> PageOf(IReadOnlyList<TransactionReadModel> items)
 	{
-		return new PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction>(
+		return new PagedResult<TransactionReadModel>(
 			Items: items,
 			HasNextPage: false,
 			NextCursorDate: null,
@@ -44,9 +45,9 @@ public sealed class GetTransactionsHandlerTests
 	{
 		Guid userId = Guid.CreateVersion7();
 		Guid accountId = Guid.CreateVersion7();
-		IReadOnlyList<FinanceTracker.Core.Domains.Transaction.Transaction> transactions = [
-			TransactionFactory.Create(userId: userId, accountId: accountId),
-			TransactionFactory.Create(userId: userId, accountId: accountId)
+		IReadOnlyList<TransactionReadModel> transactions = [
+			TransactionFactory.CreateReadModel(userId: userId, accountId: accountId),
+			TransactionFactory.CreateReadModel(userId: userId, accountId: accountId)
 		];
 
 		_transactionReadRepository.GetAllAsync(
@@ -63,7 +64,7 @@ public sealed class GetTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: PageOf(items: transactions));
 
-		PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
+		PagedResult<TransactionReadModel> result = await _handler.Handle(
 			query: new GetTransactionsQuery(UserId: userId, AccountId: accountId),
 			ct: CancellationToken.None
 		);
@@ -243,7 +244,7 @@ public sealed class GetTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: EmptyPage());
 
-		PagedResult<FinanceTracker.Core.Domains.Transaction.Transaction> result = await _handler.Handle(
+		PagedResult<TransactionReadModel> result = await _handler.Handle(
 			query: new GetTransactionsQuery(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);

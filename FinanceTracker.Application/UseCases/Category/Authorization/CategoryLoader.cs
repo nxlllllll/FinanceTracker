@@ -9,7 +9,7 @@ using FinanceTracker.Core.Results;
 namespace FinanceTracker.Application.UseCases.Category.Authorization;
 
 public sealed class CategoryLoader(
-	ICategoryReadRepository categoryReadRepository
+	ICategoryRepository categoryRepository
 ) : IEntityLoader<ArchiveCategoryCommand, Core.Domains.Category.Category, NotFoundException>,
 	IEntityLoader<UnarchiveCategoryCommand, Core.Domains.Category.Category, NotFoundException>,
 	IEntityLoader<RenameCategoryCommand, Core.Domains.Category.Category, NotFoundException>
@@ -31,7 +31,7 @@ public sealed class CategoryLoader(
 
 	private async Task<Result<Core.Domains.Category.Category, NotFoundException>> LoadAndAuthorize(Guid categoryId, Guid userId, CancellationToken ct)
 	{
-		Core.Domains.Category.Category? category = await categoryReadRepository.GetByIdAsync(categoryId: categoryId, userId: userId, ct: ct);
+		Core.Domains.Category.Category? category = await categoryRepository.GetByIdAsync(categoryId: categoryId, userId: userId, ct: ct);
 		if (category is null)
 			return Result<Core.Domains.Category.Category, NotFoundException>.Failure(error: new NotFoundException(message: "Category not found.", id: categoryId));
 

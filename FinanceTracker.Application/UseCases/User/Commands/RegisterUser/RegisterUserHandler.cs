@@ -13,7 +13,7 @@ using ZLogger;
 namespace FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 
 public sealed class RegisterUserHandler(
-	IUserReadRepository userReadRepository,
+	IUserAuthRepository userAuthRepository,
 	IUserWriteRepository userWriteRepository,
 	IDomainOutboxWriter domainOutboxWriter,
 	IPasswordHasher passwordHasher,
@@ -27,7 +27,7 @@ public sealed class RegisterUserHandler(
 		RegisterUserCommand command,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User? existing = await userReadRepository.GetByEmailAsync(email: command.Email, ct: ct);
+		Core.Domains.User.User? existing = await userAuthRepository.GetByEmailAsync(email: command.Email.Value, ct: ct);
 		if (existing is not null)
 			return Result<Guid, DomainException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.Email));
 

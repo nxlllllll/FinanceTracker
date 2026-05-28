@@ -15,28 +15,28 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 
 public sealed class TransactionLoaderTests
 {
-	private ITransactionReadRepository _transactionReadRepository = null!;
+	private ITransactionRepository _transactionRepository = null!;
 	private IAccountRepository _accountRepository = null!;
-	private ICategoryReadRepository _categoryReadRepository = null!;
+	private ICategoryRepository _categoryRepository = null!;
 	private TransactionLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_transactionReadRepository = Substitute.For<ITransactionReadRepository>();
+		_transactionRepository = Substitute.For<ITransactionRepository>();
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+		_categoryRepository = Substitute.For<ICategoryRepository>();
 		_loader = new TransactionLoader(
 			accountRepository: _accountRepository,
-			categoryRepository: _categoryReadRepository,
-			transactionReadRepository: _transactionReadRepository
+			categoryRepository: _categoryRepository,
+			transactionRepository: _transactionRepository
 		);
 	}
 
 	[Test]
 	public async Task LoadAsync_WhenTransactionNotFound_ShouldThrowNotFoundException()
 	{
-		_transactionReadRepository.GetByIdAsync(
+		_transactionRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -55,7 +55,7 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_WhenTransactionBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
 		Transaction transaction = TransactionFactory.Create();
-		_transactionReadRepository.GetByIdAsync(
+		_transactionRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -75,12 +75,12 @@ public sealed class TransactionLoaderTests
 	{
 		Transaction transaction = TransactionFactory.Create();
 		Category category = CategoryFactory.Create().Value!;
-		_transactionReadRepository.GetByIdAsync(
+		_transactionRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transaction);
-		_categoryReadRepository.GetByIdAsync(
+		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
@@ -137,7 +137,7 @@ public sealed class TransactionLoaderTests
 			accountId: Arg.Any<Guid>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
-		_categoryReadRepository.GetByIdAsync(
+		_categoryRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()

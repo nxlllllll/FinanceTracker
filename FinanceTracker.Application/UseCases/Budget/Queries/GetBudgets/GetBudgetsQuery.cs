@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using MediatR;
 
@@ -9,4 +10,4 @@ public sealed record GetBudgetsQuery(
 	DateTimeOffset? CursorCreatedAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
-) : IRequest<PagedResult<Core.Domains.Budget.Budget>>, IUserScopedRequest;
+) : IRequest<PagedResult<BudgetReadModel>>, IUserScopedRequest;

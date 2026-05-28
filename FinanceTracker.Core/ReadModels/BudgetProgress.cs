@@ -1,4 +1,4 @@
-namespace FinanceTracker.Core.Repositories.Budget;
+namespace FinanceTracker.Core.ReadModels;
 
 public sealed record BudgetProgress(
 	Guid BudgetId,
@@ -6,4 +6,4 @@ public sealed record BudgetProgress(
 	decimal Remaining,
 	decimal Percentage,
 	DateTimeOffset UpdatedAt
-);
+) : IReadModel;

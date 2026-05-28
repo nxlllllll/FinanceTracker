@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.User.Queries.GetAccounts;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -21,11 +22,7 @@ public sealed class GetAccountsHandlerTests
 	public async Task Handle_ShouldReturnAllAccounts()
 	{
 		Guid userId = Guid.CreateVersion7();
-		IReadOnlyList<FinanceTracker.Core.Domains.Account.Account> accounts =
-		[
-			AccountFactory.CreateForReadModel(),
-			AccountFactory.CreateForReadModel()
-		];
+		IReadOnlyList<AccountReadModel> accounts = [AccountFactory.CreateReadModel(), AccountFactory.CreateReadModel()];
 
 		_accountReadRepository.GetAllAsync(
 			userId: Arg.Any<Guid>(),
@@ -33,7 +30,7 @@ public sealed class GetAccountsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: accounts);
 
-		IReadOnlyList<FinanceTracker.Core.Domains.Account.Account> result = await _handler.Handle(
+		IReadOnlyList<AccountReadModel> result = await _handler.Handle(
 			query: new GetAccountsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);

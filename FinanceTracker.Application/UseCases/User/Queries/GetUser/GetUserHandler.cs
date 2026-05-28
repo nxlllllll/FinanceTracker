@@ -1,14 +1,15 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.User.Queries.GetUser;
 
 public sealed class GetUserHandler(
-	IUserReadRepository userReadRepository
-) : IRequestHandler<GetUserQuery, Core.Domains.User.User?>
+	IUserQueryRepository userQueryRepository
+) : IRequestHandler<GetUserQuery, UserReadModel?>
 {
-	public async Task<Core.Domains.User.User?> Handle(
+	public async Task<UserReadModel?> Handle(
 		GetUserQuery query,
 		CancellationToken ct = default
-	) => await userReadRepository.GetByIdAsync(userId: query.UserId, ct: ct);
+	) => await userQueryRepository.GetByIdAsync(userId: query.UserId, ct: ct);
 }

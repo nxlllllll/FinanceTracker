@@ -11,14 +11,14 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 
 public sealed class RecurringTransactionLoaderTests
 {
-	private IRecurringTransactionReadRepository _readRepository = null!;
+	private IRecurringTransactionRepository _readRepository = null!;
 	private RecurringTransactionLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_readRepository = Substitute.For<IRecurringTransactionReadRepository>();
-		_loader = new RecurringTransactionLoader(recurringTransactionReadRepository: _readRepository);
+		_readRepository = Substitute.For<IRecurringTransactionRepository>();
+		_loader = new RecurringTransactionLoader(recurringTransactionRepository: _readRepository);
 	}
 
 	[Test]

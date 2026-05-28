@@ -1,3 +1,4 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -34,7 +35,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction? result = await _readRepository.GetByIdAsync(recurringTransactionId: id);
+		RecurringTransactionReadModel? result = await _readRepository.GetByIdAsync(recurringTransactionId: id);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: id);
@@ -44,7 +45,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WhenNotExists_ShouldReturnNull()
 	{
-		Core.Domains.RecurringTransaction.RecurringTransaction? result = await _readRepository.GetByIdAsync(recurringTransactionId: Guid.CreateVersion7());
+		RecurringTransactionReadModel? result = await _readRepository.GetByIdAsync(recurringTransactionId: Guid.CreateVersion7());
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -59,7 +60,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: 1);
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: 15);
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetByUserIdAsync(userId: userId);
+		PagedResult<RecurringTransactionReadModel> result = await _readRepository.GetByUserIdAsync(userId: userId);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
 	}
@@ -74,7 +75,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		await _recurringTransactionBuilder.CreateAsync(userId: anotherUserId, accountId: accountId, categoryId: categoryId);
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetByUserIdAsync(userId: userId);
+		PagedResult<RecurringTransactionReadModel> result = await _readRepository.GetByUserIdAsync(userId: userId);
 
 		await Assert.That(value: result.Items).IsEmpty();
 		await Assert.That(value: result.HasNextPage).IsFalse();
@@ -93,7 +94,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -117,7 +118,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -141,7 +142,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -164,7 +165,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -188,7 +189,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: daysInMonth,
 			daysInCurrentMonth: daysInMonth,
 			currentMonthStart: currentMonthStart
@@ -212,7 +213,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IReadOnlyList<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: 15,
 			daysInCurrentMonth: daysInMonth,
 			currentMonthStart: currentMonthStart
@@ -231,7 +232,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 5; i++)
 			await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: i + 1);
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
+		PagedResult<RecurringTransactionReadModel> result = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 3);
 		await Assert.That(value: result.HasNextPage).IsTrue();
@@ -249,11 +250,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 5; i++)
 			await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: i + 1);
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> firstPage = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
+		PagedResult<RecurringTransactionReadModel> firstPage = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction lastItem = firstPage.Items[^1];
+		RecurringTransactionReadModel lastItem = firstPage.Items[^1];
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> secondPage = await _readRepository.GetByUserIdAsync(
+		PagedResult<RecurringTransactionReadModel> secondPage = await _readRepository.GetByUserIdAsync(
 			userId: userId,
 			cursorCreatedAt: lastItem.CreatedAt,
 			cursorId: lastItem.Id,
@@ -274,11 +275,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> firstPage = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
+		PagedResult<RecurringTransactionReadModel> firstPage = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction lastItem = firstPage.Items[^1];
+		RecurringTransactionReadModel lastItem = firstPage.Items[^1];
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> secondPage = await _readRepository.GetByUserIdAsync(
+		PagedResult<RecurringTransactionReadModel> secondPage = await _readRepository.GetByUserIdAsync(
 			userId: userId,
 			cursorCreatedAt: lastItem.CreatedAt,
 			cursorId: lastItem.Id,
@@ -300,7 +301,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 3; i++)
 			await _recurringTransactionBuilder.CreateAsync(userId: otherUserId, accountId: accountId, categoryId: categoryId, dayOfMonth: i + 1);
 
-		PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction> result = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 10);
+		PagedResult<RecurringTransactionReadModel> result = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 10);
 
 		await Assert.That(value: result.Items).IsEmpty();
 		await Assert.That(value: result.HasNextPage).IsFalse();

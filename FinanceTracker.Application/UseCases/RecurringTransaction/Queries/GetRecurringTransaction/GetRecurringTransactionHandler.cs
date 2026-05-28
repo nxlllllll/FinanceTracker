@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using MediatR;
 
@@ -6,16 +7,15 @@ namespace FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRe
 
 public sealed class GetRecurringTransactionHandler(
 	IRecurringTransactionReadRepository recurringTransactionReadRepository
-) : IRequestHandler<GetRecurringTransactionQuery, Core.Domains.RecurringTransaction.RecurringTransaction>
+) : IRequestHandler<GetRecurringTransactionQuery, RecurringTransactionReadModel>
 {
-	public async Task<Core.Domains.RecurringTransaction.RecurringTransaction> Handle(
+	public async Task<RecurringTransactionReadModel> Handle(
 		GetRecurringTransactionQuery query,
 		CancellationToken ct = default)
 	{
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: query.RecurringTransactionId, ct: ct)
-			?? throw new NotFoundException(message: "Recurring transaction not found.", id: query.RecurringTransactionId);
+		RecurringTransactionReadModel? recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(recurringTransactionId: query.RecurringTransactionId, ct: ct);
 
-		if (recurringTransaction.UserId != query.UserId)
+		if (recurringTransaction is null || recurringTransaction.UserId != query.UserId)
 			throw new NotFoundException(message: "Recurring transaction not found.", id: query.RecurringTransactionId);
 
 		return recurringTransaction;

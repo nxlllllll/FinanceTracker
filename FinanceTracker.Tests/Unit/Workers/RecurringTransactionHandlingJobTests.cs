@@ -1,4 +1,5 @@
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -42,7 +43,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()
 		);
 	}
-	
+
 	private void SetupEmptyRepository()
 	{
 		_readRepository.GetDueTodayAsync(
@@ -55,14 +56,15 @@ public sealed class RecurringTransactionHandlingJobTests
 
 	private void SetupRepository(int count)
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction[] transactions = Enumerable.Range(start: 0, count: count)
-			.Select(selector: _ => RecurringTransactionFactory.Create().Value!)
+		RecurringTransactionReadModel[] transactions = Enumerable
+			.Range(start: 0, count: count)
+			.Select(selector: _ => RecurringTransactionFactory.CreateReadModel())
 			.ToArray();
 
 		SetupRepository(transactions: transactions);
 	}
 
-	private void SetupRepository(FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction[] transactions)
+	private void SetupRepository(RecurringTransactionReadModel[] transactions)
 	{
 		_readRepository.GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
@@ -71,7 +73,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transactions);
 	}
-	
+
 	[Test]
 	public async Task Execute_WhenNoDueTransactions_ShouldNotPublish()
 	{
@@ -98,7 +100,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task Execute_WhenDueTransactionsExist_ShouldPublishEach()
 	{
@@ -116,7 +118,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	[Test]
 	public async Task Execute_WhenDueTransactionsExist_ShouldPublishWithCorrectData()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction transaction = RecurringTransactionFactory.Create().Value!;
+		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
 
 		SetupRepository(transactions: [transaction]);
 
@@ -147,7 +149,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	[Test]
 	public async Task Execute_ShouldMarkExecutedWithCorrectTransactionId()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction transaction = RecurringTransactionFactory.Create().Value!;
+		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
 
 		SetupRepository(transactions: [transaction]);
 
@@ -173,7 +175,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task Execute_WhenPublishFails_ShouldNotMarkExecuted()
 	{
@@ -197,9 +199,9 @@ public sealed class RecurringTransactionHandlingJobTests
 	[Test]
 	public async Task Execute_WhenPublishFailsOnSecond_ShouldMarkExecutedOnlyForFirst()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction first = RecurringTransactionFactory.Create().Value!;
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction second = RecurringTransactionFactory.Create().Value!;
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction third = RecurringTransactionFactory.Create().Value!;
+		RecurringTransactionReadModel first  = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel second = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel third  = RecurringTransactionFactory.CreateReadModel();
 
 		SetupRepository(transactions: [first, second, third]);
 
@@ -287,5 +289,6 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _job.Execute(executionContext: _jobContext);
 
-		await Assert.That(value: capturedMonthStart!.Value.Offset).IsEqualTo(expected: TimeSpan.Zero);	}
+		await Assert.That(value: capturedMonthStart!.Value.Offset).IsEqualTo(expected: TimeSpan.Zero);
+	}
 }

@@ -1,3 +1,4 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -6,9 +7,9 @@ namespace FinanceTracker.Application.UseCases.Category.Queries.GetCategories;
 
 public sealed class GetCategoriesHandler(
 	ICategoryReadRepository categoryReadRepository
-) : IRequestHandler<GetCategoriesQuery, PagedResult<Core.Domains.Category.Category>>
+) : IRequestHandler<GetCategoriesQuery, PagedResult<CategoryReadModel>>
 {
-	public async Task<PagedResult<Core.Domains.Category.Category>> Handle(
+	public async Task<PagedResult<CategoryReadModel>> Handle(
 		GetCategoriesQuery query,
 		CancellationToken ct = default)
 	{

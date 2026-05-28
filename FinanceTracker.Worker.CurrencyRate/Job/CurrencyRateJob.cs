@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.Currency;
+﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Worker.CurrencyRate.Client;

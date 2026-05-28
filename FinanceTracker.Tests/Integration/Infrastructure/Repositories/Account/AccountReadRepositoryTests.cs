@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -32,10 +33,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
-		_writeRepository = new AccountWriteRepository(
-			context: Context,
-			dateProvider: FakeDateProvider.Default
-		);
+		_writeRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
 		_userBuilder = new UserBuilder(context: Context);
 	}
@@ -43,7 +41,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 	private async Task<AccountCreated> CreateAccountAsync()
 	{
 		Core.ValueObjects.Currency currencyCode = await _currencyBuilder.CreateAsync();
-		Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
+		Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode.Value);
 
 		AccountCreated @event = new AccountCreated(
 			Id: Guid.CreateVersion7(),
@@ -93,22 +91,16 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentAccount_ShouldReturnNull()
 	{
-		Core.Domains.Account.Account? result = await _readRepository.GetByIdAsync(
-			accountId: Guid.CreateVersion7(),
-			userId: Guid.CreateVersion7()
-		);
+		AccountReadModel? result = await _readRepository.GetByIdAsync(accountId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());
 		await Assert.That(value: result).IsNull();
 	}
 
 	[Test]
-	public async Task GetByIdAsync_WithExistingAccount_ShouldReturnCorrectAccount()
+	public async Task GetByIdAsync_WithExistingAccount_ShouldReturnCorrectReadModel()
 	{
 		AccountCreated @event = await CreateAccountAsync();
 
-		Core.Domains.Account.Account? result = await _readRepository.GetByIdAsync(
-			accountId: @event.AccountId,
-			userId: @event.UserId
-		);
+		AccountReadModel? result = await _readRepository.GetByIdAsync(accountId: @event.AccountId, userId: @event.UserId);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: @event.AccountId);
@@ -116,13 +108,13 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: result.Balance.Amount).IsEqualTo(expected: 10000m);
 		await Assert.That(value: result.IsArchived).IsFalse();
 		await Assert.That(value: result.Type).IsEqualTo(expected: AccountType.Checking);
-		await Assert.That(value: result.Currency.Value).IsEqualTo(expected: "RUB");
+		await Assert.That(value: result.Balance.Currency.Value).IsEqualTo(expected: "RUB");
 	}
 
 	[Test]
 	public async Task GetAllAsync_WithNoAccounts_ShouldReturnEmptyList()
 	{
-		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
+		IReadOnlyList<AccountReadModel> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
 		await Assert.That(value: result.Count).IsEqualTo(expected: 0);
 	}
 
@@ -132,7 +124,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 		(Guid userId, _) = await CreateAccountWithArchivationAsync();
 		await CreateAccountWithArchivationAsync();
 
-		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: userId);
+		IReadOnlyList<AccountReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: result[0].UserId).IsEqualTo(expected: userId);
@@ -144,10 +136,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 		(Guid userId, _) = await CreateAccountWithArchivationAsync(archived: false);
 		await CreateAccountWithArchivationAsync(archived: true);
 
-		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(
-			userId: userId,
-			isArchived: false
-		);
+		IReadOnlyList<AccountReadModel> result = await _readRepository.GetAllAsync(userId: userId, isArchived: false);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: result[0].IsArchived).IsFalse();
@@ -188,7 +177,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
-		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: userId, isArchived: true);
+		IReadOnlyList<AccountReadModel> result = await _readRepository.GetAllAsync(userId: userId, isArchived: true);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: result[0].IsArchived).IsTrue();
@@ -229,7 +218,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
-		IReadOnlyList<Core.Domains.Account.Account> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);
+		IReadOnlyList<AccountReadModel> result = await _readRepository.GetAllAsync(userId: userId, isArchived: null);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
 	}
@@ -239,10 +228,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 	{
 		AccountCreated @event = await CreateAccountAsync();
 
-		Core.Domains.Account.Account? result = await _readRepository.GetByIdAsync(
-			accountId: @event.AccountId,
-			userId: Guid.CreateVersion7()
-		);
+		AccountReadModel? result = await _readRepository.GetByIdAsync(accountId: @event.AccountId, userId: Guid.CreateVersion7());
 
 		await Assert.That(value: result).IsNull();
 	}

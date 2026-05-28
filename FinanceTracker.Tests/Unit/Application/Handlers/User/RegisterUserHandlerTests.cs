@@ -16,7 +16,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 public sealed class RegisterUserHandlerTests
 {
 	private IUserWriteRepository _userWriteRepository = null!;
-	private IUserReadRepository _userReadRepository = null!;
+	private IUserAuthRepository _userAuthRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
 	private IDomainOutboxWriter _domainOutboxWriter = null!;
 	private IUnitOfWork _unitOfWork = null!;
@@ -28,7 +28,7 @@ public sealed class RegisterUserHandlerTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userReadRepository = Substitute.For<IUserReadRepository>();
+		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
 		_domainOutboxWriter = Substitute.For<IDomainOutboxWriter>();
@@ -45,7 +45,7 @@ public sealed class RegisterUserHandlerTests
 		_handler = new RegisterUserHandler(
 			userWriteRepository: _userWriteRepository,
 			passwordHasher: _passwordHasher,
-			userReadRepository: _userReadRepository,
+			userAuthRepository: _userAuthRepository,
 			domainOutboxWriter: _domainOutboxWriter,
 			unitOfWork: _unitOfWork,
 			correlationContext: _correlationContext,
@@ -57,7 +57,7 @@ public sealed class RegisterUserHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldCreateUser()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
@@ -79,7 +79,7 @@ public sealed class RegisterUserHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldWriteDomainEventToOutbox()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
@@ -99,7 +99,7 @@ public sealed class RegisterUserHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldHashPassword()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
@@ -115,7 +115,7 @@ public sealed class RegisterUserHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldReturnUserId()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
@@ -132,7 +132,7 @@ public sealed class RegisterUserHandlerTests
 	[Test]
 	public async Task Handle_WithDuplicateEmail_ShouldReturnEmailException()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: UserFactory.Create().Value!);
@@ -149,7 +149,7 @@ public sealed class RegisterUserHandlerTests
 	[Test]
 	public async Task Handle_WithDuplicateEmail_ShouldNotWriteToOutbox()
 	{
-		_userReadRepository.GetByEmailAsync(
+		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: UserFactory.Create().Value!);

@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
@@ -34,5 +35,32 @@ public static class TransactionFactory
 			transaction.Exclude();
 
 		return transaction;
+	}
+
+	public static TransactionReadModel CreateReadModel(
+		Guid? accountId = null,
+		Guid? userId = null,
+		Guid? categoryId = null,
+		decimal amount = 1000m,
+		string currency = "RUB",
+		DirectionType direction = DirectionType.Debit,
+		decimal exchangeRate = 1m,
+		bool isRatePending = false,
+		bool isExcluded = false,
+		string? description = null)
+	{
+		return new TransactionReadModel(
+			Id: Guid.CreateVersion7(),
+			AccountId: accountId ?? Guid.CreateVersion7(),
+			UserId: userId ?? Guid.CreateVersion7(),
+			CategoryId: categoryId ?? Guid.CreateVersion7(),
+			Amount: Money.Create(amount: amount, currency: Currency.Create(value: currency).Value).Value,
+			Direction: direction,
+			ExchangeRate: exchangeRate,
+			IsExcluded: isExcluded,
+			IsRatePending: isRatePending,
+			Description: description,
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		);
 	}
 }

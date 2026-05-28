@@ -1,6 +1,8 @@
-﻿namespace FinanceTracker.Core.Repositories.Budget;
+﻿using FinanceTracker.Core.ReadModels;
 
-public interface IBudgetProgressReadRepository
+namespace FinanceTracker.Core.Repositories.Budget;
+
+public interface IBudgetProgressReadRepository : IReadRepository<BudgetProgress>
 {
 	Task<BudgetProgress?> GetByBudgetIdAsync(
 		Guid budgetId,

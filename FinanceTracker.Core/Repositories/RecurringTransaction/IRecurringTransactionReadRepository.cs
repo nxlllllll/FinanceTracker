@@ -1,15 +1,16 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.RecurringTransaction;
 
-public interface IRecurringTransactionReadRepository
+public interface IRecurringTransactionReadRepository : IReadRepository<RecurringTransactionReadModel>
 {
-	Task<Domains.RecurringTransaction.RecurringTransaction?> GetByIdAsync(
+	Task<RecurringTransactionReadModel?> GetByIdAsync(
 		Guid recurringTransactionId,
 		CancellationToken ct = default
 	);
 
-	Task<PagedResult<Domains.RecurringTransaction.RecurringTransaction>> GetByUserIdAsync(
+	Task<PagedResult<RecurringTransactionReadModel>> GetByUserIdAsync(
 		Guid userId,
 		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
@@ -17,7 +18,7 @@ public interface IRecurringTransactionReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<Domains.RecurringTransaction.RecurringTransaction>> GetDueTodayAsync(
+	Task<IReadOnlyList<RecurringTransactionReadModel>> GetDueTodayAsync(
 		int dayOfMonth,
 		int daysInCurrentMonth,
 		DateTimeOffset currentMonthStart,

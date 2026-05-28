@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
@@ -37,7 +38,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync();
 
-        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
+        CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: category.Id);
@@ -52,7 +53,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
 
         await _writeRepository.RenameAsync(categoryId: category.Id, newName: Name.Create(value: "��������").Value);
 
-        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
+        CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Name.Value).IsEqualTo(expected: "��������");
@@ -65,7 +66,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
 
         await _writeRepository.ArchiveAsync(categoryId: category.Id);
 
-        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
+        CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.IsArchived).IsTrue();
@@ -79,7 +80,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
         await _writeRepository.ArchiveAsync(categoryId: category.Id);
         await _writeRepository.UnarchiveAsync(categoryId: category.Id);
 
-        Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
+        CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.IsArchived).IsFalse();

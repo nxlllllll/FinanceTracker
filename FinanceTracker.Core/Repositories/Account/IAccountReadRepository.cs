@@ -1,14 +1,16 @@
+using FinanceTracker.Core.ReadModels;
+
 namespace FinanceTracker.Core.Repositories.Account;
 
-public interface IAccountReadRepository
+public interface IAccountReadRepository : IReadRepository<AccountReadModel>
 {
-	Task<Domains.Account.Account?> GetByIdAsync(
+	Task<AccountReadModel?> GetByIdAsync(
 		Guid accountId,
 		Guid userId,
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<Domains.Account.Account>> GetAllAsync(
+	Task<IReadOnlyList<AccountReadModel>> GetAllAsync(
 		Guid userId,
 		bool? isArchived = null,
 		CancellationToken ct = default

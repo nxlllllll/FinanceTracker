@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Category;
+﻿using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
@@ -17,7 +17,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
 {
     private CategoryTotalReadRepository _readRepository = null!;
     private CategoryTotalWriteRepository _writeRepository = null!;
-    private IUserReadRepository _userReadRepository = null!;
+    private IUserQueryRepository _userQueryRepository = null!;
     private ICurrencyConversionService _currencyConversionService = null!;
     private UserBuilder _userBuilder = null!;
     private CategoryBuilder _categoryBuilder = null!;
@@ -25,7 +25,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
-        _userReadRepository = new UserReadRepository(context: Context);
+        _userQueryRepository = new UserReadRepository(context: Context);
         _currencyConversionService = new CurrencyConversionService(
             currencyRateReadRepository: new CurrencyRateReadRepository(context: Context),
             logger: Substitute.For<ILogger<CurrencyConversionService>>()
@@ -33,7 +33,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
         _readRepository = new CategoryTotalReadRepository(context: Context);
         _writeRepository = new CategoryTotalWriteRepository(
             context: Context,
-            userReadRepository:  _userReadRepository,
+            userQueryRepository:  _userQueryRepository,
             currencyConversionService: _currencyConversionService,
             dateProvider: FakeDateProvider.Default
         );

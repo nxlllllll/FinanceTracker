@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.Category;
+﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Category;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Category.Queries.GetTotalsByPeriod;

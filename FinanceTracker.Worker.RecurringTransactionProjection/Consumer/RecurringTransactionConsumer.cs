@@ -4,6 +4,7 @@ using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -41,7 +42,7 @@ public sealed class RecurringTransactionConsumer(
 				return;
 			}
 
-			Core.Domains.RecurringTransaction.RecurringTransaction? recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(
+			RecurringTransactionReadModel? recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(
 				recurringTransactionId: message.RecurringTransactionId,
 				ct: ct
 			);

@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
@@ -11,7 +12,7 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
 
 public sealed class CategoryTotalWriteRepository(
 	FinanceTrackerContext context,
-	IUserReadRepository userReadRepository,
+	IUserQueryRepository userQueryRepository,
 	ICurrencyConversionService currencyConversionService,
 	IDateProvider dateProvider
 ) : ICategoryTotalWriteRepository
@@ -28,7 +29,7 @@ public sealed class CategoryTotalWriteRepository(
 		DateOnly date = DateOnly.FromDateTime(dateTime: occurredAt.UtcDateTime);
 		DateOnly period = new DateOnly(year: occurredAt.Year, month: occurredAt.Month, day: 1);
 
-		Core.Domains.User.User user = await userReadRepository.GetByIdAsync(userId: userId, ct: ct)
+		UserReadModel user = await userQueryRepository.GetByIdAsync(userId: userId, ct: ct)
 			?? throw new NotFoundException(message: "User not found.", id: userId);
 		
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(

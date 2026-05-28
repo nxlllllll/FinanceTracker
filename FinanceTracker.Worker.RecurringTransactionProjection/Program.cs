@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
-using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
 using FinanceTracker.Worker.Shared.HealthCheck;

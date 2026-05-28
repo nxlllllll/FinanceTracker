@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -49,7 +50,7 @@ public static class AccountFactory
 		return account;
 	}
 
-	public static Account CreateForReadModel(
+	public static AccountReadModel CreateReadModel(
 		Guid? id = null,
 		Guid? userId = null,
 		string name = "Карта Сбер",
@@ -60,14 +61,14 @@ public static class AccountFactory
 	{
 		Currency curr = Currency.Reconstitute(value: currency);
 
-		return Account.Reconstitute(
-			id: id ?? Guid.CreateVersion7(),
-			userId: userId ?? Guid.CreateVersion7(),
-			name: Name.Create(value: name).Value!,
-			type: type,
-			balance: Money.Reconstitute(amount: balance, currency: curr),
-			isArchived: isArchived,
-			createdAt: FakeDateProvider.Default.UtcNow
+		return new AccountReadModel(
+			Id: id ?? Guid.CreateVersion7(),
+			UserId: userId ?? Guid.CreateVersion7(),
+			Name: Name.Create(value: name).Value!,
+			Type: type,
+			Balance: Money.Reconstitute(amount: balance, currency: curr),
+			IsArchived: isArchived,
+			CreatedAt: FakeDateProvider.Default.UtcNow
 		);
 	}
 }

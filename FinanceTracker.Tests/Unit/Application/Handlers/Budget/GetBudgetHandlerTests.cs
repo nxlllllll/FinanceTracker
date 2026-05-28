@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Budget.Queries.GetBudget;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -21,7 +22,7 @@ public sealed class GetBudgetHandlerTests
 	[Test]
 	public async Task Handle_WhenBudgetExists_ShouldReturnBudgetDto()
 	{
-		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
+		BudgetReadModel? budget = BudgetFactory.CreateReadModel();
 
 		_budgetReadRepository.GetByIdAsync(
 			budgetId: budget.Id,
@@ -29,7 +30,7 @@ public sealed class GetBudgetHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: budget);
 
-		FinanceTracker.Core.Domains.Budget.Budget? result = await _handler.Handle(
+		BudgetReadModel? result = await _handler.Handle(
 			query: new GetBudgetQuery(UserId: budget.UserId, BudgetId: budget.Id),
 			ct: CancellationToken.None
 		);
@@ -45,9 +46,9 @@ public sealed class GetBudgetHandlerTests
 			budgetId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.Budget.Budget?>(result: null));
+		).Returns(returnThis: Task.FromResult<BudgetReadModel?>(result: null));
 
-		FinanceTracker.Core.Domains.Budget.Budget? result = await _handler.Handle(
+		BudgetReadModel? result = await _handler.Handle(
 			query: new GetBudgetQuery(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);

@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
@@ -42,7 +43,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentCategory_ShouldReturnNull()
 	{
-		Core.Domains.Category.Category? result = await _readRepository.GetByIdAsync(
+		CategoryReadModel? result = await _readRepository.GetByIdAsync(
 			categoryId: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7()
 		);
@@ -55,7 +56,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		Guid userId = Guid.CreateVersion7();
 		Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync(userId: userId);
 
-		Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(
+		CategoryReadModel? loaded = await _readRepository.GetByIdAsync(
 			categoryId: category.Id,
 			userId: userId
 		);
@@ -75,7 +76,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		Core.Domains.Category.Category parent = await CreateAndSaveCategoryAsync(userId: userId);
 		Core.Domains.Category.Category child = await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
 
-		Core.Domains.Category.Category? loaded = await _readRepository.GetByIdAsync(
+		CategoryReadModel? loaded = await _readRepository.GetByIdAsync(
 			categoryId: child.Id,
 			userId: userId
 		);
@@ -87,7 +88,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithNoCategories_ShouldReturnEmptyList()
 	{
-		PagedResult<Core.Domains.Category.Category> result = await _readRepository.GetAllAsync(
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
 			userId: Guid.CreateVersion7()
 		);
 
@@ -102,7 +103,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		await CreateAndSaveCategoryAsync(userId: userId);
 		await CreateAndSaveCategoryAsync(userId: Guid.CreateVersion7());
 
-		PagedResult<Core.Domains.Category.Category> result = await _readRepository.GetAllAsync(userId: userId);
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: result.Items[0].UserId).IsEqualTo(expected: userId);
@@ -115,7 +116,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
 		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
 
-		PagedResult<Core.Domains.Category.Category> result = await _readRepository.GetAllAsync(
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			type: CategoryType.Expense
 		);
@@ -131,7 +132,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		await CreateAndSaveCategoryAsync(userId: userId, isArchived: false);
 		await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
 
-		PagedResult<Core.Domains.Category.Category> result = await _readRepository.GetAllAsync(
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			isArchived: false
 		);
@@ -148,7 +149,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
 		await CreateAndSaveCategoryAsync(userId: userId);
 
-		PagedResult<Core.Domains.Category.Category> result = await _readRepository.GetAllAsync(
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			parentId: parent.Id
 		);
@@ -165,7 +166,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
 		await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
 
-		PagedResult<Core.Domains.Category.Category> result = await _readRepository.GetAllAsync(userId: userId);
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 3);
 	}
@@ -177,7 +178,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 4; i++)
 			await CreateAndSaveCategoryAsync(userId: userId);
 
-		PagedResult<Core.Domains.Category.Category> result = await _readRepository.GetAllAsync(
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
 			pageSize: 3
 		);
@@ -195,14 +196,14 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 4; i++)
 			await CreateAndSaveCategoryAsync(userId: userId);
 
-		PagedResult<Core.Domains.Category.Category> firstPage = await _readRepository.GetAllAsync(
+		PagedResult<CategoryReadModel> firstPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			pageSize: 3
 		);
 
-		Core.Domains.Category.Category lastItem = firstPage.Items[^1];
+		CategoryReadModel lastItem = firstPage.Items[^1];
 
-		PagedResult<Core.Domains.Category.Category> secondPage = await _readRepository.GetAllAsync(
+		PagedResult<CategoryReadModel> secondPage = await _readRepository.GetAllAsync(
 			userId: userId,
 			cursorCreatedAt: lastItem.CreatedAt,
 			cursorId: lastItem.Id,

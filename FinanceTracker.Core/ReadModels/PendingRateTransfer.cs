@@ -1,12 +1,14 @@
-namespace FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Core.ValueObjects;
+
+namespace FinanceTracker.Core.ReadModels;
 
 public sealed record PendingRateTransfer(
 	Guid TransferId,
 	Guid FromAccountId,
 	Guid ToAccountId,
 	decimal AmountFrom,
-	ValueObjects.Currency CurrencyFrom,
-	ValueObjects.Currency CurrencyTo,
+	Currency CurrencyFrom,
+	Currency CurrencyTo,
 	decimal CurrentRate,
 	DateTimeOffset OccurredAt
-);
+) : IReadModel;

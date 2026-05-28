@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.UnresolvableEvent;
+﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;

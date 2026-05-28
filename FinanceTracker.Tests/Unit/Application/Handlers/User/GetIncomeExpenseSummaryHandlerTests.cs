@@ -1,6 +1,8 @@
 using FinanceTracker.Application.Dtos;
 using FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -8,28 +10,35 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class GetIncomeExpenseSummaryHandlerTests
 {
-	private IUserReadRepository _userReadRepository = null!;
+	private IUserQueryRepository _userQueryRepository = null!;
 	private GetIncomeExpenseSummaryHandler _handler = null!;
+
+	private static UserReadModel CreateUserReadModel(string currency = "RUB") => new UserReadModel(
+		Id: Guid.CreateVersion7(),
+		Email: Email.Create(value: "test@test.com").Value!,
+		BaseCurrency: Currency.Create(value: currency).Value,
+		CreatedAt: FakeDateProvider.Default.UtcNow
+	);
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userReadRepository = Substitute.For<IUserReadRepository>();
-		_handler = new GetIncomeExpenseSummaryHandler(userReadRepository: _userReadRepository);
+		_userQueryRepository = Substitute.For<IUserQueryRepository>();
+		_handler = new GetIncomeExpenseSummaryHandler(userQueryRepository: _userQueryRepository);
 	}
 
 	[Test]
 	public async Task Handle_ShouldReturnIncomeAndExpense()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
+		UserReadModel user = CreateUserReadModel(currency: "RUB");
 		DateOnly period = new DateOnly(year: 2024, month: 1, day: 1);
 
-		_userReadRepository.GetByIdAsync(
+		_userQueryRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
 
-		_userReadRepository.GetIncomeExpenseSummaryAsync(
+		_userQueryRepository.GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
@@ -49,15 +58,15 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 	[Test]
 	public async Task Handle_WithNoTransactions_ShouldReturnZeros()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
+		UserReadModel user = CreateUserReadModel();
 		DateOnly period = new DateOnly(year: 2024, month: 1, day: 1);
 
-		_userReadRepository.GetByIdAsync(
+		_userQueryRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
 
-		_userReadRepository.GetIncomeExpenseSummaryAsync(
+		_userQueryRepository.GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
@@ -75,15 +84,15 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 	[Test]
 	public async Task Handle_ShouldPassPeriodToRepository()
 	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+		UserReadModel user = CreateUserReadModel();
 		DateOnly period = new DateOnly(year: 2024, month: 6, day: 1);
 
-		_userReadRepository.GetByIdAsync(
+		_userQueryRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: user);
 
-		_userReadRepository.GetIncomeExpenseSummaryAsync(
+		_userQueryRepository.GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
@@ -94,7 +103,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _userReadRepository.Received(requiredNumberOfCalls: 1).GetIncomeExpenseSummaryAsync(
+		await _userQueryRepository.Received(requiredNumberOfCalls: 1).GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: period,
 			ct: Arg.Any<CancellationToken>()

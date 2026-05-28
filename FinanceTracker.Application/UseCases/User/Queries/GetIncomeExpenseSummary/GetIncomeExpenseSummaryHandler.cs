@@ -1,22 +1,23 @@
 using FinanceTracker.Application.Dtos;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
 
 public sealed class GetIncomeExpenseSummaryHandler(
-	IUserReadRepository userReadRepository
+	IUserQueryRepository userQueryRepository
 ) : IRequestHandler<GetIncomeExpenseSummaryQuery, IncomeExpenseSummary>
 {
 	public async Task<IncomeExpenseSummary> Handle(
 		GetIncomeExpenseSummaryQuery query,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User user = await userReadRepository.GetByIdAsync(userId: query.UserId, ct: ct)
-		?? throw new NotFoundException(message: "User not found.", id: query.UserId);
+		UserReadModel user = await userQueryRepository.GetByIdAsync(userId: query.UserId, ct: ct)
+			?? throw new NotFoundException(message: "User not found.", id: query.UserId);
 
-		(decimal income, decimal expense) = await userReadRepository.GetIncomeExpenseSummaryAsync(
+		(decimal income, decimal expense) = await userQueryRepository.GetIncomeExpenseSummaryAsync(
 			userId: query.UserId,
 			period: query.Period,
 			ct: ct

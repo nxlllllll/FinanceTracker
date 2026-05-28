@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Application.UseCases.Category.Queries.GetTotal;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

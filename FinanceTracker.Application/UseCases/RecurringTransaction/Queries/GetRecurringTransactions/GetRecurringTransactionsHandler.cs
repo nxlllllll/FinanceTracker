@@ -1,3 +1,4 @@
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -6,9 +7,9 @@ namespace FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRe
 
 public sealed class GetRecurringTransactionsHandler(
 	IRecurringTransactionReadRepository recurringTransactionReadRepository
-) : IRequestHandler<GetRecurringTransactionsQuery, PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction>>
+) : IRequestHandler<GetRecurringTransactionsQuery, PagedResult<RecurringTransactionReadModel>>
 {
-	public async Task<PagedResult<Core.Domains.RecurringTransaction.RecurringTransaction>> Handle(
+	public async Task<PagedResult<RecurringTransactionReadModel>> Handle(
 		GetRecurringTransactionsQuery query,
 		CancellationToken ct = default)
 	{

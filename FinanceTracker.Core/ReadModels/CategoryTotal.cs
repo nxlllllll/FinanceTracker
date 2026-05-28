@@ -1,4 +1,4 @@
-namespace FinanceTracker.Core.Repositories.Category;
+namespace FinanceTracker.Core.ReadModels;
 
 public sealed record CategoryTotal(
 	Guid CategoryId,
@@ -6,4 +6,4 @@ public sealed record CategoryTotal(
 	decimal Total,
 	int Count,
 	DateTimeOffset UpdatedAt
-);
+) : IReadModel;

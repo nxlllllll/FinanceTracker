@@ -14,7 +14,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class RefreshTokenHandlerTests
 {
-	private IUserReadRepository _userReadRepository = null!;
+	private IUserAuthRepository _userAuthRepository = null!;
 	private IUserSessionReadRepository _userSessionReadRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
 	private ITokenService _tokenService = null!;
@@ -55,7 +55,7 @@ public sealed class RefreshTokenHandlerTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userReadRepository = Substitute.For<IUserReadRepository>();
+		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userSessionReadRepository = Substitute.For<IUserSessionReadRepository>();
 		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
 		_tokenService = Substitute.For<ITokenService>();
@@ -70,7 +70,7 @@ public sealed class RefreshTokenHandlerTests
 		).Returns(returnThis: NewSessionToken);
 
 		_handler = new RefreshTokenHandler(
-			userReadRepository: _userReadRepository,
+			userAuthRepository: _userAuthRepository,
 			userSessionReadRepository: _userSessionReadRepository,
 			userSessionWriteRepository: _userSessionWriteRepository,
 			tokenService: _tokenService,
@@ -153,7 +153,7 @@ public sealed class RefreshTokenHandlerTests
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ActiveSession());
-		_userReadRepository.GetByIdAsync(
+		_userAuthRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
@@ -175,7 +175,7 @@ public sealed class RefreshTokenHandlerTests
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: session);
-		_userReadRepository.GetByIdAsync(
+		_userAuthRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
@@ -199,7 +199,7 @@ public sealed class RefreshTokenHandlerTests
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ActiveSession());
-		_userReadRepository.GetByIdAsync(
+		_userAuthRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
@@ -222,7 +222,7 @@ public sealed class RefreshTokenHandlerTests
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ActiveSession());
-		_userReadRepository.GetByIdAsync(
+		_userAuthRepository.GetByIdAsync(
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
