@@ -18,7 +18,7 @@
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.15.3-beta.1" />
         <PackageReference Include="Quartz" Version="3.18.1" />
         <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
-        <PackageReference Include="StackExchange.Redis" Version="2.13.1" />
+        <PackageReference Include="StackExchange.Redis" Version="2.13.17" />
         <PackageReference Include="ZLogger" Version="2.5.10" />
         <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />

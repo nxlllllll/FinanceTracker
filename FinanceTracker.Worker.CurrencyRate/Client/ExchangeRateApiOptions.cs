@@ -13,4 +13,12 @@ public sealed class ExchangeRateApiOptions
 
 	[Required]
 	public string BaseUrl { get; init; } = "https://v6.exchangerate-api.com/v6";
+
+	public int RetryCount { get; init; } = 3;
+	public int RetryDelaySeconds { get; init; } = 2;
+	public double CircuitBreakerFailureRatio { get; init; } = 0.5;
+	public int CircuitBreakerMinThroughput { get; init; } = 3;
+	public int CircuitBreakerSamplingSeconds { get; init; } = 30;
+	public int CircuitBreakerBreakSeconds { get; init; } = 30;
+	public int TimeoutSeconds { get; init; } = 10;
 }
