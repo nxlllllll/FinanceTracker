@@ -50,6 +50,248 @@
       retries: 10
       start_period: 30s
       
+  worker-outbox:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.Outbox/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  worker-account-projection:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.AccountProjection/Dockerfile
+    ports:
+      - "5001:5001"
+    environment:    
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5001
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  worker-recurring-transaction:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.RecurringTransaction/Dockerfile
+    ports:
+      - "5002:5002"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5002
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  worker-recurring-transaction-projection:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.RecurringTransactionProjection/Dockerfile
+    ports:
+      - "5003:5003"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5003
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  worker-dead-letter-monitor:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.DeadLetterMonitor/Dockerfile
+    ports:
+      - "5004:5004"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5004
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  worker-transfer-projection:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.TransferProjection/Dockerfile
+    ports:
+      - "5005:5005"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5005
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+  
+  worker-currency-rate:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.CurrencyRate/Dockerfile
+    ports:
+      - "5006:5006"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5006
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+      ExchangeRateApi__ApiKey: ${EXCHANGE_RATE_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+  
+  worker-balance-adjustment:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.BalanceAdjustment/Dockerfile
+    ports:
+      - "5007:5007"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5007
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+        
+  worker-cleanup:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.Cleanup/Dockerfile
+    ports:
+      - "5008:5008"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5008
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+        
+  worker-domain-event-outbox:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.DomainEventOutbox/Dockerfile
+    ports:
+      - "5009:5009"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5009
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+        
+  migrator:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Migrator/Dockerfile
+    environment:
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+    restart: no
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
   prometheus:
     image: prom/prometheus:latest
     ports:
@@ -64,7 +306,7 @@
     ports:
       - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
 
 volumes:
   postgres_data:

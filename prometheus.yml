@@ -5,13 +5,13 @@ scrape_configs:
   - job_name: 'finance-tracker-workers'
     static_configs:
       - targets:
-          - 'host.docker.internal:5100'  # Worker.Outbox
-          - 'host.docker.internal:5101'  # Worker.AccountProjection
-          - 'host.docker.internal:5102'  # Worker.RecurringTransaction
-          - 'host.docker.internal:5103'  # Worker.RecurringTransactionProjection
-          - 'host.docker.internal:5104'  # Worker.DeadLetterMonitor
-          - 'host.docker.internal:5105'  # Worker.TransferProjection
-          - 'host.docker.internal:5106'  # Worker.CurrencyRate
-          - 'host.docker.internal:5107'  # Worker.BalanceAdjustment
-          - 'host.docker.internal:5108'  # Worker.Cleanup
-          - 'host.docker.internal:5109'  # Worker.DomainEventOutbox
+          - 'worker-outbox:5100'
+          - 'worker-account-projection:5101'
+          - 'worker-recurring-transaction:5102'
+          - 'worker-recurring-transaction-projection:5103'
+          - 'worker-dead-letter-monitor:5104'
+          - 'worker-transfer-projection:5105'
+          - 'worker-currency-rate:5106'
+          - 'worker-balance-adjustment:5107'
+          - 'worker-cleanup:5108'
+          - 'worker-domain-event-outbox:5109'

@@ -17,9 +17,7 @@ public sealed class Program
 	
 	public static int Main(string[] args)
 	{
-		IConfiguration configuration = new ConfigurationBuilder()
-			.AddJsonFile(path: "appsettings.json", optional: false)
-			.AddJsonFile(path: "appsettings.Development.json", optional: false)
+		IConfiguration configuration = new ConfigurationBuilder().AddJsonFile(path: "appsettings.json", optional: false)
 			.AddEnvironmentVariables()
 			.Build();
 
