@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Services.Tracing;
 using MediatR;
 
@@ -15,7 +17,9 @@ public sealed class TracingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
 		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(name: typeof(TRequest).Name, kind: ActivityKind.Internal);
 
 		activity?.SetTag(key: "request.type", value: typeof(TRequest).Name);
-
+		if (request is IAuthorizable authorizable)
+			activity?.SetTag(key: "user.id", value: authorizable.UserId);
+		
 		try
 		{
 			TResponse response = await next(t: cancellationToken);
