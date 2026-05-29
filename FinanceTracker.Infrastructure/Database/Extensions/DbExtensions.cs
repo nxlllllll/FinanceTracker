@@ -1,7 +1,9 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
+using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Npgsql;
@@ -10,16 +12,30 @@ namespace FinanceTracker.Infrastructure.Database.Extensions;
 
 public static class DbContextExtensions
 {
-    public static IQueryable<T> WithSkipLocked<T>(this DbContext context) where T : class
+    public static IQueryable<OutboxMessageEntity> GetPendingOutboxBatch(
+        this FinanceTrackerContext context,
+        int batchSize)
     {
-        IEntityType entityType = context.Model.FindEntityType(type: typeof(T))!;
-        string table = entityType.GetTableName()!;
-        string? schema = entityType.GetSchema();
-        string fullName = schema is null ? $"\"{table}\"" : $"\"{schema}\".\"{table}\"";
+        return context.OutboxMessages.FromSqlRaw(sql: """
+            SELECT * FROM "outbox_messages"
+            WHERE processed_at IS NULL AND failed_at IS NULL
+            ORDER BY updated_at
+            LIMIT {0}
+            FOR UPDATE SKIP LOCKED
+            """, batchSize);
+    }
 
-#pragma warning disable EF1002
-        return context.Set<T>().FromSqlRaw(sql: $"SELECT * FROM {fullName} FOR UPDATE SKIP LOCKED");
-#pragma warning restore EF1002
+    public static IQueryable<DomainEventOutboxEntity> GetPendingDomainEventBatch(
+        this FinanceTrackerContext context,
+        int batchSize)
+    {
+        return context.DomainEventOutbox.FromSqlRaw(sql: """
+            SELECT * FROM "domain_event_outbox"
+            WHERE processed_at IS NULL AND failed_at IS NULL
+            ORDER BY created_at
+            LIMIT {0}
+            FOR UPDATE SKIP LOCKED
+            """, batchSize);
     }
 
     public static Task UpsertCategoryTotalAsync(
@@ -65,7 +81,7 @@ public static class DbContextExtensions
         );
 #pragma warning restore EF1002
     }
-    
+
     public static async Task<bool> TryReserveIdempotentCommandAsync(
         this DbContext context,
         Guid idempotencyKey,
