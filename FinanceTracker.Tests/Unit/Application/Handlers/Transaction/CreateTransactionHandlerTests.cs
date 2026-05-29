@@ -1,6 +1,9 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Services;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -10,14 +13,25 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class CreateTransactionHandlerTests
 {
     private ITransactionCreationService _transactionCreationService = null!;
+    private ICategoryReadRepository _categoryReadRepository = null!;
     private CreateTransactionHandler _handler = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
         _transactionCreationService = Substitute.For<ITransactionCreationService>();
+        _categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+        
+        CategoryReadModel category = CategoryFactory.CreateReadModel(type: CategoryType.Expense);
+        _categoryReadRepository.GetByIdAsync(
+            categoryId: Arg.Any<Guid>(),
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: category);
+        
         _handler = new CreateTransactionHandler(
-            transactionCreationService: _transactionCreationService
+            transactionCreationService: _transactionCreationService,
+            categoryReadRepository: _categoryReadRepository
         );
     }
 

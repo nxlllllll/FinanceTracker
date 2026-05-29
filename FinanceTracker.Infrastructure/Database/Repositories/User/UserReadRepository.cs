@@ -17,7 +17,7 @@ public sealed class UserReadRepository(
 {
 	async Task<Core.Domains.User.User?> IUserAuthRepository.GetByIdAsync(
 		Guid userId,
-		CancellationToken ct = default)
+		CancellationToken ct)
 	{
 		return await context.Users.AsNoTracking().Where(predicate: u => u.Id == userId)
 			.Select(selector: u => Core.Domains.User.User.Reconstitute(
@@ -45,7 +45,7 @@ public sealed class UserReadRepository(
 	
 	async Task<UserReadModel?> IUserQueryRepository.GetByIdAsync(
 		Guid userId,
-		CancellationToken ct = default)
+		CancellationToken ct)
 	{
 		return await context.Users.AsNoTracking().Where(predicate: u => u.Id == userId)
 			.Select(selector: u => new UserReadModel(

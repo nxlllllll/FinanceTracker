@@ -44,7 +44,7 @@ public readonly record struct Money
 		if (Currency != value.Currency)
 			throw new CurrencyException(message: $"Cannot add amounts of different currencies: {Currency} and {value.Currency}.");
 
-		return new Money(amount: Amount + value.Amount, currency: Currency);
+		return Add(amount: value.Amount);
 	}
 	
 	public Money Subtract(Money value)
@@ -52,17 +52,11 @@ public readonly record struct Money
 		if (Currency != value.Currency)
 			throw new CurrencyException(message: $"Cannot subtract amounts of different currencies: {Currency} and {value.Currency}.");
 
-		return new Money(amount: Amount - value.Amount, currency: Currency);
+		return Subtract(amount: value.Amount);
 	}
 
 	public static Money Reconstitute(decimal amount, Currency currency)
 		=> new Money(amount: amount, currency: currency);
-
-	public static Money operator +(Money left, Money right)
-		=> left.Add(value: right);
-	
-	public static Money operator -(Money left, Money right)
-		=> left.Subtract(value: right);
 	
 	public override string ToString()
 		=> $"{Amount.ToString(format: null, provider: System.Globalization.CultureInfo.InvariantCulture)} {Currency}";

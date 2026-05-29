@@ -16,7 +16,6 @@ namespace FinanceTracker.Application.UseCases.Transaction.Authorization;
 
 public sealed class TransactionLoader(
 	IAccountRepository accountRepository,
-	ICategoryRepository categoryRepository,
 	ITransactionRepository transactionRepository
 ) : IEntityLoader<CreateTransactionCommand, Core.Domains.Account.Account, DomainException>,
 	IEntityLoader<ChangeTransactionCategoryCommand, Core.Domains.Transaction.Transaction, DomainException>,
@@ -26,48 +25,14 @@ public sealed class TransactionLoader(
 {
 	public async Task<Result<Core.Domains.Account.Account, DomainException>> LoadAsync(
 		CreateTransactionCommand request,
-		CancellationToken ct)
-	{
-		Result<Core.Domains.Account.Account, DomainException> account = await LoadAccountAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
+		CancellationToken ct
+	) => await LoadAccountAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
 
-		if (account.IsFailure)
-			return account;
-
-		DomainException? exception = await ValidateCategoryDirection(
-			categoryId: request.CategoryId,
-			userId: request.UserId,
-			direction: request.Direction,
-			ct: ct
-		);
-
-		if (exception is not null)
-			return Result<Core.Domains.Account.Account, DomainException>.Failure(error: exception);
-
-		return account;
-	}
-
-	public async Task<Result<Core.Domains.Transaction.Transaction, DomainException>> LoadAsync(
+	public Task<Result<Core.Domains.Transaction.Transaction, DomainException>> LoadAsync(
 		ChangeTransactionCategoryCommand request,
-		CancellationToken ct)
-	{
-		Result<Core.Domains.Transaction.Transaction, DomainException> transaction = await LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
-
-		if (transaction.IsFailure)
-			return transaction;
-
-		DomainException? exception = await ValidateCategoryDirection(
-			categoryId: request.CategoryId,
-			userId: request.UserId,
-			direction: transaction.Value!.Direction,
-			ct: ct
-		);
-
-		if (exception is not null)
-			return Result<Core.Domains.Transaction.Transaction, DomainException>.Failure(error: exception);
-
-		return transaction;
-	}
-
+		CancellationToken ct
+	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
+	
 	public Task<Result<Core.Domains.Transaction.Transaction, DomainException>> LoadAsync(
 		ChangeTransactionDescriptionCommand request,
 		CancellationToken ct
@@ -107,29 +72,5 @@ public sealed class TransactionLoader(
 			return Result<Core.Domains.Account.Account, DomainException>.Failure(error: new NotFoundException(message: "Account not found.", id: accountId));
 
 		return Result<Core.Domains.Account.Account, DomainException>.Success(value: account);
-	}
-
-	private async Task<DomainException?> ValidateCategoryDirection(
-		Guid categoryId,
-		Guid userId,
-		DirectionType direction,
-		CancellationToken ct)
-	{
-		Core.Domains.Category.Category? category = await categoryRepository.GetByIdAsync(categoryId: categoryId, userId: userId, ct: ct);
-
-		if (category is null)
-			return new NotFoundException(message: "Category not found.", id: categoryId);
-
-		bool valid = (direction, category.Type) switch
-		{
-			(DirectionType.Debit,  CategoryType.Expense) => true,
-			(DirectionType.Credit, CategoryType.Income)  => true,
-			_ => false
-		};
-
-		if (!valid)
-			return new InvalidTransactionDirectionException(message: $"Direction '{direction}' is not compatible with category type '{category.Type}'.");
-
-		return null;
 	}
 }

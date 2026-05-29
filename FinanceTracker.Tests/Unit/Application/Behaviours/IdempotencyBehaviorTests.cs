@@ -268,13 +268,11 @@ public sealed class IdempotencyBehaviorTests
 	}
 	
 	[Test]
-	public async Task Handle_WhenIdempotencyKeyIsEmpty_ShouldSkipCheckAndCallNext()
+	public async Task Handle_WhenIdempotencyKeyIsEmpty_ShouldReturnFailure()
 	{
-		Result<Guid, DomainException> expected = Ok();
-
 		Result<Guid, DomainException> result = await _behavior.Handle(
 			request: new TestCommand(IdempotencyKey: Guid.Empty),
-			next: _ => Task.FromResult(result: expected),
+			next: _ => throw new InvalidOperationException(message: "next should not be called"),
 			cancellationToken: CancellationToken.None
 		);
 
@@ -289,6 +287,8 @@ public sealed class IdempotencyBehaviorTests
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
-		await Assert.That(value: result).IsEqualTo(expected: expected);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
 	}
 }

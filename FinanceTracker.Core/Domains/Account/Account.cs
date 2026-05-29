@@ -79,27 +79,6 @@ public sealed class Account : AggregateRoot
 		account.LoadEventsFromHistory(events);
 		return account;
 	}
-	
-	public static Account Reconstitute(
-		Guid id,
-		Guid userId,
-		Name name,
-		AccountType type,
-		Money balance,
-		bool isArchived,
-		DateTimeOffset createdAt)
-	{
-		return new Account
-		{
-			Id = id,
-			UserId = userId,
-			Name = name,
-			Type = type,
-			Balance = balance,
-			IsArchived = isArchived,
-			CreatedAt = createdAt
-		};
-	}
 
 	internal static Account Restore(SnapshotData snapshot)
 	{
@@ -209,10 +188,10 @@ public sealed class Account : AggregateRoot
 		decimal newRate,
 		decimal amount)
 	{
-		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
-		if (constraints.IsFailure) 
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: newRate);
+		if (constraints.IsFailure)
 			return constraints;
-			
+
 		int sign = GetSign(direction: direction);
 		decimal delta = (newRate - oldRate) * amount * sign;
  
@@ -273,10 +252,12 @@ public sealed class Account : AggregateRoot
 		string? description)
 	{
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
-		if (constraints.IsFailure) return constraints;
+		if (constraints.IsFailure)
+			return constraints;
  
 		Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount);
-		if (funds.IsFailure) return funds;
+		if (funds.IsFailure)
+			return funds;
  
 		RaiseEvent(@event: new AccountTransferDebited(
 			Id: Guid.CreateVersion7(),
@@ -299,7 +280,8 @@ public sealed class Account : AggregateRoot
 		string? description)
 	{
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
-		if (constraints.IsFailure) return constraints;
+		if (constraints.IsFailure) 
+			return constraints;
 		
 		RaiseEvent(@event: new AccountTransferRefunded(
 			Id: Guid.CreateVersion7(),
@@ -322,7 +304,8 @@ public sealed class Account : AggregateRoot
 		string? description)
 	{
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
-		if (constraints.IsFailure) return constraints;
+		if (constraints.IsFailure)
+			return constraints;
  
 		RaiseEvent(@event: new AccountCredited(
 			Id: Guid.CreateVersion7(),
@@ -347,7 +330,8 @@ public sealed class Account : AggregateRoot
 		string? description)
 	{
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
-		if (constraints.IsFailure) return constraints;
+		if (constraints.IsFailure)
+			return constraints;
  
 		RaiseEvent(@event: new AccountTransferCredited(
 			Id: Guid.CreateVersion7(),

@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
@@ -28,7 +29,6 @@ public sealed class TransactionLoaderTests
 		_categoryRepository = Substitute.For<ICategoryRepository>();
 		_loader = new TransactionLoader(
 			accountRepository: _accountRepository,
-			categoryRepository: _categoryRepository,
 			transactionRepository: _transactionRepository
 		);
 	}
@@ -52,20 +52,24 @@ public sealed class TransactionLoaderTests
 	}
 
 	[Test]
-	public async Task LoadAsync_WhenTransactionBelongsToAnotherUser_ShouldThrowNotFoundException()
+	public async Task LoadAsync_WhenTransactionBelongsToAnotherUser_ShouldReturnNotFound()
 	{
 		Transaction transaction = TransactionFactory.Create();
 		_transactionRepository.GetByIdAsync(
 			transactionId: Arg.Any<Guid>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: transaction);
+		).Returns(returnThis: Task.FromResult<Transaction?>(result: null));
 
 		Result<Transaction, DomainException> result = await _loader.LoadAsync(
-			request: new ChangeTransactionCategoryCommand(UserId: Guid.CreateVersion7(), TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
+			request: new ChangeTransactionCategoryCommand(
+				UserId: Guid.CreateVersion7(),
+				TransactionId: transaction.Id,
+				CategoryId: Guid.CreateVersion7()
+			),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}

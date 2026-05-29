@@ -197,7 +197,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             userId: Guid.CreateVersion7(),
             name: Name.Create(value: "����").Value,
             type: Core.Domains.Account.AccountType.Checking,
-            currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+            currency: Currency.Create(value: "RUB").Value,
             balance: 100m
         );
 

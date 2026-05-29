@@ -1,6 +1,8 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Operation;
@@ -14,6 +16,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class ChangeTransactionCategoryHandlerTests
 {
 	private ITransactionWriteRepository _transactionWriteRepository = null!;
+    private ICategoryReadRepository _categoryReadRepository = null!;
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
 	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
 	private IOperationsWriteRepository _operationsWriteRepository = null!;
@@ -24,10 +27,12 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	public void Setup()
 	{
 		_transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
+        _categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_operationsWriteRepository = Substitute.For<IOperationsWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -37,13 +42,22 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+		
+		CategoryReadModel category = CategoryFactory.CreateReadModel(type: CategoryType.Expense);
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
+
+		
 		_handler = new ChangeTransactionCategoryHandler(
 			transactionWriteRepository: _transactionWriteRepository,
+			categoryReadRepository: _categoryReadRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			operationsWriteRepository: _operationsWriteRepository,
 			unitOfWork: _unitOfWork,
-			budgetProgressWriteRepository: _budgetProgressWriteRepository,
-			logger: Substitute.For<ILogger<ChangeTransactionCategoryHandler>>()
+			budgetProgressWriteRepository: _budgetProgressWriteRepository
 		);
 	}
 

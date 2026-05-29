@@ -149,18 +149,15 @@ public sealed class PostgresEventStore(
 		), options: FinanceTrackerJsonOptions.Payload);
 
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
-		await context.OutboxMessages.AddAsync(
-			entity: new OutboxMessageEntity()
-			{
-				Id = Guid.CreateVersion7(),
-				AggregateId = aggregateId,
-				AggregateType = aggregateType,
-				Payload = payload,
-				UpdatedAt = dateProvider.UtcNow,
-				ProcessedAt = null
-			},
-			cancellationToken: ct
-		);
+		await context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity()
+		{
+			Id = Guid.CreateVersion7(),
+			AggregateId = aggregateId,
+			AggregateType = aggregateType,
+			Payload = payload,
+			UpdatedAt = dateProvider.UtcNow,
+			ProcessedAt = null
+		}, cancellationToken: ct);
 
 		await ApplySnapshot(
 			aggregateId: aggregateId,

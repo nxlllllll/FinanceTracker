@@ -89,102 +89,103 @@ public sealed class MoneyTests
     }
 
     [Test]
-    public async Task OperatorPlus_ShouldIncreaseAmount()
+    public async Task Add_ShouldIncreaseAmount()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Rub);
         Money right = Money.Reconstitute(amount: 50m, currency: Rub);
 
-        Money result = left + right;
+        Money result = left.Add(value: right);
 
         await Assert.That(value: result.Amount).IsEqualTo(expected: 150m);
         await Assert.That(value: result.Currency).IsEqualTo(expected: Rub);
     }
 
     [Test]
-    public async Task OperatorPlus_ShouldPreserveCurrency()
+    public async Task Add_ShouldPreserveCurrency()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Usd);
         Money right = Money.Reconstitute(amount: 1m, currency: Usd);
 
-        Money result = left + right;
+        Money result = left.Add(value: right);
 
         await Assert.That(value: result.Currency).IsEqualTo(expected: Usd);
     }
 
     [Test]
-    public async Task OperatorMinus_ShouldDecreaseAmount()
+    public async Task Subtract_ShouldDecreaseAmount()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Rub);
         Money right = Money.Reconstitute(amount: 30m, currency: Rub);
 
-        Money result = left - right;
+        Money result = left.Subtract(value: right);
 
         await Assert.That(value: result.Amount).IsEqualTo(expected: 70m);
     }
 
     [Test]
-    public async Task OperatorMinus_ToExactZero_ShouldSucceed()
+    public async Task Subtract_ToExactZero_ShouldSucceed()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Rub);
         Money right = Money.Reconstitute(amount: 100m, currency: Rub);
 
-        Money result = left - right;
+        Money result = left.Subtract(value: right);
 
         await Assert.That(value: result.Amount).IsEqualTo(expected: 0m);
     }
 
     [Test]
-    public async Task OperatorMinus_BelowZero_ShouldResultInNegativeAmount()
+    public async Task Subtract_BelowZero_ShouldResultInNegativeAmount()
     {
         Money left = Money.Reconstitute(amount: 50m, currency: Rub);
         Money right = Money.Reconstitute(amount: 100m, currency: Rub);
 
-        Money result = left - right;
+        Money result = left.Subtract(value: right);
 
         await Assert.That(value: result.Amount).IsEqualTo(expected: -50m);
     }
 
     [Test]
-    public async Task OperatorPlusMoney_SameCurrency_ShouldSumAmounts()
+    public async Task Add_SameCurrency_ShouldSumAmounts()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Rub);
         Money right = Money.Reconstitute(amount: 50m, currency: Rub);
 
-        Money result = left + right;
+        Money result = left.Add(value: right);
 
         await Assert.That(value: result.Amount).IsEqualTo(expected: 150m);
         await Assert.That(value: result.Currency).IsEqualTo(expected: Rub);
     }
 
     [Test]
-    public async Task OperatorPlusMoney_DifferentCurrencies_ShouldThrowCurrencyException()
+    public async Task Add_DifferentCurrencies_ShouldThrowCurrencyException()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Rub);
         Money right = Money.Reconstitute(amount: 50m, currency: Usd);
 
-        Assert.Throws<CurrencyException>(action: () => _ = left + right);
+        Assert.Throws<CurrencyException>(action: () => _ = left.Add(value: right));
     }
 
     [Test]
-    public async Task OperatorMinusMoney_SameCurrency_ShouldSubtractAmounts()
+    public async Task Subtract_SameCurrency_ShouldSubtractAmounts()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Rub);
         Money right = Money.Reconstitute(amount: 30m, currency: Rub);
 
-        Money result = left - right;
+        Money result = left.Subtract(value: right);
 
         await Assert.That(value: result.Amount).IsEqualTo(expected: 70m);
         await Assert.That(value: result.Currency).IsEqualTo(expected: Rub);
     }
 
     [Test]
-    public async Task OperatorMinusMoney_DifferentCurrencies_ShouldThrowCurrencyException()
+    public async Task Subtract_DifferentCurrencies_ShouldThrowCurrencyException()
     {
         Money left = Money.Reconstitute(amount: 100m, currency: Rub);
         Money right = Money.Reconstitute(amount: 30m, currency: Usd);
 
-        Assert.Throws<CurrencyException>(action: () => _ = left - right);
+        Assert.Throws<CurrencyException>(action: () => _ = left.Subtract(value: right));
     }
+    
     [Test]
     public async Task ToString_ShouldReturnAmountAndCurrency()
     {

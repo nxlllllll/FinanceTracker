@@ -1,5 +1,7 @@
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -18,7 +20,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 	ILogger<IdempotencyBehavior<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : notnull
-	where TResponse : notnull
+	where TResponse : IResult<TResponse, DomainException>
 {
 	public async Task<TResponse> Handle(
 		TRequest request,
@@ -27,8 +29,8 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 	{
 		if (request is not IIdempotentCommand idempotent || idempotent.IdempotencyKey == Guid.Empty)
 		{
-			logger.ZLogWarning(message: $"[Idempotency] {typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty. Idempotency check skipped.");
-			return await next(t: cancellationToken);
+			logger.ZLogWarning(message: $"[Idempotency] {typeof(TRequest).Name} has empty IdempotencyKey.");
+			return TResponse.CreateFailure(error: new EmptyIdempotentException(message: $"{typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty."));
 		}
 
 		string? cached = await idempotencyReadRepository.GetAsync(idempotencyKey: idempotent.IdempotencyKey, ct: cancellationToken);
