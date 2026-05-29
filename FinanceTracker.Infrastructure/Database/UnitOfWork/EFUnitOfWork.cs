@@ -13,7 +13,7 @@ public sealed class EFUnitOfWork(
 {
 	private IDbContextTransaction? _transaction;
 	private readonly Stack<string> _savepoints = new Stack<string>();
-	
+
 	public async Task BeginTransactionAsync(CancellationToken ct = default)
 	{
 		if (_transaction is null)
@@ -54,12 +54,14 @@ public sealed class EFUnitOfWork(
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
 			await _transaction.RollbackToSavepointAsync(name: savepointName, cancellationToken: ct);
+			context.ChangeTracker.Clear();
 			return;
 		}
  
 		await _transaction.RollbackAsync(cancellationToken: ct);
 		await _transaction.DisposeAsync();
 		_transaction = null;
+		context.ChangeTracker.Clear();
 	}
 
 	public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken ct = default)
@@ -105,16 +107,18 @@ public sealed class EFUnitOfWork(
 		_transaction.Rollback();
 		_transaction.Dispose();
 		_transaction = null;
+		context.ChangeTracker.Clear();
 	}
 
 	public async ValueTask DisposeAsync()
 	{
 		if (_transaction is null)
 			return;
-		
+
 		_savepoints.Clear();
 		await _transaction.RollbackAsync();
 		await _transaction.DisposeAsync();
 		_transaction = null;
+		context.ChangeTracker.Clear();
 	}
 }
