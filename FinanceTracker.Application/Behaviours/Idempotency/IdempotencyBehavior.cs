@@ -27,7 +27,10 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
-		if (request is not IIdempotentCommand idempotent || idempotent.IdempotencyKey == Guid.Empty)
+		if (request is not IIdempotentCommand idempotent)
+			return await next(t: cancellationToken);
+
+		if (idempotent.IdempotencyKey == Guid.Empty)
 		{
 			logger.ZLogWarning(message: $"[Idempotency] {typeof(TRequest).Name} has empty IdempotencyKey.");
 			return TResponse.CreateFailure(error: new EmptyIdempotentException(message: $"{typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty."));
