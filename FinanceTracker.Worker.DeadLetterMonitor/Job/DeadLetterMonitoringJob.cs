@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -11,6 +12,7 @@ namespace FinanceTracker.Worker.DeadLetterMonitor.Job;
 public sealed class DeadLetterMonitoringJob(
 	IUnresolvableEventReadRepository unresolvableEventReadRepository,
 	IOptionsMonitor<DeadLetterMonitoringOptions> options,
+	IDateProvider dateProvider,
 	ILogger<DeadLetterMonitoringJob> logger
 ) : IJob
 {
@@ -18,7 +20,7 @@ public sealed class DeadLetterMonitoringJob(
 	{
 		if (!options.CurrentValue.IsEnabled)
 		{
-			logger.ZLogInformation(message: $"[{nameof(DeadLetterMonitoringJob)}] Disabled on {DateTimeOffset.Now}. Skipping.");
+			logger.ZLogInformation(message: $"[{nameof(DeadLetterMonitoringJob)}] Disabled on {dateProvider.UtcNow}. Skipping.");
 			return;
 		}
 

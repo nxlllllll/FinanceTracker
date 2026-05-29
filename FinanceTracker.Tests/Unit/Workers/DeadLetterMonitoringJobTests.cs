@@ -27,6 +27,7 @@ public sealed class DeadLetterMonitoringJobTests
         _job = new DeadLetterMonitoringJob(
             unresolvableEventReadRepository: _readRepository,
             options: new FakeOptionsMonitor<DeadLetterMonitoringOptions>(new DeadLetterMonitoringOptions()),
+            dateProvider: FakeDateProvider.Default,
             logger: _logger
         );
     }

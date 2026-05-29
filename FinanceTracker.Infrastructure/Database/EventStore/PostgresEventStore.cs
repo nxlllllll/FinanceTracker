@@ -200,9 +200,7 @@ public sealed class PostgresEventStore(
 		int fromVersion = snapshot?.Version ?? 0;
 
 		List<EventEntity> entities = await context.Events.AsNoTracking()
-			.Where(predicate: e => e.AggregateId == aggregateId
-				&& e.Version > fromVersion
-				&& e.AggregateType == aggregateType)
+			.Where(predicate: e => e.AggregateId == aggregateId && e.Version > fromVersion && e.AggregateType == aggregateType)
 			.OrderBy(keySelector: e => e.Version)
 			.ToListAsync(cancellationToken: ct);
 

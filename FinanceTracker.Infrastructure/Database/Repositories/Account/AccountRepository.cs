@@ -5,9 +5,7 @@ using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
-public sealed class AccountRepository(
-	IEventStore eventStore
-) : IAccountRepository
+public sealed class AccountRepository(IEventStore eventStore) : IAccountRepository
 {
 	private const string AggregateType = AggregateTypeNames.Account;
 

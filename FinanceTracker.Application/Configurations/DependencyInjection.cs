@@ -37,13 +37,12 @@ public static class DependencyInjection
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 
-			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(TracingBehavior<,>));
-			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(CorrelationBehavior<,>));
-			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(RateLimitingBehavior<,>));
-			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ConcurrencyRetryBehavior<,>));
-			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(IdempotencyBehavior<,>));
-			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(ValidationBehavior<,>));
-			cfg.AddBehavior(serviceType: typeof(IPipelineBehavior<,>), implementationType: typeof(QueryValidationBehavior<,>));
+			cfg.AddBehavior(implementationType: typeof(TracingBehavior<,>));
+			cfg.AddBehavior(implementationType: typeof(CorrelationBehavior<,>));
+			cfg.AddBehavior(implementationType: typeof(RateLimitingBehavior<,>));
+			cfg.AddBehavior(implementationType: typeof(ConcurrencyRetryBehavior<,>));
+			cfg.AddBehavior(implementationType: typeof(IdempotencyBehavior<,>));
+			cfg.AddBehavior(implementationType: typeof(ValidationBehavior<,>));
 		});
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);
