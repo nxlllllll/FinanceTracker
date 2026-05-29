@@ -2,11 +2,16 @@ namespace FinanceTracker.Core.Repositories.Idempotency;
 
 public interface IIdempotencyWriteRepository
 {
-	Task StoreAsync(
+	Task<bool> TryReserveAsync(
 		Guid idempotencyKey,
 		string commandType,
-		string responseJson,
 		DateTimeOffset expiresAt,
+		CancellationToken ct = default
+	);
+
+	Task CompleteAsync(
+		Guid idempotencyKey,
+		string responseJson,
 		CancellationToken ct = default
 	);
 

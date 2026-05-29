@@ -11,19 +11,29 @@ public sealed class IdempotencyWriteRepository(
 	IDateProvider dateProvider
 ) : IIdempotencyWriteRepository
 {
-	public async Task StoreAsync(
+	public async Task<bool> TryReserveAsync(
 		Guid idempotencyKey,
 		string commandType,
-		string responseJson,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
 	{
-		await context.InsertIdempotentCommandAsync(
+		return await context.TryReserveIdempotentCommandAsync(
 			idempotencyKey: idempotencyKey,
 			commandType: commandType,
-			responseJson: responseJson,
 			createdAt: dateProvider.UtcNow,
 			expiresAt: expiresAt,
+			ct: ct
+		);
+	}
+
+	public Task CompleteAsync(
+		Guid idempotencyKey,
+		string responseJson,
+		CancellationToken ct = default)
+	{
+		return context.CompleteIdempotentCommandAsync(
+			idempotencyKey: idempotencyKey,
+			responseJson: responseJson,
 			ct: ct
 		);
 	}

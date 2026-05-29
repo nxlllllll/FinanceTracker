@@ -18,7 +18,10 @@ public sealed class IdempotencyReadRepository(
 		IdempotentCommandEntity? entity = await context.IdempotentCommands
 			.Where(predicate: e => e.IdempotencyKey == idempotencyKey && e.ExpiresAt > dateProvider.UtcNow)
 			.FirstOrDefaultAsync(cancellationToken: ct);
- 
-		return entity?.ResponseJson;
+
+		if (entity is null)
+			return null;
+
+		return entity.ResponseJson ?? String.Empty;
 	}
 }

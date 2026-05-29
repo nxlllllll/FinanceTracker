@@ -1,6 +1,5 @@
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
@@ -22,6 +21,9 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 	where TRequest : notnull
 	where TResponse : IResult<TResponse, DomainException>
 {
+	private const int InFlightPollIntervalMs = 50;
+	private const int InFlightMaxWaitMs = 5_000;
+
 	public async Task<TResponse> Handle(
 		TRequest request,
 		RequestHandlerDelegate<TResponse> next,
@@ -37,30 +39,74 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 		}
 
 		string? cached = await idempotencyReadRepository.GetAsync(idempotencyKey: idempotent.IdempotencyKey, ct: cancellationToken);
-
 		if (cached is not null)
+			return await HandleExistingEntryAsync(cached: cached, idempotent: idempotent, cancellationToken: cancellationToken);
+
+		DateTimeOffset expiresAt = dateProvider.UtcNow.AddHours(hours: options.CurrentValue.ExpiryHours);
+		bool reserved = await idempotencyWriteRepository.TryReserveAsync(
+			idempotencyKey: idempotent.IdempotencyKey,
+			commandType: typeof(TRequest).Name,
+			expiresAt: expiresAt,
+			ct: cancellationToken
+		);
+
+		if (!reserved)
 		{
-			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {typeof(TRequest).Name} (key: {idempotent.IdempotencyKey}).");
-			return JsonSerializer.Deserialize<TResponse>(json: cached, options: FinanceTrackerJsonOptions.Application)!;
+			logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} is in-flight, waiting for result.");
+			return await PollForCompletionAsync(idempotent: idempotent, cancellationToken: cancellationToken);
 		}
 
 		TResponse response = await next(t: cancellationToken);
 
 		if (response is IResult { IsSuccess: true })
 		{
-			DateTimeOffset expiresAt = dateProvider.UtcNow.AddHours(hours: options.CurrentValue.ExpiryHours);
-
-			await idempotencyWriteRepository.StoreAsync(
+			await idempotencyWriteRepository.CompleteAsync(
 				idempotencyKey: idempotent.IdempotencyKey,
-				commandType: typeof(TRequest).Name,
 				responseJson: JsonSerializer.Serialize(value: response, options: FinanceTrackerJsonOptions.Application),
-				expiresAt: expiresAt,
 				ct: cancellationToken
 			);
 
-			logger.ZLogDebug(message: $"[Idempotency] Cached result for {typeof(TRequest).Name} (key: {idempotent.IdempotencyKey}, expires: {expiresAt:O}).");
+			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} (expires: {expiresAt:O}).");
 		}
 
 		return response;
+	}
+
+	private async Task<TResponse> HandleExistingEntryAsync(
+		string cached,
+		IIdempotentCommand idempotent,
+		CancellationToken cancellationToken)
+	{
+		if (String.IsNullOrWhiteSpace(value: cached))
+		{
+			logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} is in-flight, waiting for result.");
+			return await PollForCompletionAsync(idempotent: idempotent, cancellationToken: cancellationToken);
+		}
+
+		logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {typeof(TRequest).Name} (key: {idempotent.IdempotencyKey}).");
+		return JsonSerializer.Deserialize<TResponse>(json: cached, options: FinanceTrackerJsonOptions.Application)!;
+	}
+
+	private async Task<TResponse> PollForCompletionAsync(
+		IIdempotentCommand idempotent,
+		CancellationToken cancellationToken)
+	{
+		int elapsed = 0;
+		while (elapsed < InFlightMaxWaitMs)
+		{
+			await Task.Delay(millisecondsDelay: InFlightPollIntervalMs, cancellationToken: cancellationToken);
+			elapsed += InFlightPollIntervalMs;
+
+			string? result = await idempotencyReadRepository.GetAsync(idempotencyKey: idempotent.IdempotencyKey, ct: cancellationToken);
+
+			if (String.IsNullOrWhiteSpace(value: result))
+				continue;
+
+			logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} completed after {elapsed}ms wait.");
+			return JsonSerializer.Deserialize<TResponse>(json: result, options: FinanceTrackerJsonOptions.Application)!;
+		}
+
+		logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} timed out waiting for in-flight result after {InFlightMaxWaitMs}ms.");
+		return TResponse.CreateFailure(error: new EmptyIdempotentException(message: $"Idempotency key {idempotent.IdempotencyKey} timed out waiting for an in-flight request to complete."));
 	}
 }
