@@ -1,4 +1,5 @@
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.Correlation;
@@ -14,6 +15,7 @@ namespace FinanceTracker.Worker.RecurringTransaction.Job;
 public sealed class RecurringTransactionHandlingJob(
     IRecurringTransactionReadRepository recurringTransactionReadRepository,
     IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
+    IUnitOfWork unitOfWork,
     IRabbitMqPublisher publisher,
     ICorrelationContext correlationContext,
     IDateProvider dateProvider,
@@ -51,12 +53,25 @@ public sealed class RecurringTransactionHandlingJob(
 
             try
             {
-                await PublishAsync(transaction: transaction, ct: ct);
-                await recurringTransactionWriteRepository.MarkExecutedAsync(
+                await publisher.PublishAsync(message: new RecurringTransactionTriggeredMessage(
+                    MessageId: Guid.CreateVersion7(),
+                    RecurringTransactionId: transaction.Id,
+                    AccountId: transaction.AccountId,
+                    UserId: transaction.UserId,
+                    CategoryId: transaction.CategoryId,
+                    Amount: transaction.Amount.Amount,
+                    Currency: transaction.Amount.Currency.Value,
+                    Direction: transaction.Direction.ToString(),
+                    Description: transaction.Description,
+                    OccurredAt: dateProvider.UtcNow,
+                    CorrelationId: correlationContext.CorrelationId
+                ), correlationId: correlationContext.CorrelationId, ct: ct);
+                
+                await unitOfWork.ExecuteInTransactionAsync(operation: async () => await recurringTransactionWriteRepository.MarkExecutedAsync(
                     recurringTransactionId: transaction.Id,
                     executedAt: dateProvider.UtcNow,
                     ct: ct
-                );
+                ), ct: ct);
                 
                 logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processed: {++processed}/{dueTransactions.Count} (id: {transaction.Id}).");
             }
@@ -84,24 +99,5 @@ public sealed class RecurringTransactionHandlingJob(
             currentMonthStart: currentMonthStart,
             ct: ct
         );
-    }
-
-    private async Task PublishAsync(
-        RecurringTransactionReadModel transaction,
-        CancellationToken ct)
-    {
-        await publisher.PublishAsync(message: new RecurringTransactionTriggeredMessage(
-            MessageId: Guid.CreateVersion7(),
-            RecurringTransactionId: transaction.Id,
-            AccountId: transaction.AccountId,
-            UserId: transaction.UserId,
-            CategoryId: transaction.CategoryId,
-            Amount: transaction.Amount.Amount,
-            Currency: transaction.Amount.Currency,
-            Direction: transaction.Direction.ToString(),
-            Description: transaction.Description,
-            OccurredAt: dateProvider.UtcNow,
-            CorrelationId: correlationContext.CorrelationId
-        ), correlationId: correlationContext.CorrelationId, ct: ct);
     }
 }

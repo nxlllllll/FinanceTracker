@@ -8,4 +8,10 @@ public sealed class IdempotencyOptions
 
 	[Range(minimum: 1, maximum: 720)]
 	public int ExpiryHours { get; init; } = 24;
+
+	public int InFlightInitialDelayMs { get; init; } = 50;
+	
+	public int InFlightMaxDelayMs { get; init; } = 2_000;
+	
+	public int InFlightMaxWaitMs { get; init; } = 5_000;
 }

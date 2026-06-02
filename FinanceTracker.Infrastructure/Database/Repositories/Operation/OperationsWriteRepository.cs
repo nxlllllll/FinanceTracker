@@ -58,25 +58,11 @@ public sealed class OperationsWriteRepository(
         await context.SaveChangesAsync(cancellationToken: ct);
     }
 
-    public async Task UpdateCategoryAsync(Guid operationId, Guid categoryId, CancellationToken ct = default)
-    {
-        await context.ChangePayloadAsync<OperationEntity, TransactionPayload, Guid>(
-            id: operationId,
-            property: payload => payload.CategoryId,
-            value: categoryId,
-            ct: ct
-        );
-    }
+    public Task UpdateCategoryAsync(Guid operationId, Guid categoryId, CancellationToken ct = default)
+        => context.UpdateTransactionCategoryInPayloadAsync(operationId: operationId, categoryId: categoryId, ct: ct);
 
-    public async Task UpdateIsExcludedAsync(Guid operationId, bool isExcluded, CancellationToken ct = default)
-    {
-        await context.ChangePayloadAsync<OperationEntity, TransactionPayload, bool>(
-            id: operationId,
-            property: payload => payload.IsExcluded,
-            value: isExcluded,
-            ct: ct
-        );
-    }
+    public Task UpdateIsExcludedAsync(Guid operationId, bool isExcluded, CancellationToken ct = default)
+        => context.UpdateTransactionIsExcludedInPayloadAsync(operationId: operationId, isExcluded: isExcluded, ct: ct);
 
     public async Task UpdateDescriptionAsync(Guid operationId, string? description, CancellationToken ct = default)
     {

@@ -48,4 +48,9 @@ public sealed class IdempotencyWriteRepository(
 			.Take(count: batchSize)
 			.ExecuteDeleteAsync(cancellationToken: ct);
 	}
+
+	public async Task DeleteAsync(
+		Guid idempotencyKey, 
+		CancellationToken ct = default
+	) => await context.IdempotentCommands.Where(predicate: x => x.IdempotencyKey == idempotencyKey).ExecuteDeleteAsync(cancellationToken: ct);
 }

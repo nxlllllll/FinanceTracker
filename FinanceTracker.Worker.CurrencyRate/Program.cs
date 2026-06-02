@@ -30,15 +30,13 @@ public sealed class Program
 		ExchangeRateApiOptions apiOptions = builder.Configuration
 			.GetSection(key: ExchangeRateApiOptions.SectionName)
 			.Get<ExchangeRateApiOptions>() ?? new ExchangeRateApiOptions();
-
-		ILogger<ExchangeRateApiClient> resilienceLogger = builder.Services.BuildServiceProvider()
-			.GetRequiredService<ILogger<ExchangeRateApiClient>>();
-
+		
 		builder.Services.AddSingleton<CircuitBreakerStateProvider>();
 		
 		builder.Services.AddHttpClient<ExchangeRateApiClient>().AddResilienceHandler(pipelineName: "exchange-rate-api", configure: (pipeline, context) =>
 		{
 			CircuitBreakerStateProvider stateProvider = context.ServiceProvider.GetRequiredService<CircuitBreakerStateProvider>();
+			ILogger<ExchangeRateApiClient> resilienceLogger = context.ServiceProvider.GetRequiredService<ILogger<ExchangeRateApiClient>>();
 			
 			pipeline.AddTimeout(timeout: TimeSpan.FromSeconds(value: apiOptions.TimeoutSeconds));
 

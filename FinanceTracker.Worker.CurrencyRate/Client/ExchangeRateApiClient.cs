@@ -9,17 +9,17 @@ public sealed class ExchangeRateApiClient(
 	IOptionsMonitor<ExchangeRateApiOptions> options,
 	ILogger<ExchangeRateApiClient> logger)
 {
-	private readonly ExchangeRateApiOptions _options = options.CurrentValue;
-
 	public async Task<ExchangeRateApiResponse?> GetRatesAsync(string baseCurrency, CancellationToken ct = default)
 	{
-		if (!_options.IsEnabled)
+		ExchangeRateApiOptions currentOptions = options.CurrentValue;
+		
+		if (!currentOptions.IsEnabled)
 		{
 			logger.ZLogInformation(message: $"[{nameof(ExchangeRateApiClient)}] Disabled. Skipping fetch for {baseCurrency}.");
 			return null;
 		}
 
-		string url = $"{_options.BaseUrl}/{_options.ApiKey}/latest/{baseCurrency}";
+		string url = $"{currentOptions.BaseUrl}/{currentOptions.ApiKey}/latest/{baseCurrency}";
 
 		try
 		{

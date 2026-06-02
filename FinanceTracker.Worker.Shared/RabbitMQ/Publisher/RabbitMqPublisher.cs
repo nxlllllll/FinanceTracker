@@ -59,7 +59,14 @@ public sealed class RabbitMqPublisher(
 			return _channel;
 
 		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
-		_channel = await _connection.CreateChannelAsync(cancellationToken: ct);
+
+		_channel = await _connection.CreateChannelAsync(
+			options: new CreateChannelOptions(
+				publisherConfirmationsEnabled: true,
+				publisherConfirmationTrackingEnabled: true
+			),
+			cancellationToken: ct
+		);
 
 		await _channel.ExchangeDeclareAsync(
 			exchange: _options.ExchangeName,

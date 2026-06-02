@@ -67,12 +67,29 @@ public sealed class OutboxPublisherJob(
                 Stopwatch sw = Stopwatch.StartNew();
                 try
                 {
-                    await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-                    {
-                        await PublishMessageAsync(message: message, ct: ct);
-                        WorkerMetrics.OutboxPublished.Add(delta: 1);
-                        logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
-                    }, ct: ct);
+                    OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
+                        ?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
+
+                    AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
+                        MessageId: message.Id,
+                        AggregateId: message.AggregateId,
+                        AggregateType: message.AggregateType,
+                        CorrelationId: payload.CorrelationId,
+                        Events: payload.Events.Select(selector: e => new EventEnvelope(
+                            EventType: e.EventType,
+                            EventPayload: e.EventPayload
+                        )).ToList()
+                    );
+
+                    await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
+                        
+                    await unitOfWork.ExecuteInTransactionAsync(operation: async () => await outboxWriteRepository.MarkAsPublishedAsync(
+                        messageId: message.Id, 
+                        processedAt: dateProvider.UtcNow,
+                        ct: ct
+                    ), ct: ct);
+                    WorkerMetrics.OutboxPublished.Add(delta: 1);
+                    logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
                 }
                 catch (Exception exception)
                 {
@@ -89,36 +106,16 @@ public sealed class OutboxPublisherJob(
             }
         }, onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch publishing failed."), ct: ct);
     }
-
-    private async Task PublishMessageAsync(PendingOutboxMessage message, CancellationToken ct)
-    {
-        OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
-            ?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
-
-        AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
-            MessageId: message.Id,
-            AggregateId: message.AggregateId,
-            AggregateType: message.AggregateType,
-            CorrelationId: payload.CorrelationId,
-            Events: payload.Events.Select(selector: e => new EventEnvelope(
-                EventType: e.EventType,
-                EventPayload: e.EventPayload
-            )).ToList()
-        );
-
-        await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
-        await outboxWriteRepository.MarkAsPublishedAsync(messageId: message.Id, processedAt: dateProvider.UtcNow, ct: ct);
-    }
-
+    
     private async Task UpdateRetryStateAsync(PendingOutboxMessage message, OutboxOptions options, CancellationToken ct)
     {
         try
         {
+            int newRetryCount = message.RetryCount + 1;
+            DateTimeOffset? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
+
             await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
             {
-                int newRetryCount = message.RetryCount + 1;
-                DateTimeOffset? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
-
                 if (failedAt is not null)
                 {
                     WorkerMetrics.OutboxFailed.Add(delta: 1);

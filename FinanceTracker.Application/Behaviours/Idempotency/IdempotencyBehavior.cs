@@ -21,9 +21,6 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 	where TRequest : notnull
 	where TResponse : IResult<TResponse, DomainException>
 {
-	private const int InFlightPollIntervalMs = 50;
-	private const int InFlightMaxWaitMs = 5_000;
-
 	public async Task<TResponse> Handle(
 		TRequest request,
 		RequestHandlerDelegate<TResponse> next,
@@ -68,7 +65,16 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 
 			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} (expires: {expiresAt:O}).");
 		}
+		else
+		{
+			await idempotencyWriteRepository.DeleteAsync(
+				idempotencyKey: idempotent.IdempotencyKey,
+				ct: cancellationToken
+			);
 
+			logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} — command failed, client may retry.");
+		}
+		
 		return response;
 	}
 
@@ -91,14 +97,18 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 		IIdempotentCommand idempotent,
 		CancellationToken cancellationToken)
 	{
+		IdempotencyOptions currentOptions = options.CurrentValue;
+		
 		int elapsed = 0;
-		while (elapsed < InFlightMaxWaitMs)
+		int delay = currentOptions.InFlightInitialDelayMs;
+
+		while (elapsed < currentOptions.InFlightMaxWaitMs)
 		{
-			await Task.Delay(millisecondsDelay: InFlightPollIntervalMs, cancellationToken: cancellationToken);
-			elapsed += InFlightPollIntervalMs;
+			await Task.Delay(millisecondsDelay: delay, cancellationToken);
+			elapsed += delay;
+			delay = Math.Min(delay * 2, currentOptions.InFlightMaxDelayMs);
 
 			string? result = await idempotencyReadRepository.GetAsync(idempotencyKey: idempotent.IdempotencyKey, ct: cancellationToken);
-
 			if (String.IsNullOrWhiteSpace(value: result))
 				continue;
 
@@ -106,7 +116,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
 			return JsonSerializer.Deserialize<TResponse>(json: result, options: FinanceTrackerJsonOptions.Application)!;
 		}
 
-		logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} timed out waiting for in-flight result after {InFlightMaxWaitMs}ms.");
+		logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} timed out waiting for in-flight result after {currentOptions.InFlightMaxWaitMs}ms.");
 		return TResponse.CreateFailure(error: new EmptyIdempotentException(message: $"Idempotency key {idempotent.IdempotencyKey} timed out waiting for an in-flight request to complete."));
 	}
 }

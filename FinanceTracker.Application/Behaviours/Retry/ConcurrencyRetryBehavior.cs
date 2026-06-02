@@ -16,15 +16,17 @@ public sealed class ConcurrencyRetryBehavior<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
+		RetryOptions currentOptions = options.CurrentValue;
+		
 		return await RetryDelayCalculator.ExecuteWithRetryAsync(
 			operation: async ct => await next(t: ct),
 			logging: (exception, attempt, delay) => logger.ZLogWarning(exception: exception, message: $"""
 				Concurrency conflict on {typeof(TRequest).Name} {exception.Id}
-				Retry {attempt + 1}/{options.CurrentValue.MaxRetries} in {delay}ms.
+				Retry {attempt + 1}/{currentOptions.MaxRetries} in {delay}ms.
 			"""),
-			maxRetries: options.CurrentValue.MaxRetries,
-			baseDelayMs: options.CurrentValue.BaseDelayMs, 
-			useJitter: options.CurrentValue.UseJitter,
+			maxRetries: currentOptions.MaxRetries,
+			baseDelayMs: currentOptions.BaseDelayMs, 
+			useJitter: currentOptions.UseJitter,
 			ct: cancellationToken
 		);
 	}

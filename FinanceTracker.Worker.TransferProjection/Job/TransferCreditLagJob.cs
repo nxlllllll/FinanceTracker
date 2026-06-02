@@ -15,13 +15,15 @@ public sealed class TransferCreditLagJob(
 {
 	public async Task Execute(IJobExecutionContext executionContext)
 	{
-		if (!options.CurrentValue.IsEnabled)
+		TransferCreditLagOptions currentOptions = options.CurrentValue;
+		
+		if (!currentOptions.IsEnabled)
 		{
 			logger.ZLogInformation(message: $"[{nameof(TransferCreditLagJob)}] Disabled. Skipping.");
 			return;
 		}
 
-		TimeSpan gracePeriod = TimeSpan.FromMinutes(value: options.CurrentValue.GracePeriodMinutes);
+		TimeSpan gracePeriod = TimeSpan.FromMinutes(value: currentOptions.GracePeriodMinutes);
 
 		int pendingCount = await transferReadRepository.GetPendingCreditCountAsync(
 			gracePeriod: gracePeriod,

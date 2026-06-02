@@ -20,4 +20,9 @@ public interface IIdempotencyWriteRepository
 		int batchSize,
 		CancellationToken ct = default
 	);
+
+	Task DeleteAsync(
+		Guid idempotencyKey,
+		CancellationToken ct = default
+	);
 }

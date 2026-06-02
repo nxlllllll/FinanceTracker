@@ -60,27 +60,23 @@ public sealed class DomainEventOutboxPublisherJob(
 			Stopwatch sw = Stopwatch.StartNew();
 			try
 			{
-				await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-				{
-					await publisher.PublishAsync(message: new DomainEventMessage(
-						MessageId: @event.Id,
-						EventType: @event.EventType,
-						AggregateId: @event.AggregateId,
-						AggregateType: @event.AggregateType,
-						CorrelationId: @event.CorrelationId,
-						Payload: @event.Payload,
-						OccurredAt: @event.OccurredAt
-					), correlationId: @event.CorrelationId, ct: ct);
+				await publisher.PublishAsync(message: new DomainEventMessage(
+					MessageId: @event.Id,
+					EventType: @event.EventType,
+					AggregateId: @event.AggregateId,
+					AggregateType: @event.AggregateType,
+					CorrelationId: @event.CorrelationId,
+					Payload: @event.Payload,
+					OccurredAt: @event.OccurredAt
+				), correlationId: @event.CorrelationId, ct: ct);
 
-					await writeRepository.MarkAsProcessedAsync(
-						id: @event.Id,
-						processedAt: dateProvider.UtcNow,
-						ct: ct
-					);
-
-					WorkerMetrics.OutboxPublished.Add(delta: 1);
-					logger.ZLogInformation(message: $"Published: {++published}/{events.Count} ({@event.EventType}).");
-				}, ct: ct);
+				await unitOfWork.ExecuteInTransactionAsync(operation: async () => await writeRepository.MarkAsProcessedAsync(
+					id: @event.Id,
+					processedAt: dateProvider.UtcNow,
+					ct: ct
+				), ct: ct);
+				WorkerMetrics.OutboxPublished.Add(delta: 1);
+				logger.ZLogInformation(message: $"Published: {++published}/{events.Count} ({@event.EventType}).");
 			}
 			catch (Exception exception)
 			{

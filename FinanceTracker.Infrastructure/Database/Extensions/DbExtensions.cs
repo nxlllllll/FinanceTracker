@@ -5,7 +5,6 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Npgsql;
 
 namespace FinanceTracker.Infrastructure.Database.Extensions;
@@ -54,32 +53,30 @@ public static class DbContextExtensions
         """, cancellationToken: ct);
     }
 
-    public static Task ChangePayloadAsync<TEntity, TPayload, TValue>(
+    public static Task UpdateTransactionCategoryInPayloadAsync(
         this DbContext context,
-        Guid id,
-        Expression<Func<TPayload, TValue>> property,
-        TValue value,
-        CancellationToken ct = default) where TEntity : class
+        Guid operationId,
+        Guid categoryId,
+        CancellationToken ct = default)
     {
-        string propertyName = ((MemberExpression)property.Body).Member.Name;
-        string jsonKey = FinanceTrackerJsonOptions.Payload.PropertyNamingPolicy?.ConvertName(propertyName) ?? propertyName;
+        return context.Database.ExecuteSqlAsync(sql: $$"""
+            UPDATE rm_operations
+            SET payload = jsonb_set(payload, '{CategoryId}', to_jsonb({{categoryId}}))
+            WHERE id = {{operationId}}
+        """, cancellationToken: ct);
+    }
 
-        IEntityType entityType = context.Model.FindEntityType(typeof(TEntity))!;
-        string tableName = entityType.GetTableName()!;
-        string jsonValue = JsonSerializer.Serialize(value: value, options: FinanceTrackerJsonOptions.Payload);
-
-        string sql = "UPDATE \"" + tableName + "\" SET payload = jsonb_set(payload, '{{" + jsonKey + "}}', @p0::jsonb) WHERE id = @p1";
-
-#pragma warning disable EF1002
-        return context.Database.ExecuteSqlRawAsync(
-            sql: sql,
-            parameters: [
-                new NpgsqlParameter(parameterName: "p0", value: jsonValue),
-                new NpgsqlParameter(parameterName: "p1", value: id)
-            ],
-            cancellationToken: ct
-        );
-#pragma warning restore EF1002
+    public static Task UpdateTransactionIsExcludedInPayloadAsync(
+        this DbContext context,
+        Guid operationId,
+        bool isExcluded,
+        CancellationToken ct = default)
+    {
+        return context.Database.ExecuteSqlAsync(sql: $$"""
+            UPDATE rm_operations
+            SET payload = jsonb_set(payload, '{IsExcluded}', to_jsonb({{isExcluded}}))
+            WHERE id = {{operationId}}
+        """, cancellationToken: ct);
     }
 
     public static async Task<bool> TryReserveIdempotentCommandAsync(
