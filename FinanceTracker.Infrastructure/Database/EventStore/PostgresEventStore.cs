@@ -236,4 +236,14 @@ public sealed class PostgresEventStore(
 
 		return new EventStoreResult(Snapshot: snapshotData, Events: domainEvents);
 	}
+
+	public async Task<IReadOnlyList<Guid>> GetAggregateIdsAsync(
+		string aggregateType,
+		CancellationToken ct = default)
+	{
+		return await context.Events.AsNoTracking().Where(predicate: e => e.AggregateType == aggregateType)
+			.Select(selector: e => e.AggregateId)
+			.Distinct()
+			.ToListAsync(cancellationToken: ct);
+	}
 }

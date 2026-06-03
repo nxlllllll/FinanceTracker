@@ -25,6 +25,7 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.Services.RateLimit;
+using FinanceTracker.Core.Services.Rebuild;
 using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
@@ -54,6 +55,7 @@ using FinanceTracker.Infrastructure.Services.Date;
 using FinanceTracker.Infrastructure.Services.DomainEvents;
 using FinanceTracker.Infrastructure.Services.Password;
 using FinanceTracker.Infrastructure.Services.RateLimit;
+using FinanceTracker.Infrastructure.Services.Rebuild.Account;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -209,6 +211,9 @@ public static class DependencyInjection
 		services.AddScoped<ISessionIssuer, SessionIssuer>();	
 		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
 		services.AddSingleton<ISnapshotSerializer<Account>, AccountSnapshotSerializer>();
+
+		services.AddScoped<AccountDomainEventApplier>();
+		services.AddScoped<IAccountProjectionRebuilder, AccountProjectionRebuilder>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		

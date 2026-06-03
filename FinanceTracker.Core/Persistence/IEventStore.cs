@@ -19,4 +19,9 @@ public interface IEventStore
 		string aggregateType,
 		CancellationToken ct = default
 	);
+
+	Task<IReadOnlyList<Guid>> GetAggregateIdsAsync(
+		string aggregateType,
+		CancellationToken ct = default
+	);
 }
