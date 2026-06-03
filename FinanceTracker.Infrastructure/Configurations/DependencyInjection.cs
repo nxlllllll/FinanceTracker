@@ -1,6 +1,8 @@
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.Snapshot;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -206,6 +208,7 @@ public static class DependencyInjection
 		services.AddScoped<ITokenService, JwtTokenService>();
 		services.AddScoped<ISessionIssuer, SessionIssuer>();	
 		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
+		services.AddSingleton<ISnapshotSerializer<Account>, AccountSnapshotSerializer>();
 		
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 		

@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
@@ -13,17 +11,6 @@ namespace FinanceTracker.Core.Domains.Account;
 
 public sealed class Account : AggregateRoot
 {
-	private sealed record AccountSnapshotState(
-		[property: JsonPropertyName("id")] Guid Id,
-		[property: JsonPropertyName("user_id")] Guid UserId,
-		[property: JsonPropertyName("name")] Name Name,
-		[property: JsonPropertyName("type")] AccountType Type,
-		[property: JsonPropertyName("balance")] Money Balance,
-		[property: JsonPropertyName("is_archived")] bool IsArchived,
-		[property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
-		[property: JsonPropertyName("version")] int Version
-	);
-
 	public Guid UserId { get; private set; }
 	public Name Name { get; private set; }
 	public AccountType Type { get; private set; }
@@ -44,7 +31,7 @@ public sealed class Account : AggregateRoot
 		};
 		return sign;
 	}
-	
+
 	public static Result<Account, DomainException> Create(
 		DateTimeOffset occurredAt,
 		Guid userId,
@@ -55,7 +42,7 @@ public sealed class Account : AggregateRoot
 	{
 		if (balance < 0)
 			return Result<Account, DomainException>.Failure(error: new InvalidInitialBalanceException(message: "The initial account balance cannot be negative."));
- 
+
 		Account account = new Account();
 		account.RaiseEvent(@event: new AccountCreated(
 			Id: Guid.CreateVersion7(),
@@ -67,37 +54,44 @@ public sealed class Account : AggregateRoot
 			Balance: balance,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Account, DomainException>.Success(value: account);
 	}
-	
+
 	public static Account Reconstitute(
 		SnapshotData? snapshot,
-		IReadOnlyList<IEvent> events)
+		IReadOnlyList<IEvent> events,
+		ISnapshotSerializer<Account>? serializer = null)
 	{
-		Account account = snapshot is null ? new Account() : Restore(snapshot: snapshot);
+		Account account = snapshot is null || serializer is null
+			? new Account()
+			: serializer.Deserialize(snapshot: snapshot);
+
 		account.LoadEventsFromHistory(events);
 		return account;
 	}
 
-	internal static Account Restore(SnapshotData snapshot)
+	internal static Account Reconstitute(
+		Guid id,
+		Guid userId,
+		Name name,
+		AccountType type,
+		Money balance,
+		bool isArchived,
+		DateTimeOffset createdAt,
+		int version)
 	{
-		AccountSnapshotState state = System.Text.Json.JsonSerializer.Deserialize<AccountSnapshotState>(
-			json: snapshot.State,
-			options: FinanceTrackerJsonOptions.Payload
-		)!;
-
 		Account account = new Account
 		{
-			Id = state.Id,
-			UserId = state.UserId,
-			Name = state.Name,
-			Type = state.Type,
-			Balance = state.Balance,
-			IsArchived = state.IsArchived,
-			CreatedAt = state.CreatedAt
+			Id = id,
+			UserId = userId,
+			Name = name,
+			Type = type,
+			Balance = balance,
+			IsArchived = isArchived,
+			CreatedAt = createdAt
 		};
-		account.RestoreVersion(version: state.Version);
+		account.RestoreVersion(version: version);
 		return account;
 	}
 
@@ -105,33 +99,33 @@ public sealed class Account : AggregateRoot
 	{
 		if (IsArchived)
 			return Result<Unit, DomainException>.Failure(error: new ArchivedAccountOperationException(message: "Financial transactions on the archived account are prohibited."));
- 
+
 		if (amount <= 0)
 			return Result<Unit, DomainException>.Failure(error: new InvalidAmountException(message: "Amount must be greater than zero."));
- 
+
 		if (rate <= 0)
 			return Result<Unit, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
+
 	private Result<Unit, DomainException> CheckSufficientFunds(decimal amount, decimal rate = 1m)
 	{
 		if (amount * rate > Balance.Amount)
 			return Result<Unit, DomainException>.Failure(error: new InsufficientFundsException(message: "The amount of funds on the balance is insufficient.", balance: Balance));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
 	private void Apply(AccountBalanceAdjusted @event)
 		=> Balance = Balance.Add(amount: @event.Delta);
-	
+
 	private void Apply(AccountDebited @event)
 		=> Balance = Balance.Subtract(amount: @event.Amount * @event.ExchangeRate);
 
 	private void Apply(AccountCredited @event)
 		=> Balance = Balance.Add(amount: @event.Amount * @event.ExchangeRate);
-	
+
 	private void Apply(AccountTransferDebited @event)
 		=> Balance = Balance.Subtract(amount: @event.Amount);
 
@@ -140,16 +134,16 @@ public sealed class Account : AggregateRoot
 
 	private void Apply(AccountTransferRefunded @event)
 		=> Balance = Balance.Add(amount: @event.Amount);
-	
+
 	private void Apply(AccountRenamed @event)
 		=> Name = @event.NewName;
-	
+
 	private void Apply(AccountArchived @event)
 		=> IsArchived = true;
-	
+
 	private void Apply(AccountUnarchived @event)
 		=> IsArchived = false;
-	
+
 	private void Apply(AccountCreated @event)
 	{
 		Id = @event.AccountId;
@@ -194,10 +188,10 @@ public sealed class Account : AggregateRoot
 
 		int sign = GetSign(direction: direction);
 		decimal delta = (newRate - oldRate) * amount * sign;
- 
+
 		if (delta == 0)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
- 
+
 		RaiseEvent(@event: new AccountBalanceAdjusted(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
@@ -209,10 +203,10 @@ public sealed class Account : AggregateRoot
 			Delta: delta,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
- 
+
 	public Result<Unit, DomainException> Debit(
 		DateTimeOffset occurredAt,
 		Guid transactionId,
@@ -222,13 +216,13 @@ public sealed class Account : AggregateRoot
 		string? description)
 	{
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
-		if (constraints.IsFailure) 
+		if (constraints.IsFailure)
 			return constraints;
- 
+
 		Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount, rate: exchangeRate);
 		if (funds.IsFailure)
 			return funds;
- 
+
 		RaiseEvent(@event: new AccountDebited(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
@@ -239,10 +233,10 @@ public sealed class Account : AggregateRoot
 			Description: description,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
- 
+
 	public Result<Unit, DomainException> DebitTransfer(
 		DateTimeOffset occurredAt,
 		Guid transferId,
@@ -254,11 +248,11 @@ public sealed class Account : AggregateRoot
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
 		if (constraints.IsFailure)
 			return constraints;
- 
+
 		Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount);
 		if (funds.IsFailure)
 			return funds;
- 
+
 		RaiseEvent(@event: new AccountTransferDebited(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
@@ -390,19 +384,5 @@ public sealed class Account : AggregateRoot
 		));
  
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
-	}
-	
-	public string TakeSnapshot()
-	{
-		return System.Text.Json.JsonSerializer.Serialize(value: new AccountSnapshotState(
-			Id: Id,
-			UserId: UserId,
-			Name: Name,
-			Type: Type,
-			Balance: Balance,
-			IsArchived: IsArchived,
-			CreatedAt: CreatedAt,
-			Version: Version
-		), options: FinanceTrackerJsonOptions.Payload);
 	}
 }

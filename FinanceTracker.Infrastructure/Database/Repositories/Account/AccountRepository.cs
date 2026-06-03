@@ -1,11 +1,15 @@
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
+using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
-public sealed class AccountRepository(IEventStore eventStore) : IAccountRepository
+public sealed class AccountRepository(
+	IEventStore eventStore,
+	ISnapshotSerializer<Core.Domains.Account.Account> snapshotSerializer
+) : IAccountRepository
 {
 	private const string AggregateType = AggregateTypeNames.Account;
 
@@ -18,12 +22,14 @@ public sealed class AccountRepository(IEventStore eventStore) : IAccountReposito
 			aggregateType: AggregateType,
 			ct: ct
 		);
+
 		if (result.Events.Count == 0 && result.Snapshot is null)
 			return null;
-		
+
 		return Core.Domains.Account.Account.Reconstitute(
 			snapshot: result.Snapshot,
-			events: result.Events
+			events: result.Events,
+			serializer: snapshotSerializer
 		);
 	}
 
@@ -32,7 +38,7 @@ public sealed class AccountRepository(IEventStore eventStore) : IAccountReposito
 		CancellationToken ct = default)
 	{
 		if (account.Events.Count == 0)
-			return;	
+			return;
 
 		int expectedVersion = account.Version - account.Events.Count;
 
@@ -41,7 +47,7 @@ public sealed class AccountRepository(IEventStore eventStore) : IAccountReposito
 			aggregateType: AggregateType,
 			events: account.Events,
 			expectedVersion: expectedVersion,
-			snapshotFactory: account.TakeSnapshot,
+			snapshotFactory: () => snapshotSerializer.Serialize(aggregate: account),
 			ct: ct
 		);
 

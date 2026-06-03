@@ -7,25 +7,18 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.User;
 
-public sealed class User : IHasDomainEvents
+public sealed class User : DomainEntity
 {
-	private readonly List<IDomainEvent> _domainEvents = [];
-
 	public Guid Id { get; private set; }
 	public Email Email { get; private set; }
 	public string PasswordHash { get; private set; } = String.Empty;
 	public Currency BaseCurrency { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 
-	public string AggregateType => AggregateTypeNames.User;
-	public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
-	public void ClearDomainEvents() => _domainEvents.Clear();
+	public override string AggregateType => AggregateTypeNames.User;
 
 	private User() { }
-
-	private void RaiseDomainEvent(IDomainEvent @event)
-		=> _domainEvents.Add(item: @event);
-
+	
 	public static Result<User, DomainException> Register(
 		DateTimeOffset createdAt,
 		Email email,

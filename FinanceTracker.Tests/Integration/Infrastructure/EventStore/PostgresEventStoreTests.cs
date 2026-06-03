@@ -4,6 +4,8 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.Snapshot;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -23,9 +25,11 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.EventStore;
 
 public sealed class PostgresEventStoreTests : DatabaseFixture
 {
-    private FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore _eventStore = null!;
+    private PostgresEventStore _eventStore = null!;
+	private AccountSnapshotSerializer _serializer = new AccountSnapshotSerializer();
 
-    private FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore CreateEventStore()
+
+	private PostgresEventStore CreateEventStore()
     {
         IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
         upcasterRegistry.Apply(
@@ -35,7 +39,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             currentVersion: Arg.Any<int>()
         ).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
 
-        return new FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore(
+        return new PostgresEventStore(
             context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()
                 .UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
                 .Options
@@ -55,7 +59,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             correlationContext: Substitute.For<ICorrelationContext>(),
             upcasterRegistry: upcasterRegistry,
             options: new FakeOptionsMonitor<EventStoreOptions>(value: new EventStoreOptions()),
-            logger: Substitute.For<ILogger<FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore>>()
+            logger: Substitute.For<ILogger<PostgresEventStore>>()
         );
     }
     
@@ -72,8 +76,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.CreateVersion7(),
             Name: Name.Create(value: "����� ����").Value,
-            Type: Core.Domains.Account.AccountType.Checking,
-            Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+            Type: AccountType.Checking,
+            Currency: Currency.Create(value: "RUB").Value,
             Balance: 0,
             OccurredAt: DateTimeOffset.UtcNow
         );
@@ -101,8 +105,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.CreateVersion7(),
             Name: Name.Create(value: "����� ����").Value,
-            Type: Core.Domains.Account.AccountType.Checking,
-            Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+            Type: AccountType.Checking,
+            Currency: Currency.Create(value: "RUB").Value,
             Balance: 1000m,
             OccurredAt: DateTimeOffset.UtcNow
         );
@@ -153,14 +157,14 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
             AccountId: accountId,
             UserId: Guid.CreateVersion7(),
             Name: Name.Create(value: "����� ����").Value,
-            Type: Core.Domains.Account.AccountType.Checking,
-            Currency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+            Type: AccountType.Checking,
+            Currency: Currency.Create(value: "RUB").Value,
             Balance: 0,
             OccurredAt: DateTimeOffset.UtcNow
         );
 
-        FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore firstStore = CreateEventStore();
-        FinanceTracker.Infrastructure.Database.EventStore.PostgresEventStore secondStore = CreateEventStore();
+        PostgresEventStore firstStore = CreateEventStore();
+        PostgresEventStore secondStore = CreateEventStore();
 
         await firstStore.SaveAsync(
             aggregateId: accountId,
@@ -192,23 +196,23 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     [Test]
     public async Task SaveAsync_WhenVersionReaches50_ShouldCreateSnapshot()
     {
-        Result<Core.Domains.Account.Account, DomainException> a = Core.Domains.Account.Account.Create(
+        Result<Account, DomainException> a = Account.Create(
             occurredAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.CreateVersion7(),
-            name: Name.Create(value: "����").Value,
-            type: Core.Domains.Account.AccountType.Checking,
+            name: Name.Create(value: "Счёт").Value,
+            type: AccountType.Checking,
             currency: Currency.Create(value: "RUB").Value,
             balance: 100m
         );
 
-        Core.Domains.Account.Account account = a.Value!;
-        
+        Account account = a.Value!;
+
         await _eventStore.SaveAsync(
             aggregateId: account.Id,
             aggregateType: AggregateTypeNames.Account,
             events: account.Events,
             expectedVersion: 0,
-            snapshotFactory: account.TakeSnapshot
+            snapshotFactory: () => _serializer.Serialize(aggregate: account)
         );
         account.ClearEvents();
 
@@ -228,7 +232,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
                 aggregateType: AggregateTypeNames.Account,
                 events: account.Events,
                 expectedVersion: expectedVersion,
-                snapshotFactory: account.TakeSnapshot
+                snapshotFactory: () => _serializer.Serialize(aggregate: account)
             );
             account.ClearEvents();
         }
@@ -244,59 +248,63 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
     }
 
     [Test]
-    public async Task LoadAsync_WithSnapshot_ShouldRestoreCorrectState()
-    {
-        Result<Core.Domains.Account.Account, DomainException> o = Core.Domains.Account.Account.Create(
-            occurredAt: FakeDateProvider.Default.UtcNow,
-            userId: Guid.CreateVersion7(),
-            name: Name.Create(value: "���� ��������").Value,
-            type: Core.Domains.Account.AccountType.Savings,
-            currency: Core.ValueObjects.Currency.Create(value: "USD").Value,
-            balance: 1000m
-        );
+	public async Task LoadAsync_WithSnapshot_ShouldRestoreCorrectState()
+	{
+		Result<Account, DomainException> o = Account.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow,
+			userId: Guid.CreateVersion7(),
+			name: Name.Create(value: "Счёт накопительный").Value,
+			type: AccountType.Savings,
+			currency: Currency.Create(value: "USD").Value,
+			balance: 1000m
+		);
 
-        Core.Domains.Account.Account original = o.Value!;
+		Account original = o.Value!;
 
-        await _eventStore.SaveAsync(
-            aggregateId: original.Id,
-            aggregateType: AggregateTypeNames.Account,
-            events: original.Events,
-            expectedVersion: 0,
-            snapshotFactory: original.TakeSnapshot
-        );
-        original.ClearEvents();
+		await _eventStore.SaveAsync(
+			aggregateId: original.Id,
+			aggregateType: AggregateTypeNames.Account,
+			events: original.Events,
+			expectedVersion: 0,
+			snapshotFactory: () => _serializer.Serialize(aggregate: original)
+		);
+		original.ClearEvents();
 
-        for (int i = 0; i < 49; i++)
-        {
-            original.Credit(
-                occurredAt: FakeDateProvider.Default.UtcNow,
-                transactionId: Guid.CreateVersion7(),
-                categoryId: Guid.CreateVersion7(),
-                amount: 10m,
-                exchangeRate: 1m,
-                description: null
-            );
-            int expectedVersion = original.Version - original.Events.Count;
-            await _eventStore.SaveAsync(
-                aggregateId: original.Id,
-                aggregateType: AggregateTypeNames.Account,
-                events: original.Events,
-                expectedVersion: expectedVersion,
-                snapshotFactory: original.TakeSnapshot
-            );
-            original.ClearEvents();
-        }
+		for (int i = 0; i < 49; i++)
+		{
+			original.Credit(
+				occurredAt: FakeDateProvider.Default.UtcNow,
+				transactionId: Guid.CreateVersion7(),
+				categoryId: Guid.CreateVersion7(),
+				amount: 10m,
+				exchangeRate: 1m,
+				description: null
+			);
+			int expectedVersion = original.Version - original.Events.Count;
+			await _eventStore.SaveAsync(
+				aggregateId: original.Id,
+				aggregateType: AggregateTypeNames.Account,
+				events: original.Events,
+				expectedVersion: expectedVersion,
+				snapshotFactory: () => _serializer.Serialize(aggregate: original)
+			);
+			original.ClearEvents();
+		}
 
-        EventStoreResult result = await _eventStore.LoadAsync(
-            aggregateId: original.Id,
-            aggregateType: AggregateTypeNames.Account
-        );
-        Core.Domains.Account.Account restored = Core.Domains.Account.Account.Restore(snapshot: result.Snapshot!);
-        restored.LoadEventsFromHistory(history: result.Events);
+		EventStoreResult result = await _eventStore.LoadAsync(
+			aggregateId: original.Id,
+			aggregateType: AggregateTypeNames.Account
+		);
 
-        await Assert.That(value: restored.Id).IsEqualTo(expected: original.Id);
-        await Assert.That(value: restored.Name).IsEqualTo(expected: original.Name);
-        await Assert.That(value: restored.Balance.Amount).IsEqualTo(expected: 1490m);
-        await Assert.That(value: restored.Version).IsEqualTo(expected: 50);
-    }
+		Account restored = Account.Reconstitute(
+			snapshot: result.Snapshot,
+			events: result.Events,
+			serializer: _serializer
+		);
+
+		await Assert.That(value: restored.Id).IsEqualTo(expected: original.Id);
+		await Assert.That(value: restored.Name).IsEqualTo(expected: original.Name);
+		await Assert.That(value: restored.Balance.Amount).IsEqualTo(expected: 1490m);
+		await Assert.That(value: restored.Version).IsEqualTo(expected: 50);
+	}
 }
