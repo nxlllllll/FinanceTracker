@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.User.Commands.RevokeToken;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -14,6 +15,7 @@ public sealed class RevokeTokenHandlerTests
 {
 	private IUserSessionReadRepository _userSessionReadRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private ITokenService _tokenService = null!;
 	private IDateProvider _dateProvider = null!;
 	private RevokeTokenHandler _handler = null!;
@@ -35,15 +37,22 @@ public sealed class RevokeTokenHandlerTests
 	{
 		_userSessionReadRepository = Substitute.For<IUserSessionReadRepository>();
 		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
+		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_tokenService = Substitute.For<ITokenService>();
 		_dateProvider = Substitute.For<IDateProvider>();
 
 		_dateProvider.UtcNow.Returns(returnThis: FakeDateProvider.Default.UtcNow);
 		_tokenService.HashRefreshToken(refreshToken: Arg.Any<string>()).Returns(returnThis: TokenHash);
 
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		
 		_handler = new RevokeTokenHandler(
 			userSessionReadRepository: _userSessionReadRepository,
 			userSessionWriteRepository: _userSessionWriteRepository,
+			unitOfWork: _unitOfWork,
 			tokenService: _tokenService,
 			dateProvider: _dateProvider
 		);
@@ -52,7 +61,7 @@ public sealed class RevokeTokenHandlerTests
 	[Test]
 	public async Task Handle_WhenSessionNotFound_ShouldReturnSuccessIdempotently()
 	{
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserSession?)null);
@@ -81,7 +90,7 @@ public sealed class RevokeTokenHandlerTests
 			createdAt: DateTimeOffset.UtcNow,
 			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
 		);
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(), 
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: revokedSession);
@@ -103,7 +112,7 @@ public sealed class RevokeTokenHandlerTests
 	public async Task Handle_WhenActiveSession_ShouldRevokeIt()
 	{
 		UserSession session = ActiveSession();
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: session);

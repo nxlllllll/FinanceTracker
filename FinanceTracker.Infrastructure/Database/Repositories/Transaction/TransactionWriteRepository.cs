@@ -28,8 +28,6 @@ public sealed class TransactionWriteRepository(
             IsRatePending = transaction.IsRatePending,
             OccurredAt = transaction.OccurredAt
         }, cancellationToken: ct);
-
-        await context.SaveChangesAsync(cancellationToken: ct);
     }
 
     public async Task ChangeCategoryAsync(
@@ -38,9 +36,7 @@ public sealed class TransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.Transactions.Where(predicate: t => t.Id == transactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: e => e.CategoryId,
-                valueExpression: categoryId),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.CategoryId, valueExpression: categoryId),
             cancellationToken: ct
         );
     }
@@ -51,9 +47,7 @@ public sealed class TransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.Transactions.Where(predicate: t => t.Id == transactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: e => e.Description,
-                valueExpression: description),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Description, valueExpression: description),
             cancellationToken: ct
         );
     }
@@ -63,9 +57,7 @@ public sealed class TransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.Transactions.Where(predicate: t => t.Id == transactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: e => e.IsExcluded,
-                valueExpression: false),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsExcluded, valueExpression: false),
             cancellationToken: ct
         );
     }
@@ -75,9 +67,7 @@ public sealed class TransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.Transactions.Where(predicate: t => t.Id == transactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: e => e.IsExcluded,
-                valueExpression: true),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsExcluded, valueExpression: true),
             cancellationToken: ct
         );
     }

@@ -133,7 +133,7 @@ public sealed class PostgresEventStore(
 		activity?.SetTag(key: "aggregate.id", value: aggregateId);
 		activity?.SetTag(key: "aggregate.type", value: aggregateType);
 		activity?.SetTag(key: "events.count", value: eventList.Count);
-		
+
 		(List<EventEntity> entities, List<OutboxEventEnvelope> envelopes) = BuildEntities(
 			aggregateId: aggregateId,
 			aggregateType: aggregateType,
@@ -141,7 +141,7 @@ public sealed class PostgresEventStore(
 			expectedVersion: expectedVersion,
 			now: dateProvider.UtcNow
 		);
-		
+
 		string payload = JsonSerializer.Serialize(value: new OutboxPayload(
 			AggregateId: aggregateId,
 			CorrelationId: correlationContext.CorrelationId,
@@ -191,7 +191,7 @@ public sealed class PostgresEventStore(
 
 		activity?.SetTag(key: "aggregate.id", value: aggregateId);
 		activity?.SetTag(key: "aggregate.type", value: aggregateType);
-		
+
 		SnapshotEntity? snapshot = await context.Snapshots.AsNoTracking()
 			.Where(s => s.AggregateId == aggregateId && s.AggregateType == aggregateType)
 			.OrderByDescending(s => s.Version)
@@ -233,7 +233,7 @@ public sealed class PostgresEventStore(
 
 		activity?.SetTag(key: "snapshot.found", value: snapshot is not null);
 		activity?.SetTag(key: "events.loaded", value: entities.Count);
-		
+
 		return new EventStoreResult(Snapshot: snapshotData, Events: domainEvents);
 	}
 }

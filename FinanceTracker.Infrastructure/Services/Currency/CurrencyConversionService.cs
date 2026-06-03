@@ -47,4 +47,64 @@ public sealed class CurrencyConversionService(
 			toCurrency: toCurrency
 		);
 	}
+
+	public async Task<Dictionary<CurrencyRateRequest, ConversionResult>> GetConversionRatesBatchAsync(
+		IReadOnlyCollection<CurrencyRateRequest> requests,
+		CancellationToken ct = default)
+	{
+		if (requests.Count == 0)
+			return [];
+
+		Dictionary<CurrencyRateRequest, ConversionResult> result = [];
+
+		List<CurrencyRateRequest> foreignRequests = requests.Where(predicate: r => r.From != r.To).ToList();
+
+		foreach (CurrencyRateRequest request in requests.Where(predicate: r => r.From == r.To))
+			result[request] = new ConversionResult(Rate: 1m, IsPending: false);
+
+		if (foreignRequests.Count == 0)
+			return result;
+
+		Dictionary<CurrencyRateRequest, decimal> exactRates = await currencyRateReadRepository.GetRatesBatchAsync(requests: foreignRequests, ct: ct);
+
+		HashSet<(Core.ValueObjects.Currency From, Core.ValueObjects.Currency To)> missingPairs = [];
+
+		foreach (CurrencyRateRequest request in foreignRequests)
+		{
+			if (exactRates.TryGetValue(key: request, out decimal rate))
+				result[request] = new ConversionResult(Rate: rate, IsPending: false);
+			else missingPairs.Add(item: (request.From, request.To));
+		}
+
+		if (missingPairs.Count == 0)
+			return result;
+
+		Dictionary<(Core.ValueObjects.Currency From, Core.ValueObjects.Currency To), decimal> latestRates = [];
+		foreach ((Core.ValueObjects.Currency from, Core.ValueObjects.Currency to) in missingPairs)
+		{
+			logger.ZLogWarning(message: $"No exact rate for {from} > {to} in batch, using latest available.");
+			decimal? latestRate = await currencyRateReadRepository.GetLatestRateAsync(
+				baseCurrencyCode: from,
+				targetCurrencyCode: to,
+				ct: ct
+			);
+
+			if (latestRate is null)
+			{
+				logger.ZLogError(message: $"No exchange rate found for {from} > {to}.");
+				throw new CurrencyRateNotFoundException(
+					message: $"The exchange rate for {from} > {to} was not found.",
+					fromCurrency: from,
+					toCurrency: to
+				);
+			}
+
+			latestRates[(from, to)] = latestRate.Value;
+		}
+
+		foreach (CurrencyRateRequest request in foreignRequests.Where(request => !result.ContainsKey(key: request)))
+			result[request] = new ConversionResult(Rate: latestRates[(request.From, request.To)], IsPending: true);
+
+		return result;
+	}
 }

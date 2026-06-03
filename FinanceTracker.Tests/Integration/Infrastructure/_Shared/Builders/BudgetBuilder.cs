@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -8,11 +7,10 @@ using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 
-public class BudgetBuilder(
-	FinanceTrackerContext context)
+public class BudgetBuilder(FinanceTrackerContext context)
 {
-	private readonly IBudgetWriteRepository _writeRepository = new BudgetWriteRepository(
-		context: context, 
+	private readonly BudgetWriteRepository _writeRepository = new BudgetWriteRepository(
+		context: context,
 		dateProvider: FakeDateProvider.Default
 	);
 
@@ -28,14 +26,15 @@ public class BudgetBuilder(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			categoryId: categoryId,
-			amount: Money.Create(amount: amount, currency: Core.ValueObjects.Currency.Create(value: currency).Value).Value,
+			amount: Money.Create(amount: amount, currency: Currency.Create(value: currency).Value).Value,
 			from: dateFrom ?? new DateOnly(year: 2025, month: 1, day: 1),
 			to: dateTo ?? new DateOnly(year: 2025, month: 1, day: 31)
 		);
-		
+
 		Core.Domains.Budget.Budget budget = result.Value!;
-		
+
 		await _writeRepository.CreateAsync(budget: budget);
+		await context.SaveChangesAsync();
 		return budget.Id;
 	}
 }

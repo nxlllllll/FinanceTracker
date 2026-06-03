@@ -33,8 +33,6 @@ public sealed class BudgetWriteRepository(
 			Spent = 0,
 			UpdatedAt = dateProvider.UtcNow
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task ChangeAmountAsync(
@@ -43,10 +41,7 @@ public sealed class BudgetWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.Budgets.Where(predicate: budget => budget.Id == budgetId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(
-				propertyExpression: budget => budget.Amount,
-				valueExpression: amount
-			),
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: budget => budget.Amount, valueExpression: amount),
 			cancellationToken: ct
 		);
 	}
@@ -57,14 +52,9 @@ public sealed class BudgetWriteRepository(
 		DateOnly to,
 		CancellationToken ct = default)
 	{
-		await context.Budgets.Where(predicate: budget => budget.Id == budgetId).ExecuteUpdateAsync(setPropertyCalls: builder => 
-			builder.SetProperty(
-				propertyExpression: budget => budget.From,
-				valueExpression: from
-			).SetProperty(
-				propertyExpression: budget => budget.To,
-				valueExpression: to
-			),
+		await context.Budgets.Where(predicate: budget => budget.Id == budgetId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: budget => budget.From, valueExpression: from)
+				.SetProperty(propertyExpression: budget => budget.To, valueExpression: to),
 			cancellationToken: ct
 		);
 	}

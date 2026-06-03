@@ -35,6 +35,7 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;
 
 		await _writeRepository.CreateAsync(transfer: transfer);
+		await context.SaveChangesAsync();
 		return transfer.Id;
 	}
 }

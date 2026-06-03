@@ -1,13 +1,12 @@
-﻿using System.Text.Json;
-using FinanceTracker.Core.Converters.Json;
+﻿using System.Data.Common;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Domains.Operation;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Context.Operation;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
@@ -107,7 +106,7 @@ public sealed class UserReadRepository(
 		return (income, expense);
 	}
 
-	public async Task<PagedResult<Core.ReadModels.Operation>> GetHistoryAsync(
+	public async Task<PagedResult<Operation>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
 		DateTimeOffset? dateFrom = null,
@@ -117,76 +116,28 @@ public sealed class UserReadRepository(
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<OperationEntity> query = type switch
-		{
-			OperationFilterType.Income => context.Operations
-				.FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Credit'")
-				.AsNoTracking(),
-			OperationFilterType.Expense => context.Operations
-				.FromSql($"SELECT * FROM rm_operations WHERE user_id = {userId} AND type = 'Transaction' AND payload->>'Direction' = 'Debit'")
-				.AsNoTracking(),
-			OperationFilterType.Transfer => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId && o.Type == OperationType.Transfer),
-			_ => context.Operations.AsNoTracking().Where(predicate: o => o.UserId == userId)
-		};
+		HistoryQuery query = HistoryQuery.Build(
+			userId: userId,
+			type: type,
+			dateFrom: dateFrom,
+			dateTo: dateTo,
+			cursorOccurredAt: cursorOccurredAt,
+			cursorId: cursorId,
+			limit: pageSize + 1
+		);
 
-		if (dateFrom is not null)
-			query = query.Where(predicate: o => o.OccurredAt >= dateFrom);
-
-		if (dateTo is not null)
-			query = query.Where(predicate: o => o.OccurredAt <= dateTo);
-
-		if (cursorOccurredAt is not null && cursorId is not null)
-			query = query.Where(predicate: o => o.OccurredAt < cursorOccurredAt || o.OccurredAt == cursorOccurredAt && o.Id < cursorId);
-
-		List<OperationEntity> entities = await query
-			.OrderByDescending(keySelector: o => o.OccurredAt)
-			.ThenByDescending(keySelector: o => o.Id)
-			.Take(count: pageSize + 1)
+		List<HistoryRow> rows = await context.Database
+			.SqlQueryRaw<HistoryRow>(sql: query.Sql, parameters: [..query.Parameters])
 			.ToListAsync(cancellationToken: ct);
-
-		bool hasNextPage = entities.Count > pageSize;
+		
+		bool hasNextPage = rows.Count > pageSize;
 		if (hasNextPage)
-			entities.RemoveAt(entities.Count - 1);
+			rows.RemoveAt(index: rows.Count - 1);
 
-		OperationEntity? last = entities.Count > 0 ? entities[^1] : null;
+		HistoryRow? last = rows.Count > 0 ? rows[^1] : null;
 
-		List<Core.ReadModels.Operation> items = entities.Select(selector: e =>
-		{
-			OperationPayload payload = e.Type switch
-			{
-				OperationType.Transaction => JsonSerializer.Deserialize<TransactionPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
-				OperationType.Transfer => JsonSerializer.Deserialize<TransferPayload>(json: e.Payload, options: FinanceTrackerJsonOptions.Payload)!,
-				_ => throw new InvalidOperationException(message: $"Unknown operation type: {e.Type}")
-			};
-
-			return new Core.ReadModels.Operation(
-				Id: e.Id,
-				Type: payload is TransactionPayload tp
-					? tp.Direction == Core.Domains.Account.DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense
-					: OperationFilterType.Transfer,
-				Description: e.Description,
-				OccurredAt: e.OccurredAt,
-				Transaction: payload is TransactionPayload txp ? new TransactionDetails(
-					AccountId: txp.AccountId,
-					CategoryId: txp.CategoryId,
-					Amount: txp.Amount,
-					Currency: txp.Currency,
-					Direction: txp.Direction,
-					IsExcluded: txp.IsExcluded
-				) : null,
-				Transfer: payload is TransferPayload trp ? new TransferDetails(
-					FromAccountId: trp.FromAccountId,
-					ToAccountId: trp.ToAccountId,
-					AmountFrom: trp.AmountFrom,
-					CurrencyFrom: trp.CurrencyFrom,
-					AmountTo: trp.AmountTo,
-					CurrencyTo: trp.CurrencyTo
-				) : null
-			);
-		}).ToList();
-
-		return new PagedResult<Core.ReadModels.Operation>(
-			Items: items.AsReadOnly(),
+		return new PagedResult<Operation>(
+			Items: [..rows.Select(HistoryRowMapper.Map)],
 			HasNextPage: hasNextPage,
 			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
 			NextCursorId: hasNextPage ? last?.Id : null

@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -11,26 +10,14 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class ChangeTransactionDescriptionHandlerTests
 {
 	private ITransactionWriteRepository _transactionWriteRepository = null!;
-	private IOperationsWriteRepository _operationsWriteRepository = null!;
-	private IUnitOfWork _unitOfWork = null!;
 	private ChangeTransactionDescriptionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
-		_operationsWriteRepository = Substitute.For<IOperationsWriteRepository>();
-		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 
-		_handler = new ChangeTransactionDescriptionHandler(
-			transactionWriteRepository: _transactionWriteRepository,
-			operationsWriteRepository: _operationsWriteRepository,
-			unitOfWork: _unitOfWork
-		);
+		_handler = new ChangeTransactionDescriptionHandler(transactionWriteRepository: _transactionWriteRepository);
 	}
 
 	[Test]

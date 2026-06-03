@@ -6,6 +6,4 @@ public interface IOutboxReadRepository
 		int batchSize,
 		CancellationToken ct = default
 	);
-
-	Task<IReadOnlyList<DeadLetterMessage>> GetDeadLettersAsync(CancellationToken ct = default);
 }

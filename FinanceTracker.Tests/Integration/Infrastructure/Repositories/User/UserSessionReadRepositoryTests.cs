@@ -35,6 +35,7 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 		);
 
 		await _userSessionWriteRepository.CreateAsync(session: session);
+		await Context.SaveChangesAsync();
 		return session;
 	}
 
@@ -44,7 +45,7 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		Core.Domains.User.UserSession created = await CreateAndPersistSessionAsync(userId: userId, hash: "unique-hash");
 
-		Core.Domains.User.UserSession? result = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "unique-hash");
+		Core.Domains.User.UserSession? result = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "unique-hash");
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: created.Id);
@@ -54,7 +55,7 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByRefreshTokenHashAsync_WhenNotExists_ShouldReturnNull()
 	{
-		Core.Domains.User.UserSession? result = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "nonexistent-hash");
+		Core.Domains.User.UserSession? result = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "nonexistent-hash");
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -67,7 +68,7 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 
 		await CreateAndPersistSessionAsync(userId: userId, hash: "revoked-hash", revokedAt: revokedAt);
 
-		Core.Domains.User.UserSession? result = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "revoked-hash");
+		Core.Domains.User.UserSession? result = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "revoked-hash");
 		bool? isActive = result?.IsActive(now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: result?.RevokedAt).IsNotNull();

@@ -63,12 +63,13 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			Id: Guid.CreateVersion7(),
 			AccountId: accountId,
 			UserId: userId,
-			Name: Name.Create(value: "����� ����").Value,
+			Name: Name.Create(value: "Новый счёт").Value,
 			Type: AccountType.Checking,
 			Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			Balance: 10000m,
 			OccurredAt: DateTimeOffset.UtcNow
 		));
+		await Context.SaveChangesAsync();
 
 		Guid categoryId = Guid.CreateVersion7();
 		await Context.Categories.AddAsync(entity: new CategoryEntity()
@@ -109,6 +110,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
+		await Context.SaveChangesAsync();
 
 		if (isExcluded)
 			await _writeRepository.ExcludeAsync(transactionId: transaction.Id);

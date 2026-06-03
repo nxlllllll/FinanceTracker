@@ -28,8 +28,6 @@ public sealed class TransferWriteRepository(
 			IsRatePending = transfer.IsRatePending,
 			Status = transfer.Status
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task UpdateRateAsync(
@@ -38,8 +36,7 @@ public sealed class TransferWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.Transfers.Where(predicate: t => t.Id == transferId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
 				.SetProperty(propertyExpression: t => t.IsRatePending, valueExpression: false),
 			cancellationToken: ct
 		);

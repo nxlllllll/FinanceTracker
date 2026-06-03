@@ -4,7 +4,6 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
-using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using Microsoft.Extensions.Logging;
@@ -17,8 +16,7 @@ public sealed class ExcludeTransactionHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork,
-	ILogger<ExcludeTransactionHandler> logger,
-	IOperationsWriteRepository operationsWriteRepository
+	ILogger<ExcludeTransactionHandler> logger
 ) : IAuthorizedHandler<ExcludeTransactionCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -33,7 +31,6 @@ public sealed class ExcludeTransactionHandler(
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.ExcludeAsync(transactionId: command.TransactionId, ct: ct);
-			await operationsWriteRepository.UpdateIsExcludedAsync(operationId: command.TransactionId, isExcluded: true, ct: ct);
 			
 			if (transaction.Direction != DirectionType.Debit)
 				return;

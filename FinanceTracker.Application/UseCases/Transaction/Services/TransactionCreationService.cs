@@ -5,7 +5,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
-using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
@@ -22,8 +21,7 @@ public sealed class TransactionCreationService(
     IUnitOfWork unitOfWork,
     ICategoryTotalWriteRepository categoryTotalWriteRepository,
     IBudgetProgressWriteRepository budgetProgressWriteRepository,
-    ILogger<TransactionCreationService> logger,
-    IOperationsWriteRepository operationsWriteRepository
+    ILogger<TransactionCreationService> logger
 ) : ITransactionCreationService
 {
     private Result<Unit, DomainException> ApplyDirection(
@@ -60,21 +58,17 @@ public sealed class TransactionCreationService(
         Core.Domains.Account.Account account,
         CancellationToken ct = default)
     {
-        Result<Core.ValueObjects.Currency, DomainException> fromCurrencyResult = Core.ValueObjects.Currency.Create(value: command.Currency);
-        if (fromCurrencyResult.IsFailure)
-            return Result<Guid, DomainException>.Failure(error: fromCurrencyResult.Error!);
+        Result<Money, DomainException> amountResult = Money.Create(amount: command.Amount, currency: command.Currency);
+        if (amountResult.IsFailure)
+            return Result<Guid, DomainException>.Failure(error: amountResult.Error!);
         
         ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
-            fromCurrency: fromCurrencyResult.Value,
+            fromCurrency: command.Currency,
             toCurrency: account.Currency,
             date: DateOnly.FromDateTime(dateTime: command.OccurredAt.UtcDateTime),
             ct: ct
         );
-
-        Result<Money, DomainException> amountResult = Money.Create(amount: command.Amount, currency: fromCurrencyResult.Value);
-        if (amountResult.IsFailure)
-            return Result<Guid, DomainException>.Failure(error: amountResult.Error!);
-
+        
         Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Create(
             accountId: command.AccountId,
             userId: command.UserId,
@@ -101,7 +95,6 @@ public sealed class TransactionCreationService(
         {
             await transactionWriteRepository.CreateAsync(transaction: transaction, ct: ct);
             await accountRepository.SaveAsync(account: account, ct: ct);
-            await operationsWriteRepository.CreateFromTransactionAsync(transaction: transaction, ct: ct);
 
             if (command.Direction != DirectionType.Debit)
                 return;
@@ -123,7 +116,7 @@ public sealed class TransactionCreationService(
                 occurredAt: command.OccurredAt,
                 ct: ct
             );
-        }, 
+        },
         onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create transaction for account {account.Id}."),
         ct: ct);
 

@@ -8,4 +8,9 @@ public interface ICurrencyConversionService
 		DateOnly date,
 		CancellationToken ct = default
 	);
+
+	Task<Dictionary<CurrencyRateRequest, ConversionResult>> GetConversionRatesBatchAsync(
+		IReadOnlyCollection<CurrencyRateRequest> requests,
+		CancellationToken ct = default
+	);
 }

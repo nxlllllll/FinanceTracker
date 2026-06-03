@@ -21,8 +21,6 @@ public sealed class ProcessedMessageWriteRepository(
 			ConsumerType = consumerType,
 			ProcessedAt = processedAt
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task<int> DeleteOldAsync(

@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;
@@ -17,6 +18,7 @@ public sealed class RefreshTokenHandlerTests
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IUserSessionReadRepository _userSessionReadRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private ITokenService _tokenService = null!;
 	private ISessionIssuer _sessionIssuer = null!;
 	private IDateProvider _dateProvider = null!;
@@ -58,21 +60,29 @@ public sealed class RefreshTokenHandlerTests
 		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userSessionReadRepository = Substitute.For<IUserSessionReadRepository>();
 		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
+		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_tokenService = Substitute.For<ITokenService>();
 		_sessionIssuer = Substitute.For<ISessionIssuer>();
 		_dateProvider = Substitute.For<IDateProvider>();
 
 		_dateProvider.UtcNow.Returns(returnThis: FakeDateProvider.Default.UtcNow);
 		_tokenService.HashRefreshToken(refreshToken: Arg.Any<string>()).Returns(returnThis: TokenHash);
+
 		_sessionIssuer.IssueAsync(
 			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: NewSessionToken);
 
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		
 		_handler = new RefreshTokenHandler(
 			userAuthRepository: _userAuthRepository,
 			userSessionReadRepository: _userSessionReadRepository,
 			userSessionWriteRepository: _userSessionWriteRepository,
+			unitOfWork: _unitOfWork,
 			tokenService: _tokenService,
 			sessionIssuer: _sessionIssuer,
 			dateProvider: _dateProvider
@@ -82,7 +92,7 @@ public sealed class RefreshTokenHandlerTests
 	[Test]
 	public async Task Handle_WhenSessionNotFound_ShouldReturnInvalidToken()
 	{
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserSession?)null);
@@ -107,7 +117,7 @@ public sealed class RefreshTokenHandlerTests
 			createdAt: DateTimeOffset.UtcNow,
 			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
 		);
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: revokedSession);
@@ -132,7 +142,7 @@ public sealed class RefreshTokenHandlerTests
 			createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
 			revokedAt: null
 		);
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: expiredSession);
@@ -149,7 +159,7 @@ public sealed class RefreshTokenHandlerTests
 	[Test]
 	public async Task Handle_WhenUserNotFound_ShouldReturnInvalidToken()
 	{
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ActiveSession());
@@ -171,7 +181,7 @@ public sealed class RefreshTokenHandlerTests
 	public async Task Handle_WhenValidToken_ShouldRevokeOldSession()
 	{
 		UserSession session = ActiveSession();
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: session);
@@ -195,7 +205,7 @@ public sealed class RefreshTokenHandlerTests
 	[Test]
 	public async Task Handle_WhenValidToken_ShouldIssueNewSession()
 	{
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ActiveSession());
@@ -218,7 +228,7 @@ public sealed class RefreshTokenHandlerTests
 	[Test]
 	public async Task Handle_WhenValidToken_ShouldReturnNewTokenResponse()
 	{
-		_userSessionReadRepository.GetByRefreshTokenHashAsync(
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ActiveSession());

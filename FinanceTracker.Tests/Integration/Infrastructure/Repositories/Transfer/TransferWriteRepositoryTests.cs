@@ -41,6 +41,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 		).Value!;
 
 		await _writeRepository.CreateAsync(transfer: transfer);
+		await Context.SaveChangesAsync();
 
 		TransferEntity? entity = await Context.Transfers.FirstOrDefaultAsync(predicate: t => t.Id == transfer.Id);
 

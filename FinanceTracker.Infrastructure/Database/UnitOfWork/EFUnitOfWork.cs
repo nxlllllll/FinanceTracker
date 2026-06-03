@@ -21,7 +21,7 @@ public sealed class EFUnitOfWork(
 			_transaction = await context.Database.BeginTransactionAsync(cancellationToken: ct);
 			return;
 		}
- 
+
 		string savepointName = $"sp_{Guid.CreateVersion7():N}";
 		await _transaction.CreateSavepointAsync(name: savepointName, cancellationToken: ct);
 		_savepoints.Push(item: savepointName);
@@ -34,13 +34,15 @@ public sealed class EFUnitOfWork(
 			logger.ZLogError(message: $"Commit called without an active transaction.");
 			throw new InvalidOperationException(message: "No active transaction to commit.");
 		}
- 
+
+		await context.SaveChangesAsync(cancellationToken: ct);
+
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
 			await _transaction.ReleaseSavepointAsync(name: savepointName, cancellationToken: ct);
 			return;
 		}
- 
+
 		await _transaction.CommitAsync(cancellationToken: ct);
 		await _transaction.DisposeAsync();
 		_transaction = null;
@@ -50,14 +52,14 @@ public sealed class EFUnitOfWork(
 	{
 		if (_transaction is null)
 			return;
- 
+
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
 			await _transaction.RollbackToSavepointAsync(name: savepointName, cancellationToken: ct);
 			context.ChangeTracker.Clear();
 			return;
 		}
- 
+
 		await _transaction.RollbackAsync(cancellationToken: ct);
 		await _transaction.DisposeAsync();
 		_transaction = null;

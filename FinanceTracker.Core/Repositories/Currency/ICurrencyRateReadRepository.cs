@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Services.Currency;
+
 namespace FinanceTracker.Core.Repositories.Currency;
 
 public interface ICurrencyRateReadRepository
@@ -12,6 +14,11 @@ public interface ICurrencyRateReadRepository
 	Task<decimal?> GetLatestRateAsync(
 		ValueObjects.Currency baseCurrencyCode,
 		ValueObjects.Currency targetCurrencyCode,
+		CancellationToken ct = default
+	);
+
+	Task<Dictionary<CurrencyRateRequest, decimal>> GetRatesBatchAsync(
+		IReadOnlyCollection<CurrencyRateRequest> requests,
 		CancellationToken ct = default
 	);
 }

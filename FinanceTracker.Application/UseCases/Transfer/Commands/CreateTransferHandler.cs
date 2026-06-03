@@ -2,7 +2,6 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
-using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
@@ -18,8 +17,7 @@ public sealed class CreateTransferHandler(
 	ICurrencyConversionService currencyConversionService,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
-	ILogger<CreateTransferHandler> logger,
-	IOperationsWriteRepository operationsWriteRepository
+	ILogger<CreateTransferHandler> logger
 ) : IAuthorizedHandler<CreateTransferCommand, Core.Domains.Account.Account, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -66,7 +64,6 @@ public sealed class CreateTransferHandler(
 		{
 			await transferWriteRepository.CreateAsync(transfer: transfer, ct: ct);
 			await accountRepository.SaveAsync(account: account, ct: ct);
-			await operationsWriteRepository.CreateFromTransferAsync(transfer: transfer, ct: ct);
 		},
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {account.Id} > {command.ToAccountId}."),
 		ct: ct);

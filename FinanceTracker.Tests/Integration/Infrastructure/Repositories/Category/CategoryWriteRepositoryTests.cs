@@ -24,12 +24,13 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
         Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
             createdAt: FakeDateProvider.Default.UtcNow,
             userId: Guid.CreateVersion7(),
-            name: Name.Create(value: "���").Value,
+            name: Name.Create(value: "Еда").Value,
             type: CategoryType.Expense,
             parentId: parentId
         );
 
         await _writeRepository.CreateAsync(category: category);
+        await Context.SaveChangesAsync();
         return category;
     }
 
@@ -42,7 +43,7 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: category.Id);
-        await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "���");
+        await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "Еда");
         await Assert.That(value: loaded.IsArchived).IsFalse();
     }
 
@@ -51,12 +52,12 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync();
 
-        await _writeRepository.RenameAsync(categoryId: category.Id, newName: Name.Create(value: "��������").Value);
+        await _writeRepository.RenameAsync(categoryId: category.Id, newName: Name.Create(value: "Развлечения").Value);
 
         CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
-        await Assert.That(value: loaded!.Name.Value).IsEqualTo(expected: "��������");
+        await Assert.That(value: loaded!.Name.Value).IsEqualTo(expected: "Развлечения");
     }
 
     [Test]

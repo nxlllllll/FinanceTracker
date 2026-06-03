@@ -22,10 +22,8 @@ public sealed class UserSessionWriteRepository(
 			CreatedAt = session.CreatedAt,
 			RevokedAt = session.RevokedAt
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
-	
+
 	public async Task RevokeAsync(
 		Guid sessionId,
 		DateTimeOffset revokedAt,

@@ -2,7 +2,6 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -13,6 +12,7 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -23,7 +23,6 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	private IAccountRepository _accountRepository = null!;
 	private ITransactionCreationService _transactionCreationService = null!;
 	private IRecurringTransactionReadRepository _recurringTransactionReadRepository = null!;
-	private IUnitOfWork _unitOfWork = null!;
 	private RecurringTransactionConsumer _consumer = null!;
 
 	[Before(hookType: Test)]
@@ -32,12 +31,6 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		_accountRepository = Substitute.For<IAccountRepository>();
 		_transactionCreationService = Substitute.For<ITransactionCreationService>();
 		_recurringTransactionReadRepository = Substitute.For<IRecurringTransactionReadRepository>();
-		_unitOfWork = Substitute.For<IUnitOfWork>();
-
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
 
 		_consumer = new RecurringTransactionConsumer(
 			accountRepository: _accountRepository,
@@ -45,7 +38,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			recurringTransactionReadRepository: _recurringTransactionReadRepository,
 			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
 			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
-			unitOfWork: _unitOfWork,
+			unitOfWork: UnitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<RecurringTransactionConsumer>>()
 		);
@@ -122,11 +115,13 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		});
 		await Context.SaveChangesAsync();
 
-		int countBefore = Context.ProcessedMessages.Count();
+		int countBefore = await Context.ProcessedMessages.CountAsync();
 
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		await Assert.That(value: Context.ProcessedMessages.Count()).IsEqualTo(expected: countBefore);
+		int countAfter = await Context.ProcessedMessages.CountAsync();
+		
+		await Assert.That(value: countAfter).IsEqualTo(expected: countBefore);
 	}
 
 	[Test]
@@ -184,7 +179,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		Guid messageId = Guid.CreateVersion7();
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		bool saved = Context.ProcessedMessages.Any(predicate: m =>
+		bool saved = await Context.ProcessedMessages.AnyAsync(predicate: m =>
 			m.MessageId == messageId &&
 			m.ConsumerType == nameof(RecurringTransactionConsumer)
 		);

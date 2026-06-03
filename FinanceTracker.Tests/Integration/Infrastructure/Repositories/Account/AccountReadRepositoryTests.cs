@@ -1,13 +1,11 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
-using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
 
@@ -17,22 +15,11 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 	private AccountWriteRepository _writeRepository = null!;
 	private CurrencyBuilder _currencyBuilder = null!;
 	private UserBuilder _userBuilder = null!;
-	private IUnitOfWork _unitOfWork = null!;
 
 	[Before(hookType: Test)]
 	public void SetupRepositories()
 	{
 		_readRepository = new AccountReadRepository(context: Context);
-		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			onError: Arg.Any<Func<Exception, Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
 		_writeRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
 		_userBuilder = new UserBuilder(context: Context);
@@ -55,6 +42,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 		);
 
 		await _writeRepository.CreateAsync(@event: @event);
+		await Context.SaveChangesAsync();
 		return @event;
 	}
 
@@ -75,6 +63,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 		);
 
 		await _writeRepository.CreateAsync(@event: @event);
+		await Context.SaveChangesAsync();
 
 		if (archived)
 		{
@@ -171,6 +160,8 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 		await _writeRepository.CreateAsync(@event: archived);
+		await Context.SaveChangesAsync();
+
 		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: archived.AccountId,
@@ -212,6 +203,8 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 		await _writeRepository.CreateAsync(@event: archived);
+		await Context.SaveChangesAsync();
+
 		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: archived.AccountId,

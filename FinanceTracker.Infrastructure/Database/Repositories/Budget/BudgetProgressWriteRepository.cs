@@ -15,8 +15,6 @@ public sealed class BudgetProgressWriteRepository(
     IDateProvider dateProvider
 ) : IBudgetProgressWriteRepository
 {
-    private readonly record struct RateKey(Core.ValueObjects.Currency Currency, DateOnly Date);
-    
     private async Task ChangeSpentAsync(
         Guid userId,
         Guid categoryId,
@@ -35,29 +33,23 @@ public sealed class BudgetProgressWriteRepository(
             b.To >= date
         ).ToListAsync(cancellationToken: ct);
 
+        if (budgets.Count == 0)
+            return;
+
+        List<CurrencyRateRequest> rateRequests = budgets.Select(selector: b => new CurrencyRateRequest(From: currencyCode, To: b.Currency, Date: date))
+             .Distinct()
+             .ToList();
+
+        Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
+
         foreach (BudgetEntity budget in budgets)
         {
-            decimal additionSpent = amount * delta;
-            if (budget.Currency != currencyCode)
-            {
-                ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
-                    fromCurrency: currencyCode,
-                    toCurrency: budget.Currency,
-                    date: date,
-                    ct: ct
-                );
-                additionSpent *= conversion.Rate;
-            }
-            
-            await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(setPropertyCalls: builder => builder
-                .SetProperty(
-                    propertyExpression: p => p.Spent,
-                    valueExpression: p => p.Spent + additionSpent
-                )
-                .SetProperty(
-                    propertyExpression: p => p.UpdatedAt,
-                    valueExpression: dateProvider.UtcNow
-                ), cancellationToken: ct
+            decimal additionSpent = amount * delta * rates[new CurrencyRateRequest(From: currencyCode, To: budget.Currency, Date: date)].Rate;
+
+            await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
+                setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: p => p.Spent + additionSpent)
+                    .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
+                cancellationToken: ct
             );
         }
     }
@@ -138,43 +130,41 @@ public sealed class BudgetProgressWriteRepository(
         DateOnly toDate,
         CancellationToken ct = default)
     {
-        BudgetEntity? budget = await context.Budgets.AsNoTracking()
-            .FirstOrDefaultAsync(predicate: b => b.Id == budgetId, cancellationToken: ct);
+        BudgetEntity? budget = await context.Budgets.AsNoTracking().FirstOrDefaultAsync(predicate: b => b.Id == budgetId, cancellationToken: ct);
 
         if (budget is null)
             return;
 
-        DateTimeOffset fromUtc = fromDate.ToDateTime(time: TimeOnly.MinValue, kind: DateTimeKind.Utc);
-        DateTimeOffset toUtc = toDate.ToDateTime(time: TimeOnly.MaxValue, kind: DateTimeKind.Utc);
+        DateTimeOffset fromUtc = new DateTimeOffset(date: fromDate, time: TimeOnly.MinValue, offset: TimeSpan.Zero);
+        DateTimeOffset toUtc = new DateTimeOffset(date: toDate, time: TimeOnly.MaxValue, offset: TimeSpan.Zero);
 
         List<TransactionEntity> transactions = await context.Transactions.AsNoTracking().Where(predicate: t =>
             t.UserId == userId && t.CategoryId == categoryId && !t.IsExcluded && t.Direction == DirectionType.Debit && t.OccurredAt >= fromUtc && t.OccurredAt <= toUtc
         ).ToListAsync(cancellationToken: ct);
 
-        HashSet<RateKey> uniquePairs = transactions.Select(selector: t => new RateKey(
-            Currency: t.Currency, 
-            Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)
-        )).ToHashSet();
-
-        Dictionary<RateKey, decimal> rates = new Dictionary<RateKey, decimal>();
-        foreach (RateKey rateKey in uniquePairs)
+        if (transactions.Count == 0)
         {
-            ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
-                fromCurrency: rateKey.Currency,
-                toCurrency: budget.Currency,
-                date: rateKey.Date,
-                ct: ct
+            await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
+                setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: 0m)
+                    .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
+                cancellationToken: ct
             );
-            rates[rateKey] = conversion.Rate;
+            return;
         }
 
+        List<CurrencyRateRequest> rateRequests = transactions
+            .Select(selector: t => new CurrencyRateRequest(From: t.Currency, To: budget.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)))
+            .Distinct()
+            .ToList();
+
+        Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
+
         decimal spent = transactions.Sum(selector: t =>
-            t.Amount * rates[new RateKey(Currency: t.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))]
+            t.Amount * rates[new CurrencyRateRequest(From: t.Currency, To: budget.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))].Rate
         );
 
         await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: p => p.Spent, valueExpression: spent)
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: spent)
                 .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
             cancellationToken: ct
         );

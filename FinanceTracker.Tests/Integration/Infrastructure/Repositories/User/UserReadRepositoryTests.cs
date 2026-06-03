@@ -9,7 +9,8 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
-using FinanceTracker.Infrastructure.Database.Repositories.Operation;
+using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
+using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
@@ -26,7 +27,8 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     private UserReadRepository _readRepository = null!;
     private UserWriteRepository _writeRepository = null!;
     private CategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
-    private OperationsWriteRepository _operationsWriteRepository = null!;
+    private TransactionWriteRepository _transactionWriteRepository = null!;
+    private TransferWriteRepository _transferWriteRepository = null!;
     private UserBuilder _userBuilder = null!;
     private AccountBuilder _accountBuilder = null!;
     private CategoryBuilder _categoryBuilder = null!;
@@ -48,7 +50,8 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             currencyConversionService: currencyConversionService,
             dateProvider: FakeDateProvider.Default
         );
-        _operationsWriteRepository = new OperationsWriteRepository(context: Context);
+        _transactionWriteRepository = new TransactionWriteRepository(context: Context);
+        _transferWriteRepository = new TransferWriteRepository(context: Context);
         _userBuilder = new UserBuilder(context: Context);
         _accountBuilder = new AccountBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);
@@ -66,6 +69,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         );
         Core.Domains.User.User user = result.Value!;
         await _writeRepository.CreateAsync(user: user);
+        await Context.SaveChangesAsync();
         return user;
     }
 
@@ -197,7 +201,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             .Where(c => c.Id == expenseCategory)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsArchived, true));
 
-        (decimal income, decimal expense) = await _readRepository.GetIncomeExpenseSummaryAsync(
+        (_, decimal expense) = await _readRepository.GetIncomeExpenseSummaryAsync(
             userId: userId,
             period: new DateOnly(year: 2025, month: 1, day: 1)
         );
@@ -237,7 +241,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
 
-        PagedResult<Core.ReadModels.Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items).IsEmpty();
         await Assert.That(value: result.HasNextPage).IsFalse();
@@ -258,9 +262,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             isExcluded: false, description: null, isRatePending: false,
             occurredAt: FakeDateProvider.Default.UtcNow
         );
-        await _operationsWriteRepository.CreateFromTransactionAsync(transaction: transaction);
+        await _transactionWriteRepository.CreateAsync(transaction: transaction);
+        await Context.SaveChangesAsync();
 
-        PagedResult<Core.ReadModels.Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: OperationFilterType.Income);
@@ -287,9 +292,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             description: null,
             occurredAt: FakeDateProvider.Default.UtcNow
         ).Value!;
-        await _operationsWriteRepository.CreateFromTransferAsync(transfer: transfer);
+        await _transferWriteRepository.CreateAsync(transfer: transfer);
+        await Context.SaveChangesAsync();
 
-        PagedResult<Core.ReadModels.Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
         await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: OperationFilterType.Transfer);
@@ -318,10 +324,11 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             isExcluded: false, description: null, isRatePending: false,
             occurredAt: FakeDateProvider.Default.UtcNow
         );
-        await _operationsWriteRepository.CreateFromTransactionAsync(transaction: income);
-        await _operationsWriteRepository.CreateFromTransactionAsync(transaction: expense);
+        await _transactionWriteRepository.CreateAsync(transaction: income);
+        await _transactionWriteRepository.CreateAsync(transaction: expense);
+        await Context.SaveChangesAsync();
 
-        PagedResult<Core.ReadModels.Operation> result = await _readRepository.GetHistoryAsync(
+        PagedResult<Operation> result = await _readRepository.GetHistoryAsync(
             userId: userId,
             type: OperationFilterType.Income
         );
@@ -346,10 +353,11 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
                 isExcluded: false, description: null, isRatePending: false,
                 occurredAt: FakeDateProvider.Default.UtcNow.AddSeconds(i)
             );
-            await _operationsWriteRepository.CreateFromTransactionAsync(transaction: tx);
+            await _transactionWriteRepository.CreateAsync(transaction: tx);
         }
+        await Context.SaveChangesAsync();
 
-        PagedResult<Core.ReadModels.Operation> result = await _readRepository.GetHistoryAsync(
+        PagedResult<Operation> result = await _readRepository.GetHistoryAsync(
             userId: userId,
             pageSize: 3
         );
@@ -384,10 +392,11 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             isExcluded: false, description: "Later", isRatePending: false,
             occurredAt: later
         );
-        await _operationsWriteRepository.CreateFromTransactionAsync(transaction: first);
-        await _operationsWriteRepository.CreateFromTransactionAsync(transaction: second);
+        await _transactionWriteRepository.CreateAsync(transaction: first);
+        await _transactionWriteRepository.CreateAsync(transaction: second);
+        await Context.SaveChangesAsync();
 
-        PagedResult<Core.ReadModels.Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
+        PagedResult<Operation> result = await _readRepository.GetHistoryAsync(userId: userId);
 
         await Assert.That(value: result.Items[0].Description).IsEqualTo(expected: "Later");
         await Assert.That(value: result.Items[1].Description).IsEqualTo(expected: "Earlier");

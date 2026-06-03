@@ -2,7 +2,6 @@ using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
@@ -12,6 +11,7 @@ using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -20,19 +20,12 @@ namespace FinanceTracker.Tests.Unit.Workers;
 public sealed class AccountEventsConsumerTests : DatabaseFixture
 {
 	private AccountEventsConsumer _consumer = null!;
-	private IUnitOfWork _unitOfWork = null!;
 	private IAccountWriteRepository _accountWriteRepository = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_accountWriteRepository = Substitute.For<IAccountWriteRepository>();
-
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
 
 		AccountEventApplier applier = new AccountEventApplier(repository: _accountWriteRepository);
 
@@ -46,7 +39,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 			),
 			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
 			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
-			unitOfWork: _unitOfWork,
+			unitOfWork: UnitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<AccountEventsConsumer>>()
 		);
@@ -72,10 +65,8 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 	{
 		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
-		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		);
+		bool saved = await Context.ProcessedMessages.AnyAsync();
+		await Assert.That(value: saved).IsTrue();
 	}
 
 	[Test]
@@ -112,14 +103,16 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		});
 		await Context.SaveChangesAsync();
 
-		int countBefore = Context.ProcessedMessages.Count();
+		int countBefore = await Context.ProcessedMessages.CountAsync();
 
 		await _consumer.HandleAsync(
 			message: BuildMessage(messageId: messageId),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: Context.ProcessedMessages.Count()).IsEqualTo(expected: countBefore);
+		int countAfter = await Context.ProcessedMessages.CountAsync();
+		
+		await Assert.That(value: countAfter).IsEqualTo(expected: countBefore);
 	}
 
 	[Test]
@@ -129,7 +122,9 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		bool saved = Context.ProcessedMessages.Any(predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(AccountEventsConsumer));
+		bool saved = await Context.ProcessedMessages.AnyAsync(
+			predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(AccountEventsConsumer)
+		);
 
 		await Assert.That(value: saved).IsTrue();
 	}
@@ -142,7 +137,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 
-		int count = Context.ProcessedMessages.Count(
+		int count = await Context.ProcessedMessages.CountAsync(
 			predicate: m => m.MessageId == message.MessageId && m.ConsumerType == nameof(AccountEventsConsumer)
 		);
 

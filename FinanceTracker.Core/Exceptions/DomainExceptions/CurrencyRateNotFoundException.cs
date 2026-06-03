@@ -1,11 +1,13 @@
+using FinanceTracker.Core.ValueObjects;
+
 namespace FinanceTracker.Core.Exceptions.DomainExceptions;
 
 public sealed class CurrencyRateNotFoundException(
 	string message,
-	string fromCurrency,
-	string toCurrency
+	Currency fromCurrency,
+	Currency toCurrency
 ) : DomainException(message: message)
 {
-	public string FromCurrency { get; init; } = fromCurrency;
-	public string ToCurrency { get; init; } = toCurrency;
+	public Currency FromCurrency { get; init; } = fromCurrency;
+	public Currency ToCurrency { get; init; } = toCurrency;
 }

@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;
@@ -15,6 +16,7 @@ public sealed class RefreshTokenHandler(
 	IUserSessionWriteRepository userSessionWriteRepository,
 	ITokenService tokenService,
 	ISessionIssuer sessionIssuer,
+	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider
 ) : IRequestHandler<RefreshTokenCommand, Result<SessionToken, DomainException>>
 {
@@ -24,22 +26,30 @@ public sealed class RefreshTokenHandler(
 	{
 		string tokenHash = tokenService.HashRefreshToken(refreshToken: command.RefreshToken);
 
-		UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: tokenHash, ct: ct);
+		Result<SessionToken, DomainException> result = Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
 
-		if (session is null || !session.IsActive(now: dateProvider.UtcNow))
-			return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: tokenHash, ct: ct);
 
-		Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(userId: session.UserId, ct: ct);
-		if (user is null)
-			return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
+			if (session is null || !session.IsActive(now: dateProvider.UtcNow))
+				return;
 
-		await userSessionWriteRepository.RevokeAsync(
-			sessionId: session.Id,
-			revokedAt: dateProvider.UtcNow,
-			ct: ct
-		);
+			Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(userId: session.UserId, ct: ct);
 
-		SessionToken response = await sessionIssuer.IssueAsync(user: user, ct: ct);
-		return Result<SessionToken, DomainException>.Success(value: response);
+			if (user is null)
+				return;
+
+			await userSessionWriteRepository.RevokeAsync(
+				sessionId: session.Id,
+				revokedAt: dateProvider.UtcNow,
+				ct: ct
+			);
+
+			SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
+			result = Result<SessionToken, DomainException>.Success(value: sessionToken);
+		}, ct: ct);
+
+		return result;
 	}
 }

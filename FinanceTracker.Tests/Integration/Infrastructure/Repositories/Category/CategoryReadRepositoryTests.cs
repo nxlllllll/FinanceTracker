@@ -35,6 +35,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		);
 
 		await _writeRepository.CreateAsync(category: category);
+		await Context.SaveChangesAsync();
 		if (isArchived)
 			await _writeRepository.ArchiveAsync(categoryId: category.Id);
 		return category;

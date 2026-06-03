@@ -34,8 +34,9 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
             baseCurrency: Core.ValueObjects.Currency.Create(value: currencyCode).Value
         );
         Core.Domains.User.User user = result.Value!;
-        
+
         await _writeRepository.CreateAsync(user: user);
+        await Context.SaveChangesAsync();
         return user;
     }
 

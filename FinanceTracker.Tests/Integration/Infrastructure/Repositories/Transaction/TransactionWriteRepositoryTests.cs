@@ -1,7 +1,6 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
@@ -11,7 +10,6 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
-using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Transaction;
 
@@ -21,22 +19,11 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
     private AccountWriteRepository _accountWriteRepository = null!;
     private CurrencyBuilder _currencyBuilder = null!;
     private UserBuilder _userBuilder = null!;
-    private IUnitOfWork _unitOfWork = null!;
 
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
         _writeRepository = new TransactionWriteRepository(context: Context);
-        _unitOfWork = Substitute.For<IUnitOfWork>();
-        _unitOfWork.ExecuteInTransactionAsync(
-            operation: Arg.Any<Func<Task>>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
-        _unitOfWork.ExecuteInTransactionAsync(
-            operation: Arg.Any<Func<Task>>(),
-            onError: Arg.Any<Func<Exception, Task>>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
         _accountWriteRepository = new AccountWriteRepository(
             context: Context,
             dateProvider: FakeDateProvider.Default
@@ -47,17 +34,17 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
     private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
     {
-        string currencyCode = await _currencyBuilder.CreateAsync();
-        Guid userId = await _userBuilder.CreateAsync(currencyCode: currencyCode);
+        Core.ValueObjects.Currency currency = await _currencyBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currency);
 
         Guid accountId = Guid.CreateVersion7();
         await _accountWriteRepository.CreateAsync(@event: new AccountCreated(
             Id: Guid.CreateVersion7(),
             AccountId: accountId,
             UserId: userId,
-            Name: Name.Create(value: "����� ����").Value,
+            Name: Name.Create(value: "Новый счёт").Value,
             Type: AccountType.Checking,
-            Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
+            Currency: currency,
             Balance: 10000m,
             OccurredAt: DateTimeOffset.UtcNow
         ));
@@ -68,7 +55,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             Id = categoryId,
             UserId = userId,
             ParentId = null,
-            Name = Name.Create(value: "���").Value,
+            Name = Name.Create(value: "Еда").Value,
             Type = CategoryType.Expense,
             IsArchived = false,
             CreatedAt = DateTimeOffset.UtcNow
@@ -93,12 +80,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
-            description: "����",
+            description: "тест",
             isRatePending: false,
             occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
+        await Context.SaveChangesAsync();
 
         bool exists = await Context.Transactions.AnyAsync(predicate: t => t.Id == transactionId);
         await Assert.That(value: exists).IsTrue();
@@ -120,20 +108,19 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
-            description: "����",
+            description: "тест",
             isRatePending: false,
             occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
-        
-        TransactionEntity entity = await Context.Transactions.FirstAsync(
-            predicate: t => t.Id == transactionId
-        );
+        await Context.SaveChangesAsync();
+
+        TransactionEntity entity = await Context.Transactions.FirstAsync(predicate: t => t.Id == transactionId);
 
         await Assert.That(value: entity.Amount).IsEqualTo(expected: 1000m);
         await Assert.That(value: entity.Direction).IsEqualTo(expected: DirectionType.Debit);
-        await Assert.That(value: entity.Description).IsEqualTo(expected: "����");
+        await Assert.That(value: entity.Description).IsEqualTo(expected: "тест");
         await Assert.That(value: entity.IsExcluded).IsFalse();
         await Assert.That(value: entity.UserId).IsEqualTo(expected: userId);
     }
@@ -159,6 +146,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
+        await Context.SaveChangesAsync();
 
         Guid newCategoryId = Guid.CreateVersion7();
         await Context.Categories.AddAsync(entity: new CategoryEntity()
@@ -166,7 +154,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             Id = newCategoryId,
             UserId = Guid.CreateVersion7(),
             ParentId = null,
-            Name = Name.Create(value: "���������").Value,
+            Name = Name.Create(value: "Развлечения").Value,
             Type = CategoryType.Expense,
             IsArchived = false,
             CreatedAt = DateTimeOffset.UtcNow
@@ -201,21 +189,22 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
             direction: DirectionType.Debit,
             exchangeRate: 1m,
             isExcluded: false,
-            description: "����",
+            description: "старое",
             isRatePending: false,
             occurredAt: DateTimeOffset.UtcNow
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
+        await Context.SaveChangesAsync();
 
-        await _writeRepository.ChangeDescriptionAsync(transactionId: transactionId, description: "����");
+        await _writeRepository.ChangeDescriptionAsync(transactionId: transactionId, description: "новое");
 
         string? description = await Context.Transactions
             .Where(predicate: t => t.Id == transactionId)
             .Select(selector: t => t.Description)
             .FirstAsync();
 
-        await Assert.That(value: description).IsEqualTo(expected: "����");
+        await Assert.That(value: description).IsEqualTo(expected: "новое");
     }
 
     [Test]
@@ -239,6 +228,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
+        await Context.SaveChangesAsync();
 
         await _writeRepository.ExcludeAsync(transactionId: transactionId);
 
@@ -271,6 +261,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
         );
 
         await _writeRepository.CreateAsync(transaction: transaction);
+        await Context.SaveChangesAsync();
 
         await _writeRepository.ExcludeAsync(transactionId: transactionId);
         await _writeRepository.IncludeAsync(transactionId: transactionId);

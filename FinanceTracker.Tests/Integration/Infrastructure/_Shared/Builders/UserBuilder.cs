@@ -24,4 +24,19 @@ public class UserBuilder(FinanceTrackerContext context )
 		await context.SaveChangesAsync();
 		return userId;
 	}
+	
+	public async Task<Guid> CreateAsync(Currency currencyCode)
+	{
+		Guid userId = Guid.CreateVersion7();
+		await context.Users.AddAsync(new UserEntity()
+		{
+			Id = userId,
+			Email = Email.Create(value: $"{userId}@test.com").Value,
+			PasswordHash = "hash",
+			BaseCurrencyCode = currencyCode,
+			CreatedAt = DateTimeOffset.UtcNow
+		});
+		await context.SaveChangesAsync();
+		return userId;
+	}
 }

@@ -4,7 +4,7 @@ using FinanceTracker.Core.ValueObjects;
 namespace FinanceTracker.Core.ReadModels;
 
 public sealed record TransactionDetails(
-	Guid AccountId,
+	Guid? AccountId,
 	Guid CategoryId,
 	decimal Amount,
 	Currency? Currency,

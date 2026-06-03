@@ -17,6 +17,9 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <None Update="appsettings.Development.json">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
     <ItemGroup>
       <None Remove="Migrations\V001__init.sql" />
@@ -37,6 +40,8 @@
       <EmbeddedResource Include="Migrations\V008__add_transfer_status.sql" />
       <None Remove="Migrations\V009__idempotent_commands_nullable_response.sql" />
       <EmbeddedResource Include="Migrations\V009__idempotent_commands_nullable_response.sql" />
+      <None Remove="Migrations\V010__operations_union_refactor.sql" />
+      <EmbeddedResource Include="Migrations\V010__operations_union_refactor.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

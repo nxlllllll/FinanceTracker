@@ -1,5 +1,7 @@
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -9,6 +11,7 @@ public abstract class DatabaseFixture
 {
 	private static PostgreSqlContainer _container = null!;
 	protected FinanceTrackerContext Context { get; private set; } = null!;
+	protected EFUnitOfWork UnitOfWork { get; private set; } = null!;
 
 	[Before(hookType: Assembly)]
 	public static async Task StartContainerAsync()
@@ -26,15 +29,17 @@ public abstract class DatabaseFixture
 		}.ConnectionString;
 
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-			.UseNpgsql(connectionString: connectionString).Options;
+													.UseNpgsql(connectionString: connectionString).Options;
 
 		Context = new FinanceTrackerContext(options: options);
+		UnitOfWork = new EFUnitOfWork(context: Context, logger: NullLogger<EFUnitOfWork>.Instance);
 		await Context.Database.EnsureCreatedAsync();
 	}
 
 	[After(hookType: Test)]
 	public async Task TeardownAsync()
 	{
+		await UnitOfWork.DisposeAsync();
 		await Context.Database.CloseConnectionAsync();
 		NpgsqlConnection.ClearAllPools();
 		await Context.Database.EnsureDeletedAsync();

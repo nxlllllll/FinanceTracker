@@ -13,22 +13,21 @@ public sealed class AccountWriteRepository(
 ) : IAccountWriteRepository
 {
 	private async Task ApplyBalanceChangeAsync(
-		Guid accountId, 
+		Guid accountId,
 		decimal delta,
 		CancellationToken ct)
 	{
 		await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				.SetProperty(propertyExpression: e => e.Balance, valueExpression: e => e.Balance + delta)
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Balance, valueExpression: e => e.Balance + delta)
 				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: e => e.LastVersion + 1)
 				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);
 	}
-	
-    public async Task CreateAsync(
-        AccountCreated @event,
-        CancellationToken ct = default)
+
+	public async Task CreateAsync(
+		AccountCreated @event,
+		CancellationToken ct = default)
 	{
 		await context.Accounts.AddAsync(entity: new AccountEntity()
 		{
@@ -48,8 +47,6 @@ public sealed class AccountWriteRepository(
 			LastVersion = 1,
 			UpdatedAt = @event.OccurredAt
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task AdjustBalanceAsync(
@@ -57,28 +54,27 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.AccountBalances.Where(predicate: balance => balance.AccountId == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				.SetProperty(propertyExpression: balance => balance.Balance, valueExpression: balance => balance.Balance + @event.Delta)
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: balance => balance.Balance, valueExpression: balance => balance.Balance + @event.Delta)
 				.SetProperty(propertyExpression: balance => balance.LastVersion, valueExpression: balance => balance.LastVersion + 1)
 				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);
 	}
-	
-    public async Task DebitAsync(
-        AccountDebited @event,
-        CancellationToken ct = default)
-    {
+
+	public async Task DebitAsync(
+		AccountDebited @event,
+		CancellationToken ct = default)
+	{
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
 			delta: -@event.Amount * @event.ExchangeRate,
 			ct: ct
 		);
-    }
+	}
 
-    public async Task CreditAsync(
-        AccountCredited @event,
-        CancellationToken ct = default)
+	public async Task CreditAsync(
+		AccountCredited @event,
+		CancellationToken ct = default)
 	{
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
@@ -99,7 +95,7 @@ public sealed class AccountWriteRepository(
 	}
 
 	public async Task TransferCreditAsync(
-		AccountTransferCredited @event, 
+		AccountTransferCredited @event,
 		CancellationToken ct = default)
 	{
 		await ApplyBalanceChangeAsync(
@@ -108,6 +104,7 @@ public sealed class AccountWriteRepository(
 			ct: ct
 		);
 	}
+
 	public async Task RefundTransferAsync(
 		AccountTransferRefunded @event,
 		CancellationToken ct = default)
@@ -134,7 +131,7 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: true), 
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: true),
 			cancellationToken: ct
 		);
 	}
@@ -144,7 +141,7 @@ public sealed class AccountWriteRepository(
 		CancellationToken ct = default)
 	{
 		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: false), 
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: false),
 			cancellationToken: ct
 		);
 	}

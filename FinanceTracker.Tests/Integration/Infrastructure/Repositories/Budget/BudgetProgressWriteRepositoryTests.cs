@@ -32,6 +32,14 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
+        _currencyConversionService.GetConversionRatesBatchAsync(
+            requests: Arg.Any<IReadOnlyCollection<CurrencyRateRequest>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.Arg<IReadOnlyCollection<CurrencyRateRequest>>().ToDictionary(
+            keySelector: r => r,
+            elementSelector: _ => new ConversionResult(Rate: 1m, IsPending: false)
+        ));
+
         _writeRepository = new BudgetProgressWriteRepository(
             context: Context,
             currencyConversionService: _currencyConversionService,

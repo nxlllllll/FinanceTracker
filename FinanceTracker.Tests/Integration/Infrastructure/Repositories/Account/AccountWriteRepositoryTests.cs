@@ -1,14 +1,12 @@
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
-using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
 
@@ -17,21 +15,10 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
     private AccountWriteRepository _writeRepository = null!;
     private CurrencyBuilder _currencyBuilder = null!;
     private UserBuilder _userBuilder = null!;
-    private IUnitOfWork _unitOfWork = null!;
-    
+
     [Before(hookType: Test)]
     public void SetupRepositories()
     {
-        _unitOfWork = Substitute.For<IUnitOfWork>();
-        _unitOfWork.ExecuteInTransactionAsync(
-            operation: Arg.Any<Func<Task>>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
-        _unitOfWork.ExecuteInTransactionAsync(
-            operation: Arg.Any<Func<Task>>(),
-            onError: Arg.Any<Func<Exception, Task>>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
         _writeRepository = new AccountWriteRepository(
             context: Context,
             dateProvider: FakeDateProvider.Default
@@ -49,7 +36,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             Id: Guid.CreateVersion7(),
             AccountId: Guid.CreateVersion7(),
             UserId: userId,
-            Name: Name.Create(value: "����� ����").Value,
+            Name: Name.Create(value: "Новый счёт").Value,
             Type: AccountType.Checking,
             Currency: currencyCode,
             Balance: 10000m,
@@ -57,6 +44,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
         );
 
         await _writeRepository.CreateAsync(@event: @event);
+        await Context.SaveChangesAsync();
         return @event;
     }
 
@@ -79,8 +67,8 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 
         await _writeRepository.RenameAsync(@event: new AccountRenamed(
             Id: Guid.CreateVersion7(),
-            AccountId: created.AccountId, 
-            NewName: Name.Create(value: "����� ��������").Value,
+            AccountId: created.AccountId,
+            NewName: Name.Create(value: "Новое название").Value,
             OccurredAt: DateTimeOffset.UtcNow
         ));
 
@@ -89,7 +77,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
             .Select(selector: a => a.Name)
             .FirstOrDefaultAsync();
 
-        await Assert.That(value: name).IsEqualTo(expected: "����� ��������");
+        await Assert.That(value: name).IsEqualTo(expected: "Новое название");
     }
 
     [Test]
@@ -206,7 +194,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 
         await Assert.That(value: balance).IsEqualTo(expected: 1000m);
     }
-    
+
     [Test]
     public async Task TransferDebitAsync_ShouldDecreaseBalance()
     {

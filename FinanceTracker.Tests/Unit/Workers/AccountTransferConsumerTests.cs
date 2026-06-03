@@ -5,7 +5,6 @@ using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
@@ -16,6 +15,7 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.TransferProjection.Consumer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -26,7 +26,6 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	private IAccountRepository _accountRepository = null!;
 	private ITransferWriteRepository _transferWriteRepository = null!;
 	private IUnresolvableEventWriteRepository _unresolvableEventWriteRepository = null!;
-	private IUnitOfWork _unitOfWork = null!;
 	private AccountTransferConsumer _consumer = null!;
 
 	private static readonly Guid TransferId = Guid.CreateVersion7();
@@ -38,13 +37,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
 		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
-		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unresolvableEventWriteRepository = Substitute.For<IUnresolvableEventWriteRepository>();
-		
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
 
 		_consumer = new AccountTransferConsumer(
 			accountRepository: _accountRepository,
@@ -56,7 +49,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			),
 			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
 			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
-			unitOfWork: _unitOfWork,
+			unitOfWork: UnitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<AccountTransferConsumer>>()
 		);
@@ -187,7 +180,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		bool saved = Context.ProcessedMessages.Any(
+		bool saved = await Context.ProcessedMessages.AnyAsync(
 			predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(AccountTransferConsumer)
 		);
 
@@ -254,7 +247,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
-	
+
 	[Test]
 	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldCreateUnresolvableEvent()
 	{

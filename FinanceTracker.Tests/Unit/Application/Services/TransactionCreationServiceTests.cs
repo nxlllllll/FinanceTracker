@@ -7,7 +7,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
-using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
@@ -25,7 +24,6 @@ public sealed class TransactionCreationServiceTests
     private ICurrencyConversionService _currencyConversionService = null!;
     private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
     private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
-    private IOperationsWriteRepository _operationsWriteRepository = null!;
     private IUnitOfWork _unitOfWork = null!;
     private TransactionCreationService _service = null!;
 
@@ -37,7 +35,6 @@ public sealed class TransactionCreationServiceTests
         _currencyConversionService = Substitute.For<ICurrencyConversionService>();
         _categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
         _budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
-        _operationsWriteRepository = Substitute.For<IOperationsWriteRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _unitOfWork.ExecuteInTransactionAsync(
             operation: Arg.Any<Func<Task>>(),
@@ -55,7 +52,6 @@ public sealed class TransactionCreationServiceTests
             unitOfWork: _unitOfWork,
             categoryTotalWriteRepository: _categoryTotalWriteRepository,
             budgetProgressWriteRepository: _budgetProgressWriteRepository,
-            operationsWriteRepository: _operationsWriteRepository,
             logger: Substitute.For<ILogger<TransactionCreationService>>()
         );
     }
@@ -168,8 +164,8 @@ public sealed class TransactionCreationServiceTests
             ct: Arg.Any<CancellationToken>()
         ).Returns<ConversionResult>(returnThis: _ => throw new CurrencyRateNotFoundException(
             message: "Rate not found.",
-            fromCurrency: "USD",
-            toCurrency: "RUB"
+            fromCurrency: Currency.Reconstitute(value: "USD"),
+            toCurrency: Currency.Reconstitute(value: "RUB")
         ));
 
         await Assert.That(action: async () => await _service.CreateAsync(

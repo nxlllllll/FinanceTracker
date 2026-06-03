@@ -34,8 +34,6 @@ public sealed class UserWriteRepository(
 			BaseCurrencyCode = user.BaseCurrency,
 			CreatedAt = user.CreatedAt
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task ChangeEmailAsync(

@@ -35,6 +35,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		);
 
 		await _userSessionWriteRepository.CreateAsync(session: session);
+		await Context.SaveChangesAsync();
 		return session;
 	}
 
@@ -50,8 +51,10 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		);
 
 		await _userSessionWriteRepository.CreateAsync(session: session);
+		await Context.SaveChangesAsync();
 
-		Core.Domains.User.UserSession? loaded = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "testhash");
+		Core.Domains.User.UserSession? loaded = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "testhash");
+
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded!.Id).IsEqualTo(expected: session.Id);
 		await Assert.That(value: loaded.UserId).IsEqualTo(expected: userId);
@@ -66,7 +69,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 
 		await _userSessionWriteRepository.RevokeAsync(sessionId: session.Id, revokedAt: revokedAt);
 
-		Core.Domains.User.UserSession? revoked = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "revoke-test-hash");
+		Core.Domains.User.UserSession? revoked = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "revoke-test-hash");
 		bool? isActive = revoked?.IsActive(now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: revoked!.RevokedAt).IsNotNull();
@@ -78,11 +81,11 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		Core.Domains.User.UserSession session1 = await CreateAndPersistSessionAsync(userId: userId, hash: "hash-1");
-		Core.Domains.User.UserSession session2 = await CreateAndPersistSessionAsync(userId: userId, hash: "hash-2");
+		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "hash-2");
 
 		await _userSessionWriteRepository.RevokeAsync(sessionId: session1.Id, revokedAt: FakeDateProvider.Default.UtcNow);
 
-		Core.Domains.User.UserSession? notRevoked = await _userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: "hash-2");
+		Core.Domains.User.UserSession? notRevoked = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "hash-2");
 		bool? isActive = notRevoked?.IsActive(now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: notRevoked!.RevokedAt).IsNull();

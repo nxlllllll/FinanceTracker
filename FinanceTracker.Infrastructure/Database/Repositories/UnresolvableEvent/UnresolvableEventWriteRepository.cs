@@ -26,7 +26,5 @@ public sealed class UnresolvableEventWriteRepository(
 			Payload = payload,
 			OccurredAt = occurredAt
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 }

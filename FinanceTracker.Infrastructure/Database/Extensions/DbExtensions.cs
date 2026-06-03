@@ -1,29 +1,12 @@
-using System.Linq.Expressions;
-using System.Text.Json;
-using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace FinanceTracker.Infrastructure.Database.Extensions;
 
 public static class DbContextExtensions
 {
-    public static IQueryable<OutboxMessageEntity> GetPendingOutboxBatch(
-        this FinanceTrackerContext context,
-        int batchSize)
-    {
-        return context.OutboxMessages.FromSqlRaw(sql: """
-            SELECT * FROM "outbox_messages"
-            WHERE processed_at IS NULL AND failed_at IS NULL
-            ORDER BY updated_at
-            LIMIT {0}
-            FOR UPDATE SKIP LOCKED
-            """, batchSize);
-    }
-
     public static IQueryable<DomainEventOutboxEntity> GetPendingDomainEventBatch(
         this FinanceTrackerContext context,
         int batchSize)
@@ -33,8 +16,7 @@ public static class DbContextExtensions
             WHERE processed_at IS NULL AND failed_at IS NULL
             ORDER BY created_at
             LIMIT {0}
-            FOR UPDATE SKIP LOCKED
-            """, batchSize);
+        """, batchSize);
     }
 
     public static Task UpsertCategoryTotalAsync(
@@ -91,7 +73,7 @@ public static class DbContextExtensions
             INSERT INTO idempotent_commands (idempotency_key, command_type, response_json, created_at, expires_at)
             VALUES ({idempotencyKey}, {commandType}, NULL, {createdAt}, {expiresAt})
             ON CONFLICT (idempotency_key) DO NOTHING
-            """, cancellationToken: ct);
+        """, cancellationToken: ct);
 
         return rows == 1;
     }
@@ -106,6 +88,6 @@ public static class DbContextExtensions
             UPDATE idempotent_commands
             SET response_json = {responseJson}
             WHERE idempotency_key = {idempotencyKey}
-            """, cancellationToken: ct);
+        """, cancellationToken: ct);
     }
 }

@@ -36,19 +36,16 @@ public sealed class CategoryWriteRepository(
 			IsArchived = false,
 			CreatedAt = category.CreatedAt
 		}, cancellationToken: ct);
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task RenameAsync(
 		Guid categoryId,
-		Name newName, 
+		Name newName,
 		CancellationToken ct = default)
 	{
 		await ChangeCategoryProperty(
 			categoryId: categoryId,
-			changePropertyAction: builder =>
-				builder.SetProperty(propertyExpression: category => category.Name, valueExpression: newName),
+			changePropertyAction: builder => builder.SetProperty(propertyExpression: category => category.Name, valueExpression: newName),
 			ct: ct
 		);
 	}
@@ -70,8 +67,7 @@ public sealed class CategoryWriteRepository(
 	{
 		await ChangeCategoryProperty(
 			categoryId: categoryId,
-			changePropertyAction: builder =>
-				builder.SetProperty(propertyExpression: category => category.IsArchived, valueExpression: false),
+			changePropertyAction: builder => builder.SetProperty(propertyExpression: category => category.IsArchived, valueExpression: false),
 			ct: ct
 		);
 	}

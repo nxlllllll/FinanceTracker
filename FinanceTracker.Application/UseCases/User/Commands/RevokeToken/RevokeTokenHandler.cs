@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -13,6 +14,7 @@ public sealed class RevokeTokenHandler(
 	IUserSessionReadRepository userSessionReadRepository,
 	IUserSessionWriteRepository userSessionWriteRepository,
 	ITokenService tokenService,
+	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider
 ) : IRequestHandler<RevokeTokenCommand, Result<Unit, DomainException>>
 {
@@ -22,16 +24,19 @@ public sealed class RevokeTokenHandler(
 	{
 		string tokenHash = tokenService.HashRefreshToken(refreshToken: command.RefreshToken);
 
-		UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashAsync(tokenHash: tokenHash, ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: tokenHash, ct: ct);
 
-		if (session is null || !session.IsActive(now: dateProvider.UtcNow))
-			return Result<Unit, DomainException>.Success(value: Unit.Default);
+			if (session is null || !session.IsActive(now: dateProvider.UtcNow))
+				return;
 
-		await userSessionWriteRepository.RevokeAsync(
-			sessionId: session.Id,
-			revokedAt: dateProvider.UtcNow,
-			ct: ct
-		);
+			await userSessionWriteRepository.RevokeAsync(
+				sessionId: session.Id,
+				revokedAt: dateProvider.UtcNow,
+				ct: ct
+			);
+		}, ct: ct);
 
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}

@@ -30,8 +30,6 @@ public sealed class RecurringTransactionWriteRepository(
             LastExecutedAt = null,
             CreatedAt = dateProvider.UtcNow
         }, cancellationToken: ct);
-
-        await context.SaveChangesAsync(cancellationToken: ct);
     }
 
     public async Task ChangeAmountAsync(
@@ -40,10 +38,7 @@ public sealed class RecurringTransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.Amount,
-                valueExpression: amount
-            ),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: r => r.Amount, valueExpression: amount),
             cancellationToken: ct
         );
     }
@@ -54,10 +49,7 @@ public sealed class RecurringTransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.Currency,
-                valueExpression: currency
-            ),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: r => r.Currency, valueExpression: currency),
             cancellationToken: ct
         );
     }
@@ -68,10 +60,7 @@ public sealed class RecurringTransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.DayOfMonth,
-                valueExpression: dayOfMonth
-            ),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: r => r.DayOfMonth, valueExpression: dayOfMonth),
             cancellationToken: ct
         );
     }
@@ -81,10 +70,7 @@ public sealed class RecurringTransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.IsActive,
-                valueExpression: true
-            ),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: r => r.IsActive, valueExpression: true),
             cancellationToken: ct
         );
     }
@@ -94,38 +80,28 @@ public sealed class RecurringTransactionWriteRepository(
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.IsActive,
-                valueExpression: false
-            ),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: r => r.IsActive, valueExpression: false),
             cancellationToken: ct
         );
     }
 
-    
     public async Task DeactivateByCategoryIdAsync(
         Guid categoryId,
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.CategoryId == categoryId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.IsActive,
-                valueExpression: false
-            ),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: r => r.IsActive, valueExpression: false),
             cancellationToken: ct
         );
     }
-    
+
     public async Task MarkExecutedAsync(
         Guid recurringTransactionId,
         DateTimeOffset executedAt,
         CancellationToken ct = default)
     {
         await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.LastExecutedAt,
-                valueExpression: executedAt
-            ),
+            setPropertyCalls: builder => builder.SetProperty(propertyExpression: r => r.LastExecutedAt, valueExpression: executedAt),
             cancellationToken: ct
         );
     }

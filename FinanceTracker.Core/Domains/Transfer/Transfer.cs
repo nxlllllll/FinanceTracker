@@ -33,8 +33,7 @@ public sealed class Transfer
 		DateTimeOffset occurredAt)
 	{
 		if (exchangeRate <= 0)
-			return Result<Transfer, DomainException>.Failure(
-				error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
+			return Result<Transfer, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
 
 		Result<Money, DomainException> amountFromResult = Money.Create(amount: amount, currency: currencyFrom);
 		if (amountFromResult.IsFailure)

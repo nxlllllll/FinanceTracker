@@ -4,7 +4,6 @@ using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.Context.Idempotency;
-using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
@@ -49,8 +48,6 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<RecurringTransactionEntity> RecurringTransactions => Set<RecurringTransactionEntity>();
 	
 	public DbSet<ProcessedMessageEntity> ProcessedMessages => Set<ProcessedMessageEntity>();
-	
-	public DbSet<OperationEntity> Operations => Set<OperationEntity>();
 	
 	public DbSet<IdempotentCommandEntity> IdempotentCommands => Set<IdempotentCommandEntity>();
 	

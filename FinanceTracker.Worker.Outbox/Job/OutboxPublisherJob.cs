@@ -17,7 +17,7 @@ namespace FinanceTracker.Worker.Outbox.Job;
 
 /// <summary>
 /// Guarantees at-least-once delivery: RabbitMQ publish is not transactional with PostgreSQL,
-/// so a message may be published but not marked as processed if the outer transaction rolls back.
+/// so a message may be published but not marked as processed if the worker crashes after publish.
 /// Consumers must be idempotent — duplicates are handled via the processed_messages table.
 /// </summary>
 [DisallowConcurrentExecution]
@@ -47,66 +47,68 @@ public sealed class OutboxPublisherJob(
 
     private async Task ProcessBatchAsync(OutboxOptions options, CancellationToken ct)
     {
-        await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+        IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.GetPendingBatchAsync(
+            batchSize: options.BatchSize,
+            ct: ct
+        );
+
+        WorkerMetrics.OutboxPending.Record(value: messages.Count);
+
+        if (messages.Count == 0)
+            return;
+
+        logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
+
+        int published = 0;
+        foreach (PendingOutboxMessage message in messages)
         {
-            IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.GetPendingBatchAsync(
-                batchSize: options.BatchSize,
-                ct: ct
-            );
+            if (ct.IsCancellationRequested)
+                break;
 
-            WorkerMetrics.OutboxPending.Record(value: messages.Count);
-
-            if (messages.Count == 0)
-                return;
-
-            logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
-
-            int published = 0;
-            foreach (PendingOutboxMessage message in messages)
+            Stopwatch sw = Stopwatch.StartNew();
+            try
             {
-                Stopwatch sw = Stopwatch.StartNew();
-                try
-                {
-                    OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
-                        ?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
+                OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
+                    ?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
 
-                    AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
-                        MessageId: message.Id,
-                        AggregateId: message.AggregateId,
-                        AggregateType: message.AggregateType,
-                        CorrelationId: payload.CorrelationId,
-                        Events: payload.Events.Select(selector: e => new EventEnvelope(
-                            EventType: e.EventType,
-                            EventPayload: e.EventPayload
-                        )).ToList()
-                    );
+                AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
+                    MessageId: message.Id,
+                    AggregateId: message.AggregateId,
+                    AggregateType: message.AggregateType,
+                    CorrelationId: payload.CorrelationId,
+                    Events: payload.Events.Select(selector: e => new EventEnvelope(
+                        EventType: e.EventType,
+                        EventPayload: e.EventPayload
+                    )).ToList()
+                );
 
-                    await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
-                        
-                    await unitOfWork.ExecuteInTransactionAsync(operation: async () => await outboxWriteRepository.MarkAsPublishedAsync(
-                        messageId: message.Id, 
+                await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
+
+                await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+                    await outboxWriteRepository.MarkAsPublishedAsync(
+                        messageId: message.Id,
                         processedAt: dateProvider.UtcNow,
                         ct: ct
                     ), ct: ct);
-                    WorkerMetrics.OutboxPublished.Add(delta: 1);
-                    logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
-                }
-                catch (Exception exception)
-                {
-                    if (ct.IsCancellationRequested)
-                        return;
 
-                    logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
-                    await UpdateRetryStateAsync(message: message, options: options, ct: ct);
-                }
-                finally
-                {
-                    WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
-                }
+                WorkerMetrics.OutboxPublished.Add(delta: 1);
+                logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
             }
-        }, onError: async exception => logger.ZLogError(exception: exception, message: $"Outbox batch publishing failed."), ct: ct);
+            catch (Exception exception)
+            {
+                if (ct.IsCancellationRequested)
+                    return;
+
+                logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
+                await UpdateRetryStateAsync(message: message, options: options, ct: ct);
+            }
+            finally
+            {
+                WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
+            }
+        }
     }
-    
+
     private async Task UpdateRetryStateAsync(PendingOutboxMessage message, OutboxOptions options, CancellationToken ct)
     {
         try
