@@ -2,12 +2,16 @@
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
+using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
+using Microsoft.Extensions.Options;
 using ZLogger;
 
 namespace FinanceTracker.Worker.AccountProjection.Consumer;
@@ -19,6 +23,7 @@ public sealed class AccountEventsConsumer(
 	IProcessedMessageWriteRepository processedMessageWriteRepository,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
+	IOptionsMonitor<ProjectionRetryOptions> retryOptions,
 	ILogger<AccountEventsConsumer> logger
 ) : IMessageHandler<AggregateEventsMessage>
 {
@@ -26,30 +31,46 @@ public sealed class AccountEventsConsumer(
 	{
 		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		List<IAccountIntegrationEvent> events = message.Events.Select(selector: e =>
 		{
-			if (await processedMessageReadRepository.IsProcessedAsync(messageId: message.MessageId, consumerType: nameof(AccountEventsConsumer), ct: ct))
+			Type type = integrationEventTypeResolver.ResolveType(eventType: e.EventType);
+			return (IAccountIntegrationEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
+		}).ToList();
+
+		ProjectionRetryOptions currentOptions = retryOptions.CurrentValue;
+
+		await RetryDelayCalculator.ExecuteWithRetryAsync(
+			operation: async innerCt =>
 			{
-				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
-				return;
-			}
+				await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+				{
+					if (await processedMessageReadRepository.IsProcessedAsync(messageId: message.MessageId, consumerType: nameof(AccountEventsConsumer), ct: innerCt))
+					{
+						logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
+						return;
+					}
 
-			List<IAccountIntegrationEvent> events = message.Events.Select(selector: e =>
-			{
-				Type type = integrationEventTypeResolver.ResolveType(eventType: e.EventType);
-				return (IAccountIntegrationEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
-			}).ToList();
+					await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: innerCt);
 
-			await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: ct);
+					await processedMessageWriteRepository.MarkAsProcessedAsync(
+						messageId: message.MessageId,
+						consumerType: nameof(AccountEventsConsumer),
+						processedAt: dateProvider.UtcNow,
+						ct: innerCt
+					);
 
-			await processedMessageWriteRepository.MarkAsProcessedAsync(
-				messageId: message.MessageId,
-				consumerType: nameof(AccountEventsConsumer),
-				processedAt: dateProvider.UtcNow,
-				ct: ct
-			);
-
-			logger.ZLogInformation(message: $"[{message.CorrelationId}] Projected {events.Count} event(s) for Account {message.AggregateId}.");
-		}, ct: ct);
+					logger.ZLogInformation(message: $"[{message.CorrelationId}] Projected {events.Count} event(s) for Account {message.AggregateId}.");
+				}, ct: innerCt);
+			},
+			logging: (exception, attempt, delay) => logger.ZLogWarning(
+				exception: exception,
+				message: $"[{message.CorrelationId}] Concurrency conflict projecting Account {message.AggregateId}. Retry {attempt + 1}/{currentOptions.MaxRetries} in {delay}ms."
+			),
+			exceptionFilter: ex => ex is ConcurrencyConflictException,
+			maxRetries: currentOptions.MaxRetries,
+			baseDelayMs: currentOptions.BaseDelayMs,
+			useJitter: currentOptions.UseJitter,
+			ct: ct
+		);
 	}
 }

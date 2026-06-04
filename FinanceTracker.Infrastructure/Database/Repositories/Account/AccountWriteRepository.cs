@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -15,14 +16,18 @@ public sealed class AccountWriteRepository(
 	private async Task ApplyBalanceChangeAsync(
 		Guid accountId,
 		decimal delta,
+		int version,
 		CancellationToken ct)
 	{
-		await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteUpdateAsync(
+		int rows = await context.AccountBalances.Where(predicate: b => b.AccountId == accountId && b.LastVersion < version).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Balance, valueExpression: e => e.Balance + delta)
-				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: e => e.LastVersion + 1)
+				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: version)
 				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);
+
+		if (rows == 0)
+			throw new ConcurrencyConflictException(message: $"Concurrency conflict: account balance {accountId} was already updated to version >= {version}.", id: accountId);
 	}
 
 	public async Task CreateAsync(
@@ -44,7 +49,7 @@ public sealed class AccountWriteRepository(
 		{
 			AccountId = @event.AccountId,
 			Balance = @event.Balance,
-			LastVersion = 1,
+			LastVersion = @event.Version,
 			UpdatedAt = @event.OccurredAt
 		}, cancellationToken: ct);
 	}
@@ -53,12 +58,21 @@ public sealed class AccountWriteRepository(
 		AccountBalanceAdjusted @event,
 		CancellationToken ct = default)
 	{
-		await context.AccountBalances.Where(predicate: balance => balance.AccountId == @event.AccountId).ExecuteUpdateAsync(
+		int rows = await context.AccountBalances.Where(predicate: balance => balance.AccountId == @event.AccountId && balance.LastVersion < @event.Version).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(propertyExpression: balance => balance.Balance, valueExpression: balance => balance.Balance + @event.Delta)
-				.SetProperty(propertyExpression: balance => balance.LastVersion, valueExpression: balance => balance.LastVersion + 1)
+				.SetProperty(propertyExpression: balance => balance.LastVersion, valueExpression: @event.Version)
 				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);
+
+		if (rows == 0)
+		{
+			throw new ConcurrencyConflictException(
+				message:
+				$"Concurrency conflict: account balance {@event.AccountId} was already updated to version >= {@event.Version}.",
+				id: @event.AccountId
+			);
+		}
 	}
 
 	public async Task DebitAsync(
@@ -68,6 +82,7 @@ public sealed class AccountWriteRepository(
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
 			delta: -@event.Amount * @event.ExchangeRate,
+			version: @event.Version,
 			ct: ct
 		);
 	}
@@ -79,6 +94,7 @@ public sealed class AccountWriteRepository(
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
 			delta: @event.Amount * @event.ExchangeRate,
+			version: @event.Version,
 			ct: ct
 		);
 	}
@@ -90,6 +106,7 @@ public sealed class AccountWriteRepository(
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
 			delta: -@event.Amount,
+			version: @event.Version,
 			ct: ct
 		);
 	}
@@ -101,6 +118,7 @@ public sealed class AccountWriteRepository(
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
 			delta: @event.Amount * @event.ExchangeRate,
+			version: @event.Version,
 			ct: ct
 		);
 	}
@@ -112,6 +130,7 @@ public sealed class AccountWriteRepository(
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
 			delta: @event.Amount,
+			version: @event.Version,
 			ct: ct
 		);
 	}

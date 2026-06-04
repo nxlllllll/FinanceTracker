@@ -8,5 +8,9 @@ public sealed record AccountRenamed(
 	Guid Id,
 	Guid AccountId,
 	Name NewName,
+	int Version,
 	DateTimeOffset OccurredAt
-) : IEvent;
+) : IEvent
+{
+	public IEvent WithVersion(int version) => this with { Version = version };
+}

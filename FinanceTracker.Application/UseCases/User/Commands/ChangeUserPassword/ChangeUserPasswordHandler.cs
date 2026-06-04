@@ -32,16 +32,8 @@ public sealed class ChangeUserPasswordHandler(
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await userWriteRepository.ChangePasswordAsync(
-				userId: command.UserId,
-				newPasswordHash: newPasswordHash,
-				ct: ct
-			);
-			await domainOutboxWriter.WriteAsync(
-				entity: user,
-				correlationId: correlationContext.CorrelationId,
-				ct: ct
-			);
+			await userWriteRepository.ChangePasswordAsync(userId: command.UserId, newPasswordHash: newPasswordHash, ct: ct);
+			await domainOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
 		}, ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: user.Id);

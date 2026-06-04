@@ -7,5 +7,6 @@ namespace FinanceTracker.Contracts.Events.Account;
 public sealed record AccountArchivedEvent(
 	Guid EventId,
 	Guid AccountId,
+	int Version,
 	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

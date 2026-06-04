@@ -8,7 +8,7 @@ using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 
 namespace FinanceTracker.Worker.AccountProjection;
- 
+
 public sealed class Program
 {
 	public static void Main(string[] args)
@@ -19,6 +19,11 @@ public sealed class Program
  
 		builder.Services.AddScoped<Projection.AccountProjection>();
 		builder.Services.AddScoped<AccountEventApplier>();
+
+		builder.Services.AddOptions<ProjectionRetryOptions>()
+			.BindConfiguration(configSectionPath: ProjectionRetryOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
 
 		builder.Services.AddRabbitMqCore()
 			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();

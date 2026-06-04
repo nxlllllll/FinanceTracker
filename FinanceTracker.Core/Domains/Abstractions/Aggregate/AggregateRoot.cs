@@ -21,12 +21,13 @@ public abstract class AggregateRoot
 	protected void RaiseEvent(IEvent @event)
 	{
 		Load(@event: @event);
-		_events.Add(item: @event);
+		IEvent versioned = @event.WithVersion(version: Version);
+		_events.Add(item: versioned);
 	}
 
 	protected void RestoreVersion(int version)
 		=> Version = version;
-	
+
 	internal void LoadEventsFromHistory(IReadOnlyList<IEvent> history)
 	{
 		foreach (IEvent @event in history)

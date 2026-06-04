@@ -4,7 +4,6 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
-using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -25,229 +24,233 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.EventStore;
 
 public sealed class PostgresEventStoreTests : DatabaseFixture
 {
-    private PostgresEventStore _eventStore = null!;
-	private AccountSnapshotSerializer _serializer = new AccountSnapshotSerializer();
-
+	private PostgresEventStore _eventStore = null!;
+	private readonly AccountSnapshotSerializer _serializer = new AccountSnapshotSerializer();
 
 	private PostgresEventStore CreateEventStore()
-    {
-        IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
-        upcasterRegistry.Apply(
-            eventType: Arg.Any<string>(),
-            source: Arg.Any<JsonDocument>(),
-            storedVersion: Arg.Any<int>(),
-            currentVersion: Arg.Any<int>()
-        ).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
+	{
+		IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
+		upcasterRegistry.Apply(
+			eventType: Arg.Any<string>(),
+			source: Arg.Any<JsonDocument>(),
+			storedVersion: Arg.Any<int>(),
+			currentVersion: Arg.Any<int>()
+		).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
 
-        return new PostgresEventStore(
-            context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()
-                .UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
-                .Options
-            ),
-            eventTypeResolver: new EventTypeResolver(
-                assembly: typeof(IEvent).Assembly,
-                logger: Substitute.For<ILogger<EventTypeResolver>>()
-            ),
-            integrationEventMapper: new AccountIntegrationEventMapper(
-                logger: Substitute.For<ILogger<AccountIntegrationEventMapper>>()
-            ),
-            integrationEventTypeResolver: new IntegrationEventTypeResolver(
-                contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
-                logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
-            ),
-            dateProvider: FakeDateProvider.Default,
-            correlationContext: Substitute.For<ICorrelationContext>(),
-            upcasterRegistry: upcasterRegistry,
-            options: new FakeOptionsMonitor<EventStoreOptions>(value: new EventStoreOptions()),
-            logger: Substitute.For<ILogger<PostgresEventStore>>()
-        );
-    }
-    
-    [Before(hookType: Test)]
-    public void SetupEventStore()
-        => _eventStore = CreateEventStore();
+		return new PostgresEventStore(
+			context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()
+				.UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
+				.Options
+			),
+			eventTypeResolver: new EventTypeResolver(
+				assembly: typeof(IEvent).Assembly,
+				logger: Substitute.For<ILogger<EventTypeResolver>>()
+			),
+			integrationEventMapper: new AccountIntegrationEventMapper(
+				logger: Substitute.For<ILogger<AccountIntegrationEventMapper>>()
+			),
+			integrationEventTypeResolver: new IntegrationEventTypeResolver(
+				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
+			),
+			dateProvider: FakeDateProvider.Default,
+			correlationContext: Substitute.For<ICorrelationContext>(),
+			upcasterRegistry: upcasterRegistry,
+			options: new FakeOptionsMonitor<EventStoreOptions>(value: new EventStoreOptions()),
+			logger: Substitute.For<ILogger<PostgresEventStore>>()
+		);
+	}
 
-    [Test]
-    public async Task SaveAsync_WithNewEvents_ShouldPersistToDatabase()
-    {
-        Guid accountId = Guid.CreateVersion7();
-        AccountCreated @event = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: accountId,
-            UserId: Guid.CreateVersion7(),
-            Name: Name.Create(value: "����� ����").Value,
-            Type: AccountType.Checking,
-            Currency: Currency.Create(value: "RUB").Value,
-            Balance: 0,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
+	[Before(hookType: Test)]
+	public void SetupEventStore()
+		=> _eventStore = CreateEventStore();
 
-        await _eventStore.SaveAsync(
-            aggregateId: accountId,
-            aggregateType: AggregateTypeNames.Account,
-            events: [@event],
-            expectedVersion: 0
-        );
+	[Test]
+	public async Task SaveAsync_WithNewEvents_ShouldPersistToDatabase()
+	{
+		Guid accountId = Guid.CreateVersion7();
+		AccountCreated @event = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: accountId,
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Новый счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			Balance: 0,
+			Version: 0,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
 
-        EventStoreResult result = await _eventStore.LoadAsync(
-            aggregateId: accountId,
-            aggregateType: AggregateTypeNames.Account
-        );
-        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 1);
-    }
+		await _eventStore.SaveAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [@event],
+			expectedVersion: 0
+		);
 
-    [Test]
-    public async Task LoadAsync_WithSavedEvents_ShouldReturnEventsInOrder()
-    {
-        Guid accountId = Guid.CreateVersion7();
-        AccountCreated created = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: accountId,
-            UserId: Guid.CreateVersion7(),
-            Name: Name.Create(value: "����� ����").Value,
-            Type: AccountType.Checking,
-            Currency: Currency.Create(value: "RUB").Value,
-            Balance: 1000m,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
-        AccountDebited debited = new AccountDebited(
-            Id: Guid.CreateVersion7(),
-            AccountId: accountId,
-            TransactionId: Guid.CreateVersion7(),
-            CategoryId: Guid.CreateVersion7(),
-            Amount: 500m,
-            ExchangeRate: 1m,
-            Description: null,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
+		EventStoreResult result = await _eventStore.LoadAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account
+		);
+		await Assert.That(value: result.Events.Count).IsEqualTo(expected: 1);
+	}
 
-        await _eventStore.SaveAsync(
-            aggregateId: accountId,
-            aggregateType: AggregateTypeNames.Account,
-            events: [created, debited],
-            expectedVersion: 0
-        );
+	[Test]
+	public async Task LoadAsync_WithSavedEvents_ShouldReturnEventsInOrder()
+	{
+		Guid accountId = Guid.CreateVersion7();
+		AccountCreated created = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: accountId,
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Новый счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			Balance: 1000m,
+			Version: 0,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+		AccountDebited debited = new AccountDebited(
+			Id: Guid.CreateVersion7(),
+			AccountId: accountId,
+			TransactionId: Guid.CreateVersion7(),
+			CategoryId: Guid.CreateVersion7(),
+			Amount: 500m,
+			ExchangeRate: 1m,
+			Description: null,
+			Version: 0,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
 
-        EventStoreResult result = await _eventStore.LoadAsync(
-            aggregateId: accountId,
-            aggregateType: AggregateTypeNames.Account
-        );
+		await _eventStore.SaveAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [created, debited],
+			expectedVersion: 0
+		);
 
-        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 2);
-        await Assert.That(value: result.Events[0]).IsTypeOf<AccountCreated>();
-        await Assert.That(value: result.Events[1]).IsTypeOf<AccountDebited>();
-    }
+		EventStoreResult result = await _eventStore.LoadAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account
+		);
 
-    [Test]
-    public async Task LoadAsync_WithNonExistentAggregate_ShouldReturnEmptyList()
-    {
-        EventStoreResult result = await _eventStore.LoadAsync(
-            aggregateId: Guid.CreateVersion7(),
-            aggregateType: AggregateTypeNames.Account
-        );
-        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
-    }
+		await Assert.That(value: result.Events.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.Events[0]).IsTypeOf<AccountCreated>();
+		await Assert.That(value: result.Events[1]).IsTypeOf<AccountDebited>();
+	}
 
-    [Test]
-    public async Task SaveAsync_WithConcurrentWrite_ShouldThrowConcurrencyConflictException()
-    {
-        Guid accountId = Guid.CreateVersion7();
-        AccountCreated @event = new AccountCreated(
-            Id: Guid.CreateVersion7(),
-            AccountId: accountId,
-            UserId: Guid.CreateVersion7(),
-            Name: Name.Create(value: "����� ����").Value,
-            Type: AccountType.Checking,
-            Currency: Currency.Create(value: "RUB").Value,
-            Balance: 0,
-            OccurredAt: DateTimeOffset.UtcNow
-        );
+	[Test]
+	public async Task LoadAsync_WithNonExistentAggregate_ShouldReturnEmptyList()
+	{
+		EventStoreResult result = await _eventStore.LoadAsync(
+			aggregateId: Guid.CreateVersion7(),
+			aggregateType: AggregateTypeNames.Account
+		);
+		await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
+	}
 
-        PostgresEventStore firstStore = CreateEventStore();
-        PostgresEventStore secondStore = CreateEventStore();
+	[Test]
+	public async Task SaveAsync_WithConcurrentWrite_ShouldThrowConcurrencyConflictException()
+	{
+		Guid accountId = Guid.CreateVersion7();
+		AccountCreated @event = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: accountId,
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Новый счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			Balance: 0,
+			Version: 0,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
 
-        await firstStore.SaveAsync(
-            aggregateId: accountId,
-            aggregateType: AggregateTypeNames.Account,
-            events: [@event],
-            expectedVersion: 0
-        );
+		PostgresEventStore firstStore = CreateEventStore();
+		PostgresEventStore secondStore = CreateEventStore();
 
-        await Assert.That(async () =>
-        {
-            await secondStore.SaveAsync(
-                aggregateId: accountId,
-                aggregateType: AggregateTypeNames.Account,
-                events: [new AccountDebited(
-                    Id: Guid.CreateVersion7(),
-                    AccountId: accountId,
-                    TransactionId: Guid.CreateVersion7(),
-                    CategoryId: Guid.CreateVersion7(),
-                    Amount: 100m,
-                    ExchangeRate: 1m,
-                    Description: null,
-                    OccurredAt: DateTimeOffset.UtcNow
-                )],
-                expectedVersion: 0
-            );
-        }).Throws<ConcurrencyConflictException>();
-    }
-    
-    [Test]
-    public async Task SaveAsync_WhenVersionReaches50_ShouldCreateSnapshot()
-    {
-        Result<Account, DomainException> a = Account.Create(
-            occurredAt: FakeDateProvider.Default.UtcNow,
-            userId: Guid.CreateVersion7(),
-            name: Name.Create(value: "Счёт").Value,
-            type: AccountType.Checking,
-            currency: Currency.Create(value: "RUB").Value,
-            balance: 100m
-        );
+		await firstStore.SaveAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [@event],
+			expectedVersion: 0
+		);
 
-        Account account = a.Value!;
+		await Assert.That(async () =>
+		{
+			await secondStore.SaveAsync(
+				aggregateId: accountId,
+				aggregateType: AggregateTypeNames.Account,
+				events: [new AccountDebited(
+					Id: Guid.CreateVersion7(),
+					AccountId: accountId,
+					TransactionId: Guid.CreateVersion7(),
+					CategoryId: Guid.CreateVersion7(),
+					Amount: 100m,
+					ExchangeRate: 1m,
+					Description: null,
+					Version: 0,
+					OccurredAt: DateTimeOffset.UtcNow
+				)],
+				expectedVersion: 0
+			);
+		}).Throws<ConcurrencyConflictException>();
+	}
 
-        await _eventStore.SaveAsync(
-            aggregateId: account.Id,
-            aggregateType: AggregateTypeNames.Account,
-            events: account.Events,
-            expectedVersion: 0,
-            snapshotFactory: () => _serializer.Serialize(aggregate: account)
-        );
-        account.ClearEvents();
+	[Test]
+	public async Task SaveAsync_WhenVersionReaches50_ShouldCreateSnapshot()
+	{
+		Result<Account, DomainException> a = Account.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow,
+			userId: Guid.CreateVersion7(),
+			name: Name.Create(value: "Счёт").Value,
+			type: AccountType.Checking,
+			currency: Currency.Create(value: "RUB").Value,
+			balance: 100m
+		);
 
-        for (int i = 0; i < 49; i++)
-        {
-            account.Debit(
-                occurredAt: FakeDateProvider.Default.UtcNow,
-                transactionId: Guid.CreateVersion7(),
-                categoryId: Guid.CreateVersion7(),
-                amount: 1m,
-                exchangeRate: 1m,
-                description: null
-            );
-            int expectedVersion = account.Version - account.Events.Count;
-            await _eventStore.SaveAsync(
-                aggregateId: account.Id,
-                aggregateType: AggregateTypeNames.Account,
-                events: account.Events,
-                expectedVersion: expectedVersion,
-                snapshotFactory: () => _serializer.Serialize(aggregate: account)
-            );
-            account.ClearEvents();
-        }
+		Account account = a.Value!;
 
-        EventStoreResult result = await _eventStore.LoadAsync(
-            aggregateId: account.Id,
-            aggregateType: AggregateTypeNames.Account
-        );
+		await _eventStore.SaveAsync(
+			aggregateId: account.Id,
+			aggregateType: AggregateTypeNames.Account,
+			events: account.Events,
+			expectedVersion: 0,
+			snapshotFactory: () => _serializer.Serialize(aggregate: account)
+		);
+		account.ClearEvents();
 
-        await Assert.That(value: result.Snapshot).IsNotNull();
-        await Assert.That(value: result.Snapshot!.Version).IsEqualTo(expected: 50);
-        await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
-    }
+		for (int i = 0; i < 49; i++)
+		{
+			account.Debit(
+				occurredAt: FakeDateProvider.Default.UtcNow,
+				transactionId: Guid.CreateVersion7(),
+				categoryId: Guid.CreateVersion7(),
+				amount: 1m,
+				exchangeRate: 1m,
+				description: null
+			);
+			int expectedVersion = account.Version - account.Events.Count;
+			await _eventStore.SaveAsync(
+				aggregateId: account.Id,
+				aggregateType: AggregateTypeNames.Account,
+				events: account.Events,
+				expectedVersion: expectedVersion,
+				snapshotFactory: () => _serializer.Serialize(aggregate: account)
+			);
+			account.ClearEvents();
+		}
 
-    [Test]
+		EventStoreResult result = await _eventStore.LoadAsync(
+			aggregateId: account.Id,
+			aggregateType: AggregateTypeNames.Account
+		);
+
+		await Assert.That(value: result.Snapshot).IsNotNull();
+		await Assert.That(value: result.Snapshot!.Version).IsEqualTo(expected: 50);
+		await Assert.That(value: result.Events.Count).IsEqualTo(expected: 0);
+	}
+
+	[Test]
 	public async Task LoadAsync_WithSnapshot_ShouldRestoreCorrectState()
 	{
 		Result<Account, DomainException> o = Account.Create(
@@ -286,7 +289,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 				aggregateType: AggregateTypeNames.Account,
 				events: original.Events,
 				expectedVersion: expectedVersion,
-				snapshotFactory: () => _serializer.Serialize(aggregate: original)
+			snapshotFactory: () => _serializer.Serialize(aggregate: original)
 			);
 			original.ClearEvents();
 		}

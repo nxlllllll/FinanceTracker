@@ -38,6 +38,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			Type: AccountType.Checking,
 			Currency: currencyCode,
 			Balance: 10000m,
+			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -59,6 +60,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			Type: AccountType.Checking,
 			Currency: currencyCode,
 			Balance: 1000m,
+			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -70,6 +72,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			await _writeRepository.ArchiveAsync(@event: new AccountArchived(
 				Id: Guid.CreateVersion7(),
 				AccountId: @event.AccountId,
+				Version: 2,
 				OccurredAt: DateTimeOffset.UtcNow
 			));
 		}
@@ -145,6 +148,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			Type: AccountType.Checking,
 			Currency: currencyCode,
 			Balance: 1000m,
+			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 		await _writeRepository.CreateAsync(@event: active);
@@ -157,6 +161,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			Type: AccountType.Checking,
 			Currency: currencyCode,
 			Balance: 500m,
+			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 		await _writeRepository.CreateAsync(@event: archived);
@@ -165,6 +170,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: archived.AccountId,
+			Version: 2,
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
@@ -188,6 +194,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			Type: AccountType.Checking,
 			Currency: currencyCode,
 			Balance: 1000m,
+			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 		await _writeRepository.CreateAsync(@event: active);
@@ -200,6 +207,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 			Type: AccountType.Checking,
 			Currency: currencyCode,
 			Balance: 500m,
+			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 		await _writeRepository.CreateAsync(@event: archived);
@@ -208,6 +216,7 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: archived.AccountId,
+			Version: 2,
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 

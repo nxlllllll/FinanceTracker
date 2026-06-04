@@ -12,5 +12,6 @@ public sealed record AccountTransferDebitedEvent(
 	decimal Amount,
 	decimal ForexRate,
 	string? Description,
+	int Version,
 	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

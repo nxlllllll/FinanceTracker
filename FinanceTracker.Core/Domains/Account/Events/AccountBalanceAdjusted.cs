@@ -12,5 +12,9 @@ public sealed record AccountBalanceAdjusted(
 	decimal NewRate,
 	decimal Amount,
 	decimal Delta,
+	int Version,
 	DateTimeOffset OccurredAt
-) : IEvent;
+) : IEvent
+{
+	public IEvent WithVersion(int version) => this with { Version = version };
+}

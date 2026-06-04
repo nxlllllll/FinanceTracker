@@ -71,6 +71,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 				Amount: 1000m,
 				ForexRate: 1m,
 				Description: "Test",
+				Version: 1,
 				OccurredAt: FakeDateProvider.Default.UtcNow
 			);
 

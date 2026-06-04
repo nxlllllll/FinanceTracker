@@ -4,5 +4,6 @@ public interface IAccountIntegrationEvent
 {
 	Guid EventId { get; }
 	Guid AccountId { get; }
+	int Version { get; }
 	DateTimeOffset OccurredAt { get; }
 }

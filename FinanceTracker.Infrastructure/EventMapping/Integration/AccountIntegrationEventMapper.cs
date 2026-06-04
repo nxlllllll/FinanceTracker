@@ -7,9 +7,7 @@ using ZLogger;
 
 namespace FinanceTracker.Infrastructure.EventMapping.Integration;
 
-public sealed class AccountIntegrationEventMapper(
-	ILogger<AccountIntegrationEventMapper> logger
-) : IIntegrationEventMapper
+public sealed class AccountIntegrationEventMapper(ILogger<AccountIntegrationEventMapper> logger) : IIntegrationEventMapper
 {
 	public IAccountIntegrationEvent? Map(IEvent @event) => @event switch
 	{
@@ -21,6 +19,7 @@ public sealed class AccountIntegrationEventMapper(
 			AccountType: e.Type.ToString(),
 			Currency: e.Currency.Value,
 			Balance: e.Balance,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountDebited e => new AccountDebitedEvent(
@@ -31,6 +30,7 @@ public sealed class AccountIntegrationEventMapper(
 			Amount: e.Amount,
 			ExchangeRate: e.ExchangeRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountCredited e => new AccountCreditedEvent(
@@ -41,22 +41,26 @@ public sealed class AccountIntegrationEventMapper(
 			Amount: e.Amount,
 			ExchangeRate: e.ExchangeRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountRenamed e => new AccountRenamedEvent(
 			EventId: e.Id,
 			AccountId: e.AccountId,
 			NewName: e.NewName.Value,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountArchived e => new AccountArchivedEvent(
 			EventId: e.Id,
 			AccountId: e.AccountId,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountUnarchived e => new AccountUnarchivedEvent(
 			EventId: e.Id,
 			AccountId: e.AccountId,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountTransferDebited e => new AccountTransferDebitedEvent(
@@ -67,6 +71,7 @@ public sealed class AccountIntegrationEventMapper(
 			Amount: e.Amount,
 			ForexRate: e.ForexRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountTransferCredited e => new AccountTransferCreditedEvent(
@@ -77,6 +82,7 @@ public sealed class AccountIntegrationEventMapper(
 			Amount: e.Amount,
 			ExchangeRate: e.ExchangeRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountTransferRefunded e => new AccountTransferRefundedEvent(
@@ -85,6 +91,7 @@ public sealed class AccountIntegrationEventMapper(
 			TransferId: e.TransferId,
 			Amount: e.Amount,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		AccountBalanceAdjusted e => new AccountBalanceAdjustedEvent(
@@ -96,6 +103,7 @@ public sealed class AccountIntegrationEventMapper(
 			NewRate: e.NewRate,
 			Amount: e.Amount,
 			Delta: e.Delta,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
 		_ => ExecuteDefaultCase(@event: @event)

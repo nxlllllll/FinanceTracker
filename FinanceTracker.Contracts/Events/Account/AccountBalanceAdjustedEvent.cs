@@ -13,5 +13,6 @@ public sealed record AccountBalanceAdjustedEvent(
 	decimal NewRate,
 	decimal Amount,
 	decimal Delta,
+	int Version,
 	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

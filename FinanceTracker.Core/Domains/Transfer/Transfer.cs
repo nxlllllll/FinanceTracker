@@ -32,6 +32,9 @@ public sealed class Transfer
 		string? description,
 		DateTimeOffset occurredAt)
 	{
+		if (fromAccountId == toAccountId)
+			return Result<Transfer, DomainException>.Failure(error: new SameAccountTransferException(message: "Cannot transfer to the same account."));
+		
 		if (exchangeRate <= 0)
 			return Result<Transfer, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
 

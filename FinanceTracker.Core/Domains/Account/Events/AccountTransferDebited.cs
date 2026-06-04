@@ -22,5 +22,9 @@ public sealed record AccountTransferDebited(
 	decimal Amount,
 	decimal ForexRate,
 	string? Description,
+	int Version,
 	DateTimeOffset OccurredAt
-) : IEvent;
+) : IEvent
+{
+	public IEvent WithVersion(int version) => this with { Version = version };
+}

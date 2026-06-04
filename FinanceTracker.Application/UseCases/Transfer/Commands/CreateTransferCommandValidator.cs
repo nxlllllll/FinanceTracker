@@ -21,7 +21,8 @@ public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTra
 			.WithMessage(errorMessage: "The currency code does not exist.");
 
 		RuleFor(command => command.ToAccountId)
-			.NotEmpty().WithMessage(errorMessage: "The destination account cannot be empty.");
+			.NotEmpty().WithMessage(errorMessage: "The destination account cannot be empty.")
+			.NotEqual(expression: c => c.FromAccountId).WithMessage(errorMessage: "Source and destination accounts must be different.");;
 
 		RuleFor(expression: command => command.CurrencyTo)
 			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))

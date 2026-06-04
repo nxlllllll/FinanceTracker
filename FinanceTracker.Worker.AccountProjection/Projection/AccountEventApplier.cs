@@ -19,6 +19,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			Type: Enum.Parse<AccountType>(value: e.AccountType),
 			Currency: Currency.Reconstitute(value: e.Currency),
 			Balance: e.Balance,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountDebitedEvent e => repository.DebitAsync(new AccountDebited(
@@ -29,6 +30,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			Amount: e.Amount,
 			ExchangeRate: e.ExchangeRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountCreditedEvent e => repository.CreditAsync(new AccountCredited(
@@ -39,22 +41,26 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			Amount: e.Amount,
 			ExchangeRate: e.ExchangeRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountRenamedEvent e => repository.RenameAsync(new AccountRenamed(
 			Id: e.EventId,
 			AccountId: e.AccountId,
 			NewName: Name.Reconstitute(value: e.NewName),
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountArchivedEvent e => repository.ArchiveAsync(new AccountArchived(
 			Id: e.EventId,
 			AccountId: e.AccountId,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountUnarchivedEvent e => repository.UnarchiveAsync(new AccountUnarchived(
 			Id: e.EventId,
 			AccountId: e.AccountId,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountTransferDebitedEvent e => repository.TransferDebitAsync(new AccountTransferDebited(
@@ -65,6 +71,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			Amount: e.Amount,
 			ForexRate: e.ForexRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountTransferCreditedEvent e => repository.TransferCreditAsync(new AccountTransferCredited(
@@ -75,6 +82,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			Amount: e.Amount,
 			ExchangeRate: e.ExchangeRate,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountTransferRefundedEvent e => repository.RefundTransferAsync(new AccountTransferRefunded(
@@ -83,6 +91,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			TransferId: e.TransferId,
 			Amount: e.Amount,
 			Description: e.Description,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		AccountBalanceAdjustedEvent e => repository.AdjustBalanceAsync(new AccountBalanceAdjusted(
@@ -94,6 +103,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 			NewRate: e.NewRate,
 			Amount: e.Amount,
 			Delta: e.Delta,
+			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		), ct),
 		_ => throw new InvalidOperationException(message: $"Unhandled integration event: {@event.GetType().Name}")

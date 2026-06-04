@@ -12,5 +12,6 @@ public sealed record AccountTransferCreditedEvent(
 	decimal Amount,
 	decimal ExchangeRate,
 	string? Description,
+	int Version,
 	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

@@ -1,9 +1,8 @@
 using FinanceTracker.Contracts.Events.Account.Abstraction;
-using FinanceTracker.Core.Domains.Account.Events;
 
 namespace FinanceTracker.Contracts.Events.Account;
 
-[IntegrationEventType(domainEventType: typeof(AccountDebited))]
+[IntegrationEventType(domainEventType: typeof(Core.Domains.Account.Events.AccountDebited))]
 public sealed record AccountDebitedEvent(
 	Guid EventId,
 	Guid AccountId,
@@ -12,5 +11,6 @@ public sealed record AccountDebitedEvent(
 	decimal Amount,
 	decimal ExchangeRate,
 	string? Description,
+	int Version,
 	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

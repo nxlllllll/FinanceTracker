@@ -8,5 +8,6 @@ public sealed record AccountRenamedEvent(
 	Guid EventId,
 	Guid AccountId,
 	string NewName,
+	int Version,
 	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

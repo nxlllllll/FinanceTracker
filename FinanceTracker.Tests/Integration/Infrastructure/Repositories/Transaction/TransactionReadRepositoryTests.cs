@@ -67,6 +67,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			Type: AccountType.Checking,
 			Currency: Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			Balance: 10000m,
+			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 		await Context.SaveChangesAsync();
@@ -77,7 +78,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			Id = categoryId,
 			UserId = userId,
 			ParentId = null,
-			Name = Name.Create(value: "���").Value,
+			Name = Name.Create(value: "Еда").Value,
 			Type = CategoryType.Expense,
 			IsArchived = false,
 			CreatedAt = DateTimeOffset.UtcNow
@@ -105,7 +106,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			exchangeRate: 1m,
 			isExcluded: false,
 			isRatePending: false,
-			description: "����",
+			description: "тест",
 			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);
 
@@ -156,7 +157,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	public async Task GetAllAsync_WithNoTransactions_ShouldReturnEmptyList()
 	{
 		PagedResult<TransactionReadModel> result = await _readRepository.GetAllAsync(
-            userId: Guid.CreateVersion7(),
+			userId: Guid.CreateVersion7(),
 			accountId: Guid.CreateVersion7()
 		);
 

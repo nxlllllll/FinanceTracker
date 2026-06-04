@@ -31,16 +31,8 @@ public sealed class ChangeUserBaseCurrencyHandler(
 		
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await userWriteRepository.ChangeBaseCurrencyAsync(
-				userId: command.UserId,
-				newBaseCurrencyCode: command.NewBaseCurrency,
-				ct: ct
-			);
-			await domainOutboxWriter.WriteAsync(
-				entity: user,
-				correlationId: correlationContext.CorrelationId,
-				ct: ct
-			);
+			await userWriteRepository.ChangeBaseCurrencyAsync(userId: command.UserId, newBaseCurrencyCode: command.NewBaseCurrency, ct: ct);
+			await domainOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
 		}, ct: ct);
 
 		return Result<Guid, DomainException>.Success(value: user.Id);

@@ -66,6 +66,7 @@ public sealed class AccountProjectionRebuilderTests
 			Type: AccountType.Checking,
 			Currency: Currency.Reconstitute(value: "RUB"),
 			Balance: 1000m,
+			Version: 1,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -77,6 +78,7 @@ public sealed class AccountProjectionRebuilderTests
 			Amount: 100m,
 			ExchangeRate: 1m,
 			Description: null,
+			Version: 2,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -143,6 +145,7 @@ public sealed class AccountProjectionRebuilderTests
 			Type: AccountType.Checking,
 			Currency: Currency.Reconstitute(value: "RUB"),
 			Balance: 1000m,
+			Version: 1,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -154,6 +157,7 @@ public sealed class AccountProjectionRebuilderTests
 			Type: AccountType.Savings,
 			Currency: Currency.Reconstitute(value: "USD"),
 			Balance: 500m,
+			Version: 1,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -202,6 +206,7 @@ public sealed class AccountProjectionRebuilderTests
 			Type: AccountType.Checking,
 			Currency: Currency.Reconstitute(value: "RUB"),
 			Balance: 100m,
+			Version: 1,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 

@@ -12,5 +12,9 @@ public sealed record AccountCreated(
 	AccountType Type,
 	Currency Currency,
 	decimal Balance,
+	int Version,
 	DateTimeOffset OccurredAt
-) : IEvent;
+) : IEvent
+{
+	public IEvent WithVersion(int version) => this with { Version = version };
+}

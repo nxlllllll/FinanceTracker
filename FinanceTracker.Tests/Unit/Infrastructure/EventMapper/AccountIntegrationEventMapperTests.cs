@@ -11,8 +11,12 @@ namespace FinanceTracker.Tests.Unit.Infrastructure.EventMapper;
 
 public sealed class AccountIntegrationEventMapperTests
 {
-	private sealed record UnknownTestEvent(Guid Id, DateTimeOffset OccurredAt) : IEvent;
-	
+	private sealed record UnknownTestEvent(Guid Id, DateTimeOffset OccurredAt) : IEvent
+	{
+		public int Version => 0;
+		public IEvent WithVersion(int version) => this with { };
+	}
+
 	private CapturingLogger<AccountIntegrationEventMapper> _logger = null!;
 	private AccountIntegrationEventMapper _mapper = null!;
 
@@ -30,10 +34,11 @@ public sealed class AccountIntegrationEventMapperTests
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Reconstitute(value: "�����"),
+			Name: Name.Reconstitute(value: "Счёт"),
 			Type: AccountType.Checking,
 			Currency: Currency.Reconstitute(value: "RUB"),
 			Balance: 1000m,
+			Version: 0,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -53,6 +58,7 @@ public sealed class AccountIntegrationEventMapperTests
 			Amount: 500m,
 			ExchangeRate: 1m,
 			Description: null,
+			Version: 0,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -72,6 +78,7 @@ public sealed class AccountIntegrationEventMapperTests
 			Amount: 300m,
 			ExchangeRate: 1m,
 			Description: null,
+			Version: 0,
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -110,7 +117,8 @@ public sealed class AccountIntegrationEventMapperTests
 		_mapper.Map(@event: new AccountRenamed(
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
-			NewName: Name.Reconstitute(value: "����� ���"),
+			NewName: Name.Reconstitute(value: "Новое имя"),
+			Version: 0,
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 

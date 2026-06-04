@@ -68,19 +68,20 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 		Guid anotherUserId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid anotherAccountId = await _accountBuilder.CreateAsync(userId: anotherUserId);
+		Guid anotherAccountId2 = await _accountBuilder.CreateAsync(userId: anotherUserId);
 
 		await _transferBuilder.CreateAsync(
 			userId: userId,
 			fromAccountId: accountId,
 			currencyFrom: "RUB",
-			toAccountId: accountId,
+			toAccountId: await _accountBuilder.CreateAsync(userId: userId),
 			currencyTo: "RUB"
 		);
 		await _transferBuilder.CreateAsync(
 			userId: anotherUserId,
 			fromAccountId: anotherAccountId,
 			currencyFrom: "RUB",
-			toAccountId: anotherAccountId,
+			toAccountId: anotherAccountId2,
 			currencyTo: "RUB"
 		);
 
@@ -97,6 +98,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 		Guid accountA = await _accountBuilder.CreateAsync(userId: userId);
 		Guid accountB = await _accountBuilder.CreateAsync(userId: userId);
 		Guid accountC = await _accountBuilder.CreateAsync(userId: userId);
+		Guid accountD = await _accountBuilder.CreateAsync(userId: userId);
 
 		await _transferBuilder.CreateAsync(
 			userId: userId,
@@ -109,7 +111,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 			userId: userId,
 			fromAccountId: accountC,
 			currencyFrom: "RUB",
-			toAccountId: accountC,
+			toAccountId: accountD,
 			currencyTo: "RUB"
 		);
 
@@ -123,31 +125,32 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 	public async Task GetAllAsync_WithDateFilter_ShouldReturnOnlyMatchingTransfers()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid accountA = await _accountBuilder.CreateAsync(userId: userId);
+		Guid accountB = await _accountBuilder.CreateAsync(userId: userId);
 
-		DateTimeOffset old = DateTimeOffset.UtcNow.AddDays(-10);
+		DateTimeOffset old = DateTimeOffset.UtcNow.AddDays(days: -10);
 		DateTimeOffset recent = DateTimeOffset.UtcNow;
 
 		await _transferBuilder.CreateAsync(
 			userId: userId,
-			fromAccountId: accountId,
+			fromAccountId: accountA,
 			currencyFrom: "RUB",
-			toAccountId: accountId,
+			toAccountId: accountB,
 			currencyTo: "RUB",
 			occurredAt: old
 		);
 		await _transferBuilder.CreateAsync(
 			userId: userId,
-			fromAccountId: accountId,
+			fromAccountId: accountA,
 			currencyFrom: "RUB",
-			toAccountId: accountId,
+			toAccountId: accountB,
 			currencyTo: "RUB",
 			occurredAt: recent
 		);
 
 		IReadOnlyList<TransferReadModel> result = await _readRepository.GetAllAsync(
 			userId: userId,
-			dateFrom: DateTimeOffset.UtcNow.AddDays(-1)
+			dateFrom: DateTimeOffset.UtcNow.AddDays(days: -1)
 		);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);

@@ -53,7 +53,6 @@ public sealed class DomainOutboxWriter(
 			}, cancellationToken: ct);
 		}
 
-		await context.SaveChangesAsync(cancellationToken: ct);
 		entity.ClearDomainEvents();
 	}
 

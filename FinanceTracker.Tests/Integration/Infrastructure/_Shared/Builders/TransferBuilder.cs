@@ -32,6 +32,9 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);
 
+		if (transferResult.IsFailure)
+			throw new InvalidOperationException(message: $"TransferBuilder.CreateAsync failed: {transferResult.Error!.Message}");
+
 		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;
 
 		await _writeRepository.CreateAsync(transfer: transfer);

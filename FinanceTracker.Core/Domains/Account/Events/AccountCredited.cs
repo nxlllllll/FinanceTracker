@@ -11,5 +11,9 @@ public sealed record AccountCredited(
 	decimal Amount,
 	decimal ExchangeRate,
 	string? Description,
+	int Version,
 	DateTimeOffset OccurredAt
-) : IEvent;
+) : IEvent
+{
+	public IEvent WithVersion(int version) => this with { Version = version };
+}

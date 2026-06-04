@@ -10,5 +10,6 @@ public sealed record AccountTransferRefundedEvent(
 	Guid TransferId,
 	decimal Amount,
 	string? Description,
+	int Version,
 	DateTimeOffset OccurredAt
 ) : IAccountIntegrationEvent;

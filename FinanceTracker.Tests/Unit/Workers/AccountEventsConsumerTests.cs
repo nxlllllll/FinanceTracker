@@ -29,7 +29,10 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
 		AccountEventApplier applier = new AccountEventApplier(repository: _accountWriteRepository);
 
-		AccountProjection projection = new AccountProjection(applier: applier, logger: Substitute.For<ILogger<AccountProjection>>());
+		AccountProjection projection = new AccountProjection(
+			applier: applier,
+			logger: Substitute.For<ILogger<AccountProjection>>()
+		);
 
 		_consumer = new AccountEventsConsumer(
 			projection: projection,
@@ -41,6 +44,12 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
 			unitOfWork: UnitOfWork,
 			dateProvider: FakeDateProvider.Default,
+			retryOptions: new FakeOptionsMonitor<ProjectionRetryOptions>(value: new ProjectionRetryOptions
+			{
+				MaxRetries = 3,
+				BaseDelayMs = 10,
+				UseJitter = false
+			}),
 			logger: Substitute.For<ILogger<AccountEventsConsumer>>()
 		);
 	}
@@ -111,7 +120,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		);
 
 		int countAfter = await Context.ProcessedMessages.CountAsync();
-		
+
 		await Assert.That(value: countAfter).IsEqualTo(expected: countBefore);
 	}
 

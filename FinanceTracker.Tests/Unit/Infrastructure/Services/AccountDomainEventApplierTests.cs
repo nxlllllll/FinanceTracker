@@ -11,12 +11,12 @@ namespace FinanceTracker.Tests.Unit.Infrastructure.Services;
 
 public sealed class AccountDomainEventApplierTests
 {
-	private sealed record UnknownTestEvent : IEvent
+	private sealed record UnknownTestEvent(Guid Id, DateTimeOffset OccurredAt) : IEvent
 	{
-		public Guid Id => Guid.CreateVersion7();
-		public DateTimeOffset OccurredAt => FakeDateProvider.Default.UtcNow;
+		public int Version => 0;
+		public IEvent WithVersion(int version) => this with { };
 	}
-	
+
 	private IAccountWriteRepository _repository = null!;
 	private AccountDomainEventApplier _applier = null!;
 
@@ -38,6 +38,7 @@ public sealed class AccountDomainEventApplierTests
 			Type: AccountType.Checking,
 			Currency: Currency.Reconstitute(value: "RUB"),
 			Balance: 1000m,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -60,6 +61,7 @@ public sealed class AccountDomainEventApplierTests
 			Amount: 500m,
 			ExchangeRate: 1m,
 			Description: null,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -82,6 +84,7 @@ public sealed class AccountDomainEventApplierTests
 			Amount: 500m,
 			ExchangeRate: 1m,
 			Description: null,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -100,6 +103,7 @@ public sealed class AccountDomainEventApplierTests
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
 			NewName: Name.Create(value: "Новое имя").Value,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -117,6 +121,7 @@ public sealed class AccountDomainEventApplierTests
 		AccountArchived @event = new AccountArchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -134,6 +139,7 @@ public sealed class AccountDomainEventApplierTests
 		AccountUnarchived @event = new AccountUnarchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -156,6 +162,7 @@ public sealed class AccountDomainEventApplierTests
 			Amount: 1000m,
 			ForexRate: 1m,
 			Description: null,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -178,6 +185,7 @@ public sealed class AccountDomainEventApplierTests
 			Amount: 1000m,
 			ExchangeRate: 0.011m,
 			Description: null,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -198,6 +206,7 @@ public sealed class AccountDomainEventApplierTests
 			TransferId: Guid.CreateVersion7(),
 			Amount: 1000m,
 			Description: null,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -221,6 +230,7 @@ public sealed class AccountDomainEventApplierTests
 			NewRate: 90m,
 			Amount: 1000m,
 			Delta: 5000m,
+			Version: 0,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
@@ -235,7 +245,10 @@ public sealed class AccountDomainEventApplierTests
 	[Test]
 	public async Task ApplyAsync_UnknownEvent_ShouldNotCallAnyRepository()
 	{
-		UnknownTestEvent @event = new UnknownTestEvent();
+		UnknownTestEvent @event = new UnknownTestEvent(
+			Id: Guid.CreateVersion7(),
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		);
 
 		await _applier.ApplyAsync(@event: @event, ct: CancellationToken.None);
 

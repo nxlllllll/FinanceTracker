@@ -52,6 +52,7 @@ public sealed class Account : AggregateRoot
 			Type: type,
 			Currency: currency,
 			Balance: balance,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
 
@@ -201,6 +202,7 @@ public sealed class Account : AggregateRoot
 			NewRate: newRate,
 			Amount: amount,
 			Delta: delta,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
 
@@ -231,6 +233,7 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ExchangeRate: exchangeRate,
 			Description: description,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
 
@@ -261,12 +264,13 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ForexRate: forexRate,
 			Description: description,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
- 
+
 	public Result<Unit, DomainException> RefundTransfer(
 		DateTimeOffset occurredAt,
 		Guid transferId,
@@ -274,21 +278,22 @@ public sealed class Account : AggregateRoot
 		string? description)
 	{
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
-		if (constraints.IsFailure) 
+		if (constraints.IsFailure)
 			return constraints;
-		
+
 		RaiseEvent(@event: new AccountTransferRefunded(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			TransferId: transferId,
 			Amount: amount,
 			Description: description,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
+
 	public Result<Unit, DomainException> Credit(
 		DateTimeOffset occurredAt,
 		Guid transactionId,
@@ -300,7 +305,7 @@ public sealed class Account : AggregateRoot
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
 		if (constraints.IsFailure)
 			return constraints;
- 
+
 		RaiseEvent(@event: new AccountCredited(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
@@ -309,12 +314,13 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ExchangeRate: exchangeRate,
 			Description: description,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
- 
+
 	public Result<Unit, DomainException> CreditTransfer(
 		DateTimeOffset occurredAt,
 		Guid transferId,
@@ -326,7 +332,7 @@ public sealed class Account : AggregateRoot
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
 		if (constraints.IsFailure)
 			return constraints;
- 
+
 		RaiseEvent(@event: new AccountTransferCredited(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
@@ -335,54 +341,58 @@ public sealed class Account : AggregateRoot
 			Amount: amount,
 			ExchangeRate: exchangeRate,
 			Description: description,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
- 
+
 	public Result<Unit, DomainException> Rename(
 		DateTimeOffset occurredAt,
 		Name newName)
 	{
 		if (Name == newName)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
- 
+
 		RaiseEvent(@event: new AccountRenamed(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
 			NewName: newName,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
- 
+
 	public Result<Unit, DomainException> Archive(DateTimeOffset occurredAt)
 	{
 		if (IsArchived)
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The account has already been archived before."));
- 
+
 		RaiseEvent(@event: new AccountArchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
- 
+
 	public Result<Unit, DomainException> Unarchive(DateTimeOffset occurredAt)
 	{
 		if (!IsArchived)
 			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The account is already active."));
- 
+
 		RaiseEvent(@event: new AccountUnarchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,
+			Version: 0,
 			OccurredAt: occurredAt
 		));
- 
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }
