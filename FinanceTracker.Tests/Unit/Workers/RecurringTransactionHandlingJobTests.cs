@@ -3,6 +3,7 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Utilities;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.RecurringTransaction.Job;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -40,7 +41,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: call => call.Arg<Func<Task>>()());
-		
+
 		_job = new RecurringTransactionHandlingJob(
 			recurringTransactionReadRepository: _recurringTransactionReadRepository,
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
@@ -139,6 +140,57 @@ public sealed class RecurringTransactionHandlingJobTests
 			m.UserId == transaction.UserId &&
 			m.CorrelationId == _correlationContext.CorrelationId
 		), correlationId: _correlationContext.CorrelationId, ct: Arg.Any<CancellationToken>());
+	}
+
+	[Test]
+	public async Task Execute_WhenDueTransactionsExist_ShouldPublishWithDeterministicMessageId()
+	{
+		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
+		SetupRepository(transactions: [transaction]);
+
+		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
+		Guid expectedMessageId = DeterministicGuid.Create(baseId: transaction.Id, year: now.Year, month: now.Month);
+
+		await _job.Execute(executionContext: _jobContext);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
+			message: Arg.Is<RecurringTransactionTriggeredMessage>(predicate: m => m.MessageId == expectedMessageId),
+			correlationId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_ShouldPublishBeforeMarkExecuted()
+	{
+		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
+		SetupRepository(transactions: [transaction]);
+
+		List<string> callOrder = [];
+
+		_publisher.PublishAsync(
+			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ =>
+		{
+			callOrder.Add(item: "Publish");
+			return Task.CompletedTask;
+		});
+
+		_recurringTransactionWriteRepository.MarkExecutedAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			executedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ =>
+		{
+			callOrder.Add(item: "MarkExecuted");
+			return Task.CompletedTask;
+		});
+
+		await _job.Execute(executionContext: _jobContext);
+
+		await Assert.That(value: callOrder).IsEquivalentTo(expected: ["Publish", "MarkExecuted"]);
 	}
 
 	[Test]
@@ -292,7 +344,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_recurringTransactionReadRepository.GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
 			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Do<DateTimeOffset>(x => capturedMonthStart = x),
+			currentMonthStart: Arg.Do<DateTimeOffset>(useArgument: x => capturedMonthStart = x),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 
