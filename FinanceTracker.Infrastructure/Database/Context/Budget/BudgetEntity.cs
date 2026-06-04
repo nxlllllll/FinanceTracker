@@ -9,5 +9,6 @@ public sealed class BudgetEntity
 	public DateOnly To { get; init; }
 	public Core.ValueObjects.Currency Currency { get; init; }
 	public decimal Amount { get; init; }
+	public bool IsActive { get; set; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

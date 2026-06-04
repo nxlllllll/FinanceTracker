@@ -46,6 +46,8 @@
       <EmbeddedResource Include="Migrations\V011__add_pending_rate_indexes.sql" />
       <None Remove="Migrations\V012__add_processed_messages_cleanup_index.sql" />
       <EmbeddedResource Include="Migrations\V012__add_processed_messages_cleanup_index.sql" />
+      <None Remove="Migrations\V013__add_budget_is_active.sql" />
+      <EmbeddedResource Include="Migrations\V013__add_budget_is_active.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

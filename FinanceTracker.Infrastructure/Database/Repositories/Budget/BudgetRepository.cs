@@ -20,6 +20,7 @@ public sealed class BudgetRepository(
 				userId: b.UserId,
 				categoryId: b.CategoryId,
 				amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
+				isActive: b.IsActive,
 				from: b.From,
 				to: b.To,
 				createdAt: b.CreatedAt

@@ -1,10 +1,10 @@
-using FluentValidation;
+﻿using FluentValidation;
 
-namespace FinanceTracker.Application.UseCases.Budget.Commands.DeleteBudget;
+namespace FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
 
-public sealed class DeleteBudgetCommandValidator : AbstractValidator<DeleteBudgetCommand>
+public sealed class ActivateBudgetCommandValidator : AbstractValidator<ActivateBudgetCommand>
 {
-	public DeleteBudgetCommandValidator()
+	public ActivateBudgetCommandValidator()
 	{
 		RuleFor(expression: command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");

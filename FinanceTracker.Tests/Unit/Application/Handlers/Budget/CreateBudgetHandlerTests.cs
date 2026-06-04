@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -12,6 +13,7 @@ public sealed class CreateBudgetHandlerTests
 {
     private IBudgetReadRepository _budgetReadRepository = null!;
     private IBudgetWriteRepository _budgetWriteRepository = null!;
+    private IUnitOfWork _unitOfWork = null!;
     private CreateBudgetHandler _handler = null!;
 
     [Before(hookType: Test)]
@@ -19,6 +21,12 @@ public sealed class CreateBudgetHandlerTests
     {
         _budgetReadRepository = Substitute.For<IBudgetReadRepository>();
         _budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
+        _unitOfWork = Substitute.For<IUnitOfWork>();
+
+        _unitOfWork.ExecuteInTransactionAsync(
+            operation: Arg.Any<Func<Task>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 
         _budgetReadRepository.HasOverlappingAsync(
             userId: Arg.Any<Guid>(),
@@ -31,6 +39,7 @@ public sealed class CreateBudgetHandlerTests
         _handler = new CreateBudgetHandler(
             budgetReadRepository: _budgetReadRepository,
             budgetWriteRepository: _budgetWriteRepository,
+            unitOfWork: _unitOfWork,
             dateProvider: FakeDateProvider.Default
         );
     }

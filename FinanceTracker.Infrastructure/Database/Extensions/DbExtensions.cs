@@ -1,24 +1,10 @@
-using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
-using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Extensions;
 
 public static class DbContextExtensions
 {
-    public static IQueryable<DomainEventOutboxEntity> GetPendingDomainEventBatch(
-        this FinanceTrackerContext context,
-        int batchSize)
-    {
-        return context.DomainEventOutbox.FromSqlRaw(sql: """
-            SELECT * FROM "domain_event_outbox"
-            WHERE processed_at IS NULL AND failed_at IS NULL
-            ORDER BY created_at
-            LIMIT {0}
-        """, batchSize);
-    }
-
     public static Task UpsertCategoryTotalAsync(
         this DbContext context,
         CategoryTotalEntity entity,
@@ -32,32 +18,6 @@ public static class DbContextExtensions
                 total = rm_category_totals.total + EXCLUDED.total,
                 transaction_count = rm_category_totals.transaction_count + EXCLUDED.transaction_count,
                 updated_at = EXCLUDED.updated_at
-        """, cancellationToken: ct);
-    }
-
-    public static Task UpdateTransactionCategoryInPayloadAsync(
-        this DbContext context,
-        Guid operationId,
-        Guid categoryId,
-        CancellationToken ct = default)
-    {
-        return context.Database.ExecuteSqlAsync(sql: $$"""
-            UPDATE rm_operations
-            SET payload = jsonb_set(payload, '{CategoryId}', to_jsonb({{categoryId}}))
-            WHERE id = {{operationId}}
-        """, cancellationToken: ct);
-    }
-
-    public static Task UpdateTransactionIsExcludedInPayloadAsync(
-        this DbContext context,
-        Guid operationId,
-        bool isExcluded,
-        CancellationToken ct = default)
-    {
-        return context.Database.ExecuteSqlAsync(sql: $$"""
-            UPDATE rm_operations
-            SET payload = jsonb_set(payload, '{IsExcluded}', to_jsonb({{isExcluded}}))
-            WHERE id = {{operationId}}
         """, cancellationToken: ct);
     }
 

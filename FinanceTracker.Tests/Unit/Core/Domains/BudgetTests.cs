@@ -130,4 +130,50 @@ public sealed class BudgetTests
         await Assert.That(result.IsFailure).IsTrue();
         await Assert.That(result.Error).IsTypeOf<InvalidBudgetPeriodException>();
     }
+    
+    [Test]
+    public async Task Deactivate_WhenActive_ShouldSetIsActiveFalse()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Deactivate();
+
+        await Assert.That(value: result.IsSuccess).IsTrue();
+        await Assert.That(value: budget.IsActive).IsFalse();
+    }
+
+    [Test]
+    public async Task Deactivate_WhenAlreadyInactive_ShouldReturnFailure()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+        budget.Deactivate();
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Deactivate();
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<DeactivatingException>();
+    }
+    
+    [Test]
+    public async Task Activate_WhenInactive_ShouldSetIsActiveTrue()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+        budget.Deactivate();
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Activate();
+
+        await Assert.That(value: result.IsSuccess).IsTrue();
+        await Assert.That(value: budget.IsActive).IsTrue();
+    }
+
+    [Test]
+    public async Task Activate_WhenAlreadyActive_ShouldReturnFailure()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Activate();
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
+    }
 }

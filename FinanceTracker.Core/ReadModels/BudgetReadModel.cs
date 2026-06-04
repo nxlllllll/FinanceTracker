@@ -9,5 +9,6 @@ public sealed record BudgetReadModel(
 	Money Amount,
 	DateOnly From,
 	DateOnly To,
+	bool IsActive,
 	DateTimeOffset CreatedAt
 ) : IReadModel;

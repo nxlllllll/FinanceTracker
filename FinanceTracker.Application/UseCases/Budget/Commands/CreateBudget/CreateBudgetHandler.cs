@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -10,6 +11,7 @@ namespace FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 public sealed class CreateBudgetHandler(
 	IBudgetReadRepository budgetReadRepository,
 	IBudgetWriteRepository budgetWriteRepository,
+	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider
 ) : IRequestHandler<CreateBudgetCommand, Result<Guid, DomainException>>
 {
@@ -33,18 +35,19 @@ public sealed class CreateBudgetHandler(
 			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
 		Result<Core.Domains.Budget.Budget, DomainException> budgetResult = Core.Domains.Budget.Budget.Create(
-			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
 			categoryId: command.CategoryId,
 			amount: moneyResult.Value,
 			from: command.From,
-			to: command.To
+			to: command.To,
+			createdAt: dateProvider.UtcNow
 		);
 		if (budgetResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: budgetResult.Error!);
 
 		Core.Domains.Budget.Budget budget = budgetResult.Value!;
-		await budgetWriteRepository.CreateAsync(budget: budget, ct: ct);
+
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await budgetWriteRepository.CreateAsync(budget: budget, ct: ct), ct: ct);
 
 		return Result<Guid, DomainException>.Success(value: budget.Id);
 	}

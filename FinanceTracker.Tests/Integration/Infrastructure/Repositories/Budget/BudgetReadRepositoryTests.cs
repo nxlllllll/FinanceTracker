@@ -4,6 +4,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
 using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Budget;
@@ -74,6 +75,28 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: result).IsNull();
 	}
 
+	[Test]
+	public async Task GetByIdAsync_WhenDeactivated_ShouldReturnBudget()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
+
+		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
+		await writeRepository.DeactivateAsync(budgetId: budgetId);
+
+		BudgetReadModel? result = await _readRepository.GetByIdAsync(
+			budgetId: budgetId,
+			userId: userId
+		);
+
+		await Assert.That(value: result).IsNotNull();
+		await Assert.That(value: result!.IsActive).IsFalse();
+	}
+	
 	[Test]
 	public async Task GetActiveByCategoryAsync_WhenDateInPeriod_ShouldReturnBudget()
 	{
@@ -184,5 +207,69 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: secondPage.Items.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: secondPage.HasNextPage).IsFalse();
 		await Assert.That(value: secondPage.Items.Any(b => firstPage.Items.Any(f => f.Id == b.Id))).IsFalse();
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithIsActiveTrue_ShouldNotReturnDeactivatedBudgets()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId1 = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+		Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
+		await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId1);
+		Guid deactivatedId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId2);
+
+		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
+		await writeRepository.DeactivateAsync(budgetId: deactivatedId);
+
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId, isActive: true);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items.Any(b => b.Id == deactivatedId)).IsFalse();
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithIsActiveFalse_ShouldReturnDeactivatedBudgets()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId1 = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+		Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
+		Guid activatedId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId1);
+		Guid deactivatedId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId2);
+
+		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
+		await writeRepository.DeactivateAsync(budgetId: deactivatedId);
+
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId, isActive: false);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items.Any(b => b.Id == activatedId)).IsFalse();
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithIsActiveNull_ShouldReturnAllBudgets()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId1 = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+		Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
+		Guid activatedId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId1);
+		Guid deactivatedId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId2);
+
+		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
+		await writeRepository.DeactivateAsync(budgetId: deactivatedId);
+
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.Items.Any(b => b.Id == activatedId)).IsTrue();
+		await Assert.That(value: result.Items.Any(b => b.Id == deactivatedId)).IsTrue();
 	}
 }

@@ -58,44 +58,4 @@ public sealed class Transfer
 			OccurredAt = occurredAt
 		});
 	}
-
-	public static Transfer Reconstitute(
-		Guid id,
-		Guid userId,
-		Guid fromAccountId,
-		Guid toAccountId,
-		decimal amountFrom,
-		Currency currencyFrom,
-		decimal amountTo,
-		Currency currencyTo,
-		decimal exchangeRate,
-		bool isRatePending,
-		TransferStatus status,
-		string? description,
-		DateTimeOffset occurredAt)
-	{
-		return new Transfer
-		{
-			Id = id,
-			UserId = userId,
-			FromAccountId = fromAccountId,
-			ToAccountId = toAccountId,
-			AmountFrom = Money.Reconstitute(amount: amountFrom, currency: currencyFrom),
-			AmountTo = Money.Reconstitute(amount: amountTo, currency: currencyTo),
-			ExchangeRate = exchangeRate,
-			IsRatePending = isRatePending,
-			Status = status,
-			Description = description,
-			OccurredAt = occurredAt
-		};
-	}
-
-	public void MarkCompleted()
-		=> Status = TransferStatus.Completed;
-
-	public void MarkCompensated()
-		=> Status = TransferStatus.Compensated;
-
-	public void MarkFailed() 
-		=> Status = TransferStatus.Failed;
 }

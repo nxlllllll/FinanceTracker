@@ -43,12 +43,11 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 			.HasColumnName(name: "amount")
 			.HasColumnType(typeName: "numeric(18,2)");
 
+		builder.Property(propertyExpression: b => b.IsActive)
+			.HasColumnName(name: "is_active");
+
 		builder.Property(propertyExpression: b => b.CreatedAt)
 			.HasColumnName(name: "created_at");
-
-		builder.HasIndex(indexExpression: b => new { b.UserId, b.CategoryId, DateFrom = b.From })
-			.IsUnique()
-			.HasDatabaseName(name: "uq_budgets_period");
 
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.UserId)

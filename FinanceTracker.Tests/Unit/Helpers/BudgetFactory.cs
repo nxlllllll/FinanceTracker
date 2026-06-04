@@ -12,7 +12,7 @@ public static class BudgetFactory
 		Guid? userId = null,
 		Guid? categoryId = null)
 	{
-		Result<Budget, DomainException> result = Budget.Create(
+		return Budget.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.CreateVersion7(),
 			categoryId: categoryId ?? Guid.CreateVersion7(),
@@ -20,21 +20,22 @@ public static class BudgetFactory
 			from: new DateOnly(year: 2025, month: 1, day: 1),
 			to: new DateOnly(year: 2025, month: 1, day: 31)
 		);
-		
-		return result;
 	}
 
 	public static BudgetReadModel CreateReadModel(
+		Guid? id = null,
 		Guid? userId = null,
-		Guid? categoryId = null)
+		Guid? categoryId = null,
+		bool isActive = true)
 	{
 		return new BudgetReadModel(
-			Id: Guid.CreateVersion7(),
+			Id: id ?? Guid.CreateVersion7(),
 			UserId: userId ?? Guid.CreateVersion7(),
 			CategoryId: categoryId ?? Guid.CreateVersion7(),
 			Amount: Money.Create(amount: 10000m, currency: Currency.Create(value: "RUB").Value).Value,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
 			To: new DateOnly(year: 2025, month: 1, day: 31),
+			IsActive: isActive,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		);
 	}
@@ -43,7 +44,7 @@ public static class BudgetFactory
 		Guid? budgetId = null,
 		decimal spent = 0m)
 	{
-		decimal amount = 10000m;
+		const decimal amount = 10000m;
 		decimal remaining = amount - spent;
 		decimal percentage = amount == 0 ? 0 : spent / amount;
 

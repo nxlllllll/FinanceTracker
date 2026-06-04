@@ -99,12 +99,12 @@ public sealed class RecurringTransaction
  
     public Result<Unit, DomainException> ChangeAmount(decimal amount)
     {
+        if (!IsActive)
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+
         Result<Money, DomainException> money = Money.Create(amount: amount, currency: Amount.Currency);
         if (money.IsFailure)
             return Result<Unit, DomainException>.Failure(error: money.Error!);
-
-        if (!IsActive)
-            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
  
         Amount = money.Value;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -112,12 +112,12 @@ public sealed class RecurringTransaction
  
     public Result<Unit, DomainException> ChangeCurrency(Currency currency)
     {
+        if (!IsActive)
+            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+
         Result<Money, DomainException> money = Money.Create(amount: Amount.Amount, currency: currency);
         if (money.IsFailure)
             return Result<Unit, DomainException>.Failure(error: money.Error!);
-        
-        if (!IsActive)
-            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
  
         Amount = money.Value;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -125,11 +125,11 @@ public sealed class RecurringTransaction
  
     public Result<Unit, DomainException> ChangeDayOfMonth(int dayOfMonth)
     {
-        if (dayOfMonth is < 1 or > 31)
-            return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
- 
         if (!IsActive)
             return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+
+        if (dayOfMonth is < 1 or > 31)
+            return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
  
         DayOfMonth = dayOfMonth;
         return Result<Unit, DomainException>.Success(value: Unit.Default);

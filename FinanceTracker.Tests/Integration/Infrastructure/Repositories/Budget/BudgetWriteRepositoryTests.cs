@@ -52,6 +52,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
 
         await Assert.That(value: budgetEntity).IsNotNull();
         await Assert.That(value: budgetEntity!.Amount).IsEqualTo(expected: 10000m);
+		await Assert.That(value: budgetEntity.IsActive).IsTrue();
         await Assert.That(value: budgetEntity.Currency.Value).IsEqualTo(expected: "RUB");
         await Assert.That(value: progress).IsNotNull();
         await Assert.That(value: progress!.Spent).IsEqualTo(expected: 0m);
@@ -89,7 +90,7 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
     }
 
     [Test]
-    public async Task DeleteAsync_ShouldDeleteBudgetAndProgress()
+    public async Task DeactivateAsync_ShouldSetIsActiveFalse()
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
@@ -107,12 +108,69 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         await _writeRepository.CreateAsync(budget: budget);
         await Context.SaveChangesAsync();
 
-        await _writeRepository.DeleteAsync(budgetId: budget.Id);
+	    await _writeRepository.DeactivateAsync(budgetId: budget.Id);
 
-        BudgetEntity? result = await Context.Budgets.FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
-        BudgetProgressEntity? progress = await Context.BudgetProgresses.FirstOrDefaultAsync(predicate: p => p.BudgetId == budget.Id);
+        BudgetEntity? result = await Context.Budgets.AsNoTracking().FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
 
-        await Assert.That(value: result).IsNull();
-        await Assert.That(value: progress).IsNull();
-    }
+	    await Assert.That(value: result).IsNotNull();
+	    await Assert.That(value: result!.IsActive).IsFalse();
+	}
+
+	[Test]
+	public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllBudgetsForCategory()
+	{
+	    Guid userId = await _userBuilder.CreateAsync();
+	    Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+	    for (int i = 0; i < 3; i++)
+	    {
+	        Result<Core.Domains.Budget.Budget, DomainException> b = Core.Domains.Budget.Budget.Create(
+	            createdAt: FakeDateProvider.Default.UtcNow,
+	            userId: userId,
+	            categoryId: categoryId,
+	            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+	            from: new DateOnly(year: 2025, month: i + 1, day: 1),
+	            to: new DateOnly(year: 2025, month: i + 1, day: 28)
+	        );
+	        await _writeRepository.CreateAsync(budget: b.Value!);
+	    }
+	    await Context.SaveChangesAsync();
+
+	    await _writeRepository.DeactivateByCategoryIdAsync(categoryId: categoryId);
+
+	    List<BudgetEntity> results = await Context.Budgets.AsNoTracking()
+	        .Where(predicate: b => b.CategoryId == categoryId)
+	        .ToListAsync();
+
+	    await Assert.That(value: results.Count).IsEqualTo(expected: 3);
+	    await Assert.That(value: results.All(b => !b.IsActive)).IsTrue();
+	}
+	
+	[Test]
+	public async Task ActivateAsync_ShouldSetIsActiveTrue()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		Result<Core.Domains.Budget.Budget, DomainException> budgetResult = Core.Domains.Budget.Budget.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
+			userId: userId,
+			categoryId: categoryId,
+			amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+			from: new DateOnly(year: 2025, month: 1, day: 1),
+			to: new DateOnly(year: 2025, month: 1, day: 31)
+		);
+		Core.Domains.Budget.Budget budget = budgetResult.Value!;
+
+		await _writeRepository.CreateAsync(budget: budget);
+		await Context.SaveChangesAsync();
+
+		await _writeRepository.DeactivateAsync(budgetId: budget.Id);
+		await _writeRepository.ActivateAsync(budgetId: budget.Id);
+
+		BudgetEntity? result = await Context.Budgets.AsNoTracking().FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
+
+		await Assert.That(value: result).IsNotNull();
+		await Assert.That(value: result!.IsActive).IsTrue();
+	}
 }

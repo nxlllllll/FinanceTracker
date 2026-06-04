@@ -24,6 +24,7 @@ public sealed class BudgetWriteRepository(
 			Currency = budget.Amount.Currency,
 			From = budget.From,
 			To = budget.To,
+			IsActive = true,
 			CreatedAt = dateProvider.UtcNow
 		}, cancellationToken: ct);
 
@@ -40,8 +41,8 @@ public sealed class BudgetWriteRepository(
 		decimal amount,
 		CancellationToken ct = default)
 	{
-		await context.Budgets.Where(predicate: budget => budget.Id == budgetId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: budget => budget.Amount, valueExpression: amount),
+		await context.Budgets.Where(predicate: b => b.Id == budgetId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: b => b.Amount, valueExpression: amount),
 			cancellationToken: ct
 		);
 	}
@@ -52,15 +53,40 @@ public sealed class BudgetWriteRepository(
 		DateOnly to,
 		CancellationToken ct = default)
 	{
-		await context.Budgets.Where(predicate: budget => budget.Id == budgetId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: budget => budget.From, valueExpression: from)
-				.SetProperty(propertyExpression: budget => budget.To, valueExpression: to),
+		await context.Budgets.Where(predicate: b => b.Id == budgetId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: b => b.From, valueExpression: from)
+				.SetProperty(propertyExpression: b => b.To, valueExpression: to),
 			cancellationToken: ct
 		);
 	}
 
-	public async Task DeleteAsync(
+	public async Task ActivateAsync(
 		Guid budgetId,
-		CancellationToken ct = default
-	) => await context.Budgets.Where(predicate: b => b.Id == budgetId).ExecuteDeleteAsync(cancellationToken: ct);
+		CancellationToken ct = default)
+	{
+		await context.Budgets.Where(predicate: b => b.Id == budgetId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: b => b.IsActive, valueExpression: true),
+			cancellationToken: ct
+		);
+	}
+	
+	public async Task DeactivateAsync(
+		Guid budgetId,
+		CancellationToken ct = default)
+	{
+		await context.Budgets.Where(predicate: b => b.Id == budgetId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: b => b.IsActive, valueExpression: false),
+			cancellationToken: ct
+		);
+	}
+
+	public async Task DeactivateByCategoryIdAsync(
+		Guid categoryId,
+		CancellationToken ct = default)
+	{
+		await context.Budgets.Where(predicate: b => b.CategoryId == categoryId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: b => b.IsActive, valueExpression: false),
+			cancellationToken: ct
+		);
+	}
 }

@@ -25,6 +25,7 @@ public sealed class BudgetReadRepository(
 				Amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
 				From: b.From,
 				To: b.To,
+	            IsActive: b.IsActive,
 				CreatedAt: b.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
@@ -35,7 +36,7 @@ public sealed class BudgetReadRepository(
 		DateOnly date,
 		CancellationToken ct = default)
 	{
-		return await context.Budgets.AsNoTracking().Where(predicate: b => b.UserId == userId && b.CategoryId == categoryId && b.From <= date && b.To >= date)
+		return await context.Budgets.AsNoTracking().Where(predicate: b => b.UserId == userId && b.CategoryId == categoryId && b.IsActive && b.From <= date && b.To >= date)
 			.Select(selector: b => new BudgetReadModel(
 				Id: b.Id,
 				UserId: b.UserId,
@@ -43,6 +44,7 @@ public sealed class BudgetReadRepository(
 				Amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
 				From: b.From,
 				To: b.To,
+				IsActive: b.IsActive,
 				CreatedAt: b.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
@@ -56,7 +58,7 @@ public sealed class BudgetReadRepository(
 		CancellationToken ct = default)
 	{
 		IQueryable<BudgetEntity> query = context.Budgets.AsNoTracking()
-			.Where(predicate: b => b.UserId == userId && b.CategoryId == categoryId && b.From < to && b.To > from);
+			.Where(predicate: b => b.UserId == userId && b.CategoryId == categoryId && b.IsActive && b.From < to && b.To > from);
 
 		if (excludeBudgetId is not null)
 			query = query.Where(predicate: b => b.Id != excludeBudgetId);
@@ -67,11 +69,14 @@ public sealed class BudgetReadRepository(
 	public async Task<PagedResult<BudgetReadModel>> GetAllAsync(
 		Guid userId,
 		DateTimeOffset? cursorCreatedAt = null,
+		bool? isActive = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
 		IQueryable<BudgetEntity> query = context.Budgets.AsNoTracking().Where(predicate: b => b.UserId == userId);
+		if (isActive is not null)
+			query = query.Where(predicate: b => b.IsActive == isActive);
 
 		if (cursorCreatedAt is not null && cursorId is not null)
 			query = query.Where(predicate: b => b.CreatedAt < cursorCreatedAt || b.CreatedAt == cursorCreatedAt && b.Id < cursorId);
@@ -87,6 +92,7 @@ public sealed class BudgetReadRepository(
 				Amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
 				From: b.From,
 				To: b.To,
+				IsActive: b.IsActive,
 				CreatedAt: b.CreatedAt
 			)).ToListAsync(cancellationToken: ct);
 

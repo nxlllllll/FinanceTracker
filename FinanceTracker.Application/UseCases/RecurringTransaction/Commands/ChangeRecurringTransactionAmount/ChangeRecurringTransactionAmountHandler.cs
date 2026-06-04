@@ -12,8 +12,7 @@ public sealed class ChangeRecurringTransactionAmountHandler(
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeRecurringTransactionAmountCommand command,
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
-		CancellationToken ct = default
-	)
+		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = recurringTransaction.ChangeAmount(amount: command.Amount);
 		if (result.IsFailure) 

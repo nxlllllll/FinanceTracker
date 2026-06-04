@@ -19,9 +19,19 @@ public interface IBudgetWriteRepository
         DateOnly to,
         CancellationToken ct = default
     );
-
-    Task DeleteAsync(
+    
+    Task ActivateAsync(
         Guid budgetId,
+        CancellationToken ct = default
+    );
+    
+	Task DeactivateAsync(
+        Guid budgetId,
+		CancellationToken ct = default
+	);
+
+    Task DeactivateByCategoryIdAsync(
+        Guid categoryId,
         CancellationToken ct = default
     );
 }

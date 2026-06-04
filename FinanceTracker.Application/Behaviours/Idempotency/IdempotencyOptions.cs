@@ -11,7 +11,7 @@ public sealed class IdempotencyOptions
 
 	public int InFlightInitialDelayMs { get; init; } = 50;
 	
-	public int InFlightMaxDelayMs { get; init; } = 2_000;
+	public int InFlightMaxDelayMs { get; init; } = 500;
 	
-	public int InFlightMaxWaitMs { get; init; } = 5_000;
+	public int InFlightMaxWaitMs { get; init; } = 1_000;
 }

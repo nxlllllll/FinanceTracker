@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Category.Commands.ArchiveCategory;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
@@ -14,6 +15,7 @@ public sealed class ArchiveCategoryHandlerTests
 {
 	private ICategoryWriteRepository _categoryWriteRepository = null!;
 	private IRecurringTransactionWriteRepository _recurringTransactionWriteRepository = null!;
+	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ArchiveCategoryHandler _handler = null!;
 
@@ -22,6 +24,7 @@ public sealed class ArchiveCategoryHandlerTests
 	{
 		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
 		_recurringTransactionWriteRepository = Substitute.For<IRecurringTransactionWriteRepository>();
+		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -35,13 +38,14 @@ public sealed class ArchiveCategoryHandlerTests
 		_handler = new ArchiveCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
+			budgetWriteRepository: _budgetWriteRepository,
 			unitOfWork: _unitOfWork,
 			logger: Substitute.For<ILogger<ArchiveCategoryHandler>>()
 		);
 	}
 
 	[Test]
-	public async Task HandleAsync_WithActiveCategory_ShouldArchiveAndDeactivateRecurring()
+	public async Task HandleAsync_WithActiveCategory_ShouldArchiveCategory()
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
 
@@ -55,6 +59,19 @@ public sealed class ArchiveCategoryHandlerTests
 			categoryId: category.Id,
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithActiveCategory_ShouldDeactivateRecurringTransactions()
+	{
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
+
+		await _handler.HandleAsync(
+			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
+			category: category,
+			ct: CancellationToken.None
+		);
+
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).DeactivateByCategoryIdAsync(
 			categoryId: category.Id,
 			ct: Arg.Any<CancellationToken>()
@@ -62,7 +79,24 @@ public sealed class ArchiveCategoryHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenCategoryAlreadyArchived_ShouldThrowArchivingException()
+	public async Task HandleAsync_WithActiveCategory_ShouldDeactivateBudgets()
+	{
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
+
+		await _handler.HandleAsync(
+			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
+			category: category,
+			ct: CancellationToken.None
+		);
+
+		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).DeactivateByCategoryIdAsync(
+			categoryId: category.Id,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCategoryAlreadyArchived_ShouldReturnFailure()
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true).Value!;
 
@@ -71,7 +105,7 @@ public sealed class ArchiveCategoryHandlerTests
 			category: category,
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 	}
@@ -81,16 +115,21 @@ public sealed class ArchiveCategoryHandlerTests
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true).Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
 			category: category,
 			ct: CancellationToken.None
 		);
-		
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 
 		await _categoryWriteRepository.DidNotReceive().ArchiveAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _budgetWriteRepository.DidNotReceive().DeactivateByCategoryIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _recurringTransactionWriteRepository.DidNotReceive().DeactivateByCategoryIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
