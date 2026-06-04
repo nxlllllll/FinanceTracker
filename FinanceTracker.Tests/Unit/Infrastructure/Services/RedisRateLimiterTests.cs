@@ -4,6 +4,7 @@ using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Services;
 
+[NotInParallel]
 public sealed class RedisRateLimiterTests : RedisFixture
 {
 	private RedisRateLimiter _rateLimiter = null!;
@@ -44,10 +45,10 @@ public sealed class RedisRateLimiterTests : RedisFixture
 		const int limit = 1;
 
 		await _rateLimiter.IsAllowedAsync(key: key1, requestsPerWindow: limit, windowSeconds: 10);
-		bool key1Denied = await _rateLimiter.IsAllowedAsync(key: key1, requestsPerWindow: limit, windowSeconds: 10);
+		bool key1Allowed = await _rateLimiter.IsAllowedAsync(key: key1, requestsPerWindow: limit, windowSeconds: 10);
 		bool key2Allowed = await _rateLimiter.IsAllowedAsync(key: key2, requestsPerWindow: limit, windowSeconds: 10);
 
-		await Assert.That(value: key1Denied).IsFalse();
+		await Assert.That(value: key1Allowed).IsFalse();
 		await Assert.That(value: key2Allowed).IsTrue();
 	}
 }

@@ -31,7 +31,10 @@ public sealed class ChangeTransactionCategoryHandler(
 			return Result<Guid, DomainException>.Success(value: transaction.Id);
 		
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
-		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: transaction.Direction, categoryId: command.CategoryId);
+		if (category is null)
+			return Result<Guid, DomainException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
+
+		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: transaction.Direction);
 		if (validationResult is not null)
 			return Result<Guid, DomainException>.Failure(error: validationResult);
 			

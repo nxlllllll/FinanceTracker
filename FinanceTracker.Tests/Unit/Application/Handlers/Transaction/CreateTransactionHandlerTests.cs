@@ -91,4 +91,57 @@ public sealed class CreateTransactionHandlerTests
         await Assert.That(value: result.IsFailure).IsTrue();
         await Assert.That(value: result.Error).IsEqualTo(expected: error);
     }
+    
+    [Test]
+    public async Task HandleAsync_WhenCategoryIsArchived_ShouldReturnFailure()
+    {
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create().Value!;
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+            userId: account.UserId,
+            accountId: account.Id
+        );
+
+        _categoryReadRepository.GetByIdAsync(
+            categoryId: Arg.Any<Guid>(),
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: CategoryFactory.CreateReadModel(type: CategoryType.Expense, archived: true));
+
+        Result<Guid, DomainException> result = await _handler.HandleAsync(
+            command: command,
+            account: account,
+            ct: CancellationToken.None
+        );
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+    }
+
+    [Test]
+    public async Task HandleAsync_WhenCategoryIsArchived_ShouldNotCallService()
+    {
+        FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create().Value!;
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+            userId: account.UserId,
+            accountId: account.Id
+        );
+
+        _categoryReadRepository.GetByIdAsync(
+            categoryId: Arg.Any<Guid>(),
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: CategoryFactory.CreateReadModel(type: CategoryType.Expense, archived: true));
+
+        await _handler.HandleAsync(
+            command: command,
+            account: account,
+            ct: CancellationToken.None
+        );
+
+        await _transactionCreationService.DidNotReceive().CreateAsync(
+            command: Arg.Any<CreateTransactionCommand>(),
+            account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
 }

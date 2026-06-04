@@ -21,9 +21,15 @@ public sealed class CreateTransactionHandler(
 		CancellationToken ct = default)
 	{
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
-		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: command.Direction, categoryId: command.CategoryId);
+		if (category is null)
+			return Result<Guid, DomainException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
+
+		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: command.Direction);
 		if (validationResult is not null)
 			return Result<Guid, DomainException>.Failure(error: validationResult);
+		
+		if (category.IsArchived)
+			return Result<Guid, DomainException>.Failure(error: new ArchivingException(message: "Cannot create a transaction for an archived category."));
 		
 		return await transactionCreationService.CreateAsync(command: command, account: account, ct: ct);
 	}

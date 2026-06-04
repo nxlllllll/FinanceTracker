@@ -8,13 +8,9 @@ namespace FinanceTracker.Application.UseCases.Transaction.Utilities;
 public static class CategoryDirectionValidator
 {
 	public static DomainException? Validate(
-		CategoryReadModel? category,
-		DirectionType? direction,
-		Guid categoryId)
+		CategoryReadModel category,
+		DirectionType? direction)
 	{
-		if (category is null)
-			return new NotFoundException(message: "Category not found.", id: categoryId);
-
 		bool valid = (direction, category.Type) switch
 		{
 			(DirectionType.Debit,  CategoryType.Expense) => true,
@@ -23,8 +19,7 @@ public static class CategoryDirectionValidator
 		};
 
 		if (!valid)
-			return new InvalidTransactionDirectionException(
-				message: $"Direction '{direction}' is not compatible with category type '{category.Type}'.");
+			return new InvalidTransactionDirectionException(message: $"Direction '{direction}' is not compatible with category type '{category.Type}'.");
 
 		return null;
 	}
