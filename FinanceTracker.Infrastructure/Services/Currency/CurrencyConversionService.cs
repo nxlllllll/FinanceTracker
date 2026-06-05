@@ -31,6 +31,7 @@ public sealed class CurrencyConversionService(
 			return new ConversionResult(Rate: exactRate.Value, IsPending: false);
 
 		logger.ZLogWarning(message: $"No exact rate for {fromCurrency} > {toCurrency} on {date:dd.MM.yyyy}, using latest available.");
+
 		decimal? latestRate = await currencyRateReadRepository.GetLatestRateAsync(
 			baseCurrencyCode: fromCurrency,
 			targetCurrencyCode: toCurrency,
@@ -67,43 +68,39 @@ public sealed class CurrencyConversionService(
 
 		Dictionary<CurrencyRateRequest, decimal> exactRates = await currencyRateReadRepository.GetRatesBatchAsync(requests: foreignRequests, ct: ct);
 
-		HashSet<(Core.ValueObjects.Currency From, Core.ValueObjects.Currency To)> missingPairs = [];
+		List<CurrencyLatestRateRequest> missingPairs = [];
 
 		foreach (CurrencyRateRequest request in foreignRequests)
 		{
 			if (exactRates.TryGetValue(key: request, out decimal rate))
 				result[request] = new ConversionResult(Rate: rate, IsPending: false);
-			else missingPairs.Add(item: (request.From, request.To));
+			else
+				missingPairs.Add(item: new CurrencyLatestRateRequest(From: request.From, To: request.To));
 		}
 
 		if (missingPairs.Count == 0)
 			return result;
 
-		Dictionary<(Core.ValueObjects.Currency From, Core.ValueObjects.Currency To), decimal> latestRates = [];
-		foreach ((Core.ValueObjects.Currency from, Core.ValueObjects.Currency to) in missingPairs)
-		{
-			logger.ZLogWarning(message: $"No exact rate for {from} > {to} in batch, using latest available.");
-			decimal? latestRate = await currencyRateReadRepository.GetLatestRateAsync(
-				baseCurrencyCode: from,
-				targetCurrencyCode: to,
-				ct: ct
-			);
+		logger.ZLogWarning(message: $"No exact rates for {missingPairs.Count} pair(s) in batch, using latest available.");
 
-			if (latestRate is null)
+		Dictionary<CurrencyLatestRateRequest, decimal> latestRates = await currencyRateReadRepository.GetLatestRatesBatchAsync(pairs: missingPairs, ct: ct);
+
+		foreach (CurrencyRateRequest request in foreignRequests.Where(predicate: r => !result.ContainsKey(key: r)))
+		{
+			CurrencyLatestRateRequest latestKey = new CurrencyLatestRateRequest(From: request.From, To: request.To);
+
+			if (latestRates.TryGetValue(key: latestKey, out decimal latestRate))
+				result[request] = new ConversionResult(Rate: latestRate, IsPending: true);
+			else
 			{
-				logger.ZLogError(message: $"No exchange rate found for {from} > {to}.");
+				logger.ZLogError(message: $"No exchange rate found for {request.From} > {request.To}.");
 				throw new CurrencyRateNotFoundException(
-					message: $"The exchange rate for {from} > {to} was not found.",
-					fromCurrency: from,
-					toCurrency: to
+					message: $"The exchange rate for {request.From} > {request.To} was not found.",
+					fromCurrency: request.From,
+					toCurrency: request.To
 				);
 			}
-
-			latestRates[(from, to)] = latestRate.Value;
 		}
-
-		foreach (CurrencyRateRequest request in foreignRequests.Where(request => !result.ContainsKey(key: request)))
-			result[request] = new ConversionResult(Rate: latestRates[(request.From, request.To)], IsPending: true);
 
 		return result;
 	}

@@ -96,9 +96,6 @@ public sealed class TransactionCreationService(
             await transactionWriteRepository.CreateAsync(transaction: transaction, ct: ct);
             await accountRepository.SaveAsync(account: account, ct: ct);
 
-            if (command.Direction != DirectionType.Debit)
-                return;
-
             await categoryTotalWriteRepository.AddAsync(
                 userId: command.UserId,
                 categoryId: command.CategoryId,
@@ -107,6 +104,9 @@ public sealed class TransactionCreationService(
                 occurredAt: command.OccurredAt,
                 ct: ct
             );
+
+            if (command.Direction != DirectionType.Debit)
+                return;
 
             await budgetProgressWriteRepository.AddAsync(
                 userId: command.UserId,

@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
@@ -19,18 +20,18 @@ public sealed class CachedCurrencyRateReadRepository(
 	private static string RateKey(CurrencyRateRequest request)
 		=> $"rate:{request.From.Value}:{request.To.Value}:{request.Date:yyyyMMdd}";
 
-	private static string LatestRateKey(Core.ValueObjects.Currency from, Core.ValueObjects.Currency to)
+	private static string LatestRateKey(Currency from, Currency to)
 		=> $"rate:latest:{from.Value}:{to.Value}";
 
 	public async Task<decimal?> GetRateAsync(
-		Core.ValueObjects.Currency baseCurrencyCode,
-		Core.ValueObjects.Currency targetCurrencyCode,
+		Currency baseCurrencyCode,
+		Currency targetCurrencyCode,
 		DateOnly date,
 		CancellationToken ct = default)
 	{
 		string key = RateKey(request: new CurrencyRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, Date: date));
 		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
-		if (entry.Found) 
+		if (entry.Found)
 			return entry.Value;
 
 		decimal? result = await inner.GetRateAsync(
@@ -44,13 +45,13 @@ public sealed class CachedCurrencyRateReadRepository(
 	}
 
 	public async Task<decimal?> GetLatestRateAsync(
-		Core.ValueObjects.Currency baseCurrencyCode,
-		Core.ValueObjects.Currency targetCurrencyCode,
+		Currency baseCurrencyCode,
+		Currency targetCurrencyCode,
 		CancellationToken ct = default)
 	{
 		string key = LatestRateKey(from: baseCurrencyCode, to: targetCurrencyCode);
 		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
-		if (entry.Found) 
+		if (entry.Found)
 			return entry.Value;
 
 		decimal? result = await inner.GetLatestRateAsync(
@@ -100,7 +101,54 @@ public sealed class CachedCurrencyRateReadRepository(
 				result[request] = rate;
 				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: EndOfDay, ct: ct);
 			}
-			else await redisCache.SetAsync(key: key, value: (decimal?)null, options: EndOfDay, ct: ct);
+			else
+				await redisCache.SetAsync(key: key, value: (decimal?)null, options: EndOfDay, ct: ct);
+		}
+
+		return result;
+	}
+
+	public async Task<Dictionary<CurrencyLatestRateRequest, decimal>> GetLatestRatesBatchAsync(
+		IReadOnlyCollection<CurrencyLatestRateRequest> pairs,
+		CancellationToken ct = default)
+	{
+		if (pairs.Count == 0)
+			return [];
+
+		Dictionary<CurrencyLatestRateRequest, decimal> result = [];
+		List<CurrencyLatestRateRequest> cacheMisses = [];
+
+		foreach (CurrencyLatestRateRequest pair in pairs)
+		{
+			if (pair.From == pair.To)
+			{
+				result[pair] = 1m;
+				continue;
+			}
+
+			string key = LatestRateKey(from: pair.From, to: pair.To);
+			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
+			if (entry is { Found: true, Value: not null })
+				result[pair] = entry.Value.Value;
+			else
+				cacheMisses.Add(item: pair);
+		}
+
+		if (cacheMisses.Count == 0)
+			return result;
+
+		Dictionary<CurrencyLatestRateRequest, decimal> dbResults = await inner.GetLatestRatesBatchAsync(pairs: cacheMisses, ct: ct);
+
+		foreach (CurrencyLatestRateRequest pair in cacheMisses)
+		{
+			string key = LatestRateKey(from: pair.From, to: pair.To);
+			if (dbResults.TryGetValue(key: pair, out decimal rate))
+			{
+				result[pair] = rate;
+				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: EndOfDay, ct: ct);
+			}
+			else
+				await redisCache.SetAsync(key: key, value: (decimal?)null, options: EndOfDay, ct: ct);
 		}
 
 		return result;

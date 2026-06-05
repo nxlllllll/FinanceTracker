@@ -99,7 +99,7 @@ public sealed class Account : AggregateRoot
 	private Result<Unit, DomainException> CheckConstraints(decimal amount, decimal rate = 1m)
 	{
 		if (IsArchived)
-			return Result<Unit, DomainException>.Failure(error: new ArchivedAccountOperationException(message: "Financial transactions on the archived account are prohibited."));
+			return Result<Unit, DomainException>.Failure(error: new ArchivedOperationException(message: "Financial transactions on the archived account are prohibited."));
 
 		if (amount <= 0)
 			return Result<Unit, DomainException>.Failure(error: new InvalidAmountException(message: "Amount must be greater than zero."));

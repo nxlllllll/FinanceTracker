@@ -149,7 +149,7 @@ public sealed class TransactionCreationServiceTests
         );
         
         await Assert.That(value: result.IsFailure).IsTrue();
-        await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+        await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
     }
 
     [Test]
@@ -217,28 +217,6 @@ public sealed class TransactionCreationServiceTests
             currencyCode: command.Currency,
             amount: command.Amount,
             occurredAt: command.OccurredAt,
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
-
-    [Test]
-    public async Task CreateAsync_WithCreditDirection_ShouldNotAddCategoryTotal()
-    {
-        Account account = AccountFactory.CreateWithArchivation();
-        SetupConversionRate();
-
-        await _service.CreateAsync(
-            command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Credit),
-            account: account,
-            ct: CancellationToken.None
-        );
-
-        await _categoryTotalWriteRepository.DidNotReceive().AddAsync(
-            userId: Arg.Any<Guid>(),
-            categoryId: Arg.Any<Guid>(),
-            amount: Arg.Any<decimal>(),
-            currency: Arg.Any<Currency>(),
-            occurredAt: Arg.Any<DateTimeOffset>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

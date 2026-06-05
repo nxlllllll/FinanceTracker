@@ -176,7 +176,7 @@ public sealed class AccountTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
 	}
 
 	[Test]
@@ -232,7 +232,7 @@ public sealed class AccountTests
 			description: null
 		);
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
 	}
 
 	[Test]
@@ -437,7 +437,7 @@ public sealed class AccountTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
 	}
 
 	[Test]
@@ -474,7 +474,7 @@ public sealed class AccountTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
 	}
 
 	[Test]
@@ -587,7 +587,7 @@ public sealed class AccountTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivedAccountOperationException>();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
 	}
 
 	[Test]

@@ -29,7 +29,7 @@ public sealed class CreateTransactionHandler(
 			return Result<Guid, DomainException>.Failure(error: validationResult);
 		
 		if (category.IsArchived)
-			return Result<Guid, DomainException>.Failure(error: new ArchivingException(message: "Cannot create a transaction for an archived category."));
+			return Result<Guid, DomainException>.Failure(error: new ArchivedOperationException(message: "Cannot create a transaction for an archived category."));
 		
 		return await transactionCreationService.CreateAsync(command: command, account: account, ct: ct);
 	}

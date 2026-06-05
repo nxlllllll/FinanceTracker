@@ -31,9 +31,9 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 		CancellationToken ct = default)
 	{
 		if (baseCurrencyCode == targetCurrencyCode)
-            return 1m;
+			return 1m;
 
-        return await context.CurrencyRates.AsNoTracking()
+		return await context.CurrencyRates.AsNoTracking()
 			.Where(predicate: rate => rate.BaseCode == baseCurrencyCode && rate.TargetCode == targetCurrencyCode)
 			.OrderByDescending(keySelector: rate => rate.ActualAt)
 			.Select(selector: r => (decimal?)r.Rate)
@@ -79,4 +79,31 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 
 		return result;
 	}
+
+	public async Task<Dictionary<CurrencyLatestRateRequest, decimal>> GetLatestRatesBatchAsync(
+		IReadOnlyCollection<CurrencyLatestRateRequest> pairs,
+		CancellationToken ct = default)
+	{
+		if (pairs.Count == 0)
+			return [];
+
+		string[] fromCodes = pairs.Select(selector: p => p.From.Value).Distinct().ToArray();
+		string[] toCodes = pairs.Select(selector: p => p.To.Value).Distinct().ToArray();
+
+		return await context.Database.SqlQuery<CurrencyRateRow>($"""
+			SELECT DISTINCT ON (base_code, target_code) base_code AS BaseCode, target_code AS TargetCode, actual_at AS ActualAt, rate AS Rate
+			FROM currency_rates
+			WHERE base_code = ANY({fromCodes}) AND target_code = ANY({toCodes})
+			ORDER BY base_code, target_code, actual_at DESC
+		""").ToDictionaryAsync(
+			keySelector: row => new CurrencyLatestRateRequest(
+				From: Core.ValueObjects.Currency.Reconstitute(value: row.BaseCode), 
+				To: Core.ValueObjects.Currency.Reconstitute(value: row.TargetCode)
+			),
+			elementSelector: row => row.Rate,
+			cancellationToken: ct
+		);
+	}
+
+	private sealed record CurrencyRateRow(string BaseCode, string TargetCode, decimal Rate);
 }
