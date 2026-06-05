@@ -15,8 +15,8 @@ public sealed class CachedCurrencyReadRepositoryTests
 
 	private static readonly CurrencyInfo RubDto = new CurrencyInfo(
 		Code: "RUB",
-		Name: "���������� �����",
-		Symbol: "?",
+		Name: "Российский рубль",
+		Symbol: "₽",
 		IsActive: true
 	);
 
@@ -76,7 +76,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	public async Task GetAllAsync_OnCacheHit_ReturnsCorrectValue()
 	{
 		_distributedCache.GetAsync(
-			key: Arg.Any<string>(), 
+			key: Arg.Any<string>(),
 			token: Arg.Any<CancellationToken>()
 		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyInfo> { RubDto }));
 
@@ -116,7 +116,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	public async Task GetByCodeAsync_WhenInnerReturnsNull_CachesNull()
 	{
 		_inner.GetByCodeAsync(
-			code: Arg.Any<string>(), 
+			code: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (CurrencyInfo?)null);
 
@@ -135,7 +135,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	public async Task GetByCodeAsync_WhenNullIsCached_ReturnsNullWithoutCallingInner()
 	{
 		_distributedCache.GetAsync(
-			key: Arg.Any<string>(), 
+			key: Arg.Any<string>(),
 			token: Arg.Any<CancellationToken>()
 		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: (CurrencyInfo?)null));
 
@@ -162,7 +162,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	public async Task ExistsAsync_OnCacheHit_DoesNotCallInner()
 	{
 		_distributedCache.GetAsync(
-			key: Arg.Any<string>(), 
+			key: Arg.Any<string>(),
 			token: Arg.Any<CancellationToken>()
 		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: true));
 
@@ -175,7 +175,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	public async Task ExistsAsync_WhenFalseIsCached_ReturnsFalseWithoutCallingInner()
 	{
 		_distributedCache.GetAsync(
-			key: Arg.Any<string>(), 
+			key: Arg.Any<string>(),
 			token: Arg.Any<CancellationToken>()
 		).Returns(returnThis: JsonSerializer.SerializeToUtf8Bytes(value: false));
 

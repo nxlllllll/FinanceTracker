@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
+﻿using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 
 namespace FinanceTracker.Core.Domains.Account.Events;
 
@@ -10,7 +10,7 @@ namespace FinanceTracker.Core.Domains.Account.Events;
 /// </param>
 /// <param name="ForexRate">
 /// The forex rate at the time of the transfer, stored as metadata for audit purposes.
-/// Always 1 for same-currency transfers. Not used in balance calculation � the debit is always
+/// Always 1 for same-currency transfers. Not used in balance calculation — the debit is always
 /// applied as <c>Amount</c> directly in the account's own currency.
 /// </param>
 [EventType(name: "account.transfer_debited")]

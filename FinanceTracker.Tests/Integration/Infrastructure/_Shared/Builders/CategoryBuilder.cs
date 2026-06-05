@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Domains.Category;
+﻿using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
@@ -9,7 +9,7 @@ public class CategoryBuilder(FinanceTrackerContext context)
 {
 	public async Task<Guid> CreateAsync(
 		Guid userId,
-		string name = "���",
+		string name = "Еда",
 		CategoryType type = CategoryType.Expense)
 	{
 		Guid categoryId = Guid.CreateVersion7();

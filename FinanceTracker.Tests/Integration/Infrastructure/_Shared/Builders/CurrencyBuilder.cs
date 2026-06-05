@@ -1,4 +1,4 @@
-using FinanceTracker.Infrastructure.Database.Context;
+﻿using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,16 +17,16 @@ public class CurrencyBuilder(FinanceTrackerContext context)
 			Code = Core.ValueObjects.Currency.Create(value: code).Value,
 			Name = code switch
 			{
-				"RUB" => "���������� �����",
-				"USD" => "������ ���",
-				"EUR" => "����",
+				"RUB" => "Российский рубль",
+				"USD" => "Доллар США",
+				"EUR" => "Евро",
 				_ => code
 			},
 			Symbol = code switch
 			{
-				"RUB" => "?",
+				"RUB" => "₽",
 				"USD" => "$",
-				"EUR" => "�",
+				"EUR" => "€",
 				_ => code
 			},
 			IsActive = true

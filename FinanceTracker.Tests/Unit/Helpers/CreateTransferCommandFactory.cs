@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transfer.Commands;
+﻿using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
@@ -12,7 +12,7 @@ public static class CreateTransferCommandFactory
 		Guid? toAccountId = null,
 		string currencyTo = "RUB",
 		decimal amount = 1000m,
-		string? description = "����")
+		string? description = "Тест")
 	{
 		return new CreateTransferCommand(
 			UserId: userId ?? Guid.CreateVersion7(),

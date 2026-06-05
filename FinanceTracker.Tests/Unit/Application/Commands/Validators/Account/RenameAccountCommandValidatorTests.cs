@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
+﻿using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
 
@@ -14,20 +14,20 @@ public sealed class RenameAccountCommandValidatorTests
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
-			NewName: Name.Create(value: "����� ��������").Value
+			NewName: Name.Create(value: "Новое название").Value
 		);
 
 		ValidationResult? result = await _validator.ValidateAsync(instance: command);
 		await Assert.That(value: result.IsValid).IsTrue();
 	}
-	
+
 	[Test]
 	public async Task Validate_WithEmptyUserId_ShouldHaveError()
 	{
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: Guid.Empty,
 			AccountId: Guid.CreateVersion7(),
-			NewName: Name.Create(value: "����� ��������").Value
+			NewName: Name.Create(value: "Новое название").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
@@ -44,7 +44,7 @@ public sealed class RenameAccountCommandValidatorTests
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: Guid.CreateVersion7(),
 			AccountId: Guid.Empty,
-			NewName: Name.Create(value: "����� ��������").Value
+			NewName: Name.Create(value: "Новое название").Value
 		);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);

@@ -147,12 +147,12 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid incomeCategory = await _categoryBuilder.CreateAsync(
             userId: userId, 
-            name: "��������",
+            name: "Зарплата",
             type: CategoryType.Income
         );
         Guid expenseCategory = await _categoryBuilder.CreateAsync(
             userId: userId, 
-            name: "���",
+            name: "Еда",
             type: CategoryType.Expense
         );
         DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
@@ -185,7 +185,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid expenseCategory = await _categoryBuilder.CreateAsync(
             userId: userId, 
-            name: "���",
+            name: "Еда",
             type: CategoryType.Expense
         );
         DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
@@ -214,7 +214,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid expenseCategory = await _categoryBuilder.CreateAsync(
-            userId: userId, name: "���", type: CategoryType.Expense
+            userId: userId, name: "Еда", type: CategoryType.Expense
         );
 
         await _categoryTotalWriteRepository.AddAsync(

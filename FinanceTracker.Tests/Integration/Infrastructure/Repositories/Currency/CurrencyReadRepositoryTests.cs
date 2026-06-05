@@ -53,8 +53,8 @@ public sealed class CurrencyReadRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result.Code).IsEqualTo(expected: "RUB");
-		await Assert.That(value: result.Name).IsEqualTo(expected: "���������� �����");
-		await Assert.That(value: result.Symbol).IsEqualTo(expected: "?");
+		await Assert.That(value: result.Name).IsEqualTo(expected: "Российский рубль");
+		await Assert.That(value: result.Symbol).IsEqualTo(expected: "₽");
 		await Assert.That(value: result.IsActive).IsTrue();
 	}
 }

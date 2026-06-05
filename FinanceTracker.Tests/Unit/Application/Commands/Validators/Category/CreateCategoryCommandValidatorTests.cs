@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
+﻿using FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
@@ -14,7 +14,7 @@ public sealed class CreateCategoryCommandValidatorTests
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Create(value: "���").Value,
+			Name: Name.Create(value: "Еда").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);
@@ -29,7 +29,7 @@ public sealed class CreateCategoryCommandValidatorTests
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.CreateVersion7(),
-			Name: Name.Create(value: "���").Value,
+			Name: Name.Create(value: "Еда").Value,
 			Type: (CategoryType)99,
 			ParentId: null
 		);
@@ -41,13 +41,13 @@ public sealed class CreateCategoryCommandValidatorTests
 			predicate: e => e.PropertyName == nameof(command.Type)
 		)).IsTrue();
 	}
-	
+
 	[Test]
 	public async Task Validate_WithEmptyUserId_ShouldHaveError()
 	{
 		CreateCategoryCommand command = new CreateCategoryCommand(
 			UserId: Guid.Empty,
-			Name: Name.Create(value: "���").Value,
+			Name: Name.Create(value: "Еда").Value,
 			Type: CategoryType.Expense,
 			ParentId: null
 		);

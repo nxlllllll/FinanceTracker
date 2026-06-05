@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+﻿using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 
@@ -8,7 +8,7 @@ public static class CreateAccountCommandFactory
 {
 	public static CreateAccountCommand Create(
 		Guid? userId = null,
-		string name = "����� ����",	
+		string name = "Новый счёт",
 		AccountType type = AccountType.Checking,
 		string currency = "RUB",
 		decimal initialBalance = 10000)

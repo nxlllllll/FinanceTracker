@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Persistence;
+﻿using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
@@ -96,7 +96,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.IsActive).IsFalse();
 	}
-	
+
 	[Test]
 	public async Task GetActiveByCategoryAsync_WhenDateInPeriod_ShouldReturnBudget()
 	{
@@ -134,8 +134,8 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 	public async Task GetAllAsync_ShouldReturnAllUserBudgets()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid categoryId1 = await _categoryBuilder.CreateAsync(userId: userId, name: "���");
-		Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "���������");
+		Guid categoryId1 = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+		Guid categoryId2 = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
 		await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId1);
 		await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId2);
 
@@ -165,7 +165,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		for (int i = 0; i < 4; i++)
 		{
-			Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId, name: $"��������� {i}");
+			Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId, name: $"Категория {i}");
 			await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 		}
 
@@ -186,7 +186,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid userId = await _userBuilder.CreateAsync();
 		for (int i = 0; i < 4; i++)
 		{
-			Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId, name: $"��������� {i}");
+			Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId, name: $"Категория {i}");
 			await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 		}
 

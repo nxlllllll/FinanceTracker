@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Domains.Account;
+Ôªøusing FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -49,7 +49,7 @@ public sealed class TransactionTests
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.Exclude();
-        
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ExcludingException>();
 	}
@@ -70,7 +70,7 @@ public sealed class TransactionTests
 		Transaction transaction = TransactionFactory.Create();
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.Include();
-        
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<IncludingException>();
 	}
@@ -91,9 +91,9 @@ public sealed class TransactionTests
 	{
 		Transaction transaction = TransactionFactory.Create();
 
-		transaction.ChangeDescription(description: "”ÊËÌ");
+		transaction.ChangeDescription(description: "–¢–µ—Å—Ç");
 
-		await Assert.That(value: transaction.Description).IsEqualTo(expected: "”ÊËÌ");
+		await Assert.That(value: transaction.Description).IsEqualTo(expected: "–¢–µ—Å—Ç");
 	}
 
 	[Test]
