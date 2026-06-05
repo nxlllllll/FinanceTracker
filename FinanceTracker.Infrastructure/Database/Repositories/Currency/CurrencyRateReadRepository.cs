@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Currency;
@@ -90,20 +91,18 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 		string[] fromCodes = pairs.Select(selector: p => p.From.Value).Distinct().ToArray();
 		string[] toCodes = pairs.Select(selector: p => p.To.Value).Distinct().ToArray();
 
-		return await context.Database.SqlQuery<CurrencyRateRow>($"""
-			SELECT DISTINCT ON (base_code, target_code) base_code AS BaseCode, target_code AS TargetCode, actual_at AS ActualAt, rate AS Rate
-			FROM currency_rates
-			WHERE base_code = ANY({fromCodes}) AND target_code = ANY({toCodes})
-			ORDER BY base_code, target_code, actual_at DESC
-		""").ToDictionaryAsync(
-			keySelector: row => new CurrencyLatestRateRequest(
-				From: Core.ValueObjects.Currency.Reconstitute(value: row.BaseCode), 
-				To: Core.ValueObjects.Currency.Reconstitute(value: row.TargetCode)
+		Dictionary<(string BaseCode, string TargetCode), decimal> rows = await context.GetLatestCurrencyRatesBatchAsync(
+			fromCodes: fromCodes,
+			toCodes: toCodes,
+			ct: ct
+		);
+
+		return rows.ToDictionary(
+			keySelector: kvp => new CurrencyLatestRateRequest(
+				From: Core.ValueObjects.Currency.Reconstitute(value: kvp.Key.BaseCode),
+				To: Core.ValueObjects.Currency.Reconstitute(value: kvp.Key.TargetCode)
 			),
-			elementSelector: row => row.Rate,
-			cancellationToken: ct
+			elementSelector: kvp => kvp.Value
 		);
 	}
-
-	private sealed record CurrencyRateRow(string BaseCode, string TargetCode, decimal Rate);
 }
