@@ -16,9 +16,9 @@ public sealed class TracingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
 	{
 		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(name: typeof(TRequest).Name, kind: ActivityKind.Internal);
 
-		activity?.SetTag(key: "request.type", value: typeof(TRequest).Name);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.RequestType, value: typeof(TRequest).Name);
 		if (request is IAuthorizable authorizable)
-			activity?.SetTag(key: "user.id", value: authorizable.UserId);
+			activity?.SetTag(key: FinanceTrackerActivitySource.Tags.UserId, value: authorizable.UserId);
 		
 		try
 		{

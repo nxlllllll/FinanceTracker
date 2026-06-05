@@ -128,11 +128,14 @@ public sealed class PostgresEventStore(
 		if (eventList.Count == 0)
 			return;
 
-		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(name: "eventstore.save", kind: ActivityKind.Client);
+		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(
+			name: FinanceTrackerActivitySource.Operations.EventStoreSave,
+			kind: ActivityKind.Client
+		);
 
-		activity?.SetTag(key: "aggregate.id", value: aggregateId);
-		activity?.SetTag(key: "aggregate.type", value: aggregateType);
-		activity?.SetTag(key: "events.count", value: eventList.Count);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateId, value: aggregateId);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateType, value: aggregateType);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsCount, value: eventList.Count);
 
 		(List<EventEntity> entities, List<OutboxEventEnvelope> envelopes) = BuildEntities(
 			aggregateId: aggregateId,
@@ -187,10 +190,13 @@ public sealed class PostgresEventStore(
 		string aggregateType,
 		CancellationToken ct = default)
 	{
-		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(name: "eventstore.load", kind: ActivityKind.Client);
+		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(
+			name: FinanceTrackerActivitySource.Operations.EventStoreLoad,
+			kind: ActivityKind.Client
+		);;
 
-		activity?.SetTag(key: "aggregate.id", value: aggregateId);
-		activity?.SetTag(key: "aggregate.type", value: aggregateType);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateId, value: aggregateId);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateType, value: aggregateType);
 
 		SnapshotEntity? snapshot = await context.Snapshots.AsNoTracking()
 			.Where(s => s.AggregateId == aggregateId && s.AggregateType == aggregateType)
@@ -231,8 +237,8 @@ public sealed class PostgresEventStore(
 			State: snapshot.State
 		);
 
-		activity?.SetTag(key: "snapshot.found", value: snapshot is not null);
-		activity?.SetTag(key: "events.loaded", value: entities.Count);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.SnapshotFound, value: snapshot is not null);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsLoaded, value: entities.Count);
 
 		return new EventStoreResult(Snapshot: snapshotData, Events: domainEvents);
 	}

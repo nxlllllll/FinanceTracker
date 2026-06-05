@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Services.Tracing;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -35,12 +36,12 @@ public sealed class RabbitMqPublisher(
 		if (Activity.Current is { } current)
 		{
 			props.Headers ??= new Dictionary<string, object?>();
-			props.Headers["traceparent"] = Encoding.UTF8.GetBytes(
+			props.Headers[FinanceTrackerActivitySource.TraceContextHeaders.TraceParent] = Encoding.UTF8.GetBytes(
 				s: $"00-{current.TraceId}-{current.SpanId}-{(current.ActivityTraceFlags.HasFlag(ActivityTraceFlags.Recorded) ? "01" : "00")}"
 			);
 
 			if (!String.IsNullOrEmpty(value: current.TraceStateString))
-				props.Headers["tracestate"] = Encoding.UTF8.GetBytes(s: current.TraceStateString);
+				props.Headers[FinanceTrackerActivitySource.TraceContextHeaders.TraceState] = Encoding.UTF8.GetBytes(s: current.TraceStateString);
 		}
 
 		await channel.BasicPublishAsync(

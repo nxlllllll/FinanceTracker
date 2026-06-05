@@ -139,7 +139,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		ActivityContext parentContext = ExtractParentContext(headers: ea.BasicProperties?.Headers);
 
 		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(
-			name: $"rabbitmq.consume {typeof(TMessage).Name}",
+			name: $"{FinanceTrackerActivitySource.Operations.RabbitMqConsume} {typeof(TMessage).Name}",
 			kind: ActivityKind.Consumer,
 			parentContext
 		);
@@ -193,7 +193,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 	private static ActivityContext ExtractParentContext(IDictionary<string, object?>? headers)
 	{
-		if (headers is null || !headers.TryGetValue(key: "traceparent", out object? value))
+		if (headers is null || !headers.TryGetValue(key: FinanceTrackerActivitySource.TraceContextHeaders.TraceParent, out object? value))
 			return default;
 
 		string? traceparent = value is byte[] bytes ? Encoding.UTF8.GetString(bytes: bytes) : value as string;
