@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
@@ -31,38 +32,62 @@ public sealed class TransferReadRepository(
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
-    public async Task<IReadOnlyList<TransferReadModel>> GetAllAsync(
+    public async Task<PagedResult<TransferReadModel>> GetAllAsync(
         Guid userId,
         Guid? accountId = null,
         DateTimeOffset? dateFrom = null,
         DateTimeOffset? dateTo = null,
+        DateTimeOffset? cursorOccurredAt = null,
+        Guid? cursorId = null,
+        int pageSize = 20,
         CancellationToken ct = default)
     {
-        IQueryable<TransferEntity> query = context.Transfers.AsNoTracking().Where(predicate: t => t.UserId == userId);
+        IQueryable<TransferEntity> query = context.Transfers
+            .AsNoTracking()
+            .Where(t => t.UserId == userId);
 
         if (accountId is not null)
-            query = query.Where(predicate: t => t.FromAccountId == accountId || t.ToAccountId == accountId);
+            query = query.Where(t => t.FromAccountId == accountId || t.ToAccountId == accountId);
 
         if (dateFrom is not null)
-            query = query.Where(predicate: t => t.OccurredAt >= dateFrom);
+            query = query.Where(t => t.OccurredAt >= dateFrom);
 
         if (dateTo is not null)
-            query = query.Where(predicate: t => t.OccurredAt <= dateTo);
+            query = query.Where(t => t.OccurredAt <= dateTo);
 
-        return await query.OrderByDescending(keySelector: t => t.OccurredAt)
-            .Select(selector: t => new TransferReadModel(
+        if (cursorOccurredAt is not null && cursorId is not null)
+            query = query.Where(t => t.OccurredAt < cursorOccurredAt ||
+                                     t.OccurredAt == cursorOccurredAt && t.Id < cursorId);
+
+        List<TransferReadModel> items = await query
+            .OrderByDescending(t => t.OccurredAt)
+            .ThenByDescending(t => t.Id)
+            .Take(pageSize + 1)
+            .Select(t => new TransferReadModel(
                 Id: t.Id,
                 UserId: t.UserId,
                 FromAccountId: t.FromAccountId,
                 ToAccountId: t.ToAccountId,
-                AmountFrom: Money.Reconstitute(amount: t.AmountFrom, currency: t.CurrencyFrom),
-                AmountTo: Money.Reconstitute(amount: t.AmountTo, currency: t.CurrencyTo),
+                AmountFrom: Money.Reconstitute(t.AmountFrom, t.CurrencyFrom),
+                AmountTo: Money.Reconstitute(t.AmountTo, t.CurrencyTo),
                 ExchangeRate: t.ExchangeRate,
                 IsRatePending: t.IsRatePending,
                 Status: t.Status,
                 Description: t.Description,
                 OccurredAt: t.OccurredAt
-            )).ToListAsync(cancellationToken: ct);
+            )).ToListAsync(ct);
+
+        bool hasNextPage = items.Count > pageSize;
+        if (hasNextPage) items.RemoveAt(items.Count - 1);
+
+        TransferReadModel? last = items.Count > 0 ? items[^1] : null;
+
+        return new PagedResult<TransferReadModel>(
+            Items: items.AsReadOnly(),
+            HasNextPage: hasNextPage,
+            NextCursorDate: hasNextPage ? last?.OccurredAt : null,
+            NextCursorId: hasNextPage ? last?.Id : null
+        );
     }
 
     public async Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(CancellationToken ct = default)

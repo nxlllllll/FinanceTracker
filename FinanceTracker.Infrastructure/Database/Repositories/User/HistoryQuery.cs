@@ -97,24 +97,24 @@ internal sealed class HistoryQuery
 
         if (dateFrom is not null)
         {
-            clauses.Add(item: "AND OccurredAt >= @dateFrom");
-            parameters.Add(new NpgsqlParameter(parameterName: "@dateFrom", value: dateFrom.Value));
+            clauses.Add("AND occurred_at >= @dateFrom");
+            parameters.Add(new NpgsqlParameter("@dateFrom", dateFrom.Value));
         }
 
         if (dateTo is not null)
         {
-            clauses.Add(item: "AND OccurredAt <= @dateTo");
-            parameters.Add(new NpgsqlParameter(parameterName: "@dateTo", value: dateTo.Value));
+            clauses.Add("AND occurred_at <= @dateTo");
+            parameters.Add(new NpgsqlParameter("@dateTo", dateTo.Value));
         }
 
         if (cursorOccurredAt is not null && cursorId is not null)
         {
-            clauses.Add(item: "AND (OccurredAt < @cursorDate OR (OccurredAt = @cursorDate AND Id < @cursorId))");
-            parameters.Add(new NpgsqlParameter(parameterName: "@cursorDate", value: cursorOccurredAt.Value));
-            parameters.Add(new NpgsqlParameter(parameterName: "@cursorId",   value: cursorId.Value));
+            clauses.Add("AND (occurred_at < @cursorDate OR (occurred_at = @cursorDate AND id < @cursorId))");
+            parameters.Add(new NpgsqlParameter("@cursorDate", cursorOccurredAt.Value));
+            parameters.Add(new NpgsqlParameter("@cursorId",   cursorId.Value));
         }
 
-        return String.Join(separator: "\n  ", values: clauses);
+        return string.Join("\n  ", clauses);
     }
 
     private static string BuildTransactionsOnly(string direction, string sharedFilters) => $"""

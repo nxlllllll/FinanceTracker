@@ -32,7 +32,7 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 			.HasColumnType(typeName: "date");
 
 		builder.Property(propertyExpression: b => b.Currency)
-			.HasColumnName(name: "currency")
+			.HasColumnName(name: "currency_code")
 			.HasMaxLength(maxLength: 3)
 			.HasConversion(
 				convertToProviderExpression: currency => currency.Value,
