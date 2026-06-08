@@ -1,6 +1,8 @@
 using FinanceTracker.Application.UseCases.Account.Queries.GetAccount;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -11,8 +13,6 @@ public sealed class GetAccountHandlerTests
 	private IAccountReadRepository _accountReadRepository = null!;
 	private GetAccountHandler _handler = null!;
 
-	private static readonly Guid UserId = Guid.CreateVersion7();
-
 	[Before(hookType: Test)]
 	public void Setup()
 	{
@@ -21,79 +21,46 @@ public sealed class GetAccountHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenAccountExists_ShouldReturnAccountReadModel()
+	public async Task Handle_WhenAccountExists_ShouldReturnSuccess()
 	{
-		AccountReadModel readModel = AccountFactory.CreateReadModel(userId: UserId);
+		AccountReadModel model = AccountFactory.CreateReadModel();
+		GetAccountQuery query = new GetAccountQuery(
+			AccountId: model.Id,
+			UserId: model.UserId
+		);
 
-		_accountReadRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			userId: UserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: readModel);
+		_accountReadRepository
+			.GetByIdAsync(accountId: model.Id, userId: model.UserId, ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: model);
 
-		AccountReadModel? result = await _handler.Handle(
-			query: new GetAccountQuery(AccountId: readModel.Id, UserId: UserId),
+		Result<AccountReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.Id).IsEqualTo(expected: readModel.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsEqualTo(expected: model);
 	}
 
 	[Test]
-	public async Task Handle_WhenAccountNotFound_ShouldReturnNull()
-	{
-		_accountReadRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountReadModel?>(null));
-
-		AccountReadModel? result = await _handler.Handle(
-			query: new GetAccountQuery(AccountId: Guid.CreateVersion7(), UserId: UserId),
-			ct: CancellationToken.None
-		);
-
-		await Assert.That(value: result).IsNull();
-	}
-
-	[Test]
-	public async Task Handle_ShouldPassBothAccountIdAndUserIdToRepository()
+	public async Task Handle_WhenAccountNotFound_ShouldReturnNotFound()
 	{
 		Guid accountId = Guid.CreateVersion7();
+		GetAccountQuery query = new GetAccountQuery(
+			AccountId: accountId,
+			UserId: Guid.CreateVersion7()
+		);
 
-		_accountReadRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountReadModel?>(null));
+		_accountReadRepository
+			.GetByIdAsync(accountId: accountId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: (AccountReadModel?)null);
 
-		await _handler.Handle(
-			query: new GetAccountQuery(AccountId: accountId, UserId: UserId),
+		Result<AccountReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await _accountReadRepository.Received(requiredNumberOfCalls: 1).GetByIdAsync(
-			accountId: accountId,
-			userId: UserId,
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task Handle_WhenAccountBelongsToDifferentUser_ShouldReturnNull()
-	{
-		_accountReadRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountReadModel?>(null));
-
-		AccountReadModel? result = await _handler.Handle(
-			query: new GetAccountQuery(AccountId: Guid.CreateVersion7(), UserId: Guid.CreateVersion7()),
-			ct: CancellationToken.None
-		);
-
-		await Assert.That(value: result).IsNull();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

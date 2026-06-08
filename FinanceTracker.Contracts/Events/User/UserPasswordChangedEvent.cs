@@ -3,7 +3,7 @@ using FinanceTracker.Core.Domains.User.Events;
 
 namespace FinanceTracker.Contracts.Events.User;
 
-[IntegrationEventType(domainEventType: typeof(UserBaseCurrencyChanged))]
+[IntegrationEventType(domainEventType: typeof(UserPasswordChanged))]
 public sealed record UserPasswordChangedEvent(
 	Guid EventId,
 	Guid UserId,

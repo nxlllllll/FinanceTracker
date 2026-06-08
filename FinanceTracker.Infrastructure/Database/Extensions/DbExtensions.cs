@@ -1,7 +1,6 @@
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
-using FinanceTracker.Infrastructure.Database.Context.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Extensions;

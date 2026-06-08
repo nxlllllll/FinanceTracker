@@ -4,6 +4,7 @@ using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -37,6 +38,7 @@ namespace FinanceTracker.Worker.TransferProjection.Consumer;
 /// </remarks>
 public sealed class AccountTransferConsumer(
 	IAccountRepository accountRepository,
+	ITransferRepository transferRepository,
 	ITransferWriteRepository transferWriteRepository,
 	IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
 	IIntegrationEventTypeResolver integrationEventTypeResolver,
@@ -79,12 +81,24 @@ public sealed class AccountTransferConsumer(
 		Guid correlationId,
 		CancellationToken ct)
 	{
-		Account? toAccount = await accountRepository.GetByIdAsync(accountId: debitEvent.ToAccountId, ct: ct);
+		Transfer? transfer = await transferRepository.GetByIdAsync(transferId: debitEvent.TransferId, ct: ct);
+		if (transfer is null)
+		{
+			logger.ZLogError(message: $"[{correlationId}] Transfer {debitEvent.TransferId} not found. Skipping.");
+			return;
+		}
 
+		if (transfer.Status != TransferStatus.PendingCredit)
+		{
+			logger.ZLogWarning(message: $"[{correlationId}] Transfer {debitEvent.TransferId} is in {transfer.Status} state, expected PendingCredit. Skipping (already processed).");
+			return;
+		}
+
+		Account? toAccount = await accountRepository.GetByIdAsync(accountId: debitEvent.ToAccountId, ct: ct);
 		if (toAccount is null)
 		{
 			logger.ZLogError(message: $"[{correlationId}] toAccount {debitEvent.ToAccountId} not found. Compensating transfer {debitEvent.TransferId}.");
-			await CompensateAsync(debitEvent: debitEvent, correlationId: correlationId, reason: "ToAccount not found.", ct: ct);
+			await CompensateAsync(debitEvent: debitEvent, transfer: transfer, correlationId: correlationId, reason: "ToAccount not found.", ct: ct);
 			return;
 		}
 
@@ -100,14 +114,21 @@ public sealed class AccountTransferConsumer(
 		if (creditResult.IsFailure)
 		{
 			logger.ZLogError(message: $"[{correlationId}] CreditTransfer failed: {creditResult.Error?.Message}. Compensating transfer {debitEvent.TransferId}.");
-			await CompensateAsync(debitEvent: debitEvent, correlationId: correlationId, reason: creditResult.Error?.Message, ct: ct);
+			await CompensateAsync(debitEvent: debitEvent, transfer: transfer, correlationId: correlationId, reason: creditResult.Error?.Message, ct: ct);
+			return;
+		}
+
+		Result<Unit, DomainException> completeResult = transfer.Complete();
+		if (completeResult.IsFailure)
+		{
+			logger.ZLogWarning(message: $"[{correlationId}] Transfer {debitEvent.TransferId} cannot be completed: {completeResult.Error!.Message}.");
 			return;
 		}
 
 		await accountRepository.SaveAsync(account: toAccount, ct: ct);
 		await transferWriteRepository.UpdateStatusAsync(
 			transferId: debitEvent.TransferId,
-			status: Core.Domains.Transfer.TransferStatus.Completed,
+			status: TransferStatus.Completed,
 			ct: ct
 		);
 
@@ -121,15 +142,22 @@ public sealed class AccountTransferConsumer(
 
 	private async Task CompensateAsync(
 		AccountTransferDebitedEvent debitEvent,
+		Transfer transfer,
 		Guid correlationId,
 		string? reason,
 		CancellationToken ct)
 	{
 		Account? fromAccount = await accountRepository.GetByIdAsync(accountId: debitEvent.AccountId, ct: ct);
-
 		if (fromAccount is null)
 		{
 			logger.ZLogError(message: $"[{correlationId}] Compensation FAILED: fromAccount {debitEvent.AccountId} not found. Transfer {debitEvent.TransferId} requires manual resolution.");
+
+			Result<Unit, DomainException> failCheck = transfer.Fail();
+			if (failCheck.IsFailure)
+			{
+				logger.ZLogWarning(message: $"[{correlationId}] Transfer {debitEvent.TransferId} cannot be failed: {failCheck.Error!.Message}.");
+				return;
+			}
 
 			string payload = JsonSerializer.Serialize(value: new
 			{
@@ -149,7 +177,7 @@ public sealed class AccountTransferConsumer(
 
 			await transferWriteRepository.UpdateStatusAsync(
 				transferId: debitEvent.TransferId,
-				status: Core.Domains.Transfer.TransferStatus.Failed,
+				status: TransferStatus.Failed,
 				ct: ct
 			);
 
@@ -168,6 +196,13 @@ public sealed class AccountTransferConsumer(
 		{
 			logger.ZLogError(message: $"[{correlationId}] Refund failed for transfer {debitEvent.TransferId}: {refundResult.Error!.Message}. Manual resolution required.");
 
+			Result<Unit, DomainException> failCheck = transfer.Fail();
+			if (failCheck.IsFailure)
+			{
+				logger.ZLogWarning(message: $"[{correlationId}] Transfer {debitEvent.TransferId} cannot be failed: {failCheck.Error!.Message}.");
+				return;
+			}
+
 			await unresolvableEventWriteRepository.CreateAsync(
 				type: UnresolvableEventType.TransferCompensation,
 				referenceId: debitEvent.TransferId,
@@ -179,7 +214,7 @@ public sealed class AccountTransferConsumer(
 
 			await transferWriteRepository.UpdateStatusAsync(
 				transferId: debitEvent.TransferId,
-				status: Core.Domains.Transfer.TransferStatus.Failed,
+				status: TransferStatus.Failed,
 				ct: ct
 			);
 
@@ -187,10 +222,17 @@ public sealed class AccountTransferConsumer(
 			return;
 		}
 
+		Result<Unit, DomainException> compensateCheck = transfer.Compensate();
+		if (compensateCheck.IsFailure)
+		{
+			logger.ZLogWarning(message: $"[{correlationId}] Transfer {debitEvent.TransferId} cannot be compensated: {compensateCheck.Error!.Message}.");
+			return;
+		}
+
 		await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 		await transferWriteRepository.UpdateStatusAsync(
 			transferId: debitEvent.TransferId,
-			status: Core.Domains.Transfer.TransferStatus.Compensated,
+			status: TransferStatus.Compensated,
 			ct: ct
 		);
 

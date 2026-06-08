@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -28,5 +29,15 @@ public static class UserFactory
 		);
 
 		return result;
+	}
+
+	public static UserReadModel CreateReadModel()
+	{
+		return new UserReadModel(
+			Id: Guid.CreateVersion7(),
+			Email: Email.Create(value: "test@test.com").Value,
+			BaseCurrency: Currency.Create(value: "RUB").Value,
+			CreatedAt: FakeDateProvider.Default.UtcNow
+		);
 	}
 }

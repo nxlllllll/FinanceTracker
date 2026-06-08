@@ -2,6 +2,7 @@ using FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRecurr
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -9,65 +10,57 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
 
 public sealed class GetRecurringTransactionHandlerTests
 {
-	private IRecurringTransactionReadRepository _readRepository = null!;
+	private IRecurringTransactionReadRepository _recurringTransactionReadRepository = null!;
 	private GetRecurringTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_readRepository = Substitute.For<IRecurringTransactionReadRepository>();
-		_handler = new GetRecurringTransactionHandler(recurringTransactionReadRepository: _readRepository);
+		_recurringTransactionReadRepository = Substitute.For<IRecurringTransactionReadRepository>();
+		_handler = new GetRecurringTransactionHandler(recurringTransactionReadRepository: _recurringTransactionReadRepository);
 	}
 
 	[Test]
-	public async Task Handle_WhenFound_ShouldReturnDto()
+	public async Task Handle_WhenRecurringTransactionExists_ShouldReturnSuccess()
 	{
-		Guid userId = Guid.CreateVersion7();
-		RecurringTransactionReadModel dto = RecurringTransactionFactory.CreateReadModel(userId: userId);
-		_readRepository.GetByIdAsync(
-			recurringTransactionId: dto.Id, 
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: dto);
+		RecurringTransactionReadModel model = RecurringTransactionFactory.CreateReadModel();
+		GetRecurringTransactionQuery query = new GetRecurringTransactionQuery(
+			RecurringTransactionId: model.Id,
+			UserId: model.UserId
+		);
 
-		RecurringTransactionReadModel result = await _handler.Handle(
-			query: new GetRecurringTransactionQuery(UserId: userId, RecurringTransactionId: dto.Id),
+		_recurringTransactionReadRepository
+			.GetByIdAsync(recurringTransactionId: model.Id, ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: model);
+
+		Result<RecurringTransactionReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Id).IsEqualTo(expected: dto.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsEqualTo(expected: model);
 	}
 
 	[Test]
-	public async Task Handle_WhenNotFound_ShouldThrowNotFoundException()
+	public async Task Handle_WhenRecurringTransactionNotFound_ShouldReturnNotFound()
 	{
-		_readRepository.GetByIdAsync(
-			recurringTransactionId: Arg.Any<Guid>(), 
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (RecurringTransactionReadModel?)null);
+		Guid recurringTransactionId = Guid.CreateVersion7();
+		GetRecurringTransactionQuery query = new GetRecurringTransactionQuery(
+			RecurringTransactionId: recurringTransactionId,
+			UserId: Guid.CreateVersion7()
+		);
 
-		await Assert.That(action: async () => await _handler.Handle(
-			query: new GetRecurringTransactionQuery(
-				UserId: Guid.CreateVersion7(),
-				RecurringTransactionId: Guid.CreateVersion7()
-			),
+		_recurringTransactionReadRepository
+			.GetByIdAsync(recurringTransactionId: recurringTransactionId, ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: (RecurringTransactionReadModel?)null);
+
+		Result<RecurringTransactionReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
-	}
+		);
 
-	[Test]
-	public async Task Handle_WhenBelongsToAnotherUser_ShouldThrowNotFoundException()
-	{
-		_readRepository.GetByIdAsync(
-			recurringTransactionId: Arg.Any<Guid>(), 
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel(userId: Guid.CreateVersion7()));
-
-		await Assert.That(action: async () => await _handler.Handle(
-			query: new GetRecurringTransactionQuery(
-				UserId: Guid.CreateVersion7(),
-				RecurringTransactionId: Guid.CreateVersion7()
-			),
-			ct: CancellationToken.None
-		)).Throws<NotFoundException>();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

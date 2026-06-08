@@ -1,6 +1,8 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetCategory;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -11,72 +13,54 @@ public sealed class GetCategoryHandlerTests
 	private ICategoryReadRepository _categoryReadRepository = null!;
 	private GetCategoryHandler _handler = null!;
 
-	private static readonly Guid UserId = Guid.CreateVersion7();
-
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
-		_handler = new GetCategoryHandler(categoryRepository: _categoryReadRepository);
+		_handler = new GetCategoryHandler(categoryReadRepository: _categoryReadRepository);
 	}
 
 	[Test]
-	public async Task Handle_WhenCategoryExists_ShouldReturnCategory()
+	public async Task Handle_WhenCategoryExists_ShouldReturnSuccess()
 	{
-		CategoryReadModel category = CategoryFactory.CreateReadModel();
+		CategoryReadModel model = CategoryFactory.CreateReadModel();
+		GetCategoryQuery query = new GetCategoryQuery(
+			CategoryId: model.Id,
+			UserId: model.UserId
+		);
 
-		_categoryReadRepository.GetByIdAsync(
-			categoryId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: category);
+		_categoryReadRepository
+			.GetByIdAsync(categoryId: model.Id, userId: model.UserId, ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: model);
 
-		CategoryReadModel? result = await _handler.Handle(
-			query: new GetCategoryQuery(CategoryId: category.Id, UserId: UserId),
+		Result<CategoryReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.Id).IsEqualTo(expected: category.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsEqualTo(expected: model);
 	}
 
 	[Test]
-	public async Task Handle_WhenCategoryNotFound_ShouldReturnNull()
-	{
-		_categoryReadRepository.GetByIdAsync(
-			categoryId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<CategoryReadModel?>(null));
-
-		CategoryReadModel? result = await _handler.Handle(
-			query: new GetCategoryQuery(CategoryId: Guid.CreateVersion7(), UserId: UserId),
-			ct: CancellationToken.None
-		);
-
-		await Assert.That(value: result).IsNull();
-	}
-
-	[Test]
-	public async Task Handle_ShouldPassBothCategoryIdAndUserIdToRepository()
+	public async Task Handle_WhenCategoryNotFound_ShouldReturnNotFound()
 	{
 		Guid categoryId = Guid.CreateVersion7();
+		GetCategoryQuery query = new GetCategoryQuery(
+			CategoryId: categoryId,
+			UserId: Guid.CreateVersion7()
+		);
 
-		_categoryReadRepository.GetByIdAsync(
-			categoryId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<CategoryReadModel?>(null));
+		_categoryReadRepository
+			.GetByIdAsync(categoryId: categoryId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: (CategoryReadModel?)null);
 
-		await _handler.Handle(
-			query: new GetCategoryQuery(CategoryId: categoryId, UserId: UserId),
+		Result<CategoryReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await _categoryReadRepository.Received(requiredNumberOfCalls: 1).GetByIdAsync(
-			categoryId: categoryId,
-			userId: UserId,
-			ct: Arg.Any<CancellationToken>()
-		);
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

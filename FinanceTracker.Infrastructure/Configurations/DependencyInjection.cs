@@ -175,6 +175,7 @@ public static class DependencyInjection
 		services.AddScoped<ITransactionWriteRepository, TransactionWriteRepository>();
 
 		// Transfer
+		services.AddScoped<ITransferRepository, TransferRepository>();
 		services.AddScoped<ITransferWriteRepository, TransferWriteRepository>();
 		services.AddScoped<ITransferReadRepository, TransferReadRepository>();
 

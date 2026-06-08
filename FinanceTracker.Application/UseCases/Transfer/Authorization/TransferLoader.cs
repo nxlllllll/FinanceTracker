@@ -31,7 +31,7 @@ public sealed class TransferLoader(
 		
 		bool destinationExistence = await accountReadRepository.ExistAsync(accountId: toAccountId, userId: userId, ct: ct);
 		if (!destinationExistence)
-			return Result<Core.Domains.Account.Account, DomainException>.Failure(error: new NotFoundException(message: "Destination account not found.", id: fromAccountId));
+			return Result<Core.Domains.Account.Account, DomainException>.Failure(error: new NotFoundException(message: "Destination account not found.", id: toAccountId));
 		
 		return Result<Core.Domains.Account.Account, DomainException>.Success(value: account);
 	}

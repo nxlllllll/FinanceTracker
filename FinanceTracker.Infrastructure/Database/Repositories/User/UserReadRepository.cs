@@ -80,7 +80,7 @@ public sealed class UserReadRepository(
 	                .Select(r => (decimal?)r.Rate)
 	                .FirstOrDefault()
 	        }).SumAsync(
-				selector: x => x.Currency == baseCurrency.Value ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? 1m),
+				selector: x => x.Currency == baseCurrency ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? 1m),
 				cancellationToken: ct
 			);
 	}

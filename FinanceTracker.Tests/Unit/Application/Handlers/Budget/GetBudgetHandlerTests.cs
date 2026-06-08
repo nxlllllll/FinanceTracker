@@ -1,6 +1,8 @@
 using FinanceTracker.Application.UseCases.Budget.Queries.GetBudget;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -15,44 +17,50 @@ public sealed class GetBudgetHandlerTests
 	public void Setup()
 	{
 		_budgetReadRepository = Substitute.For<IBudgetReadRepository>();
-
 		_handler = new GetBudgetHandler(budgetReadRepository: _budgetReadRepository);
 	}
 
 	[Test]
-	public async Task Handle_WhenBudgetExists_ShouldReturnBudgetDto()
+	public async Task Handle_WhenBudgetExists_ShouldReturnSuccess()
 	{
-		BudgetReadModel? budget = BudgetFactory.CreateReadModel();
+		BudgetReadModel model = BudgetFactory.CreateReadModel();
+		GetBudgetQuery query = new GetBudgetQuery(
+			BudgetId: model.Id,
+			UserId: model.UserId
+		);
 
-		_budgetReadRepository.GetByIdAsync(
-			budgetId: budget.Id,
-			userId: budget.UserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: budget);
+		_budgetReadRepository
+			.GetByIdAsync(budgetId: model.Id, userId: model.UserId, ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: model);
 
-		BudgetReadModel? result = await _handler.Handle(
-			query: new GetBudgetQuery(UserId: budget.UserId, BudgetId: budget.Id),
+		Result<BudgetReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.Id).IsEqualTo(expected: budget.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsEqualTo(expected: model);
 	}
 
 	[Test]
-	public async Task Handle_WhenBudgetNotFound_ShouldReturnNull()
+	public async Task Handle_WhenBudgetNotFound_ShouldReturnNotFound()
 	{
-		_budgetReadRepository.GetByIdAsync(
-			budgetId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetReadModel?>(result: null));
+		Guid budgetId = Guid.CreateVersion7();
+		GetBudgetQuery query = new GetBudgetQuery(
+			BudgetId: budgetId,
+			UserId: Guid.CreateVersion7()
+		);
 
-		BudgetReadModel? result = await _handler.Handle(
-			query: new GetBudgetQuery(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7()),
+		_budgetReadRepository
+			.GetByIdAsync(budgetId: budgetId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: (BudgetReadModel?)null);
+
+		Result<BudgetReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNull();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

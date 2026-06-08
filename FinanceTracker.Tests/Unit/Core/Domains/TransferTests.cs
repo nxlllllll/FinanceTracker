@@ -34,6 +34,7 @@ public sealed class TransferTests
 		await Assert.That(value: transfer.AmountTo.Amount).IsEqualTo(expected: 1000m);
 		await Assert.That(value: transfer.ExchangeRate).IsEqualTo(expected: 1m);
 		await Assert.That(value: transfer.IsRatePending).IsFalse();
+		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.PendingCredit);
 		await Assert.That(value: transfer.OccurredAt).IsNotDefault();
 	}
 
@@ -75,6 +76,28 @@ public sealed class TransferTests
 	}
 
 	[Test]
+	public async Task Create_WithSameAccounts_ShouldReturnFailure()
+	{
+		Guid accountId = Guid.CreateVersion7();
+
+		Result<Transfer, DomainException> result = Transfer.Create(
+			userId: Guid.CreateVersion7(),
+			fromAccountId: accountId,
+			toAccountId: accountId,
+			amount: 1000m,
+			currencyFrom: Currency.Create(value: "RUB").Value,
+			currencyTo: Currency.Create(value: "RUB").Value,
+			exchangeRate: 1m,
+			isRatePending: false,
+			description: null,
+			occurredAt: FakeDateProvider.Default.UtcNow
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<SameAccountTransferException>();
+	}
+
+	[Test]
 	public async Task Create_WithPendingRate_ShouldSetIsRatePendingTrue()
 	{
 		Transfer transfer = TransferFactory.Create(isRatePending: true);
@@ -93,5 +116,110 @@ public sealed class TransferTests
 	{
 		Transfer transfer = TransferFactory.Create(description: null);
 		await Assert.That(value: transfer.Description).IsNull();
+	}
+
+	[Test]
+	public async Task Complete_FromPendingCredit_ShouldSucceed()
+	{
+		Transfer transfer = TransferFactory.Create();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Complete();
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Completed);
+	}
+
+	[Test]
+	public async Task Complete_FromCompleted_ShouldReturnFailure()
+	{
+		Transfer transfer = TransferFactory.Create();
+		transfer.Complete();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Complete();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
+	}
+
+	[Test]
+	public async Task Complete_FromCompensated_ShouldReturnFailure()
+	{
+		Transfer transfer = TransferFactory.Create();
+		transfer.Compensate();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Complete();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
+	}
+
+	[Test]
+	public async Task Compensate_FromPendingCredit_ShouldSucceed()
+	{
+		Transfer transfer = TransferFactory.Create();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Compensate();
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Compensated);
+	}
+
+	[Test]
+	public async Task Compensate_FromCompleted_ShouldReturnFailure()
+	{
+		Transfer transfer = TransferFactory.Create();
+		transfer.Complete();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Compensate();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
+	}
+
+	[Test]
+	public async Task Fail_FromPendingCredit_ShouldSucceed()
+	{
+		Transfer transfer = TransferFactory.Create();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Failed);
+	}
+
+	[Test]
+	public async Task Fail_FromCompleted_ShouldReturnFailure()
+	{
+		Transfer transfer = TransferFactory.Create();
+		transfer.Complete();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
+	}
+
+	[Test]
+	public async Task Fail_FromFailed_ShouldReturnFailure()
+	{
+		Transfer transfer = TransferFactory.Create();
+		transfer.Fail();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
+	}
+
+	[Test]
+	public async Task Fail_FromCompensated_ShouldSucceed()
+	{
+		Transfer transfer = TransferFactory.Create();
+		transfer.Compensate();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Failed);
 	}
 }

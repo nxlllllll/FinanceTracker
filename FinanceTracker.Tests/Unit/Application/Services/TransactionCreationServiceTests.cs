@@ -137,7 +137,7 @@ public sealed class TransactionCreationServiceTests
     }
 
     [Test]
-    public async Task CreateAsync_WhenArchivedAccount_ShouldThrowArchivingException()
+    public async Task CreateAsync_WhenArchivedAccount_ShouldReturnArchivedOperationException()
     {
         Account account = AccountFactory.CreateWithArchivation(archived: true);
         SetupConversionRate();
@@ -147,7 +147,7 @@ public sealed class TransactionCreationServiceTests
             account: account,
             ct: CancellationToken.None
         );
-        
+
         await Assert.That(value: result.IsFailure).IsTrue();
         await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
     }
@@ -217,6 +217,52 @@ public sealed class TransactionCreationServiceTests
             currencyCode: command.Currency,
             amount: command.Amount,
             occurredAt: command.OccurredAt,
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task CreateAsync_WithCreditDirection_ShouldNotAddCategoryTotal()
+    {
+        Account account = AccountFactory.CreateWithArchivation();
+        SetupConversionRate();
+
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+            userId: account.UserId,
+            direction: DirectionType.Credit
+        );
+
+        await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
+
+        await _categoryTotalWriteRepository.DidNotReceive().AddAsync(
+            userId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            amount: Arg.Any<decimal>(),
+            currency: Arg.Any<Currency>(),
+            occurredAt: Arg.Any<DateTimeOffset>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task CreateAsync_WithCreditDirection_ShouldNotAddBudgetProgress()
+    {
+        Account account = AccountFactory.CreateWithArchivation();
+        SetupConversionRate();
+
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+            userId: account.UserId,
+            direction: DirectionType.Credit
+        );
+
+        await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
+
+        await _budgetProgressWriteRepository.DidNotReceive().AddAsync(
+            userId: Arg.Any<Guid>(),
+            categoryId: Arg.Any<Guid>(),
+            currencyCode: Arg.Any<Currency>(),
+            amount: Arg.Any<decimal>(),
+            occurredAt: Arg.Any<DateTimeOffset>(),
             ct: Arg.Any<CancellationToken>()
         );
     }

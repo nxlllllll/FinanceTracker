@@ -1,7 +1,8 @@
 using FinanceTracker.Application.UseCases.User.Queries.GetUser;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
-using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -20,42 +21,42 @@ public sealed class GetUserHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenUserExists_ShouldReturnUserReadModel()
+	public async Task Handle_WhenUserExists_ShouldReturnSuccess()
 	{
-		UserReadModel readModel = new UserReadModel(
-			Id: Guid.CreateVersion7(),
-			Email: Email.Create(value: "test@test.com").Value!,
-			BaseCurrency: Currency.Create(value: "RUB").Value,
-			CreatedAt: FakeDateProvider.Default.UtcNow
-		);
+		UserReadModel model = UserFactory.CreateReadModel();
+		GetUserQuery query = new GetUserQuery(UserId: model.Id);
 
 		_userQueryRepository.GetByIdAsync(
-			userId: Arg.Any<Guid>(),
+			userId: model.Id,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: readModel);
+		).Returns(returnThis: model);
 
-		UserReadModel? result = await _handler.Handle(
-			query: new GetUserQuery(UserId: readModel.Id),
+		Result<UserReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.Id).IsEqualTo(expected: readModel.Id);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsEqualTo(expected: model);
 	}
 
 	[Test]
-	public async Task Handle_WhenUserNotFound_ShouldReturnNull()
+	public async Task Handle_WhenUserNotFound_ShouldReturnNotFound()
 	{
-		_userQueryRepository.GetByIdAsync(
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<UserReadModel?>(result: null));
+		Guid userId = Guid.CreateVersion7();
+		GetUserQuery query = new GetUserQuery(UserId: userId);
 
-		UserReadModel? result = await _handler.Handle(
-			query: new GetUserQuery(UserId: Guid.CreateVersion7()),
+		_userQueryRepository.GetByIdAsync(
+			userId: userId, 
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (UserReadModel?)null);
+
+		Result<UserReadModel, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNull();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

@@ -1,6 +1,8 @@
 ﻿using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -11,8 +13,6 @@ public sealed class GetBudgetProgressHandlerTests
 	private IBudgetProgressReadRepository _budgetProgressReadRepository = null!;
 	private GetBudgetProgressHandler _handler = null!;
 
-	private static readonly Guid UserId = Guid.CreateVersion7();
-
 	[Before(hookType: Test)]
 	public void Setup()
 	{
@@ -21,65 +21,46 @@ public sealed class GetBudgetProgressHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenProgressExists_ShouldReturnBudgetProgressDto()
+	public async Task Handle_WhenProgressExists_ShouldReturnSuccess()
 	{
-		Guid budgetId = Guid.CreateVersion7();
-		BudgetProgress progress = BudgetFactory.CreateProgress(budgetId: budgetId, spent: 3000m);
+		BudgetProgress model = BudgetFactory.CreateProgress();
+		GetBudgetProgressQuery query = new GetBudgetProgressQuery(
+			BudgetId: model.BudgetId,
+			UserId: Guid.CreateVersion7()
+		);
 
-		_budgetProgressReadRepository.GetByBudgetIdAsync(
-			budgetId: budgetId,
-			userId: UserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: progress);
+		_budgetProgressReadRepository
+			.GetByBudgetIdAsync(budgetId: model.BudgetId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: model);
 
-		BudgetProgress? result = await _handler.Handle(
-			query: new GetBudgetProgressQuery(BudgetId: budgetId, UserId: UserId),
+		Result<BudgetProgress, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.BudgetId).IsEqualTo(expected: budgetId);
-		await Assert.That(value: result.Spent).IsEqualTo(expected: 3000m);
-		await Assert.That(value: result.Remaining).IsEqualTo(expected: 7000m);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsEqualTo(expected: model);
 	}
 
 	[Test]
-	public async Task Handle_WhenProgressNotFound_ShouldReturnNull()
-	{
-		_budgetProgressReadRepository.GetByBudgetIdAsync(
-			budgetId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetProgress?>(null));
-
-		BudgetProgress? result = await _handler.Handle(
-			query: new GetBudgetProgressQuery(BudgetId: Guid.CreateVersion7(), UserId: UserId),
-			ct: CancellationToken.None
-		);
-
-		await Assert.That(value: result).IsNull();
-	}
-
-	[Test]
-	public async Task Handle_ShouldPassBothBudgetIdAndUserIdToRepository()
+	public async Task Handle_WhenProgressNotFound_ShouldReturnNotFound()
 	{
 		Guid budgetId = Guid.CreateVersion7();
+		GetBudgetProgressQuery query = new GetBudgetProgressQuery(
+			BudgetId: budgetId,
+			UserId: Guid.CreateVersion7()
+		);
 
-		_budgetProgressReadRepository.GetByBudgetIdAsync(
-			budgetId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<BudgetProgress?>(null));
+		_budgetProgressReadRepository
+			.GetByBudgetIdAsync(budgetId: budgetId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
+			.Returns(returnThis: (BudgetProgress?)null);
 
-		await _handler.Handle(
-			query: new GetBudgetProgressQuery(BudgetId: budgetId, UserId: UserId),
+		Result<BudgetProgress, DomainException> result = await _handler.Handle(
+			query: query,
 			ct: CancellationToken.None
 		);
 
-		await _budgetProgressReadRepository.Received(requiredNumberOfCalls: 1).GetByBudgetIdAsync(
-			budgetId: budgetId,
-			userId: UserId,
-			ct: Arg.Any<CancellationToken>()
-		);
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

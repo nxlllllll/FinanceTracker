@@ -175,25 +175,22 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			expectedVersion: 0
 		);
 
-		await Assert.That(async () =>
-		{
-			await secondStore.SaveAsync(
-				aggregateId: accountId,
-				aggregateType: AggregateTypeNames.Account,
-				events: [new AccountDebited(
-					Id: Guid.CreateVersion7(),
-					AccountId: accountId,
-					TransactionId: Guid.CreateVersion7(),
-					CategoryId: Guid.CreateVersion7(),
-					Amount: 100m,
-					ExchangeRate: 1m,
-					Description: null,
-					Version: 0,
-					OccurredAt: DateTimeOffset.UtcNow
-				)],
-				expectedVersion: 0
-			);
-		}).Throws<ConcurrencyConflictException>();
+		await Assert.That(async () => await secondStore.SaveAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [new AccountDebited(
+				Id: Guid.CreateVersion7(),
+				AccountId: accountId,
+				TransactionId: Guid.CreateVersion7(),
+				CategoryId: Guid.CreateVersion7(),
+				Amount: 100m,
+				ExchangeRate: 1m,
+				Description: null,
+				Version: 0,
+				OccurredAt: DateTimeOffset.UtcNow
+			)],
+			expectedVersion: 0
+		)).Throws<ConcurrencyConflictException>();
 	}
 
 	[Test]

@@ -5,6 +5,8 @@ using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
@@ -24,6 +26,7 @@ namespace FinanceTracker.Tests.Unit.Workers;
 public sealed class AccountTransferConsumerTests : DatabaseFixture
 {
 	private IAccountRepository _accountRepository = null!;
+	private ITransferRepository _transferRepository = null!;
 	private ITransferWriteRepository _transferWriteRepository = null!;
 	private IUnresolvableEventWriteRepository _unresolvableEventWriteRepository = null!;
 	private AccountTransferConsumer _consumer = null!;
@@ -36,11 +39,22 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
+		_transferRepository = Substitute.For<ITransferRepository>();
 		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
 		_unresolvableEventWriteRepository = Substitute.For<IUnresolvableEventWriteRepository>();
 
+		_transferRepository.GetByIdAsync(
+			transferId: TransferId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: TransferFactory.Reconstitute(
+			id: TransferId,
+			fromAccountId: FromAccountId,
+			toAccountId: ToAccountId
+		));
+
 		_consumer = new AccountTransferConsumer(
 			accountRepository: _accountRepository,
+			transferRepository: _transferRepository,
 			transferWriteRepository: _transferWriteRepository,
 			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
@@ -145,8 +159,24 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		await _accountRepository.Received(requiredNumberOfCalls: 1).GetByIdAsync(
-			accountId: ToAccountId,
+		await _transferRepository.Received(requiredNumberOfCalls: 1).GetByIdAsync(
+			transferId: TransferId,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTransferNotFound_ShouldSkipWithoutTouchingAccounts()
+	{
+		_transferRepository.GetByIdAsync(
+			transferId: TransferId, 
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Transfer?)null);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _accountRepository.DidNotReceive().GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -154,7 +184,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	[Test]
 	public async Task HandleAsync_WhenCreditSucceeds_ShouldSaveToAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create().Value!;
+		Account toAccount = AccountFactory.Create().Value!;
 
 		_accountRepository.GetByIdAsync(
 			accountId: ToAccountId,
@@ -165,6 +195,23 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
 			account: toAccount,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCreditSucceeds_ShouldUpdateStatusToCompleted()
+	{
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
+			transferId: TransferId,
+			status: TransferStatus.Completed,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -189,47 +236,10 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenToAccountNotFound_ShouldCompensate()
-	{
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create().Value!;
-		decimal balanceBefore = fromAccount.Balance.Amount;
-
-		_accountRepository.GetByIdAsync(
-			accountId: ToAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
-
-		_accountRepository.GetByIdAsync(
-			accountId: FromAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: fromAccount);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await Assert.That(value: fromAccount.Balance.Amount).IsGreaterThan(minimum: balanceBefore);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldNotSaveAndNotThrow()
-	{
-		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await _accountRepository.DidNotReceive().SaveAsync(
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
 	public async Task HandleAsync_WhenCreditSucceeds_ShouldNotSaveFromAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.Create().Value!;
-		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create().Value!;
+		Account toAccount = AccountFactory.Create().Value!;
+		Account fromAccount = AccountFactory.Create().Value!;
 
 		_accountRepository.GetByIdAsync(
 			accountId: ToAccountId,
@@ -250,12 +260,71 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	}
 
 	[Test]
+	public async Task HandleAsync_WhenToAccountNotFound_ShouldRefundFromAccount()
+	{
+		Account fromAccount = AccountFactory.Create().Value!;
+		decimal balanceBefore = fromAccount.Balance.Amount;
+
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		_accountRepository.GetByIdAsync(
+			accountId: FromAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: fromAccount);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await Assert.That(value: fromAccount.Balance.Amount).IsGreaterThan(minimum: balanceBefore);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenToAccountNotFound_ShouldUpdateStatusToCompensated()
+	{
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		_accountRepository.GetByIdAsync(
+			accountId: FromAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
+			transferId: TransferId,
+			status: TransferStatus.Compensated,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldNotSaveAndNotThrow()
+	{
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
 	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldCreateUnresolvableEvent()
 	{
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+		).Returns(returnThis: (Account?)null);
 
 		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
@@ -265,6 +334,23 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			reason: Arg.Any<string>(),
 			payload: Arg.Any<string>(),
 			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldUpdateStatusToFailed()
+	{
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
+			transferId: TransferId,
+			status: TransferStatus.Failed,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

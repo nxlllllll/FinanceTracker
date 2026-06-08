@@ -34,7 +34,7 @@ public sealed class Transfer
 	{
 		if (fromAccountId == toAccountId)
 			return Result<Transfer, DomainException>.Failure(error: new SameAccountTransferException(message: "Cannot transfer to the same account."));
-		
+
 		if (exchangeRate <= 0)
 			return Result<Transfer, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
 
@@ -60,5 +60,61 @@ public sealed class Transfer
 			Description = description,
 			OccurredAt = occurredAt
 		});
+	}
+
+	public static Transfer Reconstitute(
+		Guid id,
+		Guid userId,
+		Guid fromAccountId,
+		Guid toAccountId,
+		Money amountFrom,
+		Money amountTo,
+		decimal exchangeRate,
+		bool isRatePending,
+		TransferStatus status,
+		string? description,
+		DateTimeOffset occurredAt)
+	{
+		return new Transfer
+		{
+			Id = id,
+			UserId = userId,
+			FromAccountId = fromAccountId,
+			ToAccountId = toAccountId,
+			AmountFrom = amountFrom,
+			AmountTo = amountTo,
+			ExchangeRate = exchangeRate,
+			IsRatePending = isRatePending,
+			Status = status,
+			Description = description,
+			OccurredAt = occurredAt
+		};
+	}
+
+	public Result<Unit, DomainException> Complete()
+	{
+		if (Status != TransferStatus.PendingCredit)
+			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer can only be completed from PendingCredit state. Current state: {Status}."));
+
+		Status = TransferStatus.Completed;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> Compensate()
+	{
+		if (Status != TransferStatus.PendingCredit)
+			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer can only be compensated from PendingCredit state. Current state: {Status}."));
+
+		Status = TransferStatus.Compensated;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> Fail()
+	{
+		if (Status is TransferStatus.Completed or TransferStatus.Failed)
+			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer cannot be failed from {Status} state."));
+
+		Status = TransferStatus.Failed;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }
