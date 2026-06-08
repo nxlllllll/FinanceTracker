@@ -193,7 +193,7 @@ public sealed class PostgresEventStore(
 		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(
 			name: FinanceTrackerActivitySource.Operations.EventStoreLoad,
 			kind: ActivityKind.Client
-		);;
+		);
 
 		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateId, value: aggregateId);
 		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateType, value: aggregateType);
@@ -210,25 +210,40 @@ public sealed class PostgresEventStore(
 			.OrderBy(keySelector: e => e.Version)
 			.ToListAsync(cancellationToken: ct);
 
-		List<IEvent> domainEvents = entities.Select(selector: entity =>
+		List<IEvent> domainEvents = new List<IEvent>(capacity: entities.Count);
+
+		foreach (EventEntity entity in entities)
 		{
-			Type type = eventTypeResolver.ResolveType(typeName: entity.EventType);
-			int currentVersion = eventTypeResolver.GetCurrentVersion(typeName: entity.EventType);
-			int storedVersion = entity.SchemaVersion;
+			try
+			{
+				Type type = eventTypeResolver.ResolveType(typeName: entity.EventType);
+				int currentVersion = eventTypeResolver.GetCurrentVersion(typeName: entity.EventType);
+				int storedVersion = entity.SchemaVersion;
 
-			using JsonDocument raw = JsonDocument.Parse(json: entity.Payload);
-			using JsonDocument upcasted = upcasterRegistry.Apply(
-				eventType: entity.EventType,
-				source: raw,
-				storedVersion: storedVersion,
-				currentVersion: currentVersion
-			);
+				using JsonDocument raw = JsonDocument.Parse(json: entity.Payload);
+				using JsonDocument upcasted = upcasterRegistry.Apply(
+					eventType: entity.EventType,
+					source: raw,
+					storedVersion: storedVersion,
+					currentVersion: currentVersion
+				);
 
-			return (IEvent)upcasted.RootElement.Deserialize(
-				returnType: type,
-				options: FinanceTrackerJsonOptions.Payload
-			)!;
-		}).ToList();
+				IEvent domainEvent = (IEvent)upcasted.RootElement.Deserialize(
+					returnType: type,
+					options: FinanceTrackerJsonOptions.Payload
+				)!;
+
+				domainEvents.Add(item: domainEvent);
+			}
+			catch (Exception ex)
+			{
+				logger.ZLogError(exception: ex, message: $"""
+					Failed to deserialize event '{entity.EventType}' v{entity.SchemaVersion} (id: {entity.Id}) for {aggregateType} {aggregateId}. 
+					Stored at version {entity.Version}.
+				""");
+				throw;
+			}
+		}
 
 		SnapshotData? snapshotData = snapshot is null ? null : new SnapshotData(
 			AggregateId: snapshot.AggregateId,
@@ -247,7 +262,8 @@ public sealed class PostgresEventStore(
 		string aggregateType,
 		CancellationToken ct = default)
 	{
-		return await context.Events.AsNoTracking().Where(predicate: e => e.AggregateType == aggregateType)
+		return await context.Events.AsNoTracking()
+			.Where(predicate: e => e.AggregateType == aggregateType)
 			.Select(selector: e => e.AggregateId)
 			.Distinct()
 			.ToListAsync(cancellationToken: ct);

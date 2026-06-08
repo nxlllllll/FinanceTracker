@@ -22,6 +22,7 @@
         </None>
     </ItemGroup>
     <ItemGroup>
+      <EmbeddedResource Include="Migrations\V014__add_idempotency_reserved_at.sql" />
       <None Remove="Migrations\V001__init.sql" />
       <EmbeddedResource Include="Migrations\V001__init.sql" />
       <None Remove="Migrations\V002__add_outbox_indexes.sql" />

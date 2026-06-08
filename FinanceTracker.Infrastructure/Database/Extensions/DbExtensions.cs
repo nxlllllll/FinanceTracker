@@ -29,15 +29,18 @@ public static class DbContextExtensions
 		this DbContext context,
 		Guid idempotencyKey,
 		string commandType,
-		DateTimeOffset createdAt,
+		DateTimeOffset reservedAt,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
 	{
-		int rows = await context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO idempotent_commands (idempotency_key, command_type, response_json, created_at, expires_at)
-			VALUES ({idempotencyKey}, {commandType}, NULL, {createdAt}, {expiresAt})
+		int rows = await context.Database.ExecuteSqlAsync(
+			sql: $"""
+			INSERT INTO idempotent_commands (idempotency_key, command_type, reserved_at, expires_at)
+			VALUES ({idempotencyKey}, {commandType}, {reservedAt}, {expiresAt})
 			ON CONFLICT (idempotency_key) DO NOTHING
-		""", cancellationToken: ct);
+			""",
+			cancellationToken: ct
+		);
 
 		return rows == 1;
 	}

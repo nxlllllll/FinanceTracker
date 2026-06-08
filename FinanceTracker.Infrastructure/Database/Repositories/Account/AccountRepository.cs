@@ -40,13 +40,11 @@ public sealed class AccountRepository(
 		if (account.Events.Count == 0)
 			return;
 
-		int expectedVersion = account.Version - account.Events.Count;
-
 		await eventStore.SaveAsync(
 			aggregateId: account.Id,
 			aggregateType: AggregateType,
 			events: account.Events,
-			expectedVersion: expectedVersion,
+			expectedVersion: account.PersistedVersion,
 			snapshotFactory: () => snapshotSerializer.Serialize(aggregate: account),
 			ct: ct
 		);

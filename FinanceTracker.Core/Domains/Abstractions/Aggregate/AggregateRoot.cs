@@ -8,6 +8,7 @@ public abstract class AggregateRoot
 
 	public Guid Id { get; protected set; }
 	public int Version { get; private set; }
+	public int PersistedVersion => Version - _events.Count;
 	public IReadOnlyList<IEvent> Events => _events.AsReadOnly();
 
 	private void Load(IEvent @event)

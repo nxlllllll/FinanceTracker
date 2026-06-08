@@ -1,27 +1,19 @@
 using FinanceTracker.Core.Repositories.Idempotency;
-using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Context.Idempotency;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
 
 public sealed class IdempotencyReadRepository(
-	FinanceTrackerContext context,
-	IDateProvider dateProvider
+	FinanceTrackerContext context
 ) : IIdempotencyReadRepository
 {
-	public async Task<string?> GetAsync(
+	public async Task<IdempotencyEntry?> GetAsync(
 		Guid idempotencyKey,
 		CancellationToken ct = default)
 	{
-		IdempotentCommandEntity? entity = await context.IdempotentCommands
-			.Where(predicate: e => e.IdempotencyKey == idempotencyKey && e.ExpiresAt > dateProvider.UtcNow)
+		return await context.IdempotentCommands.AsNoTracking().Where(predicate: e => e.IdempotencyKey == idempotencyKey)
+			.Select(selector: e => new IdempotencyEntry(ResponseJson: e.ResponseJson, ReservedAt: e.ReservedAt))
 			.FirstOrDefaultAsync(cancellationToken: ct);
-
-		if (entity is null)
-			return null;
-
-		return entity.ResponseJson ?? String.Empty;
 	}
 }

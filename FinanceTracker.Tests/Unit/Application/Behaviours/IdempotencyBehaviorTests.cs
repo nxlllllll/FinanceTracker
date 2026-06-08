@@ -1,8 +1,10 @@
+using System.Text.Json;
 using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -15,7 +17,7 @@ public sealed class IdempotencyBehaviorTests
 	public sealed record TestCommand(Guid IdempotencyKey) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand;
 	public sealed record NonIdempotentCommand : IRequest<Result<Guid, DomainException>>;
 
-	private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new()
+	private static readonly JsonSerializerOptions JsonOpts = new JsonSerializerOptions
 	{
 		Converters = { new ResultJsonConverterFactory() }
 	};
@@ -25,6 +27,7 @@ public sealed class IdempotencyBehaviorTests
 	private IdempotencyBehavior<TestCommand, Result<Guid, DomainException>> _behavior = null!;
 
 	private static readonly Guid ValidKey = Guid.CreateVersion7();
+	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
 
 	[Before(hookType: Test)]
 	public void Setup()
@@ -34,6 +37,7 @@ public sealed class IdempotencyBehaviorTests
 		_writeRepository.TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
@@ -41,20 +45,36 @@ public sealed class IdempotencyBehaviorTests
 		_behavior = BuildBehavior<TestCommand>();
 	}
 
-	private IdempotencyBehavior<TReq, Result<Guid, DomainException>> BuildBehavior<TReq>(int expiryHours = 24)
+	private IdempotencyBehavior<TReq, Result<Guid, DomainException>> BuildBehavior<TReq>(
+		int expiryHours = 24,
+		int abandonedAfterSeconds = 30,
+		IDateProvider? dateProvider = null)
 		where TReq : notnull
 	{
 		return new IdempotencyBehavior<TReq, Result<Guid, DomainException>>(
 			idempotencyReadRepository: _readRepository,
 			idempotencyWriteRepository: _writeRepository,
-			options: new FakeOptionsMonitor<IdempotencyOptions>(value: new IdempotencyOptions { ExpiryHours = expiryHours }),
-			dateProvider: FakeDateProvider.Default,
+			options: new FakeOptionsMonitor<IdempotencyOptions>(value: new IdempotencyOptions
+			{
+				ExpiryHours = expiryHours,
+				InFlightInitialDelayMs = 0,
+				InFlightMaxWaitMs = 100,
+				InFlightMaxDelayMs = 50,
+				AbandonedAfterSeconds = abandonedAfterSeconds
+			}),
+			dateProvider: dateProvider ?? FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<IdempotencyBehavior<TReq, Result<Guid, DomainException>>>>()
 		);
 	}
 
 	private static string Serialize(Result<Guid, DomainException> result)
-		=> System.Text.Json.JsonSerializer.Serialize(value: result, options: JsonOpts);
+		=> JsonSerializer.Serialize(value: result, options: JsonOpts);
+
+	private static IdempotencyEntry CompletedEntry(Result<Guid, DomainException> result)
+		=> new IdempotencyEntry(ResponseJson: Serialize(result: result), ReservedAt: Now);
+
+	private static IdempotencyEntry InFlightEntry(DateTimeOffset? reservedAt = null)
+		=> new IdempotencyEntry(ResponseJson: null, ReservedAt: reservedAt ?? Now);
 
 	private static Result<Guid, DomainException> Ok()
 		=> Result<Guid, DomainException>.Success(value: Guid.CreateVersion7());
@@ -81,6 +101,7 @@ public sealed class IdempotencyBehaviorTests
 		await _writeRepository.DidNotReceive().TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -115,6 +136,7 @@ public sealed class IdempotencyBehaviorTests
 		await _writeRepository.DidNotReceive().TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -126,7 +148,7 @@ public sealed class IdempotencyBehaviorTests
 		_readRepository.GetAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (string?)null);
+		).Returns(returnThis: (IdempotencyEntry?)null);
 
 		bool nextCalled = false;
 
@@ -143,9 +165,9 @@ public sealed class IdempotencyBehaviorTests
 	public async Task Handle_WhenNoCacheAndSlotAcquiredAndSuccessResult_ShouldCompleteWithSerializedResponse()
 	{
 		_readRepository.GetAsync(
-			idempotencyKey: Arg.Any<Guid>(), 
+			idempotencyKey: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (string?)null);
+		).Returns(returnThis: (IdempotencyEntry?)null);
 
 		Guid expectedId = Guid.CreateVersion7();
 
@@ -163,12 +185,12 @@ public sealed class IdempotencyBehaviorTests
 	}
 
 	[Test]
-	public async Task Handle_WhenNoCacheAndSlotAcquiredAndFailureResult_ShouldNotComplete()
+	public async Task Handle_WhenNoCacheAndSlotAcquiredAndFailureResult_ShouldDeleteKeyAndNotComplete()
 	{
 		_readRepository.GetAsync(
-			idempotencyKey: Arg.Any<Guid>(), 
+			idempotencyKey: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (string?)null);
+		).Returns(returnThis: (IdempotencyEntry?)null);
 
 		await _behavior.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
@@ -181,6 +203,10 @@ public sealed class IdempotencyBehaviorTests
 			responseJson: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
+			idempotencyKey: ValidKey,
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -189,9 +215,9 @@ public sealed class IdempotencyBehaviorTests
 		const int expiryHours = 12;
 
 		_readRepository.GetAsync(
-			idempotencyKey: Arg.Any<Guid>(), 
+			idempotencyKey: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (string?)null);
+		).Returns(returnThis: (IdempotencyEntry?)null);
 
 		await BuildBehavior<TestCommand>(expiryHours: expiryHours).Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
@@ -202,6 +228,7 @@ public sealed class IdempotencyBehaviorTests
 		await _writeRepository.Received(requiredNumberOfCalls: 1).TryReserveAsync(
 			idempotencyKey: ValidKey,
 			commandType: nameof(TestCommand),
+			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: expiryHours),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -211,9 +238,9 @@ public sealed class IdempotencyBehaviorTests
 	public async Task Handle_WhenCompletedCacheFound_ShouldNotCallNext()
 	{
 		_readRepository.GetAsync(
-			idempotencyKey: ValidKey, 
+			idempotencyKey: ValidKey,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Serialize(result: Ok()));
+		).Returns(returnThis: CompletedEntry(result: Ok()));
 
 		bool nextCalled = false;
 
@@ -232,9 +259,9 @@ public sealed class IdempotencyBehaviorTests
 		Guid cachedId = Guid.CreateVersion7();
 
 		_readRepository.GetAsync(
-			idempotencyKey: ValidKey, 
+			idempotencyKey: ValidKey,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Serialize(result: OkWith(value: cachedId)));
+		).Returns(returnThis: CompletedEntry(result: OkWith(value: cachedId)));
 
 		Result<Guid, DomainException> result = await _behavior.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
@@ -252,7 +279,7 @@ public sealed class IdempotencyBehaviorTests
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Serialize(result: Ok()));
+		).Returns(returnThis: CompletedEntry(result: Ok()));
 
 		await _behavior.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
@@ -263,6 +290,7 @@ public sealed class IdempotencyBehaviorTests
 		await _writeRepository.DidNotReceive().TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -277,22 +305,25 @@ public sealed class IdempotencyBehaviorTests
 	public async Task Handle_WhenSlotAlreadyReserved_ShouldNotCallNext()
 	{
 		_readRepository.GetAsync(
-			idempotencyKey: ValidKey, 
+			idempotencyKey: ValidKey,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (string?)null);
+		).Returns(returnThis: (IdempotencyEntry?)null);
 
 		_writeRepository.TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: false);
 
-		string completedJson = Serialize(result: Ok());
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: null, String.Empty, completedJson);
+		).Returns(
+			returnThis: InFlightEntry(),
+			returnThese: CompletedEntry(result: Ok())
+		);
 
 		bool nextCalled = false;
 
@@ -309,12 +340,14 @@ public sealed class IdempotencyBehaviorTests
 	public async Task Handle_WhenInFlightEntryFound_ShouldPollUntilCompleted()
 	{
 		Guid completedId = Guid.CreateVersion7();
-		string completedJson = Serialize(result: OkWith(value: completedId));
 
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: String.Empty, returnThese: completedJson);
+		).Returns(
+			returnThis: InFlightEntry(),
+			returnThese: CompletedEntry(result: OkWith(value: completedId))
+		);
 
 		Result<Guid, DomainException> result = await _behavior.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
@@ -329,17 +362,96 @@ public sealed class IdempotencyBehaviorTests
 	[Test]
 	public async Task Handle_WhenInFlightTimesOut_ShouldReturnFailure()
 	{
-		_readRepository.GetAsync(
-			idempotencyKey: ValidKey, 
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: String.Empty);
+		ControllableDateProvider dateProvider = new ControllableDateProvider(initial: Now);
 
-		using CancellationTokenSource cts = new CancellationTokenSource(delay: TimeSpan.FromSeconds(value: 10));
+		_readRepository.GetAsync(
+			idempotencyKey: ValidKey,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ =>
+		{
+			dateProvider.Advance(by: TimeSpan.FromSeconds(value: 5));
+			return Task.FromResult<IdempotencyEntry?>(result: InFlightEntry(reservedAt: Now));
+		});
+
+		Result<Guid, DomainException> result = await BuildBehavior<TestCommand>(
+			abandonedAfterSeconds: 999,
+			dateProvider: dateProvider
+		).Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => throw new InvalidOperationException(message: "next should not be called"),
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+	}
+
+	[Test]
+	public async Task Handle_WhenEntryIsAbandoned_ShouldDeleteAndReturnFailure()
+	{
+		DateTimeOffset abandonedAt = Now.AddSeconds(seconds: -60);
+
+		_readRepository.GetAsync(
+			idempotencyKey: ValidKey,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: InFlightEntry(reservedAt: abandonedAt));
 
 		Result<Guid, DomainException> result = await _behavior.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => throw new InvalidOperationException(message: "next should not be called"),
-			cancellationToken: cts.Token
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
+			idempotencyKey: ValidKey,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenEntryBecomesAbandonedDuringPoll_ShouldDeleteAndReturnFailure()
+	{
+		DateTimeOffset abandonedAt = Now.AddSeconds(seconds: -60);
+
+		_readRepository.GetAsync(
+			idempotencyKey: ValidKey,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(
+			returnThis: InFlightEntry(),
+			returnThese: InFlightEntry(reservedAt: abandonedAt)
+		);
+
+		Result<Guid, DomainException> result = await _behavior.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => throw new InvalidOperationException(message: "next should not be called"),
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
+			idempotencyKey: ValidKey,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenEntryDisappearedDuringPoll_ShouldReturnFailure()
+	{
+		_readRepository.GetAsync(
+			idempotencyKey: ValidKey,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(
+			returnThis: InFlightEntry(),
+			returnThese: (IdempotencyEntry?)null
+		);
+
+		Result<Guid, DomainException> result = await _behavior.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => throw new InvalidOperationException(message: "next should not be called"),
+			cancellationToken: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();

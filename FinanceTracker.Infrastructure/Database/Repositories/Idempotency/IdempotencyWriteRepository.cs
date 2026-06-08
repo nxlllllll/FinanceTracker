@@ -14,30 +14,30 @@ public sealed class IdempotencyWriteRepository(
 	public async Task<bool> TryReserveAsync(
 		Guid idempotencyKey,
 		string commandType,
+		DateTimeOffset reservedAt,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
 	{
 		return await context.TryReserveIdempotentCommandAsync(
 			idempotencyKey: idempotencyKey,
 			commandType: commandType,
-			createdAt: dateProvider.UtcNow,
+			reservedAt: dateProvider.UtcNow,
 			expiresAt: expiresAt,
 			ct: ct
 		);
 	}
 
-	public Task CompleteAsync(
-		Guid idempotencyKey,
-		string responseJson,
-		CancellationToken ct = default)
-	{
-		return context.CompleteIdempotentCommandAsync(
-			idempotencyKey: idempotencyKey,
-			responseJson: responseJson,
-			ct: ct
-		);
-	}
-
+    public async Task CompleteAsync(
+        Guid idempotencyKey,
+        string responseJson,
+        CancellationToken ct = default)
+    {
+        await context.IdempotentCommands.Where(predicate: e => e.IdempotencyKey == idempotencyKey).ExecuteUpdateAsync(
+            setPropertyCalls: s => s.SetProperty(propertyExpression: e => e.ResponseJson, valueExpression: responseJson),
+            cancellationToken: ct
+        );
+    }
+	
 	public async Task<int> DeleteExpiredAsync(
 		DateTimeOffset before,
 		int batchSize,
@@ -49,8 +49,8 @@ public sealed class IdempotencyWriteRepository(
 			.ExecuteDeleteAsync(cancellationToken: ct);
 	}
 
-	public async Task DeleteAsync(
-		Guid idempotencyKey, 
-		CancellationToken ct = default
-	) => await context.IdempotentCommands.Where(predicate: x => x.IdempotencyKey == idempotencyKey).ExecuteDeleteAsync(cancellationToken: ct);
+    public async Task DeleteAsync(
+        Guid idempotencyKey,
+        CancellationToken ct = default
+    ) => await context.IdempotentCommands.Where(predicate: e => e.IdempotencyKey == idempotencyKey).ExecuteDeleteAsync(cancellationToken: ct);
 }

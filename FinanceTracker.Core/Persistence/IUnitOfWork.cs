@@ -1,6 +1,6 @@
 namespace FinanceTracker.Core.Persistence;
 
-public interface IUnitOfWork : IDisposable, IAsyncDisposable
+public interface IUnitOfWork : IAsyncDisposable
 {
 	Task BeginTransactionAsync(CancellationToken ct = default);
 	

@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FinanceTracker.Infrastructure.Database.Context.Idempotency;
 
-public sealed class IdempotentCommandEntityConfiguration : IEntityTypeConfiguration<IdempotentCommandEntity>
+public sealed class IdempotentCommandEntityConfiguration
+	: IEntityTypeConfiguration<IdempotentCommandEntity>
 {
 	public void Configure(EntityTypeBuilder<IdempotentCommandEntity> builder)
 	{
@@ -22,13 +23,10 @@ public sealed class IdempotentCommandEntityConfiguration : IEntityTypeConfigurat
 			.HasColumnName(name: "response_json")
 			.HasColumnType(typeName: "jsonb");
 
-		builder.Property(propertyExpression: e => e.CreatedAt)
-			.HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: e => e.ReservedAt)
+			.HasColumnName(name: "reserved_at");
 
 		builder.Property(propertyExpression: e => e.ExpiresAt)
 			.HasColumnName(name: "expires_at");
-
-		builder.HasIndex(indexExpression: e => e.ExpiresAt)
-			.HasDatabaseName(name: "ix_idempotent_commands_expires_at");
 	}
 }

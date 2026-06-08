@@ -100,18 +100,6 @@ public sealed class EFUnitOfWork(
 		}
 	}
 
-	public void Dispose()
-	{
-		if (_transaction is null)
-			return;
-
-		_savepoints.Clear();
-		_transaction.Rollback();
-		_transaction.Dispose();
-		_transaction = null;
-		context.ChangeTracker.Clear();
-	}
-
 	public async ValueTask DisposeAsync()
 	{
 		if (_transaction is null)
