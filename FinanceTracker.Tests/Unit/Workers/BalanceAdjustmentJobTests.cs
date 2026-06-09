@@ -27,7 +27,7 @@ public sealed class BalanceAdjustmentJobTests
     private IJobExecutionContext _jobContext = null!;
     private BalanceAdjustmentJob _job = null!;
 
-    private static readonly BalanceAdjustmentJobOptions DefaultOptions = new()
+    private static readonly BalanceAdjustmentJobOptions DefaultOptions = new BalanceAdjustmentJobOptions
     {
         MaxRetries = 1,
         BaseDelayMs = 0,
@@ -115,7 +115,7 @@ public sealed class BalanceAdjustmentJobTests
     [Test]
     public async Task Execute_WhenNoPendingTransactions_ShouldNotFetchRate()
     {
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _currencyRateReadRepository.DidNotReceive().GetRateAsync(
             baseCurrencyCode: Arg.Any<Currency>(),
@@ -139,7 +139,7 @@ public sealed class BalanceAdjustmentJobTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: (decimal?)null);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.DidNotReceive().GetByIdAsync(
             accountId: Arg.Any<Guid>(),
@@ -161,7 +161,7 @@ public sealed class BalanceAdjustmentJobTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: 90m);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).UpdateRateAsync(
             transactionId: transaction.TransactionId,
@@ -193,7 +193,7 @@ public sealed class BalanceAdjustmentJobTests
 
         _accountRepository.GetByIdAsync(accountId: accountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: account);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
             account: account,
@@ -219,7 +219,7 @@ public sealed class BalanceAdjustmentJobTests
 
         _accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: account);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).UpdateRateAsync(
             transactionId: transactionId,
@@ -233,8 +233,7 @@ public sealed class BalanceAdjustmentJobTests
     {
         PendingRateTransaction transaction = BuildTransaction(currentRate: 80m);
 
-        _transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>())
-            .Returns(returnThis: [transaction]);
+        _transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Arg.Any<Currency>(),
@@ -245,7 +244,7 @@ public sealed class BalanceAdjustmentJobTests
 
         _accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: (Account?)null);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.DidNotReceive().SaveAsync(
             account: Arg.Any<Account>(),
@@ -278,7 +277,7 @@ public sealed class BalanceAdjustmentJobTests
             return account;
         });
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
             account: account,
@@ -311,7 +310,7 @@ public sealed class BalanceAdjustmentJobTests
             return Task.CompletedTask;
         });
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await Assert.That(value: saveCallCount).IsEqualTo(expected: 2);
     }
@@ -340,7 +339,7 @@ public sealed class BalanceAdjustmentJobTests
 
         _accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: AccountFactory.Create(balance: 5000m).Value!);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).GetByIdAsync(
             accountId: Arg.Any<Guid>(),
@@ -351,7 +350,7 @@ public sealed class BalanceAdjustmentJobTests
     [Test]
     public async Task Execute_WhenNoPendingTransfers_ShouldNotFetchTransferRate()
     {
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _currencyRateReadRepository.DidNotReceive().GetRateAsync(
             baseCurrencyCode: Arg.Any<Currency>(),
@@ -375,7 +374,7 @@ public sealed class BalanceAdjustmentJobTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: (decimal?)null);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.DidNotReceive().GetByIdAsync(
             accountId: Arg.Any<Guid>(),
@@ -388,8 +387,7 @@ public sealed class BalanceAdjustmentJobTests
     {
         PendingRateTransfer transfer = BuildTransfer(currentRate: 90m);
 
-        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>())
-            .Returns(returnThis: [transfer]);
+        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Arg.Any<Currency>(),
@@ -398,7 +396,7 @@ public sealed class BalanceAdjustmentJobTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: 90m);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateRateAsync(
             transferId: transfer.TransferId,
@@ -439,7 +437,7 @@ public sealed class BalanceAdjustmentJobTests
 
         _accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: toAccount);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
             account: fromAccount,
@@ -463,8 +461,7 @@ public sealed class BalanceAdjustmentJobTests
             currentRate: 80m
         );
 
-        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>())
-            .Returns(returnThis: [transfer]);
+        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Arg.Any<Currency>(),
@@ -477,7 +474,7 @@ public sealed class BalanceAdjustmentJobTests
 
         _accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: AccountFactory.Create().Value!);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.DidNotReceive().SaveAsync(
             account: Arg.Any<Account>(),
@@ -496,8 +493,7 @@ public sealed class BalanceAdjustmentJobTests
             currentRate: 80m
         );
 
-        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>())
-            .Returns(returnThis: [transfer]);
+        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Arg.Any<Currency>(),
@@ -510,7 +506,7 @@ public sealed class BalanceAdjustmentJobTests
 
         _accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: (Account?)null);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _accountRepository.DidNotReceive().SaveAsync(
             account: Arg.Any<Account>(),

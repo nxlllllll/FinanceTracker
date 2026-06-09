@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -11,23 +12,15 @@ public sealed class TransferCreditLagJob(
 	ITransferReadRepository transferReadRepository,
 	IOptionsMonitor<TransferCreditLagOptions> options,
 	ILogger<TransferCreditLagJob> logger
-) : IJob
+) : BaseJob<TransferCreditLagOptions>(options: options, logger: logger)
 {
-	public async Task Execute(IJobExecutionContext executionContext)
+	protected override async Task ProcessAsync(TransferCreditLagOptions options, CancellationToken ct)
 	{
-		TransferCreditLagOptions currentOptions = options.CurrentValue;
-		
-		if (!currentOptions.IsEnabled)
-		{
-			logger.ZLogInformation(message: $"[{nameof(TransferCreditLagJob)}] Disabled. Skipping.");
-			return;
-		}
-
-		TimeSpan gracePeriod = TimeSpan.FromMinutes(value: currentOptions.GracePeriodMinutes);
+		TimeSpan gracePeriod = TimeSpan.FromMinutes(value: options.GracePeriodMinutes);
 
 		int pendingCount = await transferReadRepository.GetPendingCreditCountAsync(
 			gracePeriod: gracePeriod,
-			ct: executionContext.CancellationToken
+			ct: ct
 		);
 
 		WorkerMetrics.TransferCreditPending.Record(value: pendingCount);

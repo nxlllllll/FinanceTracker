@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FinanceTracker.Worker.Shared.Job;
 
 namespace FinanceTracker.Worker.BalanceAdjustment.Job;
 
-public sealed class BalanceAdjustmentJobOptions
+public sealed class BalanceAdjustmentJobOptions : IJobOptions
 {
 	public const string SectionName = "BalanceAdjustmentJob";
 

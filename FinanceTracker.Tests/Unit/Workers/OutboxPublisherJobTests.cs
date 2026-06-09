@@ -28,7 +28,7 @@ public sealed class OutboxPublisherJobTests
 
     private static readonly DateTimeOffset Now = new DateTimeOffset(year: 2025, month: 6, day: 1, hour: 12, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-    private static readonly OutboxOptions DefaultOptions = new()
+    private static readonly OutboxOptions DefaultOptions = new OutboxOptions
     {
         IsEnabled = true,
         BatchSize = 10,
@@ -109,7 +109,7 @@ public sealed class OutboxPublisherJobTests
             logger: new CapturingLogger<OutboxPublisherJob>()
         );
  
-        await disabledJob.Execute(executionContext: _jobContext);
+        await disabledJob.Execute(context: _jobContext);
  
         await _readRepository.DidNotReceive().GetPendingBatchAsync(
             batchSize: Arg.Any<int>(),
@@ -120,7 +120,7 @@ public sealed class OutboxPublisherJobTests
     [Test]
     public async Task Execute_WhenBatchIsEmpty_ShouldNotPublish()
     {
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _publisher.DidNotReceive().PublishAsync(
             message: Arg.Any<IRoutableMessage>(),
@@ -140,7 +140,7 @@ public sealed class OutboxPublisherJobTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: [msg1, msg2]);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsPublishedAsync(
             messageId: msg1.Id,
@@ -170,7 +170,7 @@ public sealed class OutboxPublisherJobTests
             ct: Arg.Any<CancellationToken>()
         ).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
             messageId: message.Id,
@@ -204,7 +204,7 @@ public sealed class OutboxPublisherJobTests
             ct: Arg.Any<CancellationToken>()
         ).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
             type: UnresolvableEventType.OutboxDeadLetter,

@@ -1,7 +1,8 @@
 ﻿using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
-using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -12,19 +13,12 @@ namespace FinanceTracker.Worker.DeadLetterMonitor.Job;
 public sealed class DeadLetterMonitoringJob(
 	IUnresolvableEventReadRepository unresolvableEventReadRepository,
 	IOptionsMonitor<DeadLetterMonitoringOptions> options,
-	IDateProvider dateProvider,
 	ILogger<DeadLetterMonitoringJob> logger
-) : IJob
+) : BaseJob<DeadLetterMonitoringOptions>(options: options, logger: logger)
 {
-	public async Task Execute(IJobExecutionContext executionContext)
+	protected override async Task ProcessAsync(DeadLetterMonitoringOptions options, CancellationToken ct)
 	{
-		if (!options.CurrentValue.IsEnabled)
-		{
-			logger.ZLogInformation(message: $"[{nameof(DeadLetterMonitoringJob)}] Disabled on {dateProvider.UtcNow}. Skipping.");
-			return;
-		}
-
-		IReadOnlyList<UnresolvableEvent> events = await unresolvableEventReadRepository.GetAllAsync(ct: executionContext.CancellationToken);
+		IReadOnlyList<UnresolvableEvent> events = await unresolvableEventReadRepository.GetAllAsync(ct: ct);
 
 		WorkerMetrics.DeadLetterCount.Record(value: events.Count);
 

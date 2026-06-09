@@ -5,6 +5,7 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Utilities;
+using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -14,95 +15,86 @@ namespace FinanceTracker.Worker.RecurringTransaction.Job;
 
 [DisallowConcurrentExecution]
 public sealed class RecurringTransactionHandlingJob(
-    IRecurringTransactionReadRepository recurringTransactionReadRepository,
-    IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
-    IUnitOfWork unitOfWork,
-    IRabbitMqPublisher publisher,
-    ICorrelationContext correlationContext,
-    IDateProvider dateProvider,
-    IOptionsMonitor<RecurringTransactionJobOptions> options,
-    ILogger<RecurringTransactionHandlingJob> logger
-) : IJob
+	IRecurringTransactionReadRepository recurringTransactionReadRepository,
+	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
+	IUnitOfWork unitOfWork,
+	IRabbitMqPublisher publisher,
+	ICorrelationContext correlationContext,
+	IDateProvider dateProvider,
+	IOptionsMonitor<RecurringTransactionJobOptions> options,
+	ILogger<RecurringTransactionHandlingJob> logger
+) : BaseJob<RecurringTransactionJobOptions>(options: options, logger: logger)
 {
-    public async Task Execute(IJobExecutionContext executionContext)
-    {
-        if (!options.CurrentValue.IsEnabled)
-        {
-            logger.ZLogInformation(message: $"[{nameof(RecurringTransactionHandlingJob)}] Disabled. Skipping.");
-            return;
-        }
+	protected override async Task ProcessAsync(RecurringTransactionJobOptions options, CancellationToken ct)
+	{
+		IReadOnlyList<RecurringTransactionReadModel> dueTransactions = await GetDueTodayAsync(ct: ct);
 
-        await ProcessTransactionsAsync(ct: executionContext.CancellationToken);
-    }
+		if (dueTransactions.Count == 0)
+			return;
 
-    private async Task ProcessTransactionsAsync(CancellationToken ct)
-    {
-        IReadOnlyList<RecurringTransactionReadModel> dueTransactions = await GetDueTodayAsync(ct: ct);
+		logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Found {dueTransactions.Count} due recurring transaction(s) for {dateProvider.UtcNow:dd.MM.yyyy}.");
 
-        if (dueTransactions.Count == 0)
-            return;
+		int processed = 0;
+		int failed = 0;
 
-        logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Found {dueTransactions.Count} due recurring transaction(s) for {dateProvider.UtcNow:dd.MM.yyyy}.");
+		foreach (RecurringTransactionReadModel transaction in dueTransactions)
+		{
+			if (ct.IsCancellationRequested)
+				break;
 
-        int processed = 0;
-        int failed = 0;
+			try
+			{
+				DateTimeOffset now = dateProvider.UtcNow;
+				Guid messageId = DeterministicGuid.Create(baseId: transaction.Id, year: now.Year, month: now.Month);
 
-        foreach (RecurringTransactionReadModel transaction in dueTransactions)
-        {
-            if (ct.IsCancellationRequested)
-                break;
+				await publisher.PublishAsync(message: new RecurringTransactionTriggeredMessage(
+					MessageId: messageId,
+					RecurringTransactionId: transaction.Id,
+					AccountId: transaction.AccountId,
+					UserId: transaction.UserId,
+					CategoryId: transaction.CategoryId,
+					Amount: transaction.Amount.Amount,
+					Currency: transaction.Amount.Currency.Value,
+					Direction: transaction.Direction.ToString(),
+					Description: transaction.Description,
+					OccurredAt: now,
+					CorrelationId: correlationContext.CorrelationId
+				), correlationId: correlationContext.CorrelationId, ct: ct);
 
-            try
-            {
-                DateTimeOffset now = dateProvider.UtcNow;
+				await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+					await recurringTransactionWriteRepository.MarkExecutedAsync(
+						recurringTransactionId: transaction.Id,
+						executedAt: now,
+						ct: ct
+					), ct: ct);
 
-                Guid messageId = DeterministicGuid.Create(baseId: transaction.Id, year: now.Year, month: now.Month);
+				logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processed: {++processed}/{dueTransactions.Count} (id: {transaction.Id}).");
+			}
+			catch (Exception ex)
+			{
+				failed++;
+				logger.ZLogError(exception: ex, message: $"[{correlationContext.CorrelationId}] Failed to process recurring transaction {transaction.Id}. Skipping.");
+			}
+		}
 
-                await publisher.PublishAsync(message: new RecurringTransactionTriggeredMessage(
-                    MessageId: messageId,
-                    RecurringTransactionId: transaction.Id,
-                    AccountId: transaction.AccountId,
-                    UserId: transaction.UserId,
-                    CategoryId: transaction.CategoryId,
-                    Amount: transaction.Amount.Amount,
-                    Currency: transaction.Amount.Currency.Value,
-                    Direction: transaction.Direction.ToString(),
-                    Description: transaction.Description,
-                    OccurredAt: now,
-                    CorrelationId: correlationContext.CorrelationId
-                ), correlationId: correlationContext.CorrelationId, ct: ct);
-                
-                await unitOfWork.ExecuteInTransactionAsync(operation: async () => await recurringTransactionWriteRepository.MarkExecutedAsync(
-                    recurringTransactionId: transaction.Id,
-                    executedAt: now,
-                    ct: ct
-                ), ct: ct);
-                
-                logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processed: {++processed}/{dueTransactions.Count} (id: {transaction.Id}).");
-            }
-            catch (Exception ex)
-            {
-                failed++;
-                logger.ZLogError(exception: ex, message: $"[{correlationContext.CorrelationId}] Failed to process recurring transaction {transaction.Id}. Skipping.");
-            }
-        }
+		if (failed > 0)
+			logger.ZLogWarning(message: $"[{correlationContext.CorrelationId}] Completed with {failed} failure(s) out of {dueTransactions.Count}.");
+	}
 
-        if (failed > 0)
-            logger.ZLogWarning(message: $"[{correlationContext.CorrelationId}] Completed with {failed} failure(s) out of {dueTransactions.Count}.");
-    }
+	private async Task<IReadOnlyList<RecurringTransactionReadModel>> GetDueTodayAsync(CancellationToken ct)
+	{
+		DateTimeOffset now = dateProvider.UtcNow;
+		DateTimeOffset currentMonthStart = new DateTimeOffset(
+			year: now.Year, month: now.Month, day: 1,
+			hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-    private async Task<IReadOnlyList<RecurringTransactionReadModel>> GetDueTodayAsync(CancellationToken ct)
-    {
-        DateTimeOffset now = dateProvider.UtcNow;
-        DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		logger.ZLogInformation(message: $"Querying due transactions for day {now.Day}, month start: {currentMonthStart:O}.");
 
-        logger.ZLogInformation(message: $"Querying due transactions for day {now.Day}, month start: {currentMonthStart:O}.");
-
-        return await recurringTransactionReadRepository.GetDueTodayAsync(
-            dayOfMonth: now.Day,
-            daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
-            currentMonthStart: currentMonthStart,
-            ct: ct
-        );
-    }
+		return await recurringTransactionReadRepository.GetDueTodayAsync(
+			dayOfMonth: now.Day,
+			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
+			currentMonthStart: currentMonthStart,
+			ct: ct
+		);
+	}
 }

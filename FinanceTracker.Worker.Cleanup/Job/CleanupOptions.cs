@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FinanceTracker.Worker.Shared.Job;
 
 namespace FinanceTracker.Worker.Cleanup.Job;
 
-public sealed class CleanupOptions
+public sealed class CleanupOptions : IJobOptions
 {
 	public const string SectionName = "Cleanup";
 

@@ -3,6 +3,7 @@ using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.Snapshot;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Worker.Shared.Job;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -18,22 +19,9 @@ public sealed class CleanupJob(
 	IDateProvider dateProvider,
 	IOptionsMonitor<CleanupOptions> options,
 	ILogger<CleanupJob> logger
-) : IJob
+) : BaseJob<CleanupOptions>(options: options, logger: logger)
 {
-	public async Task Execute(IJobExecutionContext context)
-	{
-		CleanupOptions currentOptions = options.CurrentValue;
-
-		if (!currentOptions.IsEnabled)
-		{
-			logger.ZLogInformation(message: $"[{nameof(CleanupJob)}] Disabled. Skipping.");
-			return;
-		}
-
-		await RunAsync(options: currentOptions, ct: context.CancellationToken);
-	}
-
-	private async Task RunAsync(CleanupOptions options, CancellationToken ct)
+	protected override async Task ProcessAsync(CleanupOptions options, CancellationToken ct)
 	{
 		DateTimeOffset now = dateProvider.UtcNow;
 

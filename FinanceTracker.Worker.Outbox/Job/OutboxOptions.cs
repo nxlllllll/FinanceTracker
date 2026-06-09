@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FinanceTracker.Worker.Shared.Job;
 
 namespace FinanceTracker.Worker.Outbox.Job;
 
-public sealed class OutboxOptions
+public sealed class OutboxOptions : IJobOptions
 {
 	public const string SectionName = "Outbox";
 

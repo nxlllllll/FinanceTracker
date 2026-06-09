@@ -89,7 +89,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _publisher.DidNotReceive().PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
@@ -102,7 +102,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -116,7 +116,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupRepository(count: 3);
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _publisher.Received(requiredNumberOfCalls: 3).PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
@@ -132,7 +132,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		SetupRepository(transactions: [transaction]);
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(message: Arg.Is<RecurringTransactionTriggeredMessage>(m =>
 			m.RecurringTransactionId == transaction.Id &&
@@ -151,7 +151,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
 		Guid expectedMessageId = DeterministicGuid.Create(baseId: transaction.Id, year: now.Year, month: now.Month);
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
 			message: Arg.Is<RecurringTransactionTriggeredMessage>(predicate: m => m.MessageId == expectedMessageId),
@@ -188,7 +188,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			return Task.CompletedTask;
 		});
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await Assert.That(value: callOrder).IsEquivalentTo(expected: ["Publish", "MarkExecuted"]);
 	}
@@ -198,7 +198,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupRepository(count: 2);
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 2).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -214,7 +214,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		SetupRepository(transactions: [transaction]);
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: transaction.Id,
@@ -228,7 +228,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupRepository(count: 1);
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -248,7 +248,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "RabbitMQ unavailable"));
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -279,7 +279,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			return Task.CompletedTask;
 		});
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: first.Id,
@@ -305,7 +305,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
 
@@ -322,7 +322,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
 		DateTimeOffset expectedMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
@@ -348,7 +348,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 
-		await _job.Execute(executionContext: _jobContext);
+		await _job.Execute(context: _jobContext);
 
 		await Assert.That(value: capturedMonthStart!.Value.Offset).IsEqualTo(expected: TimeSpan.Zero);
 	}

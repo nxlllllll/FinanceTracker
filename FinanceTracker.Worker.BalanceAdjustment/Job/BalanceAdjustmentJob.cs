@@ -12,6 +12,7 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Utilities.Retry;
+using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -31,22 +32,9 @@ public sealed class BalanceAdjustmentJob(
 	IDateProvider dateProvider,
 	IOptionsMonitor<BalanceAdjustmentJobOptions> options,
 	ILogger<BalanceAdjustmentJob> logger
-) : IJob
+) : BaseJob<BalanceAdjustmentJobOptions>(options: options, logger: logger)
 {
-	public async Task Execute(IJobExecutionContext executionContext)
-	{
-		BalanceAdjustmentJobOptions currentOptions = options.CurrentValue;
-
-		if (!currentOptions.IsEnabled)
-		{
-			logger.ZLogInformation(message: $"[{nameof(BalanceAdjustmentJob)}] Disabled. Skipping.");
-			return;
-		}
-
-		await ProcessAsync(options: currentOptions, ct: executionContext.CancellationToken);
-	}
-
-	private async Task ProcessAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
+	protected override async Task ProcessAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
 		await ProcessTransactionsAsync(options: options, ct: ct);
 		await ProcessTransfersAsync(options: options, ct: ct);

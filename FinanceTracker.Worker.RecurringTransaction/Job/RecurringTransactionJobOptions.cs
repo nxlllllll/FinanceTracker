@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FinanceTracker.Worker.Shared.Job;
 
 namespace FinanceTracker.Worker.RecurringTransaction.Job;
 
-public sealed class RecurringTransactionJobOptions
+public sealed class RecurringTransactionJobOptions : IJobOptions
 {
 	public const string SectionName = "RecurringTransaction";
 

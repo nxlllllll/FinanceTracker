@@ -3,6 +3,7 @@ using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Worker.CurrencyRate.Client;
+using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
@@ -18,20 +19,9 @@ public sealed class CurrencyRateJob(
 	IDateProvider dateProvider,
 	IOptionsMonitor<CurrencyRateJobOptions> options,
 	ILogger<CurrencyRateJob> logger
-) : IJob
+) : BaseJob<CurrencyRateJobOptions>(options: options, logger: logger)
 {
-	public async Task Execute(IJobExecutionContext executionContext)
-	{
-		if (!options.CurrentValue.IsEnabled)
-		{
-			logger.ZLogInformation(message: $"[{nameof(CurrencyRateJob)}] Disabled. Skipping.");
-			return;
-		}
-
-		await ProcessAsync(ct: executionContext.CancellationToken);
-	}
-
-	private async Task ProcessAsync(CancellationToken ct)
+	protected override async Task ProcessAsync(CurrencyRateJobOptions options, CancellationToken ct)
 	{
 		IReadOnlyList<CurrencyInfo> currencies = await currencyReadRepository.GetAllActiveAsync(ct: ct);
 

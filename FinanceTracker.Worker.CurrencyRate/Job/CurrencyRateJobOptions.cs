@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FinanceTracker.Worker.Shared.Job;
 
 namespace FinanceTracker.Worker.CurrencyRate.Job;
 
-public sealed class CurrencyRateJobOptions
+public sealed class CurrencyRateJobOptions : IJobOptions
 {
 	public const string SectionName = "CurrencyRateJob";
 

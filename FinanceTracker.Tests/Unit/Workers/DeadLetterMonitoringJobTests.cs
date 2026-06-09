@@ -27,7 +27,6 @@ public sealed class DeadLetterMonitoringJobTests
         _job = new DeadLetterMonitoringJob(
             unresolvableEventReadRepository: _readRepository,
             options: new FakeOptionsMonitor<DeadLetterMonitoringOptions>(new DeadLetterMonitoringOptions()),
-            dateProvider: FakeDateProvider.Default,
             logger: _logger
         );
     }
@@ -48,7 +47,7 @@ public sealed class DeadLetterMonitoringJobTests
     {
         _readRepository.GetAllAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: []);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 0);
     }
@@ -58,7 +57,7 @@ public sealed class DeadLetterMonitoringJobTests
     {
         _readRepository.GetAllAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: []);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _readRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(ct: Arg.Any<CancellationToken>());
     }
@@ -73,7 +72,7 @@ public sealed class DeadLetterMonitoringJobTests
             BuildDto(type: UnresolvableEventType.OutboxDeadLetter)
         ]);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await Assert.That(value: _logger.WarningLogged).IsTrue();
     }
@@ -88,7 +87,7 @@ public sealed class DeadLetterMonitoringJobTests
             BuildDto()
         ]);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 4);
     }
@@ -98,7 +97,7 @@ public sealed class DeadLetterMonitoringJobTests
     {
         _readRepository.GetAllAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [BuildDto()]);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 2);
     }
@@ -111,7 +110,7 @@ public sealed class DeadLetterMonitoringJobTests
 
         _readRepository.GetAllAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: []);
 
-        await _job.Execute(executionContext: _jobContext);
+        await _job.Execute(context: _jobContext);
 
         await _readRepository.Received(requiredNumberOfCalls: 1).GetAllAsync(ct: cts.Token);
     }
