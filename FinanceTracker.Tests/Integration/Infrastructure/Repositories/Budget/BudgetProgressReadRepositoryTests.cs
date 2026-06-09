@@ -1,8 +1,8 @@
 ﻿using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Builders;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 

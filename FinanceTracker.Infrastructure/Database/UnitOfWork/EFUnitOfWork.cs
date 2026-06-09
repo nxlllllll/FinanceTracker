@@ -1,7 +1,10 @@
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.UnitOfWork;
@@ -11,6 +14,8 @@ public sealed class EFUnitOfWork(
 	ILogger<EFUnitOfWork> logger
 ) : IUnitOfWork
 {
+	private const string PostgresUniqueViolationCode = "23505";
+
 	private IDbContextTransaction? _transaction;
 	private readonly Stack<string> _savepoints = new Stack<string>();
 
@@ -35,7 +40,17 @@ public sealed class EFUnitOfWork(
 			throw new InvalidOperationException(message: "No active transaction to commit.");
 		}
 
-		await context.SaveChangesAsync(cancellationToken: ct);
+		try
+		{
+			await context.SaveChangesAsync(cancellationToken: ct);
+		}
+		catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationCode } pgEx)
+		{
+			throw new UniqueConstraintException(
+				message: "A record with the same unique key already exists.",
+				constraintName: pgEx.ConstraintName ?? String.Empty
+			);
+		}
 
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{

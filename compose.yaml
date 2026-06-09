@@ -256,31 +256,6 @@
       migrator:
         condition: service_completed_successfully
         
-  worker-domain-event-outbox:
-    build:
-      context: .
-      dockerfile: FinanceTracker.Worker.DomainEventOutbox/Dockerfile
-    ports:
-      - "5009:5009"
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:5009
-      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
-      RabbitMQ__Host: rabbitmq
-      RabbitMQ__Username: ${RABBITMQ_USER}
-      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
-      Redis__ConnectionString: redis:6379
-      Jwt__Secret: ${JWT_SECRET}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
-        
   migrator:
     build:
       context: .

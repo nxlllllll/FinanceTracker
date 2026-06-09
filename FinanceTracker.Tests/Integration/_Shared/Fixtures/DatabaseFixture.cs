@@ -5,13 +5,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+namespace FinanceTracker.Tests.Integration._Shared.Fixtures;
 
 public abstract class DatabaseFixture
 {
 	private static PostgreSqlContainer _container = null!;
 	protected FinanceTrackerContext Context { get; private set; } = null!;
 	protected EFUnitOfWork UnitOfWork { get; private set; } = null!;
+	private string _connectionString = null!;
 
 	[Before(hookType: Assembly)]
 	public static async Task StartContainerAsync()
@@ -23,17 +24,25 @@ public abstract class DatabaseFixture
 	[Before(hookType: Test)]
 	public async Task SetupDatabaseAsync()
 	{
-		string connectionString = new NpgsqlConnectionStringBuilder(connectionString: _container.GetConnectionString())
+		_connectionString = new NpgsqlConnectionStringBuilder(connectionString: _container.GetConnectionString())
 		{
 			Database = $"ft_test_{Guid.CreateVersion7():N}"
 		}.ConnectionString;
 
 		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-													.UseNpgsql(connectionString: connectionString).Options;
+			.UseNpgsql(connectionString: _connectionString).Options;
 
 		Context = new FinanceTrackerContext(options: options);
 		UnitOfWork = new EFUnitOfWork(context: Context, logger: NullLogger<EFUnitOfWork>.Instance);
 		await Context.Database.EnsureCreatedAsync();
+	}
+	
+	protected FinanceTrackerContext CreateAdditionalContext()
+	{
+		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
+			.UseNpgsql(connectionString: _connectionString).Options;
+
+		return new FinanceTrackerContext(options: options);
 	}
 
 	[After(hookType: Test)]

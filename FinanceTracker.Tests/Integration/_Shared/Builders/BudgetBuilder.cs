@@ -5,7 +5,7 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public class BudgetBuilder(FinanceTrackerContext context)
 {

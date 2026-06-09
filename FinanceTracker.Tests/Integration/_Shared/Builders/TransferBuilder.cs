@@ -3,7 +3,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public sealed class TransferBuilder(FinanceTrackerContext context)
 {

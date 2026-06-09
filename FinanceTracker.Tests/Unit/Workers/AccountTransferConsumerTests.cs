@@ -13,7 +13,7 @@ using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.TransferProjection.Consumer;
@@ -351,6 +351,165 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
 			transferId: TransferId,
 			status: TransferStatus.Failed,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+	
+	[Test]
+	public async Task HandleAsync_WhenTransferAlreadyCompleted_ShouldSkipWithoutSavingAccounts()
+	{
+		_transferRepository.GetByIdAsync(
+			transferId: TransferId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: TransferFactory.Reconstitute(
+			id: TransferId,
+			fromAccountId: FromAccountId,
+			toAccountId: ToAccountId,
+			status: TransferStatus.Completed
+		));
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTransferAlreadyCompleted_ShouldNotUpdateStatus()
+	{
+		_transferRepository.GetByIdAsync(
+			transferId: TransferId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: TransferFactory.Reconstitute(
+			id: TransferId,
+			fromAccountId: FromAccountId,
+			toAccountId: ToAccountId,
+			status: TransferStatus.Completed
+		));
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _transferWriteRepository.DidNotReceive().UpdateStatusAsync(
+			transferId: Arg.Any<Guid>(),
+			status: Arg.Any<TransferStatus>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTransferAlreadyCompensated_ShouldSkipWithoutSavingAccounts()
+	{
+		_transferRepository.GetByIdAsync(
+			transferId: TransferId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: TransferFactory.Reconstitute(
+			id: TransferId,
+			fromAccountId: FromAccountId,
+			toAccountId: ToAccountId,
+			status: TransferStatus.Compensated
+		));
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTransferAlreadyFailed_ShouldSkipWithoutSavingAccounts()
+	{
+		_transferRepository.GetByIdAsync(
+			transferId: TransferId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: TransferFactory.Reconstitute(
+			id: TransferId,
+			fromAccountId: FromAccountId,
+			toAccountId: ToAccountId,
+			status: TransferStatus.Failed
+		));
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCompensationRefundFails_ShouldUpdateStatusToFailed()
+	{
+		Account archivedFromAccount = AccountFactory.CreateWithArchivation(archived: true);
+
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		_accountRepository.GetByIdAsync(
+			accountId: FromAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: archivedFromAccount);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
+			transferId: TransferId,
+			status: TransferStatus.Failed,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCompensationRefundFails_ShouldCreateUnresolvableEvent()
+	{
+		Account archivedFromAccount = AccountFactory.CreateWithArchivation(archived: true);
+
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		_accountRepository.GetByIdAsync(
+			accountId: FromAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: archivedFromAccount);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
+			type: UnresolvableEventType.TransferCompensation,
+			referenceId: TransferId,
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCompensationRefundFails_ShouldNotSaveFromAccount()
+	{
+		Account archivedFromAccount = AccountFactory.CreateWithArchivation(archived: true);
+
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		_accountRepository.GetByIdAsync(
+			accountId: FromAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: archivedFromAccount);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: archivedFromAccount,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

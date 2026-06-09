@@ -3,7 +3,7 @@ using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.Extensions.Options;

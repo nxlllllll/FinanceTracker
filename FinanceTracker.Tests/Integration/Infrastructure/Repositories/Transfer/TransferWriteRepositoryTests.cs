@@ -1,7 +1,7 @@
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Builders;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Transfer;

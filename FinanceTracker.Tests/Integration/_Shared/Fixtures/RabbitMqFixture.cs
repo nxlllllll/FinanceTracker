@@ -1,7 +1,7 @@
 using RabbitMQ.Client;
 using Testcontainers.RabbitMq;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+namespace FinanceTracker.Tests.Integration._Shared.Fixtures;
 
 public abstract class RabbitMqFixture
 {

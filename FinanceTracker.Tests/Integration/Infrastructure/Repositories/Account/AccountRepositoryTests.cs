@@ -9,7 +9,7 @@ using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

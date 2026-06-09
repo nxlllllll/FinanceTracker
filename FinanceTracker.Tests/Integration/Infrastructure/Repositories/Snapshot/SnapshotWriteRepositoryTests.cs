@@ -1,6 +1,6 @@
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.Repositories.Snapshot;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Snapshot;

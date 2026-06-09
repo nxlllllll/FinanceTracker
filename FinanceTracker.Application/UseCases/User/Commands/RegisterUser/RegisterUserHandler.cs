@@ -25,9 +25,13 @@ public sealed class RegisterUserHandler(
 		RegisterUserCommand command,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User? existing = await userAuthRepository.GetByEmailAsync(email: command.Email.Value, ct: ct);
+		Core.Domains.User.User? existing = await userAuthRepository.GetByEmailAsync(
+			email: command.Email.Value, ct: ct);
+
 		if (existing is not null)
-			return Result<Guid, DomainException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.Email));
+			return Result<Guid, DomainException>.Failure(error: new EmailException(
+				message: "The user with this email address already exists.",
+				email: command.Email));
 
 		string passwordHash = await passwordHasher.Hash(password: command.Password);
 
@@ -42,7 +46,18 @@ public sealed class RegisterUserHandler(
 
 		Core.Domains.User.User user = userResult.Value!;
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.CreateAsync(user: user, ct: ct), ct: ct);
+		try
+		{ 
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.CreateAsync(user: user, ct: ct), ct: ct);
+		}
+		catch (UniqueConstraintException ex)
+		{
+			logger.ZLogWarning(message: $"Duplicate email race condition detected for user registration: {command.Email.Value}. Constraint: {ex.ConstraintName}.");
+			return Result<Guid, DomainException>.Failure(error: new EmailException(
+				message: "The user with this email address already exists.",
+				email: command.Email.Value
+			));
+		}
 
 		await publisher.Publish(notification: new UserRegisteredNotification(
 			UserId: user.Id,

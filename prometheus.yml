@@ -14,4 +14,3 @@ scrape_configs:
           - 'worker-currency-rate:5006'
           - 'worker-balance-adjustment:5007'
           - 'worker-cleanup:5008'
-          - 'worker-domain-event-outbox:5009'

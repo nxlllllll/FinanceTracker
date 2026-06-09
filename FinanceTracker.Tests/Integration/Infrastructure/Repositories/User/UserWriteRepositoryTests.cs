@@ -4,8 +4,8 @@ using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Builders;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.User;

@@ -8,7 +8,7 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;

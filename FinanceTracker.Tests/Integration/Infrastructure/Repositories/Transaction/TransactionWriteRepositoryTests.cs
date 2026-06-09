@@ -6,8 +6,8 @@ using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Builders;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 

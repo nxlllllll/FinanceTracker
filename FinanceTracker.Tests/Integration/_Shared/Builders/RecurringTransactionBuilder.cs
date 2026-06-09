@@ -2,7 +2,7 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 {

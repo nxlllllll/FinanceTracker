@@ -3,7 +3,7 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public class CategoryBuilder(FinanceTrackerContext context)
 {

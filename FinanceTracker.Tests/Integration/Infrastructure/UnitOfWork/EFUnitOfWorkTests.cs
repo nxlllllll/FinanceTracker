@@ -1,6 +1,6 @@
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;

@@ -1,7 +1,7 @@
 using StackExchange.Redis;
 using Testcontainers.Redis;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+namespace FinanceTracker.Tests.Integration._Shared.Fixtures;
 
 public abstract class RedisFixture
 {

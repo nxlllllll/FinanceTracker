@@ -1,6 +1,6 @@
 using FinanceTracker.Infrastructure.Services.Date;
 using FinanceTracker.Infrastructure.Services.RateLimit;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Services;
 

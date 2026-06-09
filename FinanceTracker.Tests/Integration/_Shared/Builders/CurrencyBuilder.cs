@@ -2,7 +2,7 @@
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
+namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public class CurrencyBuilder(FinanceTrackerContext context)
 {

@@ -4,8 +4,8 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Builders;
-using FinanceTracker.Tests.Integration.Infrastructure._Shared.Fixtures;
+using FinanceTracker.Tests.Integration._Shared.Builders;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 
