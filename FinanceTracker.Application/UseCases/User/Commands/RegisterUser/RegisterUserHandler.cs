@@ -1,10 +1,9 @@
+using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -15,10 +14,9 @@ namespace FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 public sealed class RegisterUserHandler(
 	IUserAuthRepository userAuthRepository,
 	IUserWriteRepository userWriteRepository,
-	IDomainOutboxWriter domainOutboxWriter,
 	IPasswordHasher passwordHasher,
 	IUnitOfWork unitOfWork,
-	ICorrelationContext correlationContext,
+	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<RegisterUserHandler> logger
 ) : IRequestHandler<RegisterUserCommand, Result<Guid, DomainException>>
@@ -44,11 +42,14 @@ public sealed class RegisterUserHandler(
 
 		Core.Domains.User.User user = userResult.Value!;
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
-			await userWriteRepository.CreateAsync(user: user, ct: ct);
-			await domainOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
-		}, ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.CreateAsync(user: user, ct: ct), ct: ct);
+
+		await publisher.Publish(notification: new UserRegisteredNotification(
+			UserId: user.Id,
+			Email: user.Email,
+			BaseCurrency: user.BaseCurrency,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
 
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
 

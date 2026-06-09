@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using FinanceTracker.Application.Behaviours.Authorization;
-using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Services.Tracing;
 using MediatR;
 

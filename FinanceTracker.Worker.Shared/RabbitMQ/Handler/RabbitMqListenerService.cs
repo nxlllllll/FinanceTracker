@@ -4,9 +4,14 @@ using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Tracing;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
+using FinanceTracker.Worker.Shared.RabbitMQ.Retry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,6 +26,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	RabbitMqConnectionFactory connectionFactory,
 	IOptions<RabbitMqOptions> options,
 	IServiceScopeFactory scopeFactory,
+	IRetryCounter retryCounter,
 	ILogger<RabbitMqListenerService<TMessage, THandler>> logger
 ) : BackgroundService
 	where TMessage : class
@@ -42,7 +48,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	{
 		logger.ZLogInformation(message: $"""
 			[{typeof(TMessage).Name}] Listener starting. Queue: '{_options.QueueName}', 
-			Exchange: '{_options.ExchangeName}', RoutingKey: '{_routingKey}'.
+			Exchange: '{_options.ExchangeName}', RoutingKey: '{_routingKey}', MaxRetries: {_options.MaxRetries}.
 		""");
 		await base.StartAsync(cancellationToken: ct);
 	}
@@ -169,25 +175,112 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			return;
 		}
 
+		string messageKey = GetMessageKey(message: message, deliveryTag: ea.DeliveryTag);
+
 		try
 		{
 			await handler.HandleAsync(message: message, ct: ct);
 
 			activity?.SetStatus(code: ActivityStatusCode.Ok);
+			await retryCounter.RemoveAsync(messageKey: messageKey, ct: ct);
 			await _channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false, cancellationToken: ct);
 		}
 		catch (OperationCanceledException) when (ct.IsCancellationRequested)
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: "Cancelled.");
 			logger.ZLogWarning(message: $"[{typeof(TMessage).Name}] Processing cancelled for message {ea.DeliveryTag}. Requeuing.");
+			await retryCounter.RemoveAsync(messageKey: messageKey, ct: ct);
 			await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: ex.Message);
 			activity?.AddException(exception: ex);
-			logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag}. Requeuing.");
-			await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: ct);
+
+			int deliveryCount = await retryCounter.IncrementAsync(messageKey: messageKey, ct: ct);
+			bool isExhausted = deliveryCount >= _options.MaxRetries;
+
+			if (isExhausted)
+			{
+				logger.ZLogError(
+					exception: ex,
+					message: $"[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag} after {deliveryCount + 1}/{_options.MaxRetries + 1} attempts. Sending to DLX."
+				);
+
+				await retryCounter.RemoveAsync(messageKey: messageKey, ct: ct);
+
+				await RecordDeadLetterAsync(
+					scope: scope,
+					ea: ea,
+					deliveryCount: deliveryCount,
+					exception: ex,
+					ct: ct
+				);
+
+				await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: ct);
+			}
+			else
+			{
+				logger.ZLogWarning(
+					exception: ex,
+					message: $"[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag} (attempt {deliveryCount + 1}/{_options.MaxRetries + 1}). Requeuing."
+				);
+
+				await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: ct);
+			}
+		}
+	}
+
+	private static string GetMessageKey(TMessage message, ulong deliveryTag)
+	{
+		if (message is IRoutableMessage routable)
+			return routable.MessageId.ToString();
+
+		return deliveryTag.ToString();
+	}
+
+	private async Task RecordDeadLetterAsync(
+		AsyncServiceScope scope,
+		BasicDeliverEventArgs ea,
+		int deliveryCount,
+		Exception exception,
+		CancellationToken ct)
+	{
+		try
+		{
+			IUnresolvableEventWriteRepository repository = scope.ServiceProvider.GetRequiredService<IUnresolvableEventWriteRepository>();
+			IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+			IDateProvider dateProvider = scope.ServiceProvider.GetRequiredService<IDateProvider>();
+			string bodyPreview = Encoding.UTF8.GetString(bytes: ea.Body.Span[..Math.Min(ea.Body.Length, 1024)]);
+
+			string payload = JsonSerializer.Serialize(value: new
+			{
+				messageType = typeof(TMessage).Name,
+				queue = _options.QueueName,
+				exchange = _options.ExchangeName,
+				routingKey = _routingKey,
+				deliveryTag = ea.DeliveryTag,
+				retryCount = deliveryCount,
+				exceptionType = exception.GetType().Name,
+				exceptionMessage = exception.Message,
+				bodyPreview
+			});
+
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await repository.CreateAsync(
+				type: UnresolvableEventType.ConsumerDeadLetter,
+				referenceId: Guid.CreateVersion7(),
+				reason: $"Max retries ({_options.MaxRetries}) exceeded for {typeof(TMessage).Name}: {exception.Message}",
+				payload: payload,
+				occurredAt: dateProvider.UtcNow,
+				ct: ct
+			), ct: ct);
+		}
+		catch (Exception recordEx)
+		{
+			logger.ZLogError(
+				exception: recordEx,
+				message: $"[{typeof(TMessage).Name}] Failed to record dead letter in unresolvable_events for delivery tag {ea.DeliveryTag}."
+			);
 		}
 	}
 

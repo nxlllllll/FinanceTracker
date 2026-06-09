@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Domains.User.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -9,8 +8,6 @@ namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class UserTests
 {
-	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
-
 	[Test]
 	public async Task Register_WithValidData_ShouldSetCorrectState()
 	{
@@ -21,15 +18,6 @@ public sealed class UserTests
 		await Assert.That(value: user.PasswordHash).IsEqualTo(expected: "hash");
 		await Assert.That(value: user.BaseCurrency.Value).IsEqualTo(expected: "RUB");
 		await Assert.That(value: user.CreatedAt).IsNotDefault();
-	}
-
-	[Test]
-	public async Task Register_WithValidData_ShouldRaiseUserRegisteredEvent()
-	{
-		User user = UserFactory.Create().Value!;
-
-		await Assert.That(value: user.DomainEvents).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: user.DomainEvents[0]).IsTypeOf<UserRegistered>();
 	}
 
 	[Test]
@@ -64,32 +52,19 @@ public sealed class UserTests
 	{
 		User user = UserFactory.Create().Value!;
 
-		user.ChangeEmail(newEmail: Email.Create(value: "new@test.com").Value, occurredAt: Now);
+		user.ChangeEmail(newEmail: Email.Create(value: "new@test.com").Value);
 
 		await Assert.That(value: user.Email.Value).IsEqualTo(expected: "new@test.com");
 	}
 
 	[Test]
-	public async Task ChangeEmail_WithNewEmail_ShouldRaiseUserEmailChangedEvent()
+	public async Task ChangeEmail_WithSameEmail_ShouldReturnSuccess()
 	{
 		User user = UserFactory.Create().Value!;
-		user.ClearDomainEvents();
 
-		user.ChangeEmail(newEmail: Email.Create(value: "new@test.com").Value, occurredAt: Now);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangeEmail(newEmail: Email.Create(value: "test@test.com").Value);
 
-		await Assert.That(value: user.DomainEvents).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: user.DomainEvents[0]).IsTypeOf<UserEmailChanged>();
-	}
-
-	[Test]
-	public async Task ChangeEmail_WithSameEmail_ShouldNotRaiseDomainEvent()
-	{
-		User user = UserFactory.Create().Value!;
-		user.ClearDomainEvents();
-
-		user.ChangeEmail(newEmail: Email.Create(value: "test@test.com").Value, occurredAt: Now);
-
-		await Assert.That(value: user.DomainEvents).IsEmpty();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]
@@ -97,7 +72,7 @@ public sealed class UserTests
 	{
 		User user = UserFactory.Create().Value!;
 
-		user.ChangePassword(newPasswordHash: "newHash", occurredAt: Now);
+		user.ChangePassword(newPasswordHash: "newHash");
 
 		await Assert.That(value: user.PasswordHash).IsEqualTo(expected: "newHash");
 	}
@@ -107,7 +82,7 @@ public sealed class UserTests
 	{
 		User user = UserFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangePassword(newPasswordHash: String.Empty, occurredAt: Now);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangePassword(newPasswordHash: String.Empty);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<PasswordException>();
@@ -118,43 +93,20 @@ public sealed class UserTests
 	{
 		User user = UserFactory.Create().Value!;
 
-		user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "USD").Value, occurredAt: Now);
+		user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "USD").Value);
 
 		await Assert.That(value: user.BaseCurrency.Value).IsEqualTo(expected: "USD");
 	}
 
 	[Test]
-	public async Task ChangeBaseCurrency_WithNewCurrency_ShouldRaiseUserBaseCurrencyChangedEvent()
+	public async Task ChangeBaseCurrency_WithSameCurrency_ShouldReturnSuccess()
 	{
 		User user = UserFactory.Create().Value!;
-		user.ClearDomainEvents();
 
-		user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "USD").Value, occurredAt: Now);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangeBaseCurrency(
+			newBaseCurrency: Currency.Create(value: "RUB").Value
+		);
 
-		await Assert.That(value: user.DomainEvents).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: user.DomainEvents[0]).IsTypeOf<UserBaseCurrencyChanged>();
-	}
-
-	[Test]
-	public async Task ChangeBaseCurrency_WithSameCurrency_ShouldNotRaiseDomainEvent()
-	{
-		User user = UserFactory.Create().Value!;
-		user.ClearDomainEvents();
-
-		user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "RUB").Value, occurredAt: Now);
-
-		await Assert.That(value: user.DomainEvents).IsEmpty();
-	}
-	
-	[Test]
-	public async Task ChangePassword_WithValidHash_ShouldRaiseUserPasswordChangedEvent()
-	{
-		User user = UserFactory.Create().Value!;
-		user.ClearDomainEvents();
-
-		user.ChangePassword(newPasswordHash: "newHash", occurredAt: Now);
-
-		await Assert.That(value: user.DomainEvents).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: user.DomainEvents[0]).IsTypeOf<UserPasswordChanged>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 }

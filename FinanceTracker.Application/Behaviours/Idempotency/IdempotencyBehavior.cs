@@ -4,6 +4,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Utilities.Retry;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -140,13 +141,22 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
         CancellationToken cancellationToken)
     {
         int elapsed = 0;
-        int delay = options.InFlightInitialDelayMs;
+        int attempt = 0;
 
         while (elapsed < options.InFlightMaxWaitMs)
         {
+            int delay = Math.Min(
+                val1: RetryDelayCalculator.Calculate(
+                    attempt: attempt,
+                    baseDelayMs: options.InFlightInitialDelayMs,
+                    useJitter: options.UseJitter
+                ),
+                val2: options.InFlightMaxDelayMs
+            );
+
             await Task.Delay(millisecondsDelay: delay, cancellationToken);
             elapsed += delay;
-            delay = Math.Min(delay * 2, options.InFlightMaxDelayMs);
+            ++attempt;
 
             IdempotencyEntry? entry = await idempotencyReadRepository.GetAsync(
                 idempotencyKey: idempotent.IdempotencyKey,
@@ -170,7 +180,7 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
             TimeSpan age = dateProvider.UtcNow - entry.ReservedAt;
             if (!(age.TotalSeconds >= options.AbandonedAfterSeconds))
                 continue;
-            
+
             logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} became abandoned during poll (age: {age.TotalSeconds:F0}s). Deleting.");
 
             await idempotencyWriteRepository.DeleteAsync(

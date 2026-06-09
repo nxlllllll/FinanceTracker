@@ -1,13 +1,12 @@
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
-using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
+using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.Correlation;
-using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
@@ -16,9 +15,8 @@ public sealed class ChangeUserEmailHandlerTests
 {
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IUserWriteRepository _userWriteRepository = null!;
-	private IDomainOutboxWriter _domainOutboxWriter = null!;
+	private IPublisher _publisher = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private ICorrelationContext _correlationContext = null!;
 	private ChangeUserEmailHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -26,11 +24,9 @@ public sealed class ChangeUserEmailHandlerTests
 	{
 		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
-		_domainOutboxWriter = Substitute.For<IDomainOutboxWriter>();
-		_correlationContext = Substitute.For<ICorrelationContext>();
+		_publisher = Substitute.For<IPublisher>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
-		_correlationContext.CorrelationId.Returns(returnThis: Guid.CreateVersion7());
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -39,9 +35,8 @@ public sealed class ChangeUserEmailHandlerTests
 		_handler = new ChangeUserEmailHandler(
 			userAuthRepository: _userAuthRepository,
 			userWriteRepository: _userWriteRepository,
-			domainOutboxWriter: _domainOutboxWriter,
 			unitOfWork: _unitOfWork,
-			correlationContext: _correlationContext,
+			publisher: _publisher,
 			dateProvider: FakeDateProvider.Default
 		);
 	}
@@ -70,7 +65,7 @@ public sealed class ChangeUserEmailHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WithValidCommand_ShouldWriteDomainEventToOutbox()
+	public async Task HandleAsync_WithValidCommand_ShouldPublishUserEmailChangedNotification()
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
@@ -85,11 +80,10 @@ public sealed class ChangeUserEmailHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _domainOutboxWriter.Received(requiredNumberOfCalls: 1).WriteAsync(
-			entity: Arg.Is<IHasDomainEvents>(e => e is FinanceTracker.Core.Domains.User.User),
-			correlationId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(notification: Arg.Is<UserEmailChangedNotification>(n =>
+			n.UserId == user.Id &&
+			n.NewEmail.Value == "new@test.com"
+		), cancellationToken: Arg.Any<CancellationToken>());
 	}
 
 	[Test]
@@ -114,7 +108,7 @@ public sealed class ChangeUserEmailHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WithDuplicateEmail_ShouldNotWriteToOutbox()
+	public async Task HandleAsync_WithDuplicateEmail_ShouldNotPublishNotification()
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 		FinanceTracker.Core.Domains.User.User anotherUser = UserFactory.Create(email: "new@test.com").Value!;
@@ -130,10 +124,9 @@ public sealed class ChangeUserEmailHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _domainOutboxWriter.DidNotReceive().WriteAsync(
-			entity: Arg.Any<IHasDomainEvents>(),
-			correlationId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<INotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 }

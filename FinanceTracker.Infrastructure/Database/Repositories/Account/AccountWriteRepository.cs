@@ -164,4 +164,43 @@ public sealed class AccountWriteRepository(
 			cancellationToken: ct
 		);
 	}
+	
+	public async Task DeleteAsync(
+		Guid accountId,
+		CancellationToken ct = default)
+	{
+		await context.AccountBalances
+			.Where(predicate: b => b.AccountId == accountId)
+			.ExecuteDeleteAsync(cancellationToken: ct);
+
+		await context.Accounts
+			.Where(predicate: a => a.Id == accountId)
+			.ExecuteDeleteAsync(cancellationToken: ct);
+	}
+
+	public async Task UpsertFromSnapshotAsync(
+		Core.Domains.Account.Account account,
+		CancellationToken ct = default)
+	{
+		await DeleteAsync(accountId: account.Id, ct: ct);
+
+		await context.Accounts.AddAsync(entity: new AccountEntity
+		{
+			Id = account.Id,
+			UserId = account.UserId,
+			Name = account.Name,
+			AccountType = account.Type,
+			Currency = account.Currency,
+			IsArchived = account.IsArchived,
+			CreatedAt = account.CreatedAt
+		}, cancellationToken: ct);
+
+		await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity
+		{
+			AccountId = account.Id,
+			Balance = account.Balance.Amount,
+			LastVersion = account.Version,
+			UpdatedAt = dateProvider.UtcNow
+		}, cancellationToken: ct);
+	}
 }

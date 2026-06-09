@@ -1,9 +1,7 @@
-﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+﻿using System.Text.Json;
+using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Abstractions.EventStore;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -16,7 +14,6 @@ using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using System.Text.Json;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
 

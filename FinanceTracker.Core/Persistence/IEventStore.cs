@@ -20,7 +20,7 @@ public interface IEventStore
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<Guid>> GetAggregateIdsAsync(
+	IAsyncEnumerable<Guid> GetAggregateIdsAsync(
 		string aggregateType,
 		CancellationToken ct = default
 	);

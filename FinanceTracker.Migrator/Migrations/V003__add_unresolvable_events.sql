@@ -5,7 +5,8 @@
 
 insert into unresolvable_event_types (code, name) values
     ('outbox_dead_letter',   'Outbox Dead Letter'),
-    ('transfer_compensation', 'Transfer Compensation Failure');
+    ('transfer_compensation', 'Transfer Compensation Failure'),
+    ('consumer_dead_letter', 'Consumer Dead Letter');
 
 create table unresolvable_events (
     id           uuid        primary key,

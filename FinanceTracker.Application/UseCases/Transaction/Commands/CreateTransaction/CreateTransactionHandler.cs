@@ -1,8 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Application.UseCases.Transaction.Utilities;
-using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;

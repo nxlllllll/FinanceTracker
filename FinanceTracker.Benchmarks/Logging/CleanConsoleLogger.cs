@@ -1,5 +1,4 @@
-﻿using System;
-using BenchmarkDotNet.Loggers;
+﻿using BenchmarkDotNet.Loggers;
 
 namespace FinanceTracker.Benchmarks.Logging;
 

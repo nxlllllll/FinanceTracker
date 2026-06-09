@@ -3,5 +3,6 @@
 public interface IAccountProjectionRebuilder
 {
 	Task RebuildAsync(Guid accountId, CancellationToken ct = default);
-	Task RebuildAllAsync(CancellationToken ct = default);
+
+	Task RebuildAllAsync(int batchSize = 50, CancellationToken ct = default);
 }

@@ -1,21 +1,21 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
+using MediatR;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 
 public sealed class ChangeUserPasswordHandler(
 	IUserWriteRepository userWriteRepository,
 	IPasswordHasher passwordHasher,
-	IDomainOutboxWriter domainOutboxWriter,
 	IUnitOfWork unitOfWork,
-	ICorrelationContext correlationContext,
+	IPublisher publisher,
 	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeUserPasswordCommand, Core.Domains.User.User, Guid, DomainException>
 {
@@ -26,16 +26,20 @@ public sealed class ChangeUserPasswordHandler(
 	{
 		string newPasswordHash = await passwordHasher.Hash(password: command.NewPassword);
 
-		Result<Unit, DomainException> result = user.ChangePassword(newPasswordHash: newPasswordHash, occurredAt: dateProvider.UtcNow);
+		Result<Unit, DomainException> result = user.ChangePassword(newPasswordHash: newPasswordHash);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
-			await userWriteRepository.ChangePasswordAsync(userId: command.UserId, newPasswordHash: newPasswordHash, ct: ct);
-			await domainOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
-		}, ct: ct);
-		
+		await unitOfWork.ExecuteInTransactionAsync(
+			operation: async () => await userWriteRepository.ChangePasswordAsync(userId: command.UserId, newPasswordHash: newPasswordHash, ct: ct),
+			ct: ct
+		);
+
+		await publisher.Publish(notification: new UserPasswordChangedNotification(
+			UserId: user.Id,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
+
 		return Result<Guid, DomainException>.Success(value: user.Id);
 	}
 }

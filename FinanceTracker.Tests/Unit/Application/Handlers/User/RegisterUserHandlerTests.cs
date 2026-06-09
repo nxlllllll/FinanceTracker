@@ -1,13 +1,12 @@
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
-using FinanceTracker.Core.Domains.Abstractions.DomainEvent;
+using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.Correlation;
-using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -18,9 +17,8 @@ public sealed class RegisterUserHandlerTests
 	private IUserWriteRepository _userWriteRepository = null!;
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
-	private IDomainOutboxWriter _domainOutboxWriter = null!;
+	private IPublisher _publisher = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private ICorrelationContext _correlationContext = null!;
 	private RegisterUserHandler _handler = null!;
 
 	private const string HashedPassword = "hashed_password_value";
@@ -31,24 +29,21 @@ public sealed class RegisterUserHandlerTests
 		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
-		_domainOutboxWriter = Substitute.For<IDomainOutboxWriter>();
-		_correlationContext = Substitute.For<ICorrelationContext>();
+		_publisher = Substitute.For<IPublisher>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: HashedPassword);
-		_correlationContext.CorrelationId.Returns(returnThis: Guid.CreateVersion7());
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(callInfo => callInfo.Arg<Func<Task>>()());
 
 		_handler = new RegisterUserHandler(
 			userWriteRepository: _userWriteRepository,
 			passwordHasher: _passwordHasher,
 			userAuthRepository: _userAuthRepository,
-			domainOutboxWriter: _domainOutboxWriter,
 			unitOfWork: _unitOfWork,
-			correlationContext: _correlationContext,
+			publisher: _publisher,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<RegisterUserHandler>>()
 		);
@@ -67,17 +62,14 @@ public sealed class RegisterUserHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _userWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			user: Arg.Is<FinanceTracker.Core.Domains.User.User>(u =>
-				u.Email == "test@test.com" &&
-				u.BaseCurrency == "RUB"
-			),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await _userWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(user: Arg.Is<FinanceTracker.Core.Domains.User.User>(u =>
+			u.Email == "test@test.com" &&
+			u.BaseCurrency == "RUB"
+		), ct: Arg.Any<CancellationToken>());
 	}
 
 	[Test]
-	public async Task Handle_WithValidCommand_ShouldWriteDomainEventToOutbox()
+	public async Task Handle_WithValidCommand_ShouldPublishUserRegisteredNotification()
 	{
 		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
@@ -89,11 +81,10 @@ public sealed class RegisterUserHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _domainOutboxWriter.Received(requiredNumberOfCalls: 1).WriteAsync(
-			entity: Arg.Is<IHasDomainEvents>(e => e is FinanceTracker.Core.Domains.User.User),
-			correlationId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(notification: Arg.Is<UserRegisteredNotification>(n =>
+			n.Email.Value == "test@test.com" &&
+			n.BaseCurrency.Value == "RUB"
+		), cancellationToken: Arg.Any<CancellationToken>());
 	}
 
 	[Test]
@@ -147,7 +138,7 @@ public sealed class RegisterUserHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WithDuplicateEmail_ShouldNotWriteToOutbox()
+	public async Task Handle_WithDuplicateEmail_ShouldNotPublishNotification()
 	{
 		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
@@ -159,10 +150,9 @@ public sealed class RegisterUserHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _domainOutboxWriter.DidNotReceive().WriteAsync(
-			entity: Arg.Any<IHasDomainEvents>(),
-			correlationId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<INotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 }

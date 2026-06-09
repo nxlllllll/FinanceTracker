@@ -22,7 +22,6 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Core.Services.Rebuild;
@@ -46,13 +45,11 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
-using FinanceTracker.Infrastructure.EventMapping.Domain;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Infrastructure.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Correlation;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
-using FinanceTracker.Infrastructure.Services.DomainEvents;
 using FinanceTracker.Infrastructure.Services.Password;
 using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Infrastructure.Services.Rebuild.Account;
@@ -126,15 +123,6 @@ public static class DependencyInjection
 		    .WithSingletonLifetime()
 		);
 		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
-				
-		services.Scan(scan => scan
-		    .FromAssemblyOf<UserDomainEventMapper>()
-		    .AddClasses(classes => classes.AssignableTo<IDomainEventMapper>())
-		    .AsImplementedInterfaces()
-		    .WithSingletonLifetime()
-		);
-
-		services.AddScoped<IDomainOutboxWriter, DomainOutboxWriter>();
 		
 		services.AddScoped<IEventStore, PostgresEventStore>();
 		
@@ -201,8 +189,6 @@ public static class DependencyInjection
 		// Outbox
 		services.AddScoped<IOutboxReadRepository, OutboxReadRepository>();
 		services.AddScoped<IOutboxWriteRepository, OutboxWriteRepository>();
-		services.AddScoped<IDomainOutboxReadRepository, DomainOutboxReadRepository>();
-		services.AddScoped<IDomainOutboxWriteRepository, DomainOutboxWriteRepository>();
 		services.AddScoped<ISnapshotWriteRepository, SnapshotWriteRepository>();
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();

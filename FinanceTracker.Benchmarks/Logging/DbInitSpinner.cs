@@ -1,8 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace FinanceTracker.Benchmarks.Logging;
+﻿namespace FinanceTracker.Benchmarks.Logging;
 
 public static class DbInitSpinner
 {

@@ -4,11 +4,8 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransaction
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Commands.ExcludeTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransaction;
-using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
-using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 

@@ -258,14 +258,16 @@ public sealed class PostgresEventStore(
 		return new EventStoreResult(Snapshot: snapshotData, Events: domainEvents);
 	}
 
-	public async Task<IReadOnlyList<Guid>> GetAggregateIdsAsync(
+	public async IAsyncEnumerable<Guid> GetAggregateIdsAsync(
 		string aggregateType,
-		CancellationToken ct = default)
+		[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
 	{
-		return await context.Events.AsNoTracking()
-			.Where(predicate: e => e.AggregateType == aggregateType)
+		IAsyncEnumerable<Guid> ids = context.Events.AsNoTracking().Where(predicate: e => e.AggregateType == aggregateType)
 			.Select(selector: e => e.AggregateId)
 			.Distinct()
-			.ToListAsync(cancellationToken: ct);
+			.AsAsyncEnumerable();
+
+		await foreach (Guid id in ids.WithCancellation(cancellationToken: ct))
+			yield return id;
 	}
 }

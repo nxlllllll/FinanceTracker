@@ -55,8 +55,6 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	
 	public DbSet<UserSessionEntity> UserSessions => Set<UserSessionEntity>();
 	
-	public DbSet<DomainEventOutboxEntity> DomainEventOutbox => Set<DomainEventOutboxEntity>();
-	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);
 }

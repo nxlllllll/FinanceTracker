@@ -1,21 +1,21 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.DomainEvents;
 using FinanceTracker.Core.ValueObjects;
+using MediatR;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 
 public sealed class ChangeUserEmailHandler(
 	IUserAuthRepository userAuthRepository,
 	IUserWriteRepository userWriteRepository,
-	IDomainOutboxWriter domainOutboxWriter,
 	IUnitOfWork unitOfWork,
-	ICorrelationContext correlationContext,
+	IPublisher publisher,
 	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeUserEmailCommand, Core.Domains.User.User, Guid, DomainException>
 {
@@ -32,22 +32,30 @@ public sealed class ChangeUserEmailHandler(
 		if (newEmailResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: newEmailResult.Error!);
 
-		Result<Unit, DomainException> result = user.ChangeEmail(newEmail: newEmailResult.Value, occurredAt: dateProvider.UtcNow);
+		Email oldEmail = user.Email;
+
+		Result<Unit, DomainException> result = user.ChangeEmail(newEmail: newEmailResult.Value);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		try
 		{
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-			{
-				await userWriteRepository.ChangeEmailAsync(userId: command.UserId, newEmail: newEmailResult.Value, ct: ct);
-				await domainOutboxWriter.WriteAsync(entity: user, correlationId: correlationContext.CorrelationId, ct: ct);
-			}, ct: ct);
+			await unitOfWork.ExecuteInTransactionAsync(
+				operation: async () => await userWriteRepository.ChangeEmailAsync(userId: command.UserId, newEmail: newEmailResult.Value, ct: ct),
+				ct: ct
+			);
 		}
 		catch (EmailException exception)
 		{
 			return Result<Guid, DomainException>.Failure(error: exception);
 		}
+
+		await publisher.Publish(notification: new UserEmailChangedNotification(
+			UserId: user.Id,
+			OldEmail: oldEmail,
+			NewEmail: newEmailResult.Value,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
 
 		return Result<Guid, DomainException>.Success(value: user.Id);
 	}
