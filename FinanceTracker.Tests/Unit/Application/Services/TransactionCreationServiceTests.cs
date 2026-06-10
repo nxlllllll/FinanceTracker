@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
@@ -12,6 +13,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -25,6 +27,7 @@ public sealed class TransactionCreationServiceTests
     private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
     private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
     private IUnitOfWork _unitOfWork = null!;
+    private IPublisher _publisher = null!;
     private TransactionCreationService _service = null!;
 
     [Before(hookType: Test)]
@@ -36,6 +39,8 @@ public sealed class TransactionCreationServiceTests
         _categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
         _budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
+        _publisher = Substitute.For<IPublisher>();
+
         _unitOfWork.ExecuteInTransactionAsync(
             operation: Arg.Any<Func<Task>>(),
             ct: Arg.Any<CancellationToken>()
@@ -45,6 +50,7 @@ public sealed class TransactionCreationServiceTests
             onError: Arg.Any<Func<Exception, Task>>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+
         _service = new TransactionCreationService(
             accountRepository: _accountRepository,
             transactionWriteRepository: _transactionWriteRepository,
@@ -52,6 +58,8 @@ public sealed class TransactionCreationServiceTests
             unitOfWork: _unitOfWork,
             categoryTotalWriteRepository: _categoryTotalWriteRepository,
             budgetProgressWriteRepository: _budgetProgressWriteRepository,
+            publisher: _publisher,
+            dateProvider: FakeDateProvider.Default,
             logger: Substitute.For<ILogger<TransactionCreationService>>()
         );
     }
@@ -80,6 +88,25 @@ public sealed class TransactionCreationServiceTests
 
         await Assert.That(value: result.IsSuccess).IsTrue();
         await Assert.That(value: result.Value).IsNotDefault();
+    }
+
+    [Test]
+    public async Task CreateAsync_WithValidCommand_ShouldPublishNotification()
+    {
+        Account account = AccountFactory.CreateWithArchivation();
+        SetupConversionRate();
+
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(userId: account.UserId);
+
+        await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
+
+        await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+            notification: Arg.Is<TransactionCreatedNotification>(n =>
+                n.UserId == command.UserId &&
+                n.AccountId == command.AccountId &&
+                n.CategoryId == command.CategoryId),
+            cancellationToken: Arg.Any<CancellationToken>()
+        );
     }
 
     [Test]
@@ -150,6 +177,24 @@ public sealed class TransactionCreationServiceTests
 
         await Assert.That(value: result.IsFailure).IsTrue();
         await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
+    }
+
+    [Test]
+    public async Task CreateAsync_WhenArchivedAccount_ShouldNotPublishNotification()
+    {
+        Account account = AccountFactory.CreateWithArchivation(archived: true);
+        SetupConversionRate();
+
+        await _service.CreateAsync(
+            command: CreateTransactionCommandFactory.Create(userId: account.UserId),
+            account: account,
+            ct: CancellationToken.None
+        );
+
+        await _publisher.DidNotReceive().Publish(
+            notification: Arg.Any<TransactionCreatedNotification>(),
+            cancellationToken: Arg.Any<CancellationToken>()
+        );
     }
 
     [Test]

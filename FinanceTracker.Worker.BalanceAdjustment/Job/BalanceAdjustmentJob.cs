@@ -53,7 +53,7 @@ public sealed class BalanceAdjustmentJob(
 				logging: (exception, attempt, delay) => logger.ZLogWarning(exception: exception, message: $"""
 					[ConcurrencyRetry] Attempt {attempt + 1}/{options.MaxRetries} failed.
 					Retrying in {delay}ms.
-					"""),
+				"""),
 				maxRetries: options.MaxRetries,
 				baseDelayMs: options.BaseDelayMs,
 				useJitter: options.UseJitter,
@@ -217,9 +217,7 @@ public sealed class BalanceAdjustmentJob(
 					await accountRepository.SaveAsync(account: account, ct: innerCt);
 					await transactionWriteRepository.UpdateRateAsync(transactionId: item.TransactionId, newRate: newRate, ct: innerCt);
 				}, ct: innerCt);
-
-				account.ClearEvents();
-
+				
 				logger.ZLogInformation(message: $"Adjusted transaction {item.TransactionId}: rate {item.CurrentRate} > {newRate}.");
 				return AdjustResult.Adjusted;
 			},

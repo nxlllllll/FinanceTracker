@@ -1,4 +1,6 @@
+using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -9,6 +11,8 @@ namespace FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
 
 public sealed class CreateCategoryHandler(
 	ICategoryWriteRepository categoryWriteRepository,
+	IUnitOfWork unitOfWork,
+	IPublisher publisher,
 	IDateProvider dateProvider
 ) : IRequestHandler<CreateCategoryCommand, Result<Guid, DomainException>>
 {
@@ -27,8 +31,18 @@ public sealed class CreateCategoryHandler(
 			parentId: command.ParentId,
 			type: command.Type
 		);
+
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await categoryWriteRepository.CreateAsync(category: category, ct: ct), ct: ct);
 		
-		await categoryWriteRepository.CreateAsync(category: category, ct: ct);
+		await publisher.Publish(notification: new CategoryCreatedNotification(
+			CategoryId: category.Id,
+			UserId: category.UserId,
+			Name: category.Name,
+			Type: category.Type,
+			ParentId: category.ParentId,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
+		
 		return Result<Guid, DomainException>.Success(value: category.Id);
 	}
 }

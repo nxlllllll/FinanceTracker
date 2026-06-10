@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -140,10 +141,10 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
         IdempotencyOptions options,
         CancellationToken cancellationToken)
     {
-        int elapsed = 0;
         int attempt = 0;
 
-        while (elapsed < options.InFlightMaxWaitMs)
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        while (stopwatch.ElapsedMilliseconds < options.InFlightMaxWaitMs)
         {
             int delay = Math.Min(
                 val1: RetryDelayCalculator.Calculate(
@@ -155,7 +156,6 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
             );
 
             await Task.Delay(millisecondsDelay: delay, cancellationToken);
-            elapsed += delay;
             ++attempt;
 
             IdempotencyEntry? entry = await idempotencyReadRepository.GetAsync(
@@ -173,7 +173,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
             if (!String.IsNullOrWhiteSpace(value: entry.ResponseJson))
             {
-                logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} completed after {elapsed}ms wait.");
+                logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} completed after {stopwatch.ElapsedMilliseconds}ms wait.");
                 return JsonSerializer.Deserialize<TResponse>(json: entry.ResponseJson, options: FinanceTrackerJsonOptions.Application)!;
             }
 

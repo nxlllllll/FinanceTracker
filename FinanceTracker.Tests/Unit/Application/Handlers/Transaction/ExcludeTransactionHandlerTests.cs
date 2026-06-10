@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.ExcludeTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -8,6 +9,7 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -19,6 +21,7 @@ public sealed class ExcludeTransactionHandlerTests
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
 	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
+	private IPublisher _publisher = null!;
 	private ExcludeTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -28,6 +31,8 @@ public sealed class ExcludeTransactionHandlerTests
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_publisher = Substitute.For<IPublisher>();
+		
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -37,17 +42,20 @@ public sealed class ExcludeTransactionHandlerTests
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+		
 		_handler = new ExcludeTransactionHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
 			unitOfWork: _unitOfWork,
+			publisher: _publisher,
+			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<ExcludeTransactionHandler>>()
 		);
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyExcluded_ShouldThrowExcludingException()
+	public async Task HandleAsync_WhenAlreadyExcluded_ShouldReturnExcludingException()
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
@@ -56,7 +64,7 @@ public sealed class ExcludeTransactionHandlerTests
 			transaction: transaction,
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ExcludingException>();
 	}
@@ -76,20 +84,38 @@ public sealed class ExcludeTransactionHandlerTests
 			transactionId: transaction.Id, ct: Arg.Any<CancellationToken>()
 		);
 		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).SubtractAsync(
-			userId: transaction.UserId, 
+			userId: transaction.UserId,
 			categoryId: transaction.CategoryId,
 			currency: transaction.Amount.Currency,
-			amount: transaction.Amount.Amount, 
-			occurredAt: transaction.OccurredAt, 
+			amount: transaction.Amount.Amount,
+			occurredAt: transaction.OccurredAt,
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _budgetProgressWriteRepository.Received(requiredNumberOfCalls: 1).SubtractAsync(
-			userId: transaction.UserId, 
+			userId: transaction.UserId,
 			categoryId: transaction.CategoryId,
-			currencyCode: transaction.Amount.Currency, 
+			currencyCode: transaction.Amount.Currency,
 			amount: transaction.Amount.Amount,
-			occurredAt: transaction.OccurredAt, 
+			occurredAt: transaction.OccurredAt,
 			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithIncludedDebit_ShouldPublishNotification()
+	{
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
+
+		await _handler.HandleAsync(
+			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
+			transaction: transaction,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<TransactionExcludedNotification>(n =>
+				n.TransactionId == transaction.Id && n.UserId == transaction.UserId),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 
@@ -108,12 +134,29 @@ public sealed class ExcludeTransactionHandlerTests
 			transactionId: transaction.Id, ct: Arg.Any<CancellationToken>()
 		);
 		await _categoryTotalWriteRepository.DidNotReceive().SubtractAsync(
-			userId: Arg.Any<Guid>(), 
+			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
-			amount: Arg.Any<decimal>(), 
+			amount: Arg.Any<decimal>(),
 			currency: Arg.Any<Currency>(),
-			occurredAt: Arg.Any<DateTimeOffset>(), 
+			occurredAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenAlreadyExcluded_ShouldNotPublishNotification()
+	{
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(isExcluded: true);
+
+		await _handler.HandleAsync(
+			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
+			transaction: transaction,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<TransactionExcludedNotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 }

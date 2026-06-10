@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -6,8 +7,11 @@ using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransaction;
 
@@ -16,6 +20,8 @@ public sealed class IncludeTransactionHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork,
+	IPublisher publisher,
+	IDateProvider dateProvider,
 	ILogger<IncludeTransactionHandler> logger
 ) : IAuthorizedHandler<IncludeTransactionCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
 {
@@ -55,6 +61,12 @@ public sealed class IncludeTransactionHandler(
 		}, 
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {transaction.Id}."),
 		ct: ct);
+		
+		await publisher.Publish(notification: new TransactionIncludedNotification(
+			TransactionId: transaction.Id,
+			UserId: transaction.UserId,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
 		
 		return Result<Guid, DomainException>.Success(value: transaction.Id);
 	}

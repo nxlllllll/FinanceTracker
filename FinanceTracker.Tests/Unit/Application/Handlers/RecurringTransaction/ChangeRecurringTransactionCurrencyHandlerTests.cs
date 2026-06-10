@@ -1,7 +1,9 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionCurrency;
+using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
@@ -9,34 +11,58 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
 public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 {
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
+	private IPublisher _publisher = null!;
 	private ChangeRecurringTransactionCurrencyHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
-		_handler = new ChangeRecurringTransactionCurrencyHandler(recurringTransactionWriteRepository: _writeRepository);
+		_publisher = Substitute.For<IPublisher>();
+		_handler = new ChangeRecurringTransactionCurrencyHandler(
+			recurringTransactionWriteRepository: _writeRepository,
+			publisher: _publisher,
+			dateProvider: FakeDateProvider.Default
+		);
 	}
 
 	[Test]
-	public async Task HandleAsync_ShouldCallChangeCurrency()
+	public async Task HandleAsync_WithValidCurrency_ShouldCallChangeCurrencyAsync()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create().Value!;
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+		Currency newCurrency = Currency.Create(value: "EUR").Value;
 
 		await _handler.HandleAsync(
-			command: new ChangeRecurringTransactionCurrencyCommand(
-				UserId: recurringTransaction.UserId, 
-				RecurringTransactionId: recurringTransaction.Id, 
-				Currency: Currency.Create(value: "USD").Value
-			),
-			recurringTransaction: recurringTransaction,
+			command: new ChangeRecurringTransactionCurrencyCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Currency: newCurrency),
+			recurringTransaction: rt,
 			ct: CancellationToken.None
 		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ChangeCurrencyAsync(
-			recurringTransactionId: recurringTransaction.Id,
-			currency: Currency.Create(value: "USD").Value,
+			recurringTransactionId: rt.Id,
+			currency: newCurrency,
 			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithValidCurrency_ShouldPublishNotification()
+	{
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+		Currency newCurrency = Currency.Create(value: "EUR").Value;
+
+		await _handler.HandleAsync(
+			command: new ChangeRecurringTransactionCurrencyCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Currency: newCurrency),
+			recurringTransaction: rt,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<RecurringTransactionCurrencyChangedNotification>(n =>
+				n.RecurringTransactionId == rt.Id &&
+				n.UserId == rt.UserId &&
+				n.NewCurrency == newCurrency),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 }

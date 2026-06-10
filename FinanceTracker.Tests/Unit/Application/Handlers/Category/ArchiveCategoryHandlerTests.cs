@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Category.Commands.ArchiveCategory;
+using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -6,6 +7,7 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -17,6 +19,7 @@ public sealed class ArchiveCategoryHandlerTests
 	private IRecurringTransactionWriteRepository _recurringTransactionWriteRepository = null!;
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
+	private IPublisher _publisher = null!;
 	private ArchiveCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -26,6 +29,7 @@ public sealed class ArchiveCategoryHandlerTests
 		_recurringTransactionWriteRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_publisher = Substitute.For<IPublisher>();
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -40,6 +44,8 @@ public sealed class ArchiveCategoryHandlerTests
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
 			budgetWriteRepository: _budgetWriteRepository,
 			unitOfWork: _unitOfWork,
+			publisher: _publisher,
+			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<ArchiveCategoryHandler>>()
 		);
 	}
@@ -96,6 +102,23 @@ public sealed class ArchiveCategoryHandlerTests
 	}
 
 	[Test]
+	public async Task HandleAsync_WithActiveCategory_ShouldPublishNotification()
+	{
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
+
+		await _handler.HandleAsync(
+			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
+			category: category,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<CategoryArchivedNotification>(n => n.CategoryId == category.Id && n.UserId == category.UserId),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
 	public async Task HandleAsync_WhenCategoryAlreadyArchived_ShouldReturnFailure()
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true).Value!;
@@ -132,6 +155,23 @@ public sealed class ArchiveCategoryHandlerTests
 		await _recurringTransactionWriteRepository.DidNotReceive().DeactivateByCategoryIdAsync(
 			categoryId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCategoryAlreadyArchived_ShouldNotPublishNotification()
+	{
+		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true).Value!;
+
+		await _handler.HandleAsync(
+			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
+			category: category,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<CategoryArchivedNotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 }

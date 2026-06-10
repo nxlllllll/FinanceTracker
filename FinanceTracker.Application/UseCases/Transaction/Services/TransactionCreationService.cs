@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -8,9 +9,12 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Services;
 
@@ -21,6 +25,8 @@ public sealed class TransactionCreationService(
     IUnitOfWork unitOfWork,
     ICategoryTotalWriteRepository categoryTotalWriteRepository,
     IBudgetProgressWriteRepository budgetProgressWriteRepository,
+    IPublisher publisher, 
+    IDateProvider dateProvider, 
     ILogger<TransactionCreationService> logger
 ) : ITransactionCreationService
 {
@@ -119,6 +125,19 @@ public sealed class TransactionCreationService(
         },
         onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create transaction for account {account.Id}."),
         ct: ct);
+
+		await publisher.Publish(notification: new TransactionCreatedNotification(
+			TransactionId: transaction.Id,
+			AccountId: transaction.AccountId,
+			UserId: transaction.UserId,
+			CategoryId: transaction.CategoryId,
+			Amount: transaction.Amount,
+			Direction: transaction.Direction,
+			ExchangeRate: transaction.ExchangeRate,
+			IsRatePending: transaction.IsRatePending,
+			Description: transaction.Description,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
 
         return Result<Guid, DomainException>.Success(value: transaction.Id);
     }

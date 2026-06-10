@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
+using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Persistence;
@@ -7,6 +8,7 @@ using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -14,20 +16,22 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class ChangeTransactionCategoryHandlerTests
 {
 	private ITransactionWriteRepository _transactionWriteRepository = null!;
-    private ICategoryReadRepository _categoryReadRepository = null!;
+	private ICategoryReadRepository _categoryReadRepository = null!;
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
 	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
+	private IPublisher _publisher = null!;
 	private ChangeTransactionCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
-        _categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_publisher = Substitute.For<IPublisher>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -38,7 +42,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
-		
+
 		CategoryReadModel category = CategoryFactory.CreateReadModel(type: CategoryType.Expense);
 		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),
@@ -46,13 +50,14 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		
 		_handler = new ChangeTransactionCategoryHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryReadRepository: _categoryReadRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			unitOfWork: _unitOfWork,
-			budgetProgressWriteRepository: _budgetProgressWriteRepository
+			budgetProgressWriteRepository: _budgetProgressWriteRepository,
+			publisher: _publisher,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -90,6 +95,29 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	}
 
 	[Test]
+	public async Task HandleAsync_WithDebitNotExcluded_ShouldPublishNotification()
+	{
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
+		Guid oldCategoryId = transaction.CategoryId;
+		Guid newCategoryId = Guid.CreateVersion7();
+
+		await _handler.HandleAsync(
+			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: newCategoryId),
+			transaction: transaction,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<TransactionCategoryChangedNotification>(n =>
+				n.TransactionId == transaction.Id &&
+				n.UserId == transaction.UserId &&
+				n.OldCategoryId == oldCategoryId &&
+				n.NewCategoryId == newCategoryId),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
 	public async Task HandleAsync_WithExcludedTransaction_ShouldNotUpdateTotals()
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: true);
@@ -123,12 +151,12 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		);
 
 		await _categoryTotalWriteRepository.DidNotReceive().ChangeCategoryAsync(
-			userId: Arg.Any<Guid>(), 
-			oldCategoryId: Arg.Any<Guid>(), 
+			userId: Arg.Any<Guid>(),
+			oldCategoryId: Arg.Any<Guid>(),
 			newCategoryId: Arg.Any<Guid>(),
 			currency: transaction.Amount.Currency,
-			amount: Arg.Any<decimal>(), 
-			occurredAt: Arg.Any<DateTimeOffset>(), 
+			amount: Arg.Any<decimal>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

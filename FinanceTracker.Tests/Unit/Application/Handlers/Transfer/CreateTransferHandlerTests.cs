@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Transfer.Commands;
+using FinanceTracker.Application.UseCases.Transfer.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -7,6 +8,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -18,6 +20,7 @@ public sealed class CreateTransferHandlerTests
 	private ITransferWriteRepository _transferWriteRepository = null!;
 	private ICurrencyConversionService _currencyConversionService = null!;
 	private IUnitOfWork _unitOfWork = null!;
+	private IPublisher _publisher = null!;
 	private CreateTransferHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -27,6 +30,8 @@ public sealed class CreateTransferHandlerTests
 		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
 		_currencyConversionService = Substitute.For<ICurrencyConversionService>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_publisher = Substitute.For<IPublisher>();
+
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -36,11 +41,13 @@ public sealed class CreateTransferHandlerTests
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
+
 		_handler = new CreateTransferHandler(
 			accountRepository: _accountRepository,
 			transferWriteRepository: _transferWriteRepository,
 			currencyConversionService: _currencyConversionService,
 			unitOfWork: _unitOfWork,
+			publisher: _publisher,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CreateTransferHandler>>()
 		);
@@ -50,7 +57,6 @@ public sealed class CreateTransferHandlerTests
 	public async Task HandleAsync_ShouldReturnTransferId()
 	{
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
 			fromCurrency: Arg.Any<Currency>(),
@@ -60,7 +66,7 @@ public sealed class CreateTransferHandlerTests
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
-			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccount.Id),
+			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
 			account: fromAccount,
 			ct: CancellationToken.None
 		);
@@ -70,10 +76,9 @@ public sealed class CreateTransferHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_ShouldSaveOnlyFromAccount()
+	public async Task HandleAsync_ShouldSaveFromAccount()
 	{
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
 			fromCurrency: Arg.Any<Currency>(),
@@ -83,26 +88,21 @@ public sealed class CreateTransferHandlerTests
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
 		await _handler.HandleAsync(
-			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccount.Id),
+			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
 			account: fromAccount,
 			ct: CancellationToken.None
 		);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Id == fromAccount.Id),
-			ct: Arg.Any<CancellationToken>()
-		);
-		await _accountRepository.DidNotReceive().SaveAsync(
-			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Id == toAccount.Id),
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(a => a.Id == fromAccount.Id),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task HandleAsync_ShouldDebitFromAndCreditTo()
+	public async Task HandleAsync_ShouldDebitFromAccount()
 	{
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
-		FinanceTracker.Core.Domains.Account.Account toAccount = AccountFactory.CreateWithArchivation(balance: 1000m);
 
 		_currencyConversionService.GetConversionRateAsync(
 			fromCurrency: Arg.Any<Currency>(),
@@ -112,11 +112,84 @@ public sealed class CreateTransferHandlerTests
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
 		await _handler.HandleAsync(
-			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccount.Id, amount: 1000m),
+			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 1000m),
 			account: fromAccount,
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: fromAccount.Balance.Amount).IsEqualTo(expected: 4000m);
+	}
+
+	[Test]
+	public async Task HandleAsync_ShouldPublishNotification()
+	{
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
+		Guid toAccountId = Guid.CreateVersion7();
+
+		_currencyConversionService.GetConversionRateAsync(
+			fromCurrency: Arg.Any<Currency>(),
+			toCurrency: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+
+		await _handler.HandleAsync(
+			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccountId),
+			account: fromAccount,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<TransferCreatedNotification>(n =>
+				n.UserId == fromAccount.UserId &&
+				n.FromAccountId == fromAccount.Id &&
+				n.ToAccountId == toAccountId),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenInsufficientFunds_ShouldReturnFailure()
+	{
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 100m);
+
+		_currencyConversionService.GetConversionRateAsync(
+			fromCurrency: Arg.Any<Currency>(),
+			toCurrency: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+
+		Result<Guid, DomainException> result = await _handler.HandleAsync(
+			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
+			account: fromAccount,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenInsufficientFunds_ShouldNotPublishNotification()
+	{
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 100m);
+
+		_currencyConversionService.GetConversionRateAsync(
+			fromCurrency: Arg.Any<Currency>(),
+			toCurrency: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+
+		await _handler.HandleAsync(
+			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
+			account: fromAccount,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<TransferCreatedNotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
 	}
 }

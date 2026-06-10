@@ -1,3 +1,4 @@
+using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -12,6 +13,7 @@ public sealed class CreateBudgetHandler(
 	IBudgetReadRepository budgetReadRepository,
 	IBudgetWriteRepository budgetWriteRepository,
 	IUnitOfWork unitOfWork,
+	IPublisher publisher,
 	IDateProvider dateProvider
 ) : IRequestHandler<CreateBudgetCommand, Result<Guid, DomainException>>
 {
@@ -49,6 +51,16 @@ public sealed class CreateBudgetHandler(
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await budgetWriteRepository.CreateAsync(budget: budget, ct: ct), ct: ct);
 
+		await publisher.Publish(notification: new BudgetCreatedNotification(
+			BudgetId: budget.Id,
+			UserId: budget.UserId,
+			CategoryId: budget.CategoryId,
+			Amount: budget.Amount,
+			From: budget.From,
+			To: budget.To,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
+		
 		return Result<Guid, DomainException>.Success(value: budget.Id);
 	}
 }

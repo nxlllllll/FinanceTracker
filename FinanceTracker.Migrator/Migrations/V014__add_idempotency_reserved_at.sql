@@ -1,3 +1,2 @@
-﻿ALTER TABLE idempotent_commands ADD COLUMN reserved_at timestamptz NOT NULL DEFAULT now();
-
-ALTER TABLE idempotent_commands DROP COLUMN created_at;
+﻿alter table idempotent_commands add column reserved_at timestamptz not null default now();
+alter table idempotent_commands drop column created_at;

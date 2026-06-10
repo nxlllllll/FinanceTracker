@@ -1,8 +1,10 @@
 using FinanceTracker.Application.UseCases.Budget.Commands.DeactivateBudget;
+using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
@@ -10,13 +12,19 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
 public sealed class DeactivateBudgetHandlerTests
 {
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
+	private IPublisher _publisher = null!;
 	private DeactivateBudgetHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
-		_handler = new DeactivateBudgetHandler(budgetWriteRepository: _budgetWriteRepository);
+		_publisher = Substitute.For<IPublisher>();
+		_handler = new DeactivateBudgetHandler(
+			budgetWriteRepository: _budgetWriteRepository,
+			publisher: _publisher,
+			dateProvider: FakeDateProvider.Default
+		);
 	}
 
 	[Test]
@@ -37,18 +45,20 @@ public sealed class DeactivateBudgetHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenBudgetIsActive_ShouldReturnBudgetId()
+	public async Task HandleAsync_WhenBudgetIsActive_ShouldPublishNotification()
 	{
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		await _handler.HandleAsync(
 			command: new DeactivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
 			budget: budget,
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value).IsEqualTo(expected: budget.Id);
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<BudgetDeactivatedNotification>(n => n.BudgetId == budget.Id && n.UserId == budget.UserId),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -68,7 +78,7 @@ public sealed class DeactivateBudgetHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenBudgetAlreadyInactive_ShouldNotCallRepository()
+	public async Task HandleAsync_WhenBudgetAlreadyInactive_ShouldNotPublishNotification()
 	{
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();
@@ -79,9 +89,9 @@ public sealed class DeactivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _budgetWriteRepository.DidNotReceive().DeactivateAsync(
-			budgetId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<BudgetDeactivatedNotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 }

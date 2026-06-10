@@ -36,7 +36,7 @@ public sealed class RegisterUserHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 
 		_handler = new RegisterUserHandler(
 			userWriteRepository: _userWriteRepository,

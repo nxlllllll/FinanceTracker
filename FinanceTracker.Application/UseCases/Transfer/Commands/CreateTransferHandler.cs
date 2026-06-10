@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.Transfer.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -6,8 +7,10 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transfer.Commands;
 
@@ -16,6 +19,7 @@ public sealed class CreateTransferHandler(
 	ITransferWriteRepository transferWriteRepository,
 	ICurrencyConversionService currencyConversionService,
 	IUnitOfWork unitOfWork,
+	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<CreateTransferHandler> logger
 ) : IAuthorizedHandler<CreateTransferCommand, Core.Domains.Account.Account, Guid, DomainException>
@@ -67,6 +71,21 @@ public sealed class CreateTransferHandler(
 		},
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {account.Id} > {command.ToAccountId}."),
 		ct: ct);
+		
+		await publisher.Publish(notification: new TransferCreatedNotification(
+			TransferId: transfer.Id,
+			UserId: transfer.UserId,
+			FromAccountId: transfer.FromAccountId,
+			ToAccountId: transfer.ToAccountId,
+			AmountFrom: transfer.AmountFrom.Amount,
+			CurrencyFrom: transfer.AmountFrom.Currency,
+			AmountTo: transfer.AmountTo.Amount,
+			CurrencyTo: transfer.AmountTo.Currency,
+			ExchangeRate: transfer.ExchangeRate,
+			IsRatePending: transfer.IsRatePending,
+			Description: transfer.Description,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);
 	}

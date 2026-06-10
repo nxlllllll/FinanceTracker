@@ -1,10 +1,14 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetPeriod;
 
@@ -13,6 +17,8 @@ public sealed class ChangeBudgetPeriodHandler(
     IBudgetWriteRepository budgetWriteRepository,
     IBudgetProgressWriteRepository budgetProgressWriteRepository,
     IUnitOfWork unitOfWork,
+    IPublisher publisher,
+    IDateProvider dateProvider,
     ILogger<ChangeBudgetPeriodHandler> logger
 ) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Core.Domains.Budget.Budget, Guid, DomainException>
 {
@@ -58,6 +64,14 @@ public sealed class ChangeBudgetPeriodHandler(
         onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {budget.Id} ({command.From} > {command.To})."),
         ct: ct);
 
+        await publisher.Publish(notification: new BudgetPeriodChangedNotification(
+            BudgetId: budget.Id,
+            UserId: budget.UserId,
+            NewFrom: command.From,
+            NewTo: command.To,
+            OccurredAt: dateProvider.UtcNow
+        ), cancellationToken: ct);
+        
         return Result<Guid, DomainException>.Success(value: budget.Id);
     }
 }

@@ -1,8 +1,10 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ActivateRecurringTransaction;
+using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
@@ -10,43 +12,86 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
 public sealed class ActivateRecurringTransactionHandlerTests
 {
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
+	private IPublisher _publisher = null!;
 	private ActivateRecurringTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
-		_handler = new ActivateRecurringTransactionHandler(recurringTransactionWriteRepository: _writeRepository);
+		_publisher = Substitute.For<IPublisher>();
+		_handler = new ActivateRecurringTransactionHandler(
+			recurringTransactionWriteRepository: _writeRepository,
+			publisher: _publisher,
+			dateProvider: FakeDateProvider.Default
+		);
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyActive_ShouldThrowActivatingException()
+	public async Task HandleAsync_WhenAlreadyActive_ShouldReturnFailure()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: true).Value!;
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
-			command: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
-			recurringTransaction: recurringTransaction,
+			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
+			recurringTransaction: rt,
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenInactive_ShouldCallActivate()
+	public async Task HandleAsync_WhenAlreadyActive_ShouldNotPublishNotification()
 	{
-		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = RecurringTransactionFactory.Create(isActive: false).Value!;
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
 
 		await _handler.HandleAsync(
-			command: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
-			recurringTransaction: recurringTransaction,
+			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
+			recurringTransaction: rt,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<RecurringTransactionActivatedNotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenInactive_ShouldCallActivate()
+	{
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
+
+		await _handler.HandleAsync(
+			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
+			recurringTransaction: rt,
 			ct: CancellationToken.None
 		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ActivateAsync(
-			recurringTransactionId: recurringTransaction.Id, ct: Arg.Any<CancellationToken>()
+			recurringTransactionId: rt.Id,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenInactive_ShouldPublishNotification()
+	{
+		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
+
+		await _handler.HandleAsync(
+			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
+			recurringTransaction: rt,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<RecurringTransactionActivatedNotification>(n =>
+				n.RecurringTransactionId == rt.Id &&
+				n.UserId == rt.UserId),
+			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
 }

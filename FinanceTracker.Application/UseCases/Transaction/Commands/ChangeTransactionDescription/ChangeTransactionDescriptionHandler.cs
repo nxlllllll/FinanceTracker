@@ -1,12 +1,18 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
+using MediatR;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
 
 public sealed class ChangeTransactionDescriptionHandler(
-	ITransactionWriteRepository transactionWriteRepository
+	ITransactionWriteRepository transactionWriteRepository,
+	IPublisher publisher,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -17,6 +23,8 @@ public sealed class ChangeTransactionDescriptionHandler(
 		if (transaction.Description == command.Description)
 			return Result<Guid, DomainException>.Success(value: transaction.Id);
 		
+		string? oldDescription = transaction.Description;
+		
 		Result<Unit, DomainException> result = transaction.ChangeDescription(description: command.Description);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
@@ -26,6 +34,14 @@ public sealed class ChangeTransactionDescriptionHandler(
 			description: command.Description,
 			ct: ct
 		);
+		
+		await publisher.Publish(notification: new TransactionDescriptionChangedNotification(
+			TransactionId: transaction.Id,
+			UserId: transaction.UserId,
+			OldDescription: oldDescription,
+			NewDescription: command.Description,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
 		
 		return Result<Guid, DomainException>.Success(value: transaction.Id);
 	}

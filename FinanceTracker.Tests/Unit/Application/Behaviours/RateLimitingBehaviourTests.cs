@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.RateLimit;
-using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
@@ -9,10 +10,9 @@ namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
 public sealed class RateLimitingBehaviourTests
 {
-	public sealed record TestCommand(Guid UserId) : IUserScopedRequest, IRequest<TestResponse>;
-	public sealed record TestQuery(Guid UserId) : IUserScopedRequest, IRequest<TestResponse>;
-	public sealed record TestCommandWithoutScope : IRequest<TestResponse>;
-	public sealed class TestResponse;
+	public sealed record TestCommand(Guid UserId) : IUserScopedRequest, IRequest<Result<FinanceTracker.Core.Results.Unit, DomainException>>;
+	public sealed record TestQuery(Guid UserId) : IUserScopedRequest, IRequest<Result<FinanceTracker.Core.Results.Unit, DomainException>>;
+	public sealed record TestCommandWithoutScope : IRequest<Result<FinanceTracker.Core.Results.Unit, DomainException>>;
 
 	private static readonly RateLimitOptions DefaultOptions = new RateLimitOptions
 	{
@@ -21,7 +21,7 @@ public sealed class RateLimitingBehaviourTests
 	};
 
 	private IRateLimiter _rateLimiter = null!;
-	private RateLimitingBehaviour<TestCommand, TestResponse> _behaviour = null!;
+	private RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>> _behaviour = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
@@ -30,29 +30,34 @@ public sealed class RateLimitingBehaviourTests
 		_behaviour = CreateCommandBehavior();
 	}
 
-	private RateLimitingBehaviour<TestCommand, TestResponse> CreateCommandBehavior(
+	private RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>> CreateCommandBehavior(
 		RateLimitOptions? options = null)
 	{
-		return new RateLimitingBehaviour<TestCommand, TestResponse>(
+		return new RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
 			rateLimiter: _rateLimiter,
 			options: new FakeOptionsMonitor<RateLimitOptions>(options ?? DefaultOptions)
 		);
 	}
 
-	private static RequestHandlerDelegate<TestResponse> AllowedNext()
+	private static RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> AllowedNext()
 	{
-		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
-		next(t: Arg.Any<CancellationToken>()).Returns(returnThis: new TestResponse());
+		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = 
+			Substitute.For<RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>>>();
+
+		next(
+			t: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, DomainException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
 		return next;
 	}
 
 	[Test]
 	public async Task Handle_WhenRequestIsNotUserScoped_ShouldNotCallRateLimiter()
 	{
-		RateLimitingBehaviour<TestCommandWithoutScope, TestResponse> behaviour = new RateLimitingBehaviour<TestCommandWithoutScope, TestResponse>(
-			rateLimiter: _rateLimiter,
-			options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
-		);
+		RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour =
+			new RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
+				rateLimiter: _rateLimiter,
+				options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
+			);
 
 		await behaviour.Handle(
 			request: new TestCommandWithoutScope(),
@@ -71,12 +76,13 @@ public sealed class RateLimitingBehaviourTests
 	[Test]
 	public async Task Handle_WhenRequestIsNotUserScoped_ShouldCallNext()
 	{
-		RateLimitingBehaviour<TestCommandWithoutScope, TestResponse> behaviour = new RateLimitingBehaviour<TestCommandWithoutScope, TestResponse>(
-			rateLimiter: _rateLimiter,
-			options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
-		);
+		RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour =
+			new RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
+				rateLimiter: _rateLimiter,
+				options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
+			);
 
-		RequestHandlerDelegate<TestResponse> next = AllowedNext();
+		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
 
 		await behaviour.Handle(
 			request: new TestCommandWithoutScope(),
@@ -97,7 +103,7 @@ public sealed class RateLimitingBehaviourTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		RequestHandlerDelegate<TestResponse> next = AllowedNext();
+		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
 
 		await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
@@ -109,10 +115,8 @@ public sealed class RateLimitingBehaviourTests
 	}
 
 	[Test]
-	public async Task Handle_WhenRateLimiterAllows_ShouldReturnResponse()
+	public async Task Handle_WhenRateLimiterAllows_ShouldReturnSuccess()
 	{
-		TestResponse expected = new TestResponse();
-
 		_rateLimiter.IsAllowedAsync(
 			key: Arg.Any<string>(),
 			requestsPerWindow: Arg.Any<int>(),
@@ -120,20 +124,17 @@ public sealed class RateLimitingBehaviourTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
-		next(t: Arg.Any<CancellationToken>()).Returns(returnThis: expected);
-
-		TestResponse result = await _behaviour.Handle(
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
-			next: next,
+			next: AllowedNext(),
 			cancellationToken: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsEqualTo(expected: expected);
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]
-	public async Task Handle_WhenRateLimiterDenies_ShouldThrowRateLimitExceededException()
+	public async Task Handle_WhenRateLimiterDenies_ShouldReturnFailure()
 	{
 		_rateLimiter.IsAllowedAsync(
 			key: Arg.Any<string>(),
@@ -142,11 +143,14 @@ public sealed class RateLimitingBehaviourTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: false);
 
-		await Assert.ThrowsAsync<RateLimitExceededException>(action: async () => await _behaviour.Handle(
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
 			next: AllowedNext(),
 			cancellationToken: CancellationToken.None
-		));
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<RateLimitExceededException>();
 	}
 
 	[Test]
@@ -159,13 +163,13 @@ public sealed class RateLimitingBehaviourTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: false);
 
-		RequestHandlerDelegate<TestResponse> next = AllowedNext();
+		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
 
-		await Assert.ThrowsAsync<RateLimitExceededException>(action: async () => await _behaviour.Handle(
+		await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
 			next: next,
 			cancellationToken: CancellationToken.None
-		));
+		);
 
 		await next.DidNotReceive().Invoke(t: Arg.Any<CancellationToken>());
 	}
@@ -178,7 +182,7 @@ public sealed class RateLimitingBehaviourTests
 		string? capturedKey = null;
 
 		_rateLimiter.IsAllowedAsync(
-			key: Arg.Do<string>(x => capturedKey = x),
+			key: Arg.Do<string>(useArgument: x => capturedKey = x),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -197,7 +201,7 @@ public sealed class RateLimitingBehaviourTests
 	public async Task Handle_ShouldCallRateLimiterWithCorrectOptions()
 	{
 		RateLimitOptions customOptions = new RateLimitOptions { RequestsPerWindow = 10, WindowSeconds = 30 };
-		RateLimitingBehaviour<TestCommand, TestResponse> behaviour = CreateCommandBehavior(options: customOptions);
+		RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour = CreateCommandBehavior(options: customOptions);
 
 		_rateLimiter.IsAllowedAsync(
 			key: Arg.Any<string>(),
@@ -230,16 +234,15 @@ public sealed class RateLimitingBehaviourTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		RateLimitingBehaviour<TestQuery, TestResponse> behaviour = new RateLimitingBehaviour<TestQuery, TestResponse>(
-			rateLimiter: _rateLimiter,
-			options: new FakeOptionsMonitor<RateLimitOptions>(DefaultOptions)
-		);
-
-		RequestHandlerDelegate<TestResponse> next = AllowedNext();
+		RateLimitingBehaviour<TestQuery, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour =
+			new RateLimitingBehaviour<TestQuery, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
+				rateLimiter: _rateLimiter,
+				options: new FakeOptionsMonitor<RateLimitOptions>(DefaultOptions)
+			);
 
 		await behaviour.Handle(
 			request: new TestQuery(UserId: Guid.CreateVersion7()),
-			next: next,
+			next: Substitute.For<RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>>>(),
 			cancellationToken: CancellationToken.None
 		);
 

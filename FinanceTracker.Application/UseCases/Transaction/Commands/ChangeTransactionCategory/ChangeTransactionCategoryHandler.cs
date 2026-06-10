@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Utilities;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -8,6 +9,9 @@ using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
+using MediatR;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
 
@@ -16,7 +20,9 @@ public sealed class ChangeTransactionCategoryHandler(
 	ICategoryReadRepository categoryReadRepository,
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IUnitOfWork unitOfWork,
-	IBudgetProgressWriteRepository budgetProgressWriteRepository
+	IBudgetProgressWriteRepository budgetProgressWriteRepository,
+	IPublisher publisher,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -71,6 +77,14 @@ public sealed class ChangeTransactionCategoryHandler(
 				ct: ct
 			);
 		}, ct: ct);
+		
+		await publisher.Publish(notification: new TransactionCategoryChangedNotification(
+			TransactionId: transaction.Id,
+			UserId: transaction.UserId,
+			OldCategoryId: oldCategoryId,
+			NewCategoryId: command.CategoryId,
+			OccurredAt: dateProvider.UtcNow
+		), cancellationToken: ct);
 
 		return Result<Guid, DomainException>.Success(value: transaction.Id);
 	}
