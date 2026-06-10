@@ -16,6 +16,11 @@ using ZLogger;
 
 namespace FinanceTracker.Worker.AccountProjection.Consumer;
 
+/// <summary>
+/// RabbitMQ message handler that receives <see cref="AggregateEventsMessage"/> from the account exchange,
+/// deserializes each integration event, deduplicates via <c>processed_messages</c>,
+/// and dispatches to <see cref="AccountProjection"/> via MediatR notification.
+/// </summary>
 public sealed class AccountEventsConsumer(
 	Projection.AccountProjection projection,
 	IIntegrationEventTypeResolver integrationEventTypeResolver,

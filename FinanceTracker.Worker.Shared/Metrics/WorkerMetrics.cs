@@ -2,6 +2,11 @@ using System.Diagnostics.Metrics;
 
 namespace FinanceTracker.Worker.Shared.Metrics;
 
+/// <summary>
+/// OpenTelemetry metrics emitted by worker services.
+/// All instruments are registered under the <c>FinanceTracker.Workers</c> meter.
+/// Expose via <c>AddMeter("FinanceTracker.Workers")</c> in your OTEL configuration.
+/// </summary>
 public static class WorkerMetrics
 {
 	public const string MeterName = "FinanceTracker.Workers";

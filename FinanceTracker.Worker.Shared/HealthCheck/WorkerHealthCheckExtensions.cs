@@ -7,8 +7,18 @@ using OpenTelemetry.Resources;
 
 namespace FinanceTracker.Worker.Shared.HealthCheck;
 
+/// <summary>
+/// Extension methods for registering standard worker health checks and OpenTelemetry metrics.
+/// Call <see cref="AddWorkerHealthChecks"/> in each worker's <c>Program.cs</c> to expose
+/// a <c>/health</c> endpoint covering Postgres, Redis, Quartz, and RabbitMQ.
+/// </summary>
 public static class WorkerHealthCheckExtensions
 {
+	/// <summary>
+	/// Registers health checks for Postgres and Redis.
+	/// Add <c>.AddQuartzHealthChecks()</c> and <c>.AddRabbitMqHealthCheck()</c>
+	/// to the returned builder for workers that use those dependencies.
+	/// </summary>
 	public static IHealthChecksBuilder AddWorkerHealthChecks(
 		this IServiceCollection services,
 		string connectionString,

@@ -10,6 +10,11 @@ using RabbitMQ.Client;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 
+/// <summary>
+/// Publishes <see cref="IRoutableMessage"/> instances to a RabbitMQ topic exchange.
+/// Maintains a single lazy connection and channel, reconnecting automatically if needed.
+/// Propagates the W3C <c>traceparent</c> header for distributed tracing across service boundaries.
+/// </summary>
 public sealed class RabbitMqPublisher(
 	RabbitMqConnectionFactory connectionFactory,
 	IOptions<RabbitMqOptions> options

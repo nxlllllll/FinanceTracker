@@ -22,6 +22,17 @@ using ZLogger;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 
+/// <summary>
+/// Background service that consumes messages of type <typeparamref name="TMessage"/>
+/// from a RabbitMQ queue and dispatches them to <typeparamref name="THandler"/>.
+/// <para>
+/// Handles connection recovery automatically with exponential backoff.
+/// On handler failure, retries up to <see cref="RabbitMqOptions.MaxRetries"/> times
+/// using <see cref="IRetryCounter"/> (Redis-backed with in-memory fallback).
+/// Messages that exhaust all retries are sent to the dead-letter exchange and
+/// recorded in <c>unresolvable_events</c> for manual investigation.
+/// </para>
+/// </summary>
 public sealed class RabbitMqListenerService<TMessage, THandler>(
 	RabbitMqConnectionFactory connectionFactory,
 	IOptions<RabbitMqOptions> options,

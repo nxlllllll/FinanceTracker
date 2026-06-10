@@ -7,6 +7,11 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Worker.AccountProjection.Projection;
 
+/// <summary>
+/// Applies individual account integration events to the read model projection
+/// by dispatching each to the corresponding <see cref="IAccountWriteRepository"/> method.
+/// Used exclusively by <see cref="AccountProjection"/>.
+/// </summary>
 public sealed class AccountEventApplier(IAccountWriteRepository repository)
 {
 	public Task ApplyAsync(IAccountIntegrationEvent @event, CancellationToken ct) => @event switch

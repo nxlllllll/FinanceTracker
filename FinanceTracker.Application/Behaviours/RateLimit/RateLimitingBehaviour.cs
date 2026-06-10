@@ -15,7 +15,7 @@ namespace FinanceTracker.Application.Behaviours.RateLimit;
 /// <exception cref="RateLimitExceededException">
 /// Thrown when the request exceeds the configured rate limit for the user.
 /// </exception>
-public sealed class RateLimitingBehavior<TRequest, TResponse>(
+public sealed class RateLimitingBehaviour<TRequest, TResponse>(
 	IRateLimiter rateLimiter,
 	IOptionsMonitor<RateLimitOptions> options
 ) : IPipelineBehavior<TRequest, TResponse>

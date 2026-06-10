@@ -4,10 +4,15 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Category;
 
+/// <summary>
+/// Represents a transaction category (e.g. Food, Transport).
+/// Categories can be nested via <see cref="ParentId"/> for sub-category grouping.
+/// </summary>
 public sealed class Category
 {
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }
+	/// <summary>Optional parent category ID for hierarchical grouping. <c>null</c> for root categories.</summary>
 	public Guid? ParentId { get; private set; }
 	public Name Name { get; private set; }
 	public CategoryType Type { get; private set; }

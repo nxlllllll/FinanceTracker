@@ -3,22 +3,35 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 
 namespace FinanceTracker.Core.Utilities.Retry;
 
+/// <summary>
+/// Calculates retry delays using exponential backoff with optional full jitter,
+/// and provides a generic retry execution helper.
+/// Used by <c>ConcurrencyRetryBehavior</c> and <c>IdempotencyBehavior</c>.
+/// </summary>
 public static class RetryDelayCalculator
 {
 	private static readonly Random Jitter = Random.Shared;
 
+	/// <summary>
+	/// Calculates a delay for the given retry <paramref name="attempt"/>.
+	/// Formula: <c>baseDelayMs * 2^attempt</c> with optional full jitter (<c>[0, exponential]</c>).
+	/// </summary>
+	/// <param name="attempt">Zero-based attempt index.</param>
+	/// <param name="baseDelayMs">Base delay in milliseconds.</param>
+	/// <param name="useJitter">When <c>true</c>, randomises the delay to spread concurrent retries.</param>
 	public static int Calculate(int attempt, int baseDelayMs, bool useJitter)
 	{
-		// Exponential backoff: baseDelayMs * 2^(attempt)
 		int exponential = baseDelayMs * (1 << attempt);
 
 		if (!useJitter)
 			return exponential;
 		
-		// Full jitter: random in [0, exponential]
 		return Jitter.Next(minValue: 0, maxValue: exponential + 1);
 	}
-	
+
+	/// <summary>
+	/// Executes <paramref name="operation"/> with automatic retry on <see cref="ConcurrencyConflictException"/>.
+	/// </summary>
 	public static async Task<T> ExecuteWithRetryAsync<T>(
 		Func<CancellationToken, Task<T>> operation,
 		Action<ConcurrencyConflictException, int, int> logging,
@@ -38,6 +51,10 @@ public static class RetryDelayCalculator
 		);
 	}
 
+	/// <summary>
+	/// Executes <paramref name="operation"/> with automatic retry for any exception
+	/// matching <paramref name="exceptionFilter"/>.
+	/// </summary>
 	public static async Task ExecuteWithRetryAsync(
 		Func<CancellationToken, Task> operation,
 		Action<Exception, int, int> logging,
@@ -61,7 +78,12 @@ public static class RetryDelayCalculator
 			ct: ct
 		);
 	}
-	
+
+	/// <summary>
+	/// Core retry loop. Retries up to <paramref name="maxRetries"/> times,
+	/// waiting <see cref="Calculate"/> milliseconds between attempts.
+	/// Re-throws the last exception if all retries are exhausted.
+	/// </summary>
 	public static async Task<T> ExecuteWithRetryAsync<T>(
 		Func<CancellationToken, Task<T>> operation,
 		Action<Exception, int, int> logging,

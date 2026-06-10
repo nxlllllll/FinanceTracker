@@ -12,7 +12,7 @@ using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
-public sealed class IdempotencyBehaviorTests
+public sealed class IdempotencyBehaviourTests
 {
 	public sealed record TestCommand(Guid IdempotencyKey) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand;
 	public sealed record NonIdempotentCommand : IRequest<Result<Guid, DomainException>>;
@@ -24,7 +24,7 @@ public sealed class IdempotencyBehaviorTests
 
 	private IIdempotencyReadRepository _readRepository = null!;
 	private IIdempotencyWriteRepository _writeRepository = null!;
-	private IdempotencyBehavior<TestCommand, Result<Guid, DomainException>> _behavior = null!;
+	private IdempotencyBehaviour<TestCommand, Result<Guid, DomainException>> _behaviour = null!;
 
 	private static readonly Guid ValidKey = Guid.CreateVersion7();
 	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
@@ -42,16 +42,16 @@ public sealed class IdempotencyBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		_behavior = BuildBehavior<TestCommand>();
+		_behaviour = BuildBehavior<TestCommand>();
 	}
 
-	private IdempotencyBehavior<TReq, Result<Guid, DomainException>> BuildBehavior<TReq>(
+	private IdempotencyBehaviour<TReq, Result<Guid, DomainException>> BuildBehavior<TReq>(
 		int expiryHours = 24,
 		int abandonedAfterSeconds = 30,
 		IDateProvider? dateProvider = null)
 		where TReq : notnull
 	{
-		return new IdempotencyBehavior<TReq, Result<Guid, DomainException>>(
+		return new IdempotencyBehaviour<TReq, Result<Guid, DomainException>>(
 			idempotencyReadRepository: _readRepository,
 			idempotencyWriteRepository: _writeRepository,
 			options: new FakeOptionsMonitor<IdempotencyOptions>(value: new IdempotencyOptions
@@ -63,7 +63,7 @@ public sealed class IdempotencyBehaviorTests
 				AbandonedAfterSeconds = abandonedAfterSeconds
 			}),
 			dateProvider: dateProvider ?? FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<IdempotencyBehavior<TReq, Result<Guid, DomainException>>>>()
+			logger: Substitute.For<ILogger<IdempotencyBehaviour<TReq, Result<Guid, DomainException>>>>()
 		);
 	}
 
@@ -110,7 +110,7 @@ public sealed class IdempotencyBehaviorTests
 	[Test]
 	public async Task Handle_WhenIdempotencyKeyIsEmpty_ShouldReturnFailure()
 	{
-		Result<Guid, DomainException> result = await _behavior.Handle(
+		Result<Guid, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: Guid.Empty),
 			next: _ => throw new InvalidOperationException(message: "next should not be called"),
 			cancellationToken: CancellationToken.None
@@ -123,7 +123,7 @@ public sealed class IdempotencyBehaviorTests
 	[Test]
 	public async Task Handle_WhenIdempotencyKeyIsEmpty_ShouldNotTouchRepositories()
 	{
-		await _behavior.Handle(
+		await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: Guid.Empty),
 			next: _ => Task.FromResult(result: Ok()),
 			cancellationToken: CancellationToken.None
@@ -152,7 +152,7 @@ public sealed class IdempotencyBehaviorTests
 
 		bool nextCalled = false;
 
-		await _behavior.Handle(request: new TestCommand(IdempotencyKey: ValidKey), next: _ =>
+		await _behaviour.Handle(request: new TestCommand(IdempotencyKey: ValidKey), next: _ =>
 		{
 			nextCalled = true;
 			return Task.FromResult(result: Ok());
@@ -171,7 +171,7 @@ public sealed class IdempotencyBehaviorTests
 
 		Guid expectedId = Guid.CreateVersion7();
 
-		await _behavior.Handle(
+		await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => Task.FromResult(result: OkWith(value: expectedId)),
 			cancellationToken: CancellationToken.None
@@ -192,7 +192,7 @@ public sealed class IdempotencyBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (IdempotencyEntry?)null);
 
-		await _behavior.Handle(
+		await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => Task.FromResult(result: Fail()),
 			cancellationToken: CancellationToken.None
@@ -244,7 +244,7 @@ public sealed class IdempotencyBehaviorTests
 
 		bool nextCalled = false;
 
-		await _behavior.Handle(request: new TestCommand(IdempotencyKey: ValidKey), next: _ =>
+		await _behaviour.Handle(request: new TestCommand(IdempotencyKey: ValidKey), next: _ =>
 		{
 			nextCalled = true;
 			return Task.FromResult(result: Ok());
@@ -263,7 +263,7 @@ public sealed class IdempotencyBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: CompletedEntry(result: OkWith(value: cachedId)));
 
-		Result<Guid, DomainException> result = await _behavior.Handle(
+		Result<Guid, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => Task.FromResult(result: OkWith(value: Guid.NewGuid())),
 			cancellationToken: CancellationToken.None
@@ -281,7 +281,7 @@ public sealed class IdempotencyBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: CompletedEntry(result: Ok()));
 
-		await _behavior.Handle(
+		await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => Task.FromResult(result: Ok()),
 			cancellationToken: CancellationToken.None
@@ -327,7 +327,7 @@ public sealed class IdempotencyBehaviorTests
 
 		bool nextCalled = false;
 
-		await _behavior.Handle(request: new TestCommand(IdempotencyKey: ValidKey), next: _ =>
+		await _behaviour.Handle(request: new TestCommand(IdempotencyKey: ValidKey), next: _ =>
 		{
 			nextCalled = true;
 			return Task.FromResult(result: Ok());
@@ -349,7 +349,7 @@ public sealed class IdempotencyBehaviorTests
 			returnThese: CompletedEntry(result: OkWith(value: completedId))
 		);
 
-		Result<Guid, DomainException> result = await _behavior.Handle(
+		Result<Guid, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => throw new InvalidOperationException(message: "next should not be called"),
 			cancellationToken: CancellationToken.None
@@ -396,7 +396,7 @@ public sealed class IdempotencyBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: InFlightEntry(reservedAt: abandonedAt));
 
-		Result<Guid, DomainException> result = await _behavior.Handle(
+		Result<Guid, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => throw new InvalidOperationException(message: "next should not be called"),
 			cancellationToken: CancellationToken.None
@@ -423,7 +423,7 @@ public sealed class IdempotencyBehaviorTests
 			returnThese: InFlightEntry(reservedAt: abandonedAt)
 		);
 
-		Result<Guid, DomainException> result = await _behavior.Handle(
+		Result<Guid, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => throw new InvalidOperationException(message: "next should not be called"),
 			cancellationToken: CancellationToken.None
@@ -448,7 +448,7 @@ public sealed class IdempotencyBehaviorTests
 			returnThese: (IdempotencyEntry?)null
 		);
 
-		Result<Guid, DomainException> result = await _behavior.Handle(
+		Result<Guid, DomainException> result = await _behaviour.Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => throw new InvalidOperationException(message: "next should not be called"),
 			cancellationToken: CancellationToken.None

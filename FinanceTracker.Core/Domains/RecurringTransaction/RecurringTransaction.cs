@@ -5,6 +5,10 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.RecurringTransaction;
 
+/// <summary>
+/// Represents a monthly recurring transaction that is automatically triggered
+/// on a specific day of month by <c>RecurringTransactionHandlingJob</c>.
+/// </summary>
 public sealed class RecurringTransaction
 {
     public Guid Id { get; private set; }
@@ -13,9 +17,11 @@ public sealed class RecurringTransaction
     public Guid CategoryId { get; private set; }
     public Money Amount { get; private set; }
     public DirectionType Direction { get; private set; }
+    /// <summary>Day of month (1–31) on which this transaction is triggered. Days exceeding the month length execute on the last day.</summary>
     public int DayOfMonth { get; private set; }
     public string? Description { get; private set; }
     public bool IsActive { get; private set; }
+    /// <summary>UTC timestamp of the last successful execution. <c>null</c> if never executed.</summary>
     public DateTimeOffset? LastExecutedAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 

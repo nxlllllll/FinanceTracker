@@ -4,19 +4,30 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Budget;
 
+/// <summary>
+/// Represents a spending budget for a specific category over a date range.
+/// A budget is active when today falls within [<see cref="From"/>, <see cref="To"/>].
+/// Progress is tracked separately in <c>rm_budget_progress</c>.
+/// </summary>
 public sealed class Budget
 {
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
     public Guid CategoryId { get; private set; }
+    /// <summary>The budget spending limit.</summary>
     public Money Amount { get; private set; }
     public bool IsActive { get; private set; }
+    /// <summary>Inclusive start date of the budget period.</summary>
     public DateOnly From { get; private set; }
+    /// <summary>Inclusive end date of the budget period.</summary>
     public DateOnly To { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     private Budget() { }
 
+    /// <summary>
+    /// Creates a new budget. Fails if <paramref name="to"/> is not after <paramref name="from"/>.
+    /// </summary>
     public static Result<Budget, DomainException> Create(
         DateTimeOffset createdAt,
         Guid userId,
@@ -41,6 +52,7 @@ public sealed class Budget
         });
     }
 
+    /// <summary>Bypasses validation. Use only when loading from storage.</summary>
     public static Budget Reconstitute(
         Guid id,
         Guid userId,

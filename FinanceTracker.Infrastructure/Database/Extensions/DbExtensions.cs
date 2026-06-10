@@ -5,10 +5,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Extensions;
 
+/// <summary>
+/// EF Core <see cref="DbContext"/> extension methods for raw SQL operations
+/// that cannot be expressed cleanly through the standard LINQ API.
+/// </summary>
 public static class DbContextExtensions
 {
 	private sealed record CurrencyRateRow(string BaseCode, string TargetCode, decimal Rate);
 	
+	/// <summary>
+	/// Upserts a category total row — inserts or increments existing total and count atomically.
+	/// Uses <c>ON CONFLICT DO UPDATE</c> to avoid lost updates under concurrent writes.
+	/// </summary>
 	public static Task UpsertCategoryTotalAsync(
 		this DbContext context,
 		CategoryTotalEntity entity,
@@ -25,6 +33,11 @@ public static class DbContextExtensions
 		""", cancellationToken: ct);
 	}
 
+	/// <summary>
+	/// Attempts to reserve an idempotency key using <c>INSERT … ON CONFLICT DO NOTHING</c>.
+	/// Returns <c>true</c> if the key was newly inserted (this request owns it),
+	/// or <c>false</c> if it already existed (duplicate request).
+	/// </summary>
 	public static async Task<bool> TryReserveIdempotentCommandAsync(
 		this DbContext context,
 		Guid idempotencyKey,
@@ -45,6 +58,10 @@ public static class DbContextExtensions
 		return rows == 1;
 	}
 
+	/// <summary>
+	/// Writes the serialized response JSON to a previously reserved idempotency record,
+	/// marking the command as completed.
+	/// </summary>
 	public static Task CompleteIdempotentCommandAsync(
 		this DbContext context,
 		Guid idempotencyKey,
@@ -58,6 +75,10 @@ public static class DbContextExtensions
 		""", cancellationToken: ct);
 	}
 
+	/// <summary>
+	/// Loads a user session by refresh token hash using <c>SELECT … FOR UPDATE</c>
+	/// to prevent concurrent refresh races.
+	/// </summary>
 	public static Task<UserSession?> GetSessionByRefreshTokenForUpdateAsync(
 		this FinanceTrackerContext context,
 		string tokenHash,
@@ -78,6 +99,10 @@ public static class DbContextExtensions
 		)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
+	/// <summary>
+	/// Loads the most recent exchange rate for each requested currency pair in a single query
+	/// using <c>DISTINCT ON</c>.
+	/// </summary>
 	public static Task<Dictionary<(string BaseCode, string TargetCode), decimal>> GetLatestCurrencyRatesBatchAsync(
 		this FinanceTrackerContext context,
 		string[] fromCodes,

@@ -1,10 +1,16 @@
 using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
 using MediatR;
 using ZLogger;
 
 namespace FinanceTracker.Worker.AccountProjection.Projection;
 
+/// <summary>
+/// MediatR <see cref="INotificationHandler{TNotification}"/> that applies a batch
+/// of account integration events to the read model in order.
+/// Triggered by <see cref="AccountEventsConsumer"/> after deduplication.
+/// </summary>
 public sealed class AccountProjection(
 	AccountEventApplier applier,
 	ILogger<AccountProjection> logger

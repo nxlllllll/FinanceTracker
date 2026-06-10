@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Results;
 using FluentValidation;
 using FluentValidation.Results;
 using MediatR;
@@ -7,12 +6,18 @@ using ZLogger;
 
 namespace FinanceTracker.Application.Behaviours.Validation;
 
-public sealed class ValidationBehavior<TRequest, TResponse>(
+/// <summary>
+/// MediatR pipeline behaviour that runs FluentValidation validators for queries.
+/// Unlike <c>ValidationBehavior</c>, queries return plain values (not <c>Result</c>),
+/// so validation failure throws a <c>ValidationException</c> directly.
+/// No-op when no validators are registered for the request.
+/// </summary>
+public sealed class QueryValidationBehaviour<TRequest, TResponse>(
 	IEnumerable<IValidator<TRequest>> validators,
-	ILogger<ValidationBehavior<TRequest, TResponse>> logger
+	ILogger<QueryValidationBehaviour<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : notnull
-	where TResponse : IResult<TResponse, FinanceTracker.Core.Exceptions.ValidationException>
+	where TResponse : notnull
 {
 	public async Task<TResponse> Handle(
 		TRequest request,
@@ -21,23 +26,22 @@ public sealed class ValidationBehavior<TRequest, TResponse>(
 	{
 		if (!validators.Any())
 			return await next(t: cancellationToken);
- 
+
 		ValidationContext<TRequest> context = new ValidationContext<TRequest>(instanceToValidate: request);
- 
+
 		ValidationResult[] results = await Task.WhenAll(tasks: validators.Select(
 			selector: validator => validator.ValidateAsync(context: context, cancellation: cancellationToken)
 		));
- 
-		List<string> errors = results
+
+		List<ValidationFailure> errors = results
 			.SelectMany(selector: result => result.Errors)
 			.Where(predicate: error => error is not null)
-			.Select(selector: error => error.ErrorMessage)
 			.ToList();
 
 		if (errors.Count == 0)
 			return await next(t: cancellationToken);
 		
-		logger.ZLogWarning(message: $"Validation failed for {request.GetType().Name}: {errors.Count} error(s).");
-		return TResponse.CreateFailure(error: new FinanceTracker.Core.Exceptions.ValidationException(errors: errors));
+		logger.ZLogWarning(message: $"{request.GetType().Name} entity have errors: {errors.Count}");
+		throw new ValidationException(errors: errors);
 	}
 }

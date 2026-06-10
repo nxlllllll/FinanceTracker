@@ -6,6 +6,10 @@ using FinanceTracker.Core.Services.Token;
 
 namespace FinanceTracker.Infrastructure.Services.Auth;
 
+/// <summary>
+/// Creates an authenticated session by generating a JWT access token and an opaque refresh token,
+/// hashing and persisting the refresh token, and returning both to the caller.
+/// </summary>
 public sealed class SessionIssuer(
 	ITokenService tokenService,
 	IUserSessionWriteRepository userSessionWriteRepository,

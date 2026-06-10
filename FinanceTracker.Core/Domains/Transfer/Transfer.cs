@@ -4,19 +4,30 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Transfer;
 
+/// <summary>
+/// Represents a two-phase fund transfer between two accounts (debit → credit).
+/// Created with status <c>PendingCredit</c>; transitions to <c>Completed</c>,
+/// <c>Compensated</c>, or <c>Failed</c> via the transfer worker.
+/// </summary>
 public sealed class Transfer
 {
-    public Guid Id { get; private set; }
-    public Guid UserId { get; private set; }
-    public Guid FromAccountId { get; private set; }
-    public Guid ToAccountId { get; private set; }
-    public Money AmountFrom { get; private set; }
-    public Money AmountTo { get; private set; }
-    public decimal ExchangeRate { get; private set; }
-    public bool IsRatePending { get; private set; }
+	public Guid Id { get; private set; }
+	public Guid UserId { get; private set; }
+	public Guid FromAccountId { get; private set; }
+	public Guid ToAccountId { get; private set; }
+	/// <summary>Amount debited from the source account (in source currency).</summary>
+	public Money AmountFrom { get; private set; }
+	/// <summary>Amount to credit to the destination account (in destination currency).</summary>
+	public Money AmountTo { get; private set; }
+	public decimal ExchangeRate { get; private set; }
+	/// <summary>
+	/// <c>true</c> when the exchange rate was not available at creation time
+	/// and will be filled in by <c>BalanceAdjustmentJob</c>.
+	/// </summary>
+	public bool IsRatePending { get; private set; }
 	public TransferStatus Status { get; private set; }
-    public string? Description { get; private set; }
-    public DateTimeOffset OccurredAt { get; private set; }
+	public string? Description { get; private set; }
+	public DateTimeOffset OccurredAt { get; private set; }
 
 	private Transfer() { }
 
@@ -91,6 +102,7 @@ public sealed class Transfer
 		};
 	}
 
+	/// <summary>Marks the transfer as successfully completed (credit applied).</summary>
 	public Result<Unit, DomainException> Complete()
 	{
 		if (Status != TransferStatus.PendingCredit)
@@ -100,6 +112,10 @@ public sealed class Transfer
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>
+	/// Marks the transfer as compensated — the debit was refunded to the source account
+	/// because the credit side failed.
+	/// </summary>
 	public Result<Unit, DomainException> Compensate()
 	{
 		if (Status != TransferStatus.PendingCredit)
@@ -109,6 +125,10 @@ public sealed class Transfer
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>
+	/// Marks the transfer as permanently failed — compensation itself failed and
+	/// manual intervention is required.
+	/// </summary>
 	public Result<Unit, DomainException> Fail()
 	{
 		if (Status is TransferStatus.Completed or TransferStatus.Failed)

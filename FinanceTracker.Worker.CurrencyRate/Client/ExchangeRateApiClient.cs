@@ -4,6 +4,11 @@ using ZLogger;
 
 namespace FinanceTracker.Worker.CurrencyRate.Client;
 
+/// <summary>
+/// HTTP client for the ExchangeRate-API v6 service.
+/// Wrapped with Polly retry and circuit breaker policies configured via <see cref="ExchangeRateApiOptions"/>.
+/// Returns <c>null</c> when the client is disabled via configuration.
+/// </summary>
 public sealed class ExchangeRateApiClient(
 	HttpClient httpClient,
 	IOptionsMonitor<ExchangeRateApiOptions> options,

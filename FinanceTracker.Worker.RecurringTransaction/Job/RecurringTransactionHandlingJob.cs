@@ -61,12 +61,11 @@ public sealed class RecurringTransactionHandlingJob(
 					CorrelationId: correlationContext.CorrelationId
 				), correlationId: correlationContext.CorrelationId, ct: ct);
 
-				await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-					await recurringTransactionWriteRepository.MarkExecutedAsync(
-						recurringTransactionId: transaction.Id,
-						executedAt: now,
-						ct: ct
-					), ct: ct);
+				await unitOfWork.ExecuteInTransactionAsync(operation: async () => await recurringTransactionWriteRepository.MarkExecutedAsync(
+					recurringTransactionId: transaction.Id,
+					executedAt: now,
+					ct: ct
+				), ct: ct);
 
 				logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processed: {++processed}/{dueTransactions.Count} (id: {transaction.Id}).");
 			}

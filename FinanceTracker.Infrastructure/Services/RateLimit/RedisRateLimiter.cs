@@ -4,6 +4,11 @@ using StackExchange.Redis;
 
 namespace FinanceTracker.Infrastructure.Services.RateLimit;
 
+/// <summary>
+/// Redis-backed sliding-window rate limiter using an atomic Lua script.
+/// The script executes <c>ZREMRANGEBYSCORE</c>, <c>ZCARD</c>, <c>ZADD</c>, and <c>PEXPIRE</c>
+/// in a single round-trip, eliminating race conditions between check and increment.
+/// </summary>
 public sealed class RedisRateLimiter(
 	IConnectionMultiplexer connectionMultiplexer,
 	IDateProvider dateProvider

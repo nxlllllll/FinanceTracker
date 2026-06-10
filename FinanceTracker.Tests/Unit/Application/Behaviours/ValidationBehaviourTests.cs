@@ -9,20 +9,20 @@ using ValidationException = FinanceTracker.Core.Exceptions.ValidationException;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
-public sealed class ValidationBehaviorTests
+public sealed class ValidationBehaviourTests
 {
     public sealed record TestCommand : IRequest<Result<Guid, ValidationException>>;
 
-    private ILogger<ValidationBehavior<TestCommand, Result<Guid, ValidationException>>> _logger = null!;
+    private ILogger<ValidationBehaviour<TestCommand, Result<Guid, ValidationException>>> _logger = null!;
 
     [Before(hookType: Test)]
     public void Setup()
-        => _logger = Substitute.For<ILogger<ValidationBehavior<TestCommand, Result<Guid, ValidationException>>>>();
+        => _logger = Substitute.For<ILogger<ValidationBehaviour<TestCommand, Result<Guid, ValidationException>>>>();
 
-    private ValidationBehavior<TestCommand, Result<Guid, ValidationException>> CreateBehavior(
+    private ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> CreateBehavior(
         params IValidator<TestCommand>[] validators)
     {
-        return new ValidationBehavior<TestCommand, Result<Guid, ValidationException>>(
+        return new ValidationBehaviour<TestCommand, Result<Guid, ValidationException>>(
             validators: validators,
             logger: _logger
         );
@@ -54,10 +54,10 @@ public sealed class ValidationBehaviorTests
     [Test]
     public async Task Handle_WhenNoValidators_ShouldCallNext()
     {
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior();
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior();
         bool nextCalled = false;
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: new TestCommand(),
             next: _ =>
             {
@@ -73,10 +73,10 @@ public sealed class ValidationBehaviorTests
     [Test]
     public async Task Handle_WhenAllValidatorsPass_ShouldCallNext()
     {
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior(PassingValidator(), PassingValidator());
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior(PassingValidator(), PassingValidator());
         bool nextCalled = false;
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: new TestCommand(),
             next: _ =>
             {
@@ -92,10 +92,10 @@ public sealed class ValidationBehaviorTests
     [Test]
     public async Task Handle_WhenValidatorFails_ShouldNotCallNext()
     {
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior(FailingValidator("Name is required."));
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior(FailingValidator("Name is required."));
         bool nextCalled = false;
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: new TestCommand(),
             next: _ =>
             {
@@ -111,9 +111,9 @@ public sealed class ValidationBehaviorTests
     [Test]
     public async Task Handle_WhenValidatorFails_ShouldReturnFailureResult()
     {
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior(FailingValidator("Name is required."));
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior(FailingValidator("Name is required."));
 
-        Result<Guid, ValidationException> result = await behavior.Handle(
+        Result<Guid, ValidationException> result = await behaviour.Handle(
             request: new TestCommand(),
             next: _ => Task.FromResult(result: Result<Guid, ValidationException>.Success(value: Guid.NewGuid())),
             cancellationToken: CancellationToken.None
@@ -126,12 +126,12 @@ public sealed class ValidationBehaviorTests
     [Test]
     public async Task Handle_WhenMultipleValidatorsFail_ShouldAggregateAllErrors()
     {
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior(
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior(
             FailingValidator("Error one.", "Error two."),
             FailingValidator("Error three.")
         );
 
-        Result<Guid, ValidationException> result = await behavior.Handle(
+        Result<Guid, ValidationException> result = await behaviour.Handle(
             request: new TestCommand(),
             next: _ => Task.FromResult(result: Result<Guid, ValidationException>.Success(value: Guid.NewGuid())),
             cancellationToken: CancellationToken.None
@@ -146,12 +146,12 @@ public sealed class ValidationBehaviorTests
     [Test]
     public async Task Handle_WhenOneValidatorPassesAndOneFails_ShouldReturnFailure()
     {
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior(
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior(
             PassingValidator(),
             FailingValidator("Amount must be positive.")
         );
 
-        Result<Guid, ValidationException> result = await behavior.Handle(
+        Result<Guid, ValidationException> result = await behaviour.Handle(
             request: new TestCommand(),
             next: _ => Task.FromResult(result: Result<Guid, ValidationException>.Success(value: Guid.NewGuid())),
             cancellationToken: CancellationToken.None
@@ -163,10 +163,10 @@ public sealed class ValidationBehaviorTests
     [Test]
     public async Task Handle_WhenAllValidatorsPass_ShouldReturnNextResult()
     {
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior(PassingValidator());
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior(PassingValidator());
         Guid expected = Guid.CreateVersion7();
 
-        Result<Guid, ValidationException> result = await behavior.Handle(
+        Result<Guid, ValidationException> result = await behaviour.Handle(
             request: new TestCommand(),
             next: _ => Task.FromResult(result: Result<Guid, ValidationException>.Success(value: expected)),
             cancellationToken: CancellationToken.None
@@ -180,9 +180,9 @@ public sealed class ValidationBehaviorTests
     public async Task Handle_WhenValidatorFails_ShouldPassAllErrorsInException()
     {
         string[] expectedErrors = ["Field must not be empty.", "Field must be positive."];
-        ValidationBehavior<TestCommand, Result<Guid, ValidationException>> behavior = CreateBehavior(FailingValidator(expectedErrors));
+        ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = CreateBehavior(FailingValidator(expectedErrors));
 
-        Result<Guid, ValidationException> result = await behavior.Handle(
+        Result<Guid, ValidationException> result = await behaviour.Handle(
             request: new TestCommand(),
             next: _ => Task.FromResult(result: Result<Guid, ValidationException>.Success(value: Guid.NewGuid())),
             cancellationToken: CancellationToken.None

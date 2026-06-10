@@ -3,6 +3,12 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
 
+/// <summary>
+/// Thin wrapper around <see cref="IDistributedCache"/> that handles JSON
+/// serialization/deserialization and returns <see cref="CacheEntry{T}"/>
+/// to distinguish cache hits from misses without null checks.
+/// Used by cached repository decorators for currency data.
+/// </summary>
 public sealed class RedisCache(IDistributedCache cache)
 {
 	public async Task<CacheEntry<T>> TryGetAsync<T>(string key, CancellationToken ct = default)

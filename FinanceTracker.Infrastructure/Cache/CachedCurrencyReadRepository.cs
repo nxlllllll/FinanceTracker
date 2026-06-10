@@ -4,6 +4,10 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
 
+/// <summary>
+/// Decorator for <see cref="ICurrencyReadRepository"/> that caches the currency list in Redis
+/// for 24 hours — the reference data changes rarely and is safe to cache aggressively.
+/// </summary>
 public sealed class CachedCurrencyReadRepository(
 	ICurrencyReadRepository inner,
 	RedisCache redisCache

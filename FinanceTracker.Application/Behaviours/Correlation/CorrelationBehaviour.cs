@@ -4,13 +4,21 @@ using Microsoft.Extensions.Logging;
 
 namespace FinanceTracker.Application.Behaviours.Correlation;
 
-public sealed class CorrelationBehavior<TRequest, TResponse>(
+/// <summary>
+/// MediatR pipeline behaviour that sets up the correlation ID for each request.
+/// If the request implements <see cref="IHasCorrelationId"/> with a non-empty ID,
+/// that ID is used — enabling end-to-end tracing from external triggers (e.g. RabbitMQ).
+/// Otherwise, a new <c>Guid.CreateVersion7()</c> is generated.
+/// The ID is also added to the structured log scope for every log statement in the pipeline.
+/// </summary>
+public sealed class CorrelationBehaviour<TRequest, TResponse>(
 	ICorrelationContext correlationContext,
-	ILogger<CorrelationBehavior<TRequest, TResponse>> logger
+	ILogger<CorrelationBehaviour<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : notnull
 	where TResponse : notnull
 {
+	/// <inheritdoc/>
 	public async Task<TResponse> Handle(
 		TRequest request,
 		RequestHandlerDelegate<TResponse> next,
@@ -26,7 +34,7 @@ public sealed class CorrelationBehavior<TRequest, TResponse>(
 			["CorrelationId"] = correlationContext.CorrelationId,
 			["RequestType"] = typeof(TRequest).Name
 		});
-		
+
 		return await next(t: cancellationToken);
 	}
 }

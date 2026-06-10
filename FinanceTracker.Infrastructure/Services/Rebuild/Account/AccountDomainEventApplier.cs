@@ -4,6 +4,11 @@ using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Infrastructure.Services.Rebuild.Account;
 
+/// <summary>
+/// Applies individual account domain events to the read model projection
+/// by dispatching each event to the corresponding <see cref="IAccountWriteRepository"/> method.
+/// Used by <see cref="AccountProjectionRebuilder"/> and the account projection worker.
+/// </summary>
 public sealed class AccountDomainEventApplier(IAccountWriteRepository repository)
 {
 	public Task ApplyAsync(IEvent @event, CancellationToken ct) => @event switch

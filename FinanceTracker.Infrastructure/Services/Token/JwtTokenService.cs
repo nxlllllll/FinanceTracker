@@ -10,6 +10,11 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FinanceTracker.Infrastructure.Services.Token;
 
+/// <summary>
+/// Generates signed JWT access tokens and opaque refresh tokens.
+/// Access tokens are signed with HMAC-SHA256 using <see cref="JwtOptions.Secret"/>.
+/// Refresh tokens are random 32-byte values hashed with Blake3 before storage.
+/// </summary>
 public sealed class JwtTokenService(
 	IOptions<JwtOptions> options,
 	IDateProvider dateProvider

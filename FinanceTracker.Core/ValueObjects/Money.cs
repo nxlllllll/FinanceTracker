@@ -5,10 +5,19 @@ using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.ValueObjects;
 
+/// <summary>
+/// Immutable value object representing a monetary amount in a specific currency.
+/// Use <see cref="Create"/> for user-supplied values (validates non-negative amount),
+/// or <see cref="Positive"/> when a strictly positive amount is required.
+/// Use <see cref="Reconstitute"/> when rehydrating from storage without re-validation.
+/// </summary>
 [JsonConverter(converterType: typeof(MoneyJsonConverter))]
 public readonly record struct Money
 {
+	/// <summary>The monetary amount. Always non-negative.</summary>
 	public decimal Amount { get; }
+
+	/// <summary>The currency of this amount.</summary>
 	public Currency Currency { get; }
 
 	private Money(decimal amount, Currency currency)
@@ -17,6 +26,9 @@ public readonly record struct Money
 		Currency = currency;
 	}
 
+	/// <summary>
+	/// Creates a <see cref="Money"/> value. Fails if <paramref name="amount"/> is negative.
+	/// </summary>
 	public static Result<Money, DomainException> Create(decimal amount, Currency currency)
 	{
 		if (amount < 0)
@@ -25,6 +37,10 @@ public readonly record struct Money
 		return Result<Money, DomainException>.Success(value: new Money(amount: amount, currency: currency));
 	}
 
+	/// <summary>
+	/// Creates a <see cref="Money"/> value. Fails if <paramref name="amount"/> is zero or negative.
+	/// Use when a debit or credit must have a positive value.
+	/// </summary>
 	public static Result<Money, DomainException> Positive(decimal amount, Currency currency)
 	{
 		if (amount <= 0)
@@ -32,13 +48,28 @@ public readonly record struct Money
 
 		return Result<Money, DomainException>.Success(value: new Money(amount: amount, currency: currency));
 	}
-	
+
+	/// <summary>
+	/// Bypasses validation. Use only when rehydrating from a trusted storage source.
+	/// </summary>
+	public static Money Reconstitute(decimal amount, Currency currency)
+		=> new Money(amount: amount, currency: currency);
+
+	/// <summary>
+	/// Adds a raw decimal to this amount without currency validation.
+	/// Internal use only — called from event sourcing Apply methods where currency is guaranteed.
+	/// </summary>
 	internal Money Add(decimal amount)
 		=> new Money(amount: Amount + amount, currency: Currency);
-	
-	internal Money Subtract(decimal amount) 
+
+	/// <summary>
+	/// Subtracts a raw decimal from this amount without currency validation.
+	/// Internal use only — called from event sourcing Apply methods where currency is guaranteed.
+	/// </summary>
+	internal Money Subtract(decimal amount)
 		=> new Money(amount: Amount - amount, currency: Currency);
-	
+
+	/// <summary>Adds two monetary amounts. Throws if currencies differ.</summary>
 	public Money Add(Money value)
 	{
 		if (Currency != value.Currency)
@@ -46,7 +77,8 @@ public readonly record struct Money
 
 		return Add(amount: value.Amount);
 	}
-	
+
+	/// <summary>Subtracts two monetary amounts. Throws if currencies differ.</summary>
 	public Money Subtract(Money value)
 	{
 		if (Currency != value.Currency)
@@ -55,9 +87,8 @@ public readonly record struct Money
 		return Subtract(amount: value.Amount);
 	}
 
-	public static Money Reconstitute(decimal amount, Currency currency)
-		=> new Money(amount: amount, currency: currency);
-	
+	/// <inheritdoc/>
+	/// <returns>Returns a string representation of the currency, for example, <c>RUB</c></returns>
 	public override string ToString()
 		=> $"{Amount.ToString(format: null, provider: System.Globalization.CultureInfo.InvariantCulture)} {Currency}";
 }

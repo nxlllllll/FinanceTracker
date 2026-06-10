@@ -12,12 +12,12 @@ using ZLogger;
 
 namespace FinanceTracker.Application.Behaviours.Idempotency;
 
-public sealed class IdempotencyBehavior<TRequest, TResponse>(
+public sealed class IdempotencyBehaviour<TRequest, TResponse>(
     IIdempotencyReadRepository idempotencyReadRepository,
     IIdempotencyWriteRepository idempotencyWriteRepository,
     IOptionsMonitor<IdempotencyOptions> options,
     IDateProvider dateProvider,
-    ILogger<IdempotencyBehavior<TRequest, TResponse>> logger
+    ILogger<IdempotencyBehaviour<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
     where TResponse : IResult<TResponse, DomainException>

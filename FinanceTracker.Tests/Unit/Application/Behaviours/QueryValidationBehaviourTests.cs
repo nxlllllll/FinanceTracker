@@ -7,16 +7,16 @@ using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
-public sealed class QueryValidationBehaviorTests
+public sealed class QueryValidationBehaviourTests
 {
     public sealed record TestQuery(string Value) : IRequest<string>;
 
-    private static QueryValidationBehavior<TestQuery, string> CreateBehavior(
+    private static QueryValidationBehaviour<TestQuery, string> CreateBehavior(
         params IValidator<TestQuery>[] validators)
     {
-        return new QueryValidationBehavior<TestQuery, string>(
+        return new QueryValidationBehaviour<TestQuery, string>(
             validators: validators,
-            logger: Substitute.For<ILogger<QueryValidationBehavior<TestQuery, string>>>()
+            logger: Substitute.For<ILogger<QueryValidationBehaviour<TestQuery, string>>>()
         );
     }
 
@@ -45,10 +45,10 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenNoValidators_ShouldCallNext()
     {
-        QueryValidationBehavior<TestQuery, string> behavior = CreateBehavior();
+        QueryValidationBehaviour<TestQuery, string> behaviour = CreateBehavior();
         bool nextCalled = false;
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: new TestQuery(Value: "test"),
             next: _ =>
             {
@@ -64,10 +64,10 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenValidationPasses_ShouldCallNext()
     {
-        QueryValidationBehavior<TestQuery, string> behavior = CreateBehavior(PassingValidator());
+        QueryValidationBehaviour<TestQuery, string> behaviour = CreateBehavior(PassingValidator());
         bool nextCalled = false;
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: new TestQuery(Value: "test"),
             next: _ =>
             {
@@ -83,9 +83,9 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenValidationPasses_ShouldReturnNextResult()
     {
-        QueryValidationBehavior<TestQuery, string> behavior = CreateBehavior(PassingValidator());
+        QueryValidationBehaviour<TestQuery, string> behaviour = CreateBehavior(PassingValidator());
 
-        string result = await behavior.Handle(
+        string result = await behaviour.Handle(
             request: new TestQuery(Value: "test"),
             next: _ => Task.FromResult(result: "expected"),
             cancellationToken: CancellationToken.None
@@ -97,10 +97,10 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenValidationFails_ShouldThrowValidationException()
     {
-        QueryValidationBehavior<TestQuery, string> behavior =
+        QueryValidationBehaviour<TestQuery, string> behaviour =
             CreateBehavior(FailingValidator("Value is required."));
 
-        await Assert.ThrowsAsync<ValidationException>(action: async () => await behavior.Handle(
+        await Assert.ThrowsAsync<ValidationException>(action: async () => await behaviour.Handle(
             request: new TestQuery(Value: String.Empty),
             next: _ => Task.FromResult(result: "ok"),
             cancellationToken: CancellationToken.None
@@ -110,14 +110,14 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenValidationFails_ShouldNotCallNext()
     {
-        QueryValidationBehavior<TestQuery, string> behavior =
+        QueryValidationBehaviour<TestQuery, string> behaviour =
             CreateBehavior(FailingValidator("Value is required."));
 
         bool nextCalled = false;
 
         try
         {
-            await behavior.Handle(
+            await behaviour.Handle(
                 request: new TestQuery(Value: String.Empty),
                 next: _ =>
                 {
@@ -135,14 +135,14 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenValidationFails_ShouldThrowWithAllErrors()
     {
-        QueryValidationBehavior<TestQuery, string> behavior =
+        QueryValidationBehaviour<TestQuery, string> behaviour =
             CreateBehavior(FailingValidator("Error one.", "Error two."));
 
         ValidationException? exception = null;
 
         try
         {
-            await behavior.Handle(
+            await behaviour.Handle(
                 request: new TestQuery(Value: String.Empty),
                 next: _ => Task.FromResult(result: "ok"),
                 cancellationToken: CancellationToken.None
@@ -160,12 +160,12 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenMultipleValidatorsPass_ShouldCallNext()
     {
-        QueryValidationBehavior<TestQuery, string> behavior =
+        QueryValidationBehaviour<TestQuery, string> behaviour =
             CreateBehavior(PassingValidator(), PassingValidator());
 
         bool nextCalled = false;
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: new TestQuery(Value: "test"),
             next: _ =>
             {
@@ -181,10 +181,10 @@ public sealed class QueryValidationBehaviorTests
     [Test]
     public async Task Handle_WhenOneOfMultipleValidatorsFails_ShouldThrowValidationException()
     {
-        QueryValidationBehavior<TestQuery, string> behavior =
+        QueryValidationBehaviour<TestQuery, string> behaviour =
             CreateBehavior(PassingValidator(), FailingValidator("Second validator failed."));
 
-        await Assert.ThrowsAsync<ValidationException>(action: async () => await behavior.Handle(
+        await Assert.ThrowsAsync<ValidationException>(action: async () => await behaviour.Handle(
             request: new TestQuery(Value: "test"),
             next: _ => Task.FromResult(result: "ok"),
             cancellationToken: CancellationToken.None

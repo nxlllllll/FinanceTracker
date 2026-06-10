@@ -9,12 +9,18 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account;
 
+/// <summary>
+/// Event-sourced aggregate root representing a financial account.
+/// All state changes are recorded as domain events and applied via <c>Apply</c>.
+/// </summary>
 public sealed class Account : AggregateRoot
 {
+	/// <summary>ID of the user who owns this account.</summary>
 	public Guid UserId { get; private set; }
 	public Name Name { get; private set; }
 	public AccountType Type { get; private set; }
 	public Money Balance { get; private set; }
+	/// <summary>Convenience accessor for the account's currency — derived from <see cref="Balance"/>.</summary>
 	public Currency Currency => Balance.Currency;
 	public bool IsArchived { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
@@ -32,6 +38,10 @@ public sealed class Account : AggregateRoot
 		return sign;
 	}
 
+	/// <summary>
+	/// Creates a new account and raises <c>AccountCreated</c>.
+	/// Fails if <paramref name="balance"/> is negative.
+	/// </summary>
 	public static Result<Account, DomainException> Create(
 		DateTimeOffset occurredAt,
 		Guid userId,
@@ -59,6 +69,10 @@ public sealed class Account : AggregateRoot
 		return Result<Account, DomainException>.Success(value: account);
 	}
 
+	/// <summary>
+	/// Reconstitutes an account from a snapshot and subsequent events.
+	/// Bypasses validation — only use when loading from the event store.
+	/// </summary>
 	public static Account Reconstitute(
 		SnapshotData? snapshot,
 		IReadOnlyList<IEvent> events,
@@ -174,6 +188,10 @@ public sealed class Account : AggregateRoot
 		}
 	}
 
+	/// <summary>
+	/// Applies a manual balance correction and raises <c>AccountBalanceAdjusted</c>.
+	/// Fails if the account is archived.
+	/// </summary>
 	public Result<Unit, DomainException> AdjustBalance(
 		DateTimeOffset occurredAt,
 		Guid sourceId,
@@ -209,6 +227,10 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>
+	/// Debits the account for a transaction. Fails if archived or insufficient funds.
+	/// Raises <c>AccountDebited</c>.
+	/// </summary>
 	public Result<Unit, DomainException> Debit(
 		DateTimeOffset occurredAt,
 		Guid transactionId,
@@ -240,6 +262,10 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>
+	/// Debits the account for a transfer (source side).
+	/// Fails if archived or insufficient funds. Raises <c>AccountTransferDebited</c>.
+	/// </summary>
 	public Result<Unit, DomainException> DebitTransfer(
 		DateTimeOffset occurredAt,
 		Guid transferId,
@@ -271,6 +297,11 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>
+	/// Refunds a previously debited transfer amount back to the account.
+	/// Used in the compensation flow when the credit side fails.
+	/// Raises <c>AccountTransferRefunded</c>.
+	/// </summary>
 	public Result<Unit, DomainException> RefundTransfer(
 		DateTimeOffset occurredAt,
 		Guid transferId,
@@ -294,6 +325,7 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>Credits the account for a transaction. Raises <c>AccountCredited</c>.</summary>
 	public Result<Unit, DomainException> Credit(
 		DateTimeOffset occurredAt,
 		Guid transactionId,
@@ -321,6 +353,7 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>Credits the account for a transfer (destination side). Raises <c>AccountTransferCredited</c>.</summary>
 	public Result<Unit, DomainException> CreditTransfer(
 		DateTimeOffset occurredAt,
 		Guid transferId,
@@ -348,6 +381,7 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>Renames the account. Raises <c>AccountRenamed</c>.</summary>
 	public Result<Unit, DomainException> Rename(
 		DateTimeOffset occurredAt,
 		Name newName)
@@ -366,6 +400,7 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>Archives the account, preventing further operations. Raises <c>AccountArchived</c>.</summary>
 	public Result<Unit, DomainException> Archive(DateTimeOffset occurredAt)
 	{
 		if (IsArchived)
@@ -381,6 +416,7 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>Restores a previously archived account. Raises <c>AccountUnarchived</c>.</summary>
 	public Result<Unit, DomainException> Unarchive(DateTimeOffset occurredAt)
 	{
 		if (!IsArchived)

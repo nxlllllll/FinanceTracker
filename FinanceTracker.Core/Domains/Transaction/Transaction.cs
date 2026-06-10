@@ -5,19 +5,27 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Transaction;
 
+/// <summary>
+/// Represents a financial transaction (debit or credit) on an account.
+/// When <see cref="IsRatePending"/> is <c>true</c>, the exchange rate was not available
+/// at creation time and will be updated by <c>BalanceAdjustmentJob</c>.
+/// </summary>
 public sealed class Transaction
 {
-    public Guid Id { get; private set; }
-    public Guid AccountId { get; private set; }
-    public Guid UserId { get; private set; }
-    public Guid CategoryId { get; private set; }
-    public Money Amount { get; private set; }
-    public DirectionType Direction { get; private set; }
-    public decimal ExchangeRate { get; private set; }
-    public bool IsExcluded { get; private set; }
-    public bool IsRatePending { get; private set; }
-    public string? Description { get; private set; }
-    public DateTimeOffset OccurredAt { get; private set; }
+	public Guid Id { get; private set; }
+	public Guid AccountId { get; private set; }
+	public Guid UserId { get; private set; }
+	public Guid CategoryId { get; private set; }
+	public Money Amount { get; private set; }
+	public DirectionType Direction { get; private set; }
+	/// <summary>Exchange rate applied when the account currency differs from the transaction currency.</summary>
+	public decimal ExchangeRate { get; private set; }
+	/// <summary>When <c>true</c>, this transaction is excluded from budget and total calculations.</summary>
+	public bool IsExcluded { get; private set; }
+	/// <summary>When <c>true</c>, the exchange rate is a placeholder and will be updated by <c>BalanceAdjustmentJob</c>.</summary>
+	public bool IsRatePending { get; private set; }
+	public string? Description { get; private set; }
+	public DateTimeOffset OccurredAt { get; private set; }
 
     private Transaction() { }
 

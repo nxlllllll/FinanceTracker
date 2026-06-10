@@ -124,7 +124,7 @@ public sealed class PostgresEventStore(
 		Func<string>? snapshotFactory = null,
 		CancellationToken ct = default)
 	{
-		List<IEvent> eventList = events.ToList();
+		List<IEvent> eventList = [..events];
 		if (eventList.Count == 0)
 			return;
 
@@ -174,6 +174,7 @@ public sealed class PostgresEventStore(
 		try
 		{
 			await context.SaveChangesAsync(cancellationToken: ct);
+			
 		}
 		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
 		{

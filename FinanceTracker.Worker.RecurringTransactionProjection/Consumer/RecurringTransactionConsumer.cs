@@ -17,6 +17,11 @@ using ZLogger;
 
 namespace FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
 
+/// <summary>
+/// RabbitMQ message handler that receives <see cref="RecurringTransactionTriggeredMessage"/>
+/// from the recurring transaction exchange, deduplicates via <c>processed_messages</c>,
+/// and creates the actual transaction through <c>TransactionCreationService</c>.
+/// </summary>
 public sealed class RecurringTransactionConsumer(
 	IAccountRepository accountRepository,
 	ITransactionCreationService transactionCreationService,

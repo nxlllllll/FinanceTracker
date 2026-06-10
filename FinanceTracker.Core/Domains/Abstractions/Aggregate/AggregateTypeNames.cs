@@ -1,5 +1,9 @@
 namespace FinanceTracker.Core.Domains.Abstractions.Aggregate;
 
+/// <summary>
+/// Stable string constants used as aggregate type discriminators in the event store.
+/// These values are persisted in the database and must never be renamed.
+/// </summary>
 public static class AggregateTypeNames
 {
 	public const string Account = nameof(Account);

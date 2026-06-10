@@ -7,7 +7,7 @@ using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
-public sealed class RateLimitingBehaviorTests
+public sealed class RateLimitingBehaviourTests
 {
 	public sealed record TestCommand(Guid UserId) : IUserScopedRequest, IRequest<TestResponse>;
 	public sealed record TestQuery(Guid UserId) : IUserScopedRequest, IRequest<TestResponse>;
@@ -21,19 +21,19 @@ public sealed class RateLimitingBehaviorTests
 	};
 
 	private IRateLimiter _rateLimiter = null!;
-	private RateLimitingBehavior<TestCommand, TestResponse> _behavior = null!;
+	private RateLimitingBehaviour<TestCommand, TestResponse> _behaviour = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_rateLimiter = Substitute.For<IRateLimiter>();
-		_behavior = CreateCommandBehavior();
+		_behaviour = CreateCommandBehavior();
 	}
 
-	private RateLimitingBehavior<TestCommand, TestResponse> CreateCommandBehavior(
+	private RateLimitingBehaviour<TestCommand, TestResponse> CreateCommandBehavior(
 		RateLimitOptions? options = null)
 	{
-		return new RateLimitingBehavior<TestCommand, TestResponse>(
+		return new RateLimitingBehaviour<TestCommand, TestResponse>(
 			rateLimiter: _rateLimiter,
 			options: new FakeOptionsMonitor<RateLimitOptions>(options ?? DefaultOptions)
 		);
@@ -49,12 +49,12 @@ public sealed class RateLimitingBehaviorTests
 	[Test]
 	public async Task Handle_WhenRequestIsNotUserScoped_ShouldNotCallRateLimiter()
 	{
-		RateLimitingBehavior<TestCommandWithoutScope, TestResponse> behavior = new RateLimitingBehavior<TestCommandWithoutScope, TestResponse>(
+		RateLimitingBehaviour<TestCommandWithoutScope, TestResponse> behaviour = new RateLimitingBehaviour<TestCommandWithoutScope, TestResponse>(
 			rateLimiter: _rateLimiter,
 			options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
 		);
 
-		await behavior.Handle(
+		await behaviour.Handle(
 			request: new TestCommandWithoutScope(),
 			next: AllowedNext(),
 			cancellationToken: CancellationToken.None
@@ -71,14 +71,14 @@ public sealed class RateLimitingBehaviorTests
 	[Test]
 	public async Task Handle_WhenRequestIsNotUserScoped_ShouldCallNext()
 	{
-		RateLimitingBehavior<TestCommandWithoutScope, TestResponse> behavior = new RateLimitingBehavior<TestCommandWithoutScope, TestResponse>(
+		RateLimitingBehaviour<TestCommandWithoutScope, TestResponse> behaviour = new RateLimitingBehaviour<TestCommandWithoutScope, TestResponse>(
 			rateLimiter: _rateLimiter,
 			options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
 		);
 
 		RequestHandlerDelegate<TestResponse> next = AllowedNext();
 
-		await behavior.Handle(
+		await behaviour.Handle(
 			request: new TestCommandWithoutScope(),
 			next: next,
 			cancellationToken: CancellationToken.None
@@ -99,7 +99,7 @@ public sealed class RateLimitingBehaviorTests
 
 		RequestHandlerDelegate<TestResponse> next = AllowedNext();
 
-		await _behavior.Handle(
+		await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
 			next: next,
 			cancellationToken: CancellationToken.None
@@ -123,7 +123,7 @@ public sealed class RateLimitingBehaviorTests
 		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
 		next(t: Arg.Any<CancellationToken>()).Returns(returnThis: expected);
 
-		TestResponse result = await _behavior.Handle(
+		TestResponse result = await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
 			next: next,
 			cancellationToken: CancellationToken.None
@@ -142,7 +142,7 @@ public sealed class RateLimitingBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: false);
 
-		await Assert.ThrowsAsync<RateLimitExceededException>(action: async () => await _behavior.Handle(
+		await Assert.ThrowsAsync<RateLimitExceededException>(action: async () => await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
 			next: AllowedNext(),
 			cancellationToken: CancellationToken.None
@@ -161,7 +161,7 @@ public sealed class RateLimitingBehaviorTests
 
 		RequestHandlerDelegate<TestResponse> next = AllowedNext();
 
-		await Assert.ThrowsAsync<RateLimitExceededException>(action: async () => await _behavior.Handle(
+		await Assert.ThrowsAsync<RateLimitExceededException>(action: async () => await _behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
 			next: next,
 			cancellationToken: CancellationToken.None
@@ -184,7 +184,7 @@ public sealed class RateLimitingBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		await _behavior.Handle(
+		await _behaviour.Handle(
 			request: new TestCommand(UserId: userId),
 			next: AllowedNext(),
 			cancellationToken: CancellationToken.None
@@ -197,7 +197,7 @@ public sealed class RateLimitingBehaviorTests
 	public async Task Handle_ShouldCallRateLimiterWithCorrectOptions()
 	{
 		RateLimitOptions customOptions = new RateLimitOptions { RequestsPerWindow = 10, WindowSeconds = 30 };
-		RateLimitingBehavior<TestCommand, TestResponse> behavior = CreateCommandBehavior(options: customOptions);
+		RateLimitingBehaviour<TestCommand, TestResponse> behaviour = CreateCommandBehavior(options: customOptions);
 
 		_rateLimiter.IsAllowedAsync(
 			key: Arg.Any<string>(),
@@ -206,7 +206,7 @@ public sealed class RateLimitingBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		await behavior.Handle(
+		await behaviour.Handle(
 			request: new TestCommand(UserId: Guid.CreateVersion7()),
 			next: AllowedNext(),
 			cancellationToken: CancellationToken.None
@@ -230,14 +230,14 @@ public sealed class RateLimitingBehaviorTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		RateLimitingBehavior<TestQuery, TestResponse> behavior = new RateLimitingBehavior<TestQuery, TestResponse>(
+		RateLimitingBehaviour<TestQuery, TestResponse> behaviour = new RateLimitingBehaviour<TestQuery, TestResponse>(
 			rateLimiter: _rateLimiter,
 			options: new FakeOptionsMonitor<RateLimitOptions>(DefaultOptions)
 		);
 
 		RequestHandlerDelegate<TestResponse> next = AllowedNext();
 
-		await behavior.Handle(
+		await behaviour.Handle(
 			request: new TestQuery(UserId: Guid.CreateVersion7()),
 			next: next,
 			cancellationToken: CancellationToken.None

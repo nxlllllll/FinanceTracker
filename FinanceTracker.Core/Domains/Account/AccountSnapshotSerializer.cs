@@ -5,6 +5,10 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.Account;
 
+/// <summary>
+/// Serializes and deserializes an <see cref="Account"/> aggregate to and from a JSON snapshot.
+/// Used by the event store to persist periodic state checkpoints, reducing replay time on load.
+/// </summary>
 public sealed class AccountSnapshotSerializer : ISnapshotSerializer<Account>
 {
 	private sealed record AccountSnapshotState(

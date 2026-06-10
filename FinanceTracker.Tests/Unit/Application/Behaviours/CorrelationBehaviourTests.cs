@@ -6,14 +6,14 @@ using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
-public sealed class CorrelationBehaviorTests
+public sealed class CorrelationBehaviourTests
 {
     public sealed record TestCommand : IRequest<string>;
 
     public sealed record TestCommandWithCorrelation(Guid CorrelationId) : IRequest<string>, IHasCorrelationId;
 
     private ICorrelationContext _context = null!;
-    private CorrelationBehavior<TestCommand, string> _behavior = null!;
+    private CorrelationBehaviour<TestCommand, string> _behaviour = null!;
 
     [Before(hookType: Test)]
     public void Setup()
@@ -21,9 +21,9 @@ public sealed class CorrelationBehaviorTests
         _context = Substitute.For<ICorrelationContext>();
         _context.CorrelationId.Returns(returnThis: Guid.CreateVersion7());
 
-        _behavior = new CorrelationBehavior<TestCommand, string>(
+        _behaviour = new CorrelationBehaviour<TestCommand, string>(
             correlationContext: _context,
-            logger: Substitute.For<ILogger<CorrelationBehavior<TestCommand, string>>>()
+            logger: Substitute.For<ILogger<CorrelationBehaviour<TestCommand, string>>>()
         );
     }
 
@@ -33,12 +33,12 @@ public sealed class CorrelationBehaviorTests
         Guid expected = Guid.CreateVersion7();
         TestCommandWithCorrelation command = new TestCommandWithCorrelation(CorrelationId: expected);
 
-        CorrelationBehavior<TestCommandWithCorrelation, string> behavior = new CorrelationBehavior<TestCommandWithCorrelation, string>(
+        CorrelationBehaviour<TestCommandWithCorrelation, string> behaviour = new CorrelationBehaviour<TestCommandWithCorrelation, string>(
             correlationContext: _context,
-            logger: Substitute.For<ILogger<CorrelationBehavior<TestCommandWithCorrelation, string>>>()
+            logger: Substitute.For<ILogger<CorrelationBehaviour<TestCommandWithCorrelation, string>>>()
         );
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: command,
             next: _ => Task.FromResult(result: "ok"),
             cancellationToken: CancellationToken.None
@@ -52,12 +52,12 @@ public sealed class CorrelationBehaviorTests
     {
         TestCommandWithCorrelation command = new TestCommandWithCorrelation(CorrelationId: Guid.Empty);
 
-        CorrelationBehavior<TestCommandWithCorrelation, string> behavior = new CorrelationBehavior<TestCommandWithCorrelation, string>(
+        CorrelationBehaviour<TestCommandWithCorrelation, string> behaviour = new CorrelationBehaviour<TestCommandWithCorrelation, string>(
             correlationContext: _context,
-            logger: Substitute.For<ILogger<CorrelationBehavior<TestCommandWithCorrelation, string>>>()
+            logger: Substitute.For<ILogger<CorrelationBehaviour<TestCommandWithCorrelation, string>>>()
         );
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: command,
             next: _ => Task.FromResult(result: "ok"),
             cancellationToken: CancellationToken.None
@@ -69,7 +69,7 @@ public sealed class CorrelationBehaviorTests
     [Test]
     public async Task Handle_WhenCommandDoesNotHaveCorrelationId_ShouldGenerateFallbackAndSetOnContext()
     {
-        await _behavior.Handle(
+        await _behaviour.Handle(
             request: new TestCommand(),
             next: _ => Task.FromResult(result: "ok"),
             cancellationToken: CancellationToken.None
@@ -84,12 +84,12 @@ public sealed class CorrelationBehaviorTests
         Guid externalId = Guid.CreateVersion7();
         TestCommandWithCorrelation command = new TestCommandWithCorrelation(CorrelationId: externalId);
 
-        CorrelationBehavior<TestCommandWithCorrelation, string> behavior = new CorrelationBehavior<TestCommandWithCorrelation, string>(
+        CorrelationBehaviour<TestCommandWithCorrelation, string> behaviour = new CorrelationBehaviour<TestCommandWithCorrelation, string>(
             correlationContext: _context,
-            logger: Substitute.For<ILogger<CorrelationBehavior<TestCommandWithCorrelation, string>>>()
+            logger: Substitute.For<ILogger<CorrelationBehaviour<TestCommandWithCorrelation, string>>>()
         );
 
-        await behavior.Handle(
+        await behaviour.Handle(
             request: command,
             next: _ => Task.FromResult(result: "ok"),
             cancellationToken: CancellationToken.None
@@ -104,7 +104,7 @@ public sealed class CorrelationBehaviorTests
     {
         bool nextCalled = false;
 
-        await _behavior.Handle(
+        await _behaviour.Handle(
             request: new TestCommand(),
             next: _ =>
             {
@@ -120,7 +120,7 @@ public sealed class CorrelationBehaviorTests
     [Test]
     public async Task Handle_ShouldReturnNextResult()
     {
-        string result = await _behavior.Handle(
+        string result = await _behaviour.Handle(
             request: new TestCommand(),
             next: _ => Task.FromResult(result: "expected"),
             cancellationToken: CancellationToken.None

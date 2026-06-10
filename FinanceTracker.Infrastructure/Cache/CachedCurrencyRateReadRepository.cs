@@ -6,6 +6,10 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
 
+/// <summary>
+/// Decorator for <see cref="ICurrencyRateReadRepository"/> that caches results in Redis
+/// until end of day — rates change at most once per day via <c>CurrencyRateJob</c>.
+/// </summary>
 public sealed class CachedCurrencyRateReadRepository(
 	ICurrencyRateReadRepository inner,
 	RedisCache redisCache,

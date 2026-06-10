@@ -3,9 +3,11 @@ using Polly.CircuitBreaker;
 
 namespace FinanceTracker.Worker.CurrencyRate.HealthCheck;
 
-public sealed class ExchangeRateApiHealthCheck(
-	CircuitBreakerStateProvider stateProvider
-) : IHealthCheck
+/// <summary>
+/// ASP.NET Core health check that reports the state of the ExchangeRate-API Polly circuit breaker.
+/// Returns <c>Degraded</c> when half-open and <c>Unhealthy</c> when open or isolated.
+/// </summary>
+public sealed class ExchangeRateApiHealthCheck(CircuitBreakerStateProvider stateProvider) : IHealthCheck
 {
 	public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default) => stateProvider.CircuitState switch
 	{

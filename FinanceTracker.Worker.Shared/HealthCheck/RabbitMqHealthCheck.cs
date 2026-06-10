@@ -4,6 +4,10 @@ using RabbitMQ.Client;
 
 namespace FinanceTracker.Worker.Shared.HealthCheck;
 
+/// <summary>
+/// ASP.NET Core health check that verifies RabbitMQ connectivity by attempting
+/// to open and immediately close a connection. Reports <c>Unhealthy</c> on failure.
+/// </summary>
 public sealed class RabbitMqHealthCheck(RabbitMqConnectionFactory connectionFactory) : IHealthCheck
 {
 	public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default)
