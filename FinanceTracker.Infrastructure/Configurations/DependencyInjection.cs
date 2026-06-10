@@ -118,9 +118,16 @@ public static class DependencyInjection
 		
 		services.Scan(scan => scan
 		    .FromAssemblyOf<EventUpcasterRegistry>()
-		    .AddClasses(classes => classes.AssignableTo<IEventUpcaster>())
-		    .AsImplementedInterfaces()
+		    .AddClasses(classes => classes.AssignableTo(typeof(EventUpcaster<,>)))
+		    .AsSelf()
 		    .WithSingletonLifetime()
+		);
+
+		services.Scan(scan => scan
+			.FromAssemblyOf<EventUpcasterRegistry>()
+			.AddClasses(classes => classes.AssignableTo<IEventUpcaster>())
+			.AsImplementedInterfaces()
+			.WithSingletonLifetime()
 		);
 		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
 		

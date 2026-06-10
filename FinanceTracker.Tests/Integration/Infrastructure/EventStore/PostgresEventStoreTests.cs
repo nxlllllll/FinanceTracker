@@ -30,12 +30,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 	private PostgresEventStore CreateEventStore()
 	{
 		IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
-		upcasterRegistry.Apply(
-			eventType: Arg.Any<string>(),
-			source: Arg.Any<JsonDocument>(),
-			storedVersion: Arg.Any<int>(),
-			currentVersion: Arg.Any<int>()
-		).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
+		upcasterRegistry.HasChain(eventType: Arg.Any<string>()).Returns(returnThis: false);
 
 		return new PostgresEventStore(
 			context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()

@@ -45,12 +45,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	private static IEventUpcasterRegistry CreatePassthroughUpcasterRegistry()
 	{
 		IEventUpcasterRegistry registry = Substitute.For<IEventUpcasterRegistry>();
-		registry.Apply(
-			eventType: Arg.Any<string>(),
-			source: Arg.Any<JsonDocument>(),
-			storedVersion: Arg.Any<int>(),
-			currentVersion: Arg.Any<int>()
-		).Returns(returnThis: callInfo => callInfo.ArgAt<JsonDocument>(position: 1));
+		registry.HasChain(eventType: Arg.Any<string>()).Returns(returnThis: false);
 		return registry;
 	}
 

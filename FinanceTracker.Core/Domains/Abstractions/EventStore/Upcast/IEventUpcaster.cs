@@ -1,14 +1,11 @@
-using System.Text.Json;
-
-namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
+﻿namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 
 public interface IEventUpcaster
 {
 	string EventType { get; }
- 
 	int FromVersion { get; }
- 
 	int ToVersion { get; }
- 
-	JsonDocument Upcast(JsonDocument source);
+	public Type FromType { get; }
+	public Type ToType { get; }
+	object Upcast(object source);
 }

@@ -220,18 +220,25 @@ public sealed class PostgresEventStore(
 				int currentVersion = eventTypeResolver.GetCurrentVersion(typeName: entity.EventType);
 				int storedVersion = entity.SchemaVersion;
 
-				using JsonDocument raw = JsonDocument.Parse(json: entity.Payload);
-				using JsonDocument upcasted = upcasterRegistry.Apply(
-					eventType: entity.EventType,
-					source: raw,
-					storedVersion: storedVersion,
-					currentVersion: currentVersion
-				);
+				IEvent domainEvent;
 
-				IEvent domainEvent = (IEvent)upcasted.RootElement.Deserialize(
-					returnType: type,
-					options: FinanceTrackerJsonOptions.Payload
-				)!;
+				if (storedVersion < currentVersion && upcasterRegistry.HasChain(eventType: entity.EventType))
+				{
+					domainEvent = upcasterRegistry.Apply(
+						eventType: entity.EventType,
+						payload: entity.Payload,
+						storedVersion: storedVersion,
+						currentVersion: currentVersion
+					);
+				}
+				else
+				{
+					domainEvent = (IEvent)JsonSerializer.Deserialize(
+						json: entity.Payload,
+						returnType: type,
+						options: FinanceTrackerJsonOptions.Payload
+					)!;
+				}
 
 				domainEvents.Add(item: domainEvent);
 			}

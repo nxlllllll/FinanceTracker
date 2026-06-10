@@ -1,66 +1,64 @@
+using System.Collections.Frozen;
 using System.Text.Json;
+using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.EventStore;
 
 public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 {
-	private readonly IReadOnlyDictionary<string, IReadOnlyList<IEventUpcaster>> _chains;
-
-	public EventUpcasterRegistry(
-		IEnumerable<IEventUpcaster> upcasters,
-		ILogger<EventUpcasterRegistry> logger)
+	private sealed class Chain(IReadOnlyList<IEventUpcaster> upcasters, Type fromType)
 	{
-		_chains = upcasters.GroupBy(keySelector: u => u.EventType).ToDictionary(
+		public IReadOnlyList<IEventUpcaster> Upcasters { get; } = upcasters;
+		public Type FromType => fromType;
+	}
+
+	private readonly FrozenDictionary<string, IReadOnlyDictionary<int, Chain>> _chains;
+
+	public EventUpcasterRegistry(IEnumerable<IEventUpcaster> upcasters)
+	{
+		_chains = upcasters.GroupBy(keySelector: u => u.EventType).ToFrozenDictionary(
 			keySelector: g => g.Key,
-			elementSelector: g => GetChain(logger: logger, g: g)
+			elementSelector: g => BuildChains(sorted: [..g.OrderBy(keySelector: u => u.FromVersion)])
 		);
 	}
 
-	private static IReadOnlyList<IEventUpcaster> GetChain(ILogger<EventUpcasterRegistry> logger, IGrouping<string, IEventUpcaster> g)
+	private static IReadOnlyDictionary<int, Chain> BuildChains(List<IEventUpcaster> sorted)
 	{
-		IReadOnlyList<IEventUpcaster> chain = g.OrderBy(keySelector: u => u.FromVersion).ToList().AsReadOnly();
-
-		ValidateChain(eventType: g.Key, chain: chain, logger: logger);
-		return chain;
+		return sorted.Select(selector: (u, i) => (upcaster: u, index: i)).ToDictionary(
+			keySelector: x => x.upcaster.FromVersion,
+			elementSelector: x => new Chain(
+				upcasters: sorted.GetRange(index: x.index, count: sorted.Count - x.index),
+				fromType: x.upcaster.FromType
+			)
+		);
 	}
 
-	public JsonDocument Apply(
+	public bool HasChain(string eventType) => _chains.ContainsKey(key: eventType);
+
+	public IEvent Apply(
 		string eventType,
-		JsonDocument source,
+		string payload,
 		int storedVersion,
 		int currentVersion)
 	{
-		if (storedVersion >= currentVersion || !_chains.TryGetValue(key: eventType, out IReadOnlyList<IEventUpcaster>? chain))
-			return source;
+		if (!_chains.TryGetValue(key: eventType, out IReadOnlyDictionary<int, Chain>? versionedChains))
+			throw new InvalidOperationException(message: $"[Upcasting] No chain found for event type '{eventType}'.");
 
-		JsonDocument current = source;
+		if (!versionedChains.TryGetValue(key: storedVersion, out Chain? chain))
+			throw new InvalidOperationException(message: $"[Upcasting] No upcaster found for '{eventType}' from version {storedVersion}.");
 
-		foreach (IEventUpcaster upcaster in chain)
+		object current = JsonSerializer.Deserialize(json: payload, returnType: chain.FromType, options: FinanceTrackerJsonOptions.Payload)!;
+
+		foreach (IEventUpcaster upcaster in chain.Upcasters)
 		{
 			if (upcaster.FromVersion < storedVersion || upcaster.FromVersion >= currentVersion)
 				continue;
 
-			JsonDocument next = upcaster.Upcast(source: current);
-
-			if (!ReferenceEquals(objA: current, objB: source))
-				current.Dispose();
-
-			current = next;
+			current = upcaster.Upcast(source: current);
 		}
 
-		return current;
-	}
-
-	private static void ValidateChain(
-		string eventType,
-		IReadOnlyList<IEventUpcaster> chain,
-		ILogger logger)
-	{
-		for (int i = 0; i < chain.Count - 1; i++)
-			if (chain[i].ToVersion != chain[i + 1].FromVersion)
-				logger.ZLogWarning(message: $"[Upcasting] Gap in upcaster chain for '{eventType}': v{chain[i].ToVersion} > v{chain[i + 1].FromVersion}.");
+		return (IEvent)current;
 	}
 }
