@@ -4,12 +4,12 @@ using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
-using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
-using FinanceTracker.Core.Repositories.UnresolvableEvent;
+using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
@@ -28,7 +28,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	private IAccountRepository _accountRepository = null!;
 	private ITransferRepository _transferRepository = null!;
 	private ITransferWriteRepository _transferWriteRepository = null!;
-	private IUnresolvableEventWriteRepository _unresolvableEventWriteRepository = null!;
+	private ITransferCompensationService _compensationService = null!;
 	private AccountTransferConsumer _consumer = null!;
 
 	private static readonly Guid TransferId = Guid.CreateVersion7();
@@ -41,7 +41,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 		_accountRepository = Substitute.For<IAccountRepository>();
 		_transferRepository = Substitute.For<ITransferRepository>();
 		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
-		_unresolvableEventWriteRepository = Substitute.For<IUnresolvableEventWriteRepository>();
+		_compensationService = Substitute.For<ITransferCompensationService>();
 
 		_transferRepository.GetByIdAsync(
 			transferId: TransferId,
@@ -56,13 +56,13 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			accountRepository: _accountRepository,
 			transferRepository: _transferRepository,
 			transferWriteRepository: _transferWriteRepository,
-			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
 				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
 				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
 			),
 			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
 			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
+			compensationService: _compensationService,
 			unitOfWork: UnitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<AccountTransferConsumer>>()
@@ -169,7 +169,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	public async Task HandleAsync_WhenTransferNotFound_ShouldSkipWithoutTouchingAccounts()
 	{
 		_transferRepository.GetByIdAsync(
-			transferId: TransferId, 
+			transferId: TransferId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (Transfer?)null);
 
@@ -260,50 +260,42 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenToAccountNotFound_ShouldRefundFromAccount()
-	{
-		Account fromAccount = AccountFactory.Create().Value!;
-		decimal balanceBefore = fromAccount.Balance.Amount;
-
-		_accountRepository.GetByIdAsync(
-			accountId: ToAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (Account?)null);
-
-		_accountRepository.GetByIdAsync(
-			accountId: FromAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: fromAccount);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await Assert.That(value: fromAccount.Balance.Amount).IsGreaterThan(minimum: balanceBefore);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenToAccountNotFound_ShouldUpdateStatusToCompensated()
+	public async Task HandleAsync_WhenCreditSucceeds_ShouldNotCallCompensationService()
 	{
 		_accountRepository.GetByIdAsync(
 			accountId: ToAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (Account?)null);
-
-		_accountRepository.GetByIdAsync(
-			accountId: FromAccountId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: AccountFactory.Create().Value!);
 
 		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
-		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
-			transferId: TransferId,
-			status: TransferStatus.Compensated,
+		await _compensationService.DidNotReceive().CompensateAsync(
+			transfer: Arg.Any<PendingCreditTransfer>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldNotSaveAndNotThrow()
+	public async Task HandleAsync_WhenToAccountNotFound_ShouldDelegateToCompensationService()
+	{
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
+
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _compensationService.Received(requiredNumberOfCalls: 1).CompensateAsync(
+			transfer: Arg.Is<PendingCreditTransfer>(t =>
+				t.TransferId == TransferId &&
+				t.FromAccountId == FromAccountId &&
+				t.Amount == 1000m),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenToAccountNotFound_ShouldNotSaveAnyAccount()
 	{
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
@@ -318,43 +310,6 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 		);
 	}
 
-	[Test]
-	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldCreateUnresolvableEvent()
-	{
-		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (Account?)null);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			type: UnresolvableEventType.TransferCompensation,
-			referenceId: TransferId,
-			reason: Arg.Any<string>(),
-			payload: Arg.Any<string>(),
-			occurredAt: Arg.Any<DateTimeOffset>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenToAccountNotFound_AndFromAccountAlsoNotFound_ShouldUpdateStatusToFailed()
-	{
-		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (Account?)null);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
-			transferId: TransferId,
-			status: TransferStatus.Failed,
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-	
 	[Test]
 	public async Task HandleAsync_WhenTransferAlreadyCompleted_ShouldSkipWithoutSavingAccounts()
 	{
@@ -436,80 +391,6 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _accountRepository.DidNotReceive().SaveAsync(
 			account: Arg.Any<Account>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenCompensationRefundFails_ShouldUpdateStatusToFailed()
-	{
-		Account archivedFromAccount = AccountFactory.CreateWithArchivation(archived: true);
-
-		_accountRepository.GetByIdAsync(
-			accountId: ToAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (Account?)null);
-
-		_accountRepository.GetByIdAsync(
-			accountId: FromAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: archivedFromAccount);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
-			transferId: TransferId,
-			status: TransferStatus.Failed,
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenCompensationRefundFails_ShouldCreateUnresolvableEvent()
-	{
-		Account archivedFromAccount = AccountFactory.CreateWithArchivation(archived: true);
-
-		_accountRepository.GetByIdAsync(
-			accountId: ToAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (Account?)null);
-
-		_accountRepository.GetByIdAsync(
-			accountId: FromAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: archivedFromAccount);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			type: UnresolvableEventType.TransferCompensation,
-			referenceId: TransferId,
-			reason: Arg.Any<string>(),
-			payload: Arg.Any<string>(),
-			occurredAt: Arg.Any<DateTimeOffset>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_WhenCompensationRefundFails_ShouldNotSaveFromAccount()
-	{
-		Account archivedFromAccount = AccountFactory.CreateWithArchivation(archived: true);
-
-		_accountRepository.GetByIdAsync(
-			accountId: ToAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (Account?)null);
-
-		_accountRepository.GetByIdAsync(
-			accountId: FromAccountId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: archivedFromAccount);
-
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
-
-		await _accountRepository.DidNotReceive().SaveAsync(
-			account: archivedFromAccount,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

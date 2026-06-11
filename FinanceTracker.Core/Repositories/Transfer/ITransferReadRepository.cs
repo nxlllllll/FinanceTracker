@@ -29,4 +29,9 @@ public interface ITransferReadRepository : IReadRepository<TransferReadModel>
 		TimeSpan gracePeriod,
 		CancellationToken ct = default
 	);
+
+	Task<IReadOnlyList<PendingCreditTransfer>> GetPendingCreditForCompensationAsync(
+		TimeSpan compensationThreshold,
+		CancellationToken ct = default
+	);
 }

@@ -1,10 +1,12 @@
 using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
 using FinanceTracker.Worker.TransferProjection.Consumer;
 using FinanceTracker.Worker.TransferProjection.Job;
+using FinanceTracker.Worker.TransferProjection.Services;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
 
@@ -17,6 +19,8 @@ public sealed class Program
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
 
 		builder.Services.AddInfrastructure(configuration: builder.Configuration);
+
+		builder.Services.AddScoped<ITransferCompensationService, TransferCompensationService>();
 
 		builder.Services.AddRabbitMqCore()
 			.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();

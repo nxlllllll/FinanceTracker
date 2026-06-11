@@ -27,4 +27,12 @@ public sealed class TransferCreditLagOptions : IJobOptions
 	/// </summary>
 	[Range(minimum: 1, maximum: 60)]
 	public int GracePeriodMinutes { get; init; } = 5;
+
+	/// <summary>
+	/// Minimum time since debit before a stuck transfer is automatically compensated.
+	/// Must be greater than <see cref="GracePeriodMinutes"/> to avoid compensating
+	/// transfers still in normal processing. Default: 30 minutes.
+	/// </summary>
+	[Range(minimum: 1, maximum: 1440)]
+	public int CompensationThresholdMinutes { get; init; } = 30;
 }

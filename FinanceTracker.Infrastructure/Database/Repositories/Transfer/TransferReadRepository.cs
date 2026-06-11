@@ -8,9 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
-public sealed class TransferReadRepository(
-    FinanceTrackerContext context
-) : ITransferReadRepository
+public sealed class TransferReadRepository(FinanceTrackerContext context) : ITransferReadRepository
 {
     public async Task<TransferReadModel?> GetByIdAsync(
         Guid transferId,
@@ -113,5 +111,21 @@ public sealed class TransferReadRepository(
             predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.OccurredAt < threshold,
             cancellationToken: ct
         );
+    }
+
+    public async Task<IReadOnlyList<PendingCreditTransfer>> GetPendingCreditForCompensationAsync(
+        TimeSpan compensationThreshold,
+        CancellationToken ct = default)
+    {
+        DateTimeOffset threshold = DateTimeOffset.UtcNow - compensationThreshold;
+
+        return await context.Transfers.AsNoTracking()
+            .Where(predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.OccurredAt < threshold)
+            .Select(selector: t => new PendingCreditTransfer(
+                TransferId: t.Id,
+                FromAccountId: t.FromAccountId,
+                Amount: t.AmountFrom,
+                OccurredAt: t.OccurredAt
+            )).ToListAsync(cancellationToken: ct);
     }
 }
