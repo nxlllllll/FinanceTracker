@@ -24,7 +24,7 @@ public sealed class DeactivateBudgetHandler(
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
-		await budgetWriteRepository.DeactivateAsync(budgetId: budget.Id, ct: ct);
+		await budgetWriteRepository.DeactivateAsync(budgetId: budget.Id, expectedVersion: budget.RowVersion, ct: ct);
 		
 		await publisher.Publish(notification: new BudgetDeactivatedNotification(
 			BudgetId: budget.Id,

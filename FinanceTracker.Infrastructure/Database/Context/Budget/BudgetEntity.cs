@@ -10,5 +10,6 @@ public sealed class BudgetEntity
 	public Core.ValueObjects.Currency Currency { get; init; }
 	public decimal Amount { get; init; }
 	public bool IsActive { get; set; }
+	public int RowVersion { get; set; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

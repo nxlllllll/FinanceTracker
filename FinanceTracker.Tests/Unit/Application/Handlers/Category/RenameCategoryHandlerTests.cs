@@ -42,6 +42,7 @@ public sealed class RenameCategoryHandlerTests
 		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
 			categoryId: category.Id,
 			newName: Arg.Any<FinanceTracker.Core.ValueObjects.Name>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

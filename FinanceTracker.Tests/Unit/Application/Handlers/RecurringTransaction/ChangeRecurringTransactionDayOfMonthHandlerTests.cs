@@ -41,6 +41,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ChangeDayOfMonthAsync(
 			recurringTransactionId: rt.Id,
 			dayOfMonth: 15,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

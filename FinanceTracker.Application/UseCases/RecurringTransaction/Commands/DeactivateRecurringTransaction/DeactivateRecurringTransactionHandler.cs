@@ -24,7 +24,11 @@ public sealed class DeactivateRecurringTransactionHandler(
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await recurringTransactionWriteRepository.DeactivateAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct);
+		await recurringTransactionWriteRepository.DeactivateAsync(
+			recurringTransactionId: command.RecurringTransactionId,
+			expectedVersion: recurringTransaction.RowVersion,
+			ct: ct
+		);
 
 		await publisher.Publish(notification: new RecurringTransactionDeactivatedNotification(
 			RecurringTransactionId: recurringTransaction.Id,

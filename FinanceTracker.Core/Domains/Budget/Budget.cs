@@ -21,6 +21,7 @@ public sealed class Budget
     public DateOnly From { get; private set; }
     /// <summary>Inclusive end date of the budget period.</summary>
     public DateOnly To { get; private set; }
+    public int RowVersion { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     private Budget() { }
@@ -48,6 +49,7 @@ public sealed class Budget
             IsActive = true,
             From = from,
             To = to,
+            RowVersion = 0,
             CreatedAt = createdAt
         });
     }
@@ -61,6 +63,7 @@ public sealed class Budget
         bool isActive,
         DateOnly from,
         DateOnly to,
+        int rowVersion,
         DateTimeOffset createdAt)
     {
         return new Budget
@@ -72,6 +75,7 @@ public sealed class Budget
             IsActive = isActive,
             From = from,
             To = to,
+            RowVersion = rowVersion,
             CreatedAt = createdAt
         };
     }

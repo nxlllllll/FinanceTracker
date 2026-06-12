@@ -16,7 +16,8 @@ public sealed class RecurringTransactionReadRepository(
 		Guid recurringTransactionId,
 		CancellationToken ct = default)
 	{
-		return await context.RecurringTransactions.AsNoTracking().Where(predicate: r => r.Id == recurringTransactionId)
+		return await context.RecurringTransactions.AsNoTracking()
+			.Where(predicate: r => r.Id == recurringTransactionId)
 			.Select(selector: r => new RecurringTransactionReadModel(
 				Id: r.Id,
 				UserId: r.UserId,
@@ -27,6 +28,7 @@ public sealed class RecurringTransactionReadRepository(
 				DayOfMonth: r.DayOfMonth,
 				Description: r.Description,
 				IsActive: r.IsActive,
+				RowVersion: r.RowVersion,
 				LastExecutedAt: r.LastExecutedAt,
 				CreatedAt: r.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
@@ -39,7 +41,9 @@ public sealed class RecurringTransactionReadRepository(
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<RecurringTransactionEntity> query = context.RecurringTransactions.AsNoTracking().Where(predicate: r => r.UserId == userId);
+		IQueryable<RecurringTransactionEntity> query = context.RecurringTransactions
+			.AsNoTracking()
+			.Where(predicate: r => r.UserId == userId);
 
 		if (cursorCreatedAt is not null && cursorId is not null)
 			query = query.Where(predicate: r => r.CreatedAt < cursorCreatedAt || r.CreatedAt == cursorCreatedAt && r.Id < cursorId);
@@ -58,6 +62,7 @@ public sealed class RecurringTransactionReadRepository(
 				DayOfMonth: r.DayOfMonth,
 				Description: r.Description,
 				IsActive: r.IsActive,
+				RowVersion: r.RowVersion,
 				LastExecutedAt: r.LastExecutedAt,
 				CreatedAt: r.CreatedAt
 			)).ToListAsync(cancellationToken: ct);
@@ -98,6 +103,7 @@ public sealed class RecurringTransactionReadRepository(
 				DayOfMonth: r.DayOfMonth,
 				Description: r.Description,
 				IsActive: r.IsActive,
+				RowVersion: r.RowVersion,
 				LastExecutedAt: r.LastExecutedAt,
 				CreatedAt: r.CreatedAt
 			)).ToListAsync(cancellationToken: ct);

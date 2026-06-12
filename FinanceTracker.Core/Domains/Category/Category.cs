@@ -17,6 +17,7 @@ public sealed class Category
 	public Name Name { get; private set; }
 	public CategoryType Type { get; private set; }
 	public bool IsArchived { get; private set; }
+	public int RowVersion { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 
 	private Category() { }
@@ -36,6 +37,7 @@ public sealed class Category
 			Name = name,
 			Type = type,
 			IsArchived = false,
+			RowVersion = 0,
 			CreatedAt = createdAt
 		};
 	}
@@ -47,6 +49,7 @@ public sealed class Category
 		Name name,
 		CategoryType type,
 		bool isArchived,
+		int rowVersion,
 		DateTimeOffset createdAt)
 	{
 		return new Category()
@@ -57,6 +60,7 @@ public sealed class Category
 			Name = name,
 			Type = type,
 			IsArchived = isArchived,
+			RowVersion = rowVersion,
 			CreatedAt = createdAt
 		};
 	}

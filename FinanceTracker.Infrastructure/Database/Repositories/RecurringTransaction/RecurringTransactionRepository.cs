@@ -25,6 +25,7 @@ public sealed class RecurringTransactionRepository(
 				description: r.Description,
 				isActive: r.IsActive,
 				lastExecutedAt: r.LastExecutedAt,
+				rowVersion: r.RowVersion,
 				createdAt: r.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

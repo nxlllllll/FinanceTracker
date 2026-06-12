@@ -25,65 +25,69 @@ public sealed class Transaction
 	/// <summary>When <c>true</c>, the exchange rate is a placeholder and will be updated by <c>BalanceAdjustmentJob</c>.</summary>
 	public bool IsRatePending { get; private set; }
 	public string? Description { get; private set; }
+	public int RowVersion { get; private set; }
 	public DateTimeOffset OccurredAt { get; private set; }
 
     private Transaction() { }
 
-    public static Transaction Create(
+	public static Transaction Create(
 		DateTimeOffset occurredAt,
-        Guid accountId,
-        Guid userId,
-        Guid categoryId,
-        Money amount,
-        DirectionType direction,
-        decimal exchangeRate,
-        bool isRatePending,
-        string? description)
-    {
-        return new Transaction()
-        {
-            Id = Guid.CreateVersion7(),
-            AccountId = accountId,
-            UserId = userId,
-            CategoryId = categoryId,
-            Amount = amount,
-            Direction = direction,
-            ExchangeRate = exchangeRate,
-            IsExcluded = false,
-            IsRatePending = isRatePending,
-            Description = description,
-            OccurredAt = occurredAt
-        };
-    }
+		Guid accountId,
+		Guid userId,
+		Guid categoryId,
+		Money amount,
+		DirectionType direction,
+		decimal exchangeRate,
+		bool isRatePending,
+		string? description)
+	{
+		return new Transaction()
+		{
+			Id = Guid.CreateVersion7(),
+			AccountId = accountId,
+			UserId = userId,
+			CategoryId = categoryId,
+			Amount = amount,
+			Direction = direction,
+			ExchangeRate = exchangeRate,
+			IsExcluded = false,
+			IsRatePending = isRatePending,
+			Description = description,
+			RowVersion = 0,
+			OccurredAt = occurredAt
+		};
+	}
 
-    public static Transaction Reconstitute(
-        Guid id,
-        Guid accountId,
-        Guid userId,
-        Guid categoryId,
-        Money amount,
-        DirectionType direction,
-        decimal exchangeRate,
-        bool isExcluded,
-        bool isRatePending,
-        string? description,
-        DateTimeOffset occurredAt)
-    {
-        return new Transaction()
-        {
-            Id = id,
-            AccountId = accountId,
-            UserId = userId,
-            CategoryId = categoryId,
-            Amount = amount,
-            Direction = direction,
-            ExchangeRate = exchangeRate,
-            IsExcluded = isExcluded,
-            IsRatePending = isRatePending,
-            Description = description,
-            OccurredAt = occurredAt
-        };
-    }
+	public static Transaction Reconstitute(
+		Guid id,
+		Guid accountId,
+		Guid userId,
+		Guid categoryId,
+		Money amount,
+		DirectionType direction,
+		decimal exchangeRate,
+		bool isExcluded,
+		bool isRatePending,
+		string? description,
+		int rowVersion,
+		DateTimeOffset occurredAt)
+	{
+		return new Transaction()
+		{
+			Id = id,
+			AccountId = accountId,
+			UserId = userId,
+			CategoryId = categoryId,
+			Amount = amount,
+			Direction = direction,
+			ExchangeRate = exchangeRate,
+			IsExcluded = isExcluded,
+			IsRatePending = isRatePending,
+			Description = description,
+			RowVersion = rowVersion,
+			OccurredAt = occurredAt
+		};
+	}
 
     public Result<Unit, DomainException> Exclude()
 	{

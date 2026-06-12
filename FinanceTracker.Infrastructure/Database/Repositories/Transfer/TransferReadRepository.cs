@@ -90,17 +90,17 @@ public sealed class TransferReadRepository(FinanceTrackerContext context) : ITra
 
     public async Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(CancellationToken ct = default)
     {
-        return await context.Transfers.AsNoTracking().Where(predicate: t => t.IsRatePending)
-            .Select(selector: t => new PendingRateTransfer(
-                TransferId: t.Id,
-                FromAccountId: t.FromAccountId,
-                ToAccountId: t.ToAccountId,
-                AmountFrom: t.AmountFrom,
-                CurrencyFrom: t.CurrencyFrom,
-                CurrencyTo: t.CurrencyTo,
-                CurrentRate: t.ExchangeRate,
-                OccurredAt: t.OccurredAt
-            )).ToListAsync(cancellationToken: ct);
+        return await context.Transfers.AsNoTracking().Where(predicate: t => t.IsRatePending).Select(selector: t => new PendingRateTransfer(
+            TransferId: t.Id,
+            FromAccountId: t.FromAccountId,
+            ToAccountId: t.ToAccountId,
+            AmountFrom: t.AmountFrom,
+            CurrencyFrom: t.CurrencyFrom,
+            CurrencyTo: t.CurrencyTo,
+            CurrentRate: t.ExchangeRate,
+            RowVersion: t.RowVersion,
+            OccurredAt: t.OccurredAt
+        )).ToListAsync(cancellationToken: ct);
     }
 
     public async Task<int> GetPendingCreditCountAsync(TimeSpan gracePeriod, CancellationToken ct = default)

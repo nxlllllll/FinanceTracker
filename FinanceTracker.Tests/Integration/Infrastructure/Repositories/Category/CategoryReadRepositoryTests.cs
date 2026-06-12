@@ -37,7 +37,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		await _writeRepository.CreateAsync(category: category);
 		await Context.SaveChangesAsync();
 		if (isArchived)
-			await _writeRepository.ArchiveAsync(categoryId: category.Id);
+			await _writeRepository.ArchiveAsync(categoryId: category.Id, expectedVersion: 0);
 		return category;
 	}
 
@@ -89,9 +89,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithNoCategories_ShouldReturnEmptyList()
 	{
-		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
-			userId: Guid.CreateVersion7()
-		);
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 0);
 		await Assert.That(value: result.HasNextPage).IsFalse();
@@ -179,10 +177,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 4; i++)
 			await CreateAndSaveCategoryAsync(userId: userId);
 
-		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
-			userId: userId,
-			pageSize: 3
-		);
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: userId, pageSize: 3);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 3);
 		await Assert.That(value: result.HasNextPage).IsTrue();
@@ -197,11 +192,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		for (int i = 0; i < 4; i++)
 			await CreateAndSaveCategoryAsync(userId: userId);
 
-		PagedResult<CategoryReadModel> firstPage = await _readRepository.GetAllAsync(
-			userId: userId,
-			pageSize: 3
-		);
-
+		PagedResult<CategoryReadModel> firstPage = await _readRepository.GetAllAsync(userId: userId, pageSize: 3);
 		CategoryReadModel lastItem = firstPage.Items[^1];
 
 		PagedResult<CategoryReadModel> secondPage = await _readRepository.GetAllAsync(

@@ -14,6 +14,7 @@ public sealed class RecurringTransactionEntity
 	public int DayOfMonth { get; set; }
 	public string? Description { get; init; }
 	public bool IsActive { get; set; }
+	public int RowVersion { get; set; }
 	public DateTimeOffset? LastExecutedAt { get; set; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

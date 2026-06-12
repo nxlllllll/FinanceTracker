@@ -35,7 +35,7 @@ public sealed class ArchiveCategoryHandler(
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, ct: ct);
+			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: category.RowVersion, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 			await budgetWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 		}, 

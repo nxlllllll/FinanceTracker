@@ -15,5 +15,6 @@ public sealed class TransactionEntity
 	public bool IsExcluded { get; set; }
 	public string? Description { get; set; }
 	public bool IsRatePending { get; set; }
+	public int RowVersion { get; set; }
 	public DateTimeOffset OccurredAt { get; init; }
 }

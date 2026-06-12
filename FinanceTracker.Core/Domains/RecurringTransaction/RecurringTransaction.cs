@@ -23,6 +23,7 @@ public sealed class RecurringTransaction
     public bool IsActive { get; private set; }
     /// <summary>UTC timestamp of the last successful execution. <c>null</c> if never executed.</summary>
     public DateTimeOffset? LastExecutedAt { get; private set; }
+    public int RowVersion { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     private RecurringTransaction() { }
@@ -52,6 +53,7 @@ public sealed class RecurringTransaction
             Description = description,
             IsActive = true,
             LastExecutedAt = null,
+            RowVersion = 0,
             CreatedAt = createdAt
         });
     }
@@ -67,6 +69,7 @@ public sealed class RecurringTransaction
         string? description,
         bool isActive,
         DateTimeOffset? lastExecutedAt,
+        int rowVersion,
         DateTimeOffset createdAt)
     {
         return new RecurringTransaction
@@ -81,6 +84,7 @@ public sealed class RecurringTransaction
             Description = description,
             IsActive = isActive,
             LastExecutedAt = lastExecutedAt,
+            RowVersion = rowVersion,
             CreatedAt = createdAt
         };
     }

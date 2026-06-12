@@ -184,6 +184,7 @@ public sealed class BalanceAdjustmentJob(
 			onRateUnchangedAsync: (item, rate, innerCt) => transactionWriteRepository.UpdateRateAsync(
 				transactionId: item.TransactionId,
 				newRate: rate,
+				expectedVersion: item.RowVersion,
 				ct: innerCt
 			),
 			onAdjustAsync: async (accountCache, item, newRate, innerCt) =>
@@ -215,7 +216,12 @@ public sealed class BalanceAdjustmentJob(
 				await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 				{
 					await accountRepository.SaveAsync(account: account, ct: innerCt);
-					await transactionWriteRepository.UpdateRateAsync(transactionId: item.TransactionId, newRate: newRate, ct: innerCt);
+					await transactionWriteRepository.UpdateRateAsync(
+						transactionId: item.TransactionId,
+						newRate: newRate,
+						expectedVersion: item.RowVersion,
+						ct: innerCt
+					);
 				}, ct: innerCt);
 				
 				logger.ZLogInformation(message: $"Adjusted transaction {item.TransactionId}: rate {item.CurrentRate} > {newRate}.");
@@ -245,6 +251,7 @@ public sealed class BalanceAdjustmentJob(
 			onRateUnchangedAsync: (item, rate, innerCt) => transferWriteRepository.UpdateRateAsync(
 				transferId: item.TransferId,
 				newRate: rate,
+				expectedVersion: item.RowVersion,
 				ct: innerCt
 			),
 			onAdjustAsync: async (accountCache, item, newRate, innerCt) =>
@@ -294,7 +301,12 @@ public sealed class BalanceAdjustmentJob(
 				{
 					await accountRepository.SaveAsync(account: fromAccount, ct: innerCt);
 					await accountRepository.SaveAsync(account: toAccount, ct: innerCt);
-					await transferWriteRepository.UpdateRateAsync(transferId: item.TransferId, newRate: newRate, ct: innerCt);
+					await transferWriteRepository.UpdateRateAsync(
+						transferId: item.TransferId,
+						newRate: newRate,
+						expectedVersion: item.RowVersion,
+						ct: innerCt
+					);
 				}, ct: innerCt);
 
 				fromAccount.ClearEvents();

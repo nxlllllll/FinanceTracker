@@ -23,14 +23,15 @@ public static class DbContextExtensions
 		CancellationToken ct = default)
 	{
 		return context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO rm_category_totals (id, user_id, category_id, period, total, transaction_count, updated_at)
-			VALUES ({entity.Id}, {entity.UserId}, {entity.CategoryId}, {entity.Period}, {entity.Total}, {entity.TransactionCount}, {entity.UpdatedAt})
+			INSERT INTO rm_category_totals (id, user_id, category_id, period, total, transaction_count, row_version, updated_at)
+			VALUES ({entity.Id}, {entity.UserId}, {entity.CategoryId}, {entity.Period}, {entity.Total}, {entity.TransactionCount}, 0, {entity.UpdatedAt})
 			ON CONFLICT (user_id, category_id, period)
 			DO UPDATE SET
 				total = rm_category_totals.total + EXCLUDED.total,
 				transaction_count = rm_category_totals.transaction_count + EXCLUDED.transaction_count,
+				row_version = rm_category_totals.row_version + 1,
 				updated_at = EXCLUDED.updated_at
-		""", cancellationToken: ct);
+			""", cancellationToken: ct);
 	}
 
 	/// <summary>
@@ -46,14 +47,11 @@ public static class DbContextExtensions
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
 	{
-		int rows = await context.Database.ExecuteSqlAsync(
-			sql: $"""
+		int rows = await context.Database.ExecuteSqlAsync(sql: $"""
 			INSERT INTO idempotent_commands (idempotency_key, command_type, reserved_at, expires_at)
 			VALUES ({idempotencyKey}, {commandType}, {reservedAt}, {expiresAt})
 			ON CONFLICT (idempotency_key) DO NOTHING
-			""",
-			cancellationToken: ct
-		);
+		""", cancellationToken: ct);
 
 		return rows == 1;
 	}

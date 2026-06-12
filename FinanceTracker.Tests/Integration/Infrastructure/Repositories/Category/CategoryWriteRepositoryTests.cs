@@ -1,9 +1,12 @@
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Category;
 
@@ -45,6 +48,9 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: category.Id);
         await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "Еда");
         await Assert.That(value: loaded.IsArchived).IsFalse();
+
+        CategoryEntity? entity = await Context.Categories.AsNoTracking().FirstOrDefaultAsync(predicate: c => c.Id == category.Id);
+        await Assert.That(value: entity!.RowVersion).IsEqualTo(expected: 0);
     }
 
     [Test]
@@ -52,12 +58,19 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync();
 
-        await _writeRepository.RenameAsync(categoryId: category.Id, newName: Name.Create(value: "Развлечения").Value);
+        await _writeRepository.RenameAsync(
+            categoryId: category.Id,
+            newName: Name.Create(value: "Развлечения").Value,
+            expectedVersion: 0
+        );
 
         CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Name.Value).IsEqualTo(expected: "Развлечения");
+
+        CategoryEntity entity = await Context.Categories.AsNoTracking().FirstAsync(predicate: c => c.Id == category.Id);
+        await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
     }
 
     [Test]
@@ -65,12 +78,15 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync();
 
-        await _writeRepository.ArchiveAsync(categoryId: category.Id);
+        await _writeRepository.ArchiveAsync(categoryId: category.Id, expectedVersion: 0);
 
         CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.IsArchived).IsTrue();
+
+        CategoryEntity entity = await Context.Categories.AsNoTracking().FirstAsync(predicate: c => c.Id == category.Id);
+        await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
     }
 
     [Test]
@@ -78,12 +94,27 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync();
 
-        await _writeRepository.ArchiveAsync(categoryId: category.Id);
-        await _writeRepository.UnarchiveAsync(categoryId: category.Id);
+        await _writeRepository.ArchiveAsync(categoryId: category.Id, expectedVersion: 0);
+        await _writeRepository.UnarchiveAsync(categoryId: category.Id, expectedVersion: 1);
 
         CategoryReadModel? loaded = await _readRepository.GetByIdAsync(categoryId: category.Id, userId: category.UserId);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.IsArchived).IsFalse();
+
+        CategoryEntity entity = await Context.Categories.AsNoTracking().FirstAsync(predicate: c => c.Id == category.Id);
+        await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 2);
+    }
+
+    [Test]
+    public async Task ArchiveAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
+    {
+        Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync();
+
+        await _writeRepository.ArchiveAsync(categoryId: category.Id, expectedVersion: 0);
+
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
+            await _writeRepository.ArchiveAsync(categoryId: category.Id, expectedVersion: 0)
+        );
     }
 }

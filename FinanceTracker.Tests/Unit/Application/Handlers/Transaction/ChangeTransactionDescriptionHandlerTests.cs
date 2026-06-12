@@ -47,6 +47,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ChangeDescriptionAsync(
 			transactionId: transaction.Id,
 			description: "New description",
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -95,6 +96,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 		await _transactionWriteRepository.DidNotReceive().ChangeDescriptionAsync(
 			transactionId: Arg.Any<Guid>(),
 			description: Arg.Any<string?>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

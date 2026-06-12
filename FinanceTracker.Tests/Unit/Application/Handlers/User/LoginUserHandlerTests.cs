@@ -26,6 +26,7 @@ public sealed class LoginUserHandlerTests
 		email: TestEmail,
 		passwordHash: PasswordHash,
 		baseCurrencyCode: Currency.Create(value: "RUB").Value,
+		rowVersion: 0,
 		createdAt: FakeDateProvider.Default.UtcNow
 	);
 

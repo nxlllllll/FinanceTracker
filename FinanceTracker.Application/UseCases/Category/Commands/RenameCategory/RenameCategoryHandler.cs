@@ -31,7 +31,12 @@ public sealed class RenameCategoryHandler(
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await categoryWriteRepository.RenameAsync(categoryId: command.CategoryId, newName: nameResult.Value, ct: ct);
+		await categoryWriteRepository.RenameAsync(
+			categoryId: command.CategoryId,
+			newName: nameResult.Value,
+			expectedVersion: category.RowVersion, 
+			ct: ct
+		);
 		
 		await publisher.Publish(notification: new CategoryRenamedNotification(
 			CategoryId: category.Id,

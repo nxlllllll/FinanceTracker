@@ -11,5 +11,6 @@ public sealed class CategoryEntity
 	public Name Name { get; set; }
 	public CategoryType Type { get; init; }
 	public bool IsArchived { get; set; }
+	public int RowVersion { get; set; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

@@ -81,6 +81,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			Name = Name.Create(value: "Еда").Value,
 			Type = CategoryType.Expense,
 			IsArchived = false,
+			RowVersion = 0,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await Context.SaveChangesAsync();
@@ -107,6 +108,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			isExcluded: false,
 			isRatePending: false,
 			description: "тест",
+    		rowVersion: 0,
 			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);
 
@@ -114,7 +116,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		await Context.SaveChangesAsync();
 
 		if (isExcluded)
-			await _writeRepository.ExcludeAsync(transactionId: transaction.Id);
+			await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: transaction.RowVersion);
 
 		return transaction.Id;
 	}

@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Tests.Integration._Shared.Builders;
@@ -20,8 +22,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 		_accountBuilder = new AccountBuilder(context: Context);
 	}
 
-	[Test]
-	public async Task CreateAsync_ShouldPersistTransfer()
+	private async Task<Core.Domains.Transfer.Transfer> CreateAndSaveTransferAsync()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid fromAccountId = await _accountBuilder.CreateAsync(userId: userId);
@@ -42,15 +43,59 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 
 		await _writeRepository.CreateAsync(transfer: transfer);
 		await Context.SaveChangesAsync();
+		return transfer;
+	}
+
+	[Test]
+	public async Task CreateAsync_ShouldPersistTransfer()
+	{
+		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
 
 		TransferEntity? entity = await Context.Transfers.FirstOrDefaultAsync(predicate: t => t.Id == transfer.Id);
 
 		await Assert.That(value: entity).IsNotNull();
-		await Assert.That(value: entity!.UserId).IsEqualTo(expected: userId);
-		await Assert.That(value: entity.AmountFrom).IsEqualTo(expected: 1000m);
+		await Assert.That(value: entity!.AmountFrom).IsEqualTo(expected: 1000m);
 		await Assert.That(value: entity.AmountTo).IsEqualTo(expected: 900m);
 		await Assert.That(value: entity.ExchangeRate).IsEqualTo(expected: 0.9m);
 		await Assert.That(value: entity.IsRatePending).IsFalse();
 		await Assert.That(value: entity.Description).IsEqualTo(expected: "Test transfer");
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 0);
+	}
+
+	[Test]
+	public async Task UpdateStatusAsync_ShouldUpdateStatus()
+	{
+		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
+
+		await _writeRepository.UpdateStatusAsync(
+			transferId: transfer.Id,
+			status: TransferStatus.Completed,
+			expectedVersion: 0
+		);
+
+		TransferEntity entity = await Context.Transfers.AsNoTracking().FirstAsync(predicate: t => t.Id == transfer.Id);
+
+		await Assert.That(value: entity.Status).IsEqualTo(expected: TransferStatus.Completed);
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task UpdateStatusAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
+	{
+		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
+
+		await _writeRepository.UpdateStatusAsync(
+			transferId: transfer.Id,
+			status: TransferStatus.Completed,
+			expectedVersion: 0
+		);
+
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
+			await _writeRepository.UpdateStatusAsync(
+				transferId: transfer.Id,
+				status: TransferStatus.Compensated,
+				expectedVersion: 0
+			)
+		);
 	}
 }

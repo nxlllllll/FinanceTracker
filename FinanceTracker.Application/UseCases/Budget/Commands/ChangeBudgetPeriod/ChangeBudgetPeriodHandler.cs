@@ -49,6 +49,7 @@ public sealed class ChangeBudgetPeriodHandler(
                 budgetId: budget.Id,
                 from: command.From,
                 to: command.To,
+                expectedVersion: budget.RowVersion,
                 ct: ct
             );
 

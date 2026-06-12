@@ -40,6 +40,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).UnarchiveAsync(
 			categoryId: category.Id,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

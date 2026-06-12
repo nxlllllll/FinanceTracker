@@ -14,9 +14,9 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 
 		builder.HasKey(keyExpression: b => b.Id);
 
-		builder.Property(propertyExpression: a => a.Id)
+		builder.Property(propertyExpression: b => b.Id)
 			.HasColumnName(name: "id");
-		
+
 		builder.Property(propertyExpression: b => b.UserId)
 			.HasColumnName(name: "user_id");
 
@@ -45,6 +45,10 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 
 		builder.Property(propertyExpression: b => b.IsActive)
 			.HasColumnName(name: "is_active");
+
+		builder.Property(propertyExpression: b => b.RowVersion)
+			.HasColumnName(name: "row_version")
+			.HasDefaultValue(value: 0);
 
 		builder.Property(propertyExpression: b => b.CreatedAt)
 			.HasColumnName(name: "created_at");

@@ -66,6 +66,7 @@ public sealed class IncludeTransactionHandlerTests
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).IncludeAsync(
 			transactionId: transaction.Id,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

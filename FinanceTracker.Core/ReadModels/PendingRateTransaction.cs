@@ -11,5 +11,6 @@ public sealed record PendingRateTransaction(
 	Currency BaseCurrency,
 	decimal CurrentRate,
 	DirectionType Direction,
+	int RowVersion,
 	DateTimeOffset OccurredAt
 ) : IReadModel;

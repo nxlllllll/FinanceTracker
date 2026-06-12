@@ -12,16 +12,19 @@ public interface ICategoryWriteRepository
 	Task RenameAsync(
 		Guid categoryId,
 		Name newName,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 
 	Task ArchiveAsync(
 		Guid categoryId,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 
 	Task UnarchiveAsync(
 		Guid categoryId,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 }

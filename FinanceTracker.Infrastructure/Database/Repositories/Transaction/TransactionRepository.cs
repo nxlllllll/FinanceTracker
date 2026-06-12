@@ -26,6 +26,7 @@ public sealed class TransactionRepository(
 				isExcluded: t.IsExcluded,
 				isRatePending: t.IsRatePending,
 				description: t.Description,
+				rowVersion: t.RowVersion,
 				occurredAt: t.OccurredAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

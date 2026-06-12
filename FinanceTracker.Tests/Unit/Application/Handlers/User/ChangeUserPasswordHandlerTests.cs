@@ -72,6 +72,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		await _userWriteRepository.Received(requiredNumberOfCalls: 1).ChangePasswordAsync(
 			userId: user.Id,
 			newPasswordHash: HashedPassword,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

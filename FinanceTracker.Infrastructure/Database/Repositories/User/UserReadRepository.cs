@@ -21,6 +21,7 @@ public sealed class UserReadRepository(
 				email: u.Email,
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
+				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
@@ -35,6 +36,7 @@ public sealed class UserReadRepository(
 				email: u.Email,
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
+				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
@@ -50,7 +52,6 @@ public sealed class UserReadRepository(
 				BaseCurrency: u.BaseCurrencyCode,
 				CreatedAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
-	
 	}
 
 	public async Task<decimal> GetTotalBalanceAsync(

@@ -10,6 +10,7 @@ public interface IBudgetWriteRepository
     Task ChangeAmountAsync(
         Guid budgetId,
         decimal amount,
+        int expectedVersion,
         CancellationToken ct = default
     );
 
@@ -17,16 +18,19 @@ public interface IBudgetWriteRepository
         Guid budgetId,
         DateOnly from,
         DateOnly to,
+		int expectedVersion,
         CancellationToken ct = default
     );
     
     Task ActivateAsync(
         Guid budgetId,
+		int expectedVersion,
         CancellationToken ct = default
     );
     
 	Task DeactivateAsync(
         Guid budgetId,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 

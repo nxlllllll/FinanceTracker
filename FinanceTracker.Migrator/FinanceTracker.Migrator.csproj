@@ -51,6 +51,8 @@
       <EmbeddedResource Include="Migrations\V013__add_budget_is_active.sql" />
       <None Remove="Migrations\V015__remove_domain_event_outbox.sql" />
       <EmbeddedResource Include="Migrations\V015__remove_domain_event_outbox.sql" />
+      <None Remove="Migrations\V016__add_row_version.sql" />
+      <EmbeddedResource Include="Migrations\V016__add_row_version.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

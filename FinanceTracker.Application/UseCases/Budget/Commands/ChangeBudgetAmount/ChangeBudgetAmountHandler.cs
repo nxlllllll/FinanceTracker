@@ -24,7 +24,7 @@ public sealed class ChangeBudgetAmountHandler(
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await budgetWriteRepository.ChangeAmountAsync(budgetId: budget.Id, amount: command.Amount, ct: ct);
+		await budgetWriteRepository.ChangeAmountAsync(budgetId: budget.Id, expectedVersion: budget.RowVersion, amount: command.Amount, ct: ct);
 		
 		await publisher.Publish(notification: new BudgetAmountChangedNotification(
 			BudgetId: budget.Id,

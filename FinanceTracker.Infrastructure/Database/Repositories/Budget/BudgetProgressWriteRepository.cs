@@ -47,7 +47,9 @@ public sealed class BudgetProgressWriteRepository(
             decimal additionSpent = amount * delta * rates[new CurrencyRateRequest(From: currencyCode, To: budget.Currency, Date: date)].Rate;
 
             await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
-                setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: p => p.Spent + additionSpent)
+                setPropertyCalls: builder => builder
+                    .SetProperty(propertyExpression: p => p.Spent, valueExpression: p => p.Spent + additionSpent)
+                    .SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
                     .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
                 cancellationToken: ct
             );
@@ -139,23 +141,31 @@ public sealed class BudgetProgressWriteRepository(
         DateTimeOffset toUtc = new DateTimeOffset(date: toDate, time: TimeOnly.MaxValue, offset: TimeSpan.Zero);
 
         List<TransactionEntity> transactions = await context.Transactions.AsNoTracking().Where(predicate: t =>
-            t.UserId == userId && t.CategoryId == categoryId && !t.IsExcluded && t.Direction == DirectionType.Debit && t.OccurredAt >= fromUtc && t.OccurredAt <= toUtc
+            t.UserId == userId &&
+            t.CategoryId == categoryId &&
+            !t.IsExcluded &&
+            t.Direction == DirectionType.Debit &&
+            t.OccurredAt >= fromUtc &&
+            t.OccurredAt <= toUtc
         ).ToListAsync(cancellationToken: ct);
 
         if (transactions.Count == 0)
         {
             await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
-                setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: 0m)
+                setPropertyCalls: builder => builder
+                    .SetProperty(propertyExpression: p => p.Spent, valueExpression: 0m)
+                    .SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
                     .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
                 cancellationToken: ct
             );
             return;
         }
 
-        List<CurrencyRateRequest> rateRequests = transactions
-            .Select(selector: t => new CurrencyRateRequest(From: t.Currency, To: budget.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)))
-            .Distinct()
-            .ToList();
+        List<CurrencyRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyRateRequest(
+            From: t.Currency,
+            To: budget.Currency,
+            Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)
+        )).Distinct().ToList();
 
         Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
 
@@ -164,7 +174,9 @@ public sealed class BudgetProgressWriteRepository(
         );
 
         await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: spent)
+            setPropertyCalls: builder => builder
+                 .SetProperty(propertyExpression: p => p.Spent, valueExpression: spent)
+                 .SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
                 .SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
             cancellationToken: ct
         );

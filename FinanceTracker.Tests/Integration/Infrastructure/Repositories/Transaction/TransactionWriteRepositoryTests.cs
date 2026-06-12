@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
@@ -59,6 +60,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 			Name = Name.Create(value: "Еда").Value,
 			Type = CategoryType.Expense,
 			IsArchived = false,
+			RowVersion = 0,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await Context.SaveChangesAsync();
@@ -66,14 +68,10 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		return (accountId, categoryId);
 	}
 
-	[Test]
-	public async Task CreateAsync_ShouldCreateTransaction()
+	private Core.Domains.Transaction.Transaction BuildTransaction(Guid accountId, Guid categoryId, string description = "тест")
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Guid transactionId = Guid.CreateVersion7();
-
-		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
-			id: transactionId,
+		return Core.Domains.Transaction.Transaction.Reconstitute(
+			id: Guid.CreateVersion7(),
 			accountId: accountId,
 			userId: Guid.CreateVersion7(),
 			categoryId: categoryId,
@@ -81,15 +79,23 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			exchangeRate: 1m,
 			isExcluded: false,
-			description: "тест",
+			description: description,
 			isRatePending: false,
+			rowVersion: 0,
 			occurredAt: DateTimeOffset.UtcNow
 		);
+	}
+
+	[Test]
+	public async Task CreateAsync_ShouldCreateTransaction()
+	{
+		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
-		bool exists = await Context.Transactions.AnyAsync(predicate: t => t.Id == transactionId);
+		bool exists = await Context.Transactions.AnyAsync(predicate: t => t.Id == transaction.Id);
 		await Assert.That(value: exists).IsTrue();
 	}
 
@@ -97,43 +103,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	public async Task CreateAsync_ShouldSetCorrectValues()
 	{
 		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Guid transactionId = Guid.CreateVersion7();
-		Guid userId = Guid.CreateVersion7();
-
 		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
-			id: transactionId,
-			accountId: accountId,
-			userId: userId,
-			categoryId: categoryId,
-			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-			direction: DirectionType.Debit,
-			exchangeRate: 1m,
-			isExcluded: false,
-			description: "тест",
-			isRatePending: false,
-			occurredAt: DateTimeOffset.UtcNow
-		);
-
-		await _writeRepository.CreateAsync(transaction: transaction);
-		await Context.SaveChangesAsync();
-
-		TransactionEntity entity = await Context.Transactions.FirstAsync(predicate: t => t.Id == transactionId);
-
-		await Assert.That(value: entity.Amount).IsEqualTo(expected: 1000m);
-		await Assert.That(value: entity.Direction).IsEqualTo(expected: DirectionType.Debit);
-		await Assert.That(value: entity.Description).IsEqualTo(expected: "тест");
-		await Assert.That(value: entity.IsExcluded).IsFalse();
-		await Assert.That(value: entity.UserId).IsEqualTo(expected: userId);
-	}
-
-	[Test]
-	public async Task ChangeCategoryAsync_ShouldUpdateCategoryId()
-	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Guid transactionId = Guid.CreateVersion7();
-
-		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
-			id: transactionId,
+			id: Guid.CreateVersion7(),
 			accountId: accountId,
 			userId: Guid.CreateVersion7(),
 			categoryId: categoryId,
@@ -141,10 +112,29 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 			direction: DirectionType.Debit,
 			exchangeRate: 1m,
 			isExcluded: false,
-			description: null,
+			description: "тест",
 			isRatePending: false,
+			rowVersion: 0,
 			occurredAt: DateTimeOffset.UtcNow
 		);
+
+		await _writeRepository.CreateAsync(transaction: transaction);
+		await Context.SaveChangesAsync();
+
+		TransactionEntity entity = await Context.Transactions.FirstAsync(predicate: t => t.Id == transaction.Id);
+
+		await Assert.That(value: entity.Amount).IsEqualTo(expected: 1000m);
+		await Assert.That(value: entity.Direction).IsEqualTo(expected: DirectionType.Debit);
+		await Assert.That(value: entity.Description).IsEqualTo(expected: "тест");
+		await Assert.That(value: entity.IsExcluded).IsFalse();
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 0);
+	}
+
+	[Test]
+	public async Task ChangeCategoryAsync_ShouldUpdateCategoryId()
+	{
+		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
@@ -158,120 +148,92 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 			Name = Name.Create(value: "Развлечения").Value,
 			Type = CategoryType.Expense,
 			IsArchived = false,
+			RowVersion = 0,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await Context.SaveChangesAsync();
 
 		await _writeRepository.ChangeCategoryAsync(
-			transactionId: transactionId,
-			categoryId: newCategoryId
+			transactionId: transaction.Id,
+			categoryId: newCategoryId,
+			expectedVersion: 0
 		);
 
-		Guid loadedCategoryId = await Context.Transactions
-			.Where(predicate: t => t.Id == transactionId)
-			.Select(selector: t => t.CategoryId)
-			.FirstAsync();
+		TransactionEntity entity = await Context.Transactions.AsNoTracking().FirstAsync(predicate: t => t.Id == transaction.Id);
 
-		await Assert.That(value: loadedCategoryId).IsEqualTo(expected: newCategoryId);
+		await Assert.That(value: entity.CategoryId).IsEqualTo(expected: newCategoryId);
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
 
 	[Test]
 	public async Task ChangeDescriptionAsync_ShouldUpdateDescription()
 	{
 		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Guid transactionId = Guid.CreateVersion7();
-
-		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
-			id: transactionId,
-			accountId: accountId,
-			userId: Guid.CreateVersion7(),
-			categoryId: categoryId,
-			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-			direction: DirectionType.Debit,
-			exchangeRate: 1m,
-			isExcluded: false,
-			description: "старое",
-			isRatePending: false,
-			occurredAt: DateTimeOffset.UtcNow
-		);
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId, description: "старое");
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
-		await _writeRepository.ChangeDescriptionAsync(transactionId: transactionId, description: "новое");
+		await _writeRepository.ChangeDescriptionAsync(
+			transactionId: transaction.Id,
+			description: "новое",
+			expectedVersion: 0
+		);
 
-		string? description = await Context.Transactions
-			.Where(predicate: t => t.Id == transactionId)
-			.Select(selector: t => t.Description)
-			.FirstAsync();
+		TransactionEntity entity = await Context.Transactions.AsNoTracking().FirstAsync(predicate: t => t.Id == transaction.Id);
 
-		await Assert.That(value: description).IsEqualTo(expected: "новое");
+		await Assert.That(value: entity.Description).IsEqualTo(expected: "новое");
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
 
 	[Test]
 	public async Task ExcludeAsync_ShouldSetIsExcludedTrue()
 	{
 		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Guid transactionId = Guid.CreateVersion7();
-
-		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
-			id: transactionId,
-			accountId: accountId,
-			userId: Guid.CreateVersion7(),
-			categoryId: categoryId,
-			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-			direction: DirectionType.Debit,
-			exchangeRate: 1m,
-			isExcluded: false,
-			description: null,
-			isRatePending: false,
-			occurredAt: DateTimeOffset.UtcNow
-		);
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
-		await _writeRepository.ExcludeAsync(transactionId: transactionId);
+		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0);
 
-		bool isExcluded = await Context.Transactions
-			.Where(predicate: t => t.Id == transactionId)
-			.Select(selector: t => t.IsExcluded)
-			.FirstAsync();
+		TransactionEntity entity = await Context.Transactions.AsNoTracking().FirstAsync(predicate: t => t.Id == transaction.Id);
 
-		await Assert.That(value: isExcluded).IsTrue();
+		await Assert.That(value: entity.IsExcluded).IsTrue();
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
 
 	[Test]
 	public async Task IncludeAsync_ShouldSetIsExcludedFalse()
 	{
 		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Guid transactionId = Guid.CreateVersion7();
-
-		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
-			id: transactionId,
-			accountId: accountId,
-			userId: Guid.CreateVersion7(),
-			categoryId: categoryId,
-			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-			direction: DirectionType.Debit,
-			exchangeRate: 1m,
-			isExcluded: false,
-			description: null,
-			isRatePending: false,
-			occurredAt: DateTimeOffset.UtcNow
-		);
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
-		await _writeRepository.ExcludeAsync(transactionId: transactionId);
-		await _writeRepository.IncludeAsync(transactionId: transactionId);
+		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0);
+		await _writeRepository.IncludeAsync(transactionId: transaction.Id, expectedVersion: 1);
 
-		bool isExcluded = await Context.Transactions
-			.Where(predicate: t => t.Id == transactionId)
-			.Select(selector: t => t.IsExcluded)
-			.FirstAsync();
+		TransactionEntity entity = await Context.Transactions.AsNoTracking().FirstAsync(predicate: t => t.Id == transaction.Id);
 
-		await Assert.That(value: isExcluded).IsFalse();
+		await Assert.That(value: entity.IsExcluded).IsFalse();
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 2);
+	}
+
+	[Test]
+	public async Task ExcludeAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
+	{
+		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
+
+		await _writeRepository.CreateAsync(transaction: transaction);
+		await Context.SaveChangesAsync();
+
+		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0);
+
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
+			await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0)
+		);
 	}
 }

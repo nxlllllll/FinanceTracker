@@ -36,7 +36,11 @@ public sealed class ExcludeTransactionHandler(
 		
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await transactionWriteRepository.ExcludeAsync(transactionId: command.TransactionId, ct: ct);
+			await transactionWriteRepository.ExcludeAsync(
+				expectedVersion: transaction.RowVersion,
+				transactionId: command.TransactionId,
+				ct: ct
+			);
 			
 			if (transaction.Direction != DirectionType.Debit)
 				return;

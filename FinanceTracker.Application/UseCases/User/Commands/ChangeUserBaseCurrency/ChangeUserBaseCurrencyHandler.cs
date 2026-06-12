@@ -31,10 +31,12 @@ public sealed class ChangeUserBaseCurrencyHandler(
 		if (user.BaseCurrency == oldBaseCurrency)
 			return Result<Guid, DomainException>.Success(value: user.Id);
 
-		await unitOfWork.ExecuteInTransactionAsync(
-			operation: async () => await userWriteRepository.ChangeBaseCurrencyAsync(userId: command.UserId, newBaseCurrencyCode: command.NewBaseCurrency, ct: ct),
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.ChangeBaseCurrencyAsync(
+			userId: command.UserId, 
+			expectedVersion: user.RowVersion,
+			newBaseCurrencyCode: command.NewBaseCurrency,
 			ct: ct
-		);
+		), ct: ct);
 
 		await publisher.Publish(notification: new UserBaseCurrencyChangedNotification(
 			UserId: user.Id,

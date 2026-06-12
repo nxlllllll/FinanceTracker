@@ -72,6 +72,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ActivateAsync(
 			recurringTransactionId: rt.Id,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

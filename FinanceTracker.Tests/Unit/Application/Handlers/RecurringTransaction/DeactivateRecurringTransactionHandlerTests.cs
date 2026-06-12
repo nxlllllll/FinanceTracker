@@ -40,6 +40,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).DeactivateAsync(
 			recurringTransactionId: rt.Id,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

@@ -41,6 +41,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ChangeCurrencyAsync(
 			recurringTransactionId: rt.Id,
 			currency: newCurrency,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

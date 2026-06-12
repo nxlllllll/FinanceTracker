@@ -260,6 +260,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Credit, exchangeRate: 1m,
             isExcluded: false, description: null, isRatePending: false,
+    		rowVersion: 0,
             occurredAt: FakeDateProvider.Default.UtcNow
         );
         await _transactionWriteRepository.CreateAsync(transaction: transaction);
@@ -315,6 +316,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Credit, exchangeRate: 1m,
             isExcluded: false, description: null, isRatePending: false,
+    		rowVersion: 0,
             occurredAt: FakeDateProvider.Default.UtcNow
         );
         Core.Domains.Transaction.Transaction expense = Core.Domains.Transaction.Transaction.Reconstitute(
@@ -322,6 +324,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             amount: Money.Create(amount: 500m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit, exchangeRate: 1m,
             isExcluded: false, description: null, isRatePending: false,
+    		rowVersion: 0,
             occurredAt: FakeDateProvider.Default.UtcNow
         );
         await _transactionWriteRepository.CreateAsync(transaction: income);
@@ -351,6 +354,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
                 amount: Money.Create(amount: 100m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
                 direction: DirectionType.Debit, exchangeRate: 1m,
                 isExcluded: false, description: null, isRatePending: false,
+    		rowVersion: 0,
                 occurredAt: FakeDateProvider.Default.UtcNow.AddSeconds(i)
             );
             await _transactionWriteRepository.CreateAsync(transaction: tx);
@@ -383,6 +387,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             amount: Money.Create(amount: 100m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit, exchangeRate: 1m,
             isExcluded: false, description: "Earlier", isRatePending: false,
+    		rowVersion: 0,
             occurredAt: earlier
         );
         Core.Domains.Transaction.Transaction second = Core.Domains.Transaction.Transaction.Reconstitute(
@@ -390,6 +395,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             amount: Money.Create(amount: 200m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
             direction: DirectionType.Debit, exchangeRate: 1m,
             isExcluded: false, description: "Later", isRatePending: false,
+    		rowVersion: 0,
             occurredAt: later
         );
         await _transactionWriteRepository.CreateAsync(transaction: first);

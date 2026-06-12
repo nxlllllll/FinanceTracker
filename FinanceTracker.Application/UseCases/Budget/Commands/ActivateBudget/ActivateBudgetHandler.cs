@@ -24,14 +24,14 @@ public sealed class ActivateBudgetHandler(
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await budgetWriteRepository.ActivateAsync(budgetId: budget.Id, ct: ct);
+		await budgetWriteRepository.ActivateAsync(budgetId: budget.Id, expectedVersion: budget.RowVersion, ct: ct);
 
 		await publisher.Publish(notification: new BudgetActivatedNotification(
 			BudgetId: budget.Id,
 			UserId: budget.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
-		
+
 		return Result<Guid, DomainException>.Success(value: budget.Id);
 	}
 }

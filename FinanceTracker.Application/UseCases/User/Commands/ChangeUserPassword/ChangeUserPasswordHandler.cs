@@ -30,10 +30,12 @@ public sealed class ChangeUserPasswordHandler(
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await unitOfWork.ExecuteInTransactionAsync(
-			operation: async () => await userWriteRepository.ChangePasswordAsync(userId: command.UserId, newPasswordHash: newPasswordHash, ct: ct),
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.ChangePasswordAsync(
+			userId: command.UserId,
+			expectedVersion: user.RowVersion,
+			newPasswordHash: newPasswordHash,
 			ct: ct
-		);
+		), ct: ct);
 
 		await publisher.Publish(notification: new UserPasswordChangedNotification(
 			UserId: user.Id,

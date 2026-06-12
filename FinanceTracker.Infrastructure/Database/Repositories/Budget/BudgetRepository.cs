@@ -23,6 +23,7 @@ public sealed class BudgetRepository(
 				isActive: b.IsActive,
 				from: b.From,
 				to: b.To,
+				rowVersion: b.RowVersion,
 				createdAt: b.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

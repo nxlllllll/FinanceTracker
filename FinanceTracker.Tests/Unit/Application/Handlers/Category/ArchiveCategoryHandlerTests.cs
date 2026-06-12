@@ -63,6 +63,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).ArchiveAsync(
 			categoryId: category.Id,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -146,6 +147,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _categoryWriteRepository.DidNotReceive().ArchiveAsync(
 			categoryId: Arg.Any<Guid>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _budgetWriteRepository.DidNotReceive().DeactivateByCategoryIdAsync(

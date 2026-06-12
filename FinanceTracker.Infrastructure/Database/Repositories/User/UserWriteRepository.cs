@@ -1,9 +1,9 @@
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.User;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
@@ -11,17 +11,6 @@ public sealed class UserWriteRepository(
 	FinanceTrackerContext context
 ) : IUserWriteRepository
 {
-	private async Task ChangeUserPropertyAsync(
-		Guid userId,
-		Action<UpdateSettersBuilder<UserEntity>> changePropertyAction,
-		CancellationToken ct = default)
-	{
-		await context.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(
-			setPropertyCalls: changePropertyAction,
-			cancellationToken: ct
-		);
-	}
-
 	public async Task CreateAsync(
 		Core.Domains.User.User user,
 		CancellationToken ct = default)
@@ -32,6 +21,7 @@ public sealed class UserWriteRepository(
 			Email = user.Email,
 			PasswordHash = user.PasswordHash,
 			BaseCurrencyCode = user.BaseCurrency,
+			RowVersion = 0,
 			CreatedAt = user.CreatedAt
 		}, cancellationToken: ct);
 	}
@@ -39,36 +29,51 @@ public sealed class UserWriteRepository(
 	public async Task ChangeEmailAsync(
 		Guid userId,
 		Email newEmail,
+		int expectedVersion,
 		CancellationToken ct = default)
 	{
-		await ChangeUserPropertyAsync(
-			userId: userId,
-			changePropertyAction: builder => builder.SetProperty(propertyExpression: user => user.Email, valueExpression: newEmail),
-			ct: ct
+		int affected = await context.Users.Where(predicate: u => u.Id == userId && u.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: u => u.Email, valueExpression: newEmail)
+				.SetProperty(propertyExpression: u => u.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
 		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"User {userId} was modified by another request.", id: userId);
 	}
 
 	public async Task ChangePasswordAsync(
 		Guid userId,
 		string newPasswordHash,
+		int expectedVersion,
 		CancellationToken ct = default)
 	{
-		await ChangeUserPropertyAsync(
-			userId: userId,
-			changePropertyAction: builder => builder.SetProperty(propertyExpression: user => user.PasswordHash, valueExpression: newPasswordHash),
-			ct: ct
+		int affected = await context.Users.Where(predicate: u => u.Id == userId && u.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: u => u.PasswordHash, valueExpression: newPasswordHash)
+				.SetProperty(propertyExpression: u => u.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
 		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"User {userId} was modified by another request.", id: userId);
 	}
 
 	public async Task ChangeBaseCurrencyAsync(
 		Guid userId,
 		Core.ValueObjects.Currency newBaseCurrencyCode,
+		int expectedVersion,
 		CancellationToken ct = default)
 	{
-		await ChangeUserPropertyAsync(
-			userId: userId,
-			changePropertyAction: builder => builder.SetProperty(propertyExpression: user => user.BaseCurrencyCode, valueExpression: newBaseCurrencyCode),
-			ct: ct
+		int affected = await context.Users.Where(predicate: u => u.Id == userId && u.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: u => u.BaseCurrencyCode, valueExpression: newBaseCurrencyCode)
+				.SetProperty(propertyExpression: u => u.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
 		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"User {userId} was modified by another request.", id: userId);
 	}
 }

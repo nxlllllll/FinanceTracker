@@ -19,6 +19,7 @@ public sealed class CategoryRepository(FinanceTrackerContext context) : ICategor
 				name: c.Name,
 				type: c.Type,
 				isArchived: c.IsArchived,
+				rowVersion: c.RowVersion,
 				createdAt: c.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

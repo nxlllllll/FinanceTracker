@@ -61,6 +61,10 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 		builder.Property(propertyExpression: t => t.IsRatePending)
 			.HasColumnName(name: "is_rate_pending");
 		
+		builder.Property(propertyExpression: t => t.RowVersion)
+			.HasColumnName(name: "row_version")
+			.HasDefaultValue(value: 0);
+
 		builder.Property(propertyExpression: t => t.OccurredAt)
 			.HasColumnName(name: "occurred_at");
 

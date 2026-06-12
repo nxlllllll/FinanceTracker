@@ -39,6 +39,7 @@ public sealed class ChangeBudgetAmountHandlerTests
 		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).ChangeAmountAsync(
 			budgetId: budget.Id,
 			amount: 5000m,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

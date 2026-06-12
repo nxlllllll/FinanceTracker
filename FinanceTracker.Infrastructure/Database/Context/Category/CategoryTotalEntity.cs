@@ -8,5 +8,6 @@ public sealed class CategoryTotalEntity
 	public DateOnly Period { get; init; }
 	public decimal Total { get; set; }
 	public int TransactionCount { get; set; }
+	public int RowVersion { get; set; }
 	public DateTimeOffset UpdatedAt { get; set; }
 }

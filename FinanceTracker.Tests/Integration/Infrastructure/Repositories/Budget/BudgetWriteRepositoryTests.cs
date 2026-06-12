@@ -27,33 +27,42 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         _categoryBuilder = new CategoryBuilder(context: Context);
     }
 
+    private async Task<Core.Domains.Budget.Budget> CreateAndSaveBudgetAsync(
+        Guid userId,
+        Guid categoryId,
+        int monthOffset = 0)
+    {
+        Result<Core.Domains.Budget.Budget, DomainException> result = Core.Domains.Budget.Budget.Create(
+            createdAt: FakeDateProvider.Default.UtcNow,
+            userId: userId,
+            categoryId: categoryId,
+            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            from: new DateOnly(year: 2025, month: 1 + monthOffset, day: 1),
+            to: new DateOnly(year: 2025, month: 1 + monthOffset, day: 28)
+        );
+
+        Core.Domains.Budget.Budget budget = result.Value!;
+        await _writeRepository.CreateAsync(budget: budget);
+        await Context.SaveChangesAsync();
+        return budget;
+    }
+
     [Test]
     public async Task CreateAsync_ShouldCreateBudgetAndProgress()
     {
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        Result<Core.Domains.Budget.Budget, DomainException> result = Core.Domains.Budget.Budget.Create(
-            createdAt: FakeDateProvider.Default.UtcNow,
-            userId: userId,
-            categoryId: categoryId,
-            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
-        );
-
-        Core.Domains.Budget.Budget budget = result.Value!;
-
-        await _writeRepository.CreateAsync(budget: budget);
-        await Context.SaveChangesAsync();
+        Core.Domains.Budget.Budget budget = await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId);
 
         BudgetEntity? budgetEntity = await Context.Budgets.FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
         BudgetProgressEntity? progress = await Context.BudgetProgresses.FirstOrDefaultAsync(predicate: p => p.BudgetId == budget.Id);
 
         await Assert.That(value: budgetEntity).IsNotNull();
         await Assert.That(value: budgetEntity!.Amount).IsEqualTo(expected: 10000m);
-		await Assert.That(value: budgetEntity.IsActive).IsTrue();
+        await Assert.That(value: budgetEntity.IsActive).IsTrue();
         await Assert.That(value: budgetEntity.Currency.Value).IsEqualTo(expected: "RUB");
+        await Assert.That(value: budgetEntity.RowVersion).IsEqualTo(expected: 0);
         await Assert.That(value: progress).IsNotNull();
         await Assert.That(value: progress!.Spent).IsEqualTo(expected: 0m);
     }
@@ -64,29 +73,20 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        Result<Core.Domains.Budget.Budget, DomainException> b = Core.Domains.Budget.Budget.Create(
-            createdAt: FakeDateProvider.Default.UtcNow,
-            userId: userId,
-            categoryId: categoryId,
-            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
-        );
-
-        Core.Domains.Budget.Budget budget = b.Value!;
-        await _writeRepository.CreateAsync(budget: budget);
-        await Context.SaveChangesAsync();
+        Core.Domains.Budget.Budget budget = await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId);
 
         await _writeRepository.ChangePeriodAsync(
             budgetId: budget.Id,
             from: new DateOnly(year: 2025, month: 2, day: 1),
-            to: new DateOnly(year: 2025, month: 2, day: 28)
+            to: new DateOnly(year: 2025, month: 2, day: 28),
+            expectedVersion: 0
         );
 
         BudgetEntity result = await Context.Budgets.AsNoTracking().FirstAsync(predicate: b => b.Id == budget.Id);
 
         await Assert.That(value: result.From).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 1));
         await Assert.That(value: result.To).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 28));
+        await Assert.That(value: result.RowVersion).IsEqualTo(expected: 1);
     }
 
     [Test]
@@ -95,82 +95,67 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         Guid userId = await _userBuilder.CreateAsync();
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        Result<Core.Domains.Budget.Budget, DomainException> budgetResult = Core.Domains.Budget.Budget.Create(
-            createdAt: FakeDateProvider.Default.UtcNow,
-            userId: userId,
-            categoryId: categoryId,
-            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 31)
-        );
-        Core.Domains.Budget.Budget budget = budgetResult.Value!;
+        Core.Domains.Budget.Budget budget = await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId);
 
-        await _writeRepository.CreateAsync(budget: budget);
-        await Context.SaveChangesAsync();
-
-	    await _writeRepository.DeactivateAsync(budgetId: budget.Id);
+        await _writeRepository.DeactivateAsync(budgetId: budget.Id, expectedVersion: 0);
 
         BudgetEntity? result = await Context.Budgets.AsNoTracking().FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
 
-	    await Assert.That(value: result).IsNotNull();
-	    await Assert.That(value: result!.IsActive).IsFalse();
-	}
+        await Assert.That(value: result).IsNotNull();
+        await Assert.That(value: result!.IsActive).IsFalse();
+        await Assert.That(value: result.RowVersion).IsEqualTo(expected: 1);
+    }
 
-	[Test]
-	public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllBudgetsForCategory()
-	{
-	    Guid userId = await _userBuilder.CreateAsync();
-	    Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+    [Test]
+    public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllBudgetsForCategory()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-	    for (int i = 0; i < 3; i++)
-	    {
-	        Result<Core.Domains.Budget.Budget, DomainException> b = Core.Domains.Budget.Budget.Create(
-	            createdAt: FakeDateProvider.Default.UtcNow,
-	            userId: userId,
-	            categoryId: categoryId,
-	            amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-	            from: new DateOnly(year: 2025, month: i + 1, day: 1),
-	            to: new DateOnly(year: 2025, month: i + 1, day: 28)
-	        );
-	        await _writeRepository.CreateAsync(budget: b.Value!);
-	    }
-	    await Context.SaveChangesAsync();
+        for (int i = 0; i < 3; i++)
+            await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId, monthOffset: i);
 
-	    await _writeRepository.DeactivateByCategoryIdAsync(categoryId: categoryId);
+        await _writeRepository.DeactivateByCategoryIdAsync(categoryId: categoryId);
 
-	    List<BudgetEntity> results = await Context.Budgets.AsNoTracking()
-	        .Where(predicate: b => b.CategoryId == categoryId)
-	        .ToListAsync();
+        List<BudgetEntity> results = await Context.Budgets.AsNoTracking()
+            .Where(predicate: b => b.CategoryId == categoryId)
+            .ToListAsync();
 
-	    await Assert.That(value: results.Count).IsEqualTo(expected: 3);
-	    await Assert.That(value: results.All(b => !b.IsActive)).IsTrue();
-	}
-	
-	[Test]
-	public async Task ActivateAsync_ShouldSetIsActiveTrue()
-	{
-		Guid userId = await _userBuilder.CreateAsync();
-		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+        await Assert.That(value: results.Count).IsEqualTo(expected: 3);
+        await Assert.That(value: results.All(b => !b.IsActive)).IsTrue();
+        await Assert.That(value: results.All(b => b.RowVersion == 1)).IsTrue();
+    }
 
-		Result<Core.Domains.Budget.Budget, DomainException> budgetResult = Core.Domains.Budget.Budget.Create(
-			createdAt: FakeDateProvider.Default.UtcNow,
-			userId: userId,
-			categoryId: categoryId,
-			amount: Money.Create(amount: 10000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-			from: new DateOnly(year: 2025, month: 1, day: 1),
-			to: new DateOnly(year: 2025, month: 1, day: 31)
-		);
-		Core.Domains.Budget.Budget budget = budgetResult.Value!;
+    [Test]
+    public async Task ActivateAsync_ShouldSetIsActiveTrue()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		await _writeRepository.CreateAsync(budget: budget);
-		await Context.SaveChangesAsync();
+        Core.Domains.Budget.Budget budget = await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId);
 
-		await _writeRepository.DeactivateAsync(budgetId: budget.Id);
-		await _writeRepository.ActivateAsync(budgetId: budget.Id);
+        await _writeRepository.DeactivateAsync(budgetId: budget.Id, expectedVersion: 0);
+        await _writeRepository.ActivateAsync(budgetId: budget.Id, expectedVersion: 1);
 
-		BudgetEntity? result = await Context.Budgets.AsNoTracking().FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
+        BudgetEntity? result = await Context.Budgets.AsNoTracking().FirstOrDefaultAsync(predicate: b => b.Id == budget.Id);
 
-		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.IsActive).IsTrue();
-	}
+        await Assert.That(value: result).IsNotNull();
+        await Assert.That(value: result!.IsActive).IsTrue();
+        await Assert.That(value: result.RowVersion).IsEqualTo(expected: 2);
+    }
+
+    [Test]
+    public async Task ChangeAmountAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        Core.Domains.Budget.Budget budget = await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId);
+
+        await _writeRepository.ChangeAmountAsync(budgetId: budget.Id, amount: 5000m, expectedVersion: 0);
+
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
+            await _writeRepository.ChangeAmountAsync(budgetId: budget.Id, amount: 9000m, expectedVersion: 0)
+        );
+    }
 }

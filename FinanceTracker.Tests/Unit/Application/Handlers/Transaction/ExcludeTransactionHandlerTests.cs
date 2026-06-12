@@ -81,7 +81,9 @@ public sealed class ExcludeTransactionHandlerTests
 		);
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ExcludeAsync(
-			transactionId: transaction.Id, ct: Arg.Any<CancellationToken>()
+			transactionId: transaction.Id, 
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
 		);
 		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).SubtractAsync(
 			userId: transaction.UserId,
@@ -131,7 +133,9 @@ public sealed class ExcludeTransactionHandlerTests
 		);
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ExcludeAsync(
-			transactionId: transaction.Id, ct: Arg.Any<CancellationToken>()
+			transactionId: transaction.Id, 
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
 		);
 		await _categoryTotalWriteRepository.DidNotReceive().SubtractAsync(
 			userId: Arg.Any<Guid>(),

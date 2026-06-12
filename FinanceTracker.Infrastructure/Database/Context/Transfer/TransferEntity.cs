@@ -17,4 +17,5 @@ public sealed class TransferEntity
 	public DateTimeOffset OccurredAt { get; set; }
 	public bool IsRatePending { get; set; }
 	public TransferStatus Status { get; set; }
+	public int RowVersion { get; set; }
 }

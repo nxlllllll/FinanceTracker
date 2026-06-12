@@ -10,28 +10,33 @@ public interface IRecurringTransactionWriteRepository
 	Task ChangeAmountAsync(
 		Guid recurringTransactionId,
 		decimal amount,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 	
 	Task ChangeCurrencyAsync(
 		Guid recurringTransactionId,
 		ValueObjects.Currency currency,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 
 	Task ChangeDayOfMonthAsync(
 		Guid recurringTransactionId,
 		int dayOfMonth,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 
 	Task ActivateAsync(
 		Guid recurringTransactionId,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 
 	Task DeactivateAsync(
 		Guid recurringTransactionId,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 
@@ -43,6 +48,7 @@ public interface IRecurringTransactionWriteRepository
 	Task MarkExecutedAsync(
 		Guid recurringTransactionId,
 		DateTimeOffset executedAt,
+		int expectedVersion,
 		CancellationToken ct = default
 	);
 }

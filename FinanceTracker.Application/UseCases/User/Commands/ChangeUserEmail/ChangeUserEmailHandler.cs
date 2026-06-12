@@ -40,10 +40,12 @@ public sealed class ChangeUserEmailHandler(
 
 		try
 		{
-			await unitOfWork.ExecuteInTransactionAsync(
-				operation: async () => await userWriteRepository.ChangeEmailAsync(userId: command.UserId, newEmail: newEmailResult.Value, ct: ct),
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.ChangeEmailAsync(
+				userId: command.UserId,
+				expectedVersion: user.RowVersion,
+				newEmail: newEmailResult.Value,
 				ct: ct
-			);
+			), ct: ct);
 		}
 		catch (EmailException exception)
 		{

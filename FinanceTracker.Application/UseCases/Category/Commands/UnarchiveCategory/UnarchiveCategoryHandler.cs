@@ -24,7 +24,7 @@ public sealed class UnarchiveCategoryHandler(
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
-		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, ct: ct);
+		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: category.RowVersion, ct: ct);
 		
 		await publisher.Publish(notification: new CategoryUnarchivedNotification(
 			CategoryId: category.Id,

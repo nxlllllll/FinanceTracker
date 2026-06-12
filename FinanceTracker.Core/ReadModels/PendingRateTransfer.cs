@@ -10,5 +10,6 @@ public sealed record PendingRateTransfer(
 	Currency CurrencyFrom,
 	Currency CurrencyTo,
 	decimal CurrentRate,
+	int RowVersion,
 	DateTimeOffset OccurredAt
 ) : IReadModel;

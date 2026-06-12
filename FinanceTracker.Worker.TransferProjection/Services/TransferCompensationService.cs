@@ -87,6 +87,7 @@ public sealed class TransferCompensationService(
 			await transferWriteRepository.UpdateStatusAsync(
 				transferId: pendingTransfer.TransferId,
 				status: TransferStatus.Compensated,
+				expectedVersion: transfer.RowVersion,
 				ct: ct
 			);
 
@@ -122,6 +123,7 @@ public sealed class TransferCompensationService(
 		await transferWriteRepository.UpdateStatusAsync(
 			transferId: pendingTransfer.TransferId,
 			status: TransferStatus.Failed,
+			expectedVersion: transfer.RowVersion,
 			ct: ct
 		);
 

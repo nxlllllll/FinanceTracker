@@ -41,6 +41,7 @@ public static class TransferFactory
 		decimal exchangeRate = 1m,
 		bool isRatePending = false,
 		TransferStatus status = TransferStatus.PendingCredit,
+		int rowVersion = 0,
 		string? description = null)
 	{
 		Currency from = Currency.Reconstitute(value: currencyFrom);
@@ -57,6 +58,7 @@ public static class TransferFactory
 			isRatePending: isRatePending,
 			status: status,
 			description: description,
+			rowVersion: rowVersion,
 			occurredAt: FakeDateProvider.Default.UtcNow
 		);
 	}

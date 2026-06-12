@@ -13,6 +13,7 @@ public sealed record RecurringTransactionReadModel(
 	int DayOfMonth,
 	string? Description,
 	bool IsActive,
+	int RowVersion,
 	DateTimeOffset? LastExecutedAt,
 	DateTimeOffset CreatedAt
 ) : IReadModel;

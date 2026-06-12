@@ -26,6 +26,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 		
 		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(
 			recurringTransactionId: command.RecurringTransactionId,
+			expectedVersion: recurringTransaction.RowVersion,
 			dayOfMonth: command.DayOfMonth,
 			ct: ct
 		);

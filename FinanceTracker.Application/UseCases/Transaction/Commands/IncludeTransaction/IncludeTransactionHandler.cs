@@ -36,7 +36,11 @@ public sealed class IncludeTransactionHandler(
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await transactionWriteRepository.IncludeAsync(transactionId: command.TransactionId, ct: ct);
+			await transactionWriteRepository.IncludeAsync(
+				expectedVersion: transaction.RowVersion,
+				transactionId: command.TransactionId, 
+				ct: ct
+			);
 			
 			if (transaction.Direction != DirectionType.Debit)
 				return;

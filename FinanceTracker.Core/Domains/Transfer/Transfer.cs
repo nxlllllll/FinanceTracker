@@ -27,6 +27,7 @@ public sealed class Transfer
 	public bool IsRatePending { get; private set; }
 	public TransferStatus Status { get; private set; }
 	public string? Description { get; private set; }
+	public int RowVersion { get; private set; }
 	public DateTimeOffset OccurredAt { get; private set; }
 
 	private Transfer() { }
@@ -69,6 +70,7 @@ public sealed class Transfer
 			IsRatePending = isRatePending,
 			Status = TransferStatus.PendingCredit,
 			Description = description,
+			RowVersion = 0,
 			OccurredAt = occurredAt
 		});
 	}
@@ -84,6 +86,7 @@ public sealed class Transfer
 		bool isRatePending,
 		TransferStatus status,
 		string? description,
+		int rowVersion,
 		DateTimeOffset occurredAt)
 	{
 		return new Transfer
@@ -98,6 +101,7 @@ public sealed class Transfer
 			IsRatePending = isRatePending,
 			Status = status,
 			Description = description,
+			RowVersion = rowVersion,
 			OccurredAt = occurredAt
 		};
 	}

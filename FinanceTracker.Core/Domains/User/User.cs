@@ -10,6 +10,7 @@ public sealed class User
 	public Email Email { get; private set; }
 	public string PasswordHash { get; private set; } = String.Empty;
 	public Currency BaseCurrency { get; private set; }
+	public int RowVersion { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 
 	private User() { }
@@ -29,6 +30,7 @@ public sealed class User
 			Email = email,
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrency,
+			RowVersion = 0,
 			CreatedAt = createdAt
 		});
 	}
@@ -38,6 +40,7 @@ public sealed class User
 		Email email,
 		string passwordHash,
 		Currency baseCurrencyCode,
+		int rowVersion,
 		DateTimeOffset createdAt)
 	{
 		return new User
@@ -46,6 +49,7 @@ public sealed class User
 			Email = email,
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrencyCode,
+			RowVersion = rowVersion,
 			CreatedAt = createdAt
 		};
 	}

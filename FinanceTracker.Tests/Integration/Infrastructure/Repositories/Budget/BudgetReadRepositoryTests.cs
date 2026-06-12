@@ -39,10 +39,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 
-		BudgetReadModel? result = await _readRepository.GetByIdAsync(
-			budgetId: budgetId,
-			userId: userId
-		);
+		BudgetReadModel? result = await _readRepository.GetByIdAsync(budgetId: budgetId, userId: userId);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: budgetId);
@@ -86,12 +83,9 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			context: Context,
 			dateProvider: FakeDateProvider.Default
 		);
-		await writeRepository.DeactivateAsync(budgetId: budgetId);
+		await writeRepository.DeactivateAsync(budgetId: budgetId, expectedVersion: 0);
 
-		BudgetReadModel? result = await _readRepository.GetByIdAsync(
-			budgetId: budgetId,
-			userId: userId
-		);
+		BudgetReadModel? result = await _readRepository.GetByIdAsync(budgetId: budgetId, userId: userId);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.IsActive).IsFalse();
@@ -169,10 +163,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 		}
 
-		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(
-			userId: userId,
-			pageSize: 3
-		);
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId, pageSize: 3);
 
 		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 3);
 		await Assert.That(value: result.HasNextPage).IsTrue();
@@ -190,11 +181,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
 		}
 
-		PagedResult<BudgetReadModel> firstPage = await _readRepository.GetAllAsync(
-			userId: userId,
-			pageSize: 3
-		);
-
+		PagedResult<BudgetReadModel> firstPage = await _readRepository.GetAllAsync(userId: userId, pageSize: 3);
 		BudgetReadModel lastItem = firstPage.Items[^1];
 
 		PagedResult<BudgetReadModel> secondPage = await _readRepository.GetAllAsync(
@@ -222,7 +209,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			context: Context,
 			dateProvider: FakeDateProvider.Default
 		);
-		await writeRepository.DeactivateAsync(budgetId: deactivatedId);
+		await writeRepository.DeactivateAsync(budgetId: deactivatedId, expectedVersion: 0);
 
 		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId, isActive: true);
 
@@ -243,7 +230,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			context: Context,
 			dateProvider: FakeDateProvider.Default
 		);
-		await writeRepository.DeactivateAsync(budgetId: deactivatedId);
+		await writeRepository.DeactivateAsync(budgetId: deactivatedId, expectedVersion: 0);
 
 		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId, isActive: false);
 
@@ -264,7 +251,7 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 			context: Context,
 			dateProvider: FakeDateProvider.Default
 		);
-		await writeRepository.DeactivateAsync(budgetId: deactivatedId);
+		await writeRepository.DeactivateAsync(budgetId: deactivatedId, expectedVersion: 0);
 
 		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 

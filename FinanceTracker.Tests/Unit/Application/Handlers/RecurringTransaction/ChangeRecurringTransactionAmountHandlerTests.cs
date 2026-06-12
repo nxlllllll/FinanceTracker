@@ -41,6 +41,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ChangeAmountAsync(
 			recurringTransactionId: rt.Id,
 			amount: 500m,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

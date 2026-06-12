@@ -64,6 +64,7 @@ public sealed class RecurringTransactionHandlingJob(
 				await unitOfWork.ExecuteInTransactionAsync(operation: async () => await recurringTransactionWriteRepository.MarkExecutedAsync(
 					recurringTransactionId: transaction.Id,
 					executedAt: now,
+					expectedVersion: transaction.RowVersion,
 					ct: ct
 				), ct: ct);
 

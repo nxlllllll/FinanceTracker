@@ -31,6 +31,7 @@ public sealed class ChangeTransactionDescriptionHandler(
 		
 		await transactionWriteRepository.ChangeDescriptionAsync(
 			transactionId: command.TransactionId,
+			expectedVersion: transaction.RowVersion,
 			description: command.Description,
 			ct: ct
 		);

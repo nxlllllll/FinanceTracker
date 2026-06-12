@@ -139,6 +139,7 @@ public sealed class AccountTransferConsumer(
 		await transferWriteRepository.UpdateStatusAsync(
 			transferId: debitEvent.TransferId,
 			status: TransferStatus.Completed,
+			expectedVersion: transfer.RowVersion,
 			ct: ct
 		);
 

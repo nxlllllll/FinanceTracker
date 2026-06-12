@@ -24,7 +24,11 @@ public sealed class ActivateRecurringTransactionHandler(
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await recurringTransactionWriteRepository.ActivateAsync(recurringTransactionId: command.RecurringTransactionId, ct: ct);
+		await recurringTransactionWriteRepository.ActivateAsync(
+			recurringTransactionId: command.RecurringTransactionId,
+			expectedVersion: recurringTransaction.RowVersion,
+			ct: ct
+		);
 		
 		await publisher.Publish(notification: new RecurringTransactionActivatedNotification(
 			RecurringTransactionId: recurringTransaction.Id,

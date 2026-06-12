@@ -12,7 +12,7 @@ public sealed class UserSession
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }
 	/// <summary>Hashed refresh token stored for secure comparison on refresh requests.</summary>
-	public string RefreshTokenHash { get; private set; } = string.Empty;
+	public string RefreshTokenHash { get; private set; } = String.Empty;
 	/// <summary>UTC expiry after which the session is no longer valid.</summary>
 	public DateTimeOffset ExpiresAt { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }

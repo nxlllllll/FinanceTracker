@@ -107,6 +107,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -181,6 +182,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_recurringTransactionWriteRepository.MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: _ =>
 		{
@@ -203,6 +205,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 2).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -219,6 +222,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: transaction.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -233,6 +237,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: FakeDateProvider.Default.UtcNow,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -253,6 +258,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -284,18 +290,21 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: first.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: second.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: third.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

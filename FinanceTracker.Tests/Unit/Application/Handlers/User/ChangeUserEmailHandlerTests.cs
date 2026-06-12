@@ -60,6 +60,7 @@ public sealed class ChangeUserEmailHandlerTests
 		await _userWriteRepository.Received(requiredNumberOfCalls: 1).ChangeEmailAsync(
 			userId: user.Id,
 			newEmail: Email.Create(value: "new@test.com").Value,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

@@ -76,6 +76,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 			budgetId: budget.Id,
 			from: newFrom,
 			to: newTo,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

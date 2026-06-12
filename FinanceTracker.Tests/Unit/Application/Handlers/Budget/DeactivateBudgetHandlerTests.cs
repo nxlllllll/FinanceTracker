@@ -40,6 +40,7 @@ public sealed class DeactivateBudgetHandlerTests
 
 		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).DeactivateAsync(
 			budgetId: budget.Id,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

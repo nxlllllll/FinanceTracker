@@ -52,6 +52,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 		await _userWriteRepository.Received(requiredNumberOfCalls: 1).ChangeBaseCurrencyAsync(
 			userId: Arg.Is(value: user.Id),
 			newBaseCurrencyCode: Arg.Is<Currency>(value: Currency.Create(value: "USD").Value),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -89,6 +90,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 		await _userWriteRepository.DidNotReceive().ChangeBaseCurrencyAsync(
 			userId: Arg.Any<Guid>(),
 			newBaseCurrencyCode: Arg.Any<Currency>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

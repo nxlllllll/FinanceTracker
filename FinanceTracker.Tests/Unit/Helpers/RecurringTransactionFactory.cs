@@ -51,7 +51,8 @@ public static class RecurringTransactionFactory
 		DirectionType direction = DirectionType.Debit,
 		int dayOfMonth = 15,
 		string? description = "Monthly rent",
-		bool isActive = true)
+		bool isActive = true,
+		int rowVersion = 0)
 	{
 		Currency curr = Currency.Reconstitute(value: currency);
 
@@ -65,6 +66,7 @@ public static class RecurringTransactionFactory
 			DayOfMonth: dayOfMonth,
 			Description: description,
 			IsActive: isActive,
+			RowVersion: rowVersion,
 			LastExecutedAt: null,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		);

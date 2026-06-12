@@ -3,10 +3,12 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Context.User;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.User;
 
@@ -51,6 +53,9 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
         await Assert.That(value: loaded!.Id).IsEqualTo(expected: user.Id);
         await Assert.That(value: loaded.Email).IsEqualTo(expected: user.Email);
         await Assert.That(value: loaded.BaseCurrency.Value).IsEqualTo(expected: "RUB");
+
+        UserEntity? entity = await Context.Users.AsNoTracking().FirstOrDefaultAsync(predicate: u => u.Id == user.Id);
+        await Assert.That(value: entity!.RowVersion).IsEqualTo(expected: 0);
     }
 
     [Test]
@@ -60,13 +65,17 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
 
         await _writeRepository.ChangeEmailAsync(
             userId: user.Id,
-            newEmail: Email.Create(value: "new@test.com").Value
+            newEmail: Email.Create(value: "new@test.com").Value,
+            expectedVersion: 0
         );
 
         UserReadModel? loaded = await (_readRepository as IUserQueryRepository).GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.Email.Value).IsEqualTo(expected: "new@test.com");
+
+        UserEntity entity = await Context.Users.AsNoTracking().FirstAsync(predicate: u => u.Id == user.Id);
+        await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
     }
 
     [Test]
@@ -74,12 +83,19 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
     {
         Core.Domains.User.User user = await CreateAndSaveUserAsync();
 
-        await _writeRepository.ChangePasswordAsync(userId: user.Id, newPasswordHash: "newHash");
+        await _writeRepository.ChangePasswordAsync(
+            userId: user.Id,
+            newPasswordHash: "newHash",
+            expectedVersion: 0
+        );
 
         Core.Domains.User.User? loaded = await (_readRepository as IUserAuthRepository).GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.PasswordHash).IsEqualTo(expected: "newHash");
+
+        UserEntity entity = await Context.Users.AsNoTracking().FirstAsync(predicate: u => u.Id == user.Id);
+        await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
     }
 
     [Test]
@@ -90,12 +106,36 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
 
         await _writeRepository.ChangeBaseCurrencyAsync(
             userId: user.Id,
-            newBaseCurrencyCode: Core.ValueObjects.Currency.Create(value: "USD").Value
+            newBaseCurrencyCode: Core.ValueObjects.Currency.Create(value: "USD").Value,
+            expectedVersion: 0
         );
 
         UserReadModel? loaded = await (_readRepository as IUserQueryRepository).GetByIdAsync(userId: user.Id);
 
         await Assert.That(value: loaded).IsNotNull();
         await Assert.That(value: loaded!.BaseCurrency.Value).IsEqualTo(expected: "USD");
+
+        UserEntity entity = await Context.Users.AsNoTracking().FirstAsync(predicate: u => u.Id == user.Id);
+        await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
+    }
+
+    [Test]
+    public async Task ChangeEmailAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
+    {
+        Core.Domains.User.User user = await CreateAndSaveUserAsync();
+
+        await _writeRepository.ChangeEmailAsync(
+            userId: user.Id,
+            newEmail: Email.Create(value: "first@test.com").Value,
+            expectedVersion: 0
+        );
+
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
+            await _writeRepository.ChangeEmailAsync(
+                userId: user.Id,
+                newEmail: Email.Create(value: "second@test.com").Value,
+                expectedVersion: 0
+            )
+        );
     }
 }

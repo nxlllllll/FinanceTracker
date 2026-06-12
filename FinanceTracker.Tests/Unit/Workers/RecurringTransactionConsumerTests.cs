@@ -199,6 +199,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		await writeRepo.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

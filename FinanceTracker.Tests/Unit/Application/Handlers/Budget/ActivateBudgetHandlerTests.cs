@@ -42,6 +42,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).ActivateAsync(
 			budgetId: budget.Id,
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -108,6 +109,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _budgetWriteRepository.DidNotReceive().ActivateAsync(
 			budgetId: Arg.Any<Guid>(),
+			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

@@ -97,8 +97,7 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 		);
 	}
 
-	public async Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(
-		CancellationToken ct = default)
+	public async Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(CancellationToken ct = default)
 	{
 		return await context.Transactions.AsNoTracking().Where(predicate: t => t.IsRatePending).Join(
 			inner: context.Users,
@@ -112,6 +111,7 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 				BaseCurrency: u.BaseCurrencyCode,
 				CurrentRate: t.ExchangeRate,
 				Direction: t.Direction,
+				RowVersion: t.RowVersion,
 				OccurredAt: t.OccurredAt
 			)
 		).ToListAsync(cancellationToken: ct);

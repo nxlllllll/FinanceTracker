@@ -40,6 +40,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: id);
 		await Assert.That(value: result.UserId).IsEqualTo(expected: userId);
+		await Assert.That(value: result.RowVersion).IsEqualTo(expected: 0);
 	}
 
 	[Test]
@@ -114,7 +115,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: today);
 
-		await _writeRepository.MarkExecutedAsync(recurringTransactionId: id, executedAt: DateTimeOffset.UtcNow);
+		await _writeRepository.MarkExecutedAsync(
+			recurringTransactionId: id,
+			executedAt: DateTimeOffset.UtcNow,
+			expectedVersion: 0
+		);
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
@@ -138,7 +143,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: today);
 
-		await _writeRepository.DeactivateAsync(recurringTransactionId: id);
+		await _writeRepository.DeactivateAsync(recurringTransactionId: id, expectedVersion: 0);
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
@@ -251,7 +256,6 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 			await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: i + 1);
 
 		PagedResult<RecurringTransactionReadModel> firstPage = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
-
 		RecurringTransactionReadModel lastItem = firstPage.Items[^1];
 
 		PagedResult<RecurringTransactionReadModel> secondPage = await _readRepository.GetByUserIdAsync(
@@ -276,7 +280,6 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		PagedResult<RecurringTransactionReadModel> firstPage = await _readRepository.GetByUserIdAsync(userId: userId, pageSize: 3);
-
 		RecurringTransactionReadModel lastItem = firstPage.Items[^1];
 
 		PagedResult<RecurringTransactionReadModel> secondPage = await _readRepository.GetByUserIdAsync(
