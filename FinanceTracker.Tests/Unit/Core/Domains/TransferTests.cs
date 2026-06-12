@@ -222,4 +222,37 @@ public sealed class TransferTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Failed);
 	}
+
+	[Test]
+	public async Task Complete_ShouldIncrementRowVersion()
+	{
+		Transfer transfer = TransferFactory.Create();
+		int initialVersion = transfer.RowVersion;
+
+		transfer.Complete();
+
+		await Assert.That(value: transfer.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
+
+	[Test]
+	public async Task Compensate_ShouldIncrementRowVersion()
+	{
+		Transfer transfer = TransferFactory.Create();
+		int initialVersion = transfer.RowVersion;
+
+		transfer.Compensate();
+
+		await Assert.That(value: transfer.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
+
+	[Test]
+	public async Task Fail_ShouldIncrementRowVersion()
+	{
+		Transfer transfer = TransferFactory.Create();
+		int initialVersion = transfer.RowVersion;
+
+		transfer.Fail();
+
+		await Assert.That(value: transfer.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
 }

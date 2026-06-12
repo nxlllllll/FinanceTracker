@@ -84,7 +84,7 @@ public sealed class CreateTransferHandler(
 			ExchangeRate: transfer.ExchangeRate,
 			IsRatePending: transfer.IsRatePending,
 			Description: transfer.Description,
-			OccurredAt: dateProvider.UtcNow
+			OccurredAt: transfer.OccurredAt
 		), cancellationToken: ct);
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);

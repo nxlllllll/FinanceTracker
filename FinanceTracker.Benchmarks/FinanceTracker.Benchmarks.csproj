@@ -22,16 +22,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="Exporters\AnalyticsHtmlExporter.cs">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Compile>
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Exporters\analytics-template.html" />
-      <EmbeddedResource Include="Exporters\analytics-template.html">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </EmbeddedResource>
+        <None Remove="Exporters\analytics-template.html" />
+        <None Remove="Exporters\analytics-styles.css" />
+        <None Remove="Exporters\analytics-scripts.js" />
+        <EmbeddedResource Include="Exporters\analytics-template.html" />
+        <EmbeddedResource Include="Exporters\analytics-styles.css" />
+        <EmbeddedResource Include="Exporters\analytics-scripts.js" />
     </ItemGroup>
 
 </Project>

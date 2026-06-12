@@ -63,7 +63,8 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 		
 		builder.Property(propertyExpression: t => t.RowVersion)
 			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
+			.HasDefaultValue(value: 0)
+			.IsConcurrencyToken();
 
 		builder.Property(propertyExpression: t => t.OccurredAt)
 			.HasColumnName(name: "occurred_at");

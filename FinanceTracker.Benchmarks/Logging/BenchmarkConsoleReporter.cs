@@ -10,8 +10,8 @@ public sealed class BenchmarkConsoleReporter
     private readonly Stopwatch _classTimer = new Stopwatch();
     private readonly Lock _lock = new Lock();
 
-    private string _currentClass  = "";
-    private string _currentMethod = "";
+    private string _currentClass = String.Empty;
+    private string _currentMethod = String.Empty;
     private int _classTotal;
     private int _pendingTotal;
     private int _classDone;
@@ -26,7 +26,7 @@ public sealed class BenchmarkConsoleReporter
     private volatile bool _timerRunning;
     private int _blinkTick;
 
-    private const int NameWidth    = 22;
+    private const int NameWidth = 22;
     private const int CounterWidth = 18;
     
     public void OnSuiteStart()

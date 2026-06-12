@@ -71,6 +71,7 @@ public sealed class Category
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "It is forbidden to change the name of an archived category."));
  
 		Name = newName;
+		++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
  
@@ -80,6 +81,7 @@ public sealed class Category
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The category has already been archived before."));
  
 		IsArchived = true;
+		++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
  
@@ -89,6 +91,7 @@ public sealed class Category
 			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The category is already active."));
  
 		IsArchived = false;
+		++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

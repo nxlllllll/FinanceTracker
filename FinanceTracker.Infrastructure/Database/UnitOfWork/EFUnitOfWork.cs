@@ -44,12 +44,17 @@ public sealed class EFUnitOfWork(
 		{
 			await context.SaveChangesAsync(cancellationToken: ct);
 		}
+		catch (DbUpdateConcurrencyException ex)
+		{
+			Guid aggregateId = ex.Entries[0].Property(propertyName: "Id").CurrentValue is Guid id ? id : Guid.Empty;
+
+			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on entity {ex.Entries[0].Metadata.Name} {aggregateId}.");
+
+			throw new ConcurrencyConflictException(message: "Conflict: the record was modified by another request.", id: aggregateId);
+		}
 		catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationCode } pgEx)
 		{
-			throw new UniqueConstraintException(
-				message: "A record with the same unique key already exists.",
-				constraintName: pgEx.ConstraintName ?? String.Empty
-			);
+			throw new UniqueConstraintException(message: "A record with the same unique key already exists.", constraintName: pgEx.ConstraintName ?? String.Empty);
 		}
 
 		if (_savepoints.TryPop(result: out string? savepointName))

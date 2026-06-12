@@ -44,7 +44,7 @@ public sealed class TransactionTests
 	}
 
 	[Test]
-	public async Task Exclude_AlreadyExcludedTransaction_ShouldThrowExcludingException()
+	public async Task Exclude_AlreadyExcludedTransaction_ShouldReturnExcludingException()
 	{
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
@@ -65,7 +65,7 @@ public sealed class TransactionTests
 	}
 
 	[Test]
-	public async Task Include_ActiveTransaction_ShouldThrowIncludingException()
+	public async Task Include_ActiveTransaction_ShouldReturnIncludingException()
 	{
 		Transaction transaction = TransactionFactory.Create();
 
@@ -87,6 +87,19 @@ public sealed class TransactionTests
 	}
 
 	[Test]
+	public async Task ChangeCategory_WhenExcluded_ShouldReturnExcludedOperationException()
+	{
+		Transaction transaction = TransactionFactory.Create(isExcluded: true);
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.ChangeCategory(
+			categoryId: Guid.CreateVersion7()
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ExcludedOperationException>();
+	}
+
+	[Test]
 	public async Task ChangeDescription_ShouldUpdateDescription()
 	{
 		Transaction transaction = TransactionFactory.Create();
@@ -104,5 +117,62 @@ public sealed class TransactionTests
 		transaction.ChangeDescription(description: null);
 
 		await Assert.That(value: transaction.Description).IsNull();
+	}
+
+	[Test]
+	public async Task ChangeDescription_WhenExcluded_ShouldReturnExcludedOperationException()
+	{
+		Transaction transaction = TransactionFactory.Create(isExcluded: true);
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.ChangeDescription(
+			description: "попытка изменить"
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ExcludedOperationException>();
+	}
+
+	[Test]
+	public async Task Exclude_ShouldIncrementRowVersion()
+	{
+		Transaction transaction = TransactionFactory.Create();
+		int initialVersion = transaction.RowVersion;
+
+		transaction.Exclude();
+
+		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
+
+	[Test]
+	public async Task Include_ShouldIncrementRowVersion()
+	{
+		Transaction transaction = TransactionFactory.Create(isExcluded: true);
+		int initialVersion = transaction.RowVersion;
+
+		transaction.Include();
+
+		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
+
+	[Test]
+	public async Task ChangeCategory_ShouldIncrementRowVersion()
+	{
+		Transaction transaction = TransactionFactory.Create();
+		int initialVersion = transaction.RowVersion;
+
+		transaction.ChangeCategory(categoryId: Guid.CreateVersion7());
+
+		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
+
+	[Test]
+	public async Task ChangeDescription_ShouldIncrementRowVersion()
+	{
+		Transaction transaction = TransactionFactory.Create();
+		int initialVersion = transaction.RowVersion;
+
+		transaction.ChangeDescription(description: "новое описание");
+
+		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
 	}
 }

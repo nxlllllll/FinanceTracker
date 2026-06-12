@@ -113,6 +113,7 @@ public sealed class Transfer
 			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer can only be completed from PendingCredit state. Current state: {Status}."));
 
 		Status = TransferStatus.Completed;
+        ++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -126,6 +127,7 @@ public sealed class Transfer
 			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer can only be compensated from PendingCredit state. Current state: {Status}."));
 
 		Status = TransferStatus.Compensated;
+        ++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -139,6 +141,7 @@ public sealed class Transfer
 			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer cannot be failed from {Status} state."));
 
 		Status = TransferStatus.Failed;
+		++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

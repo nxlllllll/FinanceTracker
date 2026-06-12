@@ -9,7 +9,6 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
-using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -26,7 +25,6 @@ public sealed class TransactionCreationService(
     ICategoryTotalWriteRepository categoryTotalWriteRepository,
     IBudgetProgressWriteRepository budgetProgressWriteRepository,
     IPublisher publisher, 
-    IDateProvider dateProvider, 
     ILogger<TransactionCreationService> logger
 ) : ITransactionCreationService
 {
@@ -136,7 +134,7 @@ public sealed class TransactionCreationService(
 			ExchangeRate: transaction.ExchangeRate,
 			IsRatePending: transaction.IsRatePending,
 			Description: transaction.Description,
-			OccurredAt: dateProvider.UtcNow
+            OccurredAt: transaction.OccurredAt
 		), cancellationToken: ct);
 
         return Result<Guid, DomainException>.Success(value: transaction.Id);

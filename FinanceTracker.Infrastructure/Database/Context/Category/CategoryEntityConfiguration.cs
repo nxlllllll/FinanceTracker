@@ -43,7 +43,8 @@ public sealed class CategoryEntityConfiguration : IEntityTypeConfiguration<Categ
 
 		builder.Property(propertyExpression: c => c.RowVersion)
 			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
+			.HasDefaultValue(value: 0)
+			.IsConcurrencyToken();
 
 		builder.Property(propertyExpression: c => c.CreatedAt)
 			.HasColumnName(name: "created_at");

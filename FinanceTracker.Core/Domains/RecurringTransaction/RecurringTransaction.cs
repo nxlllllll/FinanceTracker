@@ -40,7 +40,7 @@ public sealed class RecurringTransaction
     {
         if (dayOfMonth is < 1 or > 31)
             return Result<RecurringTransaction, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
- 
+
         return Result<RecurringTransaction, DomainException>.Success(value: new RecurringTransaction
         {
             Id = Guid.CreateVersion7(),
@@ -95,6 +95,7 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: new ActivatingException(message: "Recurring transaction is already active."));
  
         IsActive = true;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
@@ -104,6 +105,7 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is already inactive."));
  
         IsActive = false;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
@@ -117,6 +119,7 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: money.Error!);
  
         Amount = money.Value;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
@@ -130,6 +133,7 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: money.Error!);
  
         Amount = money.Value;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
@@ -142,6 +146,7 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
  
         DayOfMonth = dayOfMonth;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
     
@@ -151,6 +156,7 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
  
         LastExecutedAt = executedAt;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
 }

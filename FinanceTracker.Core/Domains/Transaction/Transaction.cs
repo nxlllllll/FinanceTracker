@@ -28,7 +28,7 @@ public sealed class Transaction
 	public int RowVersion { get; private set; }
 	public DateTimeOffset OccurredAt { get; private set; }
 
-    private Transaction() { }
+	private Transaction() { }
 
 	public static Transaction Create(
 		DateTimeOffset occurredAt,
@@ -95,6 +95,7 @@ public sealed class Transaction
 			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is already excluded."));
 
 		IsExcluded = true;
+		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -104,24 +105,27 @@ public sealed class Transaction
 			return Result<Unit, DomainException>.Failure(error: new IncludingException(message: "Transaction is not excluded."));
 
 		IsExcluded = false;
+		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
     public Result<Unit, DomainException> ChangeCategory(Guid categoryId)
 	{
 		if (IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is excluded."));
+			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
 
 		CategoryId = categoryId;
+		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
 	public Result<Unit, DomainException> ChangeDescription(string? description)
 	{
 		if (IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is excluded."));
+			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
 		
 		Description = description;
+		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

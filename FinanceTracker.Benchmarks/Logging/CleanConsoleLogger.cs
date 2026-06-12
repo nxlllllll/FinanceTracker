@@ -55,7 +55,6 @@ public sealed class CleanConsoleLogger : ILogger
             return;
         }
 
-        // "// ** Remained N (X %) benchmark(s) to run." — один бенчмарк завершён
         if (text.StartsWith(value: "// ** Remained", comparisonType: StringComparison.Ordinal))
             BenchmarkConsoleReporter.Instance.OnBenchmarkDone();
     }

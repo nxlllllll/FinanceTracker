@@ -67,7 +67,7 @@ public sealed class RecurringTransactionTests
         RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
 
         Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.Activate();
-        
+
         await Assert.That(value: result.IsFailure).IsTrue();
         await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
     }
@@ -88,7 +88,7 @@ public sealed class RecurringTransactionTests
         RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
 
         Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.Deactivate();
-        
+
         await Assert.That(value: result.IsFailure).IsTrue();
         await Assert.That(value: result.Error).IsTypeOf<DeactivatingException>();
     }
@@ -141,7 +141,7 @@ public sealed class RecurringTransactionTests
         RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
         Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 0);
-        
+
         await Assert.That(value: result.IsFailure).IsTrue();
         await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
     }
@@ -152,7 +152,7 @@ public sealed class RecurringTransactionTests
         RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
         Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 32);
-        
+
         await Assert.That(value: result.IsFailure).IsTrue();
         await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
     }
@@ -166,5 +166,71 @@ public sealed class RecurringTransactionTests
         rt.MarkExecuted(executedAt: executedAt);
 
         await Assert.That(value: rt.LastExecutedAt).IsEqualTo(expected: executedAt);
+    }
+
+    [Test]
+    public async Task Activate_ShouldIncrementRowVersion()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
+        int initialVersion = rt.RowVersion;
+
+        rt.Activate();
+
+        await Assert.That(value: rt.RowVersion).IsEqualTo(expected: initialVersion + 1);
+    }
+
+    [Test]
+    public async Task Deactivate_ShouldIncrementRowVersion()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
+        int initialVersion = rt.RowVersion;
+
+        rt.Deactivate();
+
+        await Assert.That(value: rt.RowVersion).IsEqualTo(expected: initialVersion + 1);
+    }
+
+    [Test]
+    public async Task ChangeAmount_ShouldIncrementRowVersion()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+        int initialVersion = rt.RowVersion;
+
+        rt.ChangeAmount(amount: 3000m);
+
+        await Assert.That(value: rt.RowVersion).IsEqualTo(expected: initialVersion + 1);
+    }
+
+    [Test]
+    public async Task ChangeCurrency_ShouldIncrementRowVersion()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+        int initialVersion = rt.RowVersion;
+
+        rt.ChangeCurrency(currency: Currency.Create(value: "USD").Value);
+
+        await Assert.That(value: rt.RowVersion).IsEqualTo(expected: initialVersion + 1);
+    }
+
+    [Test]
+    public async Task ChangeDayOfMonth_ShouldIncrementRowVersion()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+        int initialVersion = rt.RowVersion;
+
+        rt.ChangeDayOfMonth(dayOfMonth: 28);
+
+        await Assert.That(value: rt.RowVersion).IsEqualTo(expected: initialVersion + 1);
+    }
+
+    [Test]
+    public async Task MarkExecuted_ShouldIncrementRowVersion()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+        int initialVersion = rt.RowVersion;
+
+        rt.MarkExecuted(executedAt: DateTimeOffset.UtcNow);
+
+        await Assert.That(value: rt.RowVersion).IsEqualTo(expected: initialVersion + 1);
     }
 }

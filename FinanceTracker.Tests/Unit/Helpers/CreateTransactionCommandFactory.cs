@@ -13,7 +13,8 @@ public static class CreateTransactionCommandFactory
 		decimal amount = 1000m,
 		string currency = "RUB",
 		DirectionType direction = DirectionType.Debit,
-		string? description = "Тест")
+		string? description = "Тест",
+		DateTimeOffset? occurredAt = null)
 	{
 		return new CreateTransactionCommand(
 			AccountId: accountId ?? Guid.CreateVersion7(),
@@ -23,7 +24,7 @@ public static class CreateTransactionCommandFactory
 			Currency: Currency.Create(value: currency).Value,
 			Direction: direction,
 			Description: description,
-			OccurredAt: FakeDateProvider.Default.UtcNow
+			OccurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow
 		);
 	}
 }

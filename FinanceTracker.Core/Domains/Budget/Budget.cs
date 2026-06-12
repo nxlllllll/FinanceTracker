@@ -90,6 +90,7 @@ public sealed class Budget
             return Result<Unit, DomainException>.Failure(error: money.Error!);
 
         Amount = money.Value!;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
 
@@ -103,6 +104,7 @@ public sealed class Budget
 
         From = from;
         To = to;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
 
@@ -112,6 +114,7 @@ public sealed class Budget
             return Result<Unit, DomainException>.Failure(error: new ActivatingException(message: "Budget is already active."));
 
         IsActive = true;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
 
@@ -121,6 +124,7 @@ public sealed class Budget
             return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Budget is already inactive."));
 
         IsActive = false;
+        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
 }

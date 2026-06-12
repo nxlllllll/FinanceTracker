@@ -2,7 +2,6 @@
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -18,16 +17,35 @@ public sealed class DeadLetterMonitoringJob(
 {
 	protected override async Task ProcessAsync(DeadLetterMonitoringOptions options, CancellationToken ct)
 	{
-		IReadOnlyList<UnresolvableEvent> events = await unresolvableEventReadRepository.GetAllAsync(ct: ct);
+		DateTimeOffset? cursor = null;
+		int totalLogged = 0;
 
-		WorkerMetrics.DeadLetterCount.Record(value: events.Count);
+		while (true)
+		{
+			IReadOnlyList<UnresolvableEvent> batch = await unresolvableEventReadRepository.GetBatchAsync(
+				batchSize: options.BatchSize,
+				cursor: cursor,
+				ct: ct
+			);
 
-		if (events.Count == 0)
-			return;
+			if (batch.Count == 0)
+				break;
 
-		logger.ZLogWarning(message: $"Found {events.Count} unresolvable event(s) requiring manual intervention.");
+			WorkerMetrics.DeadLetterCount.Record(value: batch.Count);
 
-		foreach (UnresolvableEvent @event in events)
-			logger.ZLogWarning(message: $"Unresolvable event: Id={@event.Id}, Type={@event.Type}, ReferenceId={@event.ReferenceId}, Reason={@event.Reason}, OccurredAt={@event.OccurredAt:O}.");
+			logger.ZLogWarning(message: $"Found {batch.Count} unresolvable event(s) requiring manual intervention (cursor: {cursor:O}).");
+
+			foreach (UnresolvableEvent @event in batch)
+				logger.ZLogWarning(message: $"Unresolvable event: Id={@event.Id}, Type={@event.Type}, ReferenceId={@event.ReferenceId}, Reason={@event.Reason}, OccurredAt={@event.OccurredAt:O}.");
+
+			totalLogged += batch.Count;
+			cursor = batch[^1].OccurredAt;
+
+			if (batch.Count < options.BatchSize)
+				break;
+		}
+
+		if (totalLogged > 0)
+			logger.ZLogWarning(message: $"Dead letter scan complete. Total unresolvable events logged: {totalLogged}.");
 	}
 }

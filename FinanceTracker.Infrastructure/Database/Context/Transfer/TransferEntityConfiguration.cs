@@ -67,7 +67,8 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 
         builder.Property(propertyExpression: t => t.RowVersion)
             .HasColumnName(name: "row_version")
-            .HasDefaultValue(value: 0);
+            .HasDefaultValue(value: 0)
+            .IsConcurrencyToken();
         
         builder.Property(propertyExpression: t => t.Status)
             .HasColumnName(name: "status")

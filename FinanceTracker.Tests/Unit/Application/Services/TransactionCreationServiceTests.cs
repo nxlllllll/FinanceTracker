@@ -59,7 +59,6 @@ public sealed class TransactionCreationServiceTests
             categoryTotalWriteRepository: _categoryTotalWriteRepository,
             budgetProgressWriteRepository: _budgetProgressWriteRepository,
             publisher: _publisher,
-            dateProvider: FakeDateProvider.Default,
             logger: Substitute.For<ILogger<TransactionCreationService>>()
         );
     }
@@ -105,6 +104,30 @@ public sealed class TransactionCreationServiceTests
                 n.UserId == command.UserId &&
                 n.AccountId == command.AccountId &&
                 n.CategoryId == command.CategoryId),
+            cancellationToken: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task CreateAsync_ShouldPublishNotificationWithCommandOccurredAt()
+    {
+        Account account = AccountFactory.CreateWithArchivation();
+        SetupConversionRate();
+
+        DateTimeOffset expectedOccurredAt = new DateTimeOffset(
+            year: 2025, month: 3, day: 15,
+            hour: 10, minute: 0, second: 0,
+            offset: TimeSpan.Zero
+        );
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+            userId: account.UserId,
+            occurredAt: expectedOccurredAt
+        );
+
+        await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
+
+        await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+            notification: Arg.Is<TransactionCreatedNotification>(n => n.OccurredAt == expectedOccurredAt),
             cancellationToken: Arg.Any<CancellationToken>()
         );
     }

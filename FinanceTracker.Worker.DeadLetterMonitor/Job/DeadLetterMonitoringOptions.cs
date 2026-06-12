@@ -18,6 +18,10 @@ public sealed class DeadLetterMonitoringOptions : IJobOptions
 	[Range(minimum: 1, maximum: 1440)]
 	public int IntervalMinutes { get; init; } = 5;
 
+	/// <summary>Maximum number of unresolvable events to load and log per run.</summary>
+	[Range(minimum: 1, maximum: 1000)]
+	public int BatchSize { get; init; } = 100;
+
 	[Required]
 	public string Group { get; init; } = "default";
 

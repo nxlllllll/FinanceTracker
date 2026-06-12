@@ -2,5 +2,8 @@
 
 public interface IUnresolvableEventReadRepository : IReadRepository<ReadModels.UnresolvableEvent>
 {
-	Task<IReadOnlyList<ReadModels.UnresolvableEvent>> GetAllAsync(CancellationToken ct = default);
+	Task<IReadOnlyList<ReadModels.UnresolvableEvent>> GetBatchAsync(
+		int batchSize,
+		DateTimeOffset? cursor = null,
+		CancellationToken ct = default);
 }

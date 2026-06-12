@@ -67,7 +67,7 @@ public sealed class CategoryTests
 	}
 
 	[Test]
-	public async Task Archive_WithActiveCategory_ShouldSetIsArchivedTrue()
+	public async Task Archive_ActiveCategory_ShouldSetIsArchived()
 	{
 		Category category = CategoryFactory.Create().Value!;
 
@@ -77,7 +77,7 @@ public sealed class CategoryTests
 	}
 
 	[Test]
-	public async Task Archive_WhenAlreadyArchived_ShouldThrowArchivingException()
+	public async Task Archive_AlreadyArchivedCategory_ShouldThrowArchivingException()
 	{
 		Category category = CategoryFactory.Create().Value!;
 		category.Archive();
@@ -89,17 +89,18 @@ public sealed class CategoryTests
 	}
 
 	[Test]
-	public async Task Unarchive_WhenArchived_ShouldSetIsArchivedFalse()
+	public async Task Unarchive_ArchivedCategory_ShouldClearIsArchived()
 	{
 		Category category = CategoryFactory.Create().Value!;
 		category.Archive();
+
 		category.Unarchive();
 
 		await Assert.That(value: category.IsArchived).IsFalse();
 	}
 
 	[Test]
-	public async Task Unarchive_WhenNotArchived_ShouldThrowUnarchivingException()
+	public async Task Unarchive_ActiveCategory_ShouldThrowUnarchivingException()
 	{
 		Category category = CategoryFactory.Create().Value!;
 
@@ -107,5 +108,39 @@ public sealed class CategoryTests
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<UnarchivingException>();
+	}
+
+	[Test]
+	public async Task Rename_WithNewName_ShouldIncrementRowVersion()
+	{
+		Category category = CategoryFactory.Create().Value!;
+		int initialVersion = category.RowVersion;
+
+		category.Rename(newName: Name.Create(value: "Транспорт").Value);
+
+		await Assert.That(value: category.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
+
+	[Test]
+	public async Task Archive_ShouldIncrementRowVersion()
+	{
+		Category category = CategoryFactory.Create().Value!;
+		int initialVersion = category.RowVersion;
+
+		category.Archive();
+
+		await Assert.That(value: category.RowVersion).IsEqualTo(expected: initialVersion + 1);
+	}
+
+	[Test]
+	public async Task Unarchive_ShouldIncrementRowVersion()
+	{
+		Category category = CategoryFactory.Create().Value!;
+		category.Archive();
+		int versionAfterArchive = category.RowVersion;
+
+		category.Unarchive();
+
+		await Assert.That(value: category.RowVersion).IsEqualTo(expected: versionAfterArchive + 1);
 	}
 }

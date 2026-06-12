@@ -32,7 +32,6 @@ public sealed class BenchmarkDatabase
 	{
 		_container = new PostgreSqlBuilder(image: "postgres:16")
 			.WithLogger(logger: NullLogger<PostgreSqlBuilder>.Instance)
-			.WithCommand("-N", "200", "-c", "shared_preload_libraries=pg_stat_statements")
 			.Build();
 
 		await _container.StartAsync();

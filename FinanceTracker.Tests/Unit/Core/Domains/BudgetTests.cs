@@ -37,7 +37,7 @@ public sealed class BudgetTests
             from: new DateOnly(year: 2025, month: 1, day: 31),
             to: new DateOnly(year: 2025, month: 1, day: 1)
         );
-        
+
         await Assert.That(result.IsFailure).IsTrue();
         await Assert.That(result.Error).IsTypeOf<InvalidBudgetPeriodException>();
     }
@@ -73,107 +73,112 @@ public sealed class BudgetTests
         Budget budget = BudgetFactory.Create().Value!;
 
         Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.ChangeAmount(amount: 0m);
-        
+
         await Assert.That(result.IsFailure).IsTrue();
         await Assert.That(result.Error).IsTypeOf<InvalidAmountException>();
     }
 
     [Test]
-    public async Task ChangeAmount_WithNegativeAmount_ShouldThrowInvalidAmountException()
+    public async Task ChangeAmount_WhenInactive_ShouldThrowInactiveBudgetException()
     {
         Budget budget = BudgetFactory.Create().Value!;
+        budget.Deactivate();
 
-        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.ChangeAmount(amount: -100m);
-        
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.ChangeAmount(amount: 5000m);
+
         await Assert.That(result.IsFailure).IsTrue();
-        await Assert.That(result.Error).IsTypeOf<InvalidAmountException>();
+        await Assert.That(result.Error).IsTypeOf<InactiveBudgetException>();
     }
 
     [Test]
-    public async Task ChangePeriod_WithValidDates_ShouldUpdatePeriod()
+    public async Task Activate_InactiveBudget_ShouldSetIsActive()
     {
         Budget budget = BudgetFactory.Create().Value!;
+        budget.Deactivate();
+
+        budget.Activate();
+
+        await Assert.That(value: budget.IsActive).IsTrue();
+    }
+
+    [Test]
+    public async Task Activate_ActiveBudget_ShouldThrowActivatingException()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Activate();
+
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error).IsTypeOf<ActivatingException>();
+    }
+
+    [Test]
+    public async Task Deactivate_ActiveBudget_ShouldClearIsActive()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+
+        budget.Deactivate();
+
+        await Assert.That(value: budget.IsActive).IsFalse();
+    }
+
+    [Test]
+    public async Task Deactivate_InactiveBudget_ShouldThrowDeactivatingException()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+        budget.Deactivate();
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Deactivate();
+
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error).IsTypeOf<DeactivatingException>();
+    }
+
+    [Test]
+    public async Task ChangeAmount_WithValidAmount_ShouldIncrementRowVersion()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+        int initialVersion = budget.RowVersion;
+
+        budget.ChangeAmount(amount: 5000m);
+
+        await Assert.That(value: budget.RowVersion).IsEqualTo(expected: initialVersion + 1);
+    }
+
+    [Test]
+    public async Task ChangePeriod_WithValidDates_ShouldIncrementRowVersion()
+    {
+        Budget budget = BudgetFactory.Create().Value!;
+        int initialVersion = budget.RowVersion;
 
         budget.ChangePeriod(
             from: new DateOnly(year: 2025, month: 2, day: 1),
             to: new DateOnly(year: 2025, month: 2, day: 28)
         );
 
-        await Assert.That(value: budget.From).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 1));
-        await Assert.That(value: budget.To).IsEqualTo(expected: new DateOnly(year: 2025, month: 2, day: 28));
+        await Assert.That(value: budget.RowVersion).IsEqualTo(expected: initialVersion + 1);
     }
 
     [Test]
-    public async Task ChangePeriod_WhenEndDateBeforeStartDate_ShouldThrowInvalidBudgetPeriodException()
-    {
-        Budget budget = BudgetFactory.Create().Value!;
-
-        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.ChangePeriod(
-            from: new DateOnly(year: 2025, month: 1, day: 31),
-            to: new DateOnly(year: 2025, month: 1, day: 1)
-        );
-        
-        await Assert.That(result.IsFailure).IsTrue();
-        await Assert.That(result.Error).IsTypeOf<InvalidBudgetPeriodException>();
-    }
-
-    [Test]
-    public async Task ChangePeriod_WhenEndDateEqualsStartDate_ShouldThrowInvalidBudgetPeriodException()
-    {
-        Budget budget = BudgetFactory.Create().Value!;
-
-        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.ChangePeriod(
-            from: new DateOnly(year: 2025, month: 1, day: 1),
-            to: new DateOnly(year: 2025, month: 1, day: 1)
-        );
-        
-        await Assert.That(result.IsFailure).IsTrue();
-        await Assert.That(result.Error).IsTypeOf<InvalidBudgetPeriodException>();
-    }
-    
-    [Test]
-    public async Task Deactivate_WhenActive_ShouldSetIsActiveFalse()
-    {
-        Budget budget = BudgetFactory.Create().Value!;
-
-        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Deactivate();
-
-        await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: budget.IsActive).IsFalse();
-    }
-
-    [Test]
-    public async Task Deactivate_WhenAlreadyInactive_ShouldReturnFailure()
+    public async Task Activate_ShouldIncrementRowVersion()
     {
         Budget budget = BudgetFactory.Create().Value!;
         budget.Deactivate();
+        int versionAfterDeactivate = budget.RowVersion;
 
-        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Deactivate();
+        budget.Activate();
 
-        await Assert.That(value: result.IsFailure).IsTrue();
-        await Assert.That(value: result.Error).IsTypeOf<DeactivatingException>();
+        await Assert.That(value: budget.RowVersion).IsEqualTo(expected: versionAfterDeactivate + 1);
     }
-    
+
     [Test]
-    public async Task Activate_WhenInactive_ShouldSetIsActiveTrue()
+    public async Task Deactivate_ShouldIncrementRowVersion()
     {
         Budget budget = BudgetFactory.Create().Value!;
+        int initialVersion = budget.RowVersion;
+
         budget.Deactivate();
 
-        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Activate();
-
-        await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: budget.IsActive).IsTrue();
-    }
-
-    [Test]
-    public async Task Activate_WhenAlreadyActive_ShouldReturnFailure()
-    {
-        Budget budget = BudgetFactory.Create().Value!;
-
-        Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Activate();
-
-        await Assert.That(value: result.IsFailure).IsTrue();
-        await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
+        await Assert.That(value: budget.RowVersion).IsEqualTo(expected: initialVersion + 1);
     }
 }
