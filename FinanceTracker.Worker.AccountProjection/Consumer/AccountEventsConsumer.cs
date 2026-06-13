@@ -18,8 +18,10 @@ namespace FinanceTracker.Worker.AccountProjection.Consumer;
 
 /// <summary>
 /// RabbitMQ message handler that receives <see cref="AggregateEventsMessage"/> from the account exchange,
-/// deserializes each integration event, deduplicates via <c>processed_messages</c>,
+/// deduplicates via <c>processed_messages</c>, then deserializes each integration event
 /// and dispatches to <see cref="AccountProjection"/> via MediatR notification.
+/// Deserialization is intentionally deferred until after the idempotency check to avoid
+/// wasting CPU on duplicate messages (at-least-once delivery makes duplicates common).
 /// </summary>
 public sealed class AccountEventsConsumer(
 	Projection.AccountProjection projection,
@@ -36,12 +38,6 @@ public sealed class AccountEventsConsumer(
 	{
 		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
 
-		List<IAccountIntegrationEvent> events = message.Events.Select(selector: e =>
-		{
-			Type type = integrationEventTypeResolver.ResolveType(eventType: e.EventType);
-			return (IAccountIntegrationEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
-		}).ToList();
-
 		ProjectionRetryOptions currentOptions = retryOptions.CurrentValue;
 
 		await RetryDelayCalculator.ExecuteWithRetryAsync(
@@ -54,6 +50,8 @@ public sealed class AccountEventsConsumer(
 						logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
 						return;
 					}
+
+					List<IAccountIntegrationEvent> events = [..message.Events.Select(selector: MapEnvelopeToIntegration)];
 
 					await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: innerCt);
 
@@ -77,5 +75,11 @@ public sealed class AccountEventsConsumer(
 			useJitter: currentOptions.UseJitter,
 			ct: ct
 		);
+	}
+
+	private IAccountIntegrationEvent MapEnvelopeToIntegration(EventEnvelope e)
+	{
+		Type type = integrationEventTypeResolver.ResolveType(eventType: e.EventType);
+		return (IAccountIntegrationEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
 	}
 }

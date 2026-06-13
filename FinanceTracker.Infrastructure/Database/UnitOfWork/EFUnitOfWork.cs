@@ -120,6 +120,42 @@ public sealed class EFUnitOfWork(
 		}
 	}
 
+	public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation, CancellationToken ct = default)
+	{
+		await BeginTransactionAsync(ct: ct);
+		try
+		{
+			T result = await operation();
+			await CommitAsync(ct: ct);
+			return result;
+		}
+		catch
+		{
+			await RollbackAsync(ct: ct);
+			throw;
+		}
+	}
+
+	public async Task<T> ExecuteInTransactionAsync<T>(
+		Func<Task<T>> operation,
+		Func<Exception, Task> onError,
+		CancellationToken ct = default)
+	{
+		await BeginTransactionAsync(ct: ct);
+		try
+		{
+			T result = await operation();
+			await CommitAsync(ct: ct);
+			return result;
+		}
+		catch (Exception e)
+		{
+			await RollbackAsync(ct: ct);
+			await onError(arg: e);
+			throw;
+		}
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		if (_transaction is null)

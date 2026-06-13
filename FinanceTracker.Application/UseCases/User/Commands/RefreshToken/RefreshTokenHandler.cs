@@ -20,25 +20,29 @@ public sealed class RefreshTokenHandler(
 	IDateProvider dateProvider
 ) : IRequestHandler<RefreshTokenCommand, Result<SessionToken, DomainException>>
 {
-	public async Task<Result<SessionToken, DomainException>> Handle(
+	public Task<Result<SessionToken, DomainException>> Handle(
 		RefreshTokenCommand command,
 		CancellationToken ct = default)
 	{
 		string tokenHash = tokenService.HashRefreshToken(refreshToken: command.RefreshToken);
 
-		Result<SessionToken, DomainException> result = Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
-
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		return unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: tokenHash, ct: ct);
+			UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+				tokenHash: tokenHash,
+				ct: ct
+			);
 
 			if (session is null || !session.IsActive(now: dateProvider.UtcNow))
-				return;
+				return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
 
-			Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(userId: session.UserId, ct: ct);
+			Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(
+				userId: session.UserId,
+				ct: ct
+			);
 
 			if (user is null)
-				return;
+				return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
 
 			await userSessionWriteRepository.RevokeAsync(
 				sessionId: session.Id,
@@ -47,9 +51,7 @@ public sealed class RefreshTokenHandler(
 			);
 
 			SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
-			result = Result<SessionToken, DomainException>.Success(value: sessionToken);
+			return Result<SessionToken, DomainException>.Success(value: sessionToken);
 		}, ct: ct);
-
-		return result;
 	}
 }

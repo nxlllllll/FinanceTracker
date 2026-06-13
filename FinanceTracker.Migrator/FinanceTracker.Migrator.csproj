@@ -10,8 +10,8 @@
 
     <ItemGroup>
       <PackageReference Include="dbup-postgresql" Version="7.0.1" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.8" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.8" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">
@@ -53,6 +53,10 @@
       <EmbeddedResource Include="Migrations\V015__remove_domain_event_outbox.sql" />
       <None Remove="Migrations\V016__add_row_version.sql" />
       <EmbeddedResource Include="Migrations\V016__add_row_version.sql" />
+      <None Remove="Migrations\V017__optimize_cursor_indexes.sql" />
+      <EmbeddedResource Include="Migrations\V017__optimize_cursor_indexes.sql" />
+      <None Remove="Migrations\V018__optimize_read_indexes.sql" />
+      <EmbeddedResource Include="Migrations\V018__optimize_read_indexes.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

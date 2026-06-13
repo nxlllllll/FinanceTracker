@@ -49,7 +49,15 @@ public sealed class CreateBudgetHandler(
 
 		Core.Domains.Budget.Budget budget = budgetResult.Value!;
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await budgetWriteRepository.CreateAsync(budget: budget, ct: ct), ct: ct);
+		try
+		{
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await budgetWriteRepository.CreateAsync(budget: budget, ct: ct), ct: ct);
+		}
+		catch (UniqueConstraintException)
+		{
+			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
+		}
+		
 
 		await publisher.Publish(notification: new BudgetCreatedNotification(
 			BudgetId: budget.Id,

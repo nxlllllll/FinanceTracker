@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -8,6 +9,7 @@ namespace FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
 
 public sealed class RenameAccountHandler(
 	IAccountRepository accountRepository,
+	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider
 ) : IAuthorizedHandler<RenameAccountCommand, Core.Domains.Account.Account, Guid, DomainException>
 {
@@ -21,7 +23,7 @@ public sealed class RenameAccountHandler(
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		if (account.Events.Count > 0)
-			await accountRepository.SaveAsync(account: account, ct: ct);
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: account, ct: ct), ct: ct);
 		
 		return Result<Guid, DomainException>.Success(value: account.Id);
 	}

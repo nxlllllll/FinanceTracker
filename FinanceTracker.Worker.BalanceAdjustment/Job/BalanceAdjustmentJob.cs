@@ -224,6 +224,8 @@ public sealed class BalanceAdjustmentJob(
 					);
 				}, ct: innerCt);
 				
+				accountCache.Remove(key: item.AccountId);
+
 				logger.ZLogInformation(message: $"Adjusted transaction {item.TransactionId}: rate {item.CurrentRate} > {newRate}.");
 				return AdjustResult.Adjusted;
 			},
@@ -309,8 +311,8 @@ public sealed class BalanceAdjustmentJob(
 					);
 				}, ct: innerCt);
 
-				fromAccount.ClearEvents();
-				toAccount.ClearEvents();
+				accountCache.Remove(key: item.FromAccountId);
+				accountCache.Remove(key: item.ToAccountId);
 
 				logger.ZLogInformation(message: $"Adjusted transfer {item.TransferId}: rate {item.CurrentRate} > {newRate}.");
 				return AdjustResult.Adjusted;

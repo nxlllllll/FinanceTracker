@@ -8,7 +8,6 @@ using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Services.Correlation;
@@ -22,7 +21,6 @@ using FinanceTracker.Infrastructure.EventMapping.Integration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Npgsql;
 using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Database.EventStore;
@@ -170,20 +168,6 @@ public sealed class PostgresEventStore(
 			eventsCount: eventList.Count,
 			ct: ct
 		);
-
-		try
-		{
-			await context.SaveChangesAsync(cancellationToken: ct);
-			
-		}
-		catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
-		{
-			logger.ZLogWarning(exception: exception, message: $"Concurrency conflict: {aggregateType} {aggregateId} was modified by another request.");
-			throw new ConcurrencyConflictException(
-				message: "Conflict: aggregate was modified by another request.",
-				id: aggregateId
-			);
-		}
 	}
 
 	public async Task<EventStoreResult> LoadAsync(

@@ -75,9 +75,9 @@ public sealed class RefreshTokenHandlerTests
 		).Returns(returnThis: NewSessionToken);
 
 		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
+			operation: Arg.Any<Func<Task<Result<SessionToken, DomainException>>>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<Result<SessionToken, DomainException>>>>()());
 		
 		_handler = new RefreshTokenHandler(
 			userAuthRepository: _userAuthRepository,

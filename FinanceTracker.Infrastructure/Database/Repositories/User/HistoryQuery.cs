@@ -59,13 +59,12 @@ internal sealed class HistoryQuery
         DateTimeOffset? dateTo,
         DateTimeOffset? cursorOccurredAt,
         Guid? cursorId,
-        int limit)
+        int? limit)
     {
-        List<NpgsqlParameter> parameters =
-        [
-            new NpgsqlParameter(parameterName: "@userId", value: userId),
-            new NpgsqlParameter(parameterName: "@limit",  value: limit)
-        ];
+        List<NpgsqlParameter> parameters = [new NpgsqlParameter(parameterName: "@userId", value: userId)];
+        
+        if (limit is not null)
+            parameters.Add(item: new NpgsqlParameter(parameterName: "@limit",  value: limit));
 
         string sharedFilters = BuildSharedFilters(
             parameters: parameters,
@@ -109,12 +108,12 @@ internal sealed class HistoryQuery
 
         if (cursorOccurredAt is not null && cursorId is not null)
         {
-            clauses.Add("AND (occurred_at < @cursorDate OR (occurred_at = @cursorDate AND id < @cursorId))");
+            clauses.Add("AND (occurred_at, id) < (@cursorDate, @cursorId)");
             parameters.Add(new NpgsqlParameter("@cursorDate", cursorOccurredAt.Value));
             parameters.Add(new NpgsqlParameter("@cursorId",   cursorId.Value));
         }
 
-        return string.Join("\n  ", clauses);
+        return String.Join("\n  ", clauses);
     }
 
     private static string BuildTransactionsOnly(string direction, string sharedFilters) => $"""
@@ -137,17 +136,25 @@ internal sealed class HistoryQuery
     """;
 
     private static string BuildUnionAll(string sharedFilters) => $"""
-        SELECT {TransactionColumns}
-        FROM rm_transactions
-        WHERE user_id = @userId
-          {sharedFilters}
+        SELECT * FROM (
+            SELECT {TransactionColumns}
+            FROM rm_transactions
+            WHERE user_id = @userId 
+                {sharedFilters}
+            ORDER BY occurred_at DESC, id DESC
+            LIMIT @limit
+        ) t
 
         UNION ALL
 
-        SELECT {TransferColumns}
-        FROM rm_transfers
-        WHERE user_id = @userId
-          {sharedFilters}
+        SELECT * FROM (
+            SELECT {TransferColumns}
+            FROM rm_transfers
+            WHERE user_id = @userId
+                {sharedFilters}
+            ORDER BY occurred_at DESC, id DESC
+            LIMIT @limit
+        ) tr
 
         ORDER BY OccurredAt DESC, Id DESC
         LIMIT @limit

@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -8,6 +9,7 @@ namespace FinanceTracker.Application.UseCases.Account.Commands.UnarchiveAccount;
 
 public sealed class UnarchiveAccountHandler(
 	IAccountRepository accountRepository,
+	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider
 ) : IAuthorizedHandler<UnarchiveAccountCommand, Core.Domains.Account.Account, Guid, DomainException>
 {
@@ -20,7 +22,8 @@ public sealed class UnarchiveAccountHandler(
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await accountRepository.SaveAsync(account: account, ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: account, ct: ct), ct: ct);
+
 		return Result<Guid, DomainException>.Success(value: account.Id);
 	}
 }

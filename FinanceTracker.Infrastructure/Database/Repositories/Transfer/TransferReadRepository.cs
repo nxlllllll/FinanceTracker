@@ -3,8 +3,9 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Context.Transfer;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
@@ -30,53 +31,70 @@ public sealed class TransferReadRepository(FinanceTrackerContext context) : ITra
             )).FirstOrDefaultAsync(cancellationToken: ct);
     }
 
-    public async Task<PagedResult<TransferReadModel>> GetAllAsync(
-        Guid userId,
-        Guid? accountId = null,
-        DateTimeOffset? dateFrom = null,
-        DateTimeOffset? dateTo = null,
-        DateTimeOffset? cursorOccurredAt = null,
-        Guid? cursorId = null,
-        int pageSize = 20,
-        CancellationToken ct = default)
-    {
-        IQueryable<TransferEntity> query = context.Transfers
-            .AsNoTracking()
-            .Where(t => t.UserId == userId);
+	public async Task<PagedResult<TransferReadModel>> GetAllAsync(
+		Guid userId,
+		Guid? accountId = null,
+		DateTimeOffset? dateFrom = null,
+		DateTimeOffset? dateTo = null,
+		DateTimeOffset? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
+		CancellationToken ct = default)
+	{
+		List<string> where = ["user_id = $1"];
+		List<object> args = [userId];
 
-        if (accountId is not null)
-            query = query.Where(t => t.FromAccountId == accountId || t.ToAccountId == accountId);
+		if (accountId is not null)
+		{
+			args.Add(accountId.Value);
+			where.Add($"(from_account_id = ${args.Count} OR to_account_id = ${args.Count})");
+		}
 
-        if (dateFrom is not null)
-            query = query.Where(t => t.OccurredAt >= dateFrom);
+		if (dateFrom is not null)
+		{
+			args.Add(dateFrom.Value);
+			where.Add($"occurred_at >= ${args.Count}");
+		}
 
         if (dateTo is not null)
-            query = query.Where(t => t.OccurredAt <= dateTo);
+		{
+			args.Add(dateTo.Value);
+			where.Add($"occurred_at <= ${args.Count}");
+		}
 
         if (cursorOccurredAt is not null && cursorId is not null)
-            query = query.Where(t => t.OccurredAt < cursorOccurredAt ||
-                                     t.OccurredAt == cursorOccurredAt && t.Id < cursorId);
+		{
+			args.Add(cursorOccurredAt.Value);
+			args.Add(cursorId.Value);
+			where.Add($"(occurred_at, id) < (${args.Count - 1}, ${args.Count})");
+		}
 
-        List<TransferReadModel> items = await query
-            .OrderByDescending(t => t.OccurredAt)
-            .ThenByDescending(t => t.Id)
-            .Take(pageSize + 1)
-            .Select(t => new TransferReadModel(
-                Id: t.Id,
-                UserId: t.UserId,
-                FromAccountId: t.FromAccountId,
-                ToAccountId: t.ToAccountId,
-                AmountFrom: Money.Reconstitute(t.AmountFrom, t.CurrencyFrom),
-                AmountTo: Money.Reconstitute(t.AmountTo, t.CurrencyTo),
-                ExchangeRate: t.ExchangeRate,
-                IsRatePending: t.IsRatePending,
-                Status: t.Status,
-                Description: t.Description,
-                OccurredAt: t.OccurredAt
-            )).ToListAsync(ct);
+		args.Add(pageSize + 1);
+
+		string sql = $"""
+			SELECT id, user_id, from_account_id, to_account_id,
+			       amount_from, currency_from, amount_to, currency_to,
+			       exchange_rate, is_rate_pending, status, description, occurred_at
+			FROM rm_transfers
+			WHERE {String.Join(separator: " AND ", values: where)}
+			ORDER BY occurred_at DESC, id DESC
+			LIMIT ${args.Count}
+		""";
+
+		await using NpgsqlConnection conn = await context.OpenReadConnectionAsync(ct: ct);
+		await using NpgsqlCommand cmd = new NpgsqlCommand(cmdText: sql, connection: conn);
+		foreach (object arg in args)
+			cmd.Parameters.AddWithValue(value: arg);
+
+		await using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken: ct);
+
+		List<TransferReadModel> items = new List<TransferReadModel>(capacity: pageSize + 1);
+		while (await reader.ReadAsync(cancellationToken: ct))
+			items.Add(item: MapTransfer(reader: reader));
 
         bool hasNextPage = items.Count > pageSize;
-        if (hasNextPage) items.RemoveAt(items.Count - 1);
+		if (hasNextPage)
+			items.RemoveAt(index: items.Count - 1);
 
         TransferReadModel? last = items.Count > 0 ? items[^1] : null;
 
@@ -88,6 +106,26 @@ public sealed class TransferReadRepository(FinanceTrackerContext context) : ITra
         );
     }
 
+	private static TransferReadModel MapTransfer(NpgsqlDataReader reader)
+	{
+		Core.ValueObjects.Currency currencyFrom = Core.ValueObjects.Currency.Reconstitute(value: reader.GetString(ordinal: 5));
+		Core.ValueObjects.Currency currencyTo = Core.ValueObjects.Currency.Reconstitute(value: reader.GetString(ordinal: 7));
+
+		return new TransferReadModel(
+			Id: reader.GetGuid(ordinal: 0),
+			UserId: reader.GetGuid(ordinal: 1),
+			FromAccountId: reader.GetGuid(ordinal: 2),
+			ToAccountId: reader.GetGuid(ordinal: 3),
+			AmountFrom: Money.Reconstitute(amount: reader.GetDecimal(ordinal: 4), currency: currencyFrom),
+			AmountTo: Money.Reconstitute(amount: reader.GetDecimal(ordinal: 6), currency: currencyTo),
+			ExchangeRate: reader.GetDecimal(ordinal: 8),
+			IsRatePending: reader.GetBoolean(ordinal: 9),
+			Status: reader.GetString(ordinal: 10).FromCode(),
+			Description: reader.IsDBNull(ordinal: 11) ? null : reader.GetString(ordinal: 11),
+			OccurredAt: reader.GetFieldValue<DateTimeOffset>(ordinal: 12)
+		);
+	}
+	
     public async Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(CancellationToken ct = default)
     {
         return await context.Transfers.AsNoTracking().Where(predicate: t => t.IsRatePending).Select(selector: t => new PendingRateTransfer(

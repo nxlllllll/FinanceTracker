@@ -1,17 +1,15 @@
-﻿using System.Text.Json;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.ValueObjects;
-using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -20,12 +18,11 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
 public sealed class AccountRepositoryTests : DatabaseFixture
 {
 	private AccountRepository _repository = null!;
+	private EFUnitOfWork _unitOfWork = null!;
 	private readonly AccountSnapshotSerializer _serializer = new AccountSnapshotSerializer();
 
 	private PostgresEventStore CreateEventStore() => new PostgresEventStore(
-		context: new FinanceTrackerContext(
-			options: new DbContextOptionsBuilder<FinanceTrackerContext>().UseNpgsql(connectionString: Context.Database.GetConnectionString()!).Options
-		),
+		context: Context,
 		eventTypeResolver: new EventTypeResolver(
 			assembly: typeof(FinanceTracker.Core.Domains.Abstractions.EventStore.Event.IEvent).Assembly,
 			logger: Substitute.For<ILogger<EventTypeResolver>>()
@@ -52,12 +49,22 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupRepository()
 	{
+		_unitOfWork = new EFUnitOfWork(context: Context, logger: Substitute.For<ILogger<EFUnitOfWork>>());
 		_repository = new AccountRepository(
 			eventStore: CreateEventStore(),
 			snapshotSerializer: _serializer
 		);
 	}
-	
+
+	[After(hookType: Test)]
+	public async Task TearDownAsync()
+		=> await _unitOfWork.DisposeAsync();
+
+	private Task SaveAsync(Core.Domains.Account.Account account)
+		=> _unitOfWork.ExecuteInTransactionAsync(
+			operation: async () => await _repository.SaveAsync(account: account, ct: CancellationToken.None)
+		);
+
 	[Test]
 	public async Task GetByIdAsync_WhenAccountDoesNotExist_ShouldReturnNull()
 	{
@@ -74,7 +81,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(balance: 5000m).Value!;
 
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(
 			accountId: account.Id,
@@ -93,7 +100,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	public async Task GetByIdAsync_AfterDebit_ShouldReturnReducedBalance()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(balance: 10000m).Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		loaded!.Debit(
@@ -104,7 +111,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 			exchangeRate: 1m,
 			description: null
 		);
-		await _repository.SaveAsync(account: loaded, ct: CancellationToken.None);
+		await SaveAsync(account: loaded);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
@@ -116,7 +123,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	public async Task GetByIdAsync_AfterCredit_ShouldReturnIncreasedBalance()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(balance: 1000m).Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		loaded!.Credit(
@@ -127,7 +134,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 			exchangeRate: 1m,
 			description: null
 		);
-		await _repository.SaveAsync(account: loaded, ct: CancellationToken.None);
+		await SaveAsync(account: loaded);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
@@ -138,11 +145,11 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	public async Task GetByIdAsync_AfterArchive_ShouldReturnArchivedState()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create().Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		loaded!.Archive(occurredAt: FakeDateProvider.Default.UtcNow);
-		await _repository.SaveAsync(account: loaded, ct: CancellationToken.None);
+		await SaveAsync(account: loaded);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
@@ -153,12 +160,12 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	public async Task GetByIdAsync_AfterRename_ShouldReturnNewName()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(name: "Старое имя").Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		Name newName = Name.Create(value: "Новое имя").Value!;
 		loaded!.Rename(occurredAt: FakeDateProvider.Default.UtcNow, newName: newName);
-		await _repository.SaveAsync(account: loaded, ct: CancellationToken.None);
+		await SaveAsync(account: loaded);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
@@ -169,7 +176,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	public async Task GetByIdAsync_AfterMultipleOperations_ShouldReflectFinalState()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(balance: 10000m).Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		loaded!.Debit(
@@ -196,7 +203,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 			exchangeRate: 1m,
 			description: null
 		);
-		await _repository.SaveAsync(account: loaded, ct: CancellationToken.None);
+		await SaveAsync(account: loaded);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
@@ -209,7 +216,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	{
 		Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation();
 
-		await Assert.That(action: async () => await _repository.SaveAsync(account: account, ct: CancellationToken.None)).ThrowsNothing();
+		await Assert.That(action: async () => await SaveAsync(account: account)).ThrowsNothing();
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		await Assert.That(value: loaded).IsNull();
@@ -219,7 +226,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	public async Task SaveAsync_ThenSaveAgain_ShouldAccumulateVersionCorrectly()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(balance: 1000m).Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 		int versionAfterCreate = account.Version;
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
@@ -231,7 +238,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 			exchangeRate: 1m,
 			description: null
 		);
-		await _repository.SaveAsync(account: loaded, ct: CancellationToken.None);
+		await SaveAsync(account: loaded);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
@@ -242,19 +249,19 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	public async Task SaveAsync_AfterClearEvents_ShouldBeIdempotent()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(balance: 1000m).Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		await Assert.That(value: restored!.Balance.Amount).IsEqualTo(expected: 1000m);
 	}
-	
+
 	[Test]
 	public async Task GetByIdAsync_WithExchangeRate_ShouldApplyConversionCorrectly()
 	{
 		Core.Domains.Account.Account account = AccountFactory.Create(balance: 0m, currency: "RUB").Value!;
-		await _repository.SaveAsync(account: account, ct: CancellationToken.None);
+		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		loaded!.Credit(
@@ -265,7 +272,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 			exchangeRate: 90m,
 			description: null
 		);
-		await _repository.SaveAsync(account: loaded, ct: CancellationToken.None);
+		await SaveAsync(account: loaded);
 
 		Core.Domains.Account.Account? restored = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 

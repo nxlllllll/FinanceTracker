@@ -1,4 +1,3 @@
-using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
@@ -13,6 +12,7 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -25,18 +25,16 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.EventStore;
 public sealed class PostgresEventStoreTests : DatabaseFixture
 {
 	private PostgresEventStore _eventStore = null!;
+	private EFUnitOfWork _unitOfWork = null!;
 	private readonly AccountSnapshotSerializer _serializer = new AccountSnapshotSerializer();
 
-	private PostgresEventStore CreateEventStore()
+	private PostgresEventStore CreateEventStore(FinanceTrackerContext? ctx = null)
 	{
 		IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
 		upcasterRegistry.HasChain(eventType: Arg.Any<string>()).Returns(returnThis: false);
 
 		return new PostgresEventStore(
-			context: new FinanceTrackerContext(new DbContextOptionsBuilder<FinanceTrackerContext>()
-				.UseNpgsql(connectionString: Context.Database.GetConnectionString()!)
-				.Options
-			),
+			context: ctx ?? Context,
 			eventTypeResolver: new EventTypeResolver(
 				assembly: typeof(IEvent).Assembly,
 				logger: Substitute.For<ILogger<EventTypeResolver>>()
@@ -56,9 +54,37 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 		);
 	}
 
+	private FinanceTrackerContext CreateFreshContext() => new FinanceTrackerContext(
+		options: new DbContextOptionsBuilder<FinanceTrackerContext>().UseNpgsql(connectionString: Context.Database.GetConnectionString()!).Options
+	);
+
 	[Before(hookType: Test)]
 	public void SetupEventStore()
-		=> _eventStore = CreateEventStore();
+	{
+		_unitOfWork = new EFUnitOfWork(context: Context, logger: Substitute.For<ILogger<EFUnitOfWork>>());
+		_eventStore = CreateEventStore();
+	}
+
+	[After(hookType: Test)]
+	public async Task TearDownAsync()
+		=> await _unitOfWork.DisposeAsync();
+
+	private Task SaveAsync(
+		PostgresEventStore store,
+		Guid aggregateId,
+		string aggregateType,
+		IEnumerable<IEvent> events,
+		int expectedVersion,
+		Func<string>? snapshotFactory = null)
+	{
+		return _unitOfWork.ExecuteInTransactionAsync(operation: async () => await store.SaveAsync(
+			aggregateId: aggregateId,
+			aggregateType: aggregateType,
+			events: events,
+			expectedVersion: expectedVersion,
+			snapshotFactory: snapshotFactory
+		));
+	}
 
 	[Test]
 	public async Task SaveAsync_WithNewEvents_ShouldPersistToDatabase()
@@ -76,7 +102,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
-		await _eventStore.SaveAsync(
+		await SaveAsync(
+			store: _eventStore,
 			aggregateId: accountId,
 			aggregateType: AggregateTypeNames.Account,
 			events: [@event],
@@ -117,7 +144,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
-		await _eventStore.SaveAsync(
+		await SaveAsync(
+			store: _eventStore,
 			aggregateId: accountId,
 			aggregateType: AggregateTypeNames.Account,
 			events: [created, debited],
@@ -160,17 +188,22 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
-		PostgresEventStore firstStore = CreateEventStore();
-		PostgresEventStore secondStore = CreateEventStore();
-
-		await firstStore.SaveAsync(
+		await SaveAsync(
+			store: _eventStore,
 			aggregateId: accountId,
 			aggregateType: AggregateTypeNames.Account,
 			events: [@event],
 			expectedVersion: 0
 		);
 
-		await Assert.That(async () => await secondStore.SaveAsync(
+		FinanceTrackerContext secondContext = CreateFreshContext();
+		await using EFUnitOfWork secondUoW = new EFUnitOfWork(
+			context: secondContext,
+			logger: Substitute.For<ILogger<EFUnitOfWork>>()
+		);
+		PostgresEventStore secondStore = CreateEventStore(ctx: secondContext);
+
+		await Assert.That(async () => await secondUoW.ExecuteInTransactionAsync(operation: async () => await secondStore.SaveAsync(
 			aggregateId: accountId,
 			aggregateType: AggregateTypeNames.Account,
 			events: [new AccountDebited(
@@ -185,7 +218,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 				OccurredAt: DateTimeOffset.UtcNow
 			)],
 			expectedVersion: 0
-		)).Throws<ConcurrencyConflictException>();
+		))).Throws<UniqueConstraintException>();
 	}
 
 	[Test]
@@ -202,7 +235,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 
 		Account account = a.Value!;
 
-		await _eventStore.SaveAsync(
+		await SaveAsync(
+			store: _eventStore,
 			aggregateId: account.Id,
 			aggregateType: AggregateTypeNames.Account,
 			events: account.Events,
@@ -222,7 +256,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 				description: null
 			);
 			int expectedVersion = account.Version - account.Events.Count;
-			await _eventStore.SaveAsync(
+			await SaveAsync(
+				store: _eventStore,
 				aggregateId: account.Id,
 				aggregateType: AggregateTypeNames.Account,
 				events: account.Events,
@@ -256,7 +291,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 
 		Account original = o.Value!;
 
-		await _eventStore.SaveAsync(
+		await SaveAsync(
+			store: _eventStore,
 			aggregateId: original.Id,
 			aggregateType: AggregateTypeNames.Account,
 			events: original.Events,
@@ -276,12 +312,13 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 				description: null
 			);
 			int expectedVersion = original.Version - original.Events.Count;
-			await _eventStore.SaveAsync(
+			await SaveAsync(
+				store: _eventStore,
 				aggregateId: original.Id,
 				aggregateType: AggregateTypeNames.Account,
 				events: original.Events,
 				expectedVersion: expectedVersion,
-			snapshotFactory: () => _serializer.Serialize(aggregate: original)
+				snapshotFactory: () => _serializer.Serialize(aggregate: original)
 			);
 			original.ClearEvents();
 		}

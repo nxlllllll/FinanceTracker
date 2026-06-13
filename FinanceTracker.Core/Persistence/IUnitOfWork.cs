@@ -41,4 +41,25 @@ public interface IUnitOfWork : IAsyncDisposable
 		Func<Exception, Task> onError,
 		CancellationToken ct = default
 	);
+
+	/// <summary>
+	/// Executes <paramref name="operation"/> inside a transaction and returns its result,
+	/// committing on success and rolling back on any exception.
+	/// Use this overload when the operation needs to return a value — avoids mutating
+	/// a captured variable from a closure.
+	/// </summary>
+	Task<T> ExecuteInTransactionAsync<T>(
+		Func<Task<T>> operation,
+		CancellationToken ct = default
+	);
+
+	/// <summary>
+	/// Same as <see cref="ExecuteInTransactionAsync{T}(Func{Task{T}}, CancellationToken)"/> but
+	/// also invokes <paramref name="onError"/> with the exception before re-throwing.
+	/// </summary>
+	Task<T> ExecuteInTransactionAsync<T>(
+		Func<Task<T>> operation,
+		Func<Exception, Task> onError,
+		CancellationToken ct = default
+	);
 }

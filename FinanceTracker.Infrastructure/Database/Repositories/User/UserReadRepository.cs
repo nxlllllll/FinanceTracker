@@ -1,9 +1,12 @@
-﻿using FinanceTracker.Core.Domains.Category;
+﻿using System.Runtime.CompilerServices;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
@@ -40,7 +43,7 @@ public sealed class UserReadRepository(
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
-	
+
 	async Task<UserReadModel?> IUserQueryRepository.GetByIdAsync(
 		Guid userId,
 		CancellationToken ct)
@@ -124,18 +127,25 @@ public sealed class UserReadRepository(
 			limit: pageSize + 1
 		);
 
-		List<HistoryRow> rows = await context.Database
-			.SqlQueryRaw<HistoryRow>(sql: query.Sql, parameters: [..query.Parameters])
-			.ToListAsync(cancellationToken: ct);
-		
-		bool hasNextPage = rows.Count > pageSize;
-		if (hasNextPage)
-			rows.RemoveAt(index: rows.Count - 1);
+		await using NpgsqlConnection conn = await context.OpenReadConnectionAsync(ct: ct);
+		await using NpgsqlCommand cmd = new NpgsqlCommand(cmdText: query.Sql, connection: conn);
+		foreach (NpgsqlParameter param in query.Parameters)
+			cmd.Parameters.Add(value: param);
 
-		HistoryRow? last = rows.Count > 0 ? rows[^1] : null;
+		await using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken: ct);
+
+		List<Operation> items = new List<Operation>(capacity: pageSize + 1);
+		while (await reader.ReadAsync(cancellationToken: ct))
+			items.Add(item: HistoryRowMapper.MapFromReader(reader: reader));
+
+		bool hasNextPage = items.Count > pageSize;
+		if (hasNextPage)
+			items.RemoveAt(index: items.Count - 1);
+
+		Operation? last = items.Count > 0 ? items[^1] : null;
 
 		return new PagedResult<Operation>(
-			Items: [..rows.Select(HistoryRowMapper.Map)],
+			Items: [..items],
 			HasNextPage: hasNextPage,
 			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
 			NextCursorId: hasNextPage ? last?.Id : null

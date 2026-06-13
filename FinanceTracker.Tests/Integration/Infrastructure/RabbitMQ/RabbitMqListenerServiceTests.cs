@@ -146,7 +146,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: scopeFactory,
-			retryCounter: retryCounter ?? new InMemoryRetryCounter(),
+			retryCounter: retryCounter ?? new InMemoryRetryCounter(options: Options.Create(options: _baseOptions)),
 			logger: NullLogger<RabbitMqListenerService<AggregateEventsMessage, THandler>>.Instance
 		);
 	}
