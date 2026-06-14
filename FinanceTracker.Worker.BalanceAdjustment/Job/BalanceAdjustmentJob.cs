@@ -108,7 +108,7 @@ public sealed class BalanceAdjustmentJob(
 		string sourceTypeTag = entityName.ToLowerInvariant();
 		KeyValuePair<string, object?> sourceTag = new KeyValuePair<string, object?>(key: "source_type", value: sourceTypeTag);
 
-		Dictionary<Guid, Account> accountCache = new();
+		Dictionary<Guid, Account> accountCache = new Dictionary<Guid, Account>();
 
 		int adjusted = 0;
 		int skipped = 0;
@@ -258,28 +258,11 @@ public sealed class BalanceAdjustmentJob(
 			),
 			onAdjustAsync: async (accountCache, item, newRate, innerCt) =>
 			{
-				Account? fromAccount = await GetOrLoadAccountAsync(cache: accountCache, accountId: item.FromAccountId, ct: innerCt);
 				Account? toAccount = await GetOrLoadAccountAsync(cache: accountCache, accountId: item.ToAccountId, ct: innerCt);
 
-				if (fromAccount is null || toAccount is null)
+				if (toAccount is null)
 				{
-					logger.ZLogWarning(message: $"Account(s) not found for transfer {item.TransferId}. Skipping.");
-					return AdjustResult.Skipped;
-				}
-
-				Result<Unit, DomainException> fromResult = fromAccount.AdjustBalance(
-					occurredAt: dateProvider.UtcNow,
-					sourceId: item.TransferId,
-					sourceType: AggregateTypeNames.Transfer,
-					direction: DirectionType.Debit,
-					oldRate: item.CurrentRate,
-					newRate: newRate,
-					amount: item.AmountFrom
-				);
-
-				if (fromResult.IsFailure)
-				{
-					logger.ZLogWarning(message: $"AdjustBalance failed for from-account on transfer {item.TransferId}: {fromResult.Error!.Message}. Skipping.");
+					logger.ZLogWarning(message: $"toAccount {item.ToAccountId} not found for transfer {item.TransferId}. Skipping.");
 					return AdjustResult.Skipped;
 				}
 
@@ -301,7 +284,6 @@ public sealed class BalanceAdjustmentJob(
 
 				await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 				{
-					await accountRepository.SaveAsync(account: fromAccount, ct: innerCt);
 					await accountRepository.SaveAsync(account: toAccount, ct: innerCt);
 					await transferWriteRepository.UpdateRateAsync(
 						transferId: item.TransferId,
@@ -311,7 +293,6 @@ public sealed class BalanceAdjustmentJob(
 					);
 				}, ct: innerCt);
 
-				accountCache.Remove(key: item.FromAccountId);
 				accountCache.Remove(key: item.ToAccountId);
 
 				logger.ZLogInformation(message: $"Adjusted transfer {item.TransferId}: rate {item.CurrentRate} > {newRate}.");

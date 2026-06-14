@@ -73,14 +73,11 @@ public sealed class PostgresEventStore(
 			});
 
 			IAccountIntegrationEvent? integrationEvent = integrationEventMapper.Map(@event: @event);
-
-			(string outboxEventType, string outboxPayload) = (eventType, serialized);
-			if (integrationEvent is not null)
-			{
-				outboxEventType = integrationEventTypeResolver.ResolveTypeName(eventType: integrationEvent.GetType());
-				outboxPayload = JsonSerializer.Serialize(value: integrationEvent, inputType: integrationEvent.GetType(), options: FinanceTrackerJsonOptions.Payload);
-			}
-
+			if (integrationEvent is null)
+				continue;
+			
+			string outboxEventType = integrationEventTypeResolver.ResolveTypeName(eventType: integrationEvent.GetType());
+			string outboxPayload = JsonSerializer.Serialize(value: integrationEvent, inputType: integrationEvent.GetType(), options: FinanceTrackerJsonOptions.Payload);
 			envelopes.Add(item: new OutboxEventEnvelope(EventType: outboxEventType, EventPayload: outboxPayload));
 		}
 
@@ -143,22 +140,26 @@ public sealed class PostgresEventStore(
 			now: dateProvider.UtcNow
 		);
 
-		string payload = JsonSerializer.Serialize(value: new OutboxPayload(
-			AggregateId: aggregateId,
-			CorrelationId: correlationContext.CorrelationId,
-			Events: envelopes
-		), options: FinanceTrackerJsonOptions.Payload);
-
 		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
-		await context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity()
+
+		if (envelopes.Count > 0)
 		{
-			Id = Guid.CreateVersion7(),
-			AggregateId = aggregateId,
-			AggregateType = aggregateType,
-			Payload = payload,
-			UpdatedAt = dateProvider.UtcNow,
-			ProcessedAt = null
-		}, cancellationToken: ct);
+			string payload = JsonSerializer.Serialize(value: new OutboxPayload(
+				AggregateId: aggregateId,
+				CorrelationId: correlationContext.CorrelationId,
+				Events: envelopes
+			), options: FinanceTrackerJsonOptions.Payload);
+
+			await context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity()
+			{
+				Id = Guid.CreateVersion7(),
+				AggregateId = aggregateId,
+				AggregateType = aggregateType,
+				Payload = payload,
+				UpdatedAt = dateProvider.UtcNow,
+				ProcessedAt = null
+			}, cancellationToken: ct);
+		}
 
 		await ApplySnapshot(
 			aggregateId: aggregateId,
@@ -232,7 +233,7 @@ public sealed class PostgresEventStore(
 				logger.ZLogError(exception: ex, message: $"""
 					Failed to deserialize event '{entity.EventType}' v{entity.SchemaVersion} (id: {entity.Id}) for {aggregateType} {aggregateId}. 
 					Stored at version {entity.Version}.
-				""");
+					""");
 				throw;
 			}
 		}

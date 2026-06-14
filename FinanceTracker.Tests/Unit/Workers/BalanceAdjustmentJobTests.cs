@@ -100,6 +100,9 @@ public sealed class BalanceAdjustmentJobTests
         Guid? transferId = null,
         Guid? fromAccountId = null,
         Guid? toAccountId = null,
+        Currency? currencyFrom = null,
+        Currency? currencyTo = null,
+        decimal amountFrom = 1000m,
         decimal currentRate = 1m,
         int rowVersion = 0)
     {
@@ -107,12 +110,12 @@ public sealed class BalanceAdjustmentJobTests
             TransferId: transferId ?? Guid.CreateVersion7(),
             FromAccountId: fromAccountId ?? Guid.CreateVersion7(),
             ToAccountId: toAccountId ?? Guid.CreateVersion7(),
-            CurrencyFrom: Currency.Reconstitute(value: "USD"),
-            CurrencyTo: Currency.Reconstitute(value: "RUB"),
+            CurrencyFrom: currencyFrom ?? Currency.Reconstitute(value: "USD"),
+            CurrencyTo: currencyTo ?? Currency.Reconstitute(value: "RUB"),
             OccurredAt: FakeDateProvider.Default.UtcNow,
             CurrentRate: currentRate,
             RowVersion: rowVersion,
-            AmountFrom: 1000m
+            AmountFrom: amountFrom
         );
     }
 
@@ -418,72 +421,6 @@ public sealed class BalanceAdjustmentJobTests
     }
 
     [Test]
-    public async Task Execute_WhenTransferRateChanged_ShouldAdjustBothAccounts()
-    {
-        Guid fromAccountId = Guid.CreateVersion7();
-        Guid toAccountId = Guid.CreateVersion7();
-        PendingRateTransfer transfer = BuildTransfer(
-            fromAccountId: fromAccountId,
-            toAccountId: toAccountId,
-            currentRate: 80m
-        );
-
-        Account fromAccount = AccountFactory.Create(balance: 5000m).Value!;
-        Account toAccount = AccountFactory.Create(balance: 5000m).Value!;
-
-        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
-
-        _currencyRateReadRepository.GetRateAsync(
-            baseCurrencyCode: Arg.Any<Currency>(),
-            targetCurrencyCode: Arg.Any<Currency>(),
-            date: Arg.Any<DateOnly>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: 90m);
-
-        _accountRepository.GetByIdAsync(accountId: fromAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: fromAccount);
-        _accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: toAccount);
-
-        await _job.Execute(context: _jobContext);
-
-        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: fromAccount,
-            ct: Arg.Any<CancellationToken>()
-        );
-
-        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: toAccount,
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
-
-    [Test]
-    public async Task Execute_WhenFromAccountNotFound_ShouldNotSaveAnyAccount()
-    {
-        Guid fromAccountId = Guid.CreateVersion7();
-        Guid toAccountId = Guid.CreateVersion7();
-        PendingRateTransfer transfer = BuildTransfer(fromAccountId: fromAccountId, toAccountId: toAccountId, currentRate: 80m);
-
-        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
-
-        _currencyRateReadRepository.GetRateAsync(
-            baseCurrencyCode: Arg.Any<Currency>(),
-            targetCurrencyCode: Arg.Any<Currency>(),
-            date: Arg.Any<DateOnly>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: 90m);
-
-        _accountRepository.GetByIdAsync(accountId: fromAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: (Account?)null);
-        _accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: AccountFactory.Create().Value!);
-
-        await _job.Execute(context: _jobContext);
-
-        await _accountRepository.DidNotReceive().SaveAsync(
-            account: Arg.Any<Account>(),
-            ct: Arg.Any<CancellationToken>()
-        );
-    }
-
-    [Test]
     public async Task Execute_WhenToAccountNotFound_ShouldNotSaveAnyAccount()
     {
         Guid fromAccountId = Guid.CreateVersion7();
@@ -506,6 +443,127 @@ public sealed class BalanceAdjustmentJobTests
 
         await _accountRepository.DidNotReceive().SaveAsync(
             account: Arg.Any<Account>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+    
+    [Test]
+    public async Task ProcessTransfers_CrossCurrency_ShouldAdjustOnlyToAccount()
+    {
+        Account toAccount = AccountFactory.Create(currency: "RUB", balance: 8000m).Value!;
+
+        Guid fromAccountId = Guid.CreateVersion7();
+        Guid toAccountId = toAccount.Id;
+        
+        PendingRateTransfer transfer = BuildTransfer(
+            fromAccountId: fromAccountId,
+            toAccountId: toAccountId,
+            amountFrom: 100m,
+            currencyFrom: Currency.Create(value: "USD").Value,
+            currencyTo: Currency.Create(value: "RUB").Value,
+            currentRate: 80m
+        );
+
+        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+
+        _accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: toAccount);
+
+        _currencyRateReadRepository.GetRateAsync(
+            baseCurrencyCode: Arg.Any<Currency>(),
+            targetCurrencyCode: Arg.Any<Currency>(),
+            date: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: 90m);
+
+        await _job.Execute(_jobContext);
+
+        await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
+            account: Arg.Is<Account>(a => a.Id == toAccountId && a.Balance.Amount == 9000m),
+            ct: Arg.Any<CancellationToken>()
+        );
+
+        await _accountRepository.DidNotReceive().GetByIdAsync(
+            accountId: fromAccountId,
+            ct: Arg.Any<CancellationToken>()
+        );
+        await _accountRepository.DidNotReceive().SaveAsync(
+            account: Arg.Is<Account>(a => a.Id == fromAccountId),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task ProcessTransfers_CrossCurrency_WhenToAccountNotFound_ShouldSkip()
+    {
+        Guid fromAccountId = Guid.CreateVersion7();
+        Guid toAccountId = Guid.CreateVersion7();
+
+        PendingRateTransfer transfer = BuildTransfer(
+            fromAccountId: fromAccountId,
+            toAccountId: toAccountId,
+            amountFrom: 100m,
+            currencyFrom: Currency.Create(value: "USD").Value,
+            currencyTo: Currency.Create(value: "RUB").Value,
+            currentRate: 80m
+        );
+
+        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+
+        _accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: (Account?)null);
+
+        _currencyRateReadRepository.GetRateAsync(
+            baseCurrencyCode: Arg.Any<Currency>(),
+            targetCurrencyCode: Arg.Any<Currency>(),
+            date: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(90m);
+
+        await _job.Execute(_jobContext);
+
+        await _accountRepository.DidNotReceive().SaveAsync(
+            account: Arg.Any<Account>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task ProcessTransfers_CrossCurrency_WhenRateUnchanged_ShouldOnlyUpdateRateWithoutSavingAccount()
+    {
+        Guid fromAccountId = Guid.CreateVersion7();
+        Guid toAccountId = Guid.CreateVersion7();
+
+        PendingRateTransfer transfer = BuildTransfer(
+            fromAccountId: fromAccountId,
+            toAccountId: toAccountId,
+            amountFrom: 100m,
+            currencyFrom: Currency.Create(value: "USD").Value,
+            currencyTo: Currency.Create(value: "RUB").Value,
+            currentRate: 90m
+        );
+
+        _transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+
+        _currencyRateReadRepository.GetRateAsync(
+            baseCurrencyCode: Arg.Any<Currency>(),
+            targetCurrencyCode: Arg.Any<Currency>(),
+            date: Arg.Any<DateOnly>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: 90m);
+
+        await _job.Execute(_jobContext);
+
+        await _accountRepository.DidNotReceive().GetByIdAsync(
+            accountId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+        await _accountRepository.DidNotReceive().SaveAsync(
+            account: Arg.Any<Account>(),
+            ct: Arg.Any<CancellationToken>()
+        );
+        await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateRateAsync(
+            transferId: transfer.TransferId,
+            newRate: 90m,
+            expectedVersion: transfer.RowVersion,
             ct: Arg.Any<CancellationToken>()
         );
     }
