@@ -12,6 +12,7 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Utilities.Retry;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
@@ -42,6 +43,7 @@ public sealed class BalanceAdjustmentJob(
 
 	private async Task<AdjustResult> TryAdjustAsync(
 		Guid itemId,
+		Dictionary<Guid, Account> accountCache,
 		BalanceAdjustmentJobOptions options,
 		Func<CancellationToken, Task<AdjustResult>> work,
 		CancellationToken ct)
@@ -50,10 +52,14 @@ public sealed class BalanceAdjustmentJob(
 		{
 			return await RetryDelayCalculator.ExecuteWithRetryAsync(
 				operation: work,
-				logging: (exception, attempt, delay) => logger.ZLogWarning(exception: exception, message: $"""
-					[ConcurrencyRetry] Attempt {attempt + 1}/{options.MaxRetries} failed.
-					Retrying in {delay}ms.
-				"""),
+				logging: (exception, attempt, delay) =>
+				{
+					accountCache.Remove(key: itemId);
+					logger.ZLogWarning(exception: exception, message: $"""
+						[ConcurrencyRetry] Attempt {attempt + 1}/{options.MaxRetries} failed.
+						Retrying in {delay}ms.
+					""");
+				},
 				maxRetries: options.MaxRetries,
 				baseDelayMs: options.BaseDelayMs,
 				useJitter: options.UseJitter,
@@ -139,6 +145,7 @@ public sealed class BalanceAdjustmentJob(
 
 			AdjustResult result = await TryAdjustAsync(
 				itemId: getId(item),
+				accountCache: accountCache,
 				options: options,
 				work: innerCt => onAdjustAsync(accountCache, item, newRate.Value, innerCt),
 				ct: ct
@@ -174,7 +181,7 @@ public sealed class BalanceAdjustmentJob(
 			entityName: nameof(Transaction),
 			getId: item => item.TransactionId,
 			getCurrentRate: item => item.CurrentRate,
-			getNewRateAsync: (item, innerCt) => currencyRateReadRepository.GetRateAsync(
+			getNewRateAsync: async (item, innerCt) => await currencyRateReadRepository.GetRateAsync(
 				baseCurrencyCode: item.TransactionCurrency,
 				targetCurrencyCode: item.BaseCurrency,
 				date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
@@ -223,8 +230,6 @@ public sealed class BalanceAdjustmentJob(
 						ct: innerCt
 					);
 				}, ct: innerCt);
-				
-				accountCache.Remove(key: item.AccountId);
 
 				logger.ZLogInformation(message: $"Adjusted transaction {item.TransactionId}: rate {item.CurrentRate} > {newRate}.");
 				return AdjustResult.Adjusted;
@@ -292,8 +297,6 @@ public sealed class BalanceAdjustmentJob(
 						ct: innerCt
 					);
 				}, ct: innerCt);
-
-				accountCache.Remove(key: item.ToAccountId);
 
 				logger.ZLogInformation(message: $"Adjusted transfer {item.TransferId}: rate {item.CurrentRate} > {newRate}.");
 				return AdjustResult.Adjusted;

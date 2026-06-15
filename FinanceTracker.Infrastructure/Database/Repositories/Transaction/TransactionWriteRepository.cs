@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
@@ -6,13 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 
-public sealed class TransactionWriteRepository(FinanceTrackerContext context) : ITransactionWriteRepository
+public sealed class TransactionWriteRepository(
+    FinanceTrackerContext context,
+    IOperationWriteRepository operationRepository
+) : ITransactionWriteRepository
 {
     public async Task CreateAsync(
         Core.Domains.Transaction.Transaction transaction,
         CancellationToken ct = default)
     {
-        await context.Transactions.AddAsync(entity: new TransactionEntity()
+        await context.Transactions.AddAsync(entity: new TransactionEntity
         {
             Id = transaction.Id,
             AccountId = transaction.AccountId,
@@ -28,10 +32,13 @@ public sealed class TransactionWriteRepository(FinanceTrackerContext context) : 
             RowVersion = 0,
             OccurredAt = transaction.OccurredAt
         }, cancellationToken: ct);
+
+        await operationRepository.InsertTransactionAsync(transaction: transaction, ct: ct);
     }
 
     public async Task ChangeCategoryAsync(
         Guid transactionId,
+        Guid userId,
         Guid categoryId,
         int expectedVersion,
         CancellationToken ct = default)
@@ -45,6 +52,13 @@ public sealed class TransactionWriteRepository(FinanceTrackerContext context) : 
 
         if (affected == 0)
             throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+        
+        await operationRepository.UpdateTransactionCategoryAsync(
+            transactionId: transactionId,
+            userId: userId,
+            categoryId: categoryId,
+            ct: ct
+        );
     }
 
     public async Task ChangeDescriptionAsync(
@@ -66,6 +80,7 @@ public sealed class TransactionWriteRepository(FinanceTrackerContext context) : 
 
     public async Task IncludeAsync(
         Guid transactionId,
+        Guid userId,
         int expectedVersion,
         CancellationToken ct = default)
     {
@@ -78,10 +93,18 @@ public sealed class TransactionWriteRepository(FinanceTrackerContext context) : 
 
         if (affected == 0)
             throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+        
+        await operationRepository.UpdateTransactionExclusionAsync(
+            transactionId: transactionId,
+            userId: userId,
+            isExcluded: false,
+            ct: ct
+        );
     }
 
     public async Task ExcludeAsync(
         Guid transactionId,
+        Guid userId,
         int expectedVersion,
         CancellationToken ct = default)
     {
@@ -94,6 +117,13 @@ public sealed class TransactionWriteRepository(FinanceTrackerContext context) : 
 
         if (affected == 0)
             throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+        
+        await operationRepository.UpdateTransactionExclusionAsync(
+            transactionId: transactionId,
+            userId: userId,
+            isExcluded: true,
+            ct: ct
+        );
     }
 
     public async Task UpdateRateAsync(

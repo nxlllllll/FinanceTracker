@@ -9,6 +9,7 @@ public interface ITransactionWriteRepository
 
 	Task ChangeCategoryAsync(
 		Guid transactionId,
+		Guid userId,
 		Guid categoryId,
 		int expectedVersion,
 		CancellationToken ct = default
@@ -21,14 +22,16 @@ public interface ITransactionWriteRepository
 		CancellationToken ct = default
 	);
 
-	Task IncludeAsync(
+	Task ExcludeAsync(
 		Guid transactionId,
+		Guid userId,
 		int expectedVersion,
 		CancellationToken ct = default
 	);
 
-	Task ExcludeAsync(
+	Task IncludeAsync(
 		Guid transactionId,
+		Guid userId,
 		int expectedVersion,
 		CancellationToken ct = default
 	);

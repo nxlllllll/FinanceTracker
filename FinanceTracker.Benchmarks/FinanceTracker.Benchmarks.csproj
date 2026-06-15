@@ -28,6 +28,9 @@
         <EmbeddedResource Include="Exporters\analytics-template.html" />
         <EmbeddedResource Include="Exporters\analytics-styles.css" />
         <EmbeddedResource Include="Exporters\analytics-scripts.js" />
+        <None Update="Infrastructure\seed.sql">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
 </Project>

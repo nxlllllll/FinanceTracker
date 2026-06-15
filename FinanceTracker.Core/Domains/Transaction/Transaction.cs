@@ -30,7 +30,11 @@ public sealed class Transaction
 
 	private Transaction() { }
 
-	public static Transaction Create(
+	/// <summary>
+	/// Creates a new transaction. Fails if <paramref name="exchangeRate"/> is not positive.
+	/// <paramref name="amount"/> must already be a validated <see cref="Money"/> value.
+	/// </summary>
+	public static Result<Transaction, DomainException> Create(
 		DateTimeOffset occurredAt,
 		Guid accountId,
 		Guid userId,
@@ -41,7 +45,10 @@ public sealed class Transaction
 		bool isRatePending,
 		string? description)
 	{
-		return new Transaction()
+		if (exchangeRate <= 0)
+			return Result<Transaction, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
+
+		return Result<Transaction, DomainException>.Success(value: new Transaction
 		{
 			Id = Guid.CreateVersion7(),
 			AccountId = accountId,
@@ -55,9 +62,10 @@ public sealed class Transaction
 			Description = description,
 			RowVersion = 0,
 			OccurredAt = occurredAt
-		};
+		});
 	}
 
+	/// <summary>Bypasses validation. Use only when rehydrating from storage.</summary>
 	public static Transaction Reconstitute(
 		Guid id,
 		Guid accountId,
@@ -72,7 +80,7 @@ public sealed class Transaction
 		int rowVersion,
 		DateTimeOffset occurredAt)
 	{
-		return new Transaction()
+		return new Transaction
 		{
 			Id = id,
 			AccountId = accountId,
@@ -95,7 +103,6 @@ public sealed class Transaction
 			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is already excluded."));
 
 		IsExcluded = true;
-		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -105,7 +112,6 @@ public sealed class Transaction
 			return Result<Unit, DomainException>.Failure(error: new IncludingException(message: "Transaction is not excluded."));
 
 		IsExcluded = false;
-		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -115,7 +121,6 @@ public sealed class Transaction
 			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
 
 		CategoryId = categoryId;
-		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -125,7 +130,6 @@ public sealed class Transaction
 			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
 		
 		Description = description;
-		RowVersion++;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

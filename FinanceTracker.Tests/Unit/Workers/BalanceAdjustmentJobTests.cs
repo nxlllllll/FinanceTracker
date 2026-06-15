@@ -11,6 +11,7 @@ using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.BalanceAdjustment.Job;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Quartz;
 
 namespace FinanceTracker.Tests.Unit.Workers;
@@ -152,14 +153,22 @@ public sealed class BalanceAdjustmentJobTests
             accountId: Arg.Any<Guid>(),
             ct: Arg.Any<CancellationToken>()
         );
+        await _accountRepository.DidNotReceive().SaveAsync(
+            account: Arg.Any<Account>(),
+            ct: Arg.Any<CancellationToken>()
+        );
     }
 
     [Test]
     public async Task Execute_WhenTransactionRateUnchanged_ShouldOnlyUpdateRate()
     {
-        PendingRateTransaction transaction = BuildTransaction(currentRate: 90m, rowVersion: 0);
+        Guid accountId = Guid.CreateVersion7();
+        PendingRateTransaction transaction = BuildTransaction(accountId: accountId, currentRate: 90m, rowVersion: 0);
+        Account account = AccountFactory.Create(balance: 5000m).Value!;
 
         _transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
+
+        _accountRepository.GetByIdAsync(accountId: accountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: account);
 
         _currencyRateReadRepository.GetRateAsync(
             baseCurrencyCode: Arg.Any<Currency>(),
@@ -177,8 +186,8 @@ public sealed class BalanceAdjustmentJobTests
             ct: Arg.Any<CancellationToken>()
         );
 
-        await _accountRepository.DidNotReceive().GetByIdAsync(
-            accountId: Arg.Any<Guid>(),
+        await _accountRepository.DidNotReceive().SaveAsync(
+            account: Arg.Any<Account>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -264,9 +273,13 @@ public sealed class BalanceAdjustmentJobTests
     [Test]
     public async Task Execute_WhenSaveThrowsUnexpectedException_ShouldContinueProcessingNextTransaction()
     {
-        PendingRateTransaction first = BuildTransaction(currentRate: 80m);
-        PendingRateTransaction second = BuildTransaction(currentRate: 80m);
-        Account account = AccountFactory.Create(balance: 5000m).Value!;
+        Guid firstAccountId = Guid.CreateVersion7();
+        Guid secondAccountId = Guid.CreateVersion7();
+
+        PendingRateTransaction first = BuildTransaction(accountId: firstAccountId, currentRate: 80m);
+        PendingRateTransaction second = BuildTransaction(accountId: secondAccountId, currentRate: 80m);
+        Account firstAccount = AccountFactory.Create(balance: 5000m).Value!;
+        Account secondAccount = AccountFactory.Create(balance: 5000m).Value!;
 
         _transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [first, second]);
 
@@ -277,19 +290,20 @@ public sealed class BalanceAdjustmentJobTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: 90m);
 
-        int callCount = 0;
-        _accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: _ =>
-        {
-            ++callCount;
-            if (callCount == 1)
-                throw new InvalidOperationException(message: "Database error");
-            return account;
-        });
+        _accountRepository.GetByIdAsync(
+            accountId: firstAccountId,
+            ct: Arg.Any<CancellationToken>()
+        ).Throws(createException: _ => throw new InvalidOperationException(message: "Database error"));
+
+        _accountRepository.GetByIdAsync(
+           accountId: secondAccountId,
+           ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: secondAccount);
 
         await _job.Execute(context: _jobContext);
 
         await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-            account: account,
+            account: secondAccount,
             ct: Arg.Any<CancellationToken>()
         );
     }

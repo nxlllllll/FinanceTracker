@@ -6,6 +6,7 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
@@ -24,7 +25,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupRepositories()
 	{
-		_writeRepository = new TransactionWriteRepository(context: Context);
+		_writeRepository = new TransactionWriteRepository(context: Context, operationRepository: new OperationWriteRepository(context: Context));
 		_accountWriteRepository = new AccountWriteRepository(
 			context: Context,
 			dateProvider: FakeDateProvider.Default
@@ -155,6 +156,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
 		await _writeRepository.ChangeCategoryAsync(
 			transactionId: transaction.Id,
+			userId: transaction.UserId,
 			categoryId: newCategoryId,
 			expectedVersion: 0
 		);
@@ -195,7 +197,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
-		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0);
+		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 0);
 
 		TransactionEntity entity = await Context.Transactions.AsNoTracking().FirstAsync(predicate: t => t.Id == transaction.Id);
 
@@ -212,8 +214,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
-		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0);
-		await _writeRepository.IncludeAsync(transactionId: transaction.Id, expectedVersion: 1);
+		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 0);
+		await _writeRepository.IncludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 1);
 
 		TransactionEntity entity = await Context.Transactions.AsNoTracking().FirstAsync(predicate: t => t.Id == transaction.Id);
 
@@ -230,10 +232,10 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
-		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0);
+		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 0);
 
 		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
-			await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: 0)
+			await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 0)
 		);
 	}
 }

@@ -9,6 +9,7 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
+using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
@@ -50,8 +51,8 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             currencyConversionService: currencyConversionService,
             dateProvider: FakeDateProvider.Default
         );
-        _transactionWriteRepository = new TransactionWriteRepository(context: Context);
-        _transferWriteRepository = new TransferWriteRepository(context: Context);
+        _transactionWriteRepository = new TransactionWriteRepository(context: Context, operationRepository: new OperationWriteRepository(context: Context));
+        _transferWriteRepository = new TransferWriteRepository(context: Context, operationRepository: new OperationWriteRepository(context: Context));
         _userBuilder = new UserBuilder(context: Context);
         _accountBuilder = new AccountBuilder(context: Context);
         _categoryBuilder = new CategoryBuilder(context: Context);

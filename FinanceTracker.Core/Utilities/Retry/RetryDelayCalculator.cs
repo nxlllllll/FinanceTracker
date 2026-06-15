@@ -42,7 +42,7 @@ public static class RetryDelayCalculator
 	{
 		return await ExecuteWithRetryAsync(
 			operation: operation,
-			logging: (ex, attempt, delay) => logging((ConcurrencyConflictException)ex, attempt, delay),
+			onError: (ex, attempt, delay) => logging((ConcurrencyConflictException)ex, attempt, delay),
 			exceptionFilter: ex => ex is ConcurrencyConflictException,
 			maxRetries: maxRetries,
 			baseDelayMs: baseDelayMs,
@@ -57,7 +57,7 @@ public static class RetryDelayCalculator
 	/// </summary>
 	public static async Task ExecuteWithRetryAsync(
 		Func<CancellationToken, Task> operation,
-		Action<Exception, int, int> logging,
+		Action<Exception, int, int> onError,
 		Func<Exception, bool> exceptionFilter,
 		int maxRetries,
 		int baseDelayMs,
@@ -70,7 +70,7 @@ public static class RetryDelayCalculator
 				await operation(innerCt);
 				return true;
 			},
-			logging: logging,
+			onError: onError,
 			exceptionFilter: exceptionFilter,
 			maxRetries: maxRetries,
 			baseDelayMs: baseDelayMs,
@@ -86,7 +86,7 @@ public static class RetryDelayCalculator
 	/// </summary>
 	public static async Task<T> ExecuteWithRetryAsync<T>(
 		Func<CancellationToken, Task<T>> operation,
-		Action<Exception, int, int> logging,
+		Action<Exception, int, int> onError,
 		Func<Exception, bool> exceptionFilter,
 		int maxRetries,
 		int baseDelayMs,
@@ -102,7 +102,7 @@ public static class RetryDelayCalculator
 			catch (Exception exception) when (exceptionFilter(exception) && attempt < maxRetries)
 			{
 				int delayMs = Calculate(attempt: attempt, baseDelayMs: baseDelayMs, useJitter: useJitter);
-				logging(exception, attempt, delayMs);
+				onError(exception, attempt, delayMs);
 				await Task.Delay(millisecondsDelay: delayMs, cancellationToken: ct);
 			}
 		}

@@ -60,7 +60,6 @@ public sealed class User
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		Email = newEmail;
-		++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -70,7 +69,6 @@ public sealed class User
 			return Result<Unit, DomainException>.Failure(error: new PasswordException(message: "The password hash cannot be empty."));
 
 		PasswordHash = newPasswordHash;
-		++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
@@ -80,7 +78,6 @@ public sealed class User
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		BaseCurrency = newBaseCurrency;
-		++RowVersion;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

@@ -37,8 +37,9 @@ public sealed class IncludeTransactionHandler(
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.IncludeAsync(
-				expectedVersion: transaction.RowVersion,
 				transactionId: command.TransactionId, 
+				userId: transaction.UserId,
+				expectedVersion: transaction.RowVersion,
 				ct: ct
 			);
 			

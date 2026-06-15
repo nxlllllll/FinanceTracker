@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
+using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
@@ -17,7 +18,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupRepositories()
 	{
-		_writeRepository = new TransferWriteRepository(context: Context);
+		_writeRepository = new TransferWriteRepository(context: Context, operationRepository: new OperationWriteRepository(context: Context));
 		_userBuilder = new UserBuilder(context: Context);
 		_accountBuilder = new AccountBuilder(context: Context);
 	}
@@ -69,6 +70,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 
 		await _writeRepository.UpdateStatusAsync(
 			transferId: transfer.Id,
+			userId: transfer.UserId,
 			status: TransferStatus.Completed,
 			expectedVersion: 0
 		);
@@ -86,16 +88,16 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 
 		await _writeRepository.UpdateStatusAsync(
 			transferId: transfer.Id,
+			userId: transfer.UserId,
 			status: TransferStatus.Completed,
 			expectedVersion: 0
 		);
 
-		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
-			await _writeRepository.UpdateStatusAsync(
-				transferId: transfer.Id,
-				status: TransferStatus.Compensated,
-				expectedVersion: 0
-			)
-		);
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.UpdateStatusAsync(
+			transferId: transfer.Id,
+			userId: transfer.UserId,
+			status: TransferStatus.Compensated,
+			expectedVersion: 0
+		));
 	}
 }

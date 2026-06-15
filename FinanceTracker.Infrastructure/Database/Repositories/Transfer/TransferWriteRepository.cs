@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
@@ -8,10 +9,13 @@ using Microsoft.EntityFrameworkCore;
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
 public sealed class TransferWriteRepository(
-	FinanceTrackerContext context
+    FinanceTrackerContext context,
+    IOperationWriteRepository operationRepository
 ) : ITransferWriteRepository
 {
-	public async Task CreateAsync(Core.Domains.Transfer.Transfer transfer, CancellationToken ct = default)
+	public async Task CreateAsync(
+		Core.Domains.Transfer.Transfer transfer,
+		CancellationToken ct = default)
 	{
 		await context.Transfers.AddAsync(entity: new TransferEntity
 		{
@@ -30,6 +34,8 @@ public sealed class TransferWriteRepository(
 			Status = transfer.Status,
 			RowVersion = 0
 		}, cancellationToken: ct);
+
+		await operationRepository.InsertTransferAsync(transfer: transfer, ct: ct);
 	}
 
 	public async Task UpdateRateAsync(
@@ -52,6 +58,7 @@ public sealed class TransferWriteRepository(
 
 	public async Task UpdateStatusAsync(
 		Guid transferId,
+        Guid userId,
 		TransferStatus status,
 		int expectedVersion,
 		CancellationToken ct = default)
@@ -65,5 +72,12 @@ public sealed class TransferWriteRepository(
 
 		if (affected == 0)
 			throw new ConcurrencyConflictException(message: $"Transfer {transferId} was modified by another request.", id: transferId);
+
+        await operationRepository.UpdateTransferStatusAsync(
+            transferId: transferId,
+            userId: userId,
+            status: status,
+            ct: ct
+        );
 	}
 }

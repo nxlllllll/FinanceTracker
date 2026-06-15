@@ -73,7 +73,8 @@ public sealed class TransactionCreationService(
             ct: ct
         );
         
-        Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Create(
+        Result<Core.Domains.Transaction.Transaction, DomainException> transactionResult = Core.Domains.Transaction.Transaction.Create(
+            occurredAt: command.OccurredAt,
             accountId: command.AccountId,
             userId: command.UserId,
             categoryId: command.CategoryId,
@@ -81,9 +82,13 @@ public sealed class TransactionCreationService(
             direction: command.Direction,
             exchangeRate: conversion.Rate,
             isRatePending: conversion.IsPending,
-            description: command.Description,
-            occurredAt: command.OccurredAt
+            description: command.Description
         );
+
+        if (transactionResult.IsFailure)
+            return Result<Guid, DomainException>.Failure(error: transactionResult.Error!);
+
+        Core.Domains.Transaction.Transaction transaction = transactionResult.Value!;
 
         Result<Unit, DomainException> result = ApplyDirection(
             account: account,
