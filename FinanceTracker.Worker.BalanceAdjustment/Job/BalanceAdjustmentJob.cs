@@ -174,6 +174,7 @@ public sealed class BalanceAdjustmentJob(
 	private async Task ProcessTransactionsAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
 		IReadOnlyList<PendingRateTransaction> pending = await transactionReadRepository.GetPendingRateAsync(ct: ct);
+		Currency currency = new Currency();
 
 		await ProcessPendingAsync(
 			pending: pending,
@@ -183,11 +184,11 @@ public sealed class BalanceAdjustmentJob(
 			getCurrentRate: item => item.CurrentRate,
 			getNewRateAsync: async (item, innerCt) => await currencyRateReadRepository.GetRateAsync(
 				baseCurrencyCode: item.TransactionCurrency,
-				targetCurrencyCode: item.BaseCurrency,
+				targetCurrencyCode: currency,
 				date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
 				ct: innerCt
 			),
-			buildSkipMessage: item => $"Rate not found for transaction {item.TransactionId} ({item.TransactionCurrency} > {item.BaseCurrency} on {item.OccurredAt:d}).",
+			buildSkipMessage: item => $"Rate not found for transaction {item.TransactionId} ({item.TransactionCurrency} > {currency} on {item.OccurredAt:d}).",
 			onRateUnchangedAsync: (item, rate, innerCt) => transactionWriteRepository.UpdateRateAsync(
 				transactionId: item.TransactionId,
 				newRate: rate,
