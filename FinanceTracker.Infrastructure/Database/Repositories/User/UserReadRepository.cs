@@ -1,9 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -107,48 +111,99 @@ public sealed class UserReadRepository(
 		return (income, expense);
 	}
 
-	public async Task<PagedResult<Operation>> GetHistoryAsync(
-		Guid userId,
-		OperationFilterType? type = null,
-		DateTimeOffset? dateFrom = null,
-		DateTimeOffset? dateTo = null,
-		DateTimeOffset? cursorOccurredAt = null,
-		Guid? cursorId = null,
-		int pageSize = 20,
-		CancellationToken ct = default)
+	public async Task<PagedResult<Core.ReadModels.Operation>> GetHistoryAsync(
+	    Guid userId,
+	    OperationFilterType? type = null,
+	    DateTimeOffset? dateFrom = null,
+	    DateTimeOffset? dateTo = null,
+	    DateTimeOffset? cursorOccurredAt = null,
+	    Guid? cursorId = null,
+	    int pageSize = 20,
+	    CancellationToken ct = default)
 	{
-		HistoryQuery query = HistoryQuery.Build(
-			userId: userId,
-			type: type,
-			dateFrom: dateFrom,
-			dateTo: dateTo,
-			cursorOccurredAt: cursorOccurredAt,
-			cursorId: cursorId,
-			limit: pageSize + 1
+	    IQueryable<OperationEntity> query = context.Operations
+	        .AsNoTracking()
+	        .Where(predicate: o => o.UserId == userId);
+
+	    query = type switch
+	    {
+	        OperationFilterType.Income => query.Where(predicate: o => o.Type == AggregateTypeNames.Transaction && o.DirectionType == "credit"),
+	        OperationFilterType.Expense => query.Where(predicate: o => o.Type == AggregateTypeNames.Transaction && o.DirectionType == "debit"),
+	        OperationFilterType.Transfer => query.Where(predicate: o => o.Type == AggregateTypeNames.Transfer),
+	        _ => query
+	    };
+
+	    if (dateFrom is not null)
+	        query = query.Where(predicate: o => o.OccurredAt >= dateFrom.Value);
+
+	    if (dateTo is not null)
+	        query = query.Where(predicate: o => o.OccurredAt <= dateTo.Value);
+
+		if (cursorOccurredAt is not null && cursorId is not null)
+			query = query.Where(predicate: o => o.OccurredAt < cursorOccurredAt.Value || (o.OccurredAt == cursorOccurredAt.Value && o.Id < cursorId.Value));
+
+		List<OperationEntity> entities = await query
+			.OrderByDescending(keySelector: o => o.OccurredAt)
+			.ThenByDescending(keySelector: o => o.Id)
+			.Take(count: pageSize + 1)
+			.ToListAsync(cancellationToken: ct);
+
+	    bool hasNextPage = entities.Count > pageSize;
+	    if (hasNextPage)
+	        entities.RemoveAt(index: entities.Count - 1);
+
+	    IReadOnlyList<Core.ReadModels.Operation> items = entities.Select(selector: MapOperation).ToList().AsReadOnly();
+		Core.ReadModels.Operation? last = items.Count > 0 ? items[^1] : null;
+
+	    return new PagedResult<Core.ReadModels.Operation>(
+	        Items: items,
+	        HasNextPage: hasNextPage,
+	        NextCursorDate: hasNextPage ? last?.OccurredAt : null,
+	        NextCursorId: hasNextPage ? last?.Id : null
+	    );
+	}
+
+	private static Core.ReadModels.Operation MapOperation(OperationEntity o)
+	{
+	    bool isTransaction = o.Type == AggregateTypeNames.Transaction;
+
+		if (!isTransaction)
+		{
+			return new Core.ReadModels.Operation(
+				Id: o.Id,
+				Type: OperationFilterType.Transfer,
+				Description: o.Description,
+				OccurredAt: o.OccurredAt,
+				Transaction: null,
+				Transfer: new TransferDetails(
+					FromAccountId: o.FromAccountId!.Value,
+					ToAccountId: o.ToAccountId!.Value,
+					AmountFrom: o.AmountFrom!.Value,
+					CurrencyFrom: Core.ValueObjects.Currency.Reconstitute(value: o.CurrencyFrom!),
+					AmountTo: o.AmountTo!.Value,
+					CurrencyTo: Core.ValueObjects.Currency.Reconstitute(value: o.CurrencyTo!),
+					Status: o.Status!.FromCode()
+				)
+			);
+		}
+
+		DirectionType direction = Enum.Parse<DirectionType>(value: o.DirectionType!, ignoreCase: true);
+
+		return new Core.ReadModels.Operation(
+			Id: o.Id,
+			Type: direction == DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense,
+			Description: o.Description,
+			OccurredAt: o.OccurredAt,
+			Transaction: new TransactionDetails(
+				AccountId: o.AccountId!.Value,
+				CategoryId: o.CategoryId!.Value,
+				Amount: o.Amount!.Value,
+				Currency: Core.ValueObjects.Currency.Reconstitute(value: o.CurrencyCode!),
+				Direction: direction,
+				IsExcluded: o.IsExcluded!.Value
+			),
+			Transfer: null
 		);
 
-		await using NpgsqlConnection conn = await context.OpenReadConnectionAsync(ct: ct);
-		await using NpgsqlCommand cmd = new NpgsqlCommand(cmdText: query.Sql, connection: conn);
-		foreach (NpgsqlParameter param in query.Parameters)
-			cmd.Parameters.Add(value: param);
-
-		await using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken: ct);
-
-		List<Operation> items = new List<Operation>(capacity: pageSize + 1);
-		while (await reader.ReadAsync(cancellationToken: ct))
-			items.Add(item: HistoryRowMapper.MapFromReader(reader: reader));
-
-		bool hasNextPage = items.Count > pageSize;
-		if (hasNextPage)
-			items.RemoveAt(index: items.Count - 1);
-
-		Operation? last = items.Count > 0 ? items[^1] : null;
-
-		return new PagedResult<Operation>(
-			Items: [..items],
-			HasNextPage: hasNextPage,
-			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
-			NextCursorId: hasNextPage ? last?.Id : null
-		);
 	}
 }

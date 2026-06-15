@@ -57,6 +57,8 @@
       <EmbeddedResource Include="Migrations\V017__optimize_cursor_indexes.sql" />
       <None Remove="Migrations\V018__optimize_read_indexes.sql" />
       <EmbeddedResource Include="Migrations\V018__optimize_read_indexes.sql" />
+      <None Remove="Migrations\V019__optimize_recurring_due_today_index.sql" />
+      <EmbeddedResource Include="Migrations\V019__optimize_recurring_due_today_index.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

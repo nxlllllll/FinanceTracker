@@ -50,8 +50,9 @@ public sealed class ChangeTransactionCategoryHandler(
 		{
 			await transactionWriteRepository.ChangeCategoryAsync(
 				transactionId: command.TransactionId,
-				expectedVersion: transaction.RowVersion,
+				userId: transaction.UserId,
 				categoryId: command.CategoryId,
+				expectedVersion: transaction.RowVersion,
 				ct: ct
 			);
 

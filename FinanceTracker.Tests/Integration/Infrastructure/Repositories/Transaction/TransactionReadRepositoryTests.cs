@@ -7,6 +7,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
+using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
@@ -31,7 +32,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 	public void SetupRepositories()
 	{
 		_readRepository = new TransactionReadRepository(context: Context);
-		_writeRepository = new TransactionWriteRepository(context: Context);
+		_writeRepository = new TransactionWriteRepository(context: Context, operationRepository: new OperationWriteRepository(context: Context));
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -116,7 +117,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		await Context.SaveChangesAsync();
 
 		if (isExcluded)
-			await _writeRepository.ExcludeAsync(transactionId: transaction.Id, expectedVersion: transaction.RowVersion);
+			await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: transaction.RowVersion);
 
 		return transaction.Id;
 	}

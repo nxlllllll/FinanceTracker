@@ -61,20 +61,20 @@ public sealed class RecurringTransactionHandlingJobTests
 			daysInCurrentMonth: Arg.Any<int>(),
 			currentMonthStart: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: []);
+		).Returns(returnThis: AsyncEnumerable.Empty<RecurringTransactionReadModel>());
 	}
 
 	private void SetupRepository(int count)
 	{
-		RecurringTransactionReadModel[] transactions = Enumerable
+		IAsyncEnumerable<RecurringTransactionReadModel> transactions = Enumerable
 			.Range(start: 0, count: count)
 			.Select(selector: _ => RecurringTransactionFactory.CreateReadModel())
-			.ToArray();
+			.ToAsyncEnumerable();
 
 		SetupRepository(transactions: transactions);
 	}
 
-	private void SetupRepository(RecurringTransactionReadModel[] transactions)
+	private void SetupRepository(IAsyncEnumerable<RecurringTransactionReadModel> transactions)
 	{
 		_recurringTransactionReadRepository.GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
@@ -130,8 +130,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	public async Task Execute_WhenDueTransactionsExist_ShouldPublishWithCorrectData()
 	{
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
-
-		SetupRepository(transactions: [transaction]);
+		SetupRepository(transactions: AsyncEnumerable.Repeat(element: transaction, count: 1));
 
 		await _job.Execute(context: _jobContext);
 
@@ -147,7 +146,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	public async Task Execute_WhenDueTransactionsExist_ShouldPublishWithDeterministicMessageId()
 	{
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
-		SetupRepository(transactions: [transaction]);
+		SetupRepository(transactions: AsyncEnumerable.Repeat(element: transaction, count: 1));
 
 		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
 		Guid expectedMessageId = DeterministicGuid.Create(baseId: transaction.Id, year: now.Year, month: now.Month);
@@ -165,7 +164,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	public async Task Execute_ShouldPublishBeforeMarkExecuted()
 	{
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
-		SetupRepository(transactions: [transaction]);
+		SetupRepository(transactions: AsyncEnumerable.Repeat(element: transaction, count: 1));
 
 		List<string> callOrder = [];
 
@@ -214,8 +213,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	public async Task Execute_ShouldMarkExecutedWithCorrectTransactionId()
 	{
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
-
-		SetupRepository(transactions: [transaction]);
+		SetupRepository(transactions: AsyncEnumerable.Repeat(element: transaction, count: 1));
 
 		await _job.Execute(context: _jobContext);
 
@@ -270,7 +268,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		RecurringTransactionReadModel second = RecurringTransactionFactory.CreateReadModel();
 		RecurringTransactionReadModel third  = RecurringTransactionFactory.CreateReadModel();
 
-		SetupRepository(transactions: [first, second, third]);
+		SetupRepository(transactions: new []{ first, second, third }.ToAsyncEnumerable());
 
 		int callCount = 0;
 		_publisher.PublishAsync(
@@ -318,7 +316,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
 
-		await _recurringTransactionReadRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
+		_recurringTransactionReadRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
 			dayOfMonth: now.Day,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: Arg.Any<DateTimeOffset>(),
@@ -336,7 +334,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
 		DateTimeOffset expectedMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		await _recurringTransactionReadRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
+		_recurringTransactionReadRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
 			dayOfMonth: Arg.Any<int>(),
 			daysInCurrentMonth: Arg.Any<int>(),
 			currentMonthStart: expectedMonthStart,
@@ -355,7 +353,7 @@ public sealed class RecurringTransactionHandlingJobTests
 			daysInCurrentMonth: Arg.Any<int>(),
 			currentMonthStart: Arg.Do<DateTimeOffset>(useArgument: x => capturedMonthStart = x),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: []);
+		).Returns(returnThis: AsyncEnumerable.Empty<RecurringTransactionReadModel>());
 
 		await _job.Execute(context: _jobContext);
 

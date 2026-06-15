@@ -62,7 +62,9 @@ public sealed class UserTests
 	{
 		User user = UserFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangeEmail(newEmail: Email.Create(value: "test@test.com").Value);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangeEmail(
+			newEmail: Email.Create(value: "test@test.com").Value
+		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
@@ -82,7 +84,9 @@ public sealed class UserTests
 	{
 		User user = UserFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangePassword(newPasswordHash: String.Empty);
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = user.ChangePassword(
+			newPasswordHash: String.Empty
+		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<PasswordException>();
@@ -108,60 +112,5 @@ public sealed class UserTests
 		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-	}
-
-	[Test]
-	public async Task ChangeEmail_WithNewEmail_ShouldIncrementRowVersion()
-	{
-		User user = UserFactory.Create().Value!;
-		int initialVersion = user.RowVersion;
-
-		user.ChangeEmail(newEmail: Email.Create(value: "new@test.com").Value);
-
-		await Assert.That(value: user.RowVersion).IsEqualTo(expected: initialVersion + 1);
-	}
-
-	[Test]
-	public async Task ChangeEmail_WithSameEmail_ShouldNotIncrementRowVersion()
-	{
-		User user = UserFactory.Create().Value!;
-		int initialVersion = user.RowVersion;
-
-		user.ChangeEmail(newEmail: Email.Create(value: "test@test.com").Value);
-
-		await Assert.That(value: user.RowVersion).IsEqualTo(expected: initialVersion);
-	}
-
-	[Test]
-	public async Task ChangePassword_WithValidHash_ShouldIncrementRowVersion()
-	{
-		User user = UserFactory.Create().Value!;
-		int initialVersion = user.RowVersion;
-
-		user.ChangePassword(newPasswordHash: "newHash");
-
-		await Assert.That(value: user.RowVersion).IsEqualTo(expected: initialVersion + 1);
-	}
-
-	[Test]
-	public async Task ChangeBaseCurrency_WithNewCurrency_ShouldIncrementRowVersion()
-	{
-		User user = UserFactory.Create().Value!;
-		int initialVersion = user.RowVersion;
-
-		user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "USD").Value);
-
-		await Assert.That(value: user.RowVersion).IsEqualTo(expected: initialVersion + 1);
-	}
-
-	[Test]
-	public async Task ChangeBaseCurrency_WithSameCurrency_ShouldNotIncrementRowVersion()
-	{
-		User user = UserFactory.Create().Value!;
-		int initialVersion = user.RowVersion;
-
-		user.ChangeBaseCurrency(newBaseCurrency: Currency.Create(value: "RUB").Value);
-
-		await Assert.That(value: user.RowVersion).IsEqualTo(expected: initialVersion);
 	}
 }

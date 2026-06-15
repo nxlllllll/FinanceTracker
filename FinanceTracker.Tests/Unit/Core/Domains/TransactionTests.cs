@@ -131,48 +131,4 @@ public sealed class TransactionTests
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ExcludedOperationException>();
 	}
-
-	[Test]
-	public async Task Exclude_ShouldIncrementRowVersion()
-	{
-		Transaction transaction = TransactionFactory.Create();
-		int initialVersion = transaction.RowVersion;
-
-		transaction.Exclude();
-
-		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
-	}
-
-	[Test]
-	public async Task Include_ShouldIncrementRowVersion()
-	{
-		Transaction transaction = TransactionFactory.Create(isExcluded: true);
-		int initialVersion = transaction.RowVersion;
-
-		transaction.Include();
-
-		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
-	}
-
-	[Test]
-	public async Task ChangeCategory_ShouldIncrementRowVersion()
-	{
-		Transaction transaction = TransactionFactory.Create();
-		int initialVersion = transaction.RowVersion;
-
-		transaction.ChangeCategory(categoryId: Guid.CreateVersion7());
-
-		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
-	}
-
-	[Test]
-	public async Task ChangeDescription_ShouldIncrementRowVersion()
-	{
-		Transaction transaction = TransactionFactory.Create();
-		int initialVersion = transaction.RowVersion;
-
-		transaction.ChangeDescription(description: "новое описание");
-
-		await Assert.That(value: transaction.RowVersion).IsEqualTo(expected: initialVersion + 1);
-	}
 }

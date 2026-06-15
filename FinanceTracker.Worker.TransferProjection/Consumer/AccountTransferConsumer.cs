@@ -138,6 +138,7 @@ public sealed class AccountTransferConsumer(
 		await accountRepository.SaveAsync(account: toAccount, ct: ct);
 		await transferWriteRepository.UpdateStatusAsync(
 			transferId: debitEvent.TransferId,
+			userId: transfer.UserId,
 			status: TransferStatus.Completed,
 			expectedVersion: transfer.RowVersion,
 			ct: ct

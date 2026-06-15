@@ -65,7 +65,7 @@ public sealed class AccountEventsConsumer(
 					logger.ZLogInformation(message: $"[{message.CorrelationId}] Projected {events.Count} event(s) for Account {message.AggregateId}.");
 				}, ct: innerCt);
 			},
-			logging: (exception, attempt, delay) => logger.ZLogWarning(
+			onError: (exception, attempt, delay) => logger.ZLogWarning(
 				exception: exception,
 				message: $"[{message.CorrelationId}] Concurrency conflict projecting Account {message.AggregateId}. Retry {attempt + 1}/{currentOptions.MaxRetries} in {delay}ms."
 			),

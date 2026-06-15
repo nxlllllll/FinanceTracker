@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Domains.Transfer;
+
 namespace FinanceTracker.Core.Repositories.Transfer;
 
 public interface ITransferWriteRepository
@@ -16,7 +18,8 @@ public interface ITransferWriteRepository
 
 	Task UpdateStatusAsync(
 		Guid transferId,
-		Domains.Transfer.TransferStatus status,
+		Guid userId,
+		TransferStatus status,
 		int expectedVersion,
 		CancellationToken ct = default
 	);

@@ -95,7 +95,6 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: new ActivatingException(message: "Recurring transaction is already active."));
  
         IsActive = true;
-        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
@@ -105,58 +104,53 @@ public sealed class RecurringTransaction
             return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is already inactive."));
  
         IsActive = false;
-        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
     public Result<Unit, DomainException> ChangeAmount(decimal amount)
     {
         if (!IsActive)
-            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+            return Result<Unit, DomainException>.Failure(error: new InactiveRecurringTransactionException(message: "Cannot change amount of an inactive recurring transaction."));
 
         Result<Money, DomainException> money = Money.Create(amount: amount, currency: Amount.Currency);
         if (money.IsFailure)
             return Result<Unit, DomainException>.Failure(error: money.Error!);
  
         Amount = money.Value;
-        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
     public Result<Unit, DomainException> ChangeCurrency(Currency currency)
     {
         if (!IsActive)
-            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+            return Result<Unit, DomainException>.Failure(error: new InactiveRecurringTransactionException(message: "Cannot change currency of an inactive recurring transaction."));
 
         Result<Money, DomainException> money = Money.Create(amount: Amount.Amount, currency: currency);
         if (money.IsFailure)
             return Result<Unit, DomainException>.Failure(error: money.Error!);
  
         Amount = money.Value;
-        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
  
     public Result<Unit, DomainException> ChangeDayOfMonth(int dayOfMonth)
     {
         if (!IsActive)
-            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+            return Result<Unit, DomainException>.Failure(error: new InactiveRecurringTransactionException(message: "Cannot change day of month of an inactive recurring transaction."));
 
         if (dayOfMonth is < 1 or > 31)
             return Result<Unit, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
  
         DayOfMonth = dayOfMonth;
-        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
-    
+ 
     public Result<Unit, DomainException> MarkExecuted(DateTimeOffset executedAt)
     {
         if (!IsActive)
-            return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is inactive."));
+            return Result<Unit, DomainException>.Failure(error: new InactiveRecurringTransactionException(message: "Cannot execute an inactive recurring transaction."));
  
         LastExecutedAt = executedAt;
-        ++RowVersion;
         return Result<Unit, DomainException>.Success(value: Unit.Default);
     }
 }

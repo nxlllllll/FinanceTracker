@@ -1,6 +1,8 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
@@ -19,7 +21,7 @@ public static class TransactionFactory
 		bool isExcluded = false,
 		string? description = null)
 	{
-		Transaction transaction = Transaction.Create(
+		Result<Transaction, DomainException> result = Transaction.Create(
 			occurredAt: FakeDateProvider.Default.UtcNow,
 			accountId: accountId ?? Guid.CreateVersion7(),
 			userId: userId ?? Guid.CreateVersion7(),
@@ -31,6 +33,11 @@ public static class TransactionFactory
 			description: description
 		);
 
+		if (result.IsFailure)
+			throw result.Error!;
+		
+		Transaction transaction = result.Value!;
+		
 		if (isExcluded)
 			transaction.Exclude();
 

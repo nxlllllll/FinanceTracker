@@ -1,13 +1,17 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
 namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public sealed class TransferBuilder(FinanceTrackerContext context)
 {
-	private readonly TransferWriteRepository _writeRepository = new TransferWriteRepository(context: context);
+	private readonly TransferWriteRepository _writeRepository = new TransferWriteRepository(
+		context: context,
+		operationRepository: new OperationWriteRepository(context: context)
+	);
 
 	public async Task<Guid> CreateAsync(
 		Guid userId,

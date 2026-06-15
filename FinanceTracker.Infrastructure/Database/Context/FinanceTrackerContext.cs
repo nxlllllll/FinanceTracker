@@ -4,6 +4,7 @@ using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.Context.Idempotency;
+using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
@@ -54,6 +55,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<UnresolvableEventEntity> UnresolvableEvents => Set<UnresolvableEventEntity>();
 	
 	public DbSet<UserSessionEntity> UserSessions => Set<UserSessionEntity>();
+	
+	public DbSet<OperationEntity> Operations => Set<OperationEntity>();
 	
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 		=> modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);

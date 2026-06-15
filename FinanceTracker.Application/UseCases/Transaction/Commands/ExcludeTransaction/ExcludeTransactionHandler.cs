@@ -37,8 +37,9 @@ public sealed class ExcludeTransactionHandler(
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.ExcludeAsync(
-				expectedVersion: transaction.RowVersion,
 				transactionId: command.TransactionId,
+				userId: transaction.UserId,
+				expectedVersion: transaction.RowVersion,
 				ct: ct
 			);
 			

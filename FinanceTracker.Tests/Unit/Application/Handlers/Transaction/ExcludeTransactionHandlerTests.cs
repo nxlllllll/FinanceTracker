@@ -82,6 +82,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ExcludeAsync(
 			transactionId: transaction.Id, 
+			userId: transaction.UserId,
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -134,6 +135,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ExcludeAsync(
 			transactionId: transaction.Id, 
+			userId: transaction.UserId,
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);

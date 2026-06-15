@@ -86,6 +86,7 @@ public sealed class TransferCompensationService(
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 			await transferWriteRepository.UpdateStatusAsync(
 				transferId: pendingTransfer.TransferId,
+				userId: transfer.UserId,
 				status: TransferStatus.Compensated,
 				expectedVersion: transfer.RowVersion,
 				ct: ct
@@ -122,6 +123,7 @@ public sealed class TransferCompensationService(
 
 		await transferWriteRepository.UpdateStatusAsync(
 			transferId: pendingTransfer.TransferId,
+			userId: transfer.UserId,
 			status: TransferStatus.Failed,
 			expectedVersion: transfer.RowVersion,
 			ct: ct
