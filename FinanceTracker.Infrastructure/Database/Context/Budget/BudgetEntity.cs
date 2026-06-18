@@ -9,7 +9,7 @@ public sealed class BudgetEntity
 	public DateOnly To { get; init; }
 	public Core.ValueObjects.Currency Currency { get; init; }
 	public decimal Amount { get; init; }
-	public bool IsActive { get; set; }
-	public int RowVersion { get; set; }
+	public bool IsActive { get; init; }
+	public int RowVersion { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

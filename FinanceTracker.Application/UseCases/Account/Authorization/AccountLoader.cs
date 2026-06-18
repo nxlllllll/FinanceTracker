@@ -10,31 +10,31 @@ namespace FinanceTracker.Application.UseCases.Account.Authorization;
 
 public sealed class AccountLoader(
 	IAccountRepository accountRepository
-) : IEntityLoader<ArchiveAccountCommand, Core.Domains.Account.Account, NotFoundException>,
-	IEntityLoader<UnarchiveAccountCommand, Core.Domains.Account.Account, NotFoundException>,
-	IEntityLoader<RenameAccountCommand, Core.Domains.Account.Account, NotFoundException>
+) : IEntityLoader<ArchiveAccountCommand, Core.Domains.Account.Account, DomainException>,
+	IEntityLoader<UnarchiveAccountCommand, Core.Domains.Account.Account, DomainException>,
+	IEntityLoader<RenameAccountCommand, Core.Domains.Account.Account, DomainException>
 {
-	public Task<Result<Core.Domains.Account.Account, NotFoundException>> LoadAsync(
+	public Task<Result<Core.Domains.Account.Account, DomainException>> LoadAsync(
 		ArchiveAccountCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
 
-	public Task<Result<Core.Domains.Account.Account, NotFoundException>> LoadAsync(
+	public Task<Result<Core.Domains.Account.Account, DomainException>> LoadAsync(
 		UnarchiveAccountCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
 
-	public Task<Result<Core.Domains.Account.Account, NotFoundException>> LoadAsync(
+	public Task<Result<Core.Domains.Account.Account, DomainException>> LoadAsync(
 		RenameAccountCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(accountId: request.AccountId, userId: request.UserId, ct: ct);
 
-	private async Task<Result<Core.Domains.Account.Account, NotFoundException>> LoadAndAuthorize(Guid accountId, Guid userId, CancellationToken ct)
+	private async Task<Result<Core.Domains.Account.Account, DomainException>> LoadAndAuthorize(Guid accountId, Guid userId, CancellationToken ct)
 	{
 		Core.Domains.Account.Account? account = await accountRepository.GetByIdAsync(accountId: accountId, ct: ct);
 		if (account is null || account.UserId != userId)
-			return Result<Core.Domains.Account.Account, NotFoundException>.Failure(error: new NotFoundException(message: "Account not found.", id: accountId));
+			return Result<Core.Domains.Account.Account, DomainException>.Failure(error: new NotFoundException(message: "Account not found.", id: accountId));
 
-		return Result<Core.Domains.Account.Account, NotFoundException>.Success(value: account);
+		return Result<Core.Domains.Account.Account, DomainException>.Success(value: account);
 	}
 }

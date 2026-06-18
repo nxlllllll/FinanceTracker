@@ -18,7 +18,7 @@ public interface IRecurringTransactionReadRepository : IReadRepository<Recurring
 		CancellationToken ct = default
 	);
 
-	IAsyncEnumerable<RecurringTransactionReadModel> GetDueTodayAsync(
+	Task<IReadOnlyList<RecurringTransactionReadModel>> GetDueTodayAsync(
 		int dayOfMonth,
 		int daysInCurrentMonth,
 		DateTimeOffset currentMonthStart,

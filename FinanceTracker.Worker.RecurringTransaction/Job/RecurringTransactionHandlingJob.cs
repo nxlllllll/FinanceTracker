@@ -38,12 +38,14 @@ public sealed class RecurringTransactionHandlingJob(
         int processed = 0;
         int failed = 0;
         
-        await foreach (RecurringTransactionReadModel transaction in recurringTransactionReadRepository.GetDueTodayAsync(
+        IReadOnlyList<RecurringTransactionReadModel> dueTransactions = await recurringTransactionReadRepository.GetDueTodayAsync(
             dayOfMonth: now.Day,
             daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
             currentMonthStart: currentMonthStart,
             ct: ct
-        ))
+        );
+
+        foreach (RecurringTransactionReadModel transaction in dueTransactions)
         {
             try
             {

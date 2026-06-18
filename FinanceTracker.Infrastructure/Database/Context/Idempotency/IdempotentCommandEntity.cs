@@ -2,9 +2,9 @@ namespace FinanceTracker.Infrastructure.Database.Context.Idempotency;
 
 public sealed class IdempotentCommandEntity
 {
-	public Guid IdempotencyKey { get; set; }
-	public string CommandType { get; set; } = String.Empty;
-	public string? ResponseJson { get; set; }
-	public DateTimeOffset ReservedAt { get; set; }
-	public DateTimeOffset ExpiresAt { get; set; }
+	public Guid IdempotencyKey { get; init; }
+	public string CommandType { get; init; } = String.Empty;
+	public string? ResponseJson { get; init; }
+	public DateTimeOffset ReservedAt { get; init; }
+	public DateTimeOffset ExpiresAt { get; init; }
 }

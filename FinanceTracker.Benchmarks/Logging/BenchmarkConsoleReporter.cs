@@ -32,11 +32,8 @@ public sealed class BenchmarkConsoleReporter
     public void OnSuiteStart()
     {
         _totalTimer.Restart();
-        try
-        {
-            Console.CursorVisible = false;
-        } catch { }
-        _nextRow = Console.CursorTop;
+        try { Console.CursorVisible = false; } catch { }
+        try { _nextRow = Console.CursorTop; } catch { _nextRow = 0; }
     }
 
     public void OnClassTotalKnown(int total)
@@ -68,9 +65,9 @@ public sealed class BenchmarkConsoleReporter
                 _classRow = _nextRow;
                 _nextRow++;
 
-                Console.SetCursorPosition(left: 0, top: _classRow);
+                SafeSetCursorPosition(left: 0, top: _classRow);
                 RenderLineUnsafe(done: false);
-                Console.SetCursorPosition(left: 0, top: _nextRow);
+                SafeSetCursorPosition(left: 0, top: _nextRow);
 
                 _timerRunning = true;
                 _timerThread  = new Thread(start: TimerLoop)
@@ -115,8 +112,18 @@ public sealed class BenchmarkConsoleReporter
             _totalFailed += failed;
 
             RenderLineUnsafe(done: true, passed: passed, failed: failed);
-            Console.SetCursorPosition(left: 0, top: _nextRow);
+            SafeSetCursorPosition(left: 0, top: _nextRow);
         }
+    }
+    
+    private static void SafeSetCursorPosition(int left, int top)
+    {
+        try
+        {
+            int maxTop = Math.Max(0, Console.BufferHeight - 1);
+            Console.SetCursorPosition(left: left, top: Math.Min(top, maxTop));
+        }
+        catch { }
     }
 
     private void TimerLoop()
@@ -182,10 +189,14 @@ public sealed class BenchmarkConsoleReporter
 
     private void RenderAndRestore(bool done)
     {
-        int savedTop  = Console.CursorTop;
-        int savedLeft = Console.CursorLeft;
-        RenderLineUnsafe(done: done);
-        Console.SetCursorPosition(left: savedLeft, top: savedTop);
+        try
+        {
+            int savedTop  = Console.CursorTop;
+            int savedLeft = Console.CursorLeft;
+            RenderLineUnsafe(done: done);
+            SafeSetCursorPosition(left: savedLeft, top: savedTop);
+        }
+        catch { }
     }
 
     private void RenderLineUnsafe(bool done) => RenderLineUnsafe(done: done, passed: _classDone, failed: 0);
@@ -193,7 +204,7 @@ public sealed class BenchmarkConsoleReporter
     private void RenderLineUnsafe(bool done, int passed, int failed)
     {
         int winWidth = Console.WindowWidth;
-        Console.SetCursorPosition(left: 0, top: _classRow);
+        SafeSetCursorPosition(left: 0, top: _classRow);
 
         int current = done ? passed + failed : _classDone;
         int total = done ? passed + failed : _classTotal;

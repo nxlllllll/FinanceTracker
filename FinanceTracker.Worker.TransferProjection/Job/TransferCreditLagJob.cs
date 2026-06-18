@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Worker.Shared.Job;
@@ -13,6 +14,7 @@ public sealed class TransferCreditLagJob(
 	ITransferReadRepository transferReadRepository,
 	ITransferCompensationService compensationService,
 	IOptionsMonitor<TransferCreditLagOptions> options,
+	IUnitOfWork unitOfWork,
 	ILogger<TransferCreditLagJob> logger
 ) : BaseJob<TransferCreditLagOptions>(options: options, logger: logger)
 {
@@ -58,7 +60,10 @@ public sealed class TransferCreditLagJob(
 			if (ct.IsCancellationRequested)
 				break;
 
-			await compensationService.CompensateAsync(transfer: transfer, ct: ct);
+			await unitOfWork.ExecuteInTransactionAsync(
+				operation: async () => await compensationService.CompensateAsync(transfer: transfer, ct: ct), 
+				ct: ct
+			);
 		}
 	}
 }

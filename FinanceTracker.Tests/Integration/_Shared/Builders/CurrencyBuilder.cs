@@ -6,11 +6,19 @@ namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public class CurrencyBuilder(FinanceTrackerContext context)
 {
-	public async Task<Core.ValueObjects.Currency> CreateAsync(string code = "RUB")
+	public async Task<Core.ValueObjects.Currency> CreateAsync(string code = "RUB", bool isActive = true)
 	{
-		bool exists = await context.Currencies.AnyAsync(c => c.Code == code);
+		bool exists = await context.Currencies.AnyAsync(c => c.Code == Core.ValueObjects.Currency.Reconstitute(value: code));
 		if (exists)
+		{
+			CurrencyEntity? existing = await context.Currencies.FirstOrDefaultAsync(predicate: c => c.Code == Core.ValueObjects.Currency.Reconstitute(value: code));
+			if (existing is not null && existing.IsActive != isActive)
+			{
+				existing.IsActive = isActive;
+				await context.SaveChangesAsync();
+			}
 			return Core.ValueObjects.Currency.Reconstitute(value: code);
+		}
 
 		await context.Currencies.AddAsync(new CurrencyEntity()
 		{
@@ -29,7 +37,7 @@ public class CurrencyBuilder(FinanceTrackerContext context)
 				"EUR" => "€",
 				_ => code
 			},
-			IsActive = true
+			IsActive = isActive
 		});
 		await context.SaveChangesAsync();
 		return Core.ValueObjects.Currency.Reconstitute(value: code);

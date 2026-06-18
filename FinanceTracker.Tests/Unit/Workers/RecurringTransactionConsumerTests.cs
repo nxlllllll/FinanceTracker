@@ -142,7 +142,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAccountNotFound_ShouldThrow()
+	public async Task HandleAsync_WhenAccountNotFound_ShouldNotCreateTransaction()
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -154,7 +154,35 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
 
-		await Assert.ThrowsAsync<NotFoundException>(action: async () => await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None));
+		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+
+		await _transactionCreationService.DidNotReceive().CreateAsync(
+			command: Arg.Any<CreateTransactionCommand>(),
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenAccountNotFound_ShouldMarkMessageAsProcessed()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+
+		RecurringTransactionTriggeredMessage message = BuildMessage();
+		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
+
+		bool isProcessed = await Context.ProcessedMessages.AnyAsync(
+			predicate: p => p.MessageId == message.MessageId && p.ConsumerType == nameof(RecurringTransactionConsumer)
+		);
+		await Assert.That(value: isProcessed).IsTrue();
 	}
 
 	[Test]

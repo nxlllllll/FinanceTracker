@@ -95,13 +95,13 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IAsyncEnumerable<RecurringTransactionReadModel> result = _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
 		);
 
-		await Assert.That(value: await result.CountAsync()).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 	}
 
 	[Test]
@@ -123,7 +123,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IAsyncEnumerable<RecurringTransactionReadModel> result = _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -147,7 +147,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IAsyncEnumerable<RecurringTransactionReadModel> result = _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -170,7 +170,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IAsyncEnumerable<RecurringTransactionReadModel> result = _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: today,
 			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
 			currentMonthStart: currentMonthStart
@@ -194,13 +194,13 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IAsyncEnumerable<RecurringTransactionReadModel> result = _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: daysInMonth,
 			daysInCurrentMonth: daysInMonth,
 			currentMonthStart: currentMonthStart
 		);
 
-		await Assert.That(value: await result.CountAsync()).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
 	}
 
 	[Test]
@@ -218,7 +218,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: year, month: month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		IAsyncEnumerable<RecurringTransactionReadModel> result = _readRepository.GetDueTodayAsync(
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetDueTodayAsync(
 			dayOfMonth: 15,
 			daysInCurrentMonth: daysInMonth,
 			currentMonthStart: currentMonthStart

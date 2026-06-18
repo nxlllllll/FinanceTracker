@@ -14,7 +14,8 @@ public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 		string currency = "RUB",
 		DirectionType direction = DirectionType.Debit,
 		int dayOfMonth = 15,
-		string? description = null)
+		string? description = null,
+		DateTimeOffset? lastExecutedAt = null)
 	{
 		Guid id = Guid.CreateVersion7();
 
@@ -30,7 +31,7 @@ public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 			DayOfMonth = dayOfMonth,
 			Description = description,
 			IsActive = true,
-			LastExecutedAt = null,
+			LastExecutedAt = lastExecutedAt,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 

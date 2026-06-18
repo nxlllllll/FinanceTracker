@@ -13,11 +13,14 @@ public sealed class ProjectionRetryOptions
 	public const string SectionName = "ProjectionRetry";
 
 	/// <summary>Maximum number of retry attempts on a transient projection failure.</summary>
-	[Required] public int MaxRetries { get; init; }
+	[Required]
+	public int MaxRetries { get; set; }
 
 	/// <summary>Base delay in milliseconds for exponential backoff between retries.</summary>
-	[Required] public int BaseDelayMs { get; init; }
+	[Required]
+	public int BaseDelayMs { get; set; }
 
 	/// <summary>When <c>true</c>, applies jitter to retry delays to prevent thundering herd.</summary>
-	[Required] public bool UseJitter { get; init; }
+	[Required]
+	public bool UseJitter { get; set; }
 }

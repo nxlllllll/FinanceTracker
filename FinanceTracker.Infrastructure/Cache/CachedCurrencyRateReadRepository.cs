@@ -16,10 +16,20 @@ public sealed class CachedCurrencyRateReadRepository(
 	IDateProvider dateProvider
 ) : ICurrencyRateReadRepository
 {
+	private static readonly TimeSpan NotFoundTtl = TimeSpan.FromMinutes(value: 1);
+
 	private DistributedCacheEntryOptions EndOfDay => new DistributedCacheEntryOptions
 	{
 		AbsoluteExpiration = dateProvider.UtcNow.AddDays(days: 1)
 	};
+
+	private static DistributedCacheEntryOptions NotFound => new DistributedCacheEntryOptions
+	{
+		AbsoluteExpirationRelativeToNow = NotFoundTtl
+	};
+
+	private DistributedCacheEntryOptions OptionsFor(decimal? value)
+		=> value is null ? NotFound : EndOfDay;
 
 	private static string RateKey(CurrencyRateRequest request)
 		=> $"rate:{request.From.Value}:{request.To.Value}:{request.Date:yyyyMMdd}";
@@ -44,7 +54,7 @@ public sealed class CachedCurrencyRateReadRepository(
 			date: date,
 			ct: ct
 		);
-		await redisCache.SetAsync(key: key, value: result, options: EndOfDay, ct: ct);
+		await redisCache.SetAsync(key: key, value: result, options: OptionsFor(value: result), ct: ct);
 		return result;
 	}
 
@@ -63,7 +73,7 @@ public sealed class CachedCurrencyRateReadRepository(
 			targetCurrencyCode: targetCurrencyCode,
 			ct: ct
 		);
-		await redisCache.SetAsync(key: key, value: result, options: EndOfDay, ct: ct);
+		await redisCache.SetAsync(key: key, value: result, options: OptionsFor(value: result), ct: ct);
 		return result;
 	}
 
@@ -103,10 +113,10 @@ public sealed class CachedCurrencyRateReadRepository(
 			if (dbResults.TryGetValue(key: request, out decimal rate))
 			{
 				result[request] = rate;
-				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: EndOfDay, ct: ct);
+				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: OptionsFor(value: rate), ct: ct);
 			}
 			else
-				await redisCache.SetAsync(key: key, value: (decimal?)null, options: EndOfDay, ct: ct);
+				await redisCache.SetAsync(key: key, value: (decimal?)null, options: NotFound, ct: ct);
 		}
 
 		return result;
@@ -149,10 +159,10 @@ public sealed class CachedCurrencyRateReadRepository(
 			if (dbResults.TryGetValue(key: pair, out decimal rate))
 			{
 				result[pair] = rate;
-				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: EndOfDay, ct: ct);
+				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: OptionsFor(value: rate), ct: ct);
 			}
 			else
-				await redisCache.SetAsync(key: key, value: (decimal?)null, options: EndOfDay, ct: ct);
+				await redisCache.SetAsync(key: key, value: (decimal?)null, options: NotFound, ct: ct);
 		}
 
 		return result;

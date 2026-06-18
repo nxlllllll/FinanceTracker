@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using ZLogger;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
@@ -45,6 +46,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 {
 	private readonly RabbitMqOptions _options = options.Value;
 	private readonly string _routingKey = GetRoutingKey();
+	private readonly string _queueName = ResolveQueueName(options.Value);
 
 	private IConnection? _connection;
 	private IChannel? _channel;
@@ -55,10 +57,26 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			?? throw new InvalidOperationException(message: $"{typeof(TMessage).Name} is missing [RabbitMqRoutingKey] attribute.");
 	}
 
+	/// <summary>
+	/// Resolves the queue this listener actually binds/consumes from. Prefers a handler-specific override
+	/// (see <see cref="RabbitMqOptions.QueueNameOverrides"/>) so that multiple listeners sharing one
+	/// <see cref="RabbitMqOptions"/> section (e.g. a test host) each get their own queue instead of
+	/// becoming competing consumers on the same one.
+	/// </summary>
+	private static string ResolveQueueName(RabbitMqOptions options)
+	{
+		if (options.QueueNameOverrides.TryGetValue(key: typeof(THandler).Name, out string? overrideName)
+			&& !String.IsNullOrWhiteSpace(value: overrideName))
+			return overrideName;
+
+		return options.QueueName
+			?? throw new InvalidOperationException(message: $"RabbitMQ:QueueName (or a QueueNameOverrides entry for '{typeof(THandler).Name}') must be configured.");
+	}
+
 	public override async Task StartAsync(CancellationToken ct)
 	{
 		logger.ZLogInformation(message: $"""
-			[{typeof(TMessage).Name}] Listener starting. Queue: '{_options.QueueName}', 
+			[{typeof(TMessage).Name}] Listener starting. Queue: '{_queueName}', 
 			Exchange: '{_options.ExchangeName}', RoutingKey: '{_routingKey}', MaxRetries: {_options.MaxRetries}.
 		""");
 		await base.StartAsync(cancellationToken: ct);
@@ -110,7 +128,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		);
 
 		await _channel.QueueDeclareAsync(
-			queue: _options.QueueName!,
+			queue: _queueName,
 			durable: true,
 			exclusive: false,
 			autoDelete: false,
@@ -118,7 +136,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		);
 
 		await _channel.QueueBindAsync(
-			queue: _options.QueueName!,
+			queue: _queueName,
 			exchange: _options.ExchangeName,
 			routingKey: _routingKey,
 			cancellationToken: ct
@@ -135,12 +153,30 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			connectionDropped.TrySetResult();
 			return Task.CompletedTask;
 		};
+		
+		_channel!.ChannelShutdownAsync += (_, args) =>
+		{
+			logger.ZLogInformation(message: $"[{typeof(TMessage).Name}] Channel shutdown: {args.ReplyText}.");
+			connectionDropped.TrySetResult();
+			return Task.CompletedTask;
+		};
 
 		AsyncEventingBasicConsumer consumer = new AsyncEventingBasicConsumer(channel: _channel!);
-		consumer.ReceivedAsync += (sender, ea) => HandleMessageAsync(sender: sender, ea: ea, ct: ct);
+		consumer.ReceivedAsync += async (sender, ea) =>
+		{
+			try
+			{
+				await HandleMessageAsync(sender: sender, ea: ea, ct: ct);
+			}
+			catch (Exception ex)
+			{
+				logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Unhandled exception processing delivery {ea.DeliveryTag}.");
+				await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
+			}
+		};
 
 		await _channel!.BasicConsumeAsync(
-			queue: _options.QueueName!,
+			queue: _queueName,
 			autoAck: false,
 			consumer: consumer,
 			cancellationToken: ct
@@ -182,7 +218,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: ex.Message);
 			logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Deserialization failed for message {ea.DeliveryTag}. Discarding.");
-			await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: ct);
+			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: false, ct: ct);
 			return;
 		}
 
@@ -194,14 +230,14 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 			activity?.SetStatus(code: ActivityStatusCode.Ok);
 			await retryCounter.RemoveAsync(messageKey: messageKey, ct: ct);
-			await _channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false, cancellationToken: ct);
+			await SafeAckAsync(deliveryTag: ea.DeliveryTag, ct: ct);
 		}
 		catch (OperationCanceledException) when (ct.IsCancellationRequested)
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: "Cancelled.");
 			logger.ZLogWarning(message: $"[{typeof(TMessage).Name}] Processing cancelled for message {ea.DeliveryTag}. Requeuing.");
 			await retryCounter.RemoveAsync(messageKey: messageKey, ct: ct);
-			await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: ct);
+			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
 		}
 		catch (Exception ex)
 		{
@@ -228,7 +264,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 					ct: ct
 				);
 
-				await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: ct);
+				await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: false, ct: ct);
 			}
 			else
 			{
@@ -237,7 +273,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 					message: $"[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag} (attempt {deliveryCount + 1}/{_options.MaxRetries + 1}). Requeuing."
 				);
 
-				await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: ct);
+				await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
 			}
 		}
 	}
@@ -248,6 +284,39 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			return routable.MessageId.ToString();
 
 		return deliveryTag.ToString();
+	}
+
+	/// <summary>
+	 /// Acks a delivery, swallowing <see cref="AlreadyClosedException"/>/<see cref="ObjectDisposedException"/>.
+	 /// If the channel already closed concurrently, RabbitMQ will automatically requeue the unacked
+	 /// delivery once it notices the channel/connection is gone — the <c>ChannelShutdownAsync</c>/
+	 /// <c>ConnectionShutdownAsync</c> handlers in <see cref="ConsumeAsync"/> will then trigger a
+	 /// reconnect. Letting this exception propagate unhandled out of an AsyncEventingBasicConsumer
+	 /// event handler would otherwise just vanish silently without ever surfacing in logs.
+	/// </summary>
+	private async Task SafeAckAsync(ulong deliveryTag, CancellationToken ct)
+	{
+		try
+		{
+			await _channel!.BasicAckAsync(deliveryTag: deliveryTag, multiple: false, cancellationToken: ct);
+		}
+		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException)
+		{
+			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Ack failed for delivery {deliveryTag}: channel already closed.");
+		}
+	}
+
+	/// <summary>See <see cref="SafeAckAsync"/> — same rationale, for the nack path.</summary>
+	private async Task SafeNackAsync(ulong deliveryTag, bool requeue, CancellationToken ct)
+	{
+		try
+		{
+			await _channel!.BasicNackAsync(deliveryTag: deliveryTag, multiple: false, requeue: requeue, cancellationToken: ct);
+		}
+		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException)
+		{
+			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Nack failed for delivery {deliveryTag}: channel already closed.");
+		}
 	}
 
 	private async Task RecordDeadLetterAsync(
@@ -267,7 +336,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			string payload = JsonSerializer.Serialize(value: new
 			{
 				messageType = typeof(TMessage).Name,
-				queue = _options.QueueName,
+				queue = _queueName,
 				exchange = _options.ExchangeName,
 				routingKey = _routingKey,
 				deliveryTag = ea.DeliveryTag,

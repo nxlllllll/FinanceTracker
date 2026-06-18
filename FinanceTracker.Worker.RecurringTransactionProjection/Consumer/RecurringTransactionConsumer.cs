@@ -54,20 +54,33 @@ public sealed class RecurringTransactionConsumer(
 
 			if (recurringTransaction is null)
 			{
-				logger.ZLogWarning(message: $"[{message.CorrelationId}] Recurring transaction {message.RecurringTransactionId} not found.");
+				logger.ZLogWarning(message: $"[{message.CorrelationId}] Recurring transaction {message.RecurringTransactionId} not found. Skipping.");
+				await MarkProcessedAsync(message: message, ct: ct);
 				return;
 			}
 
 			Account? account = await accountRepository.GetByIdAsync(accountId: message.AccountId, ct: ct);
 			if (account is null)
 			{
-				logger.ZLogError(message: $"[{message.CorrelationId}] Account {message.AccountId} not found.");
-				throw new NotFoundException(message: "Account not found.", id: message.AccountId);
+				logger.ZLogError(message: $"[{message.CorrelationId}] Account {message.AccountId} not found. Skipping.");
+				await MarkProcessedAsync(message: message, ct: ct);
+				return;
 			}
 
 			Result<Currency, DomainException> currencyResult = Currency.Create(value: message.Currency);
 			if (currencyResult.IsFailure)
-				throw currencyResult.Error!;
+			{
+				logger.ZLogError(message: $"[{message.CorrelationId}] Invalid currency '{message.Currency}' in message {message.MessageId}. Skipping.");
+				await MarkProcessedAsync(message: message, ct: ct);
+				return;
+			}
+
+			if (!Enum.TryParse(value: message.Direction, ignoreCase: true, result: out DirectionType direction))
+			{
+				logger.ZLogError(message: $"[{message.CorrelationId}] Invalid direction '{message.Direction}' in message {message.MessageId}. Skipping.");
+				await MarkProcessedAsync(message: message, ct: ct);
+				return;
+			}
 
 			Result<Guid, DomainException> result = await transactionCreationService.CreateAsync(command: new CreateTransactionCommand(
 				AccountId: message.AccountId,
@@ -75,7 +88,7 @@ public sealed class RecurringTransactionConsumer(
 				CategoryId: message.CategoryId,
 				Amount: message.Amount,
 				Currency: currencyResult.Value,
-				Direction: Enum.Parse<DirectionType>(value: message.Direction),
+				Direction: direction,
 				Description: message.Description,
 				OccurredAt: message.OccurredAt
 			), account: account, ct: ct);
@@ -83,14 +96,19 @@ public sealed class RecurringTransactionConsumer(
 			if (result.IsSuccess)
 				WorkerMetrics.TransactionsCreated.Add(delta: 1, new KeyValuePair<string, object?>(key: "direction", value: message.Direction));
 
-			await processedMessageWriteRepository.MarkAsProcessedAsync(
-				messageId: message.MessageId,
-				consumerType: nameof(RecurringTransactionConsumer),
-				processedAt: dateProvider.UtcNow,
-				ct: ct
-			);
+			await MarkProcessedAsync(message: message, ct: ct);
 
 			logger.ZLogInformation(message: $"[{message.CorrelationId}] Created transaction for recurring transaction {message.RecurringTransactionId}.");
 		}, ct: ct);
+	}
+
+	private Task MarkProcessedAsync(RecurringTransactionTriggeredMessage message, CancellationToken ct)
+	{
+		return processedMessageWriteRepository.MarkAsProcessedAsync(
+			messageId: message.MessageId,
+			consumerType: nameof(RecurringTransactionConsumer),
+			processedAt: dateProvider.UtcNow,
+			ct: ct
+		);
 	}
 }

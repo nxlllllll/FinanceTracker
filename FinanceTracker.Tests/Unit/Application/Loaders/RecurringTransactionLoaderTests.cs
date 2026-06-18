@@ -29,7 +29,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<RecurringTransaction?>(result: null));
 
-		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
+		Result<RecurringTransaction, DomainException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: Guid.CreateVersion7(), RecurringTransactionId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -47,7 +47,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: recurringTransaction);
 
-		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
+		Result<RecurringTransaction, DomainException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: Guid.CreateVersion7(), RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
 		);
@@ -65,7 +65,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: recurringTransaction);
 
-		Result<RecurringTransaction, NotFoundException> result = await _loader.LoadAsync(
+		Result<RecurringTransaction, DomainException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
 		);

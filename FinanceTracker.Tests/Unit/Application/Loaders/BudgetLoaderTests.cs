@@ -30,7 +30,7 @@ public sealed class BudgetLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Budget?>(result: null));
 
-		Result<Budget, NotFoundException> result = await _loader.LoadAsync(
+		Result<Budget, DomainException> result = await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7(), Amount: 1000m),
 			ct: CancellationToken.None
 		);
@@ -49,7 +49,7 @@ public sealed class BudgetLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: budget);
 
-		Result<Budget, NotFoundException> result = await _loader.LoadAsync(
+		Result<Budget, DomainException> result = await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 1000m),
 			ct: CancellationToken.None
 		);

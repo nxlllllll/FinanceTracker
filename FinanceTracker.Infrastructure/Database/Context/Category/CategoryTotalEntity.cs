@@ -6,8 +6,8 @@ public sealed class CategoryTotalEntity
 	public Guid UserId { get; init; }
 	public Guid CategoryId { get; init; }
 	public DateOnly Period { get; init; }
-	public decimal Total { get; set; }
-	public int TransactionCount { get; set; }
-	public int RowVersion { get; set; }
-	public DateTimeOffset UpdatedAt { get; set; }
+	public decimal Total { get; init; }
+	public int TransactionCount { get; init; }
+	public int RowVersion { get; init; }
+	public DateTimeOffset UpdatedAt { get; init; }
 }

@@ -14,6 +14,8 @@ public class TransactionBuilder(FinanceTrackerContext context)
 		string currencyCode = "RUB",
 		DirectionType direction = DirectionType.Debit,
 		bool isExcluded = false,
+		decimal exchangeRate = 1m,
+		bool isRatePending = false,
 		DateTimeOffset? occurredAt = null)
 	{
 		Guid transactionId = Guid.CreateVersion7();
@@ -27,9 +29,9 @@ public class TransactionBuilder(FinanceTrackerContext context)
 			Amount = amount,
 			Currency = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
 			Direction = direction,
-			ExchangeRate = 1m,
+			ExchangeRate = exchangeRate,
 			IsExcluded = isExcluded,
-			IsRatePending = false,
+			IsRatePending = isRatePending,
 			Description = null,
 			OccurredAt = occurredAt ?? DateTimeOffset.UtcNow
 		});

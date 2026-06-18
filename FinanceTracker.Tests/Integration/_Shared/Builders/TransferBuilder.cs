@@ -21,6 +21,7 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		string currencyTo,
 		decimal amount = 1000m,
 		decimal exchangeRate = 1m,
+		bool isRatePending = false,
 		DateTimeOffset? occurredAt = null)
 	{
 		Result<Core.Domains.Transfer.Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
@@ -31,7 +32,7 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 			currencyFrom: Core.ValueObjects.Currency.Create(value: currencyFrom).Value,
 			currencyTo: Core.ValueObjects.Currency.Create(value: currencyTo).Value,
 			exchangeRate: exchangeRate,
-			isRatePending: false,
+			isRatePending: isRatePending,
 			description: null,
 			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);

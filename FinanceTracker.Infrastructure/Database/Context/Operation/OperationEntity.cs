@@ -2,24 +2,24 @@
 
 public sealed class OperationEntity
 {
-	public Guid Id { get; set; }
-	public Guid UserId { get; set; }
-	public string Type { get; set; } = null!;
-	public DateTimeOffset OccurredAt { get; set; }
-	public string? Description { get; set; }
+	public Guid Id { get; init; }
+	public Guid UserId { get; init; }
+	public string Type { get; init; } = null!;
+	public DateTimeOffset OccurredAt { get; init; }
+	public string? Description { get; init; }
 	// Transaction
-	public Guid? AccountId { get; set; }
-	public Guid? CategoryId { get; set; }
-	public decimal? Amount { get; set; }
-	public string? CurrencyCode { get; set; }
-	public string? DirectionType { get; set; }
-	public bool? IsExcluded { get; set; }
+	public Guid? AccountId { get; init; }
+	public Guid? CategoryId { get; init; }
+	public decimal? Amount { get; init; }
+	public string? CurrencyCode { get; init; }
+	public string? DirectionType { get; init; }
+	public bool? IsExcluded { get; init; }
 	// Transfer
-	public Guid? FromAccountId { get; set; }
-	public Guid? ToAccountId { get; set; }
-	public decimal? AmountFrom { get; set; }
-	public string? CurrencyFrom { get; set; }
-	public decimal? AmountTo { get; set; }
-	public string? CurrencyTo { get; set; }
-	public string? Status { get; set; }
+	public Guid? FromAccountId { get; init; }
+	public Guid? ToAccountId { get; init; }
+	public decimal? AmountFrom { get; init; }
+	public string? CurrencyFrom { get; init; }
+	public decimal? AmountTo { get; init; }
+	public string? CurrencyTo { get; init; }
+	public string? Status { get; init; }
 }

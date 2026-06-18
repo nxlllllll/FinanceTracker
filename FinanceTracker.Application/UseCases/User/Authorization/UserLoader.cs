@@ -10,32 +10,32 @@ namespace FinanceTracker.Application.UseCases.User.Authorization;
 
 public sealed class UserLoader(
 	IUserAuthRepository userAuthRepository
-) : IEntityLoader<ChangeUserBaseCurrencyCommand, Core.Domains.User.User, NotFoundException>,
-	IEntityLoader<ChangeUserEmailCommand, Core.Domains.User.User, NotFoundException>,
-	IEntityLoader<ChangeUserPasswordCommand, Core.Domains.User.User, NotFoundException>
+) : IEntityLoader<ChangeUserBaseCurrencyCommand, Core.Domains.User.User, DomainException>,
+	IEntityLoader<ChangeUserEmailCommand, Core.Domains.User.User, DomainException>,
+	IEntityLoader<ChangeUserPasswordCommand, Core.Domains.User.User, DomainException>
 {
-	public Task<Result<Core.Domains.User.User, NotFoundException>> LoadAsync(
+	public Task<Result<Core.Domains.User.User, DomainException>> LoadAsync(
 		ChangeUserBaseCurrencyCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(userId: request.UserId, ct: ct);
 
-	public Task<Result<Core.Domains.User.User, NotFoundException>> LoadAsync(
+	public Task<Result<Core.Domains.User.User, DomainException>> LoadAsync(
 		ChangeUserEmailCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(userId: request.UserId, ct: ct);
 
-	public Task<Result<Core.Domains.User.User, NotFoundException>> LoadAsync(
+	public Task<Result<Core.Domains.User.User, DomainException>> LoadAsync(
 		ChangeUserPasswordCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(userId: request.UserId, ct: ct);
 
-	private async Task<Result<Core.Domains.User.User, NotFoundException>> LoadAndAuthorize(Guid userId, CancellationToken ct)
+	private async Task<Result<Core.Domains.User.User, DomainException>> LoadAndAuthorize(Guid userId, CancellationToken ct)
 	{
 		Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(userId: userId, ct: ct);
 
 		if (user is null)
-			return Result<Core.Domains.User.User, NotFoundException>.Failure(error: new NotFoundException(message: "User not found.", id: userId));
+			return Result<Core.Domains.User.User, DomainException>.Failure(error: new NotFoundException(message: "User not found.", id: userId));
 
-		return Result<Core.Domains.User.User, NotFoundException>.Success(value: user);
+		return Result<Core.Domains.User.User, DomainException>.Success(value: user);
 	}
 }

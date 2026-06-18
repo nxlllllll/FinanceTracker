@@ -7,7 +7,7 @@ public sealed class OutboxMessageEntity
 	public string AggregateType { get; init; } = String.Empty;
 	public string Payload { get; init; } = String.Empty;
 	public DateTimeOffset UpdatedAt { get; init; }
-	public DateTimeOffset? ProcessedAt { get; set; }
-	public int RetryCount { get; set; }
-	public DateTimeOffset? FailedAt { get; set; }
+	public DateTimeOffset? ProcessedAt { get; init; }
+	public int RetryCount { get; init; }
+	public DateTimeOffset? FailedAt { get; init; }
 }

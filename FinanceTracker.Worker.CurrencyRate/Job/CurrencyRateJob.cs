@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.ReadModels;
+﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
@@ -17,6 +18,7 @@ public sealed class CurrencyRateJob(
 	ICurrencyReadRepository currencyReadRepository,
 	ICurrencyRateWriteRepository currencyRateWriteRepository,
 	IDateProvider dateProvider,
+	IUnitOfWork unitOfWork,
 	IOptionsMonitor<CurrencyRateJobOptions> options,
 	ILogger<CurrencyRateJob> logger
 ) : BaseJob<CurrencyRateJobOptions>(options: options, logger: logger)
@@ -64,7 +66,10 @@ public sealed class CurrencyRateJob(
 						date: today
 					)).ToList();
 
-				await currencyRateWriteRepository.UpsertRatesAsync(rates: entries, ct: ct);
+				await unitOfWork.ExecuteInTransactionAsync(
+					operation: async () => await currencyRateWriteRepository.UpsertRatesAsync(rates: entries, ct: ct), 
+					ct: ct
+				);
 
 				totalUpserted += entries.Count;
 				WorkerMetrics.CurrencyRatesUpserted.Add(delta: entries.Count, new KeyValuePair<string, object?>(key: "base_currency", value: baseCurrency.Code));

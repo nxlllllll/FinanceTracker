@@ -8,13 +8,13 @@ public sealed class RecurringTransactionEntity
 	public Guid UserId { get; init; }
 	public Guid AccountId { get; init; }
 	public Guid CategoryId { get; init; }
-	public decimal Amount { get; set; }
-	public Core.ValueObjects.Currency Currency { get; set; }
+	public decimal Amount { get; init; }
+	public Core.ValueObjects.Currency Currency { get; init; }
 	public DirectionType Direction { get; init; }
-	public int DayOfMonth { get; set; }
+	public int DayOfMonth { get; init; }
 	public string? Description { get; init; }
-	public bool IsActive { get; set; }
-	public int RowVersion { get; set; }
-	public DateTimeOffset? LastExecutedAt { get; set; }
+	public bool IsActive { get; init; }
+	public int RowVersion { get; init; }
+	public DateTimeOffset? LastExecutedAt { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

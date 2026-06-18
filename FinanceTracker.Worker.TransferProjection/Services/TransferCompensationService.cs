@@ -2,7 +2,6 @@
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -27,76 +26,71 @@ public sealed class TransferCompensationService(
 	ITransferRepository transferRepository,
 	ITransferWriteRepository transferWriteRepository,
 	IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
-	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
 	ILogger<TransferCompensationService> logger
 ) : ITransferCompensationService
 {
 	public async Task CompensateAsync(PendingCreditTransfer pendingTransfer, CancellationToken ct = default)
 	{
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		Transfer? transfer = await transferRepository.GetByIdAsync(transferId: pendingTransfer.TransferId, ct: ct);
+
+		if (transfer is null)
 		{
-			Transfer? transfer = await transferRepository.GetByIdAsync(transferId: pendingTransfer.TransferId, ct: ct);
+			logger.ZLogError(message: $"[Compensation] Transfer {pendingTransfer.TransferId} not found. Skipping.");
+			return;
+		}
 
-			if (transfer is null)
-			{
-				logger.ZLogError(message: $"[Compensation] Transfer {pendingTransfer.TransferId} not found. Skipping.");
-				return;
-			}
+		if (transfer.Status != TransferStatus.PendingCredit)
+		{
+			logger.ZLogInformation(message: $"[Compensation] Transfer {pendingTransfer.TransferId} is already in {transfer.Status} state. Skipping (already processed).");
+			return;
+		}
 
-			if (transfer.Status != TransferStatus.PendingCredit)
-			{
-				logger.ZLogInformation(message: $"[Compensation] Transfer {pendingTransfer.TransferId} is already in {transfer.Status} state. Skipping (already processed).");
-				return;
-			}
+		Core.Domains.Account.Account? fromAccount = await accountRepository.GetByIdAsync(
+			accountId: pendingTransfer.FromAccountId,
+			ct: ct
+		);
 
-			Core.Domains.Account.Account? fromAccount = await accountRepository.GetByIdAsync(
-				accountId: pendingTransfer.FromAccountId,
-				ct: ct
-			);
+		if (fromAccount is null)
+		{
+			logger.ZLogError(message: $"[Compensation] fromAccount {pendingTransfer.FromAccountId} not found for transfer {pendingTransfer.TransferId}. Escalating to unresolvable.");
+			await EscalateToUnresolvableAsync(transfer: transfer, pendingTransfer: pendingTransfer, reason: "fromAccount not found during lag compensation.", ct: ct);
+			return;
+		}
 
-			if (fromAccount is null)
-			{
-				logger.ZLogError(message: $"[Compensation] fromAccount {pendingTransfer.FromAccountId} not found for transfer {pendingTransfer.TransferId}. Escalating to unresolvable.");
-				await EscalateToUnresolvableAsync(transfer: transfer, pendingTransfer: pendingTransfer, reason: "fromAccount not found during lag compensation.", ct: ct);
-				return;
-			}
+		Result<Unit, DomainException> refundResult = fromAccount.RefundTransfer(
+			occurredAt: dateProvider.UtcNow,
+			transferId: pendingTransfer.TransferId,
+			amount: pendingTransfer.Amount,
+			description: "Refund: credit side not received within compensation threshold."
+		);
 
-			Result<Unit, DomainException> refundResult = fromAccount.RefundTransfer(
-				occurredAt: dateProvider.UtcNow,
-				transferId: pendingTransfer.TransferId,
-				amount: pendingTransfer.Amount,
-				description: "Refund: credit side not received within compensation threshold."
-			);
+		if (refundResult.IsFailure)
+		{
+			logger.ZLogError(message: $"[Compensation] RefundTransfer failed for transfer {pendingTransfer.TransferId}: {refundResult.Error!.Message}. Escalating to unresolvable.");
+			await EscalateToUnresolvableAsync(transfer: transfer, pendingTransfer: pendingTransfer, reason: refundResult.Error!.Message, ct: ct);
+			return;
+		}
 
-			if (refundResult.IsFailure)
-			{
-				logger.ZLogError(message: $"[Compensation] RefundTransfer failed for transfer {pendingTransfer.TransferId}: {refundResult.Error!.Message}. Escalating to unresolvable.");
-				await EscalateToUnresolvableAsync(transfer: transfer, pendingTransfer: pendingTransfer, reason: refundResult.Error!.Message, ct: ct);
-				return;
-			}
+		Result<Unit, DomainException> compensateResult = transfer.Compensate();
+		if (compensateResult.IsFailure)
+		{
+			logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} cannot be compensated: {compensateResult.Error!.Message}. Skipping.");
+			return;
+		}
 
-			Result<Unit, DomainException> compensateResult = transfer.Compensate();
-			if (compensateResult.IsFailure)
-			{
-				logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} cannot be compensated: {compensateResult.Error!.Message}. Skipping.");
-				return;
-			}
+		await accountRepository.SaveAsync(account: fromAccount, ct: ct);
+		await transferWriteRepository.UpdateStatusAsync(
+			transferId: pendingTransfer.TransferId,
+			userId: transfer.UserId,
+			status: TransferStatus.Compensated,
+			expectedVersion: transfer.RowVersion,
+			ct: ct
+		);
 
-			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
-			await transferWriteRepository.UpdateStatusAsync(
-				transferId: pendingTransfer.TransferId,
-				userId: transfer.UserId,
-				status: TransferStatus.Compensated,
-				expectedVersion: transfer.RowVersion,
-				ct: ct
-			);
+		WorkerMetrics.TransfersCompensated.Add(delta: 1);
 
-			WorkerMetrics.TransfersCompensated.Add(delta: 1);
-
-			logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} compensated via lag job: refunded {pendingTransfer.Amount} to account {pendingTransfer.FromAccountId}.");
-
-		}, ct: ct);
+		logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} compensated via lag job: refunded {pendingTransfer.Amount} to account {pendingTransfer.FromAccountId}.");
 	}
 
 	private async Task EscalateToUnresolvableAsync(

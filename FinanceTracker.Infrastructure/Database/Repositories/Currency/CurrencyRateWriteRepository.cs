@@ -40,7 +40,5 @@ public sealed class CurrencyRateWriteRepository(
 				CreatedAt = now
 			}, cancellationToken: ct);
 		}
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 }

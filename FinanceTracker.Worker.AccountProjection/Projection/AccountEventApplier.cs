@@ -14,7 +14,7 @@ namespace FinanceTracker.Worker.AccountProjection.Projection;
 /// </summary>
 public sealed class AccountEventApplier(IAccountWriteRepository repository)
 {
-	public Task ApplyAsync(IAccountIntegrationEvent @event, CancellationToken ct) => @event switch
+	public Task ApplyAsync(IAccountIntegrationEvent @event, CancellationToken ct = default) => @event switch
 	{
 		AccountCreatedEvent e => repository.CreateAsync(new AccountCreated(
 			Id: e.EventId,

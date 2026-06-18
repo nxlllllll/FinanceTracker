@@ -4,18 +4,18 @@ namespace FinanceTracker.Infrastructure.Database.Context.Transfer;
 
 public sealed class TransferEntity
 {
-	public Guid Id { get; set; }
-	public Guid UserId { get; set; }
-	public Guid FromAccountId { get; set; }
-	public Guid ToAccountId { get; set; }
-	public decimal AmountFrom { get; set; }
-	public Core.ValueObjects.Currency CurrencyFrom { get; set; }
-	public decimal AmountTo { get; set; }
-	public Core.ValueObjects.Currency CurrencyTo { get; set; }
-	public decimal ExchangeRate { get; set; }
-	public string? Description { get; set; }
-	public DateTimeOffset OccurredAt { get; set; }
-	public bool IsRatePending { get; set; }
-	public TransferStatus Status { get; set; }
-	public int RowVersion { get; set; }
+	public Guid Id { get; init; }
+	public Guid UserId { get; init; }
+	public Guid FromAccountId { get; init; }
+	public Guid ToAccountId { get; init; }
+	public decimal AmountFrom { get; init; }
+	public Core.ValueObjects.Currency CurrencyFrom { get; init; }
+	public decimal AmountTo { get; init; }
+	public Core.ValueObjects.Currency CurrencyTo { get; init; }
+	public decimal ExchangeRate { get; init; }
+	public string? Description { get; init; }
+	public DateTimeOffset OccurredAt { get; init; }
+	public bool IsRatePending { get; init; }
+	public TransferStatus Status { get; init; }
+	public int RowVersion { get; init; }
 }

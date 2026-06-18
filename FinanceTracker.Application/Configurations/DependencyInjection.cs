@@ -37,12 +37,12 @@ public static class DependencyInjection
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 
-			cfg.AddBehavior(implementationType: typeof(TracingBehaviour<,>));
-			cfg.AddBehavior(implementationType: typeof(CorrelationBehaviour<,>));
-			cfg.AddBehavior(implementationType: typeof(RateLimitingBehaviour<,>));
-			cfg.AddBehavior(implementationType: typeof(ConcurrencyRetryBehaviour<,>));
-			cfg.AddBehavior(implementationType: typeof(IdempotencyBehaviour<,>));
-			cfg.AddBehavior(implementationType: typeof(ValidationBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(TracingBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(CorrelationBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(RateLimitingBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(ConcurrencyRetryBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(ValidationBehaviour<,>));
 		});
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);

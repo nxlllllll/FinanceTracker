@@ -76,7 +76,7 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
         );
     }
 
-	public IAsyncEnumerable<RecurringTransactionReadModel> GetDueTodayAsync(
+	public async Task<IReadOnlyList<RecurringTransactionReadModel>> GetDueTodayAsync(
 	    int dayOfMonth,
 	    int daysInCurrentMonth,
 	    DateTimeOffset currentMonthStart,
@@ -84,7 +84,7 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 	{
 	    bool isLastDayOfMonth = dayOfMonth == daysInCurrentMonth;
 
-	    return context.RecurringTransactions.AsNoTracking()
+	    return await context.RecurringTransactions.AsNoTracking()
 	        .Where(predicate: r => r.IsActive &&
 	            (r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart) &&
 	            (r.DayOfMonth == dayOfMonth || isLastDayOfMonth && r.DayOfMonth > daysInCurrentMonth)
@@ -101,6 +101,6 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 	            RowVersion: r.RowVersion,
 	            LastExecutedAt: r.LastExecutedAt,
 	            CreatedAt: r.CreatedAt
-	        )).AsAsyncEnumerable();
+	        )).ToListAsync(cancellationToken: ct);
 	}
 }

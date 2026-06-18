@@ -27,6 +27,15 @@ public sealed record RabbitMqOptions
 	public string? QueueName { get; init; }
 
 	/// <summary>
+	/// Optional per-handler queue name overrides, keyed by handler type name (e.g. <c>"AccountEventsConsumer"</c>).
+	/// In production each worker process hosts exactly one listener, so <see cref="QueueName"/> alone is enough.
+	/// Test hosts (or any process that hosts multiple listeners against a single <see cref="RabbitMqOptions"/>
+	/// section) must give each handler its own queue here — otherwise multiple listeners would become competing
+	/// consumers on the same physical queue and silently steal each other's messages.
+	/// </summary>
+	public Dictionary<string, string> QueueNameOverrides { get; } = new Dictionary<string, string>();
+
+	/// <summary>
 	/// Maximum number of handler attempts before a message is sent to the dead-letter exchange
 	/// and recorded in <c>unresolvable_events</c>. Default: 3.
 	/// </summary>

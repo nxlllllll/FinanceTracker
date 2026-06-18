@@ -30,7 +30,7 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Category?>(result: null));
 
-		Result<Category, NotFoundException> result = await _loader.LoadAsync(
+		Result<Category, DomainException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -49,7 +49,7 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Category?>(null));
 
-		Result<Category, NotFoundException> result = await _loader.LoadAsync(
+		Result<Category, DomainException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: category.Id),
 			ct: CancellationToken.None
 		);
@@ -68,7 +68,7 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		Result<Category, NotFoundException> result = await _loader.LoadAsync(
+		Result<Category, DomainException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
 			ct: CancellationToken.None
 		);

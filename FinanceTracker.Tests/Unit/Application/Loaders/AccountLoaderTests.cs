@@ -29,7 +29,7 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		Result<Account, NotFoundException> result = await _loader.LoadAsync(
+		Result<Account, DomainException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -47,7 +47,7 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		Result<Account, NotFoundException> result = await _loader.LoadAsync(
+		Result<Account, DomainException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: Guid.CreateVersion7(), AccountId: account.Id),
 			ct: CancellationToken.None
 		);
@@ -65,7 +65,7 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		Result<Account, NotFoundException> result = await _loader.LoadAsync(
+		Result<Account, DomainException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
 			ct: CancellationToken.None
 		);

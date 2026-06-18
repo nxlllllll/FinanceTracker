@@ -21,7 +21,9 @@ public sealed class RabbitMqConnectionFactory(IOptions<RabbitMqOptions> options)
 			HostName = _options.Host,
 			Port = _options.Port,
 			UserName = _options.Username,
-			Password = _options.Password
+			Password = _options.Password,
+			AutomaticRecoveryEnabled = false,
+			TopologyRecoveryEnabled = false
 		};
 
 		return await factory.CreateConnectionAsync(cancellationToken: ct);

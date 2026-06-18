@@ -7,9 +7,9 @@ public sealed class AccountEntity
 {
 	public Guid Id { get; init; }
 	public Guid UserId { get; init; }
-	public Name Name { get; set; }
+	public Name Name { get; init; }
 	public AccountType AccountType { get; init; }
 	public Core.ValueObjects.Currency Currency { get; init; }
-	public bool IsArchived { get; set; }
+	public bool IsArchived { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 }
