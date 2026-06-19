@@ -61,6 +61,8 @@
       <EmbeddedResource Include="Migrations\V019__optimize_recurring_due_today_index.sql" />
       <None Remove="Migrations\V021__add_aggregate_type_index.sql" />
       <EmbeddedResource Include="Migrations\V021__add_aggregate_type_index.sql" />
+      <None Remove="Migrations\V022__add_base_currency_for_transaction.sql" />
+      <EmbeddedResource Include="Migrations\V022__add_base_currency_for_transaction.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

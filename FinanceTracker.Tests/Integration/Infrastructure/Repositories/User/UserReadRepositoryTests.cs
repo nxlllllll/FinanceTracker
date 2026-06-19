@@ -259,6 +259,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             id: Guid.CreateVersion7(), accountId: accountId, userId: userId,
             categoryId: categoryId,
             amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             direction: DirectionType.Credit, exchangeRate: 1m,
             isExcluded: false, description: null, isRatePending: false,
     		rowVersion: 0,
@@ -315,6 +316,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Core.Domains.Transaction.Transaction income = Core.Domains.Transaction.Transaction.Reconstitute(
             id: Guid.CreateVersion7(), accountId: accountId, userId: userId, categoryId: categoryId,
             amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             direction: DirectionType.Credit, exchangeRate: 1m,
             isExcluded: false, description: null, isRatePending: false,
     		rowVersion: 0,
@@ -323,6 +325,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Core.Domains.Transaction.Transaction expense = Core.Domains.Transaction.Transaction.Reconstitute(
             id: Guid.CreateVersion7(), accountId: accountId, userId: userId, categoryId: categoryId,
             amount: Money.Create(amount: 500m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             direction: DirectionType.Debit, exchangeRate: 1m,
             isExcluded: false, description: null, isRatePending: false,
     		rowVersion: 0,
@@ -353,9 +356,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
             Core.Domains.Transaction.Transaction tx = Core.Domains.Transaction.Transaction.Reconstitute(
                 id: Guid.CreateVersion7(), accountId: accountId, userId: userId, categoryId: categoryId,
                 amount: Money.Create(amount: 100m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+                baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
                 direction: DirectionType.Debit, exchangeRate: 1m,
                 isExcluded: false, description: null, isRatePending: false,
-    		rowVersion: 0,
+        		rowVersion: 0,
                 occurredAt: FakeDateProvider.Default.UtcNow.AddSeconds(i)
             );
             await _transactionWriteRepository.CreateAsync(transaction: tx);
@@ -386,6 +390,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Core.Domains.Transaction.Transaction first = Core.Domains.Transaction.Transaction.Reconstitute(
             id: Guid.CreateVersion7(), accountId: accountId, userId: userId, categoryId: categoryId,
             amount: Money.Create(amount: 100m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             direction: DirectionType.Debit, exchangeRate: 1m,
             isExcluded: false, description: "Earlier", isRatePending: false,
     		rowVersion: 0,
@@ -394,6 +399,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
         Core.Domains.Transaction.Transaction second = Core.Domains.Transaction.Transaction.Reconstitute(
             id: Guid.CreateVersion7(), accountId: accountId, userId: userId, categoryId: categoryId,
             amount: Money.Create(amount: 200m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
             direction: DirectionType.Debit, exchangeRate: 1m,
             isExcluded: false, description: "Later", isRatePending: false,
     		rowVersion: 0,

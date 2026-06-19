@@ -17,6 +17,7 @@ public sealed class Transaction
 	public Guid UserId { get; private set; }
 	public Guid CategoryId { get; private set; }
 	public Money Amount { get; private set; }
+	public Currency BaseCurrency { get; private set; }
 	public DirectionType Direction { get; private set; }
 	/// <summary>Exchange rate applied when the account currency differs from the transaction currency.</summary>
 	public decimal ExchangeRate { get; private set; }
@@ -40,6 +41,7 @@ public sealed class Transaction
 		Guid userId,
 		Guid categoryId,
 		Money amount,
+		Currency baseCurrency,
 		DirectionType direction,
 		decimal exchangeRate,
 		bool isRatePending,
@@ -55,6 +57,7 @@ public sealed class Transaction
 			UserId = userId,
 			CategoryId = categoryId,
 			Amount = amount,
+			BaseCurrency = baseCurrency,
 			Direction = direction,
 			ExchangeRate = exchangeRate,
 			IsExcluded = false,
@@ -72,6 +75,7 @@ public sealed class Transaction
 		Guid userId,
 		Guid categoryId,
 		Money amount,
+		Currency baseCurrency,
 		DirectionType direction,
 		decimal exchangeRate,
 		bool isExcluded,
@@ -87,6 +91,7 @@ public sealed class Transaction
 			UserId = userId,
 			CategoryId = categoryId,
 			Amount = amount,
+			BaseCurrency = baseCurrency,
 			Direction = direction,
 			ExchangeRate = exchangeRate,
 			IsExcluded = isExcluded,

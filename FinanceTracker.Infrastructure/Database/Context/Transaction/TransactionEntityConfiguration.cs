@@ -38,6 +38,14 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 				convertToProviderExpression: currency => currency.Value,
 				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
 			);
+
+		builder.Property(propertyExpression: t => t.BaseCurrency)
+			.HasColumnName(name: "base_currency_code")
+			.HasMaxLength(maxLength: 3)
+			.HasConversion(
+				convertToProviderExpression: currency => currency.Value,
+				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
+			);
 		
 		builder.Property(propertyExpression: t => t.Direction)
 			.HasColumnName(name: "direction_type")

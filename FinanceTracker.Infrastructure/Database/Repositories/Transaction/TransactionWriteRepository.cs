@@ -24,6 +24,7 @@ public sealed class TransactionWriteRepository(
             CategoryId = transaction.CategoryId,
             Amount = transaction.Amount.Amount,
             Currency = transaction.Amount.Currency,
+            BaseCurrency = transaction.BaseCurrency,
             Direction = transaction.Direction,
             ExchangeRate = transaction.ExchangeRate,
             Description = transaction.Description,

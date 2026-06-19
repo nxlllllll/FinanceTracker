@@ -10,6 +10,7 @@ public sealed class TransactionEntity
 	public Guid CategoryId { get; init; }
 	public decimal Amount { get; init; }
 	public Core.ValueObjects.Currency Currency { get; init; }
+	public Core.ValueObjects.Currency BaseCurrency { get; init; }
 	public DirectionType Direction { get; init; }
 	public decimal ExchangeRate { get; init; }
 	public bool IsExcluded { get; init; }

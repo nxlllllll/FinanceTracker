@@ -21,6 +21,7 @@ public sealed class TransactionRepository(
 				userId: t.UserId,
 				categoryId: t.CategoryId,
 				amount: Money.Reconstitute(amount: t.Amount, currency: t.Currency),
+	            baseCurrency: t.BaseCurrency,
 				direction: t.Direction,
 				exchangeRate: t.ExchangeRate,
 				isExcluded: t.IsExcluded,

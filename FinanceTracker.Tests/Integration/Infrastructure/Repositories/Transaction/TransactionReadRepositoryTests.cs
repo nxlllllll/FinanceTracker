@@ -104,6 +104,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			userId: userId,
 			categoryId: categoryId,
 			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			direction: direction,
 			exchangeRate: 1m,
 			isExcluded: false,

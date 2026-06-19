@@ -79,6 +79,7 @@ public sealed class TransactionCreationService(
             userId: command.UserId,
             categoryId: command.CategoryId,
             amount: amountResult.Value,
+            baseCurrency: account.Currency,
             direction: command.Direction,
             exchangeRate: conversion.Rate,
             isRatePending: conversion.IsPending,

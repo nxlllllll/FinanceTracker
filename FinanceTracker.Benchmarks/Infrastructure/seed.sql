@@ -61,13 +61,14 @@ SELECT id, (random() * 10000)::numeric(18,2), now() FROM budgets;
 
 -- Транзакции: размазаны по всем пользователям и их аккаунтам
 -- ~0.5% с is_rate_pending = true (кросс-валютные без курса)
-INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, direction_type, exchange_rate, is_excluded, description, is_rate_pending, occurred_at)
+INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, base_currency_code, direction_type, exchange_rate, is_excluded, description, is_rate_pending, occurred_at)
 SELECT
     gen_random_uuid(),
     a.id,
     a.user_id,
     c.id,
     (random() * 9900 + 100)::numeric(18,2),
+    a.currency_code,
     a.currency_code,
     CASE WHEN i % 3 = 0 THEN 'credit' ELSE 'debit' END,
     CASE WHEN a.currency_code != 'RUB' THEN (0.8 + random() * 0.4)::numeric(18,6) ELSE 1.0 END,
@@ -87,13 +88,14 @@ FROM generate_series(1, 1000000) i
     ) c ON true;
 
 -- Реалистичный объём для целевого пользователя: ~2000 транзакций за год
-INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, direction_type, exchange_rate, is_excluded, description, is_rate_pending, occurred_at)
+INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, base_currency_code, direction_type, exchange_rate, is_excluded, description, is_rate_pending, occurred_at)
 SELECT
     gen_random_uuid(),
     CASE WHEN i % 3 = 0 THEN '{AccountId}'::uuid ELSE '{FromAccountId}'::uuid END,
     '{UserId}'::uuid,
     CASE WHEN i % 2 = 0 THEN '{CategoryId}'::uuid ELSE '{ExpenseCategoryId}'::uuid END,
     (random() * 9900 + 100)::numeric(18,2),
+    'RUB',
     'RUB',
     CASE WHEN i % 3 = 0 THEN 'credit' ELSE 'debit' END,
     1.0,

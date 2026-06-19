@@ -1,0 +1,1 @@
+﻿alter table rm_transactions add column base_currency_code char(3) not null;
