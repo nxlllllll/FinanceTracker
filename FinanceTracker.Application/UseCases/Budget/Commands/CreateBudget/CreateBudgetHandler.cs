@@ -25,17 +25,6 @@ public sealed class CreateBudgetHandler(
 		if (moneyResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: moneyResult.Error!);
 
-		bool hasOverlap = await budgetReadRepository.HasOverlappingAsync(
-			userId: command.UserId,
-			categoryId: command.CategoryId,
-			from: command.From,
-			to: command.To,
-			ct: ct
-		);
-
-		if (hasOverlap)
-			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
-
 		Result<Core.Domains.Budget.Budget, DomainException> budgetResult = Core.Domains.Budget.Budget.Create(
 			userId: command.UserId,
 			categoryId: command.CategoryId,
@@ -48,16 +37,33 @@ public sealed class CreateBudgetHandler(
 			return Result<Guid, DomainException>.Failure(error: budgetResult.Error!);
 
 		Core.Domains.Budget.Budget budget = budgetResult.Value!;
+		bool hasOverlap = false;
 
 		try
 		{
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await budgetWriteRepository.CreateAsync(budget: budget, ct: ct), ct: ct);
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			{
+				hasOverlap = await budgetReadRepository.HasOverlappingAsync(
+					userId: command.UserId,
+					categoryId: command.CategoryId,
+					from: command.From,
+					to: command.To,
+					ct: ct
+				);
+
+				if (hasOverlap)
+					return;
+
+				await budgetWriteRepository.CreateAsync(budget: budget, ct: ct);
+			}, ct: ct);
 		}
 		catch (UniqueConstraintException)
 		{
-			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
+			hasOverlap = true;
 		}
-		
+
+		if (hasOverlap)
+			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
 		await publisher.Publish(notification: new BudgetCreatedNotification(
 			BudgetId: budget.Id,

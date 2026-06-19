@@ -16,9 +16,7 @@ public readonly partial record struct Currency
 {
 	[GeneratedRegex(pattern: "^[A-Z]{3}$", options: RegexOptions.Compiled)]
 	private static partial Regex CurrencyRegex();
-
-	private static readonly Regex FormatRegex = CurrencyRegex();
-
+	
 	/// <summary>The normalised 3-letter currency code.</summary>
 	public string Value { get; }
 
@@ -36,7 +34,7 @@ public readonly partial record struct Currency
 
 		string normalized = value.Trim().ToUpperInvariant();
 
-		if (!FormatRegex.IsMatch(input: normalized))
+		if (!CurrencyRegex().IsMatch(input: normalized))
 			return Result<Currency, DomainException>.Failure(error: new CurrencyException(message: "The currency code is invalid. Expected 3 uppercase letters (e.g. 'USD')."));
 
 		return Result<Currency, DomainException>.Success(value: new Currency(value: normalized));

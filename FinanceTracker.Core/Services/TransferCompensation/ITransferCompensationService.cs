@@ -8,5 +8,6 @@ namespace FinanceTracker.Core.Services.TransferCompensation;
 /// </summary>
 public interface ITransferCompensationService
 {
+	/// <remarks>Caller must wrap this call in IUnitOfWork.ExecuteInTransactionAsync.</remarks>
 	Task CompensateAsync(PendingCreditTransfer transfer, CancellationToken ct = default);
 }

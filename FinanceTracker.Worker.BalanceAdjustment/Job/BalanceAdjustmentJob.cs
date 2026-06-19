@@ -179,7 +179,7 @@ public sealed class BalanceAdjustmentJob(
 			pending: pending,
 			options: options,
 			entityName: nameof(Transaction),
-			getId: item => item.TransactionId,
+			getId: item => item.AccountId,
 			getCurrentRate: item => item.CurrentRate,
 			getNewRateAsync: async (item, innerCt) => await currencyRateReadRepository.GetRateAsync(
 				baseCurrencyCode: item.TransactionCurrency,
@@ -246,7 +246,7 @@ public sealed class BalanceAdjustmentJob(
 			pending: pending,
 			options: options,
 			entityName: nameof(Transfer),
-			getId: item => item.TransferId,
+			getId: item => item.ToAccountId,
 			getCurrentRate: item => item.CurrentRate,
 			getNewRateAsync: (item, innerCt) => currencyRateReadRepository.GetRateAsync(
 				baseCurrencyCode: item.CurrencyFrom,
