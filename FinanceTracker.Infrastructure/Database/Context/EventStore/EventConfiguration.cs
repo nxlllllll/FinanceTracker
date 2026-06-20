@@ -5,6 +5,8 @@ namespace FinanceTracker.Infrastructure.Database.Context.EventStore;
 
 public sealed class EventEntityConfiguration : IEntityTypeConfiguration<EventEntity>
 {
+	public const string VersionConstraint = "uq_events_aggregate_version";
+	
 	public void Configure(EntityTypeBuilder<EventEntity> builder)
 	{
 		builder.ToTable(name: "events");
@@ -52,6 +54,6 @@ public sealed class EventEntityConfiguration : IEntityTypeConfiguration<EventEnt
             .HasFilter(sql: "correlation_id is not null");
 
         builder.HasAlternateKey(keyExpression: e => new { e.AggregateId, e.Version })
-            .HasName(name: "uq_events_aggregate_version");
+            .HasName(name: VersionConstraint);
     }
 }

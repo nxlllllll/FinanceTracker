@@ -64,8 +64,7 @@ public sealed class RecurringTransactionEntityConfiguration
 
         builder.Property(propertyExpression: r => r.RowVersion)
             .HasColumnName(name: "row_version")
-            .HasDefaultValue(value: 0)
-            .IsConcurrencyToken();
+            .HasDefaultValue(value: 0);
         
         builder.Property(propertyExpression: r => r.CreatedAt)
             .HasColumnName(name: "created_at");

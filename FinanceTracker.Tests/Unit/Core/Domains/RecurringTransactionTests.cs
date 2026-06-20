@@ -115,6 +115,16 @@ public sealed class RecurringTransactionTests
     }
 
     [Test]
+    public async Task ChangeAmount_WithZeroAmount_ShouldThrowInvalidAmountException()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeAmount(amount: 0m);
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
+    }
+    
+    [Test]
     public async Task ChangeCurrency_WithValidCurrency_ShouldUpdateCurrency()
     {
         RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;

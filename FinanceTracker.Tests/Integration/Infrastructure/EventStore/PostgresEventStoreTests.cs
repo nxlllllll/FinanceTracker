@@ -173,7 +173,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task SaveAsync_WithConcurrentWrite_ShouldThrowConcurrencyConflictException()
+	public async Task SaveAsync_WithStaleExpectedVersion_ShouldThrowConcurrencyConflictException()
 	{
 		Guid accountId = Guid.CreateVersion7();
 		AccountCreated @event = new AccountCreated(
@@ -218,7 +218,54 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 				OccurredAt: DateTimeOffset.UtcNow
 			)],
 			expectedVersion: 0
-		))).Throws<UniqueConstraintException>();
+		))).Throws<ConcurrencyConflictException>();
+	}
+
+	[Test]
+	public async Task SaveAsync_WithTrueConcurrentWrite_ShouldThrowConcurrencyConflictException()
+	{
+		Guid accountId = Guid.CreateVersion7();
+
+		AccountCreated EventFor(Guid eventId) => new AccountCreated(
+			Id: eventId,
+			AccountId: accountId,
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Новый счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			Balance: 0,
+			Version: 0,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+
+		FinanceTrackerContext contextA = CreateFreshContext();
+		FinanceTrackerContext contextB = CreateFreshContext();
+
+		await using EFUnitOfWork uowA = new EFUnitOfWork(context: contextA, logger: Substitute.For<ILogger<EFUnitOfWork>>());
+		await using EFUnitOfWork uowB = new EFUnitOfWork(context: contextB, logger: Substitute.For<ILogger<EFUnitOfWork>>());
+
+		PostgresEventStore storeA = CreateEventStore(ctx: contextA);
+		PostgresEventStore storeB = CreateEventStore(ctx: contextB);
+
+		await uowA.BeginTransactionAsync();
+		await uowB.BeginTransactionAsync();
+
+		await storeA.SaveAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [EventFor(eventId: Guid.CreateVersion7())],
+			expectedVersion: 0
+		);
+		await storeB.SaveAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [EventFor(eventId: Guid.CreateVersion7())],
+			expectedVersion: 0
+		);
+
+		await uowA.CommitAsync();
+
+		await Assert.That(async () => await uowB.CommitAsync()).Throws<ConcurrencyConflictException>();
 	}
 
 	[Test]

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
@@ -37,11 +38,16 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
             return TResponse.CreateFailure(error: new EmptyIdempotentException(message: $"{typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty."));
         }
 
+        string commandType = typeof(TRequest).Name;
+        Guid userId = request is IUserScopedRequest scoped ? scoped.UserId : Guid.Empty;
+
         IdempotencyOptions currentOptions = options.CurrentValue;
         DateTimeOffset now = dateProvider.UtcNow;
 
         IdempotencyEntry? entry = await idempotencyReadRepository.GetAsync(
             idempotencyKey: idempotent.IdempotencyKey,
+            commandType: commandType,
+            userId: userId,
             ct: cancellationToken
         );
 
@@ -50,6 +56,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
             return await HandleExistingEntryAsync(
                 entry: entry,
                 idempotent: idempotent,
+                commandType: commandType,
+                userId: userId,
                 options: currentOptions,
                 now: now,
                 cancellationToken: cancellationToken
@@ -59,7 +67,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
         DateTimeOffset expiresAt = now.AddHours(hours: currentOptions.ExpiryHours);
         bool reserved = await idempotencyWriteRepository.TryReserveAsync(
             idempotencyKey: idempotent.IdempotencyKey,
-            commandType: typeof(TRequest).Name,
+            commandType: commandType,
+            userId: userId,
             reservedAt: now,
             expiresAt: expiresAt,
             ct: cancellationToken
@@ -70,17 +79,38 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
             logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} is in-flight, waiting for result.");
             return await PollForCompletionAsync(
                 idempotent: idempotent,
+                commandType: commandType,
+                userId: userId,
                 options: currentOptions,
                 cancellationToken: cancellationToken
             );
         }
 
-        TResponse response = await next(t: cancellationToken);
+        TResponse response;
+        try
+        {
+            response = await next(t: cancellationToken);
+        }
+        catch
+        {
+            await idempotencyWriteRepository.DeleteAsync(
+                idempotencyKey: idempotent.IdempotencyKey,
+                commandType: commandType,
+                userId: userId,
+                ct: cancellationToken
+            );
+
+            logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} — handler threw, client may retry.");
+
+            throw;
+        }
 
         if (response is IResult { IsSuccess: true })
         {
             await idempotencyWriteRepository.CompleteAsync(
                 idempotencyKey: idempotent.IdempotencyKey,
+                commandType: commandType,
+                userId: userId,
                 responseJson: JsonSerializer.Serialize(value: response, options: FinanceTrackerJsonOptions.Application),
                 ct: cancellationToken
             );
@@ -91,6 +121,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
         {
             await idempotencyWriteRepository.DeleteAsync(
                 idempotencyKey: idempotent.IdempotencyKey,
+                commandType: commandType,
+                userId: userId,
                 ct: cancellationToken
             );
 
@@ -103,6 +135,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
     private async Task<TResponse> HandleExistingEntryAsync(
         IdempotencyEntry entry,
         IIdempotentCommand idempotent,
+        string commandType,
+        Guid userId,
         IdempotencyOptions options,
         DateTimeOffset now,
         CancellationToken cancellationToken)
@@ -120,6 +154,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
             await idempotencyWriteRepository.DeleteAsync(
                 idempotencyKey: idempotent.IdempotencyKey,
+                commandType: commandType,
+                userId: userId,
                 ct: cancellationToken
             );
 
@@ -131,6 +167,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
         logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} is in-flight (age: {age.TotalSeconds:F0}s), waiting for result.");
         return await PollForCompletionAsync(
             idempotent: idempotent,
+            commandType: commandType,
+            userId: userId,
             options: options,
             cancellationToken: cancellationToken
         );
@@ -138,6 +176,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
     private async Task<TResponse> PollForCompletionAsync(
         IIdempotentCommand idempotent,
+        string commandType,
+        Guid userId,
         IdempotencyOptions options,
         CancellationToken cancellationToken)
     {
@@ -160,6 +200,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
             IdempotencyEntry? entry = await idempotencyReadRepository.GetAsync(
                 idempotencyKey: idempotent.IdempotencyKey,
+                commandType: commandType,
+                userId: userId,
                 ct: cancellationToken
             );
 
@@ -185,6 +227,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
             await idempotencyWriteRepository.DeleteAsync(
                 idempotencyKey: idempotent.IdempotencyKey,
+                commandType: commandType,
+                userId: userId,
                 ct: cancellationToken
             );
 

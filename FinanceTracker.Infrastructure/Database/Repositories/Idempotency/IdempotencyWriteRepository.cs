@@ -14,6 +14,7 @@ public sealed class IdempotencyWriteRepository(
 	public async Task<bool> TryReserveAsync(
 		Guid idempotencyKey,
 		string commandType,
+		Guid userId,
 		DateTimeOffset reservedAt,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
@@ -21,6 +22,7 @@ public sealed class IdempotencyWriteRepository(
 		return await context.TryReserveIdempotentCommandAsync(
 			idempotencyKey: idempotencyKey,
 			commandType: commandType,
+			userId: userId,
 			reservedAt: dateProvider.UtcNow,
 			expiresAt: expiresAt,
 			ct: ct
@@ -29,13 +31,19 @@ public sealed class IdempotencyWriteRepository(
 
     public async Task CompleteAsync(
         Guid idempotencyKey,
+        string commandType,
+        Guid userId,
         string responseJson,
         CancellationToken ct = default)
     {
-        await context.IdempotentCommands.Where(predicate: e => e.IdempotencyKey == idempotencyKey).ExecuteUpdateAsync(
-            setPropertyCalls: s => s.SetProperty(propertyExpression: e => e.ResponseJson, valueExpression: responseJson),
-            cancellationToken: ct
-        );
+        await context.IdempotentCommands.Where(predicate: e => e.IdempotencyKey == idempotencyKey && e.CommandType == commandType && e.UserId == userId)
+			.ExecuteUpdateAsync(
+				setPropertyCalls: s => s.SetProperty(
+					propertyExpression: e => e.ResponseJson,
+					valueExpression: responseJson
+				), 
+				cancellationToken: ct
+			);
     }
 	
 	public async Task<int> DeleteExpiredAsync(
@@ -51,6 +59,12 @@ public sealed class IdempotencyWriteRepository(
 
     public async Task DeleteAsync(
         Guid idempotencyKey,
-        CancellationToken ct = default
-    ) => await context.IdempotentCommands.Where(predicate: e => e.IdempotencyKey == idempotencyKey).ExecuteDeleteAsync(cancellationToken: ct);
+        string commandType,
+        Guid userId,
+        CancellationToken ct = default)
+	{
+		await context.IdempotentCommands.Where(
+			predicate: e => e.IdempotencyKey == idempotencyKey && e.CommandType == commandType && e.UserId == userId
+		).ExecuteDeleteAsync(cancellationToken: ct);
+	}
 }

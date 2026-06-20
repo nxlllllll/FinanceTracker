@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
@@ -47,10 +48,18 @@ public sealed class EFUnitOfWork(
 		catch (DbUpdateConcurrencyException ex)
 		{
 			Guid aggregateId = ex.Entries[0].Property(propertyName: "Id").CurrentValue is Guid id ? id : Guid.Empty;
-
 			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on entity {ex.Entries[0].Metadata.Name} {aggregateId}.");
-
 			throw new ConcurrencyConflictException(message: "Conflict: the record was modified by another request.", id: aggregateId);
+		}
+		catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+		{
+			SqlState: PostgresUniqueViolationCode,
+			ConstraintName: EventEntityConfiguration.VersionConstraint
+		})
+		{
+			Guid aggregateId = ex.Entries[0].Property(propertyName: "AggregateId").CurrentValue is Guid id ? id : Guid.Empty;
+			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on event store aggregate {aggregateId}.");
+			throw new ConcurrencyConflictException(message: "Conflict: the aggregate was modified by another request.", id: aggregateId);
 		}
 		catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationCode } pgEx)
 		{

@@ -48,8 +48,7 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 
 		builder.Property(propertyExpression: b => b.RowVersion)
 			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0)
-			.IsConcurrencyToken();
+			.HasDefaultValue(value: 0);
 
 		builder.Property(propertyExpression: b => b.CreatedAt)
 			.HasColumnName(name: "created_at");

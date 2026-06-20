@@ -33,8 +33,4 @@
         <ProjectReference Include="..\FinanceTracker.Worker.TransferProjection\FinanceTracker.Worker.TransferProjection.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Folder Include="Integration\Infrastructure\Repositories\" />
-    </ItemGroup>
-
 </Project>

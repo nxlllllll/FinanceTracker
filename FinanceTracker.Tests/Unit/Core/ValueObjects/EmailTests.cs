@@ -12,7 +12,7 @@ public sealed class EmailTests
         Result<Email, DomainException> result = Email.Create(value: "user@example.com");
 
         await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "user@example.com");
+        await Assert.That(value: result.Value).IsEqualTo(expected: "user@example.com");
     }
 
     [Test]
@@ -70,6 +70,33 @@ public sealed class EmailTests
     }
 
     [Test]
+    public async Task Create_WithConsecutiveDotsInDomain_ShouldReturnFailure()
+    {
+        Result<Email, DomainException> result = Email.Create(value: "user@example..com");
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<EmailException>();
+    }
+
+    [Test]
+    public async Task Create_WithTrailingDotInDomain_ShouldReturnFailure()
+    {
+        Result<Email, DomainException> result = Email.Create(value: "user@example.com.");
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<EmailException>();
+    }
+
+    [Test]
+    public async Task Create_WithLeadingDotInDomain_ShouldReturnFailure()
+    {
+        Result<Email, DomainException> result = Email.Create(value: "user@.example.com");
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<EmailException>();
+    }
+
+    [Test]
     public async Task Create_WithSpaceInside_ShouldReturnFailure()
     {
         Result<Email, DomainException> result = Email.Create(value: "us er@example.com");
@@ -84,7 +111,7 @@ public sealed class EmailTests
         Result<Email, DomainException> result = Email.Create(value: "user@mail.example.com");
 
         await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "user@mail.example.com");
+        await Assert.That(value: result.Value).IsEqualTo(expected: "user@mail.example.com");
     }
 
     [Test]
@@ -93,7 +120,7 @@ public sealed class EmailTests
         Result<Email, DomainException> result = Email.Create(value: "user+tag@example.com");
 
         await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "user+tag@example.com");
+        await Assert.That(value: result.Value).IsEqualTo(expected: "user+tag@example.com");
     }
 
     [Test]
@@ -102,7 +129,7 @@ public sealed class EmailTests
         Result<Email, DomainException> result = Email.Create(value: "first.last@example.com");
 
         await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value.Value).IsEqualTo(expected: "first.last@example.com");
+        await Assert.That(value: result.Value).IsEqualTo(expected: "first.last@example.com");
     }
 
     [Test]
@@ -110,7 +137,7 @@ public sealed class EmailTests
     {
         Email email = Email.Reconstitute(value: "user@example.com");
 
-        await Assert.That(value: email.Value).IsEqualTo(expected: "user@example.com");
+        await Assert.That(value: email).IsEqualTo(expected: "user@example.com");
     }
 
     [Test]
@@ -118,9 +145,7 @@ public sealed class EmailTests
     {
         Email email = Email.Reconstitute(value: "user@example.com");
 
-        string result = email;
-
-        await Assert.That(value: result).IsEqualTo(expected: "user@example.com");
+        await Assert.That(value: email).IsEqualTo(expected: "user@example.com");
     }
 
     [Test]
@@ -128,7 +153,7 @@ public sealed class EmailTests
     {
         Email email = Email.Reconstitute(value: "user@example.com");
 
-        await Assert.That(value: email.ToString()).IsEqualTo(expected: "user@example.com");
+        await Assert.That(value: email).IsEqualTo(expected: "user@example.com");
     }
 
     [Test]
@@ -169,6 +194,9 @@ public sealed class EmailTests
     [Arguments("@example.com")]
     [Arguments("user@example")]
     [Arguments("us er@example.com")]
+    [Arguments("user@example..com")]
+    [Arguments("user@example.com.")]
+    [Arguments("user@.example.com")]
     public async Task Create_WithInvalidEmails_ShouldReturnFailure(string email)
     {
         Result<Email, DomainException> result = Email.Create(value: email);

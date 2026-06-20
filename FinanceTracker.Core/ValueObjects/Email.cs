@@ -14,7 +14,7 @@ namespace FinanceTracker.Core.ValueObjects;
 [JsonConverter(converterType: typeof(EmailJsonConverter))]
 public readonly partial record struct Email
 {
-	[GeneratedRegex(pattern: @"^[^@\s]+@[^@\s]+\.[^@\s]+$", options: RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+	[GeneratedRegex(pattern: @"^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$", options: RegexOptions.IgnoreCase | RegexOptions.Compiled)]
 	private static partial Regex EmailRegex();
 	private static readonly Regex FormatRegex = EmailRegex();
 

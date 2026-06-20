@@ -38,8 +38,7 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 
 		builder.Property(propertyExpression: u => u.RowVersion)
 			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0)
-			.IsConcurrencyToken();
+			.HasDefaultValue(value: 0);
 
 		builder.Property(propertyExpression: u => u.CreatedAt)
 			.HasColumnName(name: "created_at");

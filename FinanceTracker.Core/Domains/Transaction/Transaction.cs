@@ -102,7 +102,7 @@ public sealed class Transaction
 		};
 	}
 
-    public Result<Unit, DomainException> Exclude()
+	public Result<Unit, DomainException> Exclude()
 	{
 		if (IsExcluded)
 			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is already excluded."));
@@ -120,7 +120,7 @@ public sealed class Transaction
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-    public Result<Unit, DomainException> ChangeCategory(Guid categoryId)
+	public Result<Unit, DomainException> ChangeCategory(Guid categoryId)
 	{
 		if (IsExcluded)
 			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
@@ -133,7 +133,7 @@ public sealed class Transaction
 	{
 		if (IsExcluded)
 			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
-		
+
 		Description = description;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}

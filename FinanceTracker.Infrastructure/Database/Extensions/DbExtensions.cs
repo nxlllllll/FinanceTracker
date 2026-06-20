@@ -43,14 +43,15 @@ public static class DbContextExtensions
 		this DbContext context,
 		Guid idempotencyKey,
 		string commandType,
+		Guid userId,
 		DateTimeOffset reservedAt,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
 	{
 		int rows = await context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO idempotent_commands (idempotency_key, command_type, reserved_at, expires_at)
-			VALUES ({idempotencyKey}, {commandType}, {reservedAt}, {expiresAt})
-			ON CONFLICT (idempotency_key) DO NOTHING
+			INSERT INTO idempotent_commands (idempotency_key, command_type, user_id, reserved_at, expires_at)
+			VALUES ({idempotencyKey}, {commandType}, {userId}, {reservedAt}, {expiresAt})
+			ON CONFLICT (idempotency_key, command_type, user_id) DO NOTHING
 		""", cancellationToken: ct);
 
 		return rows == 1;
@@ -58,18 +59,20 @@ public static class DbContextExtensions
 
 	/// <summary>
 	/// Writes the serialized response JSON to a previously reserved idempotency record,
-	/// marking the command as completed.
+	/// marking the command as completed. Scoped to the same composite key as <see cref="TryReserveIdempotentCommandAsync"/>.
 	/// </summary>
 	public static Task CompleteIdempotentCommandAsync(
 		this DbContext context,
 		Guid idempotencyKey,
+		string commandType,
+		Guid userId,
 		string responseJson,
 		CancellationToken ct = default)
 	{
 		return context.Database.ExecuteSqlAsync(sql: $"""
 			UPDATE idempotent_commands
 			SET response_json = {responseJson}
-			WHERE idempotency_key = {idempotencyKey}
+			WHERE idempotency_key = {idempotencyKey} AND command_type = {commandType} AND user_id = {userId}
 		""", cancellationToken: ct);
 	}
 

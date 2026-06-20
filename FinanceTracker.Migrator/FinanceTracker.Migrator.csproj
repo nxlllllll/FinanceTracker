@@ -63,6 +63,10 @@
       <EmbeddedResource Include="Migrations\V021__add_aggregate_type_index.sql" />
       <None Remove="Migrations\V022__add_base_currency_for_transaction.sql" />
       <EmbeddedResource Include="Migrations\V022__add_base_currency_for_transaction.sql" />
+      <None Remove="Migrations\V023__scope_idempotent_commands.sql" />
+      <EmbeddedResource Include="Migrations\V023__scope_idempotent_commands.sql" />
+      <None Remove="Migrations\V020__add_rm_operations.sql" />
+      <EmbeddedResource Include="Migrations\V020__add_rm_operations.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

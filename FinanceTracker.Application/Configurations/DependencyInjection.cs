@@ -39,9 +39,9 @@ public static class DependencyInjection
 
 			cfg.AddOpenBehavior(openBehaviorType: typeof(TracingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(CorrelationBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(RateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ConcurrencyRetryBehaviour<,>));
-			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ValidationBehaviour<,>));
 		});
 

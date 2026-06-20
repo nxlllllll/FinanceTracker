@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
@@ -16,6 +17,7 @@ public sealed class IdempotencyBehaviourTests
 {
 	public sealed record TestCommand(Guid IdempotencyKey) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand;
 	public sealed record NonIdempotentCommand : IRequest<Result<Guid, DomainException>>;
+	public sealed record TestUserScopedCommand(Guid IdempotencyKey, Guid UserId) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand, IUserScopedRequest;
 
 	private static readonly JsonSerializerOptions JsonOpts = new JsonSerializerOptions
 	{
@@ -37,6 +39,7 @@ public sealed class IdempotencyBehaviourTests
 		_writeRepository.TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
@@ -96,11 +99,14 @@ public sealed class IdempotencyBehaviourTests
 
 		await _readRepository.DidNotReceive().GetAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _writeRepository.DidNotReceive().TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
@@ -131,13 +137,74 @@ public sealed class IdempotencyBehaviourTests
 
 		await _readRepository.DidNotReceive().GetAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _writeRepository.DidNotReceive().TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenRequestIsUserScoped_ShouldPassUserIdToRepositories()
+	{
+		Guid userId = Guid.CreateVersion7();
+
+		_readRepository.GetAsync(
+			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (IdempotencyEntry?)null);
+
+		await BuildBehavior<TestUserScopedCommand>().Handle(
+			request: new TestUserScopedCommand(IdempotencyKey: ValidKey, UserId: userId),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _readRepository.Received(requiredNumberOfCalls: 1).GetAsync(
+			idempotencyKey: ValidKey,
+			commandType: nameof(TestUserScopedCommand),
+			userId: userId,
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _writeRepository.Received(requiredNumberOfCalls: 1).TryReserveAsync(
+			idempotencyKey: ValidKey,
+			commandType: nameof(TestUserScopedCommand),
+			userId: userId,
+			reservedAt: Arg.Any<DateTimeOffset>(),
+			expiresAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenRequestIsNotUserScoped_ShouldUseEmptyGuidAsUserId()
+	{
+		_readRepository.GetAsync(
+			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (IdempotencyEntry?)null);
+
+		await _behaviour.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _readRepository.Received(requiredNumberOfCalls: 1).GetAsync(
+			idempotencyKey: ValidKey,
+			commandType: nameof(TestCommand),
+			userId: Guid.Empty,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -147,6 +214,8 @@ public sealed class IdempotencyBehaviourTests
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (IdempotencyEntry?)null);
 
@@ -166,6 +235,8 @@ public sealed class IdempotencyBehaviourTests
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (IdempotencyEntry?)null);
 
@@ -179,6 +250,8 @@ public sealed class IdempotencyBehaviourTests
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).CompleteAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			responseJson: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -189,6 +262,8 @@ public sealed class IdempotencyBehaviourTests
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (IdempotencyEntry?)null);
 
@@ -200,11 +275,48 @@ public sealed class IdempotencyBehaviourTests
 
 		await _writeRepository.DidNotReceive().CompleteAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			responseJson: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenNoCacheAndSlotAcquiredAndNextThrows_ShouldDeleteKeyAndRethrow()
+	{
+		_readRepository.GetAsync(
+			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (IdempotencyEntry?)null);
+
+		InvalidOperationException thrown = new InvalidOperationException(message: "Simulated handler failure.");
+
+		await Assert.That(async () => await _behaviour.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => throw thrown,
+			cancellationToken: CancellationToken.None
+		)).Throws<InvalidOperationException>();
+
+		await _writeRepository.DidNotReceive().CompleteAsync(
+			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
+			responseJson: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
+			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -216,6 +328,8 @@ public sealed class IdempotencyBehaviourTests
 
 		_readRepository.GetAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (IdempotencyEntry?)null);
 
@@ -228,6 +342,7 @@ public sealed class IdempotencyBehaviourTests
 		await _writeRepository.Received(requiredNumberOfCalls: 1).TryReserveAsync(
 			idempotencyKey: ValidKey,
 			commandType: nameof(TestCommand),
+			userId: Arg.Any<Guid>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: expiryHours),
 			ct: Arg.Any<CancellationToken>()
@@ -239,6 +354,8 @@ public sealed class IdempotencyBehaviourTests
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: CompletedEntry(result: Ok()));
 
@@ -260,6 +377,8 @@ public sealed class IdempotencyBehaviourTests
 
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: CompletedEntry(result: OkWith(value: cachedId)));
 
@@ -278,6 +397,8 @@ public sealed class IdempotencyBehaviourTests
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: CompletedEntry(result: Ok()));
 
@@ -290,12 +411,15 @@ public sealed class IdempotencyBehaviourTests
 		await _writeRepository.DidNotReceive().TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _writeRepository.DidNotReceive().CompleteAsync(
 			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			responseJson: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -306,12 +430,15 @@ public sealed class IdempotencyBehaviourTests
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (IdempotencyEntry?)null);
 
 		_writeRepository.TryReserveAsync(
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
@@ -319,6 +446,8 @@ public sealed class IdempotencyBehaviourTests
 
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(
 			returnThis: InFlightEntry(),
@@ -343,6 +472,8 @@ public sealed class IdempotencyBehaviourTests
 
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(
 			returnThis: InFlightEntry(),
@@ -366,6 +497,8 @@ public sealed class IdempotencyBehaviourTests
 
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: _ =>
 		{
@@ -393,6 +526,8 @@ public sealed class IdempotencyBehaviourTests
 
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: InFlightEntry(reservedAt: abandonedAt));
 
@@ -406,6 +541,8 @@ public sealed class IdempotencyBehaviourTests
 		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
 		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -417,6 +554,8 @@ public sealed class IdempotencyBehaviourTests
 
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(
 			returnThis: InFlightEntry(),
@@ -433,6 +572,8 @@ public sealed class IdempotencyBehaviourTests
 		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
 		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -442,6 +583,8 @@ public sealed class IdempotencyBehaviourTests
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(
 			returnThis: InFlightEntry(),

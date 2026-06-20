@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Converters.Json;
@@ -8,6 +9,7 @@ using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Services.Correlation;
@@ -111,6 +113,22 @@ public sealed class PostgresEventStore(
 		}, cancellationToken: ct);
 	}
 
+	private async Task EnsureExpectedVersionAsync(
+		Guid aggregateId,
+		string aggregateType,
+		int expectedVersion,
+		CancellationToken ct)
+	{
+		int? currentVersion = await context.Events.AsNoTracking().Where(predicate: e => e.AggregateId == aggregateId && e.AggregateType == aggregateType)
+			.MaxAsync(selector: e => (int?)e.Version, cancellationToken: ct);
+
+		if ((currentVersion ?? 0) != expectedVersion)
+		{
+			logger.ZLogWarning(message: $"Concurrency conflict on aggregate {aggregateId} ({aggregateType}): expected version {expectedVersion}, actual {currentVersion ?? 0}.");
+			throw new ConcurrencyConflictException(message: "Conflict: the aggregate was modified by another request.", id: aggregateId);
+		}
+	}
+
 	public async Task SaveAsync(
 		Guid aggregateId,
 		string aggregateType,
@@ -131,6 +149,13 @@ public sealed class PostgresEventStore(
 		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateId, value: aggregateId);
 		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateType, value: aggregateType);
 		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsCount, value: eventList.Count);
+
+		await EnsureExpectedVersionAsync(
+			aggregateId: aggregateId,
+			aggregateType: aggregateType,
+			expectedVersion: expectedVersion,
+			ct: ct
+		);
 
 		(List<EventEntity> entities, List<OutboxEventEnvelope> envelopes) = BuildEntities(
 			aggregateId: aggregateId,
@@ -233,7 +258,7 @@ public sealed class PostgresEventStore(
 				logger.ZLogError(exception: ex, message: $"""
 					Failed to deserialize event '{entity.EventType}' v{entity.SchemaVersion} (id: {entity.Id}) for {aggregateType} {aggregateId}. 
 					Stored at version {entity.Version}.
-					""");
+				""");
 				throw;
 			}
 		}
@@ -253,7 +278,7 @@ public sealed class PostgresEventStore(
 
 	public async IAsyncEnumerable<Guid> GetAggregateIdsAsync(
 		string aggregateType,
-		[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+		[EnumeratorCancellation] CancellationToken ct = default)
 	{
 		IAsyncEnumerable<Guid> ids = context.Events.AsNoTracking().Where(predicate: e => e.AggregateType == aggregateType)
 			.Select(selector: e => e.AggregateId)

@@ -14,7 +14,12 @@ namespace FinanceTracker.Core.ValueObjects;
 [JsonConverter(converterType: typeof(MoneyJsonConverter))]
 public readonly record struct Money
 {
-	/// <summary>The monetary amount. Always non-negative.</summary>
+	/// <summary>
+	/// The monetary amount. Non-negative for any value built through <see cref="Create"/> or
+	/// <see cref="Positive"/>. May be negative on values produced by internal event-sourced
+	/// corrections (see the type-level remarks) — callers that depend on non-negativity should
+	/// not assume it holds unconditionally.
+	/// </summary>
 	public decimal Amount { get; }
 
 	/// <summary>The currency of this amount.</summary>
@@ -56,14 +61,16 @@ public readonly record struct Money
 		=> new Money(amount: amount, currency: currency);
 
 	/// <summary>
-	/// Adds a raw decimal to this amount without currency validation.
+	/// Adds a raw decimal to this amount without currency validation and without
+	/// re-checking non-negativity — the result may legitimately be negative
 	/// Internal use only — called from event sourcing Apply methods where currency is guaranteed.
 	/// </summary>
 	internal Money Add(decimal amount)
 		=> new Money(amount: Amount + amount, currency: Currency);
 
 	/// <summary>
-	/// Subtracts a raw decimal from this amount without currency validation.
+	/// Subtracts a raw decimal from this amount without currency validation and without
+	/// re-checking non-negativity — the result may legitimately be negative
 	/// Internal use only — called from event sourcing Apply methods where currency is guaranteed.
 	/// </summary>
 	internal Money Subtract(decimal amount)
