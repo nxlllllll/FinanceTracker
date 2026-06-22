@@ -30,13 +30,9 @@ public sealed class UserSessionEntityConfiguration : IEntityTypeConfiguration<Us
 		builder.Property(propertyExpression: s => s.RevokedAt)
 			.HasColumnName(name: "revoked_at");
 
-		builder.HasIndex(indexExpression: s => s.RefreshTokenHash)
-			.IsUnique()
-			.HasDatabaseName(name: "uq_user_sessions_token_hash");
-
-		builder.HasIndex(indexExpression: s => s.UserId)
-			.HasDatabaseName(name: "idx_user_sessions_user");
-
+		// builder.HasIndex(indexExpression: s => s.RefreshTokenHash)
+		// 	.IsUnique();
+		
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: s => s.UserId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);

@@ -5,6 +5,8 @@ namespace FinanceTracker.Infrastructure.Database.Context.EventStore;
 
 public sealed class EventEntityConfiguration : IEntityTypeConfiguration<EventEntity>
 {
+	/// <summary>Real constraint name from the migrations — used by EFUnitOfWork to recognize a
+	/// version-conflict violation by name, not declared here via EF metadata.</summary>
 	public const string VersionConstraint = "uq_events_aggregate_version";
 	
 	public void Configure(EntityTypeBuilder<EventEntity> builder)
@@ -45,15 +47,8 @@ public sealed class EventEntityConfiguration : IEntityTypeConfiguration<EventEnt
 
         builder.Property(propertyExpression: e => e.SchemaVersion)
             .HasColumnName(name: "schema_version");
-
-        builder.HasIndex(indexExpression: e => new { e.AggregateId, e.Version })
-            .HasDatabaseName(name: "idx_events_aggregate_id");
-
-        builder.HasIndex(indexExpression: e => e.CorrelationId)
-            .HasDatabaseName(name: "idx_events_correlation_id")
-            .HasFilter(sql: "correlation_id is not null");
-
-        builder.HasAlternateKey(keyExpression: e => new { e.AggregateId, e.Version })
-            .HasName(name: VersionConstraint);
+		
+        // builder.HasAlternateKey(keyExpression: e => new { e.AggregateId, e.Version })
+        //     .HasName(name: VersionConstraint);
     }
 }

@@ -11,13 +11,16 @@ public abstract class BenchmarkBase
 	protected FinanceTrackerContext Context { get; private set; } = null!;
 	protected BenchmarkDatabase Db => BenchmarkDatabase.Instance;
 
-	[Params(1_000, 10_000, 100_000, 1_000_000)]
-	public int RowCount { get; set; }
-
 	public virtual void IterationSetup()
 		=> Context = Db.CreateContext();
 
 	[IterationCleanup]
 	public void IterationCleanup()
 		=> Context.DisposeAsync().AsTask().GetAwaiter().GetResult();
+}
+
+public abstract class PaginatedBenchmarkBase : BenchmarkBase
+{
+	[Params(1_000, 10_000, 100_000, 1_000_000)]
+	public int PageSize { get; set; }
 }

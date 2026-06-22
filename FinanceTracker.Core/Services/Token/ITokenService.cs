@@ -7,7 +7,7 @@ namespace FinanceTracker.Core.Services.Token;
 public interface ITokenService
 {
 	/// <summary>Generates a signed JWT access token for the given user.</summary>
-	AccessTokenResult GenerateAccessToken(Domains.User.User user);
+	AccessTokenResult GenerateAccessToken(Domains.User.User user, Guid sessionId);
 
 	/// <summary>Generates a cryptographically random opaque refresh token string.</summary>
 	string GenerateRefreshToken();

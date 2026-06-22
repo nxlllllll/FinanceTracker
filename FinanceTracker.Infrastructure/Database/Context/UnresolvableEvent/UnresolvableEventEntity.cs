@@ -10,4 +10,6 @@ public sealed class UnresolvableEventEntity
 	public string Reason { get; init; } = string.Empty;
 	public string Payload { get; init; } = string.Empty;
 	public DateTimeOffset OccurredAt { get; init; }
+	public DateTimeOffset? AcknowledgedAt { get; init; }
+	public DateTimeOffset? ResolvedAt { get; init; }
 }

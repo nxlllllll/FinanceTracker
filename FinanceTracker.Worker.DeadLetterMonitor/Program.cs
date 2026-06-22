@@ -20,9 +20,18 @@ public sealed class Program
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 		
+		builder.Services.AddOptions<DeadLetterBacklogSummaryOptions>()
+			.BindConfiguration(configSectionPath: DeadLetterBacklogSummaryOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
         DeadLetterMonitoringOptions deadLetterOptions = builder.Configuration
             .GetSection(key: DeadLetterMonitoringOptions.SectionName)
             .Get<DeadLetterMonitoringOptions>() ?? new DeadLetterMonitoringOptions();
+
+        DeadLetterBacklogSummaryOptions backlogSummaryOptions = builder.Configuration
+            .GetSection(key: DeadLetterBacklogSummaryOptions.SectionName)
+            .Get<DeadLetterBacklogSummaryOptions>() ?? new DeadLetterBacklogSummaryOptions();
 
         builder.Services.AddQuartz(configure: q =>
         {
@@ -32,6 +41,14 @@ public sealed class Program
                 .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: deadLetterOptions.Group)
                 .WithIdentity(name: deadLetterOptions.TriggerName, group: deadLetterOptions.Group)
                 .WithSimpleSchedule(action: s => s.WithIntervalInMinutes(minutes: deadLetterOptions.IntervalMinutes).RepeatForever())
+            );
+
+            q.AddJob<DeadLetterBacklogSummaryJob>(configure: j => j.WithIdentity(name: nameof(DeadLetterBacklogSummaryJob), group: backlogSummaryOptions.Group));
+
+            q.AddTrigger(configure: t => t
+                .ForJob(jobName: nameof(DeadLetterBacklogSummaryJob), jobGroup: backlogSummaryOptions.Group)
+                .WithIdentity(name: backlogSummaryOptions.TriggerName, group: backlogSummaryOptions.Group)
+                .WithSimpleSchedule(action: s => s.WithIntervalInMinutes(minutes: backlogSummaryOptions.IntervalMinutes).RepeatForever())
             );
         });
 

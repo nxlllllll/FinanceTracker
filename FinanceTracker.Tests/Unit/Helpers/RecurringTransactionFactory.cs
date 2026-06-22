@@ -52,7 +52,9 @@ public static class RecurringTransactionFactory
 		int dayOfMonth = 15,
 		string? description = "Monthly rent",
 		bool isActive = true,
-		int rowVersion = 0)
+		int rowVersion = 0,
+		DateTimeOffset? lastExecutedAt = null,
+		DateTimeOffset? lastMissedAt = null)
 	{
 		Currency curr = Currency.Reconstitute(value: currency);
 
@@ -67,7 +69,8 @@ public static class RecurringTransactionFactory
 			Description: description,
 			IsActive: isActive,
 			RowVersion: rowVersion,
-			LastExecutedAt: null,
+			LastExecutedAt: lastExecutedAt,
+			LastMissedAt: lastMissedAt,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		);
 	}

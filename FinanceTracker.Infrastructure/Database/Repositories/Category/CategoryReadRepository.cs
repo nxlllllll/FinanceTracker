@@ -7,9 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
 
-public sealed class CategoryReadRepository(
-	FinanceTrackerContext context
-) : ICategoryReadRepository
+public sealed class CategoryReadRepository(FinanceTrackerContext context) : ICategoryReadRepository
 {
 	public async Task<CategoryReadModel?> GetByIdAsync(
 		Guid categoryId,
@@ -79,4 +77,10 @@ public sealed class CategoryReadRepository(
 			NextCursorId: hasNextPage ? last?.Id : null
 		);
 	}
+
+	public async Task<bool> ExistsAsync(
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default
+	) => await context.Categories.AsNoTracking().AnyAsync(predicate: c => c.Id == categoryId && c.UserId == userId, cancellationToken: ct);
 }

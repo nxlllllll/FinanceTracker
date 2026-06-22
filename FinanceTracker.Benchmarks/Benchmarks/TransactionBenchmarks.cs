@@ -4,7 +4,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 
 namespace FinanceTracker.Benchmarks.Benchmarks;
 
-public class TransactionBenchmarks : BenchmarkBase
+public class TransactionBenchmarks : PaginatedBenchmarkBase
 {
     private TransactionReadRepository _repository = null!;
 
@@ -16,12 +16,8 @@ public class TransactionBenchmarks : BenchmarkBase
     }
 
     [Benchmark]
-    public async Task GetByIdAsync()
-        => await _repository.GetByIdAsync(transactionId: Db.AccountId, userId: Db.UserId);
-
-    [Benchmark]
     public async Task GetAllAsync()
-        => await _repository.GetAllAsync(userId: Db.UserId, accountId: Db.AccountId, pageSize: RowCount);
+        => await _repository.GetAllAsync(userId: Db.UserId, accountId: Db.AccountId, pageSize: PageSize);
 
     [Benchmark]
     public async Task GetAllAsync_WithCursor() => await _repository.GetAllAsync(
@@ -29,7 +25,7 @@ public class TransactionBenchmarks : BenchmarkBase
         accountId: Db.AccountId,
         cursorOccurredAt: DateTimeOffset.UtcNow.AddDays(days: -30),
         cursorId: Guid.NewGuid(),
-        pageSize: RowCount
+        pageSize: PageSize
     );
 
     [Benchmark]
@@ -37,7 +33,7 @@ public class TransactionBenchmarks : BenchmarkBase
         userId: Db.UserId,
         accountId: Db.AccountId,
         direction: DirectionType.Debit,
-        pageSize: RowCount
+        pageSize: PageSize
     );
 
     [Benchmark]
@@ -45,7 +41,7 @@ public class TransactionBenchmarks : BenchmarkBase
         userId: Db.UserId,
         accountId: Db.AccountId,
         categoryId: Db.ExpenseCategoryId,
-        pageSize: RowCount
+        pageSize: PageSize
     );
 
     [Benchmark]
@@ -53,7 +49,7 @@ public class TransactionBenchmarks : BenchmarkBase
         userId: Db.UserId,
         accountId: Db.AccountId,
         dateFrom: DateTimeOffset.UtcNow.AddDays(days: -30),
-        pageSize: RowCount
+        pageSize: PageSize
     );
 
     [Benchmark]
@@ -62,7 +58,7 @@ public class TransactionBenchmarks : BenchmarkBase
         accountId: Db.AccountId,
         direction: DirectionType.Debit,
         dateFrom: DateTimeOffset.UtcNow.AddDays(days: -90),
-        pageSize: RowCount
+        pageSize: PageSize
     );
 
     [Benchmark]
@@ -70,10 +66,6 @@ public class TransactionBenchmarks : BenchmarkBase
         userId: Db.UserId,
         accountId: Db.AccountId,
         isExcluded: false,
-        pageSize: RowCount
+        pageSize: PageSize
     );
-
-    [Benchmark]
-    public async Task GetPendingRateAsync()
-        => await _repository.GetPendingRateAsync();
 }

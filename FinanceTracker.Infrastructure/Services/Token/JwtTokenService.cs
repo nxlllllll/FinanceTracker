@@ -22,7 +22,7 @@ public sealed class JwtTokenService(
 {
 	private readonly JwtOptions _options = options.Value;
 
-	public AccessTokenResult GenerateAccessToken(Core.Domains.User.User user)
+	public AccessTokenResult GenerateAccessToken(Core.Domains.User.User user, Guid sessionId)
 	{
 		DateTimeOffset expiresAt = dateProvider.UtcNow.AddMinutes(minutes: _options.AccessTokenTtlMinutes);
 
@@ -30,7 +30,8 @@ public sealed class JwtTokenService(
 		[
 			new Claim(type: JwtRegisteredClaimNames.Sub, value: user.Id.ToString()),
 			new Claim(type: JwtRegisteredClaimNames.Email, value: user.Email.Value),
-			new Claim(type: JwtRegisteredClaimNames.Jti, value: Guid.CreateVersion7().ToString())
+			new Claim(type: JwtRegisteredClaimNames.Jti, value: Guid.CreateVersion7().ToString()),
+			new Claim(type: JwtRegisteredClaimNames.Sid, value: sessionId.ToString())
 		];
 
 		SymmetricSecurityKey key = new SymmetricSecurityKey(key: Encoding.UTF8.GetBytes(s: _options.Secret));

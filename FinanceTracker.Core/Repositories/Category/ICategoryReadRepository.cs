@@ -21,4 +21,10 @@ public interface ICategoryReadRepository : IReadRepository<CategoryReadModel>
 		int pageSize = 20,
 		CancellationToken ct = default
 	);
+	
+	Task<bool> ExistsAsync(
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default
+	);
 }

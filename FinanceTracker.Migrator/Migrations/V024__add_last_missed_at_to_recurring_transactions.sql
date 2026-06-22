@@ -1,0 +1,1 @@
+﻿alter table recurring_transactions add column last_missed_at timestamptz null;

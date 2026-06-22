@@ -34,7 +34,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		_userBuilder = new UserBuilder(context: Context);
 	}
 
-	private async Task<(Guid accountId, Guid categoryId)> CreateAccountAndCategoryAsync()
+	private async Task<(Guid accountId, Guid categoryId, Guid userId)> CreateAccountAndCategoryAsync()
 	{
 		Core.ValueObjects.Currency currency = await _currencyBuilder.CreateAsync();
 		Guid userId = await _userBuilder.CreateAsync(currencyCode: currency);
@@ -66,33 +66,35 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		});
 		await Context.SaveChangesAsync();
 
-		return (accountId, categoryId);
+		return (accountId, categoryId, userId);
 	}
 
-	private Core.Domains.Transaction.Transaction BuildTransaction(Guid accountId, Guid categoryId, string description = "тест")
-	{
-		return Core.Domains.Transaction.Transaction.Reconstitute(
-			id: Guid.CreateVersion7(),
-			accountId: accountId,
-			userId: Guid.CreateVersion7(),
-			categoryId: categoryId,
-			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-			baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			direction: DirectionType.Debit,
-			exchangeRate: 1m,
-			isExcluded: false,
-			description: description,
-			isRatePending: false,
-			rowVersion: 0,
-			occurredAt: DateTimeOffset.UtcNow
-		);
-	}
+	private Core.Domains.Transaction.Transaction BuildTransaction(
+		Guid accountId, 
+		Guid userId, 
+		Guid categoryId, 
+		string description = "тест"
+	) => Core.Domains.Transaction.Transaction.Reconstitute(
+		id: Guid.CreateVersion7(),
+		accountId: accountId,
+		userId: userId,
+		categoryId: categoryId,
+		amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+		baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+		direction: DirectionType.Debit,
+		exchangeRate: 1m,
+		isExcluded: false,
+		description: description,
+		isRatePending: false,
+		rowVersion: 0,
+		occurredAt: DateTimeOffset.UtcNow
+	);
 
 	[Test]
 	public async Task CreateAsync_ShouldCreateTransaction()
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, userId: userId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
@@ -104,11 +106,11 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task CreateAsync_ShouldSetCorrectValues()
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
 		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
 			id: Guid.CreateVersion7(),
 			accountId: accountId,
-			userId: Guid.CreateVersion7(),
+			userId: userId,
 			categoryId: categoryId,
 			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			Core.ValueObjects.Currency.Create(value: "RUB").Value,
@@ -136,8 +138,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task ChangeCategoryAsync_ShouldUpdateCategoryId()
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, userId: userId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
@@ -146,7 +148,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await Context.Categories.AddAsync(entity: new CategoryEntity()
 		{
 			Id = newCategoryId,
-			UserId = Guid.CreateVersion7(),
+			UserId = userId,
 			ParentId = null,
 			Name = Name.Create(value: "Развлечения").Value,
 			Type = CategoryType.Expense,
@@ -172,8 +174,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task ChangeDescriptionAsync_ShouldUpdateDescription()
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId, description: "старое");
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, userId: userId, categoryId: categoryId, description: "старое");
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
@@ -193,8 +195,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task ExcludeAsync_ShouldSetIsExcludedTrue()
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, userId: userId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
@@ -210,8 +212,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task IncludeAsync_ShouldSetIsExcludedFalse()
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, userId: userId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
@@ -228,16 +230,18 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task ExcludeAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
 	{
-		(Guid accountId, Guid categoryId) = await CreateAccountAndCategoryAsync();
-		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, categoryId: categoryId);
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, userId: userId, categoryId: categoryId);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
 		await Context.SaveChangesAsync();
 
 		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 0);
 
-		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
-			await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 0)
-		);
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.ExcludeAsync(
+			transactionId: transaction.Id, 
+			userId: transaction.UserId, 
+			expectedVersion: 0
+		));
 	}
 }

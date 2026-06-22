@@ -12,6 +12,7 @@ public sealed class ChangeUserPasswordCommandValidatorTests
 	{
 		ChangeUserPasswordCommand command = new ChangeUserPasswordCommand(
 			UserId: Guid.CreateVersion7(),
+			CurrentSessionId: Guid.CreateVersion7(),
 			NewPassword: "newPassword"
 		);
 
@@ -25,6 +26,7 @@ public sealed class ChangeUserPasswordCommandValidatorTests
 	{
 		ChangeUserPasswordCommand command = new ChangeUserPasswordCommand(
 			UserId: Guid.Empty,
+			CurrentSessionId: Guid.CreateVersion7(),
 			NewPassword: "newPassword"
 		);
 
@@ -41,6 +43,7 @@ public sealed class ChangeUserPasswordCommandValidatorTests
 	{
 		ChangeUserPasswordCommand command = new ChangeUserPasswordCommand(
 			UserId: Guid.CreateVersion7(),
+			CurrentSessionId: Guid.CreateVersion7(),
 			NewPassword: String.Empty
 		);
 
@@ -57,6 +60,7 @@ public sealed class ChangeUserPasswordCommandValidatorTests
 	{
 		ChangeUserPasswordCommand command = new ChangeUserPasswordCommand(
 			UserId: Guid.CreateVersion7(),
+			CurrentSessionId: Guid.CreateVersion7(),
 			NewPassword: "short"
 		);
 
@@ -65,6 +69,23 @@ public sealed class ChangeUserPasswordCommandValidatorTests
 		await Assert.That(value: result.IsValid).IsFalse();
 		await Assert.That(value: result.Errors.Any(
 			predicate: e => e.PropertyName == nameof(command.NewPassword)
+		)).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithEmptyCurrentSessionId_ShouldHaveError()
+	{
+		ChangeUserPasswordCommand command = new ChangeUserPasswordCommand(
+			UserId: Guid.CreateVersion7(),
+			CurrentSessionId: Guid.Empty,
+			NewPassword: "newPassword"
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(
+			predicate: e => e.PropertyName == nameof(command.CurrentSessionId)
 		)).IsTrue();
 	}
 }

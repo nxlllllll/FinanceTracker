@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.Account;
 
 namespace FinanceTracker.Infrastructure.Services.Rebuild.Account;
@@ -23,6 +24,6 @@ public sealed class AccountDomainEventApplier(IAccountWriteRepository repository
 		AccountTransferCredited e => repository.TransferCreditAsync(@event: e, ct: ct),
 		AccountTransferRefunded e => repository.RefundTransferAsync(@event: e, ct: ct),
 		AccountBalanceAdjusted e => repository.AdjustBalanceAsync(@event: e, ct: ct),
-		_ => Task.CompletedTask
+		_ => throw new UnknownEventException(message: $"Unhandled account domain event: {@event.GetType().Name}", eventType: @event.GetType())
 	};
 }

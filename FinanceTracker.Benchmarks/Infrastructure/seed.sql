@@ -90,7 +90,7 @@ FROM generate_series(1, 1000000) i
 -- Реалистичный объём для целевого пользователя: ~2000 транзакций за год
 INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, base_currency_code, direction_type, exchange_rate, is_excluded, description, is_rate_pending, occurred_at)
 SELECT
-    gen_random_uuid(),
+    CASE WHEN i = 1 THEN '{TransactionId}'::uuid ELSE gen_random_uuid() END,
     CASE WHEN i % 3 = 0 THEN '{AccountId}'::uuid ELSE '{FromAccountId}'::uuid END,
     '{UserId}'::uuid,
     CASE WHEN i % 2 = 0 THEN '{CategoryId}'::uuid ELSE '{ExpenseCategoryId}'::uuid END,
@@ -160,6 +160,23 @@ SELECT
     now() - (random() * interval '365 days')
 FROM generate_series(1, 500) i;
 
+-- rm_operations: денормализованная история операций, которую в проде наполняет
+-- OperationWriteRepository при каждой записи транзакции/трансфера. UserBenchmarks.GetHistoryAsync_*
+-- читает только эту таблицу — без неё эти бенчмарки гоняются по пустой таблице.
+INSERT INTO rm_operations (id, user_id, type, occurred_at, description, account_id, category_id, amount, currency_code, direction_type, is_excluded, from_account_id, to_account_id, amount_from, currency_from, amount_to, currency_to, status)
+SELECT
+    t.id, t.user_id, 'Transaction', t.occurred_at, t.description,
+    t.account_id, t.category_id, t.amount, t.currency_code, t.direction_type, t.is_excluded,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL
+FROM rm_transactions t;
+
+INSERT INTO rm_operations (id, user_id, type, occurred_at, description, account_id, category_id, amount, currency_code, direction_type, is_excluded, from_account_id, to_account_id, amount_from, currency_from, amount_to, currency_to, status)
+SELECT
+    tr.id, tr.user_id, 'Transfer', tr.occurred_at, tr.description,
+    NULL, NULL, NULL, NULL, NULL, NULL,
+    tr.from_account_id, tr.to_account_id, tr.amount_from, tr.currency_from, tr.amount_to, tr.currency_to, tr.status
+FROM rm_transfers tr;
+
 -- Category totals
 INSERT INTO rm_category_totals (id, user_id, category_id, period, total, transaction_count, updated_at)
 SELECT
@@ -192,7 +209,7 @@ ON CONFLICT DO NOTHING;
 -- 90% активных, 80% уже выполнены в текущем месяце
 INSERT INTO recurring_transactions (id, user_id, account_id, category_id, amount, direction_type, day_of_month, description, currency_code, is_active, last_executed_at)
 SELECT
-    gen_random_uuid(),
+    CASE WHEN i = 1 THEN '{RecurringTransactionId}'::uuid ELSE gen_random_uuid() END,
     a.user_id,
     a.id,
     c.id,

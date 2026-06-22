@@ -159,4 +159,145 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
 
         await Assert.That(value: txCount).IsEqualTo(expected: 1);
     }
+    
+    [Test]
+    public async Task RecurringTransaction_ScheduledDayAlreadyPassed_ShouldEscalateAndMarkMissed()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await CreateAccountViaCommandAsync(userId: userId, currencyCode: "RUB", balance: 50_000m);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        // A day earlier in *this* month. On the 1st of the month there is no such day — same accepted
+        // edge case as RecurringTransactionHandlingJob's own month-boundary limitation; not guarded
+        // here for the same reason the other tests in this file don't guard `DateTime.UtcNow.Day` either.
+        int scheduledDay = now.Day > 1 ? now.Day - 1 : 1;
+
+        Guid recurringId = await _recurringBuilder.CreateAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            amount: 1_500m,
+            dayOfMonth: scheduledDay
+        );
+
+        await RunRecurringTransactionJobAsync();
+
+        await WaitForConditionAsync(condition: async () =>
+        {
+            await using FinanceTrackerContext ctx = CreateReadContext();
+            return await ctx.UnresolvableEvents.AnyAsync(predicate: e => e.ReferenceId == recurringId);
+        });
+
+        await using FinanceTrackerContext readCtx = CreateReadContext();
+
+        bool transactionCreated = await readCtx.Transactions.AnyAsync(predicate: t => t.AccountId == accountId);
+
+        DateTimeOffset? lastMissedAt = await readCtx.RecurringTransactions.Where(predicate: r => r.Id == recurringId)
+            .Select(selector: r => r.LastMissedAt)
+            .FirstAsync();
+
+        await Assert.That(value: transactionCreated).IsFalse();
+        await Assert.That(value: lastMissedAt).IsNotNull();
+    }
+
+    [Test]
+    public async Task RecurringTransaction_ScheduledDayAlreadyPassed_WhenJobRunsAgain_ShouldNotEscalateTwice()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await CreateAccountViaCommandAsync(userId: userId, currencyCode: "RUB", balance: 50_000m);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        int scheduledDay = now.Day > 1 ? now.Day - 1 : 1;
+
+        Guid recurringId = await _recurringBuilder.CreateAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            amount: 1_500m,
+            dayOfMonth: scheduledDay
+        );
+
+        await RunRecurringTransactionJobAsync();
+
+        await WaitForConditionAsync(condition: async () =>
+        {
+            await using FinanceTrackerContext ctx = CreateReadContext();
+            return await ctx.UnresolvableEvents.AnyAsync(predicate: e => e.ReferenceId == recurringId);
+        });
+
+        await RunRecurringTransactionJobAsync();
+
+        await using FinanceTrackerContext readCtx = CreateReadContext();
+
+        int escalationCount = await readCtx.UnresolvableEvents.CountAsync(predicate: e => e.ReferenceId == recurringId);
+        bool transactionCreated = await readCtx.Transactions.AnyAsync(predicate: t => t.AccountId == accountId);
+
+        await Assert.That(value: escalationCount).IsEqualTo(expected: 1);
+        await Assert.That(value: transactionCreated).IsFalse();
+    }
+    
+    [Test]
+    public async Task RecurringTransaction_MissedAtMonthBoundary_ShouldEscalateRegardlessOfTodaysDay()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await CreateAccountViaCommandAsync(userId: userId, currencyCode: "RUB", balance: 50_000m);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        Guid recurringId = await _recurringBuilder.CreateAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            amount: 1_500m,
+            dayOfMonth: 28
+        );
+
+        await using (FinanceTrackerContext setupCtx = CreateReadContext())
+        {
+            await setupCtx.RecurringTransactions.Where(predicate: r => r.Id == recurringId).ExecuteUpdateAsync(setPropertyCalls: builder => builder.SetProperty(
+                propertyExpression: r => r.CreatedAt,
+                valueExpression: now.AddMonths(months: -3)
+            ));
+        }
+
+        await RunRecurringTransactionJobAsync();
+
+        await WaitForConditionAsync(condition: async () =>
+        {
+            await using FinanceTrackerContext ctx = CreateReadContext();
+            return await ctx.UnresolvableEvents.AnyAsync(predicate: e => e.ReferenceId == recurringId);
+        });
+
+        await using FinanceTrackerContext readCtx = CreateReadContext();
+        bool transactionCreated = await readCtx.Transactions.AnyAsync(predicate: t => t.AccountId == accountId);
+
+        await Assert.That(value: transactionCreated).IsFalse();
+    }
+
+    [Test]
+    public async Task RecurringTransaction_CreatedRecently_ShouldNotBeFalselyEscalatedAsCarriedOverMiss()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid accountId = await CreateAccountViaCommandAsync(userId: userId, currencyCode: "RUB", balance: 50_000m);
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        int laterThisMonth = DateTime.DaysInMonth(year: now.Year, month: now.Month);
+        Guid recurringId = await _recurringBuilder.CreateAsync(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            amount: 1_500m,
+            dayOfMonth: laterThisMonth == now.Day ? 1 : laterThisMonth // anything that isn't due today
+        );
+
+        await RunRecurringTransactionJobAsync();
+
+        await using FinanceTrackerContext readCtx = CreateReadContext();
+        bool escalated = await readCtx.UnresolvableEvents.AnyAsync(predicate: e => e.ReferenceId == recurringId);
+
+        await Assert.That(value: escalated).IsFalse();
+    }
 }

@@ -91,4 +91,77 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: notRevoked!.RevokedAt).IsNull();
 		await Assert.That(value: isActive).IsTrue();
 	}
+
+	[Test]
+	public async Task RevokeAllExceptAsync_ShouldRevokeOtherActiveSessions_ButNotTheExcludedOne()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Core.Domains.User.UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "keep-hash");
+		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "other-hash-1");
+		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "other-hash-2");
+
+		await _userSessionWriteRepository.RevokeAllExceptAsync(
+			userId: userId,
+			exceptSessionId: keep.Id,
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		Core.Domains.User.UserSession? kept = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "keep-hash");
+		Core.Domains.User.UserSession? revoked1 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "other-hash-1");
+		Core.Domains.User.UserSession? revoked2 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "other-hash-2");
+
+		await Assert.That(value: kept!.RevokedAt).IsNull();
+		await Assert.That(value: revoked1!.RevokedAt).IsNotNull();
+		await Assert.That(value: revoked2!.RevokedAt).IsNotNull();
+	}
+
+	[Test]
+	public async Task RevokeAllExceptAsync_ShouldNotAffectOtherUsersSessions()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid otherUserId = await _userBuilder.CreateAsync();
+		Core.Domains.User.UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "mine-keep");
+		_ = await CreateAndPersistSessionAsync(userId: otherUserId, hash: "not-mine");
+
+		await _userSessionWriteRepository.RevokeAllExceptAsync(
+			userId: userId,
+			exceptSessionId: keep.Id,
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		Core.Domains.User.UserSession? untouched = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "not-mine");
+
+		await Assert.That(value: untouched!.RevokedAt).IsNull();
+	}
+
+	[Test]
+	public async Task RevokeAllAsync_ShouldRevokeEveryActiveSessionIncludingTheCallersOwn()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "all-hash-1");
+		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "all-hash-2");
+
+		await _userSessionWriteRepository.RevokeAllAsync(userId: userId, revokedAt: FakeDateProvider.Default.UtcNow);
+
+		Core.Domains.User.UserSession? s1 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "all-hash-1");
+		Core.Domains.User.UserSession? s2 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "all-hash-2");
+
+		await Assert.That(value: s1!.RevokedAt).IsNotNull();
+		await Assert.That(value: s2!.RevokedAt).IsNotNull();
+	}
+
+	[Test]
+	public async Task RevokeAllAsync_ShouldNotAffectOtherUsersSessions()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid otherUserId = await _userBuilder.CreateAsync();
+		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "mine-all");
+		_ = await CreateAndPersistSessionAsync(userId: otherUserId, hash: "not-mine-all");
+
+		await _userSessionWriteRepository.RevokeAllAsync(userId: userId, revokedAt: FakeDateProvider.Default.UtcNow);
+
+		Core.Domains.User.UserSession? untouched = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "not-mine-all");
+
+		await Assert.That(value: untouched!.RevokedAt).IsNull();
+	}
 }

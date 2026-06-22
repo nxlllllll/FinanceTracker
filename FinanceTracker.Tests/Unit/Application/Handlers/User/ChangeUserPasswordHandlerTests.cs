@@ -14,6 +14,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 public sealed class ChangeUserPasswordHandlerTests
 {
 	private IUserWriteRepository _userWriteRepository = null!;
+	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
 	private IPublisher _publisher = null!;
 	private IUnitOfWork _unitOfWork = null!;
@@ -25,6 +26,7 @@ public sealed class ChangeUserPasswordHandlerTests
 	public void Setup()
 	{
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
+		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
 		_publisher = Substitute.For<IPublisher>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
@@ -37,6 +39,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		_handler = new ChangeUserPasswordHandler(
 			userWriteRepository: _userWriteRepository,
+			userSessionWriteRepository: _userSessionWriteRepository,
 			passwordHasher: _passwordHasher,
 			unitOfWork: _unitOfWork,
 			publisher: _publisher,
@@ -50,7 +53,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
 		await _handler.HandleAsync(
-			command: new ChangeUserPasswordCommand(UserId: user.Id, NewPassword: "newPassword"),
+			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: "newPassword"),
 			user: user,
 			ct: CancellationToken.None
 		);
@@ -64,7 +67,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
 		await _handler.HandleAsync(
-			command: new ChangeUserPasswordCommand(UserId: user.Id, NewPassword: "newPassword"),
+			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: "newPassword"),
 			user: user,
 			ct: CancellationToken.None
 		);
@@ -78,12 +81,32 @@ public sealed class ChangeUserPasswordHandlerTests
 	}
 
 	[Test]
+	public async Task HandleAsync_WithValidCommand_ShouldRevokeAllOtherSessions()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+		Guid currentSessionId = Guid.CreateVersion7();
+
+		await _handler.HandleAsync(
+			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: currentSessionId, NewPassword: "newPassword"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAllExceptAsync(
+			userId: user.Id,
+			exceptSessionId: currentSessionId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
 	public async Task HandleAsync_WithValidCommand_ShouldPublishUserPasswordChangedNotification()
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
 		await _handler.HandleAsync(
-			command: new ChangeUserPasswordCommand(UserId: user.Id, NewPassword: "newPassword"),
+			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: "newPassword"),
 			user: user,
 			ct: CancellationToken.None
 		);
@@ -102,7 +125,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: String.Empty);
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
-			command: new ChangeUserPasswordCommand(UserId: user.Id, NewPassword: ""),
+			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: String.Empty),
 			user: user,
 			ct: CancellationToken.None
 		);
@@ -119,7 +142,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: String.Empty);
 
 		await _handler.HandleAsync(
-			command: new ChangeUserPasswordCommand(UserId: user.Id, NewPassword: ""),
+			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: String.Empty),
 			user: user,
 			ct: CancellationToken.None
 		);
@@ -127,6 +150,27 @@ public sealed class ChangeUserPasswordHandlerTests
 		await _publisher.DidNotReceive().Publish(
 			notification: Arg.Any<INotification>(),
 			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithEmptyPassword_ShouldNotRevokeSessions()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+
+		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: String.Empty);
+
+		await _handler.HandleAsync(
+			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: ""),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAllExceptAsync(
+			userId: Arg.Any<Guid>(),
+			exceptSessionId: Arg.Any<Guid>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 }

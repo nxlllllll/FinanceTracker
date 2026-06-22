@@ -15,7 +15,8 @@ public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 		DirectionType direction = DirectionType.Debit,
 		int dayOfMonth = 15,
 		string? description = null,
-		DateTimeOffset? lastExecutedAt = null)
+		DateTimeOffset? lastExecutedAt = null,
+		DateTimeOffset? lastMissedAt = null)
 	{
 		Guid id = Guid.CreateVersion7();
 
@@ -32,6 +33,7 @@ public sealed class RecurringTransactionBuilder(FinanceTrackerContext context)
 			Description = description,
 			IsActive = true,
 			LastExecutedAt = lastExecutedAt,
+			LastMissedAt = lastMissedAt,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 

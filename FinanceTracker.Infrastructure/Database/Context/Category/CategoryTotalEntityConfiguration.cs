@@ -39,9 +39,9 @@ public sealed class CategoryTotalEntityConfiguration : IEntityTypeConfiguration<
         builder.Property(propertyExpression: c => c.UpdatedAt)
             .HasColumnName(name: "updated_at");
 
-        builder.HasIndex(indexExpression: c => new { c.UserId, c.CategoryId, c.Period })
-            .IsUnique()
-            .HasDatabaseName(name: "uq_rm_category_totals_period");
+        // builder.HasIndex(indexExpression: c => new { c.UserId, c.CategoryId, c.Period })
+        //     .IsUnique()
+        //     .HasDatabaseName(name: "uq_rm_category_totals_period");
 
         builder.HasOne<CategoryEntity>().WithMany()
             .HasForeignKey(foreignKeyExpression: c => c.CategoryId)

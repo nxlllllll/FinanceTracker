@@ -1,3 +1,5 @@
+using FinanceTracker.Application.Behaviours.Validation;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FluentValidation;
 
@@ -5,7 +7,9 @@ namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.Crea
 
 public sealed class CreateRecurringTransactionCommandValidator : AbstractValidator<CreateRecurringTransactionCommand>
 {
-	public CreateRecurringTransactionCommandValidator(ICurrencyReadRepository currencyReadRepository)
+	public CreateRecurringTransactionCommandValidator(
+		ICurrencyReadRepository currencyReadRepository,
+		ICategoryReadRepository categoryReadRepository)
 	{
 		RuleFor(expression: command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
@@ -14,7 +18,13 @@ public sealed class CreateRecurringTransactionCommandValidator : AbstractValidat
 			.NotEmpty().WithMessage(errorMessage: "The account cannot be empty.");
 
 		RuleFor(expression: command => command.CategoryId)
-			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.");
+			.Cascade(cascadeMode: CascadeMode.Stop)
+			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.")
+			.MustBelongToUser(
+				existsForUserAsync: categoryReadRepository.ExistsAsync,
+				userIdSelector: command => command.UserId,
+				entityName: "category"
+			);
 
 		RuleFor(expression: command => command.Amount)
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The amount must be greater than zero.");

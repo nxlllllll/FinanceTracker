@@ -76,10 +76,6 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
                 convertToProviderExpression: status => status.ToCode(),
                 convertFromProviderExpression: value => value.FromCode()
             );
-
-        builder.HasIndex(indexExpression: t => new { t.Status, t.OccurredAt })
-            .HasFilter(sql: "status = 'pending_credit'")
-            .HasDatabaseName(name: "ix_transfers_pending_credit");
         
         builder.HasOne<UserEntity>().WithMany()
             .HasForeignKey(foreignKeyExpression: t => t.UserId)

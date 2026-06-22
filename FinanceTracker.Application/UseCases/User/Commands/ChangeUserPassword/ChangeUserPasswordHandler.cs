@@ -13,6 +13,7 @@ namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 
 public sealed class ChangeUserPasswordHandler(
 	IUserWriteRepository userWriteRepository,
+	IUserSessionWriteRepository userSessionWriteRepository,
 	IPasswordHasher passwordHasher,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
@@ -30,12 +31,22 @@ public sealed class ChangeUserPasswordHandler(
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.ChangePasswordAsync(
-			userId: command.UserId,
-			expectedVersion: user.RowVersion,
-			newPasswordHash: newPasswordHash,
-			ct: ct
-		), ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			await userWriteRepository.ChangePasswordAsync(
+				userId: command.UserId,
+				expectedVersion: user.RowVersion,
+				newPasswordHash: newPasswordHash,
+				ct: ct
+			);
+
+			await userSessionWriteRepository.RevokeAllExceptAsync(
+				userId: command.UserId,
+				exceptSessionId: command.CurrentSessionId,
+				revokedAt: dateProvider.UtcNow,
+				ct: ct
+			);
+		}, ct: ct);
 
 		await publisher.Publish(notification: new UserPasswordChangedNotification(
 			UserId: user.Id,

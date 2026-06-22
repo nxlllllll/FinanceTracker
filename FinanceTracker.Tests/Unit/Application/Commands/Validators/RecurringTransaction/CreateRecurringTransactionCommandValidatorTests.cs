@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
@@ -10,16 +11,26 @@ namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.RecurringTra
 public sealed class CreateRecurringTransactionCommandValidatorTests
 {
     private ICurrencyReadRepository _currencyReadRepository = null!;
+    private ICategoryReadRepository _categoryReadRepository = null!;
     private CreateRecurringTransactionCommandValidator _validator = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
         _currencyReadRepository = Substitute.For<ICurrencyReadRepository>();
+        _categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 
         _currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
+        _categoryReadRepository.ExistsAsync(
+            categoryId: Arg.Any<Guid>(),
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: true);
 
-        _validator = new CreateRecurringTransactionCommandValidator(currencyReadRepository: _currencyReadRepository);
+        _validator = new CreateRecurringTransactionCommandValidator(
+            currencyReadRepository: _currencyReadRepository,
+            categoryReadRepository: _categoryReadRepository
+        );
     }
     
     [Test]
@@ -56,6 +67,23 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
     public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
     {
         CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(categoryId: Guid.Empty);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsFalse();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.CategoryId))).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_WithCategoryNotBelongingToUser_ShouldHaveError()
+    {
+        _categoryReadRepository.ExistsAsync(
+            categoryId: Arg.Any<Guid>(),
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: false);
+
+        CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 

@@ -10,6 +10,16 @@ public sealed class Argon2PasswordHasher(
 	IOptions<Argon2Options> options
 ) : IPasswordHasher
 {
+	/// <summary>
+	/// Fixed, valid-format "salt:hash" pair used as a verification target when the caller has no real
+	/// hash to check against (e.g. login with an unknown email). Its content is irrelevant — it never
+	/// needs to match anything real — its only job is to make <see cref="Verify"/> run the exact same
+	/// Argon2id computation it would run for a real account, so the response time doesn't leak whether
+	/// the account exists. Does not need to be a secret and must not be made configurable: a missing or
+	/// misconfigured value here would silently reintroduce the timing side-channel this exists to prevent.
+	/// </summary>
+	private const string DummyHash = "SQzm0/WXdnO0CHsghWSVIQ==:uoeugdraCvtZ2/mflW32Ni283Qq2PM5acyaRxYVjrmw=";
+
 	private readonly Argon2Options _options = options.Value;
 
 	public async Task<string> Hash(string password)
@@ -20,9 +30,9 @@ public sealed class Argon2PasswordHasher(
 		return $"{Convert.ToBase64String(inArray: salt)}:{Convert.ToBase64String(inArray: hash)}";
 	}
 
-	public async Task<bool> Verify(string password, string storedHash)
+	public async Task<bool> Verify(string password, string? storedHash)
 	{
-		string[] parts = storedHash.Split(separator: ':');
+		string[] parts = (storedHash ?? DummyHash).Split(separator: ':');
 
 		if (parts.Length != 2)
 			return false;

@@ -68,6 +68,25 @@ public sealed class LoginUserHandlerTests
 	}
 
 	[Test]
+	public async Task Handle_WhenUserNotFound_ShouldStillCallPasswordHasherForTimingSafety()
+	{
+		_userAuthRepository.GetByEmailAsync(
+			email: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
+
+		await _userHandler.Handle(
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
+			ct: CancellationToken.None
+		);
+
+		await _passwordHasher.Received(requiredNumberOfCalls: 1).Verify(
+			password: RawPassword,
+			storedHash: Arg.Is<string?>(predicate: storedHash => storedHash == null)
+		);
+	}
+
+	[Test]
 	public async Task Handle_WhenPasswordInvalid_ShouldReturnInvalidCredentials()
 	{
 		_userAuthRepository.GetByEmailAsync(
@@ -76,7 +95,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: TestUser);
 		_passwordHasher.Verify(
 			password: Arg.Any<string>(),
-			hash: Arg.Any<string>()
+			storedHash: Arg.Any<string?>()
 		).Returns(returnThis: false);
 
 		Result<SessionToken, DomainException> result = await _userHandler.Handle(
@@ -97,7 +116,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: TestUser);
 		_passwordHasher.Verify(
 			password: RawPassword,
-			hash: PasswordHash
+			storedHash: PasswordHash
 		).Returns(returnThis: true);
 		_sessionIssuer.IssueAsync(
 			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(),
@@ -124,7 +143,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: TestUser);
 		_passwordHasher.Verify(
 			password: RawPassword,
-			hash: PasswordHash
+			storedHash: PasswordHash
 		).Returns(returnThis: true);
 		_sessionIssuer.IssueAsync(
 			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(),
@@ -159,7 +178,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: TestUser);
 		_passwordHasher.Verify(
 			password: Arg.Any<string>(),
-			hash: Arg.Any<string>()
+			storedHash: Arg.Any<string?>()
 		).Returns(returnThis: false);
 
 		Result<SessionToken, DomainException> resultWrongPassword = await _userHandler.Handle(

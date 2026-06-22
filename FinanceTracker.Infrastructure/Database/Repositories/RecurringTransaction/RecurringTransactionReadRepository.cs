@@ -13,8 +13,7 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 		Guid recurringTransactionId,
 		CancellationToken ct = default)
 	{
-		return await context.RecurringTransactions.AsNoTracking()
-			.Where(predicate: r => r.Id == recurringTransactionId)
+		return await context.RecurringTransactions.AsNoTracking().Where(predicate: r => r.Id == recurringTransactionId)
 			.Select(selector: r => new RecurringTransactionReadModel(
 				Id: r.Id,
 				UserId: r.UserId,
@@ -27,6 +26,7 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 				IsActive: r.IsActive,
 				RowVersion: r.RowVersion,
 				LastExecutedAt: r.LastExecutedAt,
+				LastMissedAt: r.LastMissedAt,
 				CreatedAt: r.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
@@ -39,7 +39,7 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
         CancellationToken ct = default)
     {
         IQueryable<Context.RecurringTransaction.RecurringTransactionEntity> query = context.RecurringTransactions.AsNoTracking()
-            .Where(predicate: r => r.UserId == userId);
+			.Where(predicate: r => r.UserId == userId);
 
         if (cursorCreatedAt is not null && cursorId is not null)
             query = query.Where(predicate: r => r.CreatedAt < cursorCreatedAt.Value || (r.CreatedAt == cursorCreatedAt.Value && r.Id < cursorId.Value));
@@ -59,6 +59,7 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 				IsActive: r.IsActive,
 				RowVersion: r.RowVersion,
 				LastExecutedAt: r.LastExecutedAt,
+				LastMissedAt: r.LastMissedAt,
 				CreatedAt: r.CreatedAt
 			)).ToListAsync(cancellationToken: ct);
 
@@ -84,23 +85,62 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 	{
 	    bool isLastDayOfMonth = dayOfMonth == daysInCurrentMonth;
 
-	    return await context.RecurringTransactions.AsNoTracking()
-	        .Where(predicate: r => r.IsActive &&
-	            (r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart) &&
-	            (r.DayOfMonth == dayOfMonth || isLastDayOfMonth && r.DayOfMonth > daysInCurrentMonth)
-	        ).Select(selector: r => new RecurringTransactionReadModel(
-	            Id: r.Id,
-	            UserId: r.UserId,
-	            AccountId: r.AccountId,
-	            CategoryId: r.CategoryId,
-	            Amount: Money.Reconstitute(amount: r.Amount, currency: r.Currency),
-	            Direction: r.Direction,
-	            DayOfMonth: r.DayOfMonth,
-	            Description: r.Description,
-	            IsActive: r.IsActive,
-	            RowVersion: r.RowVersion,
-	            LastExecutedAt: r.LastExecutedAt,
-	            CreatedAt: r.CreatedAt
-	        )).ToListAsync(cancellationToken: ct);
+	    IQueryable<Context.RecurringTransaction.RecurringTransactionEntity> notExecutedThisMonth = context.RecurringTransactions.AsNoTracking()
+			.Where(predicate: r => r.IsActive && (r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart));
+
+	    IQueryable<Context.RecurringTransaction.RecurringTransactionEntity> exactDayMatch = notExecutedThisMonth
+			.Where(predicate: r => r.DayOfMonth == dayOfMonth);
+
+	    IQueryable<Context.RecurringTransaction.RecurringTransactionEntity> query = isLastDayOfMonth
+	        ? exactDayMatch.Concat(notExecutedThisMonth.Where(predicate: r => r.DayOfMonth > daysInCurrentMonth))
+	        : exactDayMatch;
+
+	    return await query.Select(selector: r => new RecurringTransactionReadModel(
+	        Id: r.Id,
+	        UserId: r.UserId,
+	        AccountId: r.AccountId,
+	        CategoryId: r.CategoryId,
+	        Amount: Money.Reconstitute(amount: r.Amount, currency: r.Currency),
+	        Direction: r.Direction,
+	        DayOfMonth: r.DayOfMonth,
+	        Description: r.Description,
+	        IsActive: r.IsActive,
+	        RowVersion: r.RowVersion,
+	        LastExecutedAt: r.LastExecutedAt,
+			LastMissedAt: r.LastMissedAt,
+	        CreatedAt: r.CreatedAt
+	    )).ToListAsync(cancellationToken: ct);
+	}
+
+	public async Task<IReadOnlyList<RecurringTransactionReadModel>> GetMissedThisMonthAsync(
+		int dayOfMonth,
+		DateTimeOffset currentMonthStart,
+		DateTimeOffset previousMonthStart,
+		CancellationToken ct = default)
+	{
+		return await context.RecurringTransactions.AsNoTracking()
+			.Where(predicate: r => r.IsActive &&
+				(r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart) &&
+				(r.LastMissedAt == null || r.LastMissedAt < currentMonthStart) &&
+				(
+					r.DayOfMonth < dayOfMonth || (r.CreatedAt < previousMonthStart && 
+					(r.LastExecutedAt == null || r.LastExecutedAt < previousMonthStart) &&
+					(r.LastMissedAt == null || r.LastMissedAt < previousMonthStart))
+				)
+			).Select(selector: r => new RecurringTransactionReadModel(
+				Id: r.Id,
+				UserId: r.UserId,
+				AccountId: r.AccountId,
+				CategoryId: r.CategoryId,
+				Amount: Money.Reconstitute(amount: r.Amount, currency: r.Currency),
+				Direction: r.Direction,
+				DayOfMonth: r.DayOfMonth,
+				Description: r.Description,
+				IsActive: r.IsActive,
+				RowVersion: r.RowVersion,
+				LastExecutedAt: r.LastExecutedAt,
+				LastMissedAt: r.LastMissedAt,
+				CreatedAt: r.CreatedAt
+			)).ToListAsync(cancellationToken: ct);
 	}
 }

@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -11,18 +12,26 @@ namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;
 public sealed class CreateTransactionCommandValidatorTests
 {
     private ICurrencyReadRepository _currencyReadRepository = null!;
+    private ICategoryReadRepository _categoryReadRepository = null!;
     private CreateTransactionCommandValidator _validator = null!;
 
     [Before(hookType: Test)]
     public void Setup()
     {
         _currencyReadRepository = Substitute.For<ICurrencyReadRepository>();
+        _categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 
         _currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
+        _categoryReadRepository.ExistsAsync(
+            categoryId: Arg.Any<Guid>(),
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: true);
 
         _validator = new CreateTransactionCommandValidator(
             dateProvider: FakeDateProvider.Default,
-            currencyReadRepository: _currencyReadRepository
+            currencyReadRepository: _currencyReadRepository,
+            categoryReadRepository: _categoryReadRepository
         );
     }
     
@@ -104,6 +113,23 @@ public sealed class CreateTransactionCommandValidatorTests
     public async Task Validate_WithEmptyCategoryId_ShouldHaveError()
     {
         CreateTransactionCommand command = CreateTransactionCommandFactory.Create(categoryId: Guid.Empty);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsFalse();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.CategoryId))).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_WithCategoryNotBelongingToUser_ShouldHaveError()
+    {
+        _categoryReadRepository.ExistsAsync(
+            categoryId: Arg.Any<Guid>(),
+            userId: Arg.Any<Guid>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: false);
+
+        CreateTransactionCommand command = CreateTransactionCommandFactory.Create();
 
         ValidationResult result = await _validator.ValidateAsync(instance: command);
 

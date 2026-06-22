@@ -4,6 +4,7 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
+using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -14,19 +15,26 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
 {
     private CategoryReadRepository _readRepository = null!;
     private CategoryWriteRepository _writeRepository = null!;
+    private CurrencyBuilder _currencyBuilder = null!;
+    private UserBuilder _userBuilder = null!;
 
     [Before(hookType: Test)]
     public void SetupRepository()
     {
         _readRepository = new CategoryReadRepository(context: Context);
         _writeRepository = new CategoryWriteRepository(context: Context);
+        _currencyBuilder = new CurrencyBuilder(context: Context);
+        _userBuilder = new UserBuilder(context: Context);
     }
 
     private async Task<Core.Domains.Category.Category> CreateAndSaveCategoryAsync(Guid? parentId = null)
     {
+        Core.ValueObjects.Currency currency = await _currencyBuilder.CreateAsync();
+        Guid userId = await _userBuilder.CreateAsync(currencyCode: currency);
+
         Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
             createdAt: FakeDateProvider.Default.UtcNow,
-            userId: Guid.CreateVersion7(),
+            userId: userId,
             name: Name.Create(value: "Еда").Value,
             type: CategoryType.Expense,
             parentId: parentId

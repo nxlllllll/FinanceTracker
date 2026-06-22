@@ -1,5 +1,3 @@
-using System.Reflection;
-using DbUp;
 using DbUp.Engine;
 using Microsoft.Extensions.Configuration;
 
@@ -25,13 +23,7 @@ public sealed class Program
 		string connectionString = configuration.GetConnectionString(name: "FinanceTrackerContext")
 			?? throw new InvalidOperationException(message: "Connection string 'FinanceTrackerContext' is not configured.");
 
-		EnsureDatabase.For.PostgresqlDatabase(connectionString: connectionString);
-
-		UpgradeEngine upgrader = DeployChanges.To.PostgresqlDatabase(connectionString: connectionString)
-			.WithScriptsEmbeddedInAssembly(assembly: Assembly.GetExecutingAssembly())
-			.WithTransactionPerScript()
-			.LogToConsole()
-			.Build();
+		UpgradeEngine upgrader = DatabaseMigrator.CreateUpgradeEngine(connectionString: connectionString);
 
 		string? lastApplied = upgrader.GetExecutedScripts().LastOrDefault();
 

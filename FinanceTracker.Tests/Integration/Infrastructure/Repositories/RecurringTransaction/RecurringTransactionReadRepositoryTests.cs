@@ -4,6 +4,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.RecurringTransaction;
 
@@ -308,5 +309,186 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: result.Items).IsEmpty();
 		await Assert.That(value: result.HasNextPage).IsFalse();
+	}
+	
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenScheduledDayHasPassed_ShouldReturnTransaction()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+		int today = now.Day == 1 ? 2 : now.Day;
+		int scheduledDay = today - 1;
+
+		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: today,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenScheduledForToday_ShouldNotReturn()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+		int today = now.Day;
+
+		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: today);
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: today,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result).IsEmpty();
+	}
+
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenAlreadyExecutedThisMonth_ShouldNotReturn()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+		int today = now.Day == 1 ? 2 : now.Day;
+		int scheduledDay = today - 1;
+
+		await _recurringTransactionBuilder.CreateAsync(
+			userId: userId, accountId: accountId, categoryId: categoryId,
+			dayOfMonth: scheduledDay, lastExecutedAt: now
+		);
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: today,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result).IsEmpty();
+	}
+
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenAlreadyMarkedMissedThisMonth_ShouldNotReturnAgain()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+		int today = now.Day == 1 ? 2 : now.Day;
+		int scheduledDay = today - 1;
+
+		await _recurringTransactionBuilder.CreateAsync(
+			userId: userId, accountId: accountId, categoryId: categoryId,
+			dayOfMonth: scheduledDay, lastMissedAt: now
+		);
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: today,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result).IsEmpty();
+	}
+
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenInactive_ShouldNotReturn()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+		int today = now.Day == 1 ? 2 : now.Day;
+		int scheduledDay = today - 1;
+
+		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
+		await _writeRepository.DeactivateAsync(recurringTransactionId: id, expectedVersion: 0);
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: today,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result).IsEmpty();
+	}
+	
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenMissedAtMonthBoundary_ShouldReturnRegardlessOfTodaysDay()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+
+		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: 28);
+		await BackdateCreatedAtAsync(id: id, createdAt: now.AddMonths(months: -3));
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		// Use day 1 specifically — the worst case for the old, broken comparison.
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: 1,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenCreatedDuringPreviousMonth_ShouldNotFalselyFlagBrandNewTransaction()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+
+		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: 28);
+		await BackdateCreatedAtAsync(id: id, createdAt: now.AddDays(days: -2));
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: 1,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result).IsEmpty();
+	}
+
+	private async Task BackdateCreatedAtAsync(Guid id, DateTimeOffset createdAt)
+	{
+		await Context.RecurringTransactions.Where(predicate: r => r.Id == id).ExecuteUpdateAsync(setPropertyCalls: builder => builder.SetProperty(
+			propertyExpression: r => r.CreatedAt,
+			valueExpression: createdAt
+		));
 	}
 }

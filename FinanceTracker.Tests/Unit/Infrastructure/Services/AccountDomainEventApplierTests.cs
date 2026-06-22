@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Services.Rebuild.Account;
@@ -250,11 +251,8 @@ public sealed class AccountDomainEventApplierTests
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);
 
-		await _applier.ApplyAsync(@event: @event, ct: CancellationToken.None);
-
-		await _repository.DidNotReceiveWithAnyArgs().CreateAsync(
-			@event: Arg.Any<AccountCreated>(),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await Assert.That(
+			action: async () => await _applier.ApplyAsync(@event: @event, ct: CancellationToken.None)
+		).Throws<UnknownEventException>();
 	}
 }

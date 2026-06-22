@@ -33,6 +33,8 @@ public sealed class JwtTokenServiceTests
 		createdAt: FakeDateProvider.Default.UtcNow
 	);
 
+	private static readonly Guid TestSessionId = Guid.CreateVersion7();
+
 	[Before(hookType: Test)]
 	public void Setup()
 	{
@@ -48,7 +50,7 @@ public sealed class JwtTokenServiceTests
 	[Test]
 	public async Task GenerateAccessToken_ShouldReturnNonEmptyToken()
 	{
-		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser);
+		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser, sessionId: TestSessionId);
 
 		await Assert.That(value: result.Token).IsNotEmpty();
 	}
@@ -56,7 +58,7 @@ public sealed class JwtTokenServiceTests
 	[Test]
 	public async Task GenerateAccessToken_ShouldContainSubjectClaim()
 	{
-		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser);
+		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser, sessionId: TestSessionId);
 
 		JwtSecurityToken decoded = new JwtSecurityTokenHandler().ReadJwtToken(token: result.Token);
 		string? sub = decoded.Claims.FirstOrDefault(predicate: c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
@@ -67,7 +69,7 @@ public sealed class JwtTokenServiceTests
 	[Test]
 	public async Task GenerateAccessToken_ShouldContainEmailClaim()
 	{
-		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser);
+		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser, sessionId: TestSessionId);
 
 		JwtSecurityToken decoded = new JwtSecurityTokenHandler().ReadJwtToken(token: result.Token);
 		string? email = decoded.Claims.FirstOrDefault(predicate: c => c.Type == JwtRegisteredClaimNames.Email)?.Value;
@@ -76,9 +78,20 @@ public sealed class JwtTokenServiceTests
 	}
 
 	[Test]
+	public async Task GenerateAccessToken_ShouldContainSessionIdClaim()
+	{
+		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser, sessionId: TestSessionId);
+
+		JwtSecurityToken decoded = new JwtSecurityTokenHandler().ReadJwtToken(token: result.Token);
+		string? sid = decoded.Claims.FirstOrDefault(predicate: c => c.Type == JwtRegisteredClaimNames.Sid)?.Value;
+
+		await Assert.That(value: sid).IsEqualTo(expected: TestSessionId.ToString());
+	}
+
+	[Test]
 	public async Task GenerateAccessToken_ShouldSetCorrectExpiry()
 	{
-		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser);
+		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser, sessionId: TestSessionId);
 
 		DateTimeOffset expected = FakeDateProvider.Default.UtcNow.AddMinutes(minutes: TestOptions.AccessTokenTtlMinutes);
 		await Assert.That(value: result.ExpiresAt).IsEqualTo(expected: expected);

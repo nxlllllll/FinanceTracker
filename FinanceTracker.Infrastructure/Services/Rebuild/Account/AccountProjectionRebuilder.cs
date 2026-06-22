@@ -108,10 +108,7 @@ public sealed class AccountProjectionRebuilder(
 			}
 			catch (Exception ex)
 			{
-				logger.ZLogError(
-					exception: ex,
-					message: $"[Rebuild] Failed to rebuild Account {accountId}: {ex.Message}"
-				);
+				logger.ZLogError(exception: ex, message: $"[Rebuild] Failed to rebuild Account {accountId}: {ex.Message}");
 				Interlocked.Increment(location: ref failed);
 			}
 			finally

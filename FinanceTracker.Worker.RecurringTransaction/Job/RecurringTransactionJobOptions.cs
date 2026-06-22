@@ -14,9 +14,8 @@ public sealed class RecurringTransactionJobOptions : IJobOptions
 	/// <inheritdoc/>
 	public bool IsEnabled { get; init; } = true;
 
-	/// <summary>Quartz cron expression. Default: daily at 03:00.</summary>
 	[Required]
-	public string CronExpression { get; init; } = "0 0 3 * * ?";
+	public string CronExpression { get; init; } = "0 0 0/3 * * ?";
 
 	[Required]
 	public string Group { get; init; } = "default";

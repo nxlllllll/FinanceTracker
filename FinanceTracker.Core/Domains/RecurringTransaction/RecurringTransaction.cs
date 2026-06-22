@@ -23,6 +23,12 @@ public sealed class RecurringTransaction
 	public bool IsActive { get; private set; }
 	/// <summary>UTC timestamp of the last successful execution. <c>null</c> if never executed.</summary>
 	public DateTimeOffset? LastExecutedAt { get; private set; }
+	/// <summary>
+	/// UTC timestamp of the last time this month's occurrence was given up on after exhausting every
+	/// same-day retry — distinct from <see cref="LastExecutedAt"/>, which only ever reflects a real,
+	/// successful run. <c>null</c> if never missed.
+	/// </summary>
+	public DateTimeOffset? LastMissedAt { get; private set; }
 	public int RowVersion { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 
@@ -53,6 +59,7 @@ public sealed class RecurringTransaction
 			Description = description,
 			IsActive = true,
 			LastExecutedAt = null,
+			LastMissedAt = null,
 			RowVersion = 0,
 			CreatedAt = createdAt
 		});
@@ -69,6 +76,7 @@ public sealed class RecurringTransaction
 		string? description,
 		bool isActive,
 		DateTimeOffset? lastExecutedAt,
+		DateTimeOffset? lastMissedAt,
 		int rowVersion,
 		DateTimeOffset createdAt)
 	{
@@ -84,6 +92,7 @@ public sealed class RecurringTransaction
 			Description = description,
 			IsActive = isActive,
 			LastExecutedAt = lastExecutedAt,
+			LastMissedAt = lastMissedAt,
 			RowVersion = rowVersion,
 			CreatedAt = createdAt
 		};
@@ -151,6 +160,15 @@ public sealed class RecurringTransaction
 			return Result<Unit, DomainException>.Failure(error: new InactiveRecurringTransactionException(message: "Cannot execute an inactive recurring transaction."));
 
 		LastExecutedAt = executedAt;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> MarkMissed(DateTimeOffset missedAt)
+	{
+		if (!IsActive)
+			return Result<Unit, DomainException>.Failure(error: new InactiveRecurringTransactionException(message: "Cannot mark an inactive recurring transaction as missed."));
+
+		LastMissedAt = missedAt;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

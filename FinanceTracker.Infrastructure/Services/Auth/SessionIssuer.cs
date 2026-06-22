@@ -20,7 +20,6 @@ public sealed class SessionIssuer(
 		User user,
 		CancellationToken ct = default)
 	{
-		AccessTokenResult accessToken = tokenService.GenerateAccessToken(user: user);
 		string refreshToken = tokenService.GenerateRefreshToken();
 		string refreshTokenHash = tokenService.HashRefreshToken(refreshToken: refreshToken);
 
@@ -32,6 +31,8 @@ public sealed class SessionIssuer(
 		);
 
 		await userSessionWriteRepository.CreateAsync(session: session, ct: ct);
+
+		AccessTokenResult accessToken = tokenService.GenerateAccessToken(user: user, sessionId: session.Id);
 
 		return new SessionToken(
 			AccessToken: accessToken.Token,

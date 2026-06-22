@@ -43,7 +43,7 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 		builder.Property(propertyExpression: u => u.CreatedAt)
 			.HasColumnName(name: "created_at");
 
-		builder.HasIndex(indexExpression: u => u.Email).IsUnique();
+		// builder.HasIndex(indexExpression: u => u.Email).IsUnique();
 
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.BaseCurrencyCode)

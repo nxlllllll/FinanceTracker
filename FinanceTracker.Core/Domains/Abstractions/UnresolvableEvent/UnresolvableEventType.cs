@@ -22,5 +22,13 @@ public enum UnresolvableEventType
 	/// A RabbitMQ consumer exceeded the maximum retry count for a message.
 	/// The message was sent to the dead-letter exchange and recorded here for diagnostics.
 	/// </summary>
-	ConsumerDeadLetter
+	ConsumerDeadLetter,
+
+	/// <summary>
+	/// A recurring transaction occurrence could not be turned into an actual transaction —
+	/// either a data-integrity problem (missing account, invalid message data) or a domain
+	/// rule rejection (e.g. insufficient funds). The occurrence for this period is permanently
+	/// skipped; it won't be retried, since none of these causes resolve themselves on retry.
+	/// </summary>
+	RecurringTransactionFailed
 }

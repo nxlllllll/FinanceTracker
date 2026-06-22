@@ -16,5 +16,6 @@ public sealed class RecurringTransactionEntity
 	public bool IsActive { get; init; }
 	public int RowVersion { get; init; }
 	public DateTimeOffset? LastExecutedAt { get; init; }
+	public DateTimeOffset? LastMissedAt { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

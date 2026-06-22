@@ -67,6 +67,14 @@
       <EmbeddedResource Include="Migrations\V023__scope_idempotent_commands.sql" />
       <None Remove="Migrations\V020__add_rm_operations.sql" />
       <EmbeddedResource Include="Migrations\V020__add_rm_operations.sql" />
+      <None Remove="Migrations\V024__add_last_missed_at_to_recurring_transactions.sql" />
+      <EmbeddedResource Include="Migrations\V024__add_last_missed_at_to_recurring_transactions.sql" />
+      <None Remove="Migrations\V025__add_acknowledged_and_resolved_to_unresolvable_events.sql" />
+      <EmbeddedResource Include="Migrations\V025__add_acknowledged_and_resolved_to_unresolvable_events.sql" />
+      <None Remove="Migrations\V026__cover_pending_rate_index.sql" />
+      <EmbeddedResource Include="Migrations\V026__cover_pending_rate_index.sql" />
+      <None Remove="Migrations\V027__cover_pending_credit_index.sql" />
+      <EmbeddedResource Include="Migrations\V027__cover_pending_credit_index.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

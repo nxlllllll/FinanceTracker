@@ -177,4 +177,36 @@ public sealed class RecurringTransactionTests
 
         await Assert.That(value: rt.LastExecutedAt).IsEqualTo(expected: executedAt);
     }
+    
+    [Test]
+    public async Task MarkMissed_ShouldSetLastMissedAt()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+        DateTimeOffset missedAt = DateTimeOffset.UtcNow;
+
+        rt.MarkMissed(missedAt: missedAt);
+
+        await Assert.That(value: rt.LastMissedAt).IsEqualTo(expected: missedAt);
+    }
+
+    [Test]
+    public async Task MarkMissed_ShouldNotAffectLastExecutedAt()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+
+        rt.MarkMissed(missedAt: DateTimeOffset.UtcNow);
+
+        await Assert.That(value: rt.LastExecutedAt).IsNull();
+    }
+
+    [Test]
+    public async Task MarkMissed_WhenInactive_ShouldThrowInactiveRecurringTransactionException()
+    {
+        RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
+
+        Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.MarkMissed(missedAt: DateTimeOffset.UtcNow);
+
+        await Assert.That(value: result.IsFailure).IsTrue();
+        await Assert.That(value: result.Error).IsTypeOf<InactiveRecurringTransactionException>();
+    }
 }

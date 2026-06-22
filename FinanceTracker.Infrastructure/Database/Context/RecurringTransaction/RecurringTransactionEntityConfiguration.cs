@@ -62,18 +62,15 @@ public sealed class RecurringTransactionEntityConfiguration
         builder.Property(propertyExpression: r => r.LastExecutedAt)
             .HasColumnName(name: "last_executed_at");
 
+        builder.Property(propertyExpression: r => r.LastMissedAt)
+            .HasColumnName(name: "last_missed_at");
+        
         builder.Property(propertyExpression: r => r.RowVersion)
             .HasColumnName(name: "row_version")
             .HasDefaultValue(value: 0);
         
         builder.Property(propertyExpression: r => r.CreatedAt)
             .HasColumnName(name: "created_at");
-
-        builder.HasIndex(indexExpression: r => r.UserId)
-            .HasDatabaseName(name: "idx_recurring_user");
-
-        builder.HasIndex(indexExpression: r => new { r.IsActive, r.DayOfMonth })
-            .HasDatabaseName(name: "idx_recurring_active");
 
         builder.HasOne<UserEntity>().WithMany()
             .HasForeignKey(foreignKeyExpression: r => r.UserId)

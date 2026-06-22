@@ -35,7 +35,7 @@ public sealed class SessionIssuerTests
 		_tokenService = Substitute.For<ITokenService>();
 		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
 
-		_tokenService.GenerateAccessToken(user: Arg.Any<User>()).Returns(returnThis: TestAccessToken);
+		_tokenService.GenerateAccessToken(user: Arg.Any<User>(), sessionId: Arg.Any<Guid>()).Returns(returnThis: TestAccessToken);
 		_tokenService.GenerateRefreshToken().Returns(returnThis: "raw-refresh-token");
 		_tokenService.HashRefreshToken(refreshToken: Arg.Any<string>()).Returns(returnThis: "hashed-refresh-token");
 		_tokenService.GetRefreshTokenExpiry().Returns(returnThis: FakeDateProvider.Default.UtcNow.AddDays(days: 7));
@@ -52,7 +52,24 @@ public sealed class SessionIssuerTests
 	{
 		await _sessionIssuer.IssueAsync(user: TestUser);
 
-		_tokenService.Received(requiredNumberOfCalls: 1).GenerateAccessToken(user: TestUser);
+		_tokenService.Received(requiredNumberOfCalls: 1).GenerateAccessToken(user: TestUser, sessionId: Arg.Any<Guid>());
+	}
+
+	[Test]
+	public async Task IssueAsync_ShouldGenerateAccessTokenForThePersistedSessionId()
+	{
+		UserSession? capturedSession = null;
+		_userSessionWriteRepository.When(substituteCall: substitute => substitute.CreateAsync(
+			session: Arg.Any<UserSession>(), 
+			ct: Arg.Any<CancellationToken>())
+		).Do(callbackWithArguments: callInfo => capturedSession = callInfo.Arg<UserSession>());
+
+		await _sessionIssuer.IssueAsync(user: TestUser);
+
+		_tokenService.Received(requiredNumberOfCalls: 1).GenerateAccessToken(
+			user: TestUser,
+			sessionId: capturedSession!.Id
+		);
 	}
 
 	[Test]

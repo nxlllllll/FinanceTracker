@@ -30,8 +30,13 @@ namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 /// Handles connection recovery automatically with exponential backoff.
 /// On handler failure, retries up to <see cref="RabbitMqOptions.MaxRetries"/> times
 /// using <see cref="IRetryCounter"/> (Redis-backed with in-memory fallback).
-/// Messages that exhaust all retries are sent to the dead-letter exchange and
-/// recorded in <c>unresolvable_events</c> for manual investigation.
+/// </para>
+/// <para>
+/// Messages that exhaust all retries are nacked without requeue, which RabbitMQ then routes —
+/// via a dedicated per-queue dead-letter exchange (<c>{queue}.dlx</c>, fanout) — into
+/// <c>{queue}.dlq</c>, where the <em>full, untouched</em> message body is preserved for manual
+/// replay. A lightweight, searchable record (with a truncated body preview, for quick triage
+/// without needing to inspect RabbitMQ directly) is also written to <c>unresolvable_events</c>.
 /// </para>
 /// </summary>
 public sealed class RabbitMqListenerService<TMessage, THandler>(
@@ -44,12 +49,17 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	where TMessage : class
 	where THandler : IMessageHandler<TMessage>
 {
+	public const string DeadLetterExchangeArgument = "x-dead-letter-exchange";
+
 	private readonly RabbitMqOptions _options = options.Value;
 	private readonly string _routingKey = GetRoutingKey();
 	private readonly string _queueName = ResolveQueueName(options.Value);
 
 	private IConnection? _connection;
 	private IChannel? _channel;
+
+	private string DeadLetterExchangeName => $"{_queueName}.dlx";
+	private string DeadLetterQueueName => $"{_queueName}.dlq";
 
 	private static string GetRoutingKey()
 	{
@@ -127,11 +137,14 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			cancellationToken: ct
 		);
 
+		await DeclareDeadLetterInfrastructureAsync(ct: ct);
+
 		await _channel.QueueDeclareAsync(
 			queue: _queueName,
 			durable: true,
 			exclusive: false,
 			autoDelete: false,
+			arguments: new Dictionary<string, object?> { [DeadLetterExchangeArgument] = DeadLetterExchangeName },
 			cancellationToken: ct
 		);
 
@@ -139,6 +152,35 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			queue: _queueName,
 			exchange: _options.ExchangeName,
 			routingKey: _routingKey,
+			cancellationToken: ct
+		);
+	}
+
+	/// <summary>
+	/// Declares the per-queue dead-letter exchange/queue pair that <see cref="_queueName"/> routes into
+	/// once retries are exhausted (see <see cref="ConnectAsync"/>'s <c>x-dead-letter-exchange</c> argument).
+	/// </summary>
+	private async Task DeclareDeadLetterInfrastructureAsync(CancellationToken ct)
+	{
+		await _channel!.ExchangeDeclareAsync(
+			exchange: DeadLetterExchangeName,
+			type: ExchangeType.Fanout,
+			durable: true,
+			cancellationToken: ct
+		);
+
+		await _channel!.QueueDeclareAsync(
+			queue: DeadLetterQueueName,
+			durable: true,
+			exclusive: false,
+			autoDelete: false,
+			cancellationToken: ct
+		);
+
+		await _channel!.QueueBindAsync(
+			queue: DeadLetterQueueName,
+			exchange: DeadLetterExchangeName,
+			routingKey: String.Empty,
 			cancellationToken: ct
 		);
 	}
@@ -331,7 +373,6 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			IUnresolvableEventWriteRepository repository = scope.ServiceProvider.GetRequiredService<IUnresolvableEventWriteRepository>();
 			IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 			IDateProvider dateProvider = scope.ServiceProvider.GetRequiredService<IDateProvider>();
-			string bodyPreview = Encoding.UTF8.GetString(bytes: ea.Body.Span[..Math.Min(ea.Body.Length, 1024)]);
 
 			string payload = JsonSerializer.Serialize(value: new
 			{
@@ -339,11 +380,11 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 				queue = _queueName,
 				exchange = _options.ExchangeName,
 				routingKey = _routingKey,
+				deadLetterQueue = DeadLetterQueueName,
 				deliveryTag = ea.DeliveryTag,
 				retryCount = deliveryCount,
 				exceptionType = exception.GetType().Name,
-				exceptionMessage = exception.Message,
-				bodyPreview
+				exceptionMessage = exception.Message
 			});
 
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await repository.CreateAsync(

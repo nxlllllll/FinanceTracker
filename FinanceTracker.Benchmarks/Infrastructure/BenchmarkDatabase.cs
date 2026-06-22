@@ -26,7 +26,11 @@ public sealed class BenchmarkDatabase
 	public Guid ExpenseCategoryId { get; private set; }
 	public Guid BudgetId { get; private set; }
 	public Guid TransferId { get; private set; }
+	public Guid TransactionId { get; private set; }
+	public Guid RecurringTransactionId { get; private set; }
 	public string RefreshTokenHash { get; private set; } = null!;
+	public string MigrationsDirectory { get; private set; } = null!;
+	public IReadOnlyList<string> AppliedMigrations { get; private set; } = [];
 
 	private BenchmarkDatabase() { }
 
@@ -45,32 +49,53 @@ public sealed class BenchmarkDatabase
 
 		await CreateSchemaAsync(connection: connection);
 		await SeedDataAsync(connection: connection);
+		await VacuumAnalyzeAsync(connection: connection);
+	}
+
+	/// <summary>
+	/// Without this, the visibility map isn't set right after the bulk seed insert, so Index-Only Scans
+	/// (e.g. the covering partial indexes on rm_transactions.is_rate_pending / rm_transfers.status) can't
+	/// reliably skip heap fetches yet — whether they do depends on whether autovacuum happened to run by
+	/// chance before the benchmark executed, making those specific results inconsistent run to run despite
+	/// identical code and indexes. ANALYZE also refreshes planner statistics after the bulk load, which
+	/// affects plan choice for every other query in the suite, not just these two.
+	/// </summary>
+	private static async Task VacuumAnalyzeAsync(NpgsqlConnection connection)
+	{
+		await using NpgsqlCommand cmd = new NpgsqlCommand(cmdText: "VACUUM ANALYZE;", connection: connection);
+		cmd.CommandTimeout = 300;
+		await cmd.ExecuteNonQueryAsync();
 	}
 
 	public FinanceTrackerContext CreateContext()
 	{
-		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>()
-			.UseNpgsql(connectionString: _connectionString)
-			.Options;
+		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>().UseNpgsql(connectionString: _connectionString).Options;
 		return new FinanceTrackerContext(options: options);
 	}
 
-	private static async Task CreateSchemaAsync(NpgsqlConnection connection)
+	private async Task CreateSchemaAsync(NpgsqlConnection connection)
 	{
 		string migrationsDir = Path.GetFullPath(path: Path.Combine(
 			AppContext.BaseDirectory, "..", "..", "..", "..", "..", "FinanceTracker", "FinanceTracker.Migrator", "Migrations"
 		));
+		MigrationsDirectory = migrationsDir;
 
-		IEnumerable<string> migrationFiles = Directory
+		string[] migrationFiles = Directory
 			.GetFiles(path: migrationsDir, searchPattern: "V*.sql")
-			.OrderBy(keySelector: f => f);
+			.OrderBy(keySelector: f => f)
+			.ToArray();
+
+		List<string> applied = new List<string>(capacity: migrationFiles.Length);
 
 		foreach (string file in migrationFiles)
 		{
 			string sql = await File.ReadAllTextAsync(path: file);
 			await using NpgsqlCommand cmd = new NpgsqlCommand(cmdText: sql, connection: connection);
 			await cmd.ExecuteNonQueryAsync();
+			applied.Add(item: Path.GetFileName(path: file));
 		}
+
+		AppliedMigrations = applied;
 	}
 
 	private async Task SeedDataAsync(NpgsqlConnection connection)
@@ -83,11 +108,11 @@ public sealed class BenchmarkDatabase
 		ExpenseCategoryId = Guid.NewGuid();
 		BudgetId = Guid.NewGuid();
 		TransferId = Guid.NewGuid();
+		TransactionId = Guid.NewGuid();
+		RecurringTransactionId = Guid.NewGuid();
 		RefreshTokenHash = Convert.ToHexString(inArray: Guid.NewGuid().ToByteArray());
 
-		string seedPath = Path.GetFullPath(path: Path.Combine(
-			AppContext.BaseDirectory, "..", "..", "..", "Infrastructure", "seed.sql"
-		));
+		string seedPath = Path.GetFullPath(path: Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Infrastructure", "seed.sql"));
 
 		string template = await File.ReadAllTextAsync(path: seedPath);
 
@@ -106,6 +131,8 @@ public sealed class BenchmarkDatabase
 			.Replace(oldValue: "{ExpenseCategoryId}", newValue: ExpenseCategoryId.ToString())
 			.Replace(oldValue: "{BudgetId}", newValue: BudgetId.ToString())
 			.Replace(oldValue: "{TransferId}", newValue: TransferId.ToString())
+			.Replace(oldValue: "{TransactionId}", newValue: TransactionId.ToString())
+			.Replace(oldValue: "{RecurringTransactionId}", newValue: RecurringTransactionId.ToString())
 			.Replace(oldValue: "{RefreshTokenHash}", newValue: RefreshTokenHash)
 			.Replace(oldValue: "{CurrentMonthStart}", newValue: currentMonthStart);
 

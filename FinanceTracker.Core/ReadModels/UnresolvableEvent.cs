@@ -7,5 +7,7 @@ public sealed record UnresolvableEvent(
 	UnresolvableEventType Type,
 	Guid ReferenceId,
 	string Reason,
-	DateTimeOffset OccurredAt
+	DateTimeOffset OccurredAt,
+	DateTimeOffset? AcknowledgedAt,
+	DateTimeOffset? ResolvedAt
 ) : IReadModel;

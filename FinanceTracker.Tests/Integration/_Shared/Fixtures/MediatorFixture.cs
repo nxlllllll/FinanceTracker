@@ -31,6 +31,8 @@ namespace FinanceTracker.Tests.Integration._Shared.Fixtures;
 /// </summary>
 public abstract class MediatorFixture
 {
+    private const string TemplateDatabaseName = "ft_template";
+
     private static PostgreSqlContainer _postgres = null!;
     private static RedisContainer _redis = null!;
 
@@ -45,8 +47,16 @@ public abstract class MediatorFixture
     {
         Task postgres = Task.Run(async () =>
         {
-            _postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "150").Build();
+            _postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "500").Build();
             await _postgres.StartAsync();
+
+            string templateConnectionString = new NpgsqlConnectionStringBuilder(connectionString: _postgres.GetConnectionString())
+            {
+                Database = TemplateDatabaseName
+            }.ConnectionString;
+
+            Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
+            NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
         });
         
         Task redis = Task.Run(async () =>
@@ -61,9 +71,10 @@ public abstract class MediatorFixture
     [Before(hookType: Test)]
     public async Task SetupAsync()
     {
+        string databaseName = $"ft_flow_{Guid.CreateVersion7():N}";
         _connectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
         {
-            Database = $"ft_flow_{Guid.CreateVersion7():N}"
+            Database = databaseName
         }.ConnectionString;
 
         string redisConnectionString = _redis.GetConnectionString() + ",allowAdmin=true";
@@ -110,11 +121,24 @@ public abstract class MediatorFixture
                 .ValidateDataAnnotations();
         }).Build();
 
+        string adminConnectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
+        {
+            Database = "postgres"
+        }.ConnectionString;
+
+        await using (NpgsqlConnection adminConnection = new NpgsqlConnection(connectionString: adminConnectionString))
+        {
+            await adminConnection.OpenAsync();
+            await using NpgsqlCommand command = new NpgsqlCommand(
+                cmdText: $"CREATE DATABASE \"{databaseName}\" TEMPLATE {TemplateDatabaseName}",
+                connection: adminConnection
+            );
+            await command.ExecuteNonQueryAsync();
+        }
+
         await Host.StartAsync();
 
         Context = Host.Services.GetRequiredService<FinanceTrackerContext>();
-        await Context.Database.EnsureCreatedAsync();
-
         Mediator = Host.Services.GetRequiredService<IMediator>();
     }
 

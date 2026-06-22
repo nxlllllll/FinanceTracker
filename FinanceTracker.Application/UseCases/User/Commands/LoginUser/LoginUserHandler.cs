@@ -19,7 +19,9 @@ public sealed class LoginUserHandler(
 	{
 		Core.Domains.User.User? user = await userAuthRepository.GetByEmailAsync(email: userCommand.Email.Value, ct: ct);
 
-		if (user is null || !await passwordHasher.Verify(password: userCommand.Password, hash: user.PasswordHash))
+		bool passwordMatches = await passwordHasher.Verify(password: userCommand.Password, storedHash: user?.PasswordHash);
+
+		if (user is null || !passwordMatches)
 			return Result<SessionToken, DomainException>.Failure(error: new InvalidCredentialsException());
 
 		SessionToken response = await sessionIssuer.IssueAsync(user: user, ct: ct);

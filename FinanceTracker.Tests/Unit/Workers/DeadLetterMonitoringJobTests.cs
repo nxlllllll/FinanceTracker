@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.DeadLetterMonitor.Job;
 using NSubstitute;
@@ -11,6 +12,7 @@ namespace FinanceTracker.Tests.Unit.Workers;
 public sealed class DeadLetterMonitoringJobTests
 {
     private IUnresolvableEventReadRepository _readRepository = null!;
+    private IUnresolvableEventWriteRepository _writeRepository = null!;
     private CapturingLogger<DeadLetterMonitoringJob> _logger = null!;
     private IJobExecutionContext _jobContext = null!;
     private DeadLetterMonitoringJob _job = null!;
@@ -24,6 +26,7 @@ public sealed class DeadLetterMonitoringJobTests
     public void Setup()
     {
         _readRepository = Substitute.For<IUnresolvableEventReadRepository>();
+        _writeRepository = Substitute.For<IUnresolvableEventWriteRepository>();
         _logger = new CapturingLogger<DeadLetterMonitoringJob>();
         _jobContext = Substitute.For<IJobExecutionContext>();
 
@@ -31,6 +34,8 @@ public sealed class DeadLetterMonitoringJobTests
 
         _job = new DeadLetterMonitoringJob(
             unresolvableEventReadRepository: _readRepository,
+            unresolvableEventWriteRepository: _writeRepository,
+            dateProvider: FakeDateProvider.Default,
             options: new FakeOptionsMonitor<DeadLetterMonitoringOptions>(DefaultOptions),
             logger: _logger
         );
@@ -45,18 +50,22 @@ public sealed class DeadLetterMonitoringJobTests
             Type: type,
             ReferenceId: Guid.CreateVersion7(),
             Reason: "Max retries exceeded.",
-            OccurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow
+            OccurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow,
+            AcknowledgedAt: null,
+            ResolvedAt: null
         );
     }
+
+    private static PagedResult<UnresolvableEvent> BuildPage(IReadOnlyList<UnresolvableEvent> items, bool hasNextPage = false)
+        => new PagedResult<UnresolvableEvent>(Items: items, HasNextPage: hasNextPage, NextCursorDate: null, NextCursorId: null);
 
     [Test]
     public async Task Execute_WhenNoUnresolvableEvents_ShouldNotLog()
     {
-        _readRepository.GetBatchAsync(
+        _readRepository.GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+        ).Returns(returnThis: BuildPage(items: []));
 
         await _job.Execute(context: _jobContext);
 
@@ -66,17 +75,32 @@ public sealed class DeadLetterMonitoringJobTests
     [Test]
     public async Task Execute_WhenNoUnresolvableEvents_ShouldCallRepositoryOnce()
     {
-        _readRepository.GetBatchAsync(
+        _readRepository.GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+        ).Returns(returnThis: BuildPage(items: []));
 
         await _job.Execute(context: _jobContext);
 
-        await _readRepository.Received(requiredNumberOfCalls: 1).GetBatchAsync(
+        await _readRepository.Received(requiredNumberOfCalls: 1).GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: null,
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
+    public async Task Execute_WhenNoUnresolvableEvents_ShouldNotAcknowledgeAnything()
+    {
+        _readRepository.GetUnacknowledgedBatchAsync(
+            batchSize: Arg.Any<int>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: BuildPage(items: []));
+
+        await _job.Execute(context: _jobContext);
+
+        await _writeRepository.DidNotReceive().AcknowledgeBatchAsync(
+            ids: Arg.Any<IReadOnlyList<Guid>>(),
+            acknowledgedAt: Arg.Any<DateTimeOffset>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -87,103 +111,83 @@ public sealed class DeadLetterMonitoringJobTests
         DeadLetterMonitoringOptions customOptions = new DeadLetterMonitoringOptions { BatchSize = 50 };
         DeadLetterMonitoringJob job = new DeadLetterMonitoringJob(
             unresolvableEventReadRepository: _readRepository,
+            unresolvableEventWriteRepository: _writeRepository,
+            dateProvider: FakeDateProvider.Default,
             options: new FakeOptionsMonitor<DeadLetterMonitoringOptions>(customOptions),
             logger: _logger
         );
 
-        _readRepository.GetBatchAsync(
+        _readRepository.GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+        ).Returns(returnThis: BuildPage(items: []));
 
         await job.Execute(context: _jobContext);
 
-        await _readRepository.Received(requiredNumberOfCalls: 1).GetBatchAsync(
+        await _readRepository.Received(requiredNumberOfCalls: 1).GetUnacknowledgedBatchAsync(
             batchSize: 50,
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
 
     [Test]
-    public async Task Execute_WhenSinglePartialBatch_ShouldCallRepositoryTwice()
+    public async Task Execute_WhenSinglePageWithoutMore_ShouldCallRepositoryOnce()
     {
-        _readRepository.GetBatchAsync(
+        _readRepository.GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: [BuildDto(), BuildDto()]);
+        ).Returns(returnThis: BuildPage(items: [BuildDto(), BuildDto()], hasNextPage: false));
 
         await _job.Execute(context: _jobContext);
 
-        await _readRepository.Received(requiredNumberOfCalls: 1).GetBatchAsync(
+        await _readRepository.Received(requiredNumberOfCalls: 1).GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
 
     [Test]
-    public async Task Execute_WhenMultipleFullBatches_ShouldPaginateUntilEmpty()
+    public async Task Execute_WhenHasNextPage_ShouldCallRepositoryAgain()
     {
-        DateTimeOffset t1 = FakeDateProvider.Default.UtcNow;
-        DateTimeOffset t2 = t1.AddSeconds(seconds: 1);
-        DateTimeOffset t3 = t1.AddSeconds(seconds: 2);
+        UnresolvableEvent e1 = BuildDto();
+        UnresolvableEvent e2 = BuildDto();
 
-        UnresolvableEvent e1 = BuildDto(occurredAt: t1);
-        UnresolvableEvent e2 = BuildDto(occurredAt: t1.AddMilliseconds(milliseconds: 1));
-        UnresolvableEvent e3 = BuildDto(occurredAt: t1.AddMilliseconds(milliseconds: 2));
-        UnresolvableEvent e4 = BuildDto(occurredAt: t2);
-        UnresolvableEvent e5 = BuildDto(occurredAt: t3);
-
-        _readRepository.GetBatchAsync(
-            batchSize: 3,
-            cursor: null,
+        int callCount = 0;
+        _readRepository.GetUnacknowledgedBatchAsync(
+            batchSize: Arg.Any<int>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: [e1, e2, e3]);
-
-        _readRepository.GetBatchAsync(
-            batchSize: 3,
-            cursor: e3.OccurredAt,
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: [e4, e5]);
+        ).Returns(returnThis: _ =>
+        {
+            callCount++;
+            return callCount == 1
+                ? BuildPage(items: [e1, e2], hasNextPage: true)
+                : BuildPage(items: [], hasNextPage: false);
+        });
 
         await _job.Execute(context: _jobContext);
 
-        await _readRepository.Received(requiredNumberOfCalls: 2).GetBatchAsync(
+        await _readRepository.Received(requiredNumberOfCalls: 2).GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
 
     [Test]
-    public async Task Execute_WhenMultipleFullBatches_ShouldPassCursorFromLastEvent()
+    public async Task Execute_WhenEventsExist_ShouldAcknowledgeThem()
     {
-        DateTimeOffset t1 = FakeDateProvider.Default.UtcNow;
+        UnresolvableEvent e1 = BuildDto();
+        UnresolvableEvent e2 = BuildDto();
 
-        UnresolvableEvent e1 = BuildDto(occurredAt: t1);
-        UnresolvableEvent e2 = BuildDto(occurredAt: t1.AddMilliseconds(milliseconds: 1));
-        UnresolvableEvent e3 = BuildDto(occurredAt: t1.AddMilliseconds(milliseconds: 2));
-
-        _readRepository.GetBatchAsync(
-            batchSize: 3,
-            cursor: null,
+        _readRepository.GetUnacknowledgedBatchAsync(
+            batchSize: Arg.Any<int>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: [e1, e2, e3]);
-
-        _readRepository.GetBatchAsync(
-            batchSize: 3,
-            cursor: e3.OccurredAt,
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+        ).Returns(returnThis: BuildPage(items: [e1, e2]));
 
         await _job.Execute(context: _jobContext);
 
-        await _readRepository.Received(requiredNumberOfCalls: 1).GetBatchAsync(
-            batchSize: 3,
-            cursor: e3.OccurredAt,
+        await _writeRepository.Received(requiredNumberOfCalls: 1).AcknowledgeBatchAsync(
+            ids: Arg.Is<IReadOnlyList<Guid>>(predicate: ids => ids.Contains(e1.Id) && ids.Contains(e2.Id) && ids.Count == 2),
+            acknowledgedAt: Arg.Any<DateTimeOffset>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -191,11 +195,10 @@ public sealed class DeadLetterMonitoringJobTests
     [Test]
     public async Task Execute_WhenEventsExist_ShouldLogWarning()
     {
-        _readRepository.GetBatchAsync(
+        _readRepository.GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: [BuildDto(), BuildDto()]);
+        ).Returns(returnThis: BuildPage(items: [BuildDto(), BuildDto()]));
 
         await _job.Execute(context: _jobContext);
 
@@ -205,11 +208,10 @@ public sealed class DeadLetterMonitoringJobTests
     [Test]
     public async Task Execute_WhenSingleEvent_ShouldLogSummaryAndEvent()
     {
-        _readRepository.GetBatchAsync(
+        _readRepository.GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: [BuildDto()]);
+        ).Returns(returnThis: BuildPage(items: [BuildDto()]));
 
         await _job.Execute(context: _jobContext);
 
@@ -222,17 +224,15 @@ public sealed class DeadLetterMonitoringJobTests
         using CancellationTokenSource cts = new CancellationTokenSource();
         _jobContext.CancellationToken.Returns(returnThis: cts.Token);
 
-        _readRepository.GetBatchAsync(
+        _readRepository.GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: []);
+        ).Returns(returnThis: BuildPage(items: []));
 
         await _job.Execute(context: _jobContext);
 
-        await _readRepository.Received(requiredNumberOfCalls: 1).GetBatchAsync(
+        await _readRepository.Received(requiredNumberOfCalls: 1).GetUnacknowledgedBatchAsync(
             batchSize: Arg.Any<int>(),
-            cursor: Arg.Any<DateTimeOffset?>(),
             ct: cts.Token
         );
     }

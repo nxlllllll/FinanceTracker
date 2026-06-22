@@ -194,7 +194,8 @@ public sealed class Account : AggregateRoot
 	/// to go below zero: rejecting the correction would leave the recorded balance
 	/// further from the truth, not closer to it.
 	/// </summary>
-	public Result<Unit, DomainException> AdjustBalance(		DateTimeOffset occurredAt,
+	public Result<Unit, DomainException> AdjustBalance(	
+		DateTimeOffset occurredAt,
 		Guid sourceId,
 		string sourceType,
 		DirectionType direction,

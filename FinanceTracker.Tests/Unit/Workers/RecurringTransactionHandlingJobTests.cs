@@ -1,7 +1,9 @@
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Utilities;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -19,6 +21,7 @@ public sealed class RecurringTransactionHandlingJobTests
 	private ICorrelationContext _correlationContext = null!;
 	private IRecurringTransactionReadRepository _recurringTransactionReadRepository = null!;
 	private IRecurringTransactionWriteRepository _recurringTransactionWriteRepository = null!;
+	private IUnresolvableEventWriteRepository _unresolvableEventWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private IRabbitMqPublisher _publisher = null!;
 	private IJobExecutionContext _jobContext = null!;
@@ -31,6 +34,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_correlationContext.CorrelationId.Returns(returnThis: Guid.CreateVersion7());
 		_recurringTransactionReadRepository = Substitute.For<IRecurringTransactionReadRepository>();
 		_recurringTransactionWriteRepository = Substitute.For<IRecurringTransactionWriteRepository>();
+		_unresolvableEventWriteRepository = Substitute.For<IUnresolvableEventWriteRepository>();
 		_publisher = Substitute.For<IRabbitMqPublisher>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
@@ -42,9 +46,12 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: call => call.Arg<Func<Task>>()());
 
+		SetupNoMissedTransactions();
+
 		_job = new RecurringTransactionHandlingJob(
 			recurringTransactionReadRepository: _recurringTransactionReadRepository,
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
+			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
 			unitOfWork: _unitOfWork,
 			correlationContext: _correlationContext,
 			publisher: _publisher,
@@ -52,6 +59,16 @@ public sealed class RecurringTransactionHandlingJobTests
 			options: new FakeOptionsMonitor<RecurringTransactionJobOptions>(value: new RecurringTransactionJobOptions()),
 			logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()
 		);
+	}
+
+	private void SetupNoMissedTransactions()
+	{
+		_recurringTransactionReadRepository.GetMissedThisMonthAsync(
+			dayOfMonth: Arg.Any<int>(),
+			currentMonthStart: Arg.Any<DateTimeOffset>(),
+			previousMonthStart: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: []);
 	}
 
 	private void SetupEmptyRepository()
@@ -77,6 +94,16 @@ public sealed class RecurringTransactionHandlingJobTests
 			dayOfMonth: Arg.Any<int>(),
 			daysInCurrentMonth: Arg.Any<int>(),
 			currentMonthStart: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: transactions);
+	}
+
+	private void SetupMissedTransactions(IReadOnlyList<RecurringTransactionReadModel> transactions)
+	{
+		_recurringTransactionReadRepository.GetMissedThisMonthAsync(
+			dayOfMonth: Arg.Any<int>(),
+			currentMonthStart: Arg.Any<DateTimeOffset>(),
+			previousMonthStart: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transactions);
 	}
@@ -259,6 +286,29 @@ public sealed class RecurringTransactionHandlingJobTests
 	}
 
 	[Test]
+	public async Task Execute_WhenPublishFails_ShouldNotEscalateImmediately()
+	{
+		SetupRepository(count: 1);
+
+		_publisher.PublishAsync(
+			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Throws(createException: _ => new InvalidOperationException(message: "RabbitMQ unavailable"));
+
+		await _job.Execute(context: _jobContext);
+
+		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
+			type: Arg.Any<UnresolvableEventType>(),
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
 	public async Task Execute_WhenPublishFailsOnSecond_ShouldMarkExecutedOnlyForFirst()
 	{
 		RecurringTransactionReadModel first  = RecurringTransactionFactory.CreateReadModel();
@@ -355,5 +405,129 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _job.Execute(context: _jobContext);
 
 		await Assert.That(value: capturedMonthStart!.Value.Offset).IsEqualTo(expected: TimeSpan.Zero);
+	}
+
+	[Test]
+	public async Task Execute_WhenNoMissedTransactions_ShouldNotEscalate()
+	{
+		SetupEmptyRepository();
+
+		await _job.Execute(context: _jobContext);
+
+		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
+			type: Arg.Any<UnresolvableEventType>(),
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenMissedTransactionsExist_ShouldEscalateEach()
+	{
+		SetupEmptyRepository();
+		SetupMissedTransactions(transactions: [
+			RecurringTransactionFactory.CreateReadModel(),
+			RecurringTransactionFactory.CreateReadModel()
+		]);
+
+		await _job.Execute(context: _jobContext);
+
+		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 2).CreateAsync(
+			type: UnresolvableEventType.RecurringTransactionFailed,
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenMissedTransactionsExist_ShouldEscalateWithCorrectReferenceId()
+	{
+		RecurringTransactionReadModel missed = RecurringTransactionFactory.CreateReadModel();
+		SetupEmptyRepository();
+		SetupMissedTransactions(transactions: [missed]);
+
+		await _job.Execute(context: _jobContext);
+
+		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
+			type: UnresolvableEventType.RecurringTransactionFailed,
+			referenceId: missed.Id,
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenMissedTransactionsExist_ShouldMarkMissed()
+	{
+		RecurringTransactionReadModel missed = RecurringTransactionFactory.CreateReadModel();
+		SetupEmptyRepository();
+		SetupMissedTransactions(transactions: [missed]);
+
+		await _job.Execute(context: _jobContext);
+
+		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkMissedAsync(
+			recurringTransactionId: missed.Id,
+			missedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: missed.RowVersion,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenMissedTransactionsExist_ShouldNotPublishForThem()
+	{
+		RecurringTransactionReadModel missed = RecurringTransactionFactory.CreateReadModel();
+		SetupEmptyRepository();
+		SetupMissedTransactions(transactions: [missed]);
+
+		await _job.Execute(context: _jobContext);
+
+		await _publisher.DidNotReceive().PublishAsync(
+			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenEscalatingOneFails_ShouldStillEscalateTheOther()
+	{
+		RecurringTransactionReadModel first = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel second = RecurringTransactionFactory.CreateReadModel();
+		SetupEmptyRepository();
+		SetupMissedTransactions(transactions: [first, second]);
+
+		int callCount = 0;
+		_unresolvableEventWriteRepository.CreateAsync(
+			type: Arg.Any<UnresolvableEventType>(),
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ =>
+		{
+			callCount++;
+			if (callCount == 1)
+				throw new InvalidOperationException(message: "DB unavailable");
+			return Task.CompletedTask;
+		});
+
+		await _job.Execute(context: _jobContext);
+
+		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkMissedAsync(
+			recurringTransactionId: second.Id,
+			missedAt: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

@@ -15,5 +15,6 @@ public sealed record RecurringTransactionReadModel(
 	bool IsActive,
 	int RowVersion,
 	DateTimeOffset? LastExecutedAt,
+	DateTimeOffset? LastMissedAt,
 	DateTimeOffset CreatedAt
 ) : IReadModel;

@@ -13,7 +13,7 @@ public static class WorkerMetrics
 
 	private static readonly Meter Meter = new Meter(name: MeterName);
 
-	// ── Infrastructure: Outbox ────────────────────────────────────
+	// Outbox
 
 	public static readonly Gauge<int> OutboxPending = Meter.CreateGauge<int>(
 		name: "outbox.pending",
@@ -41,7 +41,7 @@ public static class WorkerMetrics
 		description: "Duration of individual message processing in milliseconds."
 	);
 
-	// ── Infrastructure: Transfers ─────────────────────────────────
+	// Transfers
 
 	public static readonly Gauge<int> TransferCreditPending = Meter.CreateGauge<int>(
 		name: "transfer.credit.pending",
@@ -54,14 +54,21 @@ public static class WorkerMetrics
 		description: "Time elapsed between debit event and credit application in milliseconds."
 	);
 
-	// ── Business: Transactions ────────────────────────────────────
+	// Transactions
 
 	public static readonly Counter<long> TransactionsCreated = Meter.CreateCounter<long>(
 		name: "transactions.created",
 		description: "Total number of transactions created. Tagged by direction (debit/credit)."
 	);
 
-	// ── Business: Transfers ───────────────────────────────────────
+	// Recurring transactions
+
+	public static readonly Counter<long> RecurringTransactionsFailed = Meter.CreateCounter<long>(
+		name: "recurring_transactions.failed",
+		description: "Total number of recurring transaction occurrences that could not be turned into an actual transaction and were escalated to unresolvable_events."
+	);
+
+	// Transfers
 
 	public static readonly Counter<long> TransfersCompleted = Meter.CreateCounter<long>(
 		name: "transfers.completed",
@@ -78,7 +85,7 @@ public static class WorkerMetrics
 		description: "Total number of transfers that failed and require manual resolution."
 	);
 
-	// ── Business: Balance Adjustment ─────────────────────────────
+	// Balance adjustment
 
 	public static readonly Counter<long> BalanceAdjustmentAdjusted = Meter.CreateCounter<long>(
 		name: "balance_adjustment.adjusted",
@@ -95,7 +102,7 @@ public static class WorkerMetrics
 		description: "Total items that failed during balance adjustment. Tagged by source_type."
 	);
 
-	// ── Business: Currency Rates ──────────────────────────────────
+	// Currency rates
 
 	public static readonly Counter<long> CurrencyRatesUpserted = Meter.CreateCounter<long>(
 		name: "currency_rates.upserted",

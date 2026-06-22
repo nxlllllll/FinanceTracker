@@ -1,13 +1,16 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
+using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
@@ -38,6 +41,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			recurringTransactionReadRepository: _recurringTransactionReadRepository,
 			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),
 			processedMessageWriteRepository: new ProcessedMessageWriteRepository(context: Context),
+			unresolvableEventWriteRepository: new UnresolvableEventWriteRepository(context: Context),
 			unitOfWork: UnitOfWork,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<RecurringTransactionConsumer>>()
@@ -63,20 +67,31 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		).Returns(returnThis: Result<Guid, DomainException>.Success(value: Guid.CreateVersion7()));
 	}
 
-	private static RecurringTransactionTriggeredMessage BuildMessage(Guid? messageId = null)
+	private static RecurringTransactionTriggeredMessage BuildMessage(
+		Guid? messageId = null,
+		Guid? recurringTransactionId = null,
+		string currency = "RUB",
+		string direction = "Credit")
 	{
 		return new RecurringTransactionTriggeredMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
-			RecurringTransactionId: Guid.CreateVersion7(),
+			RecurringTransactionId: recurringTransactionId ?? Guid.CreateVersion7(),
 			AccountId: Guid.CreateVersion7(),
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
 			Amount: 5000m,
-			Currency: "RUB",
-			Direction: "Credit",
+			Currency: currency,
+			Direction: direction,
 			Description: "Зарплата",
 			OccurredAt: FakeDateProvider.Default.UtcNow,
 			CorrelationId: Guid.CreateVersion7()
+		);
+	}
+
+	private async Task<bool> HasUnresolvableEventAsync(Guid referenceId)
+	{
+		return await Context.UnresolvableEvents.AnyAsync(
+			predicate: e => e.ReferenceId == referenceId && e.Type == UnresolvableEventType.RecurringTransactionFailed
 		);
 	}
 
@@ -142,6 +157,20 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	}
 
 	[Test]
+	public async Task HandleAsync_WhenRecurringTransactionNotFound_ShouldEscalateToUnresolvableEvents()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (RecurringTransactionReadModel?)null);
+
+		Guid recurringTransactionId = Guid.CreateVersion7();
+		await _consumer.HandleAsync(message: BuildMessage(recurringTransactionId: recurringTransactionId), ct: CancellationToken.None);
+
+		await Assert.That(value: await HasUnresolvableEventAsync(referenceId: recurringTransactionId)).IsTrue();
+	}
+
+	[Test]
 	public async Task HandleAsync_WhenAccountNotFound_ShouldNotCreateTransaction()
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
@@ -186,6 +215,177 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	}
 
 	[Test]
+	public async Task HandleAsync_WhenAccountNotFound_ShouldEscalateToUnresolvableEvents()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+
+		Guid recurringTransactionId = Guid.CreateVersion7();
+		await _consumer.HandleAsync(message: BuildMessage(recurringTransactionId: recurringTransactionId), ct: CancellationToken.None);
+
+		await Assert.That(value: await HasUnresolvableEventAsync(referenceId: recurringTransactionId)).IsTrue();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCurrencyInvalid_ShouldNotCreateTransaction()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		await _consumer.HandleAsync(message: BuildMessage(currency: "NOT_A_CURRENCY"), ct: CancellationToken.None);
+
+		await _transactionCreationService.DidNotReceive().CreateAsync(
+			command: Arg.Any<CreateTransactionCommand>(),
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCurrencyInvalid_ShouldEscalateToUnresolvableEvents()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		Guid recurringTransactionId = Guid.CreateVersion7();
+		await _consumer.HandleAsync(
+			message: BuildMessage(recurringTransactionId: recurringTransactionId, currency: "NOT_A_CURRENCY"),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: await HasUnresolvableEventAsync(referenceId: recurringTransactionId)).IsTrue();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenDirectionInvalid_ShouldNotCreateTransaction()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		await _consumer.HandleAsync(message: BuildMessage(direction: "Sideways"), ct: CancellationToken.None);
+
+		await _transactionCreationService.DidNotReceive().CreateAsync(
+			command: Arg.Any<CreateTransactionCommand>(),
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenDirectionInvalid_ShouldEscalateToUnresolvableEvents()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		Guid recurringTransactionId = Guid.CreateVersion7();
+		await _consumer.HandleAsync(
+			message: BuildMessage(recurringTransactionId: recurringTransactionId, direction: "Sideways"),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: await HasUnresolvableEventAsync(referenceId: recurringTransactionId)).IsTrue();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTransactionCreationFails_ShouldMarkMessageAsProcessed()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		_transactionCreationService.CreateAsync(
+			command: Arg.Any<CreateTransactionCommand>(),
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<Guid, DomainException>.Failure(error: new InsufficientFundsException(
+			message: "Insufficient funds.",
+			balance: Money.Reconstitute(amount: 0m, currency: Currency.Reconstitute(value: "RUB"))
+		)));
+
+		RecurringTransactionTriggeredMessage message = BuildMessage();
+		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
+
+		bool isProcessed = await Context.ProcessedMessages.AnyAsync(
+			predicate: p => p.MessageId == message.MessageId && p.ConsumerType == nameof(RecurringTransactionConsumer)
+		);
+		await Assert.That(value: isProcessed).IsTrue();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTransactionCreationFails_ShouldEscalateToUnresolvableEventsWithFailureReason()
+	{
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
+
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create().Value!);
+
+		const string failureMessage = "Insufficient funds.";
+		_transactionCreationService.CreateAsync(
+			command: Arg.Any<CreateTransactionCommand>(),
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<Guid, DomainException>.Failure(error: new InsufficientFundsException(
+			message: failureMessage,
+			balance: Money.Reconstitute(amount: 0m, currency: Currency.Reconstitute(value: "RUB"))
+		)));
+
+		Guid recurringTransactionId = Guid.CreateVersion7();
+		await _consumer.HandleAsync(message: BuildMessage(recurringTransactionId: recurringTransactionId), ct: CancellationToken.None);
+
+		UnresolvableEventType type = Context.UnresolvableEvents.Single(predicate: e => e.ReferenceId == recurringTransactionId).Type;
+		string reason = Context.UnresolvableEvents.Single(predicate: e => e.ReferenceId == recurringTransactionId).Reason;
+
+		await Assert.That(value: type).IsEqualTo(expected: UnresolvableEventType.RecurringTransactionFailed);
+		await Assert.That(value: reason).IsEqualTo(expected: failureMessage);
+	}
+
+	[Test]
 	public async Task HandleAsync_WhenValid_ShouldCreateTransaction()
 	{
 		SetupValidDependencies();
@@ -197,6 +397,17 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenValid_ShouldNotEscalateToUnresolvableEvents()
+	{
+		SetupValidDependencies();
+
+		Guid recurringTransactionId = Guid.CreateVersion7();
+		await _consumer.HandleAsync(message: BuildMessage(recurringTransactionId: recurringTransactionId), ct: CancellationToken.None);
+
+		await Assert.That(value: await HasUnresolvableEventAsync(referenceId: recurringTransactionId)).IsFalse();
 	}
 
 	[Test]

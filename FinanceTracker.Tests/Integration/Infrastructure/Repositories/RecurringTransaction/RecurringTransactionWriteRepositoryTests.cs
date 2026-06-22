@@ -193,6 +193,47 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: entity.LastExecutedAt).IsNotNull();
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
+	
+	[Test]
+	public async Task MarkMissedAsync_ShouldSetLastMissedAt()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = 
+			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+
+		DateTimeOffset missedAt = DateTimeOffset.UtcNow;
+		await _writeRepository.MarkMissedAsync(
+			recurringTransactionId: recurringTransaction.Id,
+			missedAt: missedAt,
+			expectedVersion: 0
+		);
+
+		RecurringTransactionEntity entity = await Context.RecurringTransactions.AsNoTracking().FirstAsync(predicate: r => r.Id == recurringTransaction.Id);
+
+		await Assert.That(value: entity.LastMissedAt).IsNotNull();
+		await Assert.That(value: entity.LastExecutedAt).IsNull();
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task MarkMissedAsync_WithStaleVersion_ShouldThrowConcurrencyConflictException()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = 
+			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+
+		await Task.Run(function: async () => await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.MarkMissedAsync(
+			recurringTransactionId: recurringTransaction.Id,
+			missedAt: DateTimeOffset.UtcNow,
+			expectedVersion: 99
+		)));
+	}
 
 	[Test]
 	public async Task DeactivateByCategoryIdAsync_ShouldDeactivateAllTransactionsWithCategory()
@@ -221,7 +262,8 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = 
+			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.ChangeAmountAsync(
 			recurringTransactionId: recurringTransaction.Id,
@@ -229,12 +271,10 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			expectedVersion: 0
 		);
 
-		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
-			await _writeRepository.ChangeAmountAsync(
-				recurringTransactionId: recurringTransaction.Id,
-				amount: 20000m,
-				expectedVersion: 0
-			)
-		);
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.ChangeAmountAsync(
+			recurringTransactionId: recurringTransaction.Id,
+			amount: 20000m,
+			expectedVersion: 0
+		));
 	}
 }

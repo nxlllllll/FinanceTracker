@@ -24,4 +24,11 @@ public interface IRecurringTransactionReadRepository : IReadRepository<Recurring
 		DateTimeOffset currentMonthStart,
 		CancellationToken ct = default
 	);
+
+	Task<IReadOnlyList<RecurringTransactionReadModel>> GetMissedThisMonthAsync(
+		int dayOfMonth,
+		DateTimeOffset currentMonthStart,
+		DateTimeOffset previousMonthStart,
+		CancellationToken ct = default
+	);
 }

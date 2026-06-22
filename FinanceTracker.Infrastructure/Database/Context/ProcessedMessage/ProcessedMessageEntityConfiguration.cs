@@ -20,9 +20,5 @@ public sealed class ProcessedMessageEntityConfiguration : IEntityTypeConfigurati
 
 		builder.Property(propertyExpression: e => e.ProcessedAt)
 			.HasColumnName(name: "processed_at");
-
-		builder.HasIndex(indexExpression: e => new { e.MessageId, e.ConsumerType })
-			.HasDatabaseName(name: "ix_processed_messages_message_id_consumer")
-			.IsUnique();
 	}
 }

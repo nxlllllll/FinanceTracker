@@ -51,4 +51,11 @@ public interface IRecurringTransactionWriteRepository
 		int expectedVersion,
 		CancellationToken ct = default
 	);
+
+	Task MarkMissedAsync(
+		Guid recurringTransactionId,
+		DateTimeOffset missedAt,
+		int expectedVersion,
+		CancellationToken ct = default
+	);
 }

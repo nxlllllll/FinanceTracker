@@ -1,5 +1,7 @@
 ﻿using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
+using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
@@ -11,41 +13,54 @@ namespace FinanceTracker.Worker.DeadLetterMonitor.Job;
 [DisallowConcurrentExecution]
 public sealed class DeadLetterMonitoringJob(
 	IUnresolvableEventReadRepository unresolvableEventReadRepository,
+	IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
+	IDateProvider dateProvider,
 	IOptionsMonitor<DeadLetterMonitoringOptions> options,
 	ILogger<DeadLetterMonitoringJob> logger
 ) : BaseJob<DeadLetterMonitoringOptions>(options: options, logger: logger)
 {
 	protected override async Task ProcessAsync(DeadLetterMonitoringOptions options, CancellationToken ct)
 	{
-		DateTimeOffset? cursor = null;
 		int totalLogged = 0;
-
-		while (true)
+		PagedResult<UnresolvableEvent> page;
+		
+		do 
 		{
-			IReadOnlyList<UnresolvableEvent> batch = await unresolvableEventReadRepository.GetBatchAsync(
+			page = await unresolvableEventReadRepository.GetUnacknowledgedBatchAsync(
 				batchSize: options.BatchSize,
-				cursor: cursor,
 				ct: ct
 			);
 
-			if (batch.Count == 0)
+			if (page.Items.Count == 0)
 				break;
 
-			WorkerMetrics.DeadLetterCount.Record(value: batch.Count);
+			WorkerMetrics.DeadLetterCount.Record(value: page.Items.Count);
 
-			logger.ZLogWarning(message: $"Found {batch.Count} unresolvable event(s) requiring manual intervention (cursor: {cursor:O}).");
+			logger.ZLogWarning(message: $"Found {page.Items.Count} new unresolvable event(s) requiring manual intervention.");
 
-			foreach (UnresolvableEvent @event in batch)
-				logger.ZLogWarning(message: $"Unresolvable event: Id={@event.Id}, Type={@event.Type}, ReferenceId={@event.ReferenceId}, Reason={@event.Reason}, OccurredAt={@event.OccurredAt:O}.");
+			foreach (UnresolvableEvent @event in page.Items)
+			{
+				logger.ZLogWarning(message: $"""
+					Unresolvable event: Id={@event.Id}, Type={@event.Type}, ReferenceId={@event.ReferenceId},
+					Reason={@event.Reason}, OccurredAt={@event.OccurredAt:O}.
+				""");
+			}
 
-			totalLogged += batch.Count;
-			cursor = batch[^1].OccurredAt;
+			await unresolvableEventWriteRepository.AcknowledgeBatchAsync(
+				ids: page.Items.Select(selector: e => e.Id).ToList(),
+				acknowledgedAt: dateProvider.UtcNow,
+				ct: ct
+			);
 
-			if (batch.Count < options.BatchSize)
-				break;
-		}
+			totalLogged += page.Items.Count;
+		} while (page.HasNextPage);
 
 		if (totalLogged > 0)
-			logger.ZLogWarning(message: $"Dead letter scan complete. Total unresolvable events logged: {totalLogged}.");
+		{
+			logger.ZLogWarning(message: $"""
+				Dead letter scan complete. New unresolvable events acknowledged: {totalLogged}.
+				See DeadLetterBacklogSummaryJob for a periodic reminder of anything still unresolved.
+			""");
+		}
 	}
 }

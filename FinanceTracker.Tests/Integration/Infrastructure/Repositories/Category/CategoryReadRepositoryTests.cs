@@ -3,6 +3,7 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
+using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 
@@ -12,13 +13,22 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 {
 	private CategoryReadRepository _readRepository = null!;
 	private CategoryWriteRepository _writeRepository = null!;
+	private UserBuilder _userBuilder = null!;
+	private Core.ValueObjects.Currency _currency;
 
 	[Before(hookType: Test)]
-	public void SetupRepository()
+	public async Task SetupRepositoryAsync()
 	{
 		_readRepository = new CategoryReadRepository(context: Context);
 		_writeRepository = new CategoryWriteRepository(context: Context);
+		_userBuilder = new UserBuilder(context: Context);
+
+		CurrencyBuilder currencyBuilder = new CurrencyBuilder(context: Context);
+		_currency = await currencyBuilder.CreateAsync();
 	}
+
+	private async Task<Guid> CreateUserAsync()
+		=> await _userBuilder.CreateAsync(currencyCode: _currency);
 
 	private async Task<Core.Domains.Category.Category> CreateAndSaveCategoryAsync(
 		Guid userId,
@@ -54,7 +64,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithExistingCategory_ShouldReturnCorrectCategory()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync(userId: userId);
 
 		CategoryReadModel? loaded = await _readRepository.GetByIdAsync(
@@ -73,7 +83,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithParentId_ShouldSetParentId()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		Core.Domains.Category.Category parent = await CreateAndSaveCategoryAsync(userId: userId);
 		Core.Domains.Category.Category child = await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
 
@@ -98,9 +108,9 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_ShouldReturnOnlyUserCategories()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		await CreateAndSaveCategoryAsync(userId: userId);
-		await CreateAndSaveCategoryAsync(userId: Guid.CreateVersion7());
+		await CreateAndSaveCategoryAsync(userId: await CreateUserAsync());
 
 		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
@@ -111,7 +121,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithTypeFilter_ShouldReturnOnlyMatchingCategories()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
 		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
 
@@ -127,7 +137,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithIsArchivedFilter_ShouldReturnOnlyMatchingCategories()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		await CreateAndSaveCategoryAsync(userId: userId, isArchived: false);
 		await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
 
@@ -143,7 +153,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithParentIdFilter_ShouldReturnOnlySubcategories()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		Core.Domains.Category.Category parent = await CreateAndSaveCategoryAsync(userId: userId);
 		await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
 		await CreateAndSaveCategoryAsync(userId: userId);
@@ -160,7 +170,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithNullFilters_ShouldReturnAllCategories()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
 		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
 		await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
@@ -173,7 +183,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithoutCursor_WhenMoreItemsExist_ShouldSetHasNextPage()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		for (int i = 0; i < 4; i++)
 			await CreateAndSaveCategoryAsync(userId: userId);
 
@@ -188,7 +198,7 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetAllAsync_WithCursor_ShouldReturnNextPage()
 	{
-		Guid userId = Guid.CreateVersion7();
+		Guid userId = await CreateUserAsync();
 		for (int i = 0; i < 4; i++)
 			await CreateAndSaveCategoryAsync(userId: userId);
 

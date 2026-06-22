@@ -1,3 +1,5 @@
+using FinanceTracker.Application.Behaviours.Validation;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FluentValidation;
@@ -8,7 +10,8 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 {
 	public CreateTransactionCommandValidator(
 		IDateProvider dateProvider,
-		ICurrencyReadRepository currencyReadRepository)
+		ICurrencyReadRepository currencyReadRepository,
+		ICategoryReadRepository categoryReadRepository)
 	{
 		RuleFor(expression: command => command.AccountId)
 			.NotEmpty().WithMessage(errorMessage: "The account cannot be empty.");
@@ -17,7 +20,13 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
 
 		RuleFor(expression: command => command.CategoryId)
-			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.");
+			.Cascade(cascadeMode: CascadeMode.Stop)
+			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.")
+			.MustBelongToUser(
+				existsForUserAsync: categoryReadRepository.ExistsAsync,
+				userIdSelector: command => command.UserId,
+				entityName: "category"
+			);
 		
 		RuleFor(expression: command => command.Currency)
 			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))

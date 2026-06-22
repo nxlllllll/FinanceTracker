@@ -34,7 +34,10 @@ public sealed class UnresolvableEventEntityConfiguration : IEntityTypeConfigurat
 		builder.Property(propertyExpression: e => e.OccurredAt)
 			.HasColumnName(name: "occurred_at");
 
-		builder.HasIndex(indexExpression: e => e.OccurredAt)
-			.HasDatabaseName(name: "idx_unresolvable_events_occurred_at");
+		builder.Property(propertyExpression: e => e.AcknowledgedAt)
+			.HasColumnName(name: "acknowledged_at");
+
+		builder.Property(propertyExpression: e => e.ResolvedAt)
+			.HasColumnName(name: "resolved_at");
 	}
 }

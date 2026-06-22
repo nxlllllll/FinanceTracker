@@ -12,4 +12,19 @@ public interface IUserSessionWriteRepository
 		DateTimeOffset revokedAt,
 		CancellationToken ct = default
 	);
+
+	/// <summary>Revokes every currently-active session belonging to <paramref name="userId"/> except <paramref name="exceptSessionId"/>.</summary>
+	Task RevokeAllExceptAsync(
+		Guid userId,
+		Guid exceptSessionId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default
+	);
+
+	/// <summary>Revokes every currently-active session belonging to <paramref name="userId"/>.</summary>
+	Task RevokeAllAsync(
+		Guid userId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default
+	);
 }
