@@ -35,8 +35,10 @@ public sealed class OutboxPublisherJob(
 {
 	protected override async Task ProcessAsync(OutboxOptions options, CancellationToken ct)
 	{
-		IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.GetPendingBatchAsync(
+		IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.ClaimPendingBatchAsync(
 			batchSize: options.BatchSize,
+			now: dateProvider.UtcNow,
+			leaseDuration: TimeSpan.FromSeconds(value: options.LeaseDurationSeconds),
 			ct: ct
 		);
 

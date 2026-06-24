@@ -37,5 +37,8 @@ public sealed class OutboxMessageEntityConfiguration : IEntityTypeConfiguration<
 
 		builder.Property(propertyExpression: o => o.FailedAt)
 			.HasColumnName(name: "failed_at");
+
+		builder.Property(propertyExpression: o => o.LockedUntil)
+			.HasColumnName(name: "locked_until");
 	}
 }

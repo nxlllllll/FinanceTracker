@@ -1,6 +1,7 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.DeadLetterMonitor.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
@@ -33,10 +34,13 @@ public sealed class Program
             .GetSection(key: DeadLetterBacklogSummaryOptions.SectionName)
             .Get<DeadLetterBacklogSummaryOptions>() ?? new DeadLetterBacklogSummaryOptions();
 
+        string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
         builder.Services.AddQuartz(configure: q =>
         {
-            q.AddJob<DeadLetterMonitoringJob>(configure: j => j.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: deadLetterOptions.Group));
+            q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "DeadLetterMonitorScheduler");
 
+            q.AddJob<DeadLetterMonitoringJob>(configure: j => j.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: deadLetterOptions.Group));
             q.AddTrigger(configure: t => t
                 .ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: deadLetterOptions.Group)
                 .WithIdentity(name: deadLetterOptions.TriggerName, group: deadLetterOptions.Group)
@@ -44,7 +48,6 @@ public sealed class Program
             );
 
             q.AddJob<DeadLetterBacklogSummaryJob>(configure: j => j.WithIdentity(name: nameof(DeadLetterBacklogSummaryJob), group: backlogSummaryOptions.Group));
-
             q.AddTrigger(configure: t => t
                 .ForJob(jobName: nameof(DeadLetterBacklogSummaryJob), jobGroup: backlogSummaryOptions.Group)
                 .WithIdentity(name: backlogSummaryOptions.TriggerName, group: backlogSummaryOptions.Group)
@@ -54,7 +57,6 @@ public sealed class Program
 
 		builder.Services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);
 
-		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
  
 		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)

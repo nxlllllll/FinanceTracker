@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
+﻿using System.Net;
+using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Password;
@@ -49,7 +50,8 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 	private static RegisterUserCommand BuildCommand(string email) => new RegisterUserCommand(
 		Email: Email.Create(value: email).Value,
 		Password: "Password123!",
-		BaseCurrencyCode: Currency.Create(value: "RUB").Value
+		BaseCurrencyCode: Currency.Create(value: "RUB").Value,
+		IpAddress: IPAddress.Parse(ipString: "203.0.113.10")
 	);
 
 	[Test]

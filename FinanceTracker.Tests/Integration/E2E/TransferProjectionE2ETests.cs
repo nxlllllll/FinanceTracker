@@ -59,9 +59,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
         await Mediator.Send(request: new CreateTransferCommand(
             UserId: userId,
             FromAccountId: fromAccountId,
-            CurrencyFrom: Currency.Create(value: "RUB").Value,
             ToAccountId: toAccountId,
-            CurrencyTo: Currency.Create(value: "RUB").Value,
             Amount: 3_000m,
             Description: null,
             OccurredAt: DateTimeOffset.UtcNow
@@ -142,24 +140,19 @@ public sealed class TransferProjectionE2ETests : E2EFixture
         await Mediator.Send(request: new CreateTransferCommand(
             UserId: userId,
             FromAccountId: fromAccountId,
-            CurrencyFrom: Currency.Create(value: "RUB").Value,
             ToAccountId: nonExistentToAccountId,
-            CurrencyTo: Currency.Create(value: "RUB").Value,
             Amount: 4_000m,
             Description: null,
             OccurredAt: DateTimeOffset.UtcNow
         ) { IdempotencyKey = Guid.CreateVersion7() });
-        
+
         await RunOutboxAsync();
 
-        await WaitForConditionAsync(
-            condition: async () =>
-            {
-                await using FinanceTrackerContext ctx = CreateReadContext();
-                return await ctx.Transfers.AnyAsync(predicate: t => t.FromAccountId == fromAccountId && t.Status == TransferStatus.Compensated);
-            },
-            timeout: TimeSpan.FromSeconds(30)
-        );
+        await WaitForConditionAsync(condition: async () =>
+        {
+            await using FinanceTrackerContext ctx = CreateReadContext();
+            return await ctx.Transfers.AnyAsync(predicate: t => t.FromAccountId == fromAccountId && t.Status == TransferStatus.Compensated);
+        });
 
         await RunOutboxAsync();
 
@@ -228,9 +221,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
         await Mediator.Send(new CreateTransferCommand(
             UserId: userId,
             FromAccountId: fromAccountId,
-            CurrencyFrom: Currency.Create(value: "RUB").Value,
             ToAccountId: toAccountId,
-            CurrencyTo: Currency.Create(value: "RUB").Value,
             Amount: 1_000m,
             Description: null,
             OccurredAt: DateTimeOffset.UtcNow
@@ -263,7 +254,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
         decimal toBalance = await readCtx.AccountBalances.Where(predicate: b => b.AccountId == toAccountId)
             .Select(selector: b => b.Balance)
             .FirstAsync();
-        
+
         await Assert.That(value: toBalance).IsEqualTo(expected: 1_000m);
     }
 }

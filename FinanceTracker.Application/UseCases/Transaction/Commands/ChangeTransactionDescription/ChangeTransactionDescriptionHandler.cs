@@ -17,33 +17,33 @@ public sealed class ChangeTransactionDescriptionHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeTransactionDescriptionCommand command,
-		Core.Domains.Transaction.Transaction transaction,
+		Core.Domains.Transaction.Transaction accounts,
 		CancellationToken ct = default)
 	{
-		if (transaction.Description == command.Description)
-			return Result<Guid, DomainException>.Success(value: transaction.Id);
+		if (accounts.Description == command.Description)
+			return Result<Guid, DomainException>.Success(value: accounts.Id);
 		
-		string? oldDescription = transaction.Description;
+		string? oldDescription = accounts.Description;
 		
-		Result<Unit, DomainException> result = transaction.ChangeDescription(description: command.Description);
+		Result<Unit, DomainException> result = accounts.ChangeDescription(description: command.Description);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
 		await transactionWriteRepository.ChangeDescriptionAsync(
 			transactionId: command.TransactionId,
-			expectedVersion: transaction.RowVersion,
+			expectedVersion: accounts.RowVersion,
 			description: command.Description,
 			ct: ct
 		);
 		
 		await publisher.Publish(notification: new TransactionDescriptionChangedNotification(
-			TransactionId: transaction.Id,
-			UserId: transaction.UserId,
+			TransactionId: accounts.Id,
+			UserId: accounts.UserId,
 			OldDescription: oldDescription,
 			NewDescription: command.Description,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: transaction.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

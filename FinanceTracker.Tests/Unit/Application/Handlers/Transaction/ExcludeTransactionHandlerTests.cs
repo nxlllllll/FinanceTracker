@@ -61,7 +61,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -76,7 +76,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -111,7 +111,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -129,7 +129,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -156,7 +156,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 

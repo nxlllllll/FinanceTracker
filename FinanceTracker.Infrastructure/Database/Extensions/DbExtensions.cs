@@ -31,7 +31,7 @@ public static class DbContextExtensions
 				transaction_count = rm_category_totals.transaction_count + EXCLUDED.transaction_count,
 				row_version = rm_category_totals.row_version + 1,
 				updated_at = EXCLUDED.updated_at
-			""", cancellationToken: ct);
+		""", cancellationToken: ct);
 	}
 
 	/// <summary>
@@ -120,5 +120,38 @@ public static class DbContextExtensions
 			elementSelector: row => row.Rate,
 			cancellationToken: ct
 		);
+	}
+
+	public static Task InsertAccountAsync(
+		this DbContext context,
+		Guid id,
+		Guid userId,
+		string name,
+		string accountTypeCode,
+		string currencyCode,
+		bool isArchived,
+		DateTimeOffset createdAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO accounts (id, user_id, name, account_type_code, currency_code, is_archived, created_at)
+			VALUES ({id}, {userId}, {name}, {accountTypeCode}, {currencyCode}, {isArchived}, {createdAt})
+			ON CONFLICT (id) DO NOTHING
+		""", cancellationToken: ct);
+	}
+
+	public static Task InsertAccountBalanceAsync(
+		this DbContext context,
+		Guid accountId,
+		decimal balance,
+		int lastVersion,
+		DateTimeOffset updatedAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO rm_account_balances (account_id, balance, last_version, updated_at)
+			VALUES ({accountId}, {balance}, {lastVersion}, {updatedAt})
+			ON CONFLICT (account_id) DO NOTHING
+		""", cancellationToken: ct);
 	}
 }

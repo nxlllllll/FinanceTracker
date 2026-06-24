@@ -1,6 +1,7 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.RecurringTransaction.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
@@ -28,10 +29,13 @@ public sealed class Program
 			.GetSection(key: RecurringTransactionJobOptions.SectionName)
 			.Get<RecurringTransactionJobOptions>() ?? new RecurringTransactionJobOptions();
 
+		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
 		builder.Services.AddQuartz(configure: q =>
 		{
-			q.AddJob<RecurringTransactionHandlingJob>(configure: j => j.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group));
+			q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "RecurringTransactionScheduler");
 
+			q.AddJob<RecurringTransactionHandlingJob>(configure: j => j.WithIdentity(name: nameof(RecurringTransactionHandlingJob), group: recurringOptions.Group));
 			q.AddTrigger(configure: t => t
 				.ForJob(jobName: nameof(RecurringTransactionHandlingJob), jobGroup: recurringOptions.Group)
 				.WithIdentity(name: recurringOptions.TriggerName, group: recurringOptions.Group)
@@ -44,7 +48,6 @@ public sealed class Program
 
 		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
 
-		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
  
 		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)

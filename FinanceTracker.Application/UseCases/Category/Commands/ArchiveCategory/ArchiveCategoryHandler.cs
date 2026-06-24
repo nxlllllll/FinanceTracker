@@ -26,28 +26,28 @@ public sealed class ArchiveCategoryHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ArchiveCategoryCommand command,
-		Core.Domains.Category.Category category,
+		Core.Domains.Category.Category accounts,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = category.Archive();
+		Result<Unit, DomainException> result = accounts.Archive();
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: category.RowVersion, ct: ct);
+			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: accounts.RowVersion, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 			await budgetWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 		}, 
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {category.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {accounts.Id}."),
 		ct: ct);
 		
 		await publisher.Publish(notification: new CategoryArchivedNotification(
-			CategoryId: category.Id,
-			UserId: category.UserId,
+			CategoryId: accounts.Id,
+			UserId: accounts.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: category.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

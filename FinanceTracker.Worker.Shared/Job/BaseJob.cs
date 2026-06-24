@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using FinanceTracker.Worker.Shared.Metrics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
@@ -25,7 +26,16 @@ public abstract class BaseJob<TOptions>(
 			return;
 		}
 
-		await ProcessAsync(options: currentOptions, ct: context.CancellationToken);
+		try
+		{
+			await ProcessAsync(options: currentOptions, ct: context.CancellationToken);
+		}
+		catch (Exception ex)
+		{
+			WorkerMetrics.JobExecutionFailed.Add(delta: 1, new KeyValuePair<string, object?>(key: "job", value: GetType().Name));
+			logger.ZLogError(exception: ex, message: $"[{GetType().Name}] Unhandled exception during execution.");
+			throw;
+		}
 	}
 
 	protected abstract Task ProcessAsync(TOptions options, CancellationToken ct);

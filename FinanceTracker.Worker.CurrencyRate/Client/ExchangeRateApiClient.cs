@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using ZLogger;
@@ -14,6 +15,8 @@ public sealed class ExchangeRateApiClient(
 	IOptionsMonitor<ExchangeRateApiOptions> options,
 	ILogger<ExchangeRateApiClient> logger)
 {
+	private const string BearerShema = "Bearer";
+	
 	public async Task<ExchangeRateApiResponse?> GetRatesAsync(string baseCurrency, CancellationToken ct = default)
 	{
 		ExchangeRateApiOptions currentOptions = options.CurrentValue;
@@ -24,11 +27,14 @@ public sealed class ExchangeRateApiClient(
 			return null;
 		}
 
-		string url = $"{currentOptions.BaseUrl}/{currentOptions.ApiKey}/latest/{baseCurrency}";
+		string url = $"{currentOptions.BaseUrl}/latest/{baseCurrency}";
 
 		try
 		{
-			HttpResponseMessage response = await httpClient.GetAsync(requestUri: url, cancellationToken: ct);
+			using HttpRequestMessage request = new HttpRequestMessage(method: HttpMethod.Get, requestUri: url);
+			request.Headers.Authorization = new AuthenticationHeaderValue(scheme: BearerShema, parameter: currentOptions.ApiKey);
+
+			HttpResponseMessage response = await httpClient.SendAsync(request: request, cancellationToken: ct);
 
 			response.EnsureSuccessStatusCode();
 

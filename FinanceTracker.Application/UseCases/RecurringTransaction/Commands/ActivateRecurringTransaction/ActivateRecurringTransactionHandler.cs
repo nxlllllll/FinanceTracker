@@ -17,25 +17,25 @@ public sealed class ActivateRecurringTransactionHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ActivateRecurringTransactionCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
+		Core.Domains.RecurringTransaction.RecurringTransaction accounts,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = recurringTransaction.Activate();
+		Result<Unit, DomainException> result = accounts.Activate();
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ActivateAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: recurringTransaction.RowVersion,
+			expectedVersion: accounts.RowVersion,
 			ct: ct
 		);
 		
 		await publisher.Publish(notification: new RecurringTransactionActivatedNotification(
-			RecurringTransactionId: recurringTransaction.Id,
-			UserId: recurringTransaction.UserId,
+			RecurringTransactionId: accounts.Id,
+			UserId: accounts.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: recurringTransaction.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

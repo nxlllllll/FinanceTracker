@@ -2,6 +2,7 @@ using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
 using FinanceTracker.Worker.TransferProjection.Consumer;
@@ -34,10 +35,13 @@ public sealed class Program
 			.GetSection(key: TransferCreditLagOptions.SectionName)
 			.Get<TransferCreditLagOptions>() ?? new TransferCreditLagOptions();
 
+		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
 		builder.Services.AddQuartz(configure: q =>
 		{
-			q.AddJob<TransferCreditLagJob>(configure: j => j.WithIdentity(name: nameof(TransferCreditLagJob), group: lagOptions.Group));
+			q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "TransferProjectionScheduler");
 
+			q.AddJob<TransferCreditLagJob>(configure: j => j.WithIdentity(name: nameof(TransferCreditLagJob), group: lagOptions.Group));
 			q.AddTrigger(configure: t => t
 				.ForJob(jobName: nameof(TransferCreditLagJob), jobGroup: lagOptions.Group)
 				.WithIdentity(name: lagOptions.TriggerName, group: lagOptions.Group)
@@ -47,7 +51,6 @@ public sealed class Program
 
 		builder.Services.AddQuartzHostedService(configure: options => options.WaitForJobsToComplete = true);
 
-		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
 
 		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)

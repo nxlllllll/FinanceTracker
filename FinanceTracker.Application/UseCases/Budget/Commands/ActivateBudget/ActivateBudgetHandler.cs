@@ -17,21 +17,21 @@ public sealed class ActivateBudgetHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ActivateBudgetCommand command,
-		Core.Domains.Budget.Budget budget,
+		Core.Domains.Budget.Budget accounts,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = budget.Activate();
+		Result<Unit, DomainException> result = accounts.Activate();
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await budgetWriteRepository.ActivateAsync(budgetId: budget.Id, expectedVersion: budget.RowVersion, ct: ct);
+		await budgetWriteRepository.ActivateAsync(budgetId: accounts.Id, expectedVersion: accounts.RowVersion, ct: ct);
 
 		await publisher.Publish(notification: new BudgetActivatedNotification(
-			BudgetId: budget.Id,
-			UserId: budget.UserId,
+			BudgetId: accounts.Id,
+			UserId: accounts.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 
-		return Result<Guid, DomainException>.Success(value: budget.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

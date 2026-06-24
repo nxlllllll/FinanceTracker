@@ -16,6 +16,7 @@ public sealed class EFUnitOfWork(
 ) : IUnitOfWork
 {
 	private const string PostgresUniqueViolationCode = "23505";
+	private const string PostgresExclusionViolationCode = "23P01";
 
 	private IDbContextTransaction? _transaction;
 	private readonly Stack<string> _savepoints = new Stack<string>();
@@ -64,6 +65,13 @@ public sealed class EFUnitOfWork(
 		catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationCode } pgEx)
 		{
 			throw new UniqueConstraintException(message: "A record with the same unique key already exists.", constraintName: pgEx.ConstraintName ?? String.Empty);
+		}
+		catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresExclusionViolationCode } pgEx)
+		{
+			throw new UniqueConstraintException(
+				message: "A record conflicting with an existing one (e.g. an overlapping range) already exists.",
+				constraintName: pgEx.ConstraintName ?? String.Empty
+			);
 		}
 
 		if (_savepoints.TryPop(result: out string? savepointName))

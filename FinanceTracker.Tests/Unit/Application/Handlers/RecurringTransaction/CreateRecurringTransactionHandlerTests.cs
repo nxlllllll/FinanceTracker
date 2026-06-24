@@ -45,7 +45,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: command,
-			account: account,
+			accounts: account,
 			ct: CancellationToken.None
 		);
 
@@ -63,7 +63,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
 			notification: Arg.Is<RecurringTransactionCreatedNotification>(n =>
@@ -80,7 +80,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: 0m);
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
@@ -92,7 +92,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: 0m);
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
 
 		await _publisher.DidNotReceive().Publish(
 			notification: Arg.Any<RecurringTransactionCreatedNotification>(),
@@ -106,7 +106,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: -100m);
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
@@ -118,7 +118,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(dayOfMonth: 0);
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
@@ -130,7 +130,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(dayOfMonth: 32);
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create(userId: command.UserId).Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();

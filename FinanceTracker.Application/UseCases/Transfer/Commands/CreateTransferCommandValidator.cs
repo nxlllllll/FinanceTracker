@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FluentValidation;
 
@@ -6,9 +5,7 @@ namespace FinanceTracker.Application.UseCases.Transfer.Commands;
 
 public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTransferCommand>
 {
-	public CreateTransferCommandValidator(
-		IDateProvider dateProvider,
-		ICurrencyReadRepository currencyReadRepository)
+	public CreateTransferCommandValidator(IDateProvider dateProvider)
 	{
 		RuleFor(command => command.Amount)
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The transfer amount must be greater than zero.");
@@ -16,17 +13,10 @@ public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTra
 		RuleFor(command => command.FromAccountId)
 			.NotEmpty().WithMessage(errorMessage: "The source account cannot be empty.");
 
-		RuleFor(expression: command => command.CurrencyFrom)
-			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))
-			.WithMessage(errorMessage: "The currency code does not exist.");
-
 		RuleFor(command => command.ToAccountId)
 			.NotEmpty().WithMessage(errorMessage: "The destination account cannot be empty.")
-			.NotEqual(expression: c => c.FromAccountId).WithMessage(errorMessage: "Source and destination accounts must be different.");;
-
-		RuleFor(expression: command => command.CurrencyTo)
-			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))
-			.WithMessage(errorMessage: "The currency code does not exist.");
+			.NotEqual(expression: c => c.FromAccountId)
+			.WithMessage(errorMessage: "Source and destination accounts must be different.");
 
 		RuleFor(command => command.UserId)
 			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
@@ -43,7 +33,7 @@ public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTra
 
 		RuleFor(command => command)
 			.Must(predicate: command => command.FromAccountId != command.ToAccountId)
-			.WithName(overridePropertyName: "ToAccountId")
+			.WithName(overridePropertyName: nameof(CreateTransferCommand.ToAccountId))
 			.WithMessage(errorMessage: "The source and destination accounts must be different.");
 	}
 }

@@ -78,13 +78,13 @@ public abstract class E2EFixture
             Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
             NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
         });
-        
+
         Task redis = Task.Run(async () =>
         {
             _redis = new RedisBuilder(image: "redis:7").Build();
             await _redis.StartAsync();
         });
-        
+
         Task rabbitMq = Task.Run(async () =>
         {
             _rabbitMq = new RabbitMqBuilder(image: "rabbitmq:4.3.0")
@@ -93,7 +93,7 @@ public abstract class E2EFixture
                 .Build();
             await _rabbitMq.StartAsync();
         });
-        
+
         await Task.WhenAll(postgres, redis, rabbitMq);
     }
 
@@ -132,7 +132,7 @@ public abstract class E2EFixture
 			{
 				[$"ConnectionStrings:{nameof(FinanceTrackerContext)}"] = _connectionString,
 				[$"{RedisOptions.SectionName}:ConnectionString"] = redisCs,
-				[$"{RedisOptions.SectionName}:InstanceName"] = "ft_e2e:",
+				[$"{RedisOptions.SectionName}:InstanceName"] = $"ft_e2e_{testRunId}:",
 				[$"{EventStoreOptions.SectionName}:SnapshotThreshold"] = "25",
 				["Retry:MaxRetries"] = "3",
 				["Retry:BaseDelayMs"] = "5",
@@ -187,24 +187,24 @@ public abstract class E2EFixture
 				services.AddInfrastructure(configuration: ctx.Configuration);
 				services.AddApplication();
 				services.AddScoped<ITransactionCreationService, TransactionCreationService>();
-			
+
 				services.AddRabbitMqCore();
 				services.AddRabbitMqPublisher();
-			
+
 				services.AddScoped<AccountEventApplier>();
 				services.AddScoped<AccountProjection>();
 				services.AddOptions<ProjectionRetryOptions>()
 					 .BindConfiguration(ProjectionRetryOptions.SectionName)
 					 .ValidateDataAnnotations();
-			
+
 				services.AddScoped<ITransferCompensationService, TransferCompensationService>();
-			
+
 				services.AddScoped<OutboxPublisherJob>();
 				services.AddScoped<BalanceAdjustmentJob>();
 				services.AddScoped<TransferCreditLagJob>();
 				services.AddScoped<RecurringTransactionHandlingJob>();
 				services.AddScoped<RecurringTransactionConsumer>();
-			
+
 				services.AddOptions<OutboxOptions>()
 					 .BindConfiguration(OutboxOptions.SectionName)
 					 .ValidateDataAnnotations();
@@ -217,12 +217,12 @@ public abstract class E2EFixture
 				services.AddOptions<RecurringTransactionJobOptions>()
 					 .BindConfiguration(RecurringTransactionJobOptions.SectionName)
 					 .ValidateDataAnnotations();
-			
+
 				// RabbitMQ listeners start as BackgroundServices with Host
 				services.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
 				services.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
 				services.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
-			
+
 				ConfigureAdditionalServices(services: services, configuration: ctx.Configuration);
 			})
 			.Build();
@@ -280,7 +280,7 @@ public abstract class E2EFixture
                 TransferQueueName(testRunId: _testRunId),
                 RecurringQueueName(testRunId: _testRunId)
             ];
-            
+
             foreach (string queue in queues)
                 await channel.QueueDeleteAsync(queue: queue, ifUnused: false, ifEmpty: false);
 
@@ -307,7 +307,7 @@ public abstract class E2EFixture
 
     private static IJobExecutionContext MockJobContext() =>
         Substitute.For<IJobExecutionContext>();
-    
+
     protected async Task RunOutboxAsync()
     {
         await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
@@ -331,7 +331,7 @@ public abstract class E2EFixture
         await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<RecurringTransactionHandlingJob>().Execute(context: MockJobContext());
     }
-    
+
     protected async Task ProcessRecurringTransactionDirectAsync(RecurringTransactionTriggeredMessage message)
     {
         await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();

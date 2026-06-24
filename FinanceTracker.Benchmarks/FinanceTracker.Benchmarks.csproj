@@ -31,6 +31,15 @@
         <None Update="Infrastructure\seed.sql">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <EmbeddedResource Remove="Reports\**" />
+        <None Remove="Reports\**" />
+        <EmbeddedResource Remove="Artifacts\**" />
+        <None Remove="Artifacts\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Reports\**" />
+      <Compile Remove="Artifacts\**" />
     </ItemGroup>
 
 </Project>

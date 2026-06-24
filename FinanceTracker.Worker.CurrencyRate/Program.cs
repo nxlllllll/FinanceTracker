@@ -3,6 +3,7 @@ using FinanceTracker.Worker.CurrencyRate.Client;
 using FinanceTracker.Worker.CurrencyRate.HealthCheck;
 using FinanceTracker.Worker.CurrencyRate.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Http.Resilience;
@@ -72,8 +73,12 @@ public sealed class Program
             .GetSection(key: CurrencyRateJobOptions.SectionName)
             .Get<CurrencyRateJobOptions>() ?? new CurrencyRateJobOptions();
 
+        string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
         builder.Services.AddQuartz(configure: q =>
         {
+            q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "CurrencyRateScheduler");
+
             q.AddJob<CurrencyRateJob>(configure: j => j.WithIdentity(name: nameof(CurrencyRateJob), group: jobOptions.Group));
             q.AddTrigger(configure: t => t
                 .ForJob(jobName: nameof(CurrencyRateJob), jobGroup: jobOptions.Group)
@@ -87,7 +92,6 @@ public sealed class Program
 
         builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
 
-        string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
         string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
  
 		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)

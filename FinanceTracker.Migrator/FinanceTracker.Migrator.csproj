@@ -75,6 +75,10 @@
       <EmbeddedResource Include="Migrations\V026__cover_pending_rate_index.sql" />
       <None Remove="Migrations\V027__cover_pending_credit_index.sql" />
       <EmbeddedResource Include="Migrations\V027__cover_pending_credit_index.sql" />
+      <None Remove="Migrations\V028__add_outbox_lock.sql" />
+      <EmbeddedResource Include="Migrations\V028__add_outbox_lock.sql" />
+      <None Remove="Migrations\V029__add_quartz_scheduler_tables.sql" />
+      <EmbeddedResource Include="Migrations\V029__add_quartz_scheduler_tables.sql" />
     </ItemGroup>
     <ItemGroup>
       <Content Include="..\.dockerignore">

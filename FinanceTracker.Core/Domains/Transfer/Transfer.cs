@@ -54,7 +54,7 @@ public sealed class Transfer
 		if (amountFromResult.IsFailure)
 			return Result<Transfer, DomainException>.Failure(error: amountFromResult.Error!);
 
-		Result<Money, DomainException> amountToResult = Money.Create(amount: amount * exchangeRate, currency: currencyTo);
+		Result<Money, DomainException> amountToResult = Money.Create(amount: Money.ConvertedAmount(amount: amount, rate: exchangeRate), currency: currencyTo);
 		if (amountToResult.IsFailure)
 			return Result<Transfer, DomainException>.Failure(error: amountToResult.Error!);
 

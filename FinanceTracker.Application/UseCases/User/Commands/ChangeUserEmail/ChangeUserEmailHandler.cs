@@ -21,7 +21,7 @@ public sealed class ChangeUserEmailHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeUserEmailCommand command,
-		Core.Domains.User.User user,
+		Core.Domains.User.User accounts,
 		CancellationToken ct = default)
 	{
 		Core.Domains.User.User? existing = await userAuthRepository.GetByEmailAsync(email: command.NewEmail, ct: ct);
@@ -32,9 +32,9 @@ public sealed class ChangeUserEmailHandler(
 		if (newEmailResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: newEmailResult.Error!);
 
-		Email oldEmail = user.Email;
+		Email oldEmail = accounts.Email;
 
-		Result<Unit, DomainException> result = user.ChangeEmail(newEmail: newEmailResult.Value);
+		Result<Unit, DomainException> result = accounts.ChangeEmail(newEmail: newEmailResult.Value);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
@@ -42,7 +42,7 @@ public sealed class ChangeUserEmailHandler(
 		{
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.ChangeEmailAsync(
 				userId: command.UserId,
-				expectedVersion: user.RowVersion,
+				expectedVersion: accounts.RowVersion,
 				newEmail: newEmailResult.Value,
 				ct: ct
 			), ct: ct);
@@ -53,12 +53,12 @@ public sealed class ChangeUserEmailHandler(
 		}
 
 		await publisher.Publish(notification: new UserEmailChangedNotification(
-			UserId: user.Id,
+			UserId: accounts.Id,
 			OldEmail: oldEmail,
 			NewEmail: newEmailResult.Value,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 
-		return Result<Guid, DomainException>.Success(value: user.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

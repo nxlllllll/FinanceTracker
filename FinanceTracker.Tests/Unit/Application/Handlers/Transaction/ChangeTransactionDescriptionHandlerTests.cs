@@ -39,7 +39,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 				TransactionId: transaction.Id,
 				Description: "New description"
 			),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -63,7 +63,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 				TransactionId: transaction.Id,
 				Description: "New description"
 			),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -88,7 +88,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 				TransactionId: transaction.Id,
 				Description: "Same description"
 			),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -112,7 +112,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 				TransactionId: transaction.Id,
 				Description: "Same description"
 			),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -133,7 +133,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 				TransactionId: transaction.Id,
 				Description: "New description"
 			),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 

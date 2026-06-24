@@ -34,7 +34,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			category: category,
+			accounts: category,
 			ct: CancellationToken.None
 		);
 
@@ -52,7 +52,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			category: category,
+			accounts: category,
 			ct: CancellationToken.None
 		);
 
@@ -69,7 +69,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			category: category,
+			accounts: category,
 			ct: CancellationToken.None
 		);
 
@@ -83,7 +83,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			category: category,
+			accounts: category,
 			ct: CancellationToken.None
 		);
 

@@ -1,0 +1,1 @@
+﻿alter table outbox_messages add column locked_until timestamptz null;

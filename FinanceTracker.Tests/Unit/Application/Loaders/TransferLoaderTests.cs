@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -30,7 +31,7 @@ public sealed class TransferLoaderTests
 	{
 		Guid accountId = Guid.CreateVersion7();
 
-		Result<Account, DomainException> result = await _loader.LoadAsync(
+		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: accountId, 
 				toAccountId: accountId,
@@ -38,7 +39,7 @@ public sealed class TransferLoaderTests
 			),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<SameAccountTransferException>();
 	}
@@ -49,11 +50,11 @@ public sealed class TransferLoaderTests
 		_accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		Result<Account, DomainException> result = await _loader.LoadAsync(
+		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
@@ -64,12 +65,12 @@ public sealed class TransferLoaderTests
 		Account fromAccount = AccountFactory.CreateWithArchivation();
 		Account toAccount = AccountFactory.CreateWithArchivation();
 
-		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: fromAccount);
-		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: toAccount);
+		_accountRepository.GetByIdAsync(
+			accountId: fromAccount.Id,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: fromAccount);
 
-		Result<Account, DomainException> resultFrom = await _loader.LoadAsync(
+		Result<TransferAccounts, DomainException> resultFrom = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: fromAccount.Id,
 				toAccountId: toAccount.Id,
@@ -77,7 +78,7 @@ public sealed class TransferLoaderTests
 			),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: resultFrom.IsFailure).IsTrue();
 		await Assert.That(value: resultFrom.Error).IsTypeOf<NotFoundException>();
 	}
@@ -88,12 +89,18 @@ public sealed class TransferLoaderTests
 		Account fromAccount = AccountFactory.CreateWithArchivation();
 		Account toAccount = AccountFactory.CreateWithArchivation();
 
-		_accountRepository.GetByIdAsync(accountId: fromAccount.Id, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: fromAccount);
-		_accountRepository.GetByIdAsync(accountId: toAccount.Id, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: toAccount);
+		_accountRepository.GetByIdAsync(
+			accountId: fromAccount.Id,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: fromAccount);
 
-		Result<Account, DomainException> resultTo = await _loader.LoadAsync(
+		_accountReadRepository.GetByIdAsync(
+			accountId: toAccount.Id,
+			userId: fromAccount.UserId, 
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<AccountReadModel?>(result: null));
+
+		Result<TransferAccounts, DomainException> resultTo = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
@@ -102,38 +109,39 @@ public sealed class TransferLoaderTests
 			),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: resultTo.IsFailure).IsTrue();
 		await Assert.That(value: resultTo.Error).IsTypeOf<NotFoundException>();
 	}
 
 	[Test]
-	public async Task LoadAsync_WhenBothAccountsOwnedByUser_ShouldReturnTuple()
+	public async Task LoadAsync_WhenBothAccountsOwnedByUser_ShouldReturnTransferAccounts()
 	{
 		Account fromAccount = AccountFactory.CreateWithArchivation();
-		Account toAccount = AccountFactory.CreateWithArchivation(userId: fromAccount.UserId);
+		AccountReadModel toAccountReadModel = AccountFactory.CreateReadModel(userId: fromAccount.UserId, currency: "USD");
 
 		_accountRepository.GetByIdAsync(
 			accountId: fromAccount.Id,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: fromAccount);
-		_accountReadRepository.ExistAsync(
+		_accountReadRepository.GetByIdAsync(
+			accountId: toAccountReadModel.Id,
 			userId: fromAccount.UserId,
-			accountId: toAccount.Id,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: toAccountReadModel);
 
-		Result<Account, DomainException> result = await _loader.LoadAsync(
+		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
-				toAccountId: toAccount.Id,
+				toAccountId: toAccountReadModel.Id,
 				amount: 100m
 			),
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: fromAccount.Id);
+		await Assert.That(value: result.Value!.FromAccount.Id).IsEqualTo(expected: fromAccount.Id);
+		await Assert.That(value: result.Value!.ToAccountCurrency).IsEqualTo(expected: toAccountReadModel.Balance.Currency);
 	}
 }

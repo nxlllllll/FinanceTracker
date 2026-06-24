@@ -34,7 +34,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionCurrencyCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Currency: newCurrency),
-			recurringTransaction: rt,
+			accounts: rt,
 			ct: CancellationToken.None
 		);
 
@@ -54,7 +54,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionCurrencyCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Currency: newCurrency),
-			recurringTransaction: rt,
+			accounts: rt,
 			ct: CancellationToken.None
 		);
 

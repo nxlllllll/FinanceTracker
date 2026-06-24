@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -22,16 +23,18 @@ public sealed class CreateTransferHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<CreateTransferHandler> logger
-) : IAuthorizedHandler<CreateTransferCommand, Core.Domains.Account.Account, Guid, DomainException>
+) : IAuthorizedHandler<CreateTransferCommand, TransferAccounts, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		CreateTransferCommand command,
-		Core.Domains.Account.Account account,
+		TransferAccounts accounts,
 		CancellationToken ct = default)
 	{
+		Core.Domains.Account.Account account = accounts.FromAccount;
+
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
-			fromCurrency: command.CurrencyFrom,
-			toCurrency: command.CurrencyTo,
+			fromCurrency: account.Currency,
+			toCurrency: accounts.ToAccountCurrency,
 			date: DateOnly.FromDateTime(dateTime: command.OccurredAt.UtcDateTime),
 			ct: ct
 		);
@@ -41,8 +44,8 @@ public sealed class CreateTransferHandler(
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,
-			currencyFrom: command.CurrencyFrom,
-			currencyTo: command.CurrencyTo,
+			currencyFrom: account.Currency,
+			currencyTo: accounts.ToAccountCurrency,
 			exchangeRate: conversion.Rate,
 			isRatePending: conversion.IsPending,
 			description: command.Description,

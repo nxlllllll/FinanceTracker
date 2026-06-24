@@ -3,10 +3,12 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Budget;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
+using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Budget;
 
@@ -157,5 +159,30 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
         await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
             await _writeRepository.ChangeAmountAsync(budgetId: budget.Id, amount: 9000m, expectedVersion: 0)
         );
+    }
+
+    [Test]
+    public async Task CreateAsync_WhenPeriodOverlapsExistingBudgetForSameCategory_ShouldThrowUniqueConstraintException()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+        await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId);
+
+        Result<Core.Domains.Budget.Budget, DomainException> overlappingResult = Core.Domains.Budget.Budget.Create(
+            createdAt: FakeDateProvider.Default.UtcNow,
+            userId: userId,
+            categoryId: categoryId,
+            amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+            from: new DateOnly(year: 2025, month: 1, day: 15),
+            to: new DateOnly(year: 2025, month: 2, day: 15)
+        );
+        Core.Domains.Budget.Budget overlappingBudget = overlappingResult.Value!;
+
+        EFUnitOfWork unitOfWork = new EFUnitOfWork(context: Context, logger: NullLogger<EFUnitOfWork>.Instance);
+
+        await Assert.ThrowsAsync<UniqueConstraintException>(action: async () => await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+            await _writeRepository.CreateAsync(budget: overlappingBudget, ct: CancellationToken.None)
+        ));
     }
 }

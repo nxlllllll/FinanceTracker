@@ -53,7 +53,7 @@ public sealed class ChangeUserEmailHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -77,7 +77,7 @@ public sealed class ChangeUserEmailHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -100,7 +100,7 @@ public sealed class ChangeUserEmailHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -121,7 +121,7 @@ public sealed class ChangeUserEmailHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 

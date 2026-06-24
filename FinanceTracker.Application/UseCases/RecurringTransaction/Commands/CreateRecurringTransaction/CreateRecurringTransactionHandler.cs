@@ -19,7 +19,7 @@ public sealed class CreateRecurringTransactionHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		CreateRecurringTransactionCommand command,
-		Core.Domains.Account.Account account,
+		Core.Domains.Account.Account accounts,
 		CancellationToken ct = default)
 	{
 		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: command.Currency);

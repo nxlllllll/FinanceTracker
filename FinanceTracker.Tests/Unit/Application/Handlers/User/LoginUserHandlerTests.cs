@@ -1,3 +1,4 @@
+using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
@@ -20,6 +21,7 @@ public sealed class LoginUserHandlerTests
 	private static readonly Email TestEmail = Email.Create(value: "test@test.com").Value!;
 	private const string RawPassword = "password123";
 	private const string PasswordHash = "argon2hash";
+	private readonly IPAddress _testIp = IPAddress.Parse(ipString: "203.0.113.10");
 
 	private static readonly FinanceTracker.Core.Domains.User.User TestUser = FinanceTracker.Core.Domains.User.User.Reconstitute(
 		id: Guid.CreateVersion7(),
@@ -59,7 +61,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
 		Result<SessionToken, DomainException> result = await _userHandler.Handle(
-			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
 
@@ -76,7 +78,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
 		await _userHandler.Handle(
-			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
 
@@ -99,7 +101,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: false);
 
 		Result<SessionToken, DomainException> result = await _userHandler.Handle(
-			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrongpassword"),
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrongpassword", IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
 
@@ -124,7 +126,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: TestSessionToken);
 
 		await _userHandler.Handle(
-			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
 
@@ -151,7 +153,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: TestSessionToken);
 
 		Result<SessionToken, DomainException> result = await _userHandler.Handle(
-			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
 
@@ -168,7 +170,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
 		Result<SessionToken, DomainException> resultNoUser = await _userHandler.Handle(
-			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword),
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
 
@@ -182,7 +184,7 @@ public sealed class LoginUserHandlerTests
 		).Returns(returnThis: false);
 
 		Result<SessionToken, DomainException> resultWrongPassword = await _userHandler.Handle(
-			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrong"),
+			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrong", IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
 

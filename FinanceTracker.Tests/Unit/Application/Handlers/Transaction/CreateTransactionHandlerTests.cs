@@ -53,7 +53,7 @@ public sealed class CreateTransactionHandlerTests
 
         Result<Guid, DomainException> result = await _handler.HandleAsync(
             command: command,
-            account: account,
+            accounts: account,
             ct: CancellationToken.None
         );
 
@@ -84,7 +84,7 @@ public sealed class CreateTransactionHandlerTests
 
         Result<Guid, DomainException> result = await _handler.HandleAsync(
             command: command,
-            account: account,
+            accounts: account,
             ct: CancellationToken.None
         );
 
@@ -109,7 +109,7 @@ public sealed class CreateTransactionHandlerTests
 
         Result<Guid, DomainException> result = await _handler.HandleAsync(
             command: command,
-            account: account,
+            accounts: account,
             ct: CancellationToken.None
         );
 
@@ -134,7 +134,7 @@ public sealed class CreateTransactionHandlerTests
 
         await _handler.HandleAsync(
             command: command,
-            account: account,
+            accounts: account,
             ct: CancellationToken.None
         );
 

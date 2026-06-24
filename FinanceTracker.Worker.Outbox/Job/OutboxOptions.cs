@@ -28,6 +28,9 @@ public sealed class OutboxOptions : IJobOptions
 	[Range(minimum: 1, maximum: 100)]
 	public int MaxRetries { get; init; } = 5;
 
+	[Range(minimum: 1, maximum: 3600)]
+	public int LeaseDurationSeconds { get; init; } = 60;
+
 	[Required]
 	public string Group { get; init; } = "default";
 

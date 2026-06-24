@@ -10,9 +10,7 @@ namespace FinanceTracker.Application.UseCases.Transfer.Commands;
 public sealed record CreateTransferCommand(
 	Guid UserId,
 	Guid FromAccountId,
-	Core.ValueObjects.Currency CurrencyFrom,
 	Guid ToAccountId,
-	Core.ValueObjects.Currency CurrencyTo,
 	decimal Amount,
 	string? Description,
 	DateTimeOffset OccurredAt

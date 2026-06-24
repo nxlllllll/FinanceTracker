@@ -32,7 +32,8 @@ public sealed class OutboxPublisherJobTests
     {
         IsEnabled = true,
         BatchSize = 10,
-        MaxRetries = 3
+        MaxRetries = 3,
+        LeaseDurationSeconds = 60
     };
 
     private static PendingOutboxMessage MakeMessage(int retryCount = 0)
@@ -77,8 +78,10 @@ public sealed class OutboxPublisherJobTests
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: call => call.Arg<Func<Task>>()());
 
-        _readRepository.GetPendingBatchAsync(
+        _readRepository.ClaimPendingBatchAsync(
             batchSize: Arg.Any<int>(),
+            now: Arg.Any<DateTimeOffset>(),
+            leaseDuration: Arg.Any<TimeSpan>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: []);
 
@@ -111,8 +114,10 @@ public sealed class OutboxPublisherJobTests
  
         await disabledJob.Execute(context: _jobContext);
  
-        await _readRepository.DidNotReceive().GetPendingBatchAsync(
+        await _readRepository.DidNotReceive().ClaimPendingBatchAsync(
             batchSize: Arg.Any<int>(),
+            now: Arg.Any<DateTimeOffset>(),
+            leaseDuration: Arg.Any<TimeSpan>(),
             ct: Arg.Any<CancellationToken>()
         );
     }
@@ -135,8 +140,10 @@ public sealed class OutboxPublisherJobTests
         PendingOutboxMessage msg1 = MakeMessage();
         PendingOutboxMessage msg2 = MakeMessage();
 
-        _readRepository.GetPendingBatchAsync(
+        _readRepository.ClaimPendingBatchAsync(
             batchSize: Arg.Any<int>(),
+            now: Arg.Any<DateTimeOffset>(),
+            leaseDuration: Arg.Any<TimeSpan>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: [msg1, msg2]);
 
@@ -155,12 +162,27 @@ public sealed class OutboxPublisherJobTests
     }
 
     [Test]
+    public async Task Execute_ShouldClaimUsingConfiguredLeaseDuration()
+    {
+        await _job.Execute(context: _jobContext);
+
+        await _readRepository.Received(requiredNumberOfCalls: 1).ClaimPendingBatchAsync(
+            batchSize: DefaultOptions.BatchSize,
+            now: Now,
+            leaseDuration: TimeSpan.FromSeconds(value: DefaultOptions.LeaseDurationSeconds),
+            ct: Arg.Any<CancellationToken>()
+        );
+    }
+
+    [Test]
     public async Task Execute_WhenPublishFails_ShouldIncrementRetryCount()
     {
         PendingOutboxMessage message = MakeMessage(retryCount: 0);
 
-        _readRepository.GetPendingBatchAsync(
+        _readRepository.ClaimPendingBatchAsync(
             batchSize: Arg.Any<int>(),
+            now: Arg.Any<DateTimeOffset>(),
+            leaseDuration: Arg.Any<TimeSpan>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: [message]);
 
@@ -193,8 +215,10 @@ public sealed class OutboxPublisherJobTests
     {
         PendingOutboxMessage message = MakeMessage(retryCount: DefaultOptions.MaxRetries - 1);
 
-        _readRepository.GetPendingBatchAsync(
+        _readRepository.ClaimPendingBatchAsync(
             batchSize: Arg.Any<int>(),
+            now: Arg.Any<DateTimeOffset>(),
+            leaseDuration: Arg.Any<TimeSpan>(),
             ct: Arg.Any<CancellationToken>()
         ).Returns(returnThis: [message]);
 

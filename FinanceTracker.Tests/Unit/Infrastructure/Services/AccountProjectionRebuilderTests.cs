@@ -4,9 +4,11 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Services.Rebuild;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Services.Rebuild.Account;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -19,6 +21,7 @@ public sealed class AccountProjectionRebuilderTests
 	private IAccountWriteRepository _repository = null!;
 	private ISnapshotSerializer<Account> _snapshotSerializer = null!;
 	private IUnitOfWork _unitOfWork = null!;
+	private IServiceScopeFactory _scopeFactory = null!;
 	private AccountProjectionRebuilder _rebuilder = null!;
 
 	[Before(hookType: Test)]
@@ -36,12 +39,26 @@ public sealed class AccountProjectionRebuilderTests
 
 		AccountDomainEventApplier applier = new AccountDomainEventApplier(repository: _repository);
 
+		// ProcessBatchAsync resolves a fresh IAccountProjectionRebuilder per account from a new
+		// DI scope (see production code) instead of reusing `this`. These unit tests assert
+		// against the single mocked dependency graph set up above, so the fake scope factory
+		// just routes straight back to this same rebuilder/dependency set rather than standing
+		// up a real container — the production wiring itself is covered separately.
+		_scopeFactory = Substitute.For<IServiceScopeFactory>();
+		IServiceScope scope = Substitute.For<IServiceScope>();
+		IServiceProvider serviceProvider = Substitute.For<IServiceProvider>();
+
+		scope.ServiceProvider.Returns(returnThis: serviceProvider);
+		serviceProvider.GetService(serviceType: typeof(IAccountProjectionRebuilder)).Returns(returnThis: _ => _rebuilder);
+		_scopeFactory.CreateScope().Returns(returnThis: scope);
+
 		_rebuilder = new AccountProjectionRebuilder(
 			eventStore: _eventStore,
 			writeRepository: _repository,
 			snapshotSerializer: _snapshotSerializer,
 			unitOfWork: _unitOfWork,
 			applier: applier,
+			scopeFactory: _scopeFactory,
 			logger: Substitute.For<ILogger<AccountProjectionRebuilder>>()
 		);
 	}
@@ -341,6 +358,28 @@ public sealed class AccountProjectionRebuilderTests
 			@event: Arg.Any<AccountCreated>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task RebuildAllAsync_ShouldCreateANewDiScopePerAccount()
+	{
+		Guid accountId1 = Guid.CreateVersion7();
+		Guid accountId2 = Guid.CreateVersion7();
+
+		_eventStore.GetAggregateIdsAsync(
+			aggregateType: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ => AsyncEnumerable(accountId1, accountId2));
+
+		_eventStore.LoadAsync(
+			aggregateId: Arg.Any<Guid>(),
+			aggregateType: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: new EventStoreResult(Snapshot: null, Events: []));
+
+		await _rebuilder.RebuildAllAsync(batchSize: 50, ct: CancellationToken.None);
+
+		_scopeFactory.Received(requiredNumberOfCalls: 2).CreateScope();
 	}
 
 	private static async IAsyncEnumerable<T> AsyncEnumerable<T>(params T[] values)

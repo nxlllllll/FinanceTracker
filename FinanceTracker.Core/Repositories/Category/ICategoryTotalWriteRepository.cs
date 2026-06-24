@@ -8,7 +8,8 @@ public interface ICategoryTotalWriteRepository
 		decimal amount,
 		ValueObjects.Currency currency,
 		DateTimeOffset occurredAt,
-		CancellationToken ct = default);
+		CancellationToken ct = default
+	);
  
 	Task SubtractAsync(
 		Guid userId,
@@ -16,7 +17,8 @@ public interface ICategoryTotalWriteRepository
 		decimal amount,
 		ValueObjects.Currency currency,
 		DateTimeOffset occurredAt,
-		CancellationToken ct = default);
+		CancellationToken ct = default
+	);
  
 	Task ChangeCategoryAsync(
 		Guid userId,
@@ -25,5 +27,12 @@ public interface ICategoryTotalWriteRepository
 		decimal amount,
 		ValueObjects.Currency currency,
 		DateTimeOffset occurredAt,
-		CancellationToken ct = default);
+		CancellationToken ct = default
+	);
+	
+	Task RecalculateAllForUserAsync(
+		Guid userId,
+		ValueObjects.Currency baseCurrency,
+		CancellationToken ct = default
+	);
 }

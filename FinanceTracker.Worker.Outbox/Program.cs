@@ -1,6 +1,7 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Outbox.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
@@ -28,8 +29,12 @@ public sealed class Program
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
 		builder.Services.AddQuartz(configure: q =>
 		{
+			q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "OutboxScheduler");
+
 			q.AddJob<OutboxPublisherJob>(configure: j => j.WithIdentity(name: nameof(OutboxPublisherJob), group: outboxOptions.Group));
 			q.AddTrigger(configure: t => t
 				.ForJob(jobName: nameof(OutboxPublisherJob), jobGroup: outboxOptions.Group)
@@ -40,7 +45,6 @@ public sealed class Program
 
 		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
 
-		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
  
 		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)

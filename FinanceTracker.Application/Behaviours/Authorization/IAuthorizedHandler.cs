@@ -23,7 +23,7 @@ public interface IAuthorizedHandler<in TRequest, in TEntity, TValue, TError>
 	/// </summary>
 	Task<Result<TValue, TError>> HandleAsync(
 		TRequest request,
-		TEntity entity,
+		TEntity accounts,
 		CancellationToken ct
 	);
 }

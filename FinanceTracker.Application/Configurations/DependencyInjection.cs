@@ -32,6 +32,11 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: RateLimitOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
+
+		services.AddOptions<AnonymousRateLimitOptions>()
+			.BindConfiguration(configSectionPath: AnonymousRateLimitOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
 		
 		services.AddMediatR(configuration: cfg =>
 		{
@@ -39,6 +44,7 @@ public static class DependencyInjection
 
 			cfg.AddOpenBehavior(openBehaviorType: typeof(TracingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(CorrelationBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(AuthRateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(RateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ConcurrencyRetryBehaviour<,>));

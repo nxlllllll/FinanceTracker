@@ -13,6 +13,13 @@ public static class WorkerMetrics
 
 	private static readonly Meter Meter = new Meter(name: MeterName);
 
+	// All jobs
+
+	public static readonly Counter<long> JobExecutionFailed = Meter.CreateCounter<long>(
+		name: "job.execution.failed",
+		description: "Total number of job executions that threw an unhandled exception. Tagged by job (job type name)."
+	);
+
 	// Outbox
 
 	public static readonly Gauge<int> OutboxPending = Meter.CreateGauge<int>(

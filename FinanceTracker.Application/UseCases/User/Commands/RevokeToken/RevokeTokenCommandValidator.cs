@@ -8,5 +8,8 @@ public sealed class RevokeTokenCommandValidator : AbstractValidator<RevokeTokenC
 	{
 		RuleFor(expression: x => x.RefreshToken)
 			.NotEmpty().WithMessage(errorMessage: "Refresh token is required.");
+
+		RuleFor(expression: x => x.IpAddress)
+			.NotEmpty().WithMessage(errorMessage: "IP address is required.");
 	}
 }

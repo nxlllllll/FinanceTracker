@@ -1,12 +1,16 @@
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
+using FinanceTracker.Infrastructure.Database.Context.Transaction;
 using FinanceTracker.Infrastructure.Database.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
 
@@ -17,6 +21,8 @@ public sealed class CategoryTotalWriteRepository(
 	IDateProvider dateProvider
 ) : ICategoryTotalWriteRepository
 {
+	private sealed record TransactionConversionInput(Guid CategoryId, Core.ValueObjects.Currency Currency, decimal Amount, DateTimeOffset OccurredAt);
+
 	private async Task ApplyDeltaAsync(
 		Guid userId,
 		Guid categoryId,
@@ -45,7 +51,7 @@ public sealed class CategoryTotalWriteRepository(
 		    UserId = userId,
 		    CategoryId = categoryId,
 		    Period = period,
-		    Total = amount * conversion.Rate * delta,
+		    Total = delta * Money.ConvertedAmount(amount: amount, rate: conversion.Rate),
 		    TransactionCount = delta,
 		    UpdatedAt = dateProvider.UtcNow
 		}, ct: ct);
@@ -117,5 +123,54 @@ public sealed class CategoryTotalWriteRepository(
 			occurredAt: occurredAt,
 			ct: ct
 		);
+	}
+
+	public async Task RecalculateAllForUserAsync(
+		Guid userId,
+		Core.ValueObjects.Currency baseCurrency,
+		CancellationToken ct = default)
+	{
+		List<TransactionConversionInput> transactions = await context.Transactions.AsNoTracking()
+			.Where(predicate: t => t.UserId == userId && !t.IsExcluded && t.Direction == DirectionType.Debit)
+			.Select(selector: t => new TransactionConversionInput(t.CategoryId, t.Currency, t.Amount, t.OccurredAt))
+			.ToListAsync(cancellationToken: ct);
+
+		await context.CategoryTotals.Where(predicate: c => c.UserId == userId).ExecuteDeleteAsync(cancellationToken: ct);
+
+		if (transactions.Count == 0)
+			return;
+
+		List<CurrencyRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyRateRequest(
+			From: t.Currency,
+			To: baseCurrency,
+			Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)
+		)).Distinct().ToList();
+
+		Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
+
+		DateTimeOffset now = dateProvider.UtcNow;
+
+		IEnumerable<CategoryTotalEntity> newTotals = transactions
+			.GroupBy(keySelector: t => new
+			{
+				t.CategoryId,
+				Period = new DateOnly(year: t.OccurredAt.Year, month: t.OccurredAt.Month, day: 1)
+			})
+			.Select(selector: group => new CategoryTotalEntity
+			{
+				Id = Guid.CreateVersion7(),
+				UserId = userId,
+				CategoryId = group.Key.CategoryId,
+				Period = group.Key.Period,
+				Total = group.Sum(selector: t => Money.ConvertedAmount(
+					amount: t.Amount,
+					rate: rates[new CurrencyRateRequest(From: t.Currency, To: baseCurrency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))].Rate
+				)),
+				TransactionCount = group.Count(),
+				RowVersion = 0,
+				UpdatedAt = now
+			});
+
+		await context.CategoryTotals.AddRangeAsync(entities: newTotals, cancellationToken: ct);
 	}
 }

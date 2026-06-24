@@ -17,27 +17,27 @@ public sealed class ChangeRecurringTransactionCurrencyHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeRecurringTransactionCurrencyCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
+		Core.Domains.RecurringTransaction.RecurringTransaction accounts,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = recurringTransaction.ChangeCurrency(currency: command.Currency);
+		Result<Unit, DomainException> result = accounts.ChangeCurrency(currency: command.Currency);
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
 		await recurringTransactionWriteRepository.ChangeCurrencyAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: recurringTransaction.RowVersion,
+			expectedVersion: accounts.RowVersion,
 			currency: command.Currency,
 			ct: ct
 		);
 		
 		await publisher.Publish(notification: new RecurringTransactionCurrencyChangedNotification(
-			RecurringTransactionId: recurringTransaction.Id,
-			UserId: recurringTransaction.UserId,
+			RecurringTransactionId: accounts.Id,
+			UserId: accounts.UserId,
 			NewCurrency: command.Currency,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: recurringTransaction.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

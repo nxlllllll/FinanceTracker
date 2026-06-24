@@ -17,27 +17,27 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeRecurringTransactionDayOfMonthCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
+		Core.Domains.RecurringTransaction.RecurringTransaction accounts,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = recurringTransaction.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
+		Result<Unit, DomainException> result = accounts.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
 		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: recurringTransaction.RowVersion,
+			expectedVersion: accounts.RowVersion,
 			dayOfMonth: command.DayOfMonth,
 			ct: ct
 		);
 		
 		await publisher.Publish(notification: new RecurringTransactionDayOfMonthChangedNotification(
-			RecurringTransactionId: recurringTransaction.Id,
-			UserId: recurringTransaction.UserId,
+			RecurringTransactionId: accounts.Id,
+			UserId: accounts.UserId,
 			NewDayOfMonth: command.DayOfMonth,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: recurringTransaction.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

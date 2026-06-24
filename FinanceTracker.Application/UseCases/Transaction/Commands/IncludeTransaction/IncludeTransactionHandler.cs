@@ -27,10 +27,10 @@ public sealed class IncludeTransactionHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		IncludeTransactionCommand command,
-		Core.Domains.Transaction.Transaction transaction,
+		Core.Domains.Transaction.Transaction accounts,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = transaction.Include();
+		Result<Unit, DomainException> result = accounts.Include();
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
@@ -38,41 +38,41 @@ public sealed class IncludeTransactionHandler(
 		{
 			await transactionWriteRepository.IncludeAsync(
 				transactionId: command.TransactionId, 
-				userId: transaction.UserId,
-				expectedVersion: transaction.RowVersion,
+				userId: accounts.UserId,
+				expectedVersion: accounts.RowVersion,
 				ct: ct
 			);
 			
-			if (transaction.Direction != DirectionType.Debit)
+			if (accounts.Direction != DirectionType.Debit)
 				return;
 
 			await categoryTotalWriteRepository.AddAsync(
-				userId: transaction.UserId,
-				categoryId: transaction.CategoryId,
-				currency: transaction.Amount.Currency,
-				amount: transaction.Amount.Amount,
-				occurredAt: transaction.OccurredAt,
+				userId: accounts.UserId,
+				categoryId: accounts.CategoryId,
+				currency: accounts.Amount.Currency,
+				amount: accounts.Amount.Amount,
+				occurredAt: accounts.OccurredAt,
 				ct: ct
 			);
 
 			await budgetProgressWriteRepository.AddAsync(
-				userId: transaction.UserId,
-				categoryId: transaction.CategoryId,
-				currencyCode: transaction.Amount.Currency,
-				amount: transaction.Amount.Amount,
-				occurredAt: transaction.OccurredAt,
+				userId: accounts.UserId,
+				categoryId: accounts.CategoryId,
+				currencyCode: accounts.Amount.Currency,
+				amount: accounts.Amount.Amount,
+				occurredAt: accounts.OccurredAt,
 				ct: ct
 			);
 		}, 
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {transaction.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {accounts.Id}."),
 		ct: ct);
 		
 		await publisher.Publish(notification: new TransactionIncludedNotification(
-			TransactionId: transaction.Id,
-			UserId: transaction.UserId,
+			TransactionId: accounts.Id,
+			UserId: accounts.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: transaction.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

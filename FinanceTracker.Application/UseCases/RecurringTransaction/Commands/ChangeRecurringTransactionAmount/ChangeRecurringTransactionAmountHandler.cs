@@ -17,27 +17,27 @@ public sealed class ChangeRecurringTransactionAmountHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeRecurringTransactionAmountCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
+		Core.Domains.RecurringTransaction.RecurringTransaction accounts,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = recurringTransaction.ChangeAmount(amount: command.Amount);
+		Result<Unit, DomainException> result = accounts.ChangeAmount(amount: command.Amount);
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ChangeAmountAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: recurringTransaction.RowVersion,
+			expectedVersion: accounts.RowVersion,
 			amount: command.Amount,
 			ct: ct
 		);
 		
 		await publisher.Publish(notification: new RecurringTransactionAmountChangedNotification(
-			RecurringTransactionId: recurringTransaction.Id,
-			UserId: recurringTransaction.UserId,
+			RecurringTransactionId: accounts.Id,
+			UserId: accounts.UserId,
 			NewAmount: command.Amount,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: recurringTransaction.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

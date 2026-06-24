@@ -1,6 +1,7 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Cleanup.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Quartz;
@@ -24,10 +25,13 @@ public sealed class Program
 			.GetSection(key: CleanupOptions.SectionName)
 			.Get<CleanupOptions>() ?? new CleanupOptions();
 
+		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+
 		builder.Services.AddQuartz(configure: q =>
 		{
-			q.AddJob<CleanupJob>(configure: j => j.WithIdentity(name: nameof(CleanupJob), group: cleanupOptions.Group));
+			q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "CleanupScheduler");
 
+			q.AddJob<CleanupJob>(configure: j => j.WithIdentity(name: nameof(CleanupJob), group: cleanupOptions.Group));
 			q.AddTrigger(configure: t => t
 				.ForJob(jobName: nameof(CleanupJob), jobGroup: cleanupOptions.Group)
 				.WithIdentity(name: cleanupOptions.TriggerName, group: cleanupOptions.Group)
@@ -37,7 +41,6 @@ public sealed class Program
 
 		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
 
-		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
  
 		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)

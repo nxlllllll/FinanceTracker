@@ -13,7 +13,7 @@ namespace FinanceTracker.Tests.Unit.Core.Domains;
 public sealed class AccountTests
 {
 	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
-	private static readonly ISnapshotSerializer<Account> Serializer = new AccountSnapshotSerializer();
+	private static readonly AccountSnapshotSerializer Serializer = new AccountSnapshotSerializer();
 
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
@@ -456,6 +456,24 @@ public sealed class AccountTests
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InsufficientFundsException>();
+	}
+
+	[Test]
+	public async Task DebitTransfer_WithInvalidForexRate_ShouldReturnInvalidExchangeRateException()
+	{
+		Account account = AccountFactory.Create(balance: 1000m).Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.DebitTransfer(
+			occurredAt: Now,
+			transferId: Guid.CreateVersion7(),
+			toAccountId: Guid.CreateVersion7(),
+			amount: 500m,
+			forexRate: 0m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidExchangeRateException>();
 	}
 
 	[Test]

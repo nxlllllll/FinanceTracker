@@ -70,7 +70,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: newCategoryId),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -103,7 +103,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: newCategoryId),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -124,7 +124,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -146,7 +146,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
-			transaction: transaction,
+			accounts: transaction,
 			ct: CancellationToken.None
 		);
 

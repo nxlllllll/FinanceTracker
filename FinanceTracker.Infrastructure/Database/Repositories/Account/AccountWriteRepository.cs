@@ -2,8 +2,9 @@ using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Context.Account;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
@@ -34,24 +35,24 @@ public sealed class AccountWriteRepository(
 		AccountCreated @event,
 		CancellationToken ct = default)
 	{
-		await context.Accounts.AddAsync(entity: new AccountEntity()
-		{
-			Id = @event.AccountId,
-			UserId = @event.UserId,
-			Name = @event.Name,
-			AccountType = @event.Type,
-			Currency = @event.Currency,
-			IsArchived = false,
-			CreatedAt = @event.OccurredAt
-		}, cancellationToken: ct);
+		await context.InsertAccountAsync(
+			id: @event.AccountId,
+			userId: @event.UserId,
+			name: @event.Name.Value,
+			accountTypeCode: @event.Type.ToString().ToLowerInvariant(),
+			currencyCode: @event.Currency.Value,
+			isArchived: false,
+			createdAt: @event.OccurredAt,
+			ct: ct
+		);
 
-		await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity()
-		{
-			AccountId = @event.AccountId,
-			Balance = @event.Balance,
-			LastVersion = @event.Version,
-			UpdatedAt = @event.OccurredAt
-		}, cancellationToken: ct);
+		await context.InsertAccountBalanceAsync(
+			accountId: @event.AccountId,
+			balance: @event.Balance,
+			lastVersion: @event.Version,
+			updatedAt: @event.OccurredAt,
+			ct: ct
+		);
 	}
 
 	public async Task AdjustBalanceAsync(
@@ -68,8 +69,7 @@ public sealed class AccountWriteRepository(
 		if (rows == 0)
 		{
 			throw new ConcurrencyConflictException(
-				message:
-				$"Concurrency conflict: account balance {@event.AccountId} was already updated to version >= {@event.Version}.",
+				message: $"Concurrency conflict: account balance {@event.AccountId} was already updated to version >= {@event.Version}.",
 				id: @event.AccountId
 			);
 		}
@@ -81,7 +81,7 @@ public sealed class AccountWriteRepository(
 	{
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
-			delta: -@event.Amount * @event.ExchangeRate,
+			delta: -Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate),
 			version: @event.Version,
 			ct: ct
 		);
@@ -93,7 +93,7 @@ public sealed class AccountWriteRepository(
 	{
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
-			delta: @event.Amount * @event.ExchangeRate,
+			delta: Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate),
 			version: @event.Version,
 			ct: ct
 		);
@@ -117,7 +117,7 @@ public sealed class AccountWriteRepository(
 	{
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
-			delta: @event.Amount * @event.ExchangeRate,
+			delta: Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate),
 			version: @event.Version,
 			ct: ct
 		);
@@ -169,13 +169,8 @@ public sealed class AccountWriteRepository(
 		Guid accountId,
 		CancellationToken ct = default)
 	{
-		await context.AccountBalances
-			.Where(predicate: b => b.AccountId == accountId)
-			.ExecuteDeleteAsync(cancellationToken: ct);
-
-		await context.Accounts
-			.Where(predicate: a => a.Id == accountId)
-			.ExecuteDeleteAsync(cancellationToken: ct);
+		await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteDeleteAsync(cancellationToken: ct);
+		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteDeleteAsync(cancellationToken: ct);
 	}
 
 	public async Task UpsertFromSnapshotAsync(
@@ -184,23 +179,23 @@ public sealed class AccountWriteRepository(
 	{
 		await DeleteAsync(accountId: account.Id, ct: ct);
 
-		await context.Accounts.AddAsync(entity: new AccountEntity
-		{
-			Id = account.Id,
-			UserId = account.UserId,
-			Name = account.Name,
-			AccountType = account.Type,
-			Currency = account.Currency,
-			IsArchived = account.IsArchived,
-			CreatedAt = account.CreatedAt
-		}, cancellationToken: ct);
+		await context.InsertAccountAsync(
+			id: account.Id,
+			userId: account.UserId,
+			name: account.Name.Value,
+			accountTypeCode: account.Type.ToString().ToLowerInvariant(),
+			currencyCode: account.Currency.Value,
+			isArchived: account.IsArchived,
+			createdAt: account.CreatedAt,
+			ct: ct
+		);
 
-		await context.AccountBalances.AddAsync(entity: new AccountBalanceEntity
-		{
-			AccountId = account.Id,
-			Balance = account.Balance.Amount,
-			LastVersion = account.Version,
-			UpdatedAt = dateProvider.UtcNow
-		}, cancellationToken: ct);
+		await context.InsertAccountBalanceAsync(
+			accountId: account.Id,
+			balance: account.Balance.Amount,
+			lastVersion: account.Version,
+			updatedAt: dateProvider.UtcNow,
+			ct: ct
+		);
 	}
 }

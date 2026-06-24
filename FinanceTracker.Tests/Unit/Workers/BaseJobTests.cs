@@ -1,4 +1,6 @@
-﻿using FinanceTracker.Worker.Shared.Job;
+﻿using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Worker.Shared.Job;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -12,18 +14,24 @@ public sealed class TestJobOptions : IJobOptions
 }
 
 public sealed class TrackingJob(
-	IOptionsMonitor<TestJobOptions> options
-) : BaseJob<TestJobOptions>(options: options, logger: NullLogger<TrackingJob>.Instance)
+	IOptionsMonitor<TestJobOptions> options,
+	ILogger? logger = null
+) : BaseJob<TestJobOptions>(options: options, logger: logger ?? NullLogger<TrackingJob>.Instance)
 {
 	public int ProcessCallCount { get; private set; }
 	public TestJobOptions? LastOptions { get; private set; }
 	public CancellationToken LastCancellationToken { get; private set; }
+	public Exception? ExceptionToThrow { get; set; }
 
 	protected override Task ProcessAsync(TestJobOptions options, CancellationToken ct)
 	{
 		ProcessCallCount++;
 		LastOptions = options;
 		LastCancellationToken = ct;
+
+		if (ExceptionToThrow is not null)
+			throw ExceptionToThrow;
+
 		return Task.CompletedTask;
 	}
 }
@@ -102,5 +110,56 @@ public sealed class BaseJobTests
 		await job.Execute(context: BuildContext());
 
 		await Assert.That(value: job.ProcessCallCount).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task Execute_WhenProcessAsyncThrows_ShouldRethrowSameException()
+	{
+		IOptionsMonitor<TestJobOptions> monitor = Substitute.For<IOptionsMonitor<TestJobOptions>>();
+		monitor.CurrentValue.Returns(returnThis: new TestJobOptions { IsEnabled = true });
+
+		InvalidOperationException thrown = new InvalidOperationException(message: "boom");
+		TrackingJob job = new TrackingJob(options: monitor) { ExceptionToThrow = thrown };
+
+		InvalidOperationException? caught = await Assert.ThrowsAsync<InvalidOperationException>(
+			action: async () => await job.Execute(context: BuildContext())
+		);
+
+		await Assert.That(value: caught).IsEqualTo(expected: thrown);
+	}
+
+	[Test]
+	public async Task Execute_WhenProcessAsyncThrows_ShouldLogError()
+	{
+		IOptionsMonitor<TestJobOptions> monitor = Substitute.For<IOptionsMonitor<TestJobOptions>>();
+		monitor.CurrentValue.Returns(returnThis: new TestJobOptions { IsEnabled = true });
+
+		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
+		TrackingJob job = new TrackingJob(options: monitor, logger: logger)
+		{
+			ExceptionToThrow = new InvalidOperationException(message: "boom")
+		};
+
+		try
+		{
+			await job.Execute(context: BuildContext());
+		}
+		catch (InvalidOperationException) { /* Expected — Execute rethrows after logging; */ }
+
+		await Assert.That(value: logger.ErrorLogged).IsTrue();
+	}
+
+	[Test]
+	public async Task Execute_WhenProcessAsyncSucceeds_ShouldNotLogError()
+	{
+		IOptionsMonitor<TestJobOptions> monitor = Substitute.For<IOptionsMonitor<TestJobOptions>>();
+		monitor.CurrentValue.Returns(returnThis: new TestJobOptions { IsEnabled = true });
+
+		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
+		TrackingJob job = new TrackingJob(options: monitor, logger: logger);
+
+		await job.Execute(context: BuildContext());
+
+		await Assert.That(value: logger.ErrorLogged).IsFalse();
 	}
 }

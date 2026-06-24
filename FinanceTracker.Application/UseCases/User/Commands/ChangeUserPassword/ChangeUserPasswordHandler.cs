@@ -22,12 +22,12 @@ public sealed class ChangeUserPasswordHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeUserPasswordCommand command,
-		Core.Domains.User.User user,
+		Core.Domains.User.User accounts,
 		CancellationToken ct = default)
 	{
 		string newPasswordHash = await passwordHasher.Hash(password: command.NewPassword);
 
-		Result<Unit, DomainException> result = user.ChangePassword(newPasswordHash: newPasswordHash);
+		Result<Unit, DomainException> result = accounts.ChangePassword(newPasswordHash: newPasswordHash);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
@@ -35,7 +35,7 @@ public sealed class ChangeUserPasswordHandler(
 		{
 			await userWriteRepository.ChangePasswordAsync(
 				userId: command.UserId,
-				expectedVersion: user.RowVersion,
+				expectedVersion: accounts.RowVersion,
 				newPasswordHash: newPasswordHash,
 				ct: ct
 			);
@@ -49,10 +49,10 @@ public sealed class ChangeUserPasswordHandler(
 		}, ct: ct);
 
 		await publisher.Publish(notification: new UserPasswordChangedNotification(
-			UserId: user.Id,
+			UserId: accounts.Id,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 
-		return Result<Guid, DomainException>.Success(value: user.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

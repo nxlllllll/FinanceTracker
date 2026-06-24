@@ -1,3 +1,4 @@
+using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -86,5 +87,16 @@ public sealed class RegisterUserCommandValidatorTests
 
 		await Assert.That(value: result.IsValid).IsFalse();
 		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(RegisterUserCommand.BaseCurrencyCode))).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithNullIpAddress_ShouldHaveError()
+	{
+		RegisterUserCommand command = RegisterUserCommandFactory.CreateWithIp(ipAddress: null);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.IpAddress))).IsTrue();
 	}
 }

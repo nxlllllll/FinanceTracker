@@ -1,3 +1,4 @@
+using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Application.UseCases.Transfer.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -67,7 +68,7 @@ public sealed class CreateTransferHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
-			account: fromAccount,
+			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -89,7 +90,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
-			account: fromAccount,
+			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -113,7 +114,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 1000m),
-			account: fromAccount,
+			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -135,7 +136,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccountId),
-			account: fromAccount,
+			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -162,7 +163,7 @@ public sealed class CreateTransferHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
-			account: fromAccount,
+			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -183,13 +184,41 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
-			account: fromAccount,
+			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
 		await _publisher.DidNotReceive().Publish(
 			notification: Arg.Any<TransferCreatedNotification>(),
 			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithDifferentAccountCurrencies_ShouldRequestConversionUsingRealAccountCurrencies()
+	{
+		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(balance: 5000m, currency: "USD").Value!;
+		fromAccount.ClearEvents();
+		Currency toAccountCurrency = Currency.Create(value: "EUR").Value!;
+
+		_currencyConversionService.GetConversionRateAsync(
+			fromCurrency: Arg.Any<Currency>(),
+			toCurrency: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: new ConversionResult(Rate: 0.9m, IsPending: false));
+
+		await _handler.HandleAsync(
+			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
+			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: toAccountCurrency),
+			ct: CancellationToken.None
+		);
+
+		await _currencyConversionService.Received(requiredNumberOfCalls: 1).GetConversionRateAsync(
+			fromCurrency: fromAccount.Currency,
+			toCurrency: toAccountCurrency,
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 }

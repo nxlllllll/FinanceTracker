@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.Rebuild;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 
@@ -15,6 +16,7 @@ public sealed class AccountProjectionRebuilder(
 	ISnapshotSerializer<Core.Domains.Account.Account> snapshotSerializer,
 	IUnitOfWork unitOfWork,
 	AccountDomainEventApplier applier,
+	IServiceScopeFactory scopeFactory,
 	ILogger<AccountProjectionRebuilder> logger
 ) : IAccountProjectionRebuilder
 {
@@ -103,7 +105,9 @@ public sealed class AccountProjectionRebuilder(
 			await semaphore.WaitAsync(cancellationToken: ct);
 			try
 			{
-				await RebuildAsync(accountId: accountId, ct: ct);
+				using IServiceScope scope = scopeFactory.CreateScope();
+				IAccountProjectionRebuilder scopedRebuilder = scope.ServiceProvider.GetRequiredService<IAccountProjectionRebuilder>();
+				await scopedRebuilder.RebuildAsync(accountId: accountId, ct: ct);
 				Interlocked.Increment(location: ref rebuilt);
 			}
 			catch (Exception ex)

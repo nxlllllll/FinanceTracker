@@ -10,4 +10,5 @@ public sealed class OutboxMessageEntity
 	public DateTimeOffset? ProcessedAt { get; init; }
 	public int RetryCount { get; init; }
 	public DateTimeOffset? FailedAt { get; init; }
+	public DateTimeOffset? LockedUntil { get; init; }
 }

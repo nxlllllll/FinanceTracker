@@ -34,7 +34,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionAmountCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Amount: 500m),
-			recurringTransaction: rt,
+			accounts: rt,
 			ct: CancellationToken.None
 		);
 
@@ -53,7 +53,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionAmountCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Amount: 500m),
-			recurringTransaction: rt,
+			accounts: rt,
 			ct: CancellationToken.None
 		);
 
@@ -73,7 +73,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionAmountCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Amount: -1m),
-			recurringTransaction: rt,
+			accounts: rt,
 			ct: CancellationToken.None
 		);
 
@@ -87,7 +87,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionAmountCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Amount: -1m),
-			recurringTransaction: rt,
+			accounts: rt,
 			ct: CancellationToken.None
 		);
 

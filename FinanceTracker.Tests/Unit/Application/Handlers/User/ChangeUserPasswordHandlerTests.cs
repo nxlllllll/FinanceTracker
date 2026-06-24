@@ -54,7 +54,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: "newPassword"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -68,7 +68,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: "newPassword"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -88,7 +88,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: currentSessionId, NewPassword: "newPassword"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -107,7 +107,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: "newPassword"),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -126,7 +126,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: String.Empty),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -143,7 +143,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: String.Empty),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 
@@ -162,7 +162,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: ""),
-			user: user,
+			accounts: user,
 			ct: CancellationToken.None
 		);
 

@@ -126,7 +126,7 @@ public sealed class Account : AggregateRoot
 
 	private Result<Unit, DomainException> CheckSufficientFunds(decimal amount, decimal rate = 1m)
 	{
-		if (amount * rate > Balance.Amount)
+		if (Money.ConvertedAmount(amount: amount, rate: rate) > Balance.Amount)
 			return Result<Unit, DomainException>.Failure(error: new InsufficientFundsException(message: "The amount of funds on the balance is insufficient.", balance: Balance));
 
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -136,16 +136,16 @@ public sealed class Account : AggregateRoot
 		=> Balance = Balance.Add(amount: @event.Delta);
 
 	private void Apply(AccountDebited @event)
-		=> Balance = Balance.Subtract(amount: @event.Amount * @event.ExchangeRate);
+		=> Balance = Balance.Subtract(amount: Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate));
 
 	private void Apply(AccountCredited @event)
-		=> Balance = Balance.Add(amount: @event.Amount * @event.ExchangeRate);
+		=> Balance = Balance.Add(amount: Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate));
 
 	private void Apply(AccountTransferDebited @event)
 		=> Balance = Balance.Subtract(amount: @event.Amount);
 
 	private void Apply(AccountTransferCredited @event)
-		=> Balance = Balance.Add(amount: @event.Amount * @event.ExchangeRate);
+		=> Balance = Balance.Add(amount: Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate));
 
 	private void Apply(AccountTransferRefunded @event)
 		=> Balance = Balance.Add(amount: @event.Amount);
@@ -208,7 +208,7 @@ public sealed class Account : AggregateRoot
 			return constraints;
 
 		int sign = GetSign(direction: direction);
-		decimal delta = (newRate - oldRate) * amount * sign;
+		decimal delta = Money.ConvertedAmount(amount: amount, rate: newRate - oldRate) * sign;
 
 		if (delta == 0)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -266,7 +266,6 @@ public sealed class Account : AggregateRoot
 
 	/// <summary>
 	/// Debits the account for a transfer (source side).
-	/// Fails if archived or insufficient funds. Raises <c>AccountTransferDebited</c>.
 	/// </summary>
 	public Result<Unit, DomainException> DebitTransfer(
 		DateTimeOffset occurredAt,
@@ -276,7 +275,7 @@ public sealed class Account : AggregateRoot
 		decimal forexRate,
 		string? description)
 	{
-		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: forexRate);
 		if (constraints.IsFailure)
 			return constraints;
 

@@ -36,15 +36,13 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
     /// <summary>Creates an account through MediatR and gets into the Event Store and read model.</summary>
     private async Task<Guid> CreateAccountAsync(Guid userId, decimal balance = 10_000m)
     {
-        Result<Guid, DomainException> result = await Mediator.Send(
-            request: new CreateAccountCommand(
-                UserId: userId,
-                Name: Name.Create(value: "Основной счёт").Value,
-                Type: AccountType.Checking,
-                Currency: Currency.Create(value: "RUB").Value,
-                InitialBalance: balance
-            ) { IdempotencyKey = Guid.CreateVersion7() }
-        );
+        Result<Guid, DomainException> result = await Mediator.Send(request: new CreateAccountCommand(
+            UserId: userId,
+            Name: Name.Create(value: "Основной счёт").Value,
+            Type: AccountType.Checking,
+            Currency: Currency.Create(value: "RUB").Value,
+            InitialBalance: balance
+        ) { IdempotencyKey = Guid.CreateVersion7() });
 
         Guid accountId = result.Value!;
 
@@ -75,8 +73,9 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
         Guid accountId,
         Guid categoryId,
         decimal amount = 1_000m,
-        DirectionType direction = DirectionType.Debit) =>
-        new CreateTransactionCommand(
+        DirectionType direction = DirectionType.Debit)
+    {
+        return new CreateTransactionCommand(
             AccountId: accountId,
             UserId: userId,
             CategoryId: categoryId,
@@ -86,6 +85,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
             Description: null,
             OccurredAt: DateTimeOffset.UtcNow
         ) { IdempotencyKey = Guid.CreateVersion7() };
+    }
 
     [Test]
     public async Task CreateTransaction_Debit_ShouldSucceed()
@@ -125,9 +125,12 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
         Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-        await Mediator.Send(
-            request: BuildCommand(userId: userId, accountId: accountId, categoryId: categoryId, amount: 3_000m)
-        );
+        await Mediator.Send(request: BuildCommand(
+            userId: userId,
+            accountId: accountId, 
+            categoryId: categoryId, 
+            amount: 3_000m
+        ));
 
         await ProjectAccountEventsAsync(accountId: accountId);
 
@@ -229,15 +232,13 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
             dateTo: today.AddDays(value: 30)
         );
 
-        await Mediator.Send(
-            request: BuildCommand(
-                userId: userId,
-                accountId: accountId,
-                categoryId: categoryId,
-                amount: 2_000m,
-                direction: DirectionType.Credit
-            )
-        );
+        await Mediator.Send(request: BuildCommand(
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            amount: 2_000m,
+            direction: DirectionType.Credit
+        ));
 
         await using FinanceTrackerContext readCtx = CreateReadContext();
         decimal spent = await readCtx.BudgetProgresses

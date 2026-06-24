@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Budget;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
@@ -44,7 +45,7 @@ public sealed class BudgetProgressWriteRepository(
 
         foreach (BudgetEntity budget in budgets)
         {
-            decimal additionSpent = amount * delta * rates[new CurrencyRateRequest(From: currencyCode, To: budget.Currency, Date: date)].Rate;
+            decimal additionSpent = delta * Money.ConvertedAmount(amount: amount, rate: rates[new CurrencyRateRequest(From: currencyCode, To: budget.Currency, Date: date)].Rate);
 
             await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
                 setPropertyCalls: builder => builder
@@ -169,9 +170,10 @@ public sealed class BudgetProgressWriteRepository(
 
         Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
 
-        decimal spent = transactions.Sum(selector: t =>
-            t.Amount * rates[new CurrencyRateRequest(From: t.Currency, To: budget.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))].Rate
-        );
+        decimal spent = transactions.Sum(selector: t => Money.ConvertedAmount(
+            amount: t.Amount, 
+            rate: rates[new CurrencyRateRequest(From: t.Currency, To: budget.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))].Rate
+        ));
 
         await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
             setPropertyCalls: builder => builder

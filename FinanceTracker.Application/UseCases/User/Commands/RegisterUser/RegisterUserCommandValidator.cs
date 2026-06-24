@@ -17,5 +17,8 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
 		RuleFor(expression: command => command.BaseCurrencyCode)
 			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))
 			.WithMessage(errorMessage: "The currency code does not exist.");
+
+		RuleFor(expression: command => command.IpAddress)
+			.NotNull().WithMessage(errorMessage: "IP address is required.");
 	}
 }

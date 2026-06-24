@@ -60,6 +60,18 @@ public readonly record struct Money
 	public static Money Reconstitute(decimal amount, Currency currency)
 		=> new Money(amount: amount, currency: currency);
 
+	/// <summary>Converts <paramref name="amount"/> by <paramref name="rate"/> and rounds the result to 2 decimal places</summary>
+	/// <remarks>
+	/// Use this everywhere a converted amount is computed, instead of multiplying directly.
+	/// The event-sourced aggregate is rebuilt by replaying every event from scratch, while
+	/// projections (read models) apply the same calculation incrementally as deltas. If the
+	/// multiplication isn't rounded identically in both places, the two sides can silently
+	/// drift apart — a fraction of a cent at a time — across many FX-converted operations on
+	/// the same account. Centralising the calculation here keeps them consistent by construction.
+	/// </remarks>
+	public static decimal ConvertedAmount(decimal amount, decimal rate)
+		=> Math.Round(d: amount * rate, decimals: 2, mode: MidpointRounding.ToEven);
+
 	/// <summary>
 	/// Adds a raw decimal to this amount without currency validation and without
 	/// re-checking non-negativity — the result may legitimately be negative

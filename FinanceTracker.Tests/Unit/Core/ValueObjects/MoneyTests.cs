@@ -72,6 +72,68 @@ public sealed class MoneyTests
     }
 
     [Test]
+    public async Task ConvertedAmount_WithCleanResult_ShouldReturnExactValue()
+    {
+        decimal result = Money.ConvertedAmount(amount: 1000m, rate: 2m);
+
+        await Assert.That(value: result).IsEqualTo(expected: 2000m);
+    }
+
+    [Test]
+    public async Task ConvertedAmount_WhenThirdDecimalIsBelowFive_ShouldRoundDown()
+    {
+        // 1000 * 0.011734 = 11.734 — third decimal is 4, rounds down to 11.73.
+        decimal result = Money.ConvertedAmount(amount: 1000m, rate: 0.011734m);
+
+        await Assert.That(value: result).IsEqualTo(expected: 11.73m);
+    }
+
+    [Test]
+    public async Task ConvertedAmount_WhenThirdDecimalIsAboveFive_ShouldRoundUp()
+    {
+        // 1 * 0.126 = 0.126 — third decimal is 6, rounds up to 0.13.
+        decimal result = Money.ConvertedAmount(amount: 1m, rate: 0.126m);
+
+        await Assert.That(value: result).IsEqualTo(expected: 0.13m);
+    }
+
+    [Test]
+    public async Task ConvertedAmount_AtExactMidpoint_WithEvenPrecedingDigit_ShouldRoundDownToEven()
+    {
+        // 5 * 0.125 = 0.625 exactly — an exact midpoint between 0.62 and 0.63.
+        // ToEven keeps 0.62 (2 is even);
+        decimal result = Money.ConvertedAmount(amount: 5m, rate: 0.125m);
+
+        await Assert.That(value: result).IsEqualTo(expected: 0.62m);
+    }
+
+    [Test]
+    public async Task ConvertedAmount_AtExactMidpoint_WithOddPrecedingDigit_ShouldRoundUpToEven()
+    {
+        // 4.92 * 0.125 = 0.615 exactly — an exact midpoint between 0.61 and 0.62.
+        // ToEven rounds up to 0.62 here (2 is even, 1 is odd).
+        decimal result = Money.ConvertedAmount(amount: 4.92m, rate: 0.125m);
+
+        await Assert.That(value: result).IsEqualTo(expected: 0.62m);
+    }
+
+    [Test]
+    public async Task ConvertedAmount_WithRateOfOne_ShouldStillRoundExcessAmountPrecision()
+    {
+        decimal result = Money.ConvertedAmount(amount: 10.005m, rate: 1m);
+
+        await Assert.That(value: result).IsEqualTo(expected: 10.00m);
+    }
+
+    [Test]
+    public async Task ConvertedAmount_WithNegativeRate_ShouldRoundSymmetrically()
+    {
+        decimal result = Money.ConvertedAmount(amount: 1000m, rate: -0.011734m);
+
+        await Assert.That(value: result).IsEqualTo(expected: -11.73m);
+    }
+
+    [Test]
     public async Task Reconstitute_ShouldBypassValidation_AndAllowZero()
     {
         Money money = Money.Reconstitute(amount: 0m, currency: Rub);

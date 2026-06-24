@@ -18,34 +18,34 @@ public sealed class RenameCategoryHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		RenameCategoryCommand command,
-		Core.Domains.Category.Category category,
+		Core.Domains.Category.Category accounts,
 		CancellationToken ct = default)
 	{
 		Result<Name, DomainException> nameResult = Name.Create(value: command.NewName);
 		if (nameResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: nameResult.Error!);
 		
-		string oldName = category.Name;
+		string oldName = accounts.Name;
 		
-		Result<Unit, DomainException> result = category.Rename(newName: nameResult.Value);
+		Result<Unit, DomainException> result = accounts.Rename(newName: nameResult.Value);
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await categoryWriteRepository.RenameAsync(
 			categoryId: command.CategoryId,
 			newName: nameResult.Value,
-			expectedVersion: category.RowVersion, 
+			expectedVersion: accounts.RowVersion, 
 			ct: ct
 		);
 		
 		await publisher.Publish(notification: new CategoryRenamedNotification(
-			CategoryId: category.Id,
-			UserId: category.UserId,
+			CategoryId: accounts.Id,
+			UserId: accounts.UserId,
 			OldName: oldName,
 			NewName: nameResult.Value,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: category.Id);
+		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }
