@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Context.Category;
+using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
@@ -19,6 +20,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 	private CategoryTotalWriteRepository _writeRepository = null!;
 	private UserBuilder _userBuilder = null!;
 	private CategoryBuilder _categoryBuilder = null!;
+	private CurrencyBuilder _currencyBuilder = null!;
 	private IUserQueryRepository _userQueryRepository = null!;
 	private ICurrencyConversionService _currencyConversionService = null!;
 
@@ -39,6 +41,25 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 		);
 		_userBuilder = new UserBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);
+		_currencyBuilder = new CurrencyBuilder(context: Context);
+	}
+
+	private async Task SeedRateAsync(
+		Core.ValueObjects.Currency baseCode,
+		Core.ValueObjects.Currency targetCode,
+		decimal rate,
+		DateOnly date,
+		DateTimeOffset createdAt)
+	{
+		await Context.CurrencyRates.AddAsync(entity: new CurrencyRateEntity()
+		{
+			BaseCode = baseCode,
+			TargetCode = targetCode,
+			Rate = rate,
+			ActualAt = date,
+			CreatedAt = createdAt
+		});
+		await Context.SaveChangesAsync();
 	}
 
 	[Test]
@@ -187,5 +208,114 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: oldEntity.Total).IsEqualTo(expected: 0m);
 		await Assert.That(value: newEntity.Total).IsEqualTo(expected: 1000m);
+	}
+
+	[Test]
+	public async Task AddThenSubtract_WhenANewerRateAppearsInBetween_ShouldStillNetToZero()
+	{
+		Guid userId = await _userBuilder.CreateAsync(currencyCode: "RUB");
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		await _currencyBuilder.CreateAsync(code: "USD");
+
+		Core.ValueObjects.Currency usd = Core.ValueObjects.Currency.Create(value: "USD").Value;
+		Core.ValueObjects.Currency rub = Core.ValueObjects.Currency.Create(value: "RUB").Value;
+
+		DateTimeOffset transactionOccurredAt = new DateTimeOffset(year: 2025, month: 1, day: 10, hour: 9, minute: 0, second: 0, offset: TimeSpan.Zero);
+		
+		await SeedRateAsync(
+			baseCode: usd,
+			targetCode: rub,
+			rate: 90m,
+			date: new DateOnly(year: 2025, month: 1, day: 9),
+			createdAt: new DateTimeOffset(year: 2025, month: 1, day: 9, hour: 18, minute: 0, second: 0, offset: TimeSpan.Zero)
+		);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currency: usd,
+			amount: 100m,
+			occurredAt: transactionOccurredAt
+		);
+
+		await SeedRateAsync(
+			baseCode: usd,
+			targetCode: rub,
+			rate: 95m,
+			date: new DateOnly(year: 2025, month: 1, day: 10),
+			createdAt: new DateTimeOffset(year: 2025, month: 1, day: 10, hour: 18, minute: 0, second: 0, offset: TimeSpan.Zero)
+		);
+
+		await _writeRepository.SubtractAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currency: usd,
+			amount: 100m,
+			occurredAt: transactionOccurredAt
+		);
+
+		CategoryTotalEntity entity = await Context.CategoryTotals.FirstAsync(
+			predicate: ct => ct.UserId == userId && ct.CategoryId == categoryId
+		);
+
+		await Assert.That(value: entity.Total).IsEqualTo(expected: 0m);
+		await Assert.That(value: entity.TransactionCount).IsEqualTo(expected: 0);
+	}
+
+	[Test]
+	public async Task ChangeCategoryAsync_WhenANewerRateAppearsInBetween_ShouldStillMoveExactAmount()
+	{
+		Guid userId = await _userBuilder.CreateAsync(currencyCode: "RUB");
+		Guid oldCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+		Guid newCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
+		await _currencyBuilder.CreateAsync(code: "USD");
+
+		Core.ValueObjects.Currency usd = Core.ValueObjects.Currency.Create(value: "USD").Value;
+		Core.ValueObjects.Currency rub = Core.ValueObjects.Currency.Create(value: "RUB").Value;
+
+		DateTimeOffset transactionOccurredAt = new DateTimeOffset(year: 2025, month: 1, day: 10, hour: 9, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		await SeedRateAsync(
+			baseCode: usd,
+			targetCode: rub,
+			rate: 90m,
+			date: new DateOnly(year: 2025, month: 1, day: 9),
+			createdAt: new DateTimeOffset(year: 2025, month: 1, day: 9, hour: 18, minute: 0, second: 0, offset: TimeSpan.Zero)
+		);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: oldCategoryId,
+			currency: usd,
+			amount: 100m,
+			occurredAt: transactionOccurredAt
+		);
+
+		await SeedRateAsync(
+			baseCode: usd,
+			targetCode: rub,
+			rate: 95m,
+			date: new DateOnly(year: 2025, month: 1, day: 10),
+			createdAt: new DateTimeOffset(year: 2025, month: 1, day: 10, hour: 18, minute: 0, second: 0, offset: TimeSpan.Zero)
+		);
+
+		await _writeRepository.ChangeCategoryAsync(
+			userId: userId,
+			oldCategoryId: oldCategoryId,
+			newCategoryId: newCategoryId,
+			currency: usd,
+			amount: 100m,
+			occurredAt: transactionOccurredAt
+		);
+
+		CategoryTotalEntity oldEntity = await Context.CategoryTotals.FirstAsync(
+			predicate: ct => ct.UserId == userId && ct.CategoryId == oldCategoryId
+		);
+		CategoryTotalEntity newEntity = await Context.CategoryTotals.FirstAsync(
+			predicate: ct => ct.UserId == userId && ct.CategoryId == newCategoryId
+		);
+
+		await Assert.That(value: oldEntity.Total).IsEqualTo(expected: 0m);
+		await Assert.That(value: newEntity.Total).IsEqualTo(expected: 9000m);
 	}
 }

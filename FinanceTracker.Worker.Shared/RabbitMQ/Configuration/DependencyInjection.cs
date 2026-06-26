@@ -49,7 +49,7 @@ public static class DependencyInjection
 
 	public static IServiceCollection AddRabbitMqPublisher(this IServiceCollection services)
 	{
-		services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
+		services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 		return services;
 	}
 

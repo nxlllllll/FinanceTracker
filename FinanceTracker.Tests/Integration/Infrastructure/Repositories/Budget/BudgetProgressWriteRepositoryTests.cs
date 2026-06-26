@@ -25,19 +25,13 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
     public void SetupRepositories()
     {
         _currencyConversionService = Substitute.For<ICurrencyConversionService>();
-        _currencyConversionService.GetConversionRateAsync(
-            fromCurrency: Arg.Any<Core.ValueObjects.Currency>(),
-            toCurrency: Arg.Any<Core.ValueObjects.Currency>(),
-            date: Arg.Any<DateOnly>(),
-            ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
-        _currencyConversionService.GetConversionRatesBatchAsync(
-            requests: Arg.Any<IReadOnlyCollection<CurrencyRateRequest>>(),
+        _currencyConversionService.GetStableRatesBatchAsync(
+            requests: Arg.Any<IReadOnlyCollection<CurrencyStableRateRequest>>(),
             ct: Arg.Any<CancellationToken>()
-        ).Returns(returnThis: callInfo => callInfo.Arg<IReadOnlyCollection<CurrencyRateRequest>>().ToDictionary(
+        ).Returns(returnThis: callInfo => callInfo.Arg<IReadOnlyCollection<CurrencyStableRateRequest>>().ToDictionary(
             keySelector: r => r,
-            elementSelector: _ => new ConversionResult(Rate: 1m, IsPending: false)
+            elementSelector: _ => 1m
         ));
 
         _writeRepository = new BudgetProgressWriteRepository(
@@ -166,6 +160,47 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
         );
 
         await Assert.That(value: progress.Spent).IsEqualTo(expected: 0m);
+    }
+
+    [Test]
+    public async Task AddAsync_WhenCurrencyDiffersFromBudgetCurrency_ShouldRequestStableRateAnchoredToOccurredAt()
+    {
+        Guid userId = await _userBuilder.CreateAsync();
+        Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+        Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, currency: "RUB");
+        DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 9, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+        Core.ValueObjects.Currency usd = Core.ValueObjects.Currency.Create(value: "USD").Value;
+        Core.ValueObjects.Currency rub = Core.ValueObjects.Currency.Create(value: "RUB").Value;
+
+        _currencyConversionService.GetStableRatesBatchAsync(
+            requests: Arg.Any<IReadOnlyCollection<CurrencyStableRateRequest>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: callInfo => callInfo.Arg<IReadOnlyCollection<CurrencyStableRateRequest>>().ToDictionary(
+            keySelector: r => r,
+            elementSelector: _ => 90m
+        ));
+
+        await _writeRepository.AddAsync(
+            userId: userId,
+            categoryId: categoryId,
+            currencyCode: usd,
+            amount: 100m,
+            occurredAt: occurredAt
+        );
+
+        BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
+            predicate: p => p.BudgetId == budgetId
+        );
+
+        await Assert.That(value: progress.Spent).IsEqualTo(expected: 9000m);
+
+        await _currencyConversionService.Received(requiredNumberOfCalls: 1).GetStableRatesBatchAsync(
+            requests: Arg.Is<IReadOnlyCollection<CurrencyStableRateRequest>>(predicate: reqs =>
+                reqs.Any(predicate: r => r.From == usd && r.To == rub && r.AsOf == occurredAt)
+            ),
+            ct: Arg.Any<CancellationToken>()
+        );
     }
 
     [Test]

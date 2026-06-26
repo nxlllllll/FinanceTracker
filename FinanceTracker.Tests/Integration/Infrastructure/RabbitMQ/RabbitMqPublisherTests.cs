@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
@@ -163,6 +164,71 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 		await tcs.Task.WaitAsync(timeout: TimeSpan.FromSeconds(value: 5));
 
 		await Assert.That(value: receivedCorrelationId).IsNull();
+	}
+
+	[Test]
+	public async Task PublishAsync_CalledTwiceSequentially_ShouldReuseSameChannel()
+	{
+		await _publisher.PublishAsync(message: BuildMessage());
+		IChannel? channelAfterFirstCall = GetInternalChannel(publisher: _publisher);
+
+		await _publisher.PublishAsync(message: BuildMessage());
+		IChannel? channelAfterSecondCall = GetInternalChannel(publisher: _publisher);
+
+		await Assert.That(value: channelAfterFirstCall).IsNotNull();
+		await Assert.That(value: ReferenceEquals(objA: channelAfterFirstCall, objB: channelAfterSecondCall)).IsTrue();
+	}
+
+	[Test]
+	public async Task PublishAsync_WhenCachedChannelIsClosed_ShouldTransparentlyReconnectAndDeliver()
+	{
+		await _publisher.PublishAsync(message: BuildMessage());
+		IChannel? staleChannel = GetInternalChannel(publisher: _publisher);
+		await Assert.That(value: staleChannel).IsNotNull();
+
+		await staleChannel!.CloseAsync();
+		await Assert.That(value: staleChannel.IsOpen).IsFalse();
+
+		await _publisher.PublishAsync(message: BuildMessage());
+		IChannel? freshChannel = GetInternalChannel(publisher: _publisher);
+
+		await Assert.That(value: freshChannel).IsNotNull();
+		await Assert.That(value: freshChannel!.IsOpen).IsTrue();
+		await Assert.That(value: ReferenceEquals(objA: staleChannel, objB: freshChannel)).IsFalse();
+
+		await Task.Delay(millisecondsDelay: 200);
+
+		QueueDeclareOk result = await _channel.QueueDeclarePassiveAsync(queue: _queueName);
+
+		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: 2);
+	}
+
+	[Test]
+	public async Task PublishAsync_CalledConcurrentlyOnFreshPublisher_ShouldNotThrowAndShouldDeliverAllMessages()
+	{
+		const int concurrentPublishCount = 20;
+
+		IEnumerable<Task> publishTasks = Enumerable.Range(start: 0, count: concurrentPublishCount).Select(
+			selector: _ => _publisher.PublishAsync(message: BuildMessage())
+		);
+
+		await Task.WhenAll(tasks: publishTasks);
+
+		await Task.Delay(millisecondsDelay: 300);
+
+		QueueDeclareOk result = await _channel.QueueDeclarePassiveAsync(queue: _queueName);
+
+		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: concurrentPublishCount);
+	}
+
+	private static IChannel? GetInternalChannel(RabbitMqPublisher publisher)
+	{
+		FieldInfo? field = typeof(RabbitMqPublisher).GetField(
+			name: "_channel", 
+			bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance
+		);
+
+		return field?.GetValue(obj: publisher) as IChannel;
 	}
 
 	private static AggregateEventsMessage BuildMessage() => new AggregateEventsMessage(

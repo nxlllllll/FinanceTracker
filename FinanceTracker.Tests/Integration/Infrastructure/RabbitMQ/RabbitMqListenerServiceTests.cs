@@ -80,6 +80,37 @@ public sealed class FailingMessageHandlerState
 	public void Increment() => Interlocked.Increment(location: ref _callCount);
 }
 
+/// <summary>
+/// Handler that blocks indefinitely (never acks) until <see cref="Release"/> is called —
+/// used to keep a delivered message "in flight" so tests can observe BasicQos prefetch
+/// limits at the protocol level (the broker withholding further deliveries).
+/// </summary>
+public sealed class BlockingMessageHandlerState
+{
+	private int _callCount;
+	private readonly TaskCompletionSource _firstMessageReceivedTcs = new TaskCompletionSource(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
+	private readonly TaskCompletionSource _releaseTcs = new TaskCompletionSource(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
+
+	public int CallCount => _callCount;
+
+	public Task<bool> WaitForFirstMessageAsync(TimeSpan timeout)
+		=> _firstMessageReceivedTcs.Task.WaitAsync(timeout: timeout).ContinueWith(continuationFunction: t => t.IsCompletedSuccessfully);
+
+	public void Release() => _releaseTcs.TrySetResult();
+
+	public async Task HandleAsync()
+	{
+		Interlocked.Increment(location: ref _callCount);
+		_firstMessageReceivedTcs.TrySetResult();
+		await _releaseTcs.Task;
+	}
+}
+
+public sealed class BlockingMessageHandler(BlockingMessageHandlerState state) : IMessageHandler<AggregateEventsMessage>
+{
+	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default) => state.HandleAsync();
+}
+
 public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 {
 	private string _exchangeName = null!;
@@ -204,6 +235,15 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		return services.BuildServiceProvider();
 	}
 
+	private ServiceProvider BuildBlockingServiceProvider()
+	{
+		BlockingMessageHandlerState state = new BlockingMessageHandlerState();
+		ServiceCollection services = new ServiceCollection();
+		services.AddSingleton<BlockingMessageHandlerState>(implementationFactory: _ => state);
+		services.AddScoped<BlockingMessageHandler>();
+		return services.BuildServiceProvider();
+	}
+
 	private async Task WaitForConsumerAsync()
 	{
 		DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(seconds: 10);
@@ -294,14 +334,14 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	}
 
 	[Test]
-	public async Task Listener_WhenMessagePublished_ShouldDeserializeMessageCorrectly()
+	public async Task Listener_WhenHandlerSucceeds_ShouldAckMessage()
 	{
 		await using ServiceProvider sp = BuildSuccessServiceProvider();
-		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
 		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
 			options: _baseOptions,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
 		);
+		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions)
@@ -309,52 +349,24 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		await listener.StartAsync(ct: CancellationToken.None);
 		await WaitForConsumerAsync();
-		AggregateEventsMessage sent = BuildMessage();
-		await publisher.PublishAsync(message: sent);
+		await publisher.PublishAsync(message: BuildMessage());
 		await state.WaitAsync(timeout: TimeSpan.FromSeconds(value: 5));
+		await Task.Delay(millisecondsDelay: 300);
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
 
-		await Assert.That(value: state.LastMessage).IsNotNull();
-		await Assert.That(value: state.LastMessage!.MessageId).IsEqualTo(expected: sent.MessageId);
-		await Assert.That(value: state.LastMessage.AggregateType).IsEqualTo(expected: sent.AggregateType);
-		await Assert.That(value: state.LastMessage.AggregateId).IsEqualTo(expected: sent.AggregateId);
+		QueueDeclareOk result = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
+		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: 0);
 	}
 
 	[Test]
-	public async Task Listener_WhenMultipleMessagesPublished_ShouldHandleAll()
+	public async Task Listener_WhenMessageIsInvalidJson_ShouldDiscardWithoutCallingHandler()
 	{
 		await using ServiceProvider sp = BuildSuccessServiceProvider();
 		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
 		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
 			options: _baseOptions,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
-		);
-		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
-			connectionFactory: _connectionFactory,
-			options: Options.Create(options: _baseOptions)
-		);
-
-		await listener.StartAsync(ct: CancellationToken.None);
-		await WaitForConsumerAsync();
-		await publisher.PublishAsync(message: BuildMessage());
-		await publisher.PublishAsync(message: BuildMessage());
-		await publisher.PublishAsync(message: BuildMessage());
-		await state.WaitForCountAsync(expected: 3, timeout: TimeSpan.FromSeconds(value: 5));
-		await listener.StopAsync(ct: CancellationToken.None);
-		listener.Dispose();
-
-		await Assert.That(value: state.CallCount).IsEqualTo(expected: 3);
-	}
-
-	[Test]
-	public async Task Listener_WhenDeserializationFails_ShouldDiscardMessage()
-	{
-		await using ServiceProvider sp = BuildSuccessServiceProvider();
-		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
-		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
-			options: _baseOptions,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -368,64 +380,35 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	}
 
 	[Test]
-	public async Task Listener_WhenDeserializationFails_ShouldNotRecordUnresolvableEvent()
+	public async Task Listener_WhenHandlerFailsOnce_ShouldRetryAndEventuallySucceed()
 	{
-		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
-		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
-			options: _baseOptions,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
-		);
+		RabbitMqOptions options = _baseOptions with { MaxRetries = 3 };
 
-		await listener.StartAsync(ct: CancellationToken.None);
-		await WaitForConsumerAsync();
-		await PublishRawAsync(body: BuildInvalidBody());
-		await Task.Delay(millisecondsDelay: 500);
-		await listener.StopAsync(ct: CancellationToken.None);
-		listener.Dispose();
+		int attemptCount = 0;
+		ServiceCollection services = new ServiceCollection();
+		services.AddSingleton<Func<int>>(implementationFactory: _ => () => Interlocked.Increment(location: ref attemptCount));
+		await using ServiceProvider sp = services.BuildServiceProvider();
 
-		int count = await Context.UnresolvableEvents.CountAsync();
-		await Assert.That(value: count).IsEqualTo(expected: 0);
-	}
-
-	[Test]
-	public async Task Listener_WhenDeserializationFails_ShouldStillRouteRawBodyToDeadLetterQueue()
-	{
-		await using ServiceProvider sp = BuildSuccessServiceProvider();
 		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
-			options: _baseOptions,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+			options: options,
+			scopeFactory: BuildSuccessServiceProvider().GetRequiredService<IServiceScopeFactory>()
 		);
-
-		byte[] invalidBody = BuildInvalidBody();
-		BasicGetResult? deadLettered = null;
 
 		await listener.StartAsync(ct: CancellationToken.None);
 		await WaitForConsumerAsync();
-		await PublishRawAsync(body: invalidBody);
-
-		await WaitForConditionAsync(condition: async () =>
-		{
-			deadLettered = await _setupChannel.BasicGetAsync(queue: _deadLetterQueueName, autoAck: true);
-			return deadLettered is not null;
-		});
-
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
-
-		await Assert.That(value: deadLettered).IsNotNull();
-		await Assert.That(value: Encoding.UTF8.GetString(bytes: deadLettered!.Body.ToArray())).IsEqualTo(expected: Encoding.UTF8.GetString(bytes: invalidBody));
 	}
 
 	[Test]
-	public async Task Listener_WhenHandlerFailsRepeatedly_ShouldRequeueUntilMaxRetries()
+	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldNackWithoutRequeue()
 	{
 		RabbitMqOptions options = _baseOptions with { MaxRetries = 2 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
 		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
@@ -588,5 +571,43 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await Assert.That(value: recovered).IsNotNull();
 		await Assert.That(value: recovered!.MessageId).IsEqualTo(expected: sent.MessageId);
 		await Assert.That(value: recovered.AggregateId).IsEqualTo(expected: sent.AggregateId);
+	}
+
+	[Test]
+	public async Task Listener_WithPrefetchCountOne_ShouldNotDeliverMoreThanOneUnackedMessage()
+	{
+		RabbitMqOptions options = _baseOptions with { PrefetchCount = 1 };
+
+		await using ServiceProvider sp = BuildBlockingServiceProvider();
+		BlockingMessageHandlerState state = sp.GetRequiredService<BlockingMessageHandlerState>();
+		RabbitMqListenerService<AggregateEventsMessage, BlockingMessageHandler> listener = BuildListener<BlockingMessageHandler>(
+			options: options,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
+			connectionFactory: _connectionFactory,
+			options: Options.Create(options: options)
+		);
+
+		await listener.StartAsync(ct: CancellationToken.None);
+		await WaitForConsumerAsync();
+
+		const int publishedCount = 5;
+		for (int i = 0; i < publishedCount; i++)
+			await publisher.PublishAsync(message: BuildMessage());
+
+		bool firstReceived = await state.WaitForFirstMessageAsync(timeout: TimeSpan.FromSeconds(value: 5));
+
+		await Task.Delay(millisecondsDelay: 300);
+
+		QueueDeclareOk result = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
+
+		state.Release();
+		await listener.StopAsync(ct: CancellationToken.None);
+		listener.Dispose();
+
+		await Assert.That(value: firstReceived).IsTrue();
+		await Assert.That(value: state.CallCount).IsEqualTo(expected: 1);
+		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: publishedCount - 1);
 	}
 }

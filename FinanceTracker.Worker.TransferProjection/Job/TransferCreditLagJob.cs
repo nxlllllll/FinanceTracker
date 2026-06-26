@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.TransferCompensation;
@@ -60,10 +61,23 @@ public sealed class TransferCreditLagJob(
 			if (ct.IsCancellationRequested)
 				break;
 
-			await unitOfWork.ExecuteInTransactionAsync(
-				operation: async () => await compensationService.CompensateAsync(transfer: transfer, ct: ct), 
-				ct: ct
-			);
+			try
+			{
+				await unitOfWork.ExecuteInTransactionAsync(
+					operation: async () => await compensationService.CompensateAsync(transfer: transfer, ct: ct), 
+					ct: ct
+				);
+			}
+			catch (ConcurrencyConflictException)
+			{
+				logger.ZLogInformation(message: $"[{nameof(TransferCreditLagJob)}] Transfer {transfer.TransferId} was already resolved concurrently. Skipping.");
+			}
+			catch (Exception ex)
+			{
+				logger.ZLogError(exception: ex, message: $"""
+					[{nameof(TransferCreditLagJob)}] Failed to compensate transfer {transfer.TransferId}. Continuing with the rest of the batch.
+				""");
+			}
 		}
 	}
 }

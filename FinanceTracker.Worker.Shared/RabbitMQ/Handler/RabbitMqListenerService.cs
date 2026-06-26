@@ -130,6 +130,13 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
 		_channel = await _connection.CreateChannelAsync(cancellationToken: ct);
 
+		await _channel.BasicQosAsync(
+			prefetchSize: 0,
+			prefetchCount: (ushort)_options.PrefetchCount,
+			global: false,
+			cancellationToken: ct
+		);
+
 		await _channel.ExchangeDeclareAsync(
 			exchange: _options.ExchangeName,
 			type: ExchangeType.Topic,

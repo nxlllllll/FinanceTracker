@@ -37,15 +37,17 @@ public sealed class BudgetProgressWriteRepository(
         if (budgets.Count == 0)
             return;
 
-        List<CurrencyRateRequest> rateRequests = budgets.Select(selector: b => new CurrencyRateRequest(From: currencyCode, To: b.Currency, Date: date))
-             .Distinct()
-             .ToList();
+        List<CurrencyStableRateRequest> rateRequests = budgets.Select(selector: b => new CurrencyStableRateRequest(
+            From: currencyCode,
+            To: b.Currency,
+            AsOf: occurredAt
+        )).Distinct().ToList();
 
-        Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
+        Dictionary<CurrencyStableRateRequest, decimal> rates = await currencyConversionService.GetStableRatesBatchAsync(requests: rateRequests, ct: ct);
 
         foreach (BudgetEntity budget in budgets)
         {
-            decimal additionSpent = delta * Money.ConvertedAmount(amount: amount, rate: rates[new CurrencyRateRequest(From: currencyCode, To: budget.Currency, Date: date)].Rate);
+            decimal additionSpent = delta * Money.ConvertedAmount(amount: amount, rate: rates[new CurrencyStableRateRequest(From: currencyCode, To: budget.Currency, AsOf: occurredAt)]);
 
             await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
                 setPropertyCalls: builder => builder
@@ -162,17 +164,17 @@ public sealed class BudgetProgressWriteRepository(
             return;
         }
 
-        List<CurrencyRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyRateRequest(
+        List<CurrencyStableRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyStableRateRequest(
             From: t.Currency,
             To: budget.Currency,
-            Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)
+            AsOf: t.OccurredAt
         )).Distinct().ToList();
 
-        Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
+        Dictionary<CurrencyStableRateRequest, decimal> rates = await currencyConversionService.GetStableRatesBatchAsync(requests: rateRequests, ct: ct);
 
         decimal spent = transactions.Sum(selector: t => Money.ConvertedAmount(
             amount: t.Amount, 
-            rate: rates[new CurrencyRateRequest(From: t.Currency, To: budget.Currency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))].Rate
+            rate: rates[new CurrencyStableRateRequest(From: t.Currency, To: budget.Currency, AsOf: t.OccurredAt)]
         ));
 
         await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(

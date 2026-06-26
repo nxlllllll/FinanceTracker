@@ -26,4 +26,16 @@ public interface ICurrencyRateReadRepository
 		IReadOnlyCollection<CurrencyLatestRateRequest> pairs,
 		CancellationToken ct = default
 	);
+
+	Task<decimal?> GetRateKnownAtOrBeforeAsync(
+		ValueObjects.Currency baseCurrencyCode,
+		ValueObjects.Currency targetCurrencyCode,
+		DateTimeOffset asOf,
+		CancellationToken ct = default
+	);
+
+	Task<Dictionary<CurrencyStableRateRequest, decimal>> GetRatesKnownAtOrBeforeBatchAsync(
+		IReadOnlyCollection<CurrencyStableRateRequest> requests,
+		CancellationToken ct = default
+	);
 }

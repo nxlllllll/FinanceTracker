@@ -48,4 +48,13 @@ public sealed record RabbitMqOptions
 	/// </summary>
 	[Range(minimum: 1, maximum: 168)]
 	public int RetryCounterTtlHours { get; init; } = 24;
+
+	/// <summary>
+	/// Maximum number of unacknowledged messages the broker will deliver to this consumer at once
+	/// (<c>basic.qos</c> prefetch count). Bounds how much work piles up client-side, keeps delivery
+	/// fair across horizontally scaled replicas of the same worker, and limits how many messages get
+	/// requeued at once if this process crashes mid-batch. Default: 10.
+	/// </summary>
+	[Range(minimum: 1, maximum: 1000)]
+	public int PrefetchCount { get; init; } = 10;
 }

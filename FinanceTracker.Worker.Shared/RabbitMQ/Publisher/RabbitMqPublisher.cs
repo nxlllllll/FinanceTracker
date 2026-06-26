@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
@@ -12,7 +13,9 @@ namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 
 /// <summary>
 /// Publishes <see cref="IRoutableMessage"/> instances to a RabbitMQ topic exchange.
-/// Maintains a single lazy connection and channel, reconnecting automatically if needed.
+/// Concurrent callers never race to create duplicate connections, and the cached channel
+/// is re-validated via <see cref="IChannel.IsOpen"/> before reuse so a dropped connection
+/// (broker restart, network blip) is transparently recreated rather than silently reused forever. 
 /// Propagates the W3C <c>traceparent</c> header for distributed tracing across service boundaries.
 /// </summary>
 public sealed class RabbitMqPublisher(
@@ -21,9 +24,10 @@ public sealed class RabbitMqPublisher(
 ) : IRabbitMqPublisher
 {
 	private readonly RabbitMqOptions _options = options.Value;
+	private readonly SemaphoreSlim _channelLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
 	private IConnection? _connection;
 	private IChannel? _channel;
-
+	
 	public async Task PublishAsync<TMessage>(
 		TMessage message,
 		Guid? correlationId = default,
@@ -61,35 +65,61 @@ public sealed class RabbitMqPublisher(
 
 	private async Task<IChannel> GetOrCreateChannelAsync(CancellationToken ct)
 	{
-		if (_channel is not null)
+		if (_channel is { IsOpen: true })
 			return _channel;
 
-		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
+		await _channelLock.WaitAsync(cancellationToken: ct);
 
-		_channel = await _connection.CreateChannelAsync(
-			options: new CreateChannelOptions(
-				publisherConfirmationsEnabled: true,
-				publisherConfirmationTrackingEnabled: true
-			),
-			cancellationToken: ct
-		);
+		try
+		{
+			if (_channel is { IsOpen: true })
+				return _channel;
 
-		await _channel.ExchangeDeclareAsync(
-			exchange: _options.ExchangeName,
-			type: ExchangeType.Topic,
-			durable: true,
-			cancellationToken: ct
-		);
+			await DisposeStaleConnectionAsync();
 
-		return _channel;
+			_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
+
+			_channel = await _connection.CreateChannelAsync(
+				options: new CreateChannelOptions(
+					publisherConfirmationsEnabled: true,
+					publisherConfirmationTrackingEnabled: true
+				),
+				cancellationToken: ct
+			);
+
+			await _channel.ExchangeDeclareAsync(
+				exchange: _options.ExchangeName,
+				type: ExchangeType.Topic,
+				durable: true,
+				cancellationToken: ct
+			);
+
+			return _channel;
+		}
+		finally
+		{
+			_channelLock.Release();
+		}
+	}
+
+	private async Task DisposeStaleConnectionAsync()
+	{
+		if (_channel is not null)
+		{
+			await _channel.DisposeAsync();
+			_channel = null;
+		}
+
+		if (_connection is not null)
+		{
+			await _connection.DisposeAsync();
+			_connection = null;
+		}
 	}
 
 	public async ValueTask DisposeAsync()
 	{
-		if (_channel is not null)
-			await _channel.DisposeAsync();
-
-		if (_connection is not null)
-			await _connection.DisposeAsync();
+		await DisposeStaleConnectionAsync();
+		_channelLock.Dispose();
 	}
 }

@@ -9,81 +9,75 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="dbup-postgresql" Version="7.0.1" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
+        <PackageReference Include="dbup-postgresql" Version="7.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
     </ItemGroup>
     <ItemGroup>
-        <None Update="appsettings.json">
+        <None Update="appsettings.Development.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        <None Update="appsettings.Development.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
+        
+        <EmbeddedResource Include="Migrations\V014__add_idempotency_reserved_at.sql" />
+        <None Remove="Migrations\V001__init.sql" />
+        <EmbeddedResource Include="Migrations\V001__init.sql" />
+        <None Remove="Migrations\V002__add_outbox_indexes.sql" />
+        <EmbeddedResource Include="Migrations\V002__add_outbox_indexes.sql" />
+        <None Remove="Migrations\V003__add_unresolvable_events.sql" />
+        <EmbeddedResource Include="Migrations\V003__add_unresolvable_events.sql" />
+        <None Remove="Migrations\V004__fix_indexes.sql" />
+        <EmbeddedResource Include="Migrations\V004__fix_indexes.sql" />
+        <None Remove="Migrations\V005__add_user_sessions.sql" />
+        <EmbeddedResource Include="Migrations\V005__add_user_sessions.sql" />
+        <None Remove="Migrations\V006__add_domain_event_outbox.sql" />
+        <EmbeddedResource Include="Migrations\V006__add_domain_event_outbox.sql" />
+        <None Remove="Migrations\V007__add_read-model_Indexes.sql" />
+        <EmbeddedResource Include="Migrations\V007__add_read-model_Indexes.sql" />
+        <None Remove="Migrations\V008__add_transfer_status.sql" />
+        <EmbeddedResource Include="Migrations\V008__add_transfer_status.sql" />
+        <None Remove="Migrations\V009__idempotent_commands_nullable_response.sql" />
+        <EmbeddedResource Include="Migrations\V009__idempotent_commands_nullable_response.sql" />
+        <None Remove="Migrations\V010__operations_union_refactor.sql" />
+        <EmbeddedResource Include="Migrations\V010__operations_union_refactor.sql" />
+        <None Remove="Migrations\V011__add_pending_rate_indexes.sql" />
+        <EmbeddedResource Include="Migrations\V011__add_pending_rate_indexes.sql" />
+        <None Remove="Migrations\V012__add_processed_messages_cleanup_index.sql" />
+        <EmbeddedResource Include="Migrations\V012__add_processed_messages_cleanup_index.sql" />
+        <None Remove="Migrations\V013__add_budget_is_active.sql" />
+        <EmbeddedResource Include="Migrations\V013__add_budget_is_active.sql" />
+        <None Remove="Migrations\V015__remove_domain_event_outbox.sql" />
+        <EmbeddedResource Include="Migrations\V015__remove_domain_event_outbox.sql" />
+        <None Remove="Migrations\V016__add_row_version.sql" />
+        <EmbeddedResource Include="Migrations\V016__add_row_version.sql" />
+        <None Remove="Migrations\V017__optimize_cursor_indexes.sql" />
+        <EmbeddedResource Include="Migrations\V017__optimize_cursor_indexes.sql" />
+        <None Remove="Migrations\V018__optimize_read_indexes.sql" />
+        <EmbeddedResource Include="Migrations\V018__optimize_read_indexes.sql" />
+        <None Remove="Migrations\V019__optimize_recurring_due_today_index.sql" />
+        <EmbeddedResource Include="Migrations\V019__optimize_recurring_due_today_index.sql" />
+        <None Remove="Migrations\V021__add_aggregate_type_index.sql" />
+        <EmbeddedResource Include="Migrations\V021__add_aggregate_type_index.sql" />
+        <None Remove="Migrations\V022__add_base_currency_for_transaction.sql" />
+        <EmbeddedResource Include="Migrations\V022__add_base_currency_for_transaction.sql" />
+        <None Remove="Migrations\V023__scope_idempotent_commands.sql" />
+        <EmbeddedResource Include="Migrations\V023__scope_idempotent_commands.sql" />
+        <None Remove="Migrations\V020__add_rm_operations.sql" />
+        <EmbeddedResource Include="Migrations\V020__add_rm_operations.sql" />
+        <None Remove="Migrations\V024__add_last_missed_at_to_recurring_transactions.sql" />
+        <EmbeddedResource Include="Migrations\V024__add_last_missed_at_to_recurring_transactions.sql" />
+        <None Remove="Migrations\V025__add_acknowledged_and_resolved_to_unresolvable_events.sql" />
+        <EmbeddedResource Include="Migrations\V025__add_acknowledged_and_resolved_to_unresolvable_events.sql" />
+        <None Remove="Migrations\V026__cover_pending_rate_index.sql" />
+        <EmbeddedResource Include="Migrations\V026__cover_pending_rate_index.sql" />
+        <None Remove="Migrations\V027__cover_pending_credit_index.sql" />
+        <EmbeddedResource Include="Migrations\V027__cover_pending_credit_index.sql" />
+        <None Remove="Migrations\V028__add_outbox_lock.sql" />
+        <EmbeddedResource Include="Migrations\V028__add_outbox_lock.sql" />
+        <None Remove="Migrations\V029__add_quartz_scheduler_tables.sql" />
+        <EmbeddedResource Include="Migrations\V029__add_quartz_scheduler_tables.sql" />
     </ItemGroup>
     <ItemGroup>
-      <EmbeddedResource Include="Migrations\V014__add_idempotency_reserved_at.sql" />
-      <None Remove="Migrations\V001__init.sql" />
-      <EmbeddedResource Include="Migrations\V001__init.sql" />
-      <None Remove="Migrations\V002__add_outbox_indexes.sql" />
-      <EmbeddedResource Include="Migrations\V002__add_outbox_indexes.sql" />
-      <None Remove="Migrations\V003__add_unresolvable_events.sql" />
-      <EmbeddedResource Include="Migrations\V003__add_unresolvable_events.sql" />
-      <None Remove="Migrations\V004__fix_indexes.sql" />
-      <EmbeddedResource Include="Migrations\V004__fix_indexes.sql" />
-      <None Remove="Migrations\V005__add_user_sessions.sql" />
-      <EmbeddedResource Include="Migrations\V005__add_user_sessions.sql" />
-      <None Remove="Migrations\V006__add_domain_event_outbox.sql" />
-      <EmbeddedResource Include="Migrations\V006__add_domain_event_outbox.sql" />
-      <None Remove="Migrations\V007__add_read-model_Indexes.sql" />
-      <EmbeddedResource Include="Migrations\V007__add_read-model_Indexes.sql" />
-      <None Remove="Migrations\V008__add_transfer_status.sql" />
-      <EmbeddedResource Include="Migrations\V008__add_transfer_status.sql" />
-      <None Remove="Migrations\V009__idempotent_commands_nullable_response.sql" />
-      <EmbeddedResource Include="Migrations\V009__idempotent_commands_nullable_response.sql" />
-      <None Remove="Migrations\V010__operations_union_refactor.sql" />
-      <EmbeddedResource Include="Migrations\V010__operations_union_refactor.sql" />
-      <None Remove="Migrations\V011__add_pending_rate_indexes.sql" />
-      <EmbeddedResource Include="Migrations\V011__add_pending_rate_indexes.sql" />
-      <None Remove="Migrations\V012__add_processed_messages_cleanup_index.sql" />
-      <EmbeddedResource Include="Migrations\V012__add_processed_messages_cleanup_index.sql" />
-      <None Remove="Migrations\V013__add_budget_is_active.sql" />
-      <EmbeddedResource Include="Migrations\V013__add_budget_is_active.sql" />
-      <None Remove="Migrations\V015__remove_domain_event_outbox.sql" />
-      <EmbeddedResource Include="Migrations\V015__remove_domain_event_outbox.sql" />
-      <None Remove="Migrations\V016__add_row_version.sql" />
-      <EmbeddedResource Include="Migrations\V016__add_row_version.sql" />
-      <None Remove="Migrations\V017__optimize_cursor_indexes.sql" />
-      <EmbeddedResource Include="Migrations\V017__optimize_cursor_indexes.sql" />
-      <None Remove="Migrations\V018__optimize_read_indexes.sql" />
-      <EmbeddedResource Include="Migrations\V018__optimize_read_indexes.sql" />
-      <None Remove="Migrations\V019__optimize_recurring_due_today_index.sql" />
-      <EmbeddedResource Include="Migrations\V019__optimize_recurring_due_today_index.sql" />
-      <None Remove="Migrations\V021__add_aggregate_type_index.sql" />
-      <EmbeddedResource Include="Migrations\V021__add_aggregate_type_index.sql" />
-      <None Remove="Migrations\V022__add_base_currency_for_transaction.sql" />
-      <EmbeddedResource Include="Migrations\V022__add_base_currency_for_transaction.sql" />
-      <None Remove="Migrations\V023__scope_idempotent_commands.sql" />
-      <EmbeddedResource Include="Migrations\V023__scope_idempotent_commands.sql" />
-      <None Remove="Migrations\V020__add_rm_operations.sql" />
-      <EmbeddedResource Include="Migrations\V020__add_rm_operations.sql" />
-      <None Remove="Migrations\V024__add_last_missed_at_to_recurring_transactions.sql" />
-      <EmbeddedResource Include="Migrations\V024__add_last_missed_at_to_recurring_transactions.sql" />
-      <None Remove="Migrations\V025__add_acknowledged_and_resolved_to_unresolvable_events.sql" />
-      <EmbeddedResource Include="Migrations\V025__add_acknowledged_and_resolved_to_unresolvable_events.sql" />
-      <None Remove="Migrations\V026__cover_pending_rate_index.sql" />
-      <EmbeddedResource Include="Migrations\V026__cover_pending_rate_index.sql" />
-      <None Remove="Migrations\V027__cover_pending_credit_index.sql" />
-      <EmbeddedResource Include="Migrations\V027__cover_pending_credit_index.sql" />
-      <None Remove="Migrations\V028__add_outbox_lock.sql" />
-      <EmbeddedResource Include="Migrations\V028__add_outbox_lock.sql" />
-      <None Remove="Migrations\V029__add_quartz_scheduler_tables.sql" />
-      <EmbeddedResource Include="Migrations\V029__add_quartz_scheduler_tables.sql" />
+        <Content Include="..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
     </ItemGroup>
-    <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
-    </ItemGroup>
-
 </Project>

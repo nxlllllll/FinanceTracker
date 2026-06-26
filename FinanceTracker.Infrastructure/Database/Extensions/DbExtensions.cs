@@ -12,7 +12,8 @@ namespace FinanceTracker.Infrastructure.Database.Extensions;
 public static class DbContextExtensions
 {
 	private sealed record CurrencyRateRow(string BaseCode, string TargetCode, decimal Rate);
-	
+	private sealed record CurrencyStableRateRow(string BaseCode, string TargetCode, DateTime AsOfUtc, decimal Rate);
+
 	/// <summary>
 	/// Upserts a category total row — inserts or increments existing total and count atomically.
 	/// Uses <c>ON CONFLICT DO UPDATE</c> to avoid lost updates under concurrent writes.
@@ -111,12 +112,36 @@ public static class DbContextExtensions
 		CancellationToken ct = default)
 	{
 		return context.Database.SqlQuery<CurrencyRateRow>($"""
-			SELECT DISTINCT ON (base_code, target_code) base_code AS BaseCode, target_code AS TargetCode, actual_at AS ActualAt, rate AS Rate
+			SELECT DISTINCT ON (base_code, target_code) base_code AS BaseCode, target_code AS TargetCode, rate AS Rate
 			FROM currency_rates
 			WHERE base_code = ANY({fromCodes}) AND target_code = ANY({toCodes})
 			ORDER BY base_code, target_code, actual_at DESC
 		""").ToDictionaryAsync(
 			keySelector: row => (row.BaseCode, row.TargetCode),
+			elementSelector: row => row.Rate,
+			cancellationToken: ct
+		);
+	}
+
+	public static Task<Dictionary<(string BaseCode, string TargetCode, DateTime AsOfUtc), decimal>> GetCurrencyRatesKnownAtOrBeforeBatchAsync(
+		this FinanceTrackerContext context,
+		string[] fromCodes,
+		string[] toCodes,
+		DateTime[] asOfUtc,
+		CancellationToken ct = default)
+	{
+		return context.Database.SqlQuery<CurrencyStableRateRow>($"""
+			SELECT q.base_code AS BaseCode, q.target_code AS TargetCode, q.as_of AS AsOfUtc, r.rate AS Rate
+			FROM unnest({fromCodes}, {toCodes}, {asOfUtc}) AS q(base_code, target_code, as_of)
+			JOIN LATERAL (
+				SELECT cr.rate
+				FROM currency_rates cr
+				WHERE cr.base_code = q.base_code AND cr.target_code = q.target_code AND cr.created_at <= q.as_of
+				ORDER BY cr.created_at DESC
+				LIMIT 1
+			) r ON true
+		""").ToDictionaryAsync(
+			keySelector: row => (row.BaseCode, row.TargetCode, row.AsOfUtc),
 			elementSelector: row => row.Rate,
 			cancellationToken: ct
 		);

@@ -117,4 +117,88 @@ public sealed class CurrencyConversionServiceTests
             date: date
         )).Throws<CurrencyRateNotFoundException>();
     }
+
+    [Test]
+    public async Task GetStableRateAsync_WhenRateIsKnown_ShouldReturnRate()
+    {
+        DateTimeOffset asOf = DateTimeOffset.UtcNow;
+
+        _currencyRateReadRepository.GetRateKnownAtOrBeforeAsync(
+            baseCurrencyCode: Currency.Create(value: "USD").Value,
+            targetCurrencyCode: Currency.Create(value: "RUB").Value,
+            asOf: asOf,
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: 90m);
+
+        decimal result = await _service.GetStableRateAsync(
+            fromCurrency: Currency.Create(value: "USD").Value,
+            toCurrency: Currency.Create(value: "RUB").Value,
+            asOf: asOf
+        );
+
+        await Assert.That(value: result).IsEqualTo(expected: 90m);
+    }
+
+    [Test]
+    public async Task GetStableRateAsync_WhenRateNotKnown_ShouldThrowCurrencyRateNotFoundException()
+    {
+        _currencyRateReadRepository.GetRateKnownAtOrBeforeAsync(
+            baseCurrencyCode: Arg.Any<Currency>(),
+            targetCurrencyCode: Arg.Any<Currency>(),
+            asOf: Arg.Any<DateTimeOffset>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: (decimal?)null);
+
+        await Assert.That(action: async () => await _service.GetStableRateAsync(
+            fromCurrency: Currency.Create(value: "USD").Value,
+            toCurrency: Currency.Create(value: "RUB").Value,
+            asOf: DateTimeOffset.UtcNow
+        )).Throws<CurrencyRateNotFoundException>();
+    }
+
+    [Test]
+    public async Task GetStableRatesBatchAsync_WhenEmpty_ShouldReturnEmptyDictionary()
+    {
+        Dictionary<CurrencyStableRateRequest, decimal> result = await _service.GetStableRatesBatchAsync(requests: []);
+
+        await Assert.That(value: result).IsEmpty();
+    }
+
+    [Test]
+    public async Task GetStableRatesBatchAsync_WhenAllResolved_ShouldReturnAllRates()
+    {
+        CurrencyStableRateRequest request = new CurrencyStableRateRequest(
+            From: Currency.Create(value: "USD").Value,
+            To: Currency.Create(value: "RUB").Value,
+            AsOf: DateTimeOffset.UtcNow
+        );
+
+        _currencyRateReadRepository.GetRatesKnownAtOrBeforeBatchAsync(
+            requests: Arg.Any<IReadOnlyCollection<CurrencyStableRateRequest>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: new Dictionary<CurrencyStableRateRequest, decimal> { [request] = 90m });
+
+        Dictionary<CurrencyStableRateRequest, decimal> result = await _service.GetStableRatesBatchAsync(requests: [request]);
+
+        await Assert.That(value: result[request]).IsEqualTo(expected: 90m);
+    }
+
+    [Test]
+    public async Task GetStableRatesBatchAsync_WhenRequestMissingFromRepositoryResult_ShouldThrowCurrencyRateNotFoundException()
+    {
+        CurrencyStableRateRequest request = new CurrencyStableRateRequest(
+            From: Currency.Create(value: "USD").Value,
+            To: Currency.Create(value: "RUB").Value,
+            AsOf: DateTimeOffset.UtcNow
+        );
+
+        _currencyRateReadRepository.GetRatesKnownAtOrBeforeBatchAsync(
+            requests: Arg.Any<IReadOnlyCollection<CurrencyStableRateRequest>>(),
+            ct: Arg.Any<CancellationToken>()
+        ).Returns(returnThis: new Dictionary<CurrencyStableRateRequest, decimal>());
+
+        await Assert.That(
+            action: async () => await _service.GetStableRatesBatchAsync(requests: [request])
+        ).Throws<CurrencyRateNotFoundException>();
+    }
 }

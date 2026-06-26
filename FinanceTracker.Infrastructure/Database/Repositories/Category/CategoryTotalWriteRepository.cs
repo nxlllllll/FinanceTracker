@@ -32,16 +32,15 @@ public sealed class CategoryTotalWriteRepository(
 		DateTimeOffset occurredAt,
 		CancellationToken ct)
 	{
-		DateOnly date = DateOnly.FromDateTime(dateTime: occurredAt.UtcDateTime);
 		DateOnly period = new DateOnly(year: occurredAt.Year, month: occurredAt.Month, day: 1);
 
 		UserReadModel user = await userQueryRepository.GetByIdAsync(userId: userId, ct: ct)
 			?? throw new NotFoundException(message: "User not found.", id: userId);
 		
-		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
+		decimal rate = await currencyConversionService.GetStableRateAsync(
 			fromCurrency: currency,
 			toCurrency: user.BaseCurrency,
-			date: date,
+			asOf: occurredAt,
 			ct: ct
 		);
 			
@@ -51,7 +50,7 @@ public sealed class CategoryTotalWriteRepository(
 		    UserId = userId,
 		    CategoryId = categoryId,
 		    Period = period,
-		    Total = delta * Money.ConvertedAmount(amount: amount, rate: conversion.Rate),
+		    Total = delta * Money.ConvertedAmount(amount: amount, rate: rate),
 		    TransactionCount = delta,
 		    UpdatedAt = dateProvider.UtcNow
 		}, ct: ct);
@@ -140,13 +139,13 @@ public sealed class CategoryTotalWriteRepository(
 		if (transactions.Count == 0)
 			return;
 
-		List<CurrencyRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyRateRequest(
+		List<CurrencyStableRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyStableRateRequest(
 			From: t.Currency,
 			To: baseCurrency,
-			Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime)
+			AsOf: t.OccurredAt
 		)).Distinct().ToList();
 
-		Dictionary<CurrencyRateRequest, ConversionResult> rates = await currencyConversionService.GetConversionRatesBatchAsync(requests: rateRequests, ct: ct);
+		Dictionary<CurrencyStableRateRequest, decimal> rates = await currencyConversionService.GetStableRatesBatchAsync(requests: rateRequests, ct: ct);
 
 		DateTimeOffset now = dateProvider.UtcNow;
 
@@ -164,7 +163,7 @@ public sealed class CategoryTotalWriteRepository(
 				Period = group.Key.Period,
 				Total = group.Sum(selector: t => Money.ConvertedAmount(
 					amount: t.Amount,
-					rate: rates[new CurrencyRateRequest(From: t.Currency, To: baseCurrency, Date: DateOnly.FromDateTime(dateTime: t.OccurredAt.UtcDateTime))].Rate
+					rate: rates[new CurrencyStableRateRequest(From: t.Currency, To: baseCurrency, AsOf: t.OccurredAt)]
 				)),
 				TransactionCount = group.Count(),
 				RowVersion = 0,

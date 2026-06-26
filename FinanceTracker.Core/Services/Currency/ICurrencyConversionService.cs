@@ -26,4 +26,24 @@ public interface ICurrencyConversionService
 		IReadOnlyCollection<CurrencyRateRequest> requests,
 		CancellationToken ct = default
 	);
+
+	/// <summary>
+	/// Returns the rate already known (recorded) at or before <paramref name="asOf"/> — a stable,
+	/// time-invariant answer for a fixed <paramref name="asOf"/>, unlike <see cref="GetConversionRateAsync"/>
+	/// which can resolve differently over time when it falls back to "latest available".
+	/// Throws <see cref="Exceptions.DomainExceptions.CurrencyRateNotFoundException"/> if no rate
+	/// was ever recorded before <paramref name="asOf"/>.
+	/// </summary>
+	Task<decimal> GetStableRateAsync(
+		ValueObjects.Currency fromCurrency,
+		ValueObjects.Currency toCurrency,
+		DateTimeOffset asOf,
+		CancellationToken ct = default
+	);
+
+	/// <summary>Batch variant of <see cref="GetStableRateAsync"/>.</summary>
+	Task<Dictionary<CurrencyStableRateRequest, decimal>> GetStableRatesBatchAsync(
+		IReadOnlyCollection<CurrencyStableRateRequest> requests,
+		CancellationToken ct = default
+	);
 }

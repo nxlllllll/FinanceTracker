@@ -1,5 +1,6 @@
 using DbUp.Engine;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace FinanceTracker.Migrator;
 
@@ -15,13 +16,13 @@ public sealed class Program
 	
 	public static int Main(string[] args)
 	{
-		IConfiguration configuration = new ConfigurationBuilder().AddJsonFile(path: "appsettings.json", optional: false)
-			.AddJsonFile(path: "appsettings.Development.json", optional: false)
-			.AddEnvironmentVariables()
-			.Build();
+		HostApplicationBuilder builder = Host.CreateApplicationBuilder(args: args);
+		IConfiguration configuration = builder.Configuration;
 
-		string connectionString = configuration.GetConnectionString(name: "FinanceTrackerContext")
-			?? throw new InvalidOperationException(message: "Connection string 'FinanceTrackerContext' is not configured.");
+		string? connectionString = configuration.GetConnectionString(name: "FinanceTrackerContext");
+
+		if (String.IsNullOrWhiteSpace(value: connectionString))
+			throw new InvalidOperationException(message: "Connection string 'FinanceTrackerContext' is not configured.");
 
 		UpgradeEngine upgrader = DatabaseMigrator.CreateUpgradeEngine(connectionString: connectionString);
 
@@ -45,7 +46,7 @@ public sealed class Program
 
 		if (!result.Successful)
 			return ColorPrinting(color: ConsoleColor.Red, text: $"[Migrator] Failed: {result.Error.Message}", exitCode: 1);
-		
+
 		return ColorPrinting(color: ConsoleColor.Green, text: $"[Migrator] All migrations applied successfully.", exitCode: 0);
 	}
 }

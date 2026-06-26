@@ -17,6 +17,7 @@ public sealed class CachedCurrencyRateReadRepository(
 ) : ICurrencyRateReadRepository
 {
 	private static readonly TimeSpan NotFoundTtl = TimeSpan.FromMinutes(value: 1);
+	private static readonly TimeSpan StableTtl = TimeSpan.FromDays(value: 30);
 
 	private DistributedCacheEntryOptions EndOfDay => new DistributedCacheEntryOptions
 	{
@@ -28,6 +29,11 @@ public sealed class CachedCurrencyRateReadRepository(
 		AbsoluteExpirationRelativeToNow = NotFoundTtl
 	};
 
+	private static DistributedCacheEntryOptions Stable => new DistributedCacheEntryOptions
+	{
+		AbsoluteExpirationRelativeToNow = StableTtl
+	};
+
 	private DistributedCacheEntryOptions OptionsFor(decimal? value)
 		=> value is null ? NotFound : EndOfDay;
 
@@ -36,6 +42,9 @@ public sealed class CachedCurrencyRateReadRepository(
 
 	private static string LatestRateKey(Currency from, Currency to)
 		=> $"rate:latest:{from.Value}:{to.Value}";
+
+	private static string StableRateKey(CurrencyStableRateRequest request)
+		=> $"rate:stable:{request.From.Value}:{request.To.Value}:{request.AsOf.UtcTicks}";
 
 	public async Task<decimal?> GetRateAsync(
 		Currency baseCurrencyCode,
@@ -163,6 +172,73 @@ public sealed class CachedCurrencyRateReadRepository(
 			}
 			else
 				await redisCache.SetAsync(key: key, value: (decimal?)null, options: NotFound, ct: ct);
+		}
+
+		return result;
+	}
+
+	public async Task<decimal?> GetRateKnownAtOrBeforeAsync(
+		Currency baseCurrencyCode,
+		Currency targetCurrencyCode,
+		DateTimeOffset asOf,
+		CancellationToken ct = default)
+	{
+		string key = StableRateKey(request: new CurrencyStableRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, AsOf: asOf));
+		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
+		if (entry.Found)
+			return entry.Value;
+
+		decimal? result = await inner.GetRateKnownAtOrBeforeAsync(
+			baseCurrencyCode: baseCurrencyCode,
+			targetCurrencyCode: targetCurrencyCode,
+			asOf: asOf,
+			ct: ct
+		);
+
+		await redisCache.SetAsync(key: key, value: result, options: Stable, ct: ct);
+		return result;
+	}
+
+	public async Task<Dictionary<CurrencyStableRateRequest, decimal>> GetRatesKnownAtOrBeforeBatchAsync(
+		IReadOnlyCollection<CurrencyStableRateRequest> requests,
+		CancellationToken ct = default)
+	{
+		if (requests.Count == 0)
+			return [];
+
+		Dictionary<CurrencyStableRateRequest, decimal> result = [];
+		List<CurrencyStableRateRequest> cacheMisses = [];
+
+		foreach (CurrencyStableRateRequest request in requests)
+		{
+			if (request.From == request.To)
+			{
+				result[request] = 1m;
+				continue;
+			}
+
+			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: StableRateKey(request: request), ct: ct);
+			if (entry is { Found: true, Value: not null })
+				result[request] = entry.Value.Value;
+			else
+				cacheMisses.Add(item: request);
+		}
+
+		if (cacheMisses.Count == 0)
+			return result;
+
+		Dictionary<CurrencyStableRateRequest, decimal> dbResults = await inner.GetRatesKnownAtOrBeforeBatchAsync(requests: cacheMisses, ct: ct);
+
+		foreach (CurrencyStableRateRequest request in cacheMisses)
+		{
+			string key = StableRateKey(request: request);
+			if (dbResults.TryGetValue(key: request, out decimal rate))
+			{
+				result[request] = rate;
+				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: Stable, ct: ct);
+			}
+			else
+				await redisCache.SetAsync(key: key, value: (decimal?)null, options: Stable, ct: ct);
 		}
 
 		return result;

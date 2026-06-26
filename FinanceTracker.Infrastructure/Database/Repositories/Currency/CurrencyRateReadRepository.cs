@@ -105,4 +105,61 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 			elementSelector: kvp => kvp.Value
 		);
 	}
+
+	public async Task<decimal?> GetRateKnownAtOrBeforeAsync(
+		Core.ValueObjects.Currency baseCurrencyCode,
+		Core.ValueObjects.Currency targetCurrencyCode,
+		DateTimeOffset asOf,
+		CancellationToken ct = default)
+	{
+		if (baseCurrencyCode == targetCurrencyCode)
+			return 1m;
+
+		return await context.CurrencyRates.AsNoTracking()
+			.Where(predicate: rate => rate.BaseCode == baseCurrencyCode && rate.TargetCode == targetCurrencyCode && rate.CreatedAt <= asOf)
+			.OrderByDescending(keySelector: rate => rate.CreatedAt)
+			.Select(selector: r => (decimal?)r.Rate)
+			.FirstOrDefaultAsync(cancellationToken: ct);
+	}
+
+	public async Task<Dictionary<CurrencyStableRateRequest, decimal>> GetRatesKnownAtOrBeforeBatchAsync(
+		IReadOnlyCollection<CurrencyStableRateRequest> requests,
+		CancellationToken ct = default)
+	{
+		if (requests.Count == 0)
+			return [];
+
+		Dictionary<CurrencyStableRateRequest, decimal> result = [];
+		List<CurrencyStableRateRequest> foreignRequests = [];
+
+		foreach (CurrencyStableRateRequest request in requests)
+		{
+			if (request.From == request.To)
+				result[request] = 1m;
+			else
+				foreignRequests.Add(item: request);
+		}
+
+		if (foreignRequests.Count == 0)
+			return result;
+
+		List<CurrencyStableRateRequest> distinctRequests = foreignRequests.Distinct().ToList();
+
+		string[] fromCodes = distinctRequests.Select(selector: r => r.From.Value).ToArray();
+		string[] toCodes = distinctRequests.Select(selector: r => r.To.Value).ToArray();
+		DateTime[] asOfUtc = distinctRequests.Select(selector: r => r.AsOf.UtcDateTime).ToArray();
+
+		Dictionary<(string BaseCode, string TargetCode, DateTime AsOfUtc), decimal> rows = await context.GetCurrencyRatesKnownAtOrBeforeBatchAsync(
+			fromCodes: fromCodes,
+			toCodes: toCodes,
+			asOfUtc: asOfUtc,
+			ct: ct
+		);
+
+		foreach (CurrencyStableRateRequest request in distinctRequests)
+			if (rows.TryGetValue(key: (request.From.Value, request.To.Value, request.AsOf.UtcDateTime), out decimal rate))
+				result[request] = rate;
+
+		return result;
+	}
 }
