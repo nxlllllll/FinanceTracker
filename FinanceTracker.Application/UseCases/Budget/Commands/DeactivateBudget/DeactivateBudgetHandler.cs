@@ -17,21 +17,21 @@ public sealed class DeactivateBudgetHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		DeactivateBudgetCommand command,
-		Core.Domains.Budget.Budget accounts,
+		Core.Domains.Budget.Budget entity,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = accounts.Deactivate();
+		Result<Unit, DomainException> result = entity.Deactivate();
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
-		await budgetWriteRepository.DeactivateAsync(budgetId: accounts.Id, expectedVersion: accounts.RowVersion, ct: ct);
+		await budgetWriteRepository.DeactivateAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, ct: ct);
 		
 		await publisher.Publish(notification: new BudgetDeactivatedNotification(
-			BudgetId: accounts.Id,
-			UserId: accounts.UserId,
+			BudgetId: entity.Id,
+			UserId: entity.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

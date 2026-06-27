@@ -1,9 +1,7 @@
 ﻿using BenchmarkDotNet.Attributes;
 using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
-using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
-using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Context;

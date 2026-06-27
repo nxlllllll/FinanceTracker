@@ -32,7 +32,7 @@ public sealed class ChangeBudgetAmountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 5000m),
-			accounts: budget,
+			entity: budget,
 			ct: CancellationToken.None
 		);
 
@@ -51,7 +51,7 @@ public sealed class ChangeBudgetAmountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 5000m),
-			accounts: budget,
+			entity: budget,
 			ct: CancellationToken.None
 		);
 
@@ -71,7 +71,7 @@ public sealed class ChangeBudgetAmountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: -1m),
-			accounts: budget,
+			entity: budget,
 			ct: CancellationToken.None
 		);
 

@@ -29,26 +29,23 @@ public sealed class EventEntityConfiguration : IEntityTypeConfiguration<EventEnt
 			.HasColumnName(name: "event_type")
 			.HasMaxLength(maxLength: 100);
 
-        builder.Property(propertyExpression: e => e.Version)
-            .HasColumnName(name: "version");
+		builder.Property(propertyExpression: e => e.Version)
+			.HasColumnName(name: "version");
 
-        builder.Property(propertyExpression: e => e.CorrelationId)
-            .HasColumnName(name: "correlation_id");
+		builder.Property(propertyExpression: e => e.CorrelationId)
+			.HasColumnName(name: "correlation_id");
 
-        builder.Property(propertyExpression: e => e.Payload)
-            .HasColumnName(name: "payload")
-            .HasColumnType(typeName: "jsonb");
+		builder.Property(propertyExpression: e => e.Payload)
+			.HasColumnName(name: "payload")
+			.HasColumnType(typeName: "jsonb");
 
-        builder.Property(propertyExpression: e => e.OccurredAt)
-            .HasColumnName(name: "occurred_at");
+		builder.Property(propertyExpression: e => e.OccurredAt)
+			.HasColumnName(name: "occurred_at");
 
-        builder.Property(propertyExpression: e => e.CreatedAt)
-            .HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: e => e.CreatedAt)
+			.HasColumnName(name: "created_at");
 
-        builder.Property(propertyExpression: e => e.SchemaVersion)
-            .HasColumnName(name: "schema_version");
-		
-        // builder.HasAlternateKey(keyExpression: e => new { e.AggregateId, e.Version })
-        //     .HasName(name: VersionConstraint);
-    }
+		builder.Property(propertyExpression: e => e.SchemaVersion)
+			.HasColumnName(name: "schema_version");
+	}
 }

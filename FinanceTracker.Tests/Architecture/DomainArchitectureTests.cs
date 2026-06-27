@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Tests.Architecture.Helpers;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;

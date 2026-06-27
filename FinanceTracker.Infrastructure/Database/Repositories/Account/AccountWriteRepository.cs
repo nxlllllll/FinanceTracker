@@ -27,8 +27,21 @@ public sealed class AccountWriteRepository(
 			cancellationToken: ct
 		);
 
-		if (rows == 0)
-			throw new ConcurrencyConflictException(message: $"Concurrency conflict: account balance {accountId} was already updated to version >= {version}.", id: accountId);
+		if (rows > 0)
+			return;
+
+		int? currentVersion = await context.AccountBalances
+			.Where(predicate: b => b.AccountId == accountId)
+			.Select(selector: b => (int?)b.LastVersion)
+			.FirstOrDefaultAsync(cancellationToken: ct);
+
+		if (currentVersion is null)
+			throw new NotFoundException(message: $"Account balance row for {accountId} does not exist yet (AccountCreated not projected?).", id: accountId);
+
+		throw new ConcurrencyConflictException(
+			message: $"Account balance {accountId}: cannot apply version {version}, current LastVersion is already {currentVersion}.",
+			id: accountId
+		);
 	}
 
 	public async Task CreateAsync(
@@ -59,20 +72,12 @@ public sealed class AccountWriteRepository(
 		AccountBalanceAdjusted @event,
 		CancellationToken ct = default)
 	{
-		int rows = await context.AccountBalances.Where(predicate: balance => balance.AccountId == @event.AccountId && balance.LastVersion < @event.Version).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: balance => balance.Balance, valueExpression: balance => balance.Balance + @event.Delta)
-				.SetProperty(propertyExpression: balance => balance.LastVersion, valueExpression: @event.Version)
-				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
-			cancellationToken: ct
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: @event.Delta,
+			version: @event.Version,
+			ct: ct
 		);
-
-		if (rows == 0)
-		{
-			throw new ConcurrencyConflictException(
-				message: $"Concurrency conflict: account balance {@event.AccountId} was already updated to version >= {@event.Version}.",
-				id: @event.AccountId
-			);
-		}
 	}
 
 	public async Task DebitAsync(

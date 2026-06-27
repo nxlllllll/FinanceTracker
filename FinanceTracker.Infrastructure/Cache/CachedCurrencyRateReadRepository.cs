@@ -46,44 +46,128 @@ public sealed class CachedCurrencyRateReadRepository(
 	private static string StableRateKey(CurrencyStableRateRequest request)
 		=> $"rate:stable:{request.From.Value}:{request.To.Value}:{request.AsOf.UtcTicks}";
 
-	public async Task<decimal?> GetRateAsync(
+	/// <summary>
+	/// Shared shape for every single-item method below: cache hit → return it; cache miss →
+	/// ask <paramref name="fetch"/> (always a call into <see cref="inner"/>), cache whatever
+	/// comes back under <paramref name="optionsFor"/>, then return it.
+	/// </summary>
+	private async Task<decimal?> GetOrFetchAsync(
+		string key,
+		Func<Task<decimal?>> fetch,
+		Func<decimal?, DistributedCacheEntryOptions> optionsFor,
+		CancellationToken ct)
+	{
+		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
+		if (entry.Found)
+			return entry.Value;
+
+		decimal? result = await fetch();
+		await redisCache.SetAsync(key: key, value: result, options: optionsFor(result), ct: ct);
+		return result;
+	}
+
+	/// <summary>
+	/// Shared first pass for every batch method below: resolves same-currency pairs immediately
+	/// (no cache, no DB), and for the rest, checks the cache — splitting into already-cached
+	/// hits (added directly to the result) and genuine cache misses (returned for the caller's
+	/// own DB batch call).
+	/// </summary>
+	private async Task<(Dictionary<TRequest, decimal> Result, List<TRequest> CacheMisses)> SplitCacheAsync<TRequest>(
+		IReadOnlyCollection<TRequest> requests,
+		Func<TRequest, Currency> from,
+		Func<TRequest, Currency> to,
+		Func<TRequest, string> keyFor,
+		CancellationToken ct)
+		where TRequest : notnull
+	{
+		Dictionary<TRequest, decimal> result = [];
+		List<TRequest> cacheMisses = [];
+
+		foreach (TRequest request in requests)
+		{
+			if (from(request) == to(request))
+			{
+				result[request] = 1m;
+				continue;
+			}
+
+			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: keyFor(request), ct: ct);
+			if (entry is { Found: true, Value: not null })
+				result[request] = entry.Value.Value;
+			else
+				cacheMisses.Add(item: request);
+		}
+
+		return (result, cacheMisses);
+	}
+
+	/// <summary>
+	/// Shared write-back for every batch method below: for each item that missed the cache,
+	/// either record what the DB returned (and cache it under <paramref name="foundOptions"/>),
+	/// or cache the absence under <paramref name="notFoundOptions"/>.
+	/// </summary>
+	private async Task WriteBackAsync<TRequest>(
+		Dictionary<TRequest, decimal> result,
+		List<TRequest> cacheMisses,
+		Dictionary<TRequest, decimal> dbResults,
+		Func<TRequest, string> keyFor,
+		DistributedCacheEntryOptions foundOptions,
+		DistributedCacheEntryOptions notFoundOptions,
+		CancellationToken ct)
+		where TRequest : notnull
+	{
+		foreach (TRequest request in cacheMisses)
+		{
+			string key = keyFor(request);
+			if (dbResults.TryGetValue(key: request, out decimal rate))
+			{
+				result[request] = rate;
+				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: foundOptions, ct: ct);
+			}
+			else
+				await redisCache.SetAsync(key: key, value: (decimal?)null, options: notFoundOptions, ct: ct);
+		}
+	}
+
+	public Task<decimal?> GetRateAsync(
 		Currency baseCurrencyCode,
 		Currency targetCurrencyCode,
 		DateOnly date,
 		CancellationToken ct = default)
 	{
-		string key = RateKey(request: new CurrencyRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, Date: date));
-		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
-		if (entry.Found)
-			return entry.Value;
-
-		decimal? result = await inner.GetRateAsync(
-			baseCurrencyCode: baseCurrencyCode,
-			targetCurrencyCode: targetCurrencyCode,
-			date: date,
+		return GetOrFetchAsync(
+			key: RateKey(request: new CurrencyRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, Date: date)),
+			fetch: () => inner.GetRateAsync(baseCurrencyCode: baseCurrencyCode, targetCurrencyCode: targetCurrencyCode, date: date, ct: ct),
+			optionsFor: OptionsFor,
 			ct: ct
 		);
-		await redisCache.SetAsync(key: key, value: result, options: OptionsFor(value: result), ct: ct);
-		return result;
 	}
 
-	public async Task<decimal?> GetLatestRateAsync(
+	public Task<decimal?> GetLatestRateAsync(
 		Currency baseCurrencyCode,
 		Currency targetCurrencyCode,
 		CancellationToken ct = default)
 	{
-		string key = LatestRateKey(from: baseCurrencyCode, to: targetCurrencyCode);
-		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
-		if (entry.Found)
-			return entry.Value;
-
-		decimal? result = await inner.GetLatestRateAsync(
-			baseCurrencyCode: baseCurrencyCode,
-			targetCurrencyCode: targetCurrencyCode,
+		return GetOrFetchAsync(
+			key: LatestRateKey(from: baseCurrencyCode, to: targetCurrencyCode),
+			fetch: () => inner.GetLatestRateAsync(baseCurrencyCode: baseCurrencyCode, targetCurrencyCode: targetCurrencyCode, ct: ct),
+			optionsFor: OptionsFor,
 			ct: ct
 		);
-		await redisCache.SetAsync(key: key, value: result, options: OptionsFor(value: result), ct: ct);
-		return result;
+	}
+
+	public Task<decimal?> GetRateKnownAtOrBeforeAsync(
+		Currency baseCurrencyCode,
+		Currency targetCurrencyCode,
+		DateTimeOffset asOf,
+		CancellationToken ct = default)
+	{
+		return GetOrFetchAsync(
+			key: StableRateKey(request: new CurrencyStableRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, AsOf: asOf)),
+			fetch: () => inner.GetRateKnownAtOrBeforeAsync(baseCurrencyCode: baseCurrencyCode, targetCurrencyCode: targetCurrencyCode, asOf: asOf, ct: ct),
+			optionsFor: _ => Stable,
+			ct: ct
+		);
 	}
 
 	public async Task<Dictionary<CurrencyRateRequest, decimal>> GetRatesBatchAsync(
@@ -93,40 +177,28 @@ public sealed class CachedCurrencyRateReadRepository(
 		if (requests.Count == 0)
 			return [];
 
-		Dictionary<CurrencyRateRequest, decimal> result = [];
-		List<CurrencyRateRequest> cacheMisses = [];
-
-		foreach (CurrencyRateRequest request in requests)
-		{
-			if (request.From == request.To)
-			{
-				result[request] = 1m;
-				continue;
-			}
-
-			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: RateKey(request: request), ct: ct);
-			if (entry is { Found: true, Value: not null })
-				result[request] = entry.Value.Value;
-			else
-				cacheMisses.Add(item: request);
-		}
+		(Dictionary<CurrencyRateRequest, decimal> result, List<CurrencyRateRequest> cacheMisses) = await SplitCacheAsync(
+			requests: requests,
+			from: r => r.From,
+			to: r => r.To,
+			keyFor: RateKey,
+			ct: ct
+		);
 
 		if (cacheMisses.Count == 0)
 			return result;
 
 		Dictionary<CurrencyRateRequest, decimal> dbResults = await inner.GetRatesBatchAsync(requests: cacheMisses, ct: ct);
 
-		foreach (CurrencyRateRequest request in cacheMisses)
-		{
-			string key = RateKey(request: request);
-			if (dbResults.TryGetValue(key: request, out decimal rate))
-			{
-				result[request] = rate;
-				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: OptionsFor(value: rate), ct: ct);
-			}
-			else
-				await redisCache.SetAsync(key: key, value: (decimal?)null, options: NotFound, ct: ct);
-		}
+		await WriteBackAsync(
+			result: result,
+			cacheMisses: cacheMisses,
+			dbResults: dbResults,
+			keyFor: RateKey,
+			foundOptions: EndOfDay,
+			notFoundOptions: NotFound,
+			ct: ct
+		);
 
 		return result;
 	}
@@ -138,64 +210,29 @@ public sealed class CachedCurrencyRateReadRepository(
 		if (pairs.Count == 0)
 			return [];
 
-		Dictionary<CurrencyLatestRateRequest, decimal> result = [];
-		List<CurrencyLatestRateRequest> cacheMisses = [];
-
-		foreach (CurrencyLatestRateRequest pair in pairs)
-		{
-			if (pair.From == pair.To)
-			{
-				result[pair] = 1m;
-				continue;
-			}
-
-			string key = LatestRateKey(from: pair.From, to: pair.To);
-			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
-			if (entry is { Found: true, Value: not null })
-				result[pair] = entry.Value.Value;
-			else
-				cacheMisses.Add(item: pair);
-		}
+		(Dictionary<CurrencyLatestRateRequest, decimal> result, List<CurrencyLatestRateRequest> cacheMisses) = await SplitCacheAsync(
+			requests: pairs,
+			from: p => p.From,
+			to: p => p.To,
+			keyFor: p => LatestRateKey(from: p.From, to: p.To),
+			ct: ct
+		);
 
 		if (cacheMisses.Count == 0)
 			return result;
 
 		Dictionary<CurrencyLatestRateRequest, decimal> dbResults = await inner.GetLatestRatesBatchAsync(pairs: cacheMisses, ct: ct);
 
-		foreach (CurrencyLatestRateRequest pair in cacheMisses)
-		{
-			string key = LatestRateKey(from: pair.From, to: pair.To);
-			if (dbResults.TryGetValue(key: pair, out decimal rate))
-			{
-				result[pair] = rate;
-				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: OptionsFor(value: rate), ct: ct);
-			}
-			else
-				await redisCache.SetAsync(key: key, value: (decimal?)null, options: NotFound, ct: ct);
-		}
-
-		return result;
-	}
-
-	public async Task<decimal?> GetRateKnownAtOrBeforeAsync(
-		Currency baseCurrencyCode,
-		Currency targetCurrencyCode,
-		DateTimeOffset asOf,
-		CancellationToken ct = default)
-	{
-		string key = StableRateKey(request: new CurrencyStableRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, AsOf: asOf));
-		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
-		if (entry.Found)
-			return entry.Value;
-
-		decimal? result = await inner.GetRateKnownAtOrBeforeAsync(
-			baseCurrencyCode: baseCurrencyCode,
-			targetCurrencyCode: targetCurrencyCode,
-			asOf: asOf,
+		await WriteBackAsync(
+			result: result,
+			cacheMisses: cacheMisses,
+			dbResults: dbResults,
+			keyFor: p => LatestRateKey(from: p.From, to: p.To),
+			foundOptions: EndOfDay,
+			notFoundOptions: NotFound,
 			ct: ct
 		);
 
-		await redisCache.SetAsync(key: key, value: result, options: Stable, ct: ct);
 		return result;
 	}
 
@@ -206,40 +243,28 @@ public sealed class CachedCurrencyRateReadRepository(
 		if (requests.Count == 0)
 			return [];
 
-		Dictionary<CurrencyStableRateRequest, decimal> result = [];
-		List<CurrencyStableRateRequest> cacheMisses = [];
-
-		foreach (CurrencyStableRateRequest request in requests)
-		{
-			if (request.From == request.To)
-			{
-				result[request] = 1m;
-				continue;
-			}
-
-			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: StableRateKey(request: request), ct: ct);
-			if (entry is { Found: true, Value: not null })
-				result[request] = entry.Value.Value;
-			else
-				cacheMisses.Add(item: request);
-		}
+		(Dictionary<CurrencyStableRateRequest, decimal> result, List<CurrencyStableRateRequest> cacheMisses) = await SplitCacheAsync(
+			requests: requests,
+			from: r => r.From,
+			to: r => r.To,
+			keyFor: StableRateKey,
+			ct: ct
+		);
 
 		if (cacheMisses.Count == 0)
 			return result;
 
 		Dictionary<CurrencyStableRateRequest, decimal> dbResults = await inner.GetRatesKnownAtOrBeforeBatchAsync(requests: cacheMisses, ct: ct);
 
-		foreach (CurrencyStableRateRequest request in cacheMisses)
-		{
-			string key = StableRateKey(request: request);
-			if (dbResults.TryGetValue(key: request, out decimal rate))
-			{
-				result[request] = rate;
-				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: Stable, ct: ct);
-			}
-			else
-				await redisCache.SetAsync(key: key, value: (decimal?)null, options: Stable, ct: ct);
-		}
+		await WriteBackAsync(
+			result: result,
+			cacheMisses: cacheMisses,
+			dbResults: dbResults,
+			keyFor: StableRateKey,
+			foundOptions: Stable,
+			notFoundOptions: Stable,
+			ct: ct
+		);
 
 		return result;
 	}

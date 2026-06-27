@@ -20,7 +20,10 @@ public sealed class AccountReadRepositoryTests : DatabaseFixture
 	public void SetupRepositories()
 	{
 		_readRepository = new AccountReadRepository(context: Context);
-		_writeRepository = new AccountWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
+		_writeRepository = new AccountWriteRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
 		_userBuilder = new UserBuilder(context: Context);
 	}

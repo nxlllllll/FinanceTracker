@@ -565,4 +565,22 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: balance).IsEqualTo(expected: 9000m);
 	}
+	
+	[Test]
+	public async Task DebitAsync_WhenAccountBalanceRowDoesNotExist_ShouldThrowNotFoundException()
+	{
+		Guid nonExistentAccountId = Guid.CreateVersion7();
+
+		await Assert.That(action: async () => await _writeRepository.DebitAsync(@event: new AccountDebited(
+			Id: Guid.CreateVersion7(),
+			AccountId: nonExistentAccountId,
+			TransactionId: Guid.CreateVersion7(),
+			CategoryId: Guid.CreateVersion7(),
+			Amount: 1000m,
+			ExchangeRate: 1m,
+			Description: null,
+			Version: 1,
+			OccurredAt: DateTimeOffset.UtcNow
+		))).Throws<NotFoundException>();
+	}
 }

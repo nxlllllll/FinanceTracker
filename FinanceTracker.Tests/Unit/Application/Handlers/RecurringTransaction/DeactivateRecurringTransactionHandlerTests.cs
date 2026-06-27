@@ -34,7 +34,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new DeactivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			accounts: rt,
+			entity: rt,
 			ct: CancellationToken.None
 		);
 
@@ -52,7 +52,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new DeactivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			accounts: rt,
+			entity: rt,
 			ct: CancellationToken.None
 		);
 
@@ -71,7 +71,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 
 		Result<Guid, DomainException> result = await _handler.HandleAsync(
 			command: new DeactivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			accounts: rt,
+			entity: rt,
 			ct: CancellationToken.None
 		);
 
@@ -85,7 +85,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new DeactivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			accounts: rt,
+			entity: rt,
 			ct: CancellationToken.None
 		);
 

@@ -17,21 +17,21 @@ public sealed class UnarchiveCategoryHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		UnarchiveCategoryCommand command,
-		Core.Domains.Category.Category accounts,
+		Core.Domains.Category.Category entity,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = accounts.Unarchive();
+		Result<Unit, DomainException> result = entity.Unarchive();
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 		
-		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: accounts.RowVersion, ct: ct);
+		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: entity.RowVersion, ct: ct);
 		
 		await publisher.Publish(notification: new CategoryUnarchivedNotification(
-			CategoryId: accounts.Id,
-			UserId: accounts.UserId,
+			CategoryId: entity.Id,
+			UserId: entity.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

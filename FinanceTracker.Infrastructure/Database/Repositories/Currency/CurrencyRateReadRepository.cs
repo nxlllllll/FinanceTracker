@@ -8,6 +8,35 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.Currency;
 
 public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : ICurrencyRateReadRepository
 {
+	private const decimal SameCurrencyRate = 1m;
+
+	/// <summary>
+	/// Splits <paramref name="requests"/> into same-currency ones (resolved immediately to
+	/// <see cref="SameCurrencyRate"/>, no DB lookup needed) and the rest, returned via
+	/// <paramref name="foreignRequests"/> for the caller's own DB query. Shared by every batch
+	/// method below — they differ only in how they query the foreign ones, not in this split.
+	/// </summary>
+	private static Dictionary<TRequest, decimal> SplitSameCurrency<TRequest>(
+		IReadOnlyCollection<TRequest> requests,
+		Func<TRequest, Core.ValueObjects.Currency> from,
+		Func<TRequest, Core.ValueObjects.Currency> to,
+		out List<TRequest> foreignRequests)
+		where TRequest : notnull
+	{
+		Dictionary<TRequest, decimal> result = [];
+		foreignRequests = [];
+
+		foreach (TRequest request in requests)
+		{
+			if (from(request) == to(request))
+				result[request] = SameCurrencyRate;
+			else
+				foreignRequests.Add(item: request);
+		}
+
+		return result;
+	}
+
 	public async Task<decimal?> GetRateAsync(
 		Core.ValueObjects.Currency baseCurrencyCode,
 		Core.ValueObjects.Currency targetCurrencyCode,
@@ -15,7 +44,7 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 		CancellationToken ct = default)
 	{
 		if (baseCurrencyCode == targetCurrencyCode)
-			return 1m;
+			return SameCurrencyRate;
 
 		return await context.CurrencyRates.AsNoTracking()
 			.Where(predicate: rate =>
@@ -32,11 +61,27 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 		CancellationToken ct = default)
 	{
 		if (baseCurrencyCode == targetCurrencyCode)
-			return 1m;
+			return SameCurrencyRate;
 
 		return await context.CurrencyRates.AsNoTracking()
 			.Where(predicate: rate => rate.BaseCode == baseCurrencyCode && rate.TargetCode == targetCurrencyCode)
 			.OrderByDescending(keySelector: rate => rate.ActualAt)
+			.Select(selector: r => (decimal?)r.Rate)
+			.FirstOrDefaultAsync(cancellationToken: ct);
+	}
+
+	public async Task<decimal?> GetRateKnownAtOrBeforeAsync(
+		Core.ValueObjects.Currency baseCurrencyCode,
+		Core.ValueObjects.Currency targetCurrencyCode,
+		DateTimeOffset asOf,
+		CancellationToken ct = default)
+	{
+		if (baseCurrencyCode == targetCurrencyCode)
+			return SameCurrencyRate;
+
+		return await context.CurrencyRates.AsNoTracking()
+			.Where(predicate: rate => rate.BaseCode == baseCurrencyCode && rate.TargetCode == targetCurrencyCode && rate.CreatedAt <= asOf)
+			.OrderByDescending(keySelector: rate => rate.CreatedAt)
 			.Select(selector: r => (decimal?)r.Rate)
 			.FirstOrDefaultAsync(cancellationToken: ct);
 	}
@@ -48,16 +93,12 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 		if (requests.Count == 0)
 			return [];
 
-		Dictionary<CurrencyRateRequest, decimal> result = [];
-		HashSet<CurrencyRateRequest> foreignRequests = [];
-
-		foreach (CurrencyRateRequest request in requests)
-		{
-			if (request.From == request.To)
-				result[request] = 1m;
-			else
-				foreignRequests.Add(item: request);
-		}
+		Dictionary<CurrencyRateRequest, decimal> result = SplitSameCurrency(
+			requests: requests,
+			from: r => r.From,
+			to: r => r.To,
+			foreignRequests: out List<CurrencyRateRequest> foreignRequests
+		);
 
 		if (foreignRequests.Count == 0)
 			return result;
@@ -88,8 +129,18 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 		if (pairs.Count == 0)
 			return [];
 
-		string[] fromCodes = pairs.Select(selector: p => p.From.Value).Distinct().ToArray();
-		string[] toCodes = pairs.Select(selector: p => p.To.Value).Distinct().ToArray();
+		Dictionary<CurrencyLatestRateRequest, decimal> result = SplitSameCurrency(
+			requests: pairs,
+			from: p => p.From,
+			to: p => p.To,
+			foreignRequests: out List<CurrencyLatestRateRequest> foreignPairs
+		);
+
+		if (foreignPairs.Count == 0)
+			return result;
+
+		string[] fromCodes = foreignPairs.Select(selector: p => p.From.Value).Distinct().ToArray();
+		string[] toCodes = foreignPairs.Select(selector: p => p.To.Value).Distinct().ToArray();
 
 		Dictionary<(string BaseCode, string TargetCode), decimal> rows = await context.GetLatestCurrencyRatesBatchAsync(
 			fromCodes: fromCodes,
@@ -97,29 +148,11 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 			ct: ct
 		);
 
-		return rows.ToDictionary(
-			keySelector: kvp => new CurrencyLatestRateRequest(
-				From: Core.ValueObjects.Currency.Reconstitute(value: kvp.Key.BaseCode),
-				To: Core.ValueObjects.Currency.Reconstitute(value: kvp.Key.TargetCode)
-			),
-			elementSelector: kvp => kvp.Value
-		);
-	}
+		foreach (CurrencyLatestRateRequest pair in foreignPairs)
+			if (rows.TryGetValue(key: (pair.From.Value, pair.To.Value), out decimal rate))
+				result[pair] = rate;
 
-	public async Task<decimal?> GetRateKnownAtOrBeforeAsync(
-		Core.ValueObjects.Currency baseCurrencyCode,
-		Core.ValueObjects.Currency targetCurrencyCode,
-		DateTimeOffset asOf,
-		CancellationToken ct = default)
-	{
-		if (baseCurrencyCode == targetCurrencyCode)
-			return 1m;
-
-		return await context.CurrencyRates.AsNoTracking()
-			.Where(predicate: rate => rate.BaseCode == baseCurrencyCode && rate.TargetCode == targetCurrencyCode && rate.CreatedAt <= asOf)
-			.OrderByDescending(keySelector: rate => rate.CreatedAt)
-			.Select(selector: r => (decimal?)r.Rate)
-			.FirstOrDefaultAsync(cancellationToken: ct);
+		return result;
 	}
 
 	public async Task<Dictionary<CurrencyStableRateRequest, decimal>> GetRatesKnownAtOrBeforeBatchAsync(
@@ -129,16 +162,12 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 		if (requests.Count == 0)
 			return [];
 
-		Dictionary<CurrencyStableRateRequest, decimal> result = [];
-		List<CurrencyStableRateRequest> foreignRequests = [];
-
-		foreach (CurrencyStableRateRequest request in requests)
-		{
-			if (request.From == request.To)
-				result[request] = 1m;
-			else
-				foreignRequests.Add(item: request);
-		}
+		Dictionary<CurrencyStableRateRequest, decimal> result = SplitSameCurrency(
+			requests: requests,
+			from: r => r.From,
+			to: r => r.To,
+			foreignRequests: out List<CurrencyStableRateRequest> foreignRequests
+		);
 
 		if (foreignRequests.Count == 0)
 			return result;

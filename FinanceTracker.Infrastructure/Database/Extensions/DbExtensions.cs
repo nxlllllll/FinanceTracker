@@ -59,25 +59,6 @@ public static class DbContextExtensions
 	}
 
 	/// <summary>
-	/// Writes the serialized response JSON to a previously reserved idempotency record,
-	/// marking the command as completed. Scoped to the same composite key as <see cref="TryReserveIdempotentCommandAsync"/>.
-	/// </summary>
-	public static Task CompleteIdempotentCommandAsync(
-		this DbContext context,
-		Guid idempotencyKey,
-		string commandType,
-		Guid userId,
-		string responseJson,
-		CancellationToken ct = default)
-	{
-		return context.Database.ExecuteSqlAsync(sql: $"""
-			UPDATE idempotent_commands
-			SET response_json = {responseJson}
-			WHERE idempotency_key = {idempotencyKey} AND command_type = {commandType} AND user_id = {userId}
-		""", cancellationToken: ct);
-	}
-
-	/// <summary>
 	/// Loads a user session by refresh token hash using <c>SELECT … FOR UPDATE</c>
 	/// to prevent concurrent refresh races.
 	/// </summary>

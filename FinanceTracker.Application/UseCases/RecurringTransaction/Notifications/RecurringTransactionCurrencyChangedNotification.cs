@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
-using MediatR;
+﻿using MediatR;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 

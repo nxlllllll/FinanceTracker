@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;

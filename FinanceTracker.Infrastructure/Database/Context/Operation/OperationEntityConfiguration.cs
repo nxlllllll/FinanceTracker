@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Context.User;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FinanceTracker.Infrastructure.Database.Context.Operation;

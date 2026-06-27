@@ -1,6 +1,5 @@
 using System.Text.Json;
 using FinanceTracker.Core.Repositories.Currency;
-using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Tests.Unit.Helpers;

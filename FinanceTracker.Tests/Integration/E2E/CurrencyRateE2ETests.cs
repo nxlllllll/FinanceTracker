@@ -2,11 +2,11 @@
 using System.Text.Json;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
-using FinanceTracker.Worker.CurrencyRate.Client;
-using FinanceTracker.Worker.CurrencyRate.Job;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Worker.CurrencyRate.Client;
+using FinanceTracker.Worker.CurrencyRate.Job;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

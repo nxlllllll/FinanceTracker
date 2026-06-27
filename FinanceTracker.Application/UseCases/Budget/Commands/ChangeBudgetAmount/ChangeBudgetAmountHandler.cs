@@ -17,22 +17,22 @@ public sealed class ChangeBudgetAmountHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ChangeBudgetAmountCommand command,
-		Core.Domains.Budget.Budget accounts,
+		Core.Domains.Budget.Budget entity,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = accounts.ChangeAmount(amount: command.Amount);
+		Result<Unit, DomainException> result = entity.ChangeAmount(amount: command.Amount);
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
-		await budgetWriteRepository.ChangeAmountAsync(budgetId: accounts.Id, expectedVersion: accounts.RowVersion, amount: command.Amount, ct: ct);
+		await budgetWriteRepository.ChangeAmountAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, amount: command.Amount, ct: ct);
 		
 		await publisher.Publish(notification: new BudgetAmountChangedNotification(
-			BudgetId: accounts.Id,
-			UserId: accounts.UserId,
+			BudgetId: entity.Id,
+			UserId: entity.UserId,
 			NewAmount: command.Amount,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

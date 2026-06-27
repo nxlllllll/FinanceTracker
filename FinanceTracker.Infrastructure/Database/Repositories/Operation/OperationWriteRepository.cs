@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Transfer;
+﻿using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Operation;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -20,10 +20,10 @@ public sealed class ActivateBudgetHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		ActivateBudgetCommand command,
-		Core.Domains.Budget.Budget accounts,
+		Core.Domains.Budget.Budget entity,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = accounts.Activate();
+		Result<Unit, DomainException> result = entity.Activate();
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
@@ -35,17 +35,17 @@ public sealed class ActivateBudgetHandler(
 			{
 				bool overlap = await budgetReadRepository.HasOverlappingAsync(
 					userId: command.UserId,
-					categoryId: accounts.CategoryId,
-					from: accounts.From,
-					to: accounts.To,
-					excludeBudgetId: accounts.Id,
+					categoryId: entity.CategoryId,
+					from: entity.From,
+					to: entity.To,
+					excludeBudgetId: entity.Id,
 					ct: ct
 				);
 
 				if (overlap)
 					return true;
 
-				await budgetWriteRepository.ActivateAsync(budgetId: accounts.Id, expectedVersion: accounts.RowVersion, ct: ct);
+				await budgetWriteRepository.ActivateAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, ct: ct);
 
 				return false;
 			}, ct: ct);
@@ -63,11 +63,11 @@ public sealed class ActivateBudgetHandler(
 		}
 
 		await publisher.Publish(notification: new BudgetActivatedNotification(
-			BudgetId: accounts.Id,
-			UserId: accounts.UserId,
+			BudgetId: entity.Id,
+			UserId: entity.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

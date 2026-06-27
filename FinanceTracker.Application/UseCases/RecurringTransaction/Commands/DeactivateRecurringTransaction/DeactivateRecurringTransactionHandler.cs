@@ -17,25 +17,25 @@ public sealed class DeactivateRecurringTransactionHandler(
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		DeactivateRecurringTransactionCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction accounts,
+		Core.Domains.RecurringTransaction.RecurringTransaction entity,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = accounts.Deactivate();
+		Result<Unit, DomainException> result = entity.Deactivate();
 		if (result.IsFailure) 
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.DeactivateAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: accounts.RowVersion,
+			expectedVersion: entity.RowVersion,
 			ct: ct
 		);
 
 		await publisher.Publish(notification: new RecurringTransactionDeactivatedNotification(
-			RecurringTransactionId: accounts.Id,
-			UserId: accounts.UserId,
+			RecurringTransactionId: entity.Id,
+			UserId: entity.UserId,
 			OccurredAt: dateProvider.UtcNow
 		), cancellationToken: ct);
 		
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

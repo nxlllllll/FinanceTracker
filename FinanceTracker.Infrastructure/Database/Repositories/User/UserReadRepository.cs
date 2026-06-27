@@ -1,16 +1,13 @@
-﻿using System.Runtime.CompilerServices;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ReadModels;
-using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
