@@ -4,7 +4,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 
 namespace FinanceTracker.Benchmarks.Benchmarks;
 
-public class TransactionBenchmarks : PaginatedBenchmarkBase
+public class TransactionBenchmarks : BenchmarkBase
 {
     private TransactionReadRepository _repository = null!;
 
@@ -68,4 +68,14 @@ public class TransactionBenchmarks : PaginatedBenchmarkBase
         isExcluded: false,
         pageSize: PageSize
     );
+
+    [Benchmark]
+    public async Task GetByIdAsync() => await _repository.GetByIdAsync(
+        transactionId: Db.TransactionId,
+        userId: Db.UserId
+    );
+
+    [Benchmark]
+    public async Task GetPendingRateAsync()
+        => await _repository.GetPendingRateAsync();
 }

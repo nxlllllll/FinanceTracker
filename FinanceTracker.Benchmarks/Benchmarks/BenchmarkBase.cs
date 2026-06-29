@@ -8,6 +8,8 @@ namespace FinanceTracker.Benchmarks.Benchmarks;
 [HtmlExporter]
 public abstract class BenchmarkBase
 {
+	protected const int PageSize = 20;
+
 	protected FinanceTrackerContext Context { get; private set; } = null!;
 	protected BenchmarkDatabase Db => BenchmarkDatabase.Instance;
 
@@ -17,10 +19,4 @@ public abstract class BenchmarkBase
 	[IterationCleanup]
 	public void IterationCleanup()
 		=> Context.DisposeAsync().AsTask().GetAwaiter().GetResult();
-}
-
-public abstract class PaginatedBenchmarkBase : BenchmarkBase
-{
-	[Params(1_000, 10_000, 100_000, 1_000_000)]
-	public int PageSize { get; set; }
 }

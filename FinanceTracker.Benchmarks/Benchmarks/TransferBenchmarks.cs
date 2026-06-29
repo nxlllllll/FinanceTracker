@@ -3,7 +3,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
 namespace FinanceTracker.Benchmarks.Benchmarks;
 
-public class TransferBenchmarks : PaginatedBenchmarkBase
+public class TransferBenchmarks : BenchmarkBase
 {
 	private TransferReadRepository _repository = null!;
 
@@ -44,4 +44,20 @@ public class TransferBenchmarks : PaginatedBenchmarkBase
 		dateFrom: DateTimeOffset.UtcNow.AddDays(days: -90),
 		pageSize: PageSize
 	);
+
+	[Benchmark]
+	public async Task GetByIdAsync()
+		=> await _repository.GetByIdAsync(transferId: Db.TransferId);
+
+	[Benchmark]
+	public async Task GetPendingRateAsync()
+		=> await _repository.GetPendingRateAsync();
+
+	[Benchmark]
+	public async Task GetPendingCreditCountAsync()
+		=> await _repository.GetPendingCreditCountAsync(gracePeriod: TimeSpan.FromMinutes(value: 5));
+
+	[Benchmark]
+	public async Task GetPendingCreditForCompensationAsync()
+		=> await _repository.GetPendingCreditForCompensationAsync(compensationThreshold: TimeSpan.FromMinutes(value: 30));
 }

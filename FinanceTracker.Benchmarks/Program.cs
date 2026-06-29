@@ -31,52 +31,29 @@ internal class Program
 
         await PrintAppliedMigrationsAsync(logWriter: logWriter);
 
-        IConfig config = ManualConfig.CreateEmpty()
-            .AddJob(newJobs: Job.Default
-                .WithToolchain(toolchain: InProcessEmitToolchain.Instance)
-                .WithWarmupCount(count: 1)
-                .WithIterationCount(count: 3)
-            ).AddLogger(loggers: CleanConsoleLogger.Instance)
-            .AddLogger(loggers: new StreamLogger(writer: logWriter))
-            .AddExporter(exporters: ConsoleProgressExporter.Instance)
-            .AddExporter(exporters: AnalyticsHtmlExporter.Default)
-            .AddColumnProvider(newColumnProviders: DefaultColumnProviders.Instance)
-            .AddDiagnoser(diagnosers: MemoryDiagnoser.Default)
-            .WithOption(option: ConfigOptions.DisableOptimizationsValidator, value: true);
+        Job job = Job.Default.WithToolchain(toolchain: InProcessEmitToolchain.Instance)
+            .WithWarmupCount(count: 1)
+            .WithIterationCount(count: 3);
 
-        IConfig saveConfig = ManualConfig.CreateEmpty()
-            .AddJob(newJobs: Job.Default
-                .WithToolchain(toolchain: InProcessEmitToolchain.Instance)
-                .WithWarmupCount(count: 1)
-                .WithIterationCount(count: 3)
-                .WithInvocationCount(count: 1)
-                .WithUnrollFactor(factor: 1)
-            ).AddLogger(loggers: CleanConsoleLogger.Instance)
-            .AddLogger(loggers: new StreamLogger(writer: logWriter))
-            .AddExporter(exporters: ConsoleProgressExporter.Instance)
-            .AddExporter(exporters: AnalyticsHtmlExporter.Default)
-            .AddColumnProvider(newColumnProviders: DefaultColumnProviders.Instance)
-            .AddDiagnoser(diagnosers: MemoryDiagnoser.Default)
-            .WithOption(option: ConfigOptions.DisableOptimizationsValidator, value: true);
+        IConfig config = CreateConfig(job: job, logWriter: logWriter);
+
+        IConfig saveConfig = CreateConfig(
+            job: job.WithInvocationCount(count: 1).WithUnrollFactor(factor: 1),
+            logWriter: logWriter
+        );
         
         BenchmarkConsoleReporter.Instance.OnSuiteStart();
 
         BenchmarkSwitcher.FromTypes(types: [
             typeof(AccountBenchmarks),
             typeof(BudgetBenchmarks),
-            typeof(BudgetLookupBenchmarks),
             typeof(CategoryBenchmarks),
-            typeof(CategoryLookupBenchmarks),
             typeof(CurrencyRateBenchmarks),
             typeof(EventStoreBenchmarks),
             typeof(RecurringTransactionBenchmarks),
-            typeof(RecurringTransactionLookupBenchmarks),
             typeof(TransactionBenchmarks),
-            typeof(TransactionLookupBenchmarks),
             typeof(TransferBenchmarks),
-            typeof(TransferLookupBenchmarks),
             typeof(UserBenchmarks),
-            typeof(UserLookupBenchmarks),
         ]).RunAll(config: config);
         
         BenchmarkRunner.Run<EventStoreSaveBenchmarks>(config: saveConfig);
@@ -90,6 +67,19 @@ internal class Program
         await BenchmarkDatabase.Instance.DisposeAsync();
     }
 
+    private static IConfig CreateConfig(Job job, StreamWriter logWriter)
+    {
+        return ManualConfig.CreateEmpty()
+            .AddJob(newJobs: job)
+            .AddLogger(loggers: CleanConsoleLogger.Instance)
+            .AddLogger(loggers: new StreamLogger(writer: logWriter))
+            .AddExporter(exporters: ConsoleProgressExporter.Instance)
+            .AddExporter(exporters: AnalyticsHtmlExporter.Default)
+            .AddColumnProvider(newColumnProviders: DefaultColumnProviders.Instance)
+            .AddDiagnoser(diagnosers: MemoryDiagnoser.Default)
+            .WithOption(option: ConfigOptions.DisableOptimizationsValidator, value: true);
+    }
+    
     private static async Task PrintAppliedMigrationsAsync(StreamWriter logWriter)
     {
         string directory = BenchmarkDatabase.Instance.MigrationsDirectory;

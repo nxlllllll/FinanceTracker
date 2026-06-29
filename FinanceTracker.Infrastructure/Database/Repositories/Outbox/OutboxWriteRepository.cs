@@ -1,11 +1,13 @@
 using FinanceTracker.Core.Repositories.Outbox;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Outbox;
 
 public sealed class OutboxWriteRepository(
-	FinanceTrackerContext context
+	FinanceTrackerContext context,
+	IDateProvider dateProvider
 ) : IOutboxWriteRepository
 {
 	public async Task MarkAsPublishedAsync(
@@ -32,7 +34,7 @@ public sealed class OutboxWriteRepository(
 			setPropertyCalls: s => s
 				.SetProperty(propertyExpression: x => x.RetryCount, valueExpression: retryCount)
 				.SetProperty(propertyExpression: x => x.FailedAt, valueExpression: failedAt)
-				.SetProperty(propertyExpression: x => x.UpdatedAt, valueExpression: DateTimeOffset.UtcNow),
+				.SetProperty(propertyExpression: x => x.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);
 	}

@@ -1,15 +1,11 @@
 using FinanceTracker.Core.Repositories.Idempotency;
-using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
 
-public sealed class IdempotencyWriteRepository(
-	FinanceTrackerContext context,
-	IDateProvider dateProvider
-) : IIdempotencyWriteRepository
+public sealed class IdempotencyWriteRepository(FinanceTrackerContext context) : IIdempotencyWriteRepository
 {
 	public async Task<bool> TryReserveAsync(
 		Guid idempotencyKey,
@@ -23,7 +19,7 @@ public sealed class IdempotencyWriteRepository(
 			idempotencyKey: idempotencyKey,
 			commandType: commandType,
 			userId: userId,
-			reservedAt: dateProvider.UtcNow,
+			reservedAt: reservedAt,
 			expiresAt: expiresAt,
 			ct: ct
 		);

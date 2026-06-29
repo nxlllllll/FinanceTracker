@@ -98,7 +98,7 @@ public class EventStoreSaveBenchmarks : BenchmarkBase
 		_withSnapshotEventStore = CreateEventStore(snapshotThreshold: PreSeededEventCount);
 
 		SeedAggregateAsync(eventStore: _noSnapshotEventStore, aggregateId: _noSnapshotAggregateId).GetAwaiter().GetResult();
-		SeedAggregateAsync(eventStore: _noSnapshotEventStore, aggregateId: _withSnapshotAggregateId).GetAwaiter().GetResult();
+		SeedAggregateAsync(eventStore: _withSnapshotEventStore, aggregateId: _withSnapshotAggregateId).GetAwaiter().GetResult();
 	}
 
 	[Benchmark]

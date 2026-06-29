@@ -19,7 +19,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 	public void SetupRepositories()
 	{
 		_readRepository = new IdempotencyReadRepository(context: Context);
-		_writeRepository = new IdempotencyWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
+		_writeRepository = new IdempotencyWriteRepository(context: Context);
 	}
 
 	[Test]

@@ -18,11 +18,21 @@ public sealed class CachedCurrencyRateReadRepository(
 {
 	private static readonly TimeSpan NotFoundTtl = TimeSpan.FromMinutes(value: 1);
 	private static readonly TimeSpan StableTtl = TimeSpan.FromDays(value: 30);
-
-	private DistributedCacheEntryOptions EndOfDay => new DistributedCacheEntryOptions
+	
+	private DistributedCacheEntryOptions EndOfDay
 	{
-		AbsoluteExpiration = dateProvider.UtcNow.AddDays(days: 1)
-	};
+		get
+		{
+			DateTimeOffset now = dateProvider.UtcNow;
+			DateTimeOffset nextMidnightUtc = new DateTimeOffset(
+				year: now.Year, month: now.Month, day: now.Day,
+				hour: 0, minute: 0, second: 0,
+				offset: TimeSpan.Zero
+			).AddDays(days: 1);
+
+			return new DistributedCacheEntryOptions { AbsoluteExpiration = nextMidnightUtc };
+		}
+	}
 
 	private static DistributedCacheEntryOptions NotFound => new DistributedCacheEntryOptions
 	{
