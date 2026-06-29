@@ -4,7 +4,7 @@ namespace FinanceTracker.Benchmarks.Logging;
 
 public sealed class BenchmarkConsoleReporter
 {
-    public static readonly BenchmarkConsoleReporter Instance = new();
+    public static readonly BenchmarkConsoleReporter Instance = new BenchmarkConsoleReporter();
 
     private readonly Stopwatch _totalTimer = new Stopwatch();
     private readonly Stopwatch _classTimer = new Stopwatch();

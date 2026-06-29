@@ -31,9 +31,7 @@ internal class Program
 
         await PrintAppliedMigrationsAsync(logWriter: logWriter);
 
-        Job job = Job.Default.WithToolchain(toolchain: InProcessEmitToolchain.Instance)
-            .WithWarmupCount(count: 1)
-            .WithIterationCount(count: 3);
+        Job job = Job.Default.WithToolchain(toolchain: InProcessEmitToolchain.Instance).WithWarmupCount(count: 1).WithIterationCount(count: 3);
 
         IConfig config = CreateConfig(job: job, logWriter: logWriter);
 
@@ -58,8 +56,6 @@ internal class Program
         
         BenchmarkRunner.Run<EventStoreSaveBenchmarks>(config: saveConfig);
 
-        ConsoleProgressExporter.Instance.Finish();
-
         string reportPath = await AnalyticsHtmlExporter.Default.Flush(outputDir: Path.Combine(basePath, "Reports"));
 
         BenchmarkConsoleReporter.Instance.OnSuiteEnd(reportPath: Path.GetFullPath(path: reportPath));
@@ -73,31 +69,40 @@ internal class Program
             .AddJob(newJobs: job)
             .AddLogger(loggers: CleanConsoleLogger.Instance)
             .AddLogger(loggers: new StreamLogger(writer: logWriter))
-            .AddExporter(exporters: ConsoleProgressExporter.Instance)
+            .AddEventProcessor(eventProcessors: BenchmarkEventProcessor.Instance)
             .AddExporter(exporters: AnalyticsHtmlExporter.Default)
             .AddColumnProvider(newColumnProviders: DefaultColumnProviders.Instance)
             .AddDiagnoser(diagnosers: MemoryDiagnoser.Default)
             .WithOption(option: ConfigOptions.DisableOptimizationsValidator, value: true);
     }
-    
+
     private static async Task PrintAppliedMigrationsAsync(StreamWriter logWriter)
     {
-        string directory = BenchmarkDatabase.Instance.MigrationsDirectory;
+        string directoryLine = $"Migrations directory: {BenchmarkDatabase.Instance.MigrationsDirectory}";
         IReadOnlyList<string> applied = BenchmarkDatabase.Instance.AppliedMigrations;
+        string[] appliedLines = [$"Applied {applied.Count} migration(s):", ..applied.Select(selector: migration => $"  - {migration}")];
 
+        PrintToConsole(directoryLine: directoryLine, appliedLines: appliedLines);
+        await WriteToLogAsync(logWriter: logWriter, lines: [directoryLine, ..appliedLines]);
+    }
+
+    private static void PrintToConsole(string directoryLine, IReadOnlyList<string> appliedLines)
+    {
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine(value: $"Migrations directory: {directory}");
+        Console.WriteLine(value: directoryLine);
+
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine(value: $"Applied {applied.Count} migration(s):");
-        foreach (string migration in applied)
-            Console.WriteLine(value: $"  - {migration}");
+        foreach (string line in appliedLines)
+            Console.WriteLine(value: line);
+
         Console.WriteLine();
         Console.ResetColor();
+    }
 
-        await logWriter.WriteLineAsync(value: $"Migrations directory: {directory}");
-        await logWriter.WriteLineAsync(value: $"Applied {applied.Count} migration(s):");
-        foreach (string migration in applied)
-            await logWriter.WriteLineAsync(value: $"  - {migration}");
+    private static async Task WriteToLogAsync(StreamWriter logWriter, IReadOnlyList<string> lines)
+    {
+        foreach (string line in lines)
+            await logWriter.WriteLineAsync(value: line);
 
         await logWriter.WriteLineAsync(value: String.Empty);
         await logWriter.FlushAsync();
