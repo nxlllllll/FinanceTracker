@@ -7,6 +7,7 @@ public interface IRecurringTransactionReadRepository : IReadRepository<Recurring
 {
 	Task<RecurringTransactionReadModel?> GetByIdAsync(
 		Guid recurringTransactionId,
+		Guid userId,
 		CancellationToken ct = default
 	);
 

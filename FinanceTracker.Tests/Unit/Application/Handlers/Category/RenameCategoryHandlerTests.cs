@@ -6,6 +6,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -24,7 +25,8 @@ public sealed class RenameCategoryHandlerTests
 		_handler = new RenameCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<RenameCategoryHandler>>()
 		);
 	}
 
@@ -41,7 +43,7 @@ public sealed class RenameCategoryHandlerTests
 
 		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).RenameAsync(
 			categoryId: category.Id,
-			newName: Arg.Any<FinanceTracker.Core.ValueObjects.Name>(),
+			newName: Arg.Any<Name>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);

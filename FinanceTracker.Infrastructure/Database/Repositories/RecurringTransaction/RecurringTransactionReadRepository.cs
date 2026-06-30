@@ -11,9 +11,10 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 {
 	public async Task<RecurringTransactionReadModel?> GetByIdAsync(
 		Guid recurringTransactionId,
+		Guid userId,
 		CancellationToken ct = default)
 	{
-		return await context.RecurringTransactions.AsNoTracking().Where(predicate: r => r.Id == recurringTransactionId)
+		return await context.RecurringTransactions.AsNoTracking().Where(predicate: r => r.Id == recurringTransactionId && r.UserId == userId)
 			.Select(selector: r => new RecurringTransactionReadModel(
 				Id: r.Id,
 				UserId: r.UserId,
@@ -123,7 +124,7 @@ public sealed class RecurringTransactionReadRepository(FinanceTrackerContext con
 				(r.LastExecutedAt == null || r.LastExecutedAt < currentMonthStart) &&
 				(r.LastMissedAt == null || r.LastMissedAt < currentMonthStart) &&
 				(
-					r.DayOfMonth < dayOfMonth || (r.CreatedAt < previousMonthStart && 
+					(r.DayOfMonth < dayOfMonth && r.CreatedAt < currentMonthStart.AddDays(r.DayOfMonth)) || (r.CreatedAt < previousMonthStart && 
 					(r.LastExecutedAt == null || r.LastExecutedAt < previousMonthStart) &&
 					(r.LastMissedAt == null || r.LastMissedAt < previousMonthStart))
 				)

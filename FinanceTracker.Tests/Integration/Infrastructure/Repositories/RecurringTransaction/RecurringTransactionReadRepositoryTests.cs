@@ -36,7 +36,10 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
-		RecurringTransactionReadModel? result = await _readRepository.GetByIdAsync(recurringTransactionId: id);
+		RecurringTransactionReadModel? result = await _readRepository.GetByIdAsync(
+			recurringTransactionId: id,
+			userId: userId
+		);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: id);
@@ -47,7 +50,10 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WhenNotExists_ShouldReturnNull()
 	{
-		RecurringTransactionReadModel? result = await _readRepository.GetByIdAsync(recurringTransactionId: Guid.CreateVersion7());
+		RecurringTransactionReadModel? result = await _readRepository.GetByIdAsync(
+			recurringTransactionId: Guid.CreateVersion7(),
+			userId: Guid.CreateVersion7()
+		);
 
 		await Assert.That(value: result).IsNull();
 	}
@@ -310,7 +316,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: result.Items).IsEmpty();
 		await Assert.That(value: result.HasNextPage).IsFalse();
 	}
-	
+
 	[Test]
 	public async Task GetMissedThisMonthAsync_WhenScheduledDayHasPassed_ShouldReturnTransaction()
 	{
@@ -321,7 +327,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		int today = now.Day == 1 ? 2 : now.Day;
 		int scheduledDay = today - 1;
 
-		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
+		// A pre-existing transaction (created well before its scheduled day this month) — a genuine
+		// miss, as opposed to GetMissedThisMonthAsync_WhenCreatedThisMonthAfterScheduledDayPassed_ShouldNotReturn
+		// below, which covers a transaction created *after* its scheduled day already passed.
+		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
+		await BackdateCreatedAtAsync(id: id, createdAt: now.AddMonths(months: -2));
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
@@ -333,6 +343,32 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		);
 
 		await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task GetMissedThisMonthAsync_WhenCreatedThisMonthAfterScheduledDayPassed_ShouldNotReturn()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		DateTimeOffset now = DateTimeOffset.UtcNow;
+		int today = now.Day == 1 ? 2 : now.Day;
+		int scheduledDay = today - 1;
+
+		// Created just now, with a day-of-month that already passed this month before it existed.
+		// This must get a grace period until next month, not be instantly escalated as missed.
+		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
+
+		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
+			dayOfMonth: today,
+			currentMonthStart: currentMonthStart,
+			previousMonthStart: previousMonthStart
+		);
+
+		await Assert.That(value: result).IsEmpty();
 	}
 
 	[Test]
@@ -368,10 +404,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		int today = now.Day == 1 ? 2 : now.Day;
 		int scheduledDay = today - 1;
 
-		await _recurringTransactionBuilder.CreateAsync(
+		Guid id = await _recurringTransactionBuilder.CreateAsync(
 			userId: userId, accountId: accountId, categoryId: categoryId,
 			dayOfMonth: scheduledDay, lastExecutedAt: now
 		);
+		await BackdateCreatedAtAsync(id: id, createdAt: now.AddMonths(months: -2));
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
@@ -395,10 +432,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		int today = now.Day == 1 ? 2 : now.Day;
 		int scheduledDay = today - 1;
 
-		await _recurringTransactionBuilder.CreateAsync(
+		Guid id = await _recurringTransactionBuilder.CreateAsync(
 			userId: userId, accountId: accountId, categoryId: categoryId,
 			dayOfMonth: scheduledDay, lastMissedAt: now
 		);
+		await BackdateCreatedAtAsync(id: id, createdAt: now.AddMonths(months: -2));
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
@@ -423,6 +461,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		int scheduledDay = today - 1;
 
 		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
+		await BackdateCreatedAtAsync(id: id, createdAt: now.AddMonths(months: -2));
 		await _writeRepository.DeactivateAsync(recurringTransactionId: id, expectedVersion: 0);
 
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);

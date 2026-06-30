@@ -35,7 +35,9 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
         if (idempotent.IdempotencyKey == Guid.Empty)
         {
             logger.ZLogWarning(message: $"[Idempotency] {typeof(TRequest).Name} has empty IdempotencyKey.");
-            return TResponse.CreateFailure(error: new EmptyIdempotentException(message: $"{typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty."));
+            return TResponse.CreateFailure(error: new EmptyIdempotencyKeyException(
+                message: $"{typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty.")
+            );
         }
 
         string commandType = typeof(TRequest).Name;
@@ -159,7 +161,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
                 ct: cancellationToken
             );
 
-            return TResponse.CreateFailure(error: new EmptyIdempotentException(
+            return TResponse.CreateFailure(error: new IdempotencyAbandonedException(
                 message: $"Idempotency key {idempotent.IdempotencyKey} was abandoned. The original request did not complete. Please retry.")
             );
         }
@@ -208,7 +210,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
             if (entry is null)
             {
                 logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} disappeared during poll — likely abandoned and deleted by another request.");
-                return TResponse.CreateFailure(error: new EmptyIdempotentException(
+                return TResponse.CreateFailure(error: new IdempotencyAbandonedException(
                     message: $"Idempotency key {idempotent.IdempotencyKey} was abandoned during processing. Please retry.")
                 );
             }
@@ -232,13 +234,13 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
                 ct: cancellationToken
             );
 
-            return TResponse.CreateFailure(error: new EmptyIdempotentException(
+            return TResponse.CreateFailure(error: new IdempotencyAbandonedException(
                 message: $"Idempotency key {idempotent.IdempotencyKey} was abandoned. The original request did not complete. Please retry.")
             );
         }
 
         logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} timed out waiting for in-flight result after {options.InFlightMaxWaitMs}ms.");
-        return TResponse.CreateFailure(error: new EmptyIdempotentException(
+        return TResponse.CreateFailure(error: new IdempotencyTimeoutException(
             message: $"Idempotency key {idempotent.IdempotencyKey} timed out waiting for an in-flight request to complete.")
         );
     }

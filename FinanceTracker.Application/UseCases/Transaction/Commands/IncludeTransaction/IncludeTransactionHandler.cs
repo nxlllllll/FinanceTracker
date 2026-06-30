@@ -66,13 +66,20 @@ public sealed class IncludeTransactionHandler(
 		}, 
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {accounts.Id}."),
 		ct: ct);
-		
-		await publisher.Publish(notification: new TransactionIncludedNotification(
-			TransactionId: accounts.Id,
-			UserId: accounts.UserId,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new TransactionIncludedNotification(
+				TransactionId: accounts.Id,
+				UserId: accounts.UserId,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionIncludedNotification for transaction {accounts.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

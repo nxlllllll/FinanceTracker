@@ -7,6 +7,8 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 
@@ -14,7 +16,8 @@ public sealed class CreateRecurringTransactionHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<CreateRecurringTransactionHandler> logger
 ) : IAuthorizedHandler<CreateRecurringTransactionCommand, Core.Domains.Account.Account, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -45,19 +48,26 @@ public sealed class CreateRecurringTransactionHandler(
 			operation: async () => await recurringTransactionWriteRepository.CreateAsync(recurringTransaction: recurringTransaction, ct: ct),
 			ct: ct
 		);
-		
-		await publisher.Publish(notification: new RecurringTransactionCreatedNotification(
-			RecurringTransactionId: recurringTransaction.Id,
-			UserId: recurringTransaction.UserId,
-			AccountId: recurringTransaction.AccountId,
-			CategoryId: recurringTransaction.CategoryId,
-			Amount: recurringTransaction.Amount,
-			Direction: recurringTransaction.Direction,
-			DayOfMonth: recurringTransaction.DayOfMonth,
-			Description: recurringTransaction.Description,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new RecurringTransactionCreatedNotification(
+				RecurringTransactionId: recurringTransaction.Id,
+				UserId: recurringTransaction.UserId,
+				AccountId: recurringTransaction.AccountId,
+				CategoryId: recurringTransaction.CategoryId,
+				Amount: recurringTransaction.Amount,
+				Direction: recurringTransaction.Direction,
+				DayOfMonth: recurringTransaction.DayOfMonth,
+				Description: recurringTransaction.Description,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionCreatedNotification for recurring transaction {recurringTransaction.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: recurringTransaction.Id);
 	}
 }

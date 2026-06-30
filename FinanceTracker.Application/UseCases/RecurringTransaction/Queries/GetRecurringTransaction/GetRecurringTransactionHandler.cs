@@ -16,6 +16,7 @@ public sealed class GetRecurringTransactionHandler(
 	{
 		RecurringTransactionReadModel? model = await recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: query.RecurringTransactionId,
+			userId: query.UserId,
 			ct: ct
 		);
 

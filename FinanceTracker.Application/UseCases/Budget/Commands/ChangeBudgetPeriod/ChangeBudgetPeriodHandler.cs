@@ -79,13 +79,20 @@ public sealed class ChangeBudgetPeriodHandler(
         if (hasOverlap)
             return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
-        await publisher.Publish(notification: new BudgetPeriodChangedNotification(
-            BudgetId: entity.Id,
-            UserId: entity.UserId,
-            NewFrom: command.From,
-            NewTo: command.To,
-            OccurredAt: dateProvider.UtcNow
-        ), cancellationToken: ct);
+        try
+        {
+            await publisher.Publish(notification: new BudgetPeriodChangedNotification(
+                BudgetId: entity.Id,
+                UserId: entity.UserId,
+                NewFrom: command.From,
+                NewTo: command.To,
+                OccurredAt: dateProvider.UtcNow
+            ), cancellationToken: ct);
+        }
+        catch (Exception ex)
+        {
+            logger.ZLogError(exception: ex, message: $"Failed to publish BudgetPeriodChangedNotification for budget {entity.Id} after successful commit.");
+        }
 
         return Result<Guid, DomainException>.Success(value: entity.Id);
     }

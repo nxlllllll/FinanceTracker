@@ -58,6 +58,7 @@ public sealed class RecurringTransactionConsumer(
 
 			RecurringTransactionReadModel? recurringTransaction = await recurringTransactionReadRepository.GetByIdAsync(
 				recurringTransactionId: message.RecurringTransactionId,
+				userId: message.UserId,
 				ct: ct
 			);
 

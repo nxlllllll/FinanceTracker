@@ -41,13 +41,20 @@ public sealed class ArchiveCategoryHandler(
 		}, 
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {entity.Id}."),
 		ct: ct);
-		
-		await publisher.Publish(notification: new CategoryArchivedNotification(
-			CategoryId: entity.Id,
-			UserId: entity.UserId,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new CategoryArchivedNotification(
+				CategoryId: entity.Id,
+				UserId: entity.UserId,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryArchivedNotification for category {entity.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

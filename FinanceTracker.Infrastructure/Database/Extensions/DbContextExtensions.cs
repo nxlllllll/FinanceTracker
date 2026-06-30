@@ -160,4 +160,21 @@ public static class DbContextExtensions
 			ON CONFLICT (account_id) DO NOTHING
 		""", cancellationToken: ct);
 	}
+
+	public static Task UpsertCurrencyRatesAsync(
+		this DbContext context,
+		string[] baseCodes,
+		string[] targetCodes,
+		decimal[] rateValues,
+		DateOnly[] actualAtDates,
+		DateTimeOffset createdAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO currency_rates (base_code, target_code, rate, actual_at, created_at)
+			SELECT base_code, target_code, rate, actual_at, {createdAt}
+			FROM unnest({baseCodes}, {targetCodes}, {rateValues}, {actualAtDates}) AS u(base_code, target_code, rate, actual_at)
+			ON CONFLICT (base_code, target_code, actual_at) DO NOTHING
+		""", cancellationToken: ct);
+	}
 }

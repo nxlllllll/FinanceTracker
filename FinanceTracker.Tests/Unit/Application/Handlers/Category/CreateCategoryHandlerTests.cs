@@ -6,6 +6,7 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
@@ -33,7 +34,8 @@ public sealed class CreateCategoryHandlerTests
 			categoryWriteRepository: _categoryWriteRepository,
 			unitOfWork: _unitOfWork,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<CreateCategoryHandler>>()
 		);
 	}
 

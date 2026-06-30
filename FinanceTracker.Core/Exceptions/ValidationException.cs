@@ -1,8 +1,8 @@
 namespace FinanceTracker.Core.Exceptions;
 
 /// <summary>
-/// Thrown by <c>ValidationBehavior</c> and <c>QueryValidationBehavior</c> when one or more
-/// FluentValidation rules fail. Contains all validation error messages for the request.
+/// Thrown by <c>ValidationBehavior</c> when one or more FluentValidation
+/// rules fail. Contains all validation error messages for the request.
 /// </summary>
 public sealed class ValidationException(IReadOnlyList<string> errors) : AppException(message: "One or more validation errors occurred.")
 {

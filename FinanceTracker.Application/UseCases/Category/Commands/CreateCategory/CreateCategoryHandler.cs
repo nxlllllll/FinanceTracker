@@ -6,6 +6,8 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
 
@@ -13,7 +15,8 @@ public sealed class CreateCategoryHandler(
 	ICategoryWriteRepository categoryWriteRepository,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<CreateCategoryHandler> logger
 ) : IRequestHandler<CreateCategoryCommand, Result<Guid, DomainException>>
 {
 	public async Task<Result<Guid, DomainException>> Handle(
@@ -33,16 +36,23 @@ public sealed class CreateCategoryHandler(
 		);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await categoryWriteRepository.CreateAsync(category: category, ct: ct), ct: ct);
-		
-		await publisher.Publish(notification: new CategoryCreatedNotification(
-			CategoryId: category.Id,
-			UserId: category.UserId,
-			Name: category.Name,
-			Type: category.Type,
-			ParentId: category.ParentId,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new CategoryCreatedNotification(
+				CategoryId: category.Id,
+				UserId: category.UserId,
+				Name: category.Name,
+				Type: category.Type,
+				ParentId: category.ParentId,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryCreatedNotification for category {category.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: category.Id);
 	}
 }

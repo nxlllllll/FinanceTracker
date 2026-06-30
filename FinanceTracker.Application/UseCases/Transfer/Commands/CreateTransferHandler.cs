@@ -74,21 +74,28 @@ public sealed class CreateTransferHandler(
 		},
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {account.Id} > {command.ToAccountId}."),
 		ct: ct);
-		
-		await publisher.Publish(notification: new TransferCreatedNotification(
-			TransferId: transfer.Id,
-			UserId: transfer.UserId,
-			FromAccountId: transfer.FromAccountId,
-			ToAccountId: transfer.ToAccountId,
-			AmountFrom: transfer.AmountFrom.Amount,
-			CurrencyFrom: transfer.AmountFrom.Currency,
-			AmountTo: transfer.AmountTo.Amount,
-			CurrencyTo: transfer.AmountTo.Currency,
-			ExchangeRate: transfer.ExchangeRate,
-			IsRatePending: transfer.IsRatePending,
-			Description: transfer.Description,
-			OccurredAt: transfer.OccurredAt
-		), cancellationToken: ct);
+
+		try
+		{
+			await publisher.Publish(notification: new TransferCreatedNotification(
+				TransferId: transfer.Id,
+				UserId: transfer.UserId,
+				FromAccountId: transfer.FromAccountId,
+				ToAccountId: transfer.ToAccountId,
+				AmountFrom: transfer.AmountFrom.Amount,
+				CurrencyFrom: transfer.AmountFrom.Currency,
+				AmountTo: transfer.AmountTo.Amount,
+				CurrencyTo: transfer.AmountTo.Currency,
+				ExchangeRate: transfer.ExchangeRate,
+				IsRatePending: transfer.IsRatePending,
+				Description: transfer.Description,
+				OccurredAt: transfer.OccurredAt
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransferCreatedNotification for transfer {transfer.Id} after successful commit.");
+		}
 
 		return Result<Guid, DomainException>.Success(value: transfer.Id);
 	}

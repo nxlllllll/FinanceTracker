@@ -52,6 +52,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -144,6 +145,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (RecurringTransactionReadModel?)null);
 
@@ -161,6 +163,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (RecurringTransactionReadModel?)null);
 
@@ -175,6 +178,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -197,6 +201,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -219,6 +224,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -238,6 +244,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -260,6 +267,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -282,6 +290,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -304,6 +313,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -326,6 +336,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 
@@ -357,6 +368,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 	{
 		_recurringTransactionReadRepository.GetByIdAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RecurringTransactionFactory.CreateReadModel());
 

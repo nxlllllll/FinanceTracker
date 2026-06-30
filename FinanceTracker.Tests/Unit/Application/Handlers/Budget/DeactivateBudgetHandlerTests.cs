@@ -5,6 +5,7 @@ using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
@@ -23,7 +24,8 @@ public sealed class DeactivateBudgetHandlerTests
 		_handler = new DeactivateBudgetHandler(
 			budgetWriteRepository: _budgetWriteRepository,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<DeactivateBudgetHandler>>()
 		);
 	}
 

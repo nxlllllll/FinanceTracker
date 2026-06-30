@@ -5,6 +5,8 @@ using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount;
@@ -12,7 +14,8 @@ namespace FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount
 public sealed class ChangeBudgetAmountHandler(
 	IBudgetWriteRepository budgetWriteRepository,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<ChangeBudgetAmountHandler> logger
 ) : IAuthorizedHandler<ChangeBudgetAmountCommand, Core.Domains.Budget.Budget, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -25,14 +28,21 @@ public sealed class ChangeBudgetAmountHandler(
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await budgetWriteRepository.ChangeAmountAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, amount: command.Amount, ct: ct);
-		
-		await publisher.Publish(notification: new BudgetAmountChangedNotification(
-			BudgetId: entity.Id,
-			UserId: entity.UserId,
-			NewAmount: command.Amount,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new BudgetAmountChangedNotification(
+				BudgetId: entity.Id,
+				UserId: entity.UserId,
+				NewAmount: command.Amount,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetAmountChangedNotification for budget {entity.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

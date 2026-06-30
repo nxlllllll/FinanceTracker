@@ -5,6 +5,8 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionAmount;
@@ -12,7 +14,8 @@ namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.Chan
 public sealed class ChangeRecurringTransactionAmountHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<ChangeRecurringTransactionAmountHandler> logger
 ) : IAuthorizedHandler<ChangeRecurringTransactionAmountCommand, Core.Domains.RecurringTransaction.RecurringTransaction, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -30,14 +33,21 @@ public sealed class ChangeRecurringTransactionAmountHandler(
 			amount: command.Amount,
 			ct: ct
 		);
-		
-		await publisher.Publish(notification: new RecurringTransactionAmountChangedNotification(
-			RecurringTransactionId: entity.Id,
-			UserId: entity.UserId,
-			NewAmount: command.Amount,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new RecurringTransactionAmountChangedNotification(
+				RecurringTransactionId: entity.Id,
+				UserId: entity.UserId,
+				NewAmount: command.Amount,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionAmountChangedNotification for recurring transaction {entity.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

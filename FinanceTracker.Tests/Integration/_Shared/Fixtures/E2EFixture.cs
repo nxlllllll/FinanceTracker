@@ -2,6 +2,7 @@
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Configurations.Options;
@@ -111,6 +112,8 @@ public abstract class E2EFixture
         Uri rabbitUri = new Uri(_rabbitMq.GetConnectionString());
         _rabbitUri = rabbitUri;
         string redisCs = _redis.GetConnectionString() + ",allowAdmin=true";
+
+        await DeclareRabbitTopologyAsync(rabbitUri: rabbitUri, testRunId: testRunId);
 
         string adminConnectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
         {
@@ -233,6 +236,51 @@ public abstract class E2EFixture
 
         Context = Host.Services.GetRequiredService<FinanceTrackerContext>();
         Mediator = Host.Services.GetRequiredService<IMediator>();
+    }
+	
+    private async Task DeclareRabbitTopologyAsync(Uri rabbitUri, string testRunId)
+    {
+        const string deadLetterExchangeArgument = "x-dead-letter-exchange"; // RabbitMqListenerService.DeadLetterExchangeArgument
+
+        (string Queue, string RoutingKey)[] queues =
+        [
+            (AccountQueueName(testRunId: testRunId), AggregateTypeNames.Account),
+            (TransferQueueName(testRunId: testRunId), AggregateTypeNames.Account),
+            (RecurringQueueName(testRunId: testRunId), AggregateTypeNames.RecurringTransaction)
+        ];
+
+        ConnectionFactory factory = new ConnectionFactory
+        {
+            HostName = rabbitUri.Host,
+            Port = rabbitUri.Port,
+            UserName = RabbitData,
+            Password = RabbitData
+        };
+
+        await using IConnection connection = await factory.CreateConnectionAsync();
+        await using IChannel channel = await connection.CreateChannelAsync();
+
+        string exchangeName = ExchangeName(testRunId: testRunId);
+        await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic, durable: true);
+
+        foreach ((string queue, string routingKey) in queues)
+        {
+            string dlxName = $"{queue}.dlx";
+            string dlqName = $"{queue}.dlq";
+
+            await channel.ExchangeDeclareAsync(exchange: dlxName, type: ExchangeType.Fanout, durable: true);
+            await channel.QueueDeclareAsync(queue: dlqName, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueBindAsync(queue: dlqName, exchange: dlxName, routingKey: String.Empty);
+
+            await channel.QueueDeclareAsync(
+                queue: queue,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: new Dictionary<string, object?> { [deadLetterExchangeArgument] = dlxName }
+            );
+            await channel.QueueBindAsync(queue: queue, exchange: exchangeName, routingKey: routingKey);
+        }
     }
 
     protected virtual void ConfigureAdditionalServices(IServiceCollection services, IConfiguration configuration) { }

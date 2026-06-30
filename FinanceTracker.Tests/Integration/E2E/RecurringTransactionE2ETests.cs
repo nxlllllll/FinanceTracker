@@ -52,6 +52,15 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
         return accountId;
     }
 
+    private async Task BackdateCreatedAtAsync(Guid recurringTransactionId, DateTimeOffset createdAt)
+    {
+        await using FinanceTrackerContext ctx = CreateReadContext();
+        await ctx.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId).ExecuteUpdateAsync(setPropertyCalls: builder => builder.SetProperty(
+            propertyExpression: r => r.CreatedAt,
+            valueExpression: createdAt
+        ));
+    }
+
     [Test]
     public async Task RecurringTransaction_DueToday_ShouldCreateTransactionAndUpdateLastExecutedAt()
     {
@@ -180,6 +189,8 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
             amount: 1_500m,
             dayOfMonth: scheduledDay
         );
+        
+        await BackdateCreatedAtAsync(recurringTransactionId: recurringId, createdAt: now.AddMonths(months: -2));
 
         await RunRecurringTransactionJobAsync();
 
@@ -219,6 +230,8 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
             dayOfMonth: scheduledDay
         );
 
+        await BackdateCreatedAtAsync(recurringTransactionId: recurringId, createdAt: now.AddMonths(months: -2));
+
         await RunRecurringTransactionJobAsync();
 
         await WaitForConditionAsync(condition: async () =>
@@ -254,13 +267,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
             dayOfMonth: 28
         );
 
-        await using (FinanceTrackerContext setupCtx = CreateReadContext())
-        {
-            await setupCtx.RecurringTransactions.Where(predicate: r => r.Id == recurringId).ExecuteUpdateAsync(setPropertyCalls: builder => builder.SetProperty(
-                propertyExpression: r => r.CreatedAt,
-                valueExpression: now.AddMonths(months: -3)
-            ));
-        }
+        await BackdateCreatedAtAsync(recurringTransactionId: recurringId, createdAt: now.AddMonths(months: -3));
 
         await RunRecurringTransactionJobAsync();
 

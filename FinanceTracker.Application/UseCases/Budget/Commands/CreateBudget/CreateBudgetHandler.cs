@@ -6,6 +6,8 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 
@@ -14,7 +16,8 @@ public sealed class CreateBudgetHandler(
 	IBudgetWriteRepository budgetWriteRepository,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<CreateBudgetHandler> logger
 ) : IRequestHandler<CreateBudgetCommand, Result<Guid, DomainException>>
 {
 	public async Task<Result<Guid, DomainException>> Handle(
@@ -65,16 +68,23 @@ public sealed class CreateBudgetHandler(
 		if (hasOverlap)
 			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
-		await publisher.Publish(notification: new BudgetCreatedNotification(
-			BudgetId: budget.Id,
-			UserId: budget.UserId,
-			CategoryId: budget.CategoryId,
-			Amount: budget.Amount,
-			From: budget.From,
-			To: budget.To,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+		try
+		{
+			await publisher.Publish(notification: new BudgetCreatedNotification(
+				BudgetId: budget.Id,
+				UserId: budget.UserId,
+				CategoryId: budget.CategoryId,
+				Amount: budget.Amount,
+				From: budget.From,
+				To: budget.To,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetCreatedNotification for budget {budget.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: budget.Id);
 	}
 }

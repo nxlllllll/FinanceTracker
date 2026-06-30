@@ -123,7 +123,7 @@ public sealed class IdempotencyBehaviourTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotencyKeyException>();
 	}
 
 	[Test]
@@ -493,30 +493,21 @@ public sealed class IdempotencyBehaviourTests
 	[Test]
 	public async Task Handle_WhenInFlightTimesOut_ShouldReturnFailure()
 	{
-		ControllableDateProvider dateProvider = new ControllableDateProvider(initial: Now);
-
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: _ =>
-		{
-			dateProvider.Advance(by: TimeSpan.FromSeconds(value: 5));
-			return Task.FromResult<IdempotencyEntry?>(result: InFlightEntry(reservedAt: Now));
-		});
+		).Returns(returnThis: InFlightEntry(reservedAt: Now));
 
-		Result<Guid, DomainException> result = await BuildBehavior<TestCommand>(
-			abandonedAfterSeconds: 999,
-			dateProvider: dateProvider
-		).Handle(
+		Result<Guid, DomainException> result = await BuildBehavior<TestCommand>(abandonedAfterSeconds: 999).Handle(
 			request: new TestCommand(IdempotencyKey: ValidKey),
 			next: _ => throw new InvalidOperationException(message: "next should not be called"),
 			cancellationToken: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+		await Assert.That(value: result.Error).IsTypeOf<IdempotencyTimeoutException>();
 	}
 
 	[Test]
@@ -538,7 +529,7 @@ public sealed class IdempotencyBehaviourTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+		await Assert.That(value: result.Error).IsTypeOf<IdempotencyAbandonedException>();
 		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
 			idempotencyKey: ValidKey,
 			commandType: Arg.Any<string>(),
@@ -569,7 +560,7 @@ public sealed class IdempotencyBehaviourTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+		await Assert.That(value: result.Error).IsTypeOf<IdempotencyAbandonedException>();
 		await _writeRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
 			idempotencyKey: ValidKey,
 			commandType: Arg.Any<string>(),
@@ -598,6 +589,6 @@ public sealed class IdempotencyBehaviourTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<EmptyIdempotentException>();
+		await Assert.That(value: result.Error).IsTypeOf<IdempotencyAbandonedException>();
 	}
 }

@@ -20,7 +20,7 @@ public class RecurringTransactionBenchmarks : BenchmarkBase
 
 	[Benchmark]
 	public async Task GetByIdAsync()
-		=> await _repository.GetByIdAsync(recurringTransactionId: Db.RecurringTransactionId);
+		=> await _repository.GetByIdAsync(recurringTransactionId: Db.RecurringTransactionId, userId: Db.UserId);
 
 	[Benchmark]
 	public async Task GetDueTodayAsync()

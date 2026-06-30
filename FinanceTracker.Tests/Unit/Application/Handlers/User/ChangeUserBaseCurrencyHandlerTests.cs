@@ -8,6 +8,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
@@ -38,7 +39,8 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			unitOfWork: _unitOfWork,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<ChangeUserBaseCurrencyHandler>>()
 		);
 	}
 

@@ -5,6 +5,8 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
@@ -12,7 +14,8 @@ namespace FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransac
 public sealed class ChangeTransactionDescriptionHandler(
 	ITransactionWriteRepository transactionWriteRepository,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<ChangeTransactionDescriptionHandler> logger
 ) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -35,15 +38,22 @@ public sealed class ChangeTransactionDescriptionHandler(
 			description: command.Description,
 			ct: ct
 		);
-		
-		await publisher.Publish(notification: new TransactionDescriptionChangedNotification(
-			TransactionId: accounts.Id,
-			UserId: accounts.UserId,
-			OldDescription: oldDescription,
-			NewDescription: command.Description,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new TransactionDescriptionChangedNotification(
+				TransactionId: accounts.Id,
+				UserId: accounts.UserId,
+				OldDescription: oldDescription,
+				NewDescription: command.Description,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionDescriptionChangedNotification for transaction {accounts.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

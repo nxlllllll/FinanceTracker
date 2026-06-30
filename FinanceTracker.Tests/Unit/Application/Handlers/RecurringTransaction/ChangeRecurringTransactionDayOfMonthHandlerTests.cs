@@ -5,6 +5,7 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
@@ -23,7 +24,8 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 		_handler = new ChangeRecurringTransactionDayOfMonthHandler(
 			recurringTransactionWriteRepository: _writeRepository,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<ChangeRecurringTransactionDayOfMonthHandler>>()
 		);
 	}
 

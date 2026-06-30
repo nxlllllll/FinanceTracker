@@ -59,12 +59,19 @@ public sealed class RegisterUserHandler(
 			));
 		}
 
-		await publisher.Publish(notification: new UserRegisteredNotification(
-			UserId: user.Id,
-			Email: user.Email,
-			BaseCurrency: user.BaseCurrency,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
+		try
+		{
+			await publisher.Publish(notification: new UserRegisteredNotification(
+				UserId: user.Id,
+				Email: user.Email,
+				BaseCurrency: user.BaseCurrency,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish UserRegisteredNotification for user {user.Id} after successful commit.");
+		}
 
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
 

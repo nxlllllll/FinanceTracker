@@ -4,6 +4,7 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -23,7 +24,8 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 		_handler = new ChangeTransactionDescriptionHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<ChangeTransactionDescriptionHandler>>()
 		);
 	}
 

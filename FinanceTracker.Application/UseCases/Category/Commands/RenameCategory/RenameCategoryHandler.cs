@@ -6,6 +6,8 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
@@ -13,7 +15,8 @@ namespace FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 public sealed class RenameCategoryHandler(
 	ICategoryWriteRepository categoryWriteRepository,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<RenameCategoryHandler> logger
 ) : IAuthorizedHandler<RenameCategoryCommand, Core.Domains.Category.Category, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -37,15 +40,22 @@ public sealed class RenameCategoryHandler(
 			expectedVersion: entity.RowVersion, 
 			ct: ct
 		);
-		
-		await publisher.Publish(notification: new CategoryRenamedNotification(
-			CategoryId: entity.Id,
-			UserId: entity.UserId,
-			OldName: oldName,
-			NewName: nameResult.Value,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new CategoryRenamedNotification(
+				CategoryId: entity.Id,
+				UserId: entity.UserId,
+				OldName: oldName,
+				NewName: nameResult.Value,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryRenamedNotification for category {entity.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}
 }

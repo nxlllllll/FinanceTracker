@@ -130,18 +130,25 @@ public sealed class TransactionCreationService(
         onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create transaction for account {account.Id}."),
         ct: ct);
 
-		await publisher.Publish(notification: new TransactionCreatedNotification(
-			TransactionId: transaction.Id,
-			AccountId: transaction.AccountId,
-			UserId: transaction.UserId,
-			CategoryId: transaction.CategoryId,
-			Amount: transaction.Amount,
-			Direction: transaction.Direction,
-			ExchangeRate: transaction.ExchangeRate,
-			IsRatePending: transaction.IsRatePending,
-			Description: transaction.Description,
-            OccurredAt: transaction.OccurredAt
-		), cancellationToken: ct);
+        try
+        {
+            await publisher.Publish(notification: new TransactionCreatedNotification(
+                TransactionId: transaction.Id,
+                AccountId: transaction.AccountId,
+                UserId: transaction.UserId,
+                CategoryId: transaction.CategoryId,
+                Amount: transaction.Amount,
+                Direction: transaction.Direction,
+                ExchangeRate: transaction.ExchangeRate,
+                IsRatePending: transaction.IsRatePending,
+                Description: transaction.Description,
+                OccurredAt: transaction.OccurredAt
+            ), cancellationToken: ct);
+        }
+        catch (Exception ex)
+        {
+            logger.ZLogError(exception: ex, message: $"Failed to publish TransactionCreatedNotification for transaction {transaction.Id} after successful commit.");
+        }
 
         return Result<Guid, DomainException>.Success(value: transaction.Id);
     }

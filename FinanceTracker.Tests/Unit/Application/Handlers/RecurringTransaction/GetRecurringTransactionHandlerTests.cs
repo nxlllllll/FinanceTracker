@@ -29,9 +29,11 @@ public sealed class GetRecurringTransactionHandlerTests
 			UserId: model.UserId
 		);
 
-		_recurringTransactionReadRepository
-			.GetByIdAsync(recurringTransactionId: model.Id, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: model);
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: model.Id,
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: model);
 
 		Result<RecurringTransactionReadModel, DomainException> result = await _handler.Handle(
 			query: query,
@@ -51,9 +53,11 @@ public sealed class GetRecurringTransactionHandlerTests
 			UserId: Guid.CreateVersion7()
 		);
 
-		_recurringTransactionReadRepository
-			.GetByIdAsync(recurringTransactionId: recurringTransactionId, ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: (RecurringTransactionReadModel?)null);
+		_recurringTransactionReadRepository.GetByIdAsync(
+			recurringTransactionId: recurringTransactionId,
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (RecurringTransactionReadModel?)null);
 
 		Result<RecurringTransactionReadModel, DomainException> result = await _handler.Handle(
 			query: query,

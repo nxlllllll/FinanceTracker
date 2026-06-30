@@ -9,6 +9,7 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -57,7 +58,8 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			unitOfWork: _unitOfWork,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<ChangeTransactionCategoryHandler>>()
 		);
 	}
 

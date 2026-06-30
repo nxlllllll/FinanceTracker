@@ -66,13 +66,20 @@ public sealed class ExcludeTransactionHandler(
 		},
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to exclude transaction {accounts.Id}."),
 		ct: ct);
-		
-		await publisher.Publish(notification: new TransactionExcludedNotification(
-			TransactionId: accounts.Id,
-			UserId: accounts.UserId,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
-		
+
+		try
+		{
+			await publisher.Publish(notification: new TransactionExcludedNotification(
+				TransactionId: accounts.Id,
+				UserId: accounts.UserId,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionExcludedNotification for transaction {accounts.Id} after successful commit.");
+		}
+
 		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

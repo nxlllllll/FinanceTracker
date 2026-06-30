@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
@@ -21,7 +22,8 @@ public sealed class ChangeBudgetAmountHandlerTests
 		_handler = new ChangeBudgetAmountHandler(
 			budgetWriteRepository: _budgetWriteRepository,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<ChangeBudgetAmountHandler>>()
 		);
 	}
 

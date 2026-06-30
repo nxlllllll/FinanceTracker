@@ -6,6 +6,8 @@ using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
@@ -15,7 +17,8 @@ public sealed class ActivateBudgetHandler(
 	IBudgetWriteRepository budgetWriteRepository,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	ILogger<ActivateBudgetHandler> logger
 ) : IAuthorizedHandler<ActivateBudgetCommand, Core.Domains.Budget.Budget, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
@@ -62,11 +65,18 @@ public sealed class ActivateBudgetHandler(
 			));
 		}
 
-		await publisher.Publish(notification: new BudgetActivatedNotification(
-			BudgetId: entity.Id,
-			UserId: entity.UserId,
-			OccurredAt: dateProvider.UtcNow
-		), cancellationToken: ct);
+		try
+		{
+			await publisher.Publish(notification: new BudgetActivatedNotification(
+				BudgetId: entity.Id,
+				UserId: entity.UserId,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetActivatedNotification for budget {entity.Id} after successful commit.");
+		}
 
 		return Result<Guid, DomainException>.Success(value: entity.Id);
 	}

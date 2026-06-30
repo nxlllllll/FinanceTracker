@@ -4,6 +4,7 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
@@ -22,7 +23,8 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 		_handler = new ChangeRecurringTransactionCurrencyHandler(
 			recurringTransactionWriteRepository: _writeRepository,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			logger: Substitute.For<ILogger<ChangeRecurringTransactionCurrencyHandler>>()
 		);
 	}
 
