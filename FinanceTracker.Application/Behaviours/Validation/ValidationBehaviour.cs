@@ -29,12 +29,11 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
  
 		ValidationContext<TRequest> context = new ValidationContext<TRequest>(instanceToValidate: request);
  
-		ValidationResult[] results = await Task.WhenAll(tasks: validators.Select(
-			selector: validator => validator.ValidateAsync(context: context, cancellation: cancellationToken)
-		));
+		List<ValidationResult> results = new List<ValidationResult>(capacity: validators.Count());
+		foreach (IValidator<TRequest> validator in validators)
+			results.Add(item: await validator.ValidateAsync(context: context, cancellation: cancellationToken));
  
-		List<string> errors = results
-			.SelectMany(selector: result => result.Errors)
+		List<string> errors = results.SelectMany(selector: result => result.Errors)
 			.Where(predicate: error => error is not null)
 			.Select(selector: error => error.ErrorMessage)
 			.ToList();

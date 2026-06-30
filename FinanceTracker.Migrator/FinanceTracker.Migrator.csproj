@@ -74,6 +74,10 @@
         <EmbeddedResource Include="Migrations\V028__add_outbox_lock.sql" />
         <None Remove="Migrations\V029__add_quartz_scheduler_tables.sql" />
         <EmbeddedResource Include="Migrations\V029__add_quartz_scheduler_tables.sql" />
+        <None Remove="Migrations\V031__widen_events_version_constraint.sql" />
+        <EmbeddedResource Include="Migrations\V031__widen_events_version_constraint.sql" />
+        <None Remove="Migrations\V032__cover_pending_rate_indexes.sql" />
+        <EmbeddedResource Include="Migrations\V032__cover_pending_rate_indexes.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">

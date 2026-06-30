@@ -206,11 +206,11 @@ public static class DependencyInjection
 		services.AddScoped<IOperationWriteRepository, OperationWriteRepository>();
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
-		services.AddScoped<IDateProvider, DateProvider>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		services.AddScoped<ITokenService, JwtTokenService>();
 		services.AddScoped<ISessionIssuer, SessionIssuer>();	
 		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
+		services.AddSingleton<IDateProvider, DateProvider>();
 		services.AddSingleton<ISnapshotSerializer<Account>, AccountSnapshotSerializer>();
 
 		services.AddScoped<AccountDomainEventApplier>();
