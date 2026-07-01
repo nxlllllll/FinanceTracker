@@ -169,7 +169,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
         await Assert.That(value: txCount).IsEqualTo(expected: 1);
     }
     
-    [Test]
+[Test]
     public async Task RecurringTransaction_ScheduledDayAlreadyPassed_ShouldEscalateAndMarkMissed()
     {
         Guid userId = await _userBuilder.CreateAsync();
@@ -177,10 +177,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        // A day earlier in *this* month. On the 1st of the month there is no such day — same accepted
-        // edge case as RecurringTransactionHandlingJob's own month-boundary limitation; not guarded
-        // here for the same reason the other tests in this file don't guard `DateTime.UtcNow.Day` either.
-        int scheduledDay = now.Day > 1 ? now.Day - 1 : 1;
+        int scheduledDay = now.Day > 1 ? now.Day - 1 : 28;
 
         Guid recurringId = await _recurringBuilder.CreateAsync(
             userId: userId,
@@ -220,7 +217,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
         Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        int scheduledDay = now.Day > 1 ? now.Day - 1 : 1;
+        int scheduledDay = now.Day > 1 ? now.Day - 1 : 28;
 
         Guid recurringId = await _recurringBuilder.CreateAsync(
             userId: userId,
