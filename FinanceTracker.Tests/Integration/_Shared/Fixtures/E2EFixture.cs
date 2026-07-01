@@ -187,8 +187,9 @@ public abstract class E2EFixture
 			}))
 			.ConfigureServices(configureDelegate: (ctx, services) =>
 			{
-				services.AddInfrastructure(configuration: ctx.Configuration);
+				services.AddPersistence(configuration: ctx.Configuration).AddAuth();
 				services.AddApplication();
+
 				services.AddScoped<ITransactionCreationService, TransactionCreationService>();
 
 				services.AddRabbitMqCore();

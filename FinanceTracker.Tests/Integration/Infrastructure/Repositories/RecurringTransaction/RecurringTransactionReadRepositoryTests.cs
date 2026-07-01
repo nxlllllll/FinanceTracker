@@ -355,12 +355,11 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 		int today = now.Day == 1 ? 2 : now.Day;
 		int scheduledDay = today - 1;
 
-		// Created just now, with a day-of-month that already passed this month before it existed.
-		// This must get a grace period until next month, not be instantly escalated as missed.
-		await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
-
 		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+
+		Guid id = await _recurringTransactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, dayOfMonth: scheduledDay);
+		await BackdateCreatedAtAsync(id: id, createdAt: currentMonthStart.AddDays(days: scheduledDay).AddHours(hours: 1));
 
 		IReadOnlyList<RecurringTransactionReadModel> result = await _readRepository.GetMissedThisMonthAsync(
 			dayOfMonth: today,

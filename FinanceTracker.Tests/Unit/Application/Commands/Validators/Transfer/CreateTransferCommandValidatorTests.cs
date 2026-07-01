@@ -1,6 +1,8 @@
+using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
+using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transfer;
 
@@ -11,7 +13,10 @@ public sealed class CreateTransferCommandValidatorTests
     [Before(hookType: Test)]
     public void Setup()
     {
-        _validator = new CreateTransferCommandValidator(dateProvider: FakeDateProvider.Default);
+        _validator = new CreateTransferCommandValidator(
+            dateProvider: FakeDateProvider.Default,
+            moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions())
+        );
     }
 
     [Test]
@@ -66,6 +71,27 @@ public sealed class CreateTransferCommandValidatorTests
 
         await Assert.That(value: result.IsValid).IsFalse();
         await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Amount))).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_WithAmountExceedingLimit_ShouldHaveError()
+    {
+        CreateTransferCommand command = CreateTransferCommandFactory.Create(amount: new MoneyLimitsOptions().MaxAmount + 0.01m);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsFalse();
+        await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Amount))).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_WithAmountAtLimit_ShouldNotHaveError()
+    {
+        CreateTransferCommand command = CreateTransferCommandFactory.Create(amount: new MoneyLimitsOptions().MaxAmount);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsTrue();
     }
 
     [Test]

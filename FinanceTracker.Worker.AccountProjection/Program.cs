@@ -15,7 +15,7 @@ public sealed class Program
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
  
-		builder.Services.AddInfrastructure(configuration: builder.Configuration);
+		builder.Services.AddPersistence(configuration: builder.Configuration);
  
 		builder.Services.AddScoped<Projection.AccountProjection>();
 		builder.Services.AddScoped<AccountEventApplier>();

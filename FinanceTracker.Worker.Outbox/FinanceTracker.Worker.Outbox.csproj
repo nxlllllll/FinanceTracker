@@ -9,11 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
-        <PackageReference Include="Quartz" Version="3.18.1" />
-        <PackageReference Include="Quartz.Extensions.Hosting" Version="3.18.1" />
-        <PackageReference Include="ZLogger" Version="2.5.10" />
-        <PackageReference Include="Quartz.AspNetCore" Version="3.18.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+        <PackageReference Include="Quartz" />
+        <PackageReference Include="Quartz.Extensions.Hosting" />
+        <PackageReference Include="ZLogger" />
+        <PackageReference Include="Quartz.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>
@@ -24,8 +24,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+        <Content Include="..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
     </ItemGroup>
 </Project>

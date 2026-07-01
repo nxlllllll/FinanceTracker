@@ -1,9 +1,11 @@
+using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Account;
@@ -20,7 +22,10 @@ public sealed class CreateAccountCommandValidatorTests
 
 		_currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
 
-		_validator = new CreateAccountCommandValidator(currencyReadRepository: _currencyReadRepository);
+		_validator = new CreateAccountCommandValidator(
+			currencyReadRepository: _currencyReadRepository,
+			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions())
+		);
 	}
 	
 	[Test]
@@ -44,6 +49,29 @@ public sealed class CreateAccountCommandValidatorTests
 		await Assert.That(value: result.Errors.Any(
 			predicate: error => error.PropertyName == nameof(command.InitialBalance)
 		)).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithBalanceExceedingLimit_ShouldHaveError()
+	{
+		CreateAccountCommand command = CreateAccountCommandFactory.Create(initialBalance: new MoneyLimitsOptions().MaxAmount + 0.01m);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(
+			predicate: error => error.PropertyName == nameof(command.InitialBalance)
+		)).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithBalanceAtLimit_ShouldNotHaveError()
+	{
+		CreateAccountCommand command = CreateAccountCommandFactory.Create(initialBalance: new MoneyLimitsOptions().MaxAmount);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsTrue();
 	}
 	
 	[Test]

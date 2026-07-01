@@ -9,14 +9,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="dbup-postgresql" Version="7.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+        <PackageReference Include="dbup-postgresql" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.Development.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-        
+
         <EmbeddedResource Include="Migrations\V014__add_idempotency_reserved_at.sql" />
         <None Remove="Migrations\V001__init.sql" />
         <EmbeddedResource Include="Migrations\V001__init.sql" />

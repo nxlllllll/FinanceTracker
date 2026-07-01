@@ -1,5 +1,6 @@
 using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
+using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -10,6 +11,8 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
@@ -22,6 +25,7 @@ public sealed class RefreshTokenHandlerTests
 	private IUnitOfWork _unitOfWork = null!;
 	private ITokenService _tokenService = null!;
 	private ISessionIssuer _sessionIssuer = null!;
+	private IPublisher _publisher = null!;
 	private IDateProvider _dateProvider = null!;
 	private RefreshTokenHandler _handler = null!;
 
@@ -45,17 +49,32 @@ public sealed class RefreshTokenHandlerTests
 		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
 	);
 
-	private static UserSession ActiveSession()
-	{
-		return UserSession.Reconstitute(
-			id: Guid.CreateVersion7(),
-			userId: UserId,
-			refreshTokenHash: TokenHash,
-			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-			createdAt: DateTimeOffset.UtcNow,
-			revokedAt: null
-		);
-	}
+	private static UserSession ActiveSession() => UserSession.Reconstitute(
+		id: Guid.CreateVersion7(),
+		userId: UserId,
+		refreshTokenHash: TokenHash,
+		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+		createdAt: DateTimeOffset.UtcNow,
+		revokedAt: null
+	);
+
+	private static UserSession RevokedSession() => UserSession.Reconstitute(
+		id: Guid.CreateVersion7(),
+		userId: UserId,
+		refreshTokenHash: TokenHash,
+		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
+		createdAt: DateTimeOffset.UtcNow,
+		revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
+	);
+
+	private static UserSession ExpiredButNotRevokedSession() => UserSession.Reconstitute(
+		id: Guid.CreateVersion7(),
+		userId: UserId,
+		refreshTokenHash: TokenHash,
+		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: -1),
+		createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
+		revokedAt: null
+	);
 
 	[Before(hookType: Test)]
 	public void Setup()
@@ -66,6 +85,7 @@ public sealed class RefreshTokenHandlerTests
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_tokenService = Substitute.For<ITokenService>();
 		_sessionIssuer = Substitute.For<ISessionIssuer>();
+		_publisher = Substitute.For<IPublisher>();
 		_dateProvider = Substitute.For<IDateProvider>();
 
 		_dateProvider.UtcNow.Returns(returnThis: FakeDateProvider.Default.UtcNow);
@@ -77,18 +97,20 @@ public sealed class RefreshTokenHandlerTests
 		).Returns(returnThis: NewSessionToken);
 
 		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task<Result<SessionToken, DomainException>>>>(),
+			operation: Arg.Any<Func<Task<RefreshTokenHandler.RotateResult>>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<Result<SessionToken, DomainException>>>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<RefreshTokenHandler.RotateResult>>>()());
 		
 		_handler = new RefreshTokenHandler(
 			userAuthRepository: _userAuthRepository,
 			userSessionReadRepository: _userSessionReadRepository,
 			userSessionWriteRepository: _userSessionWriteRepository,
-			unitOfWork: _unitOfWork,
 			tokenService: _tokenService,
 			sessionIssuer: _sessionIssuer,
-			dateProvider: _dateProvider
+			unitOfWork: _unitOfWork,
+			publisher: _publisher,
+			dateProvider: _dateProvider,
+			logger: Substitute.For<ILogger<RefreshTokenHandler>>()
 		);
 	}
 
@@ -110,20 +132,32 @@ public sealed class RefreshTokenHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenSessionIsRevoked_ShouldReturnInvalidToken()
+	public async Task Handle_WhenSessionNotFound_ShouldNotRevokeAnySessions()
 	{
-		UserSession revokedSession = UserSession.Reconstitute(
-			id: Guid.CreateVersion7(),
-			userId: UserId,
-			refreshTokenHash: TokenHash,
-			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-			createdAt: DateTimeOffset.UtcNow,
-			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
-		);
 		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: revokedSession);
+		).Returns(returnThis: (UserSession?)null);
+
+		await _handler.Handle(
+			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAllAsync(
+			userId: Arg.Any<Guid>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenSessionIsRevoked_ShouldReturnInvalidToken()
+	{
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: RevokedSession());
 
 		Result<SessionToken, DomainException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
@@ -135,20 +169,53 @@ public sealed class RefreshTokenHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenSessionIsExpired_ShouldReturnInvalidToken()
+	public async Task Handle_WhenSessionIsRevoked_ShouldRevokeAllUserSessions()
 	{
-		UserSession expiredSession = UserSession.Reconstitute(
-			id: Guid.CreateVersion7(),
-			userId: UserId,
-			refreshTokenHash: TokenHash,
-			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: -1),
-			createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
-			revokedAt: null
-		);
+		UserSession revokedSession = RevokedSession();
 		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: expiredSession);
+		).Returns(returnThis: revokedSession);
+
+		await _handler.Handle(
+			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAllAsync(
+			userId: revokedSession.UserId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenSessionIsRevoked_ShouldPublishReuseDetectedNotification()
+	{
+		UserSession revokedSession = RevokedSession();
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: revokedSession);
+
+		await _handler.Handle(
+			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
+			ct: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Is<RefreshTokenReuseDetectedNotification>(n => n.UserId == revokedSession.UserId),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenSessionIsExpiredButNotRevoked_ShouldReturnInvalidToken()
+	{
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: ExpiredButNotRevokedSession());
 
 		Result<SessionToken, DomainException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
@@ -157,6 +224,45 @@ public sealed class RefreshTokenHandlerTests
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTokenException>();
+	}
+
+	[Test]
+	public async Task Handle_WhenSessionIsExpiredButNotRevoked_ShouldNotRevokeAllUserSessions()
+	{
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: ExpiredButNotRevokedSession());
+
+		await _handler.Handle(
+			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAllAsync(
+			userId: Arg.Any<Guid>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenSessionIsExpiredButNotRevoked_ShouldNotPublishNotification()
+	{
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: ExpiredButNotRevokedSession());
+
+		await _handler.Handle(
+			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
+			ct: CancellationToken.None
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<INotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -200,6 +306,30 @@ public sealed class RefreshTokenHandlerTests
 
 		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAsync(
 			sessionId: session.Id,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenValidToken_ShouldNotRevokeAllUserSessions()
+	{
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: ActiveSession());
+		_userAuthRepository.GetByIdAsync(
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: TestUser);
+
+		await _handler.Handle(
+			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAllAsync(
+			userId: Arg.Any<Guid>(),
 			revokedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);

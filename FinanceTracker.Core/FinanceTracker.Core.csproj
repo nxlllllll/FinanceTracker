@@ -12,7 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Utilities\" />
+        <Folder Include="Utilities\" />
     </ItemGroup>
-    
+
 </Project>

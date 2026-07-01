@@ -1,9 +1,11 @@
+using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.RecurringTransaction;
@@ -29,7 +31,8 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
 
         _validator = new CreateRecurringTransactionCommandValidator(
             currencyReadRepository: _currencyReadRepository,
-            categoryReadRepository: _categoryReadRepository
+            categoryReadRepository: _categoryReadRepository,
+            moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions())
         );
     }
     
@@ -102,6 +105,27 @@ public sealed class CreateRecurringTransactionCommandValidatorTests
 
         await Assert.That(value: result.IsValid).IsFalse();
         await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.Amount))).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_WithAmountExceedingLimit_ShouldHaveError()
+    {
+        CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: new MoneyLimitsOptions().MaxAmount + 0.01m);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsFalse();
+        await Assert.That(value: result.Errors.Any(predicate: error => error.PropertyName == nameof(command.Amount))).IsTrue();
+    }
+
+    [Test]
+    public async Task Validate_WithAmountAtLimit_ShouldNotHaveError()
+    {
+        CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: new MoneyLimitsOptions().MaxAmount);
+
+        ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+        await Assert.That(value: result.IsValid).IsTrue();
     }
 
     [Test]

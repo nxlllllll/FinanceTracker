@@ -107,7 +107,7 @@ public abstract class MediatorFixture
             ["ProjectionRetry:UseJitter"] = "false",
         })).ConfigureServices(configureDelegate: (ctx, services) =>
         {
-            services.AddInfrastructure(configuration: ctx.Configuration);
+            services.AddPersistence(configuration: ctx.Configuration).AddAuth();
             services.AddApplication();
 
             services.AddScoped<ITransactionCreationService, TransactionCreationService>();

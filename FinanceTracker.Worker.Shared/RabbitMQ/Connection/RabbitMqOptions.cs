@@ -50,6 +50,26 @@ public sealed record RabbitMqOptions
 	public int RetryCounterTtlHours { get; init; } = 24;
 
 	/// <summary>
+	/// Base delay (ms) for the exponential backoff applied between retry attempts — a failed message
+	/// is parked in <c>{queue}.retry</c> for <c>RetryBaseDelayMs * 2^attempt</c> (optionally jittered)
+	/// before the broker dead-letters it back into the main queue. Default: 1000.
+	/// </summary>
+	[Range(minimum: 1, maximum: Int32.MaxValue)]
+	public int RetryBaseDelayMs { get; init; } = 1000;
+
+	/// <summary>
+	/// Upper bound (ms) for the retry backoff delay, regardless of attempt count. Default: 30000.
+	/// </summary>
+	[Range(minimum: 1, maximum: Int32.MaxValue)]
+	public int RetryMaxDelayMs { get; init; } = 30000;
+
+	/// <summary>
+	/// Whether to randomise the retry backoff delay (full jitter in <c>[0, exponential]</c>) to avoid
+	/// many failed messages becoming eligible for redelivery at the exact same instant. Default: true.
+	/// </summary>
+	public bool RetryUseJitter { get; init; } = true;
+
+	/// <summary>
 	/// Maximum number of unacknowledged messages the broker will deliver to this consumer at once
 	/// (<c>basic.qos</c> prefetch count). Bounds how much work piles up client-side, keeps delivery
 	/// fair across horizontally scaled replicas of the same worker, and limits how many messages get

@@ -66,15 +66,15 @@ namespace FinanceTracker.Infrastructure.Configurations;
 
 public static class DependencyInjection
 {
-	public static IServiceCollection AddInfrastructure(
+	/// <summary>
+	/// Registers persistence, caching, and event-sourcing infrastructure shared by
+	/// every host:DbContext, event store, all repositories, Redis-backed
+	/// cache/rate-limiting, currency conversion, and the unit of work.
+	/// </summary>
+	public static IServiceCollection AddPersistence(
 		this IServiceCollection services,
 		IConfiguration configuration)
 	{
-		services.AddOptions<Argon2Options>()
-			.BindConfiguration(configSectionPath: Argon2Options.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
-
 		services.AddOptions<EventStoreOptions>()
 			.BindConfiguration(configSectionPath: EventStoreOptions.SectionName)
 			.ValidateDataAnnotations()
@@ -85,11 +85,6 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
-		services.AddOptions<JwtOptions>()
-			.BindConfiguration(configSectionPath: JwtOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
-		
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
@@ -207,9 +202,6 @@ public static class DependencyInjection
 		
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
-		services.AddScoped<ITokenService, JwtTokenService>();
-		services.AddScoped<ISessionIssuer, SessionIssuer>();	
-		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
 		services.AddSingleton<IDateProvider, DateProvider>();
 		services.AddSingleton<ISnapshotSerializer<Account>, AccountSnapshotSerializer>();
 
@@ -220,6 +212,26 @@ public static class DependencyInjection
 		
 		services.AddSingleton<RedisCache>();
 		
+		return services;
+	}
+
+	/// <summary>Registers JWT issuance and password hashing</summary>
+	public static IServiceCollection AddAuth(this IServiceCollection services)
+	{
+		services.AddOptions<Argon2Options>()
+			.BindConfiguration(configSectionPath: Argon2Options.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddOptions<JwtOptions>()
+			.BindConfiguration(configSectionPath: JwtOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddScoped<ITokenService, JwtTokenService>();
+		services.AddScoped<ISessionIssuer, SessionIssuer>();
+		services.AddScoped<IPasswordHasher, Argon2PasswordHasher>();
+
 		return services;
 	}
 }

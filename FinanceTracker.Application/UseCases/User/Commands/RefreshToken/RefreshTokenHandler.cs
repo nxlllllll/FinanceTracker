@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.User;
+﻿using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -7,6 +8,8 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 
@@ -17,41 +20,127 @@ public sealed class RefreshTokenHandler(
 	ITokenService tokenService,
 	ISessionIssuer sessionIssuer,
 	IUnitOfWork unitOfWork,
-	IDateProvider dateProvider
+	IPublisher publisher,
+	IDateProvider dateProvider,
+	ILogger<RefreshTokenHandler> logger
 ) : IRequestHandler<RefreshTokenCommand, Result<SessionToken, DomainException>>
 {
-	public Task<Result<SessionToken, DomainException>> Handle(
+	internal sealed record RotateResult(
+		Result<SessionToken, DomainException> Result,
+		Guid? CompromisedUserId
+	);
+	
+	public async Task<Result<SessionToken, DomainException>> Handle(
 		RefreshTokenCommand command,
 		CancellationToken ct = default)
 	{
 		string tokenHash = tokenService.HashRefreshToken(refreshToken: command.RefreshToken);
 
-		return unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		RotateResult rotateResult = await unitOfWork.ExecuteInTransactionAsync(
+			operation: () => RotateAsync(tokenHash: tokenHash, ct: ct),
+			ct: ct
+		);
+
+		if (rotateResult.CompromisedUserId is { } userId)
+			await PublishReuseDetectedAsync(userId: userId, ct: ct);
+
+		return rotateResult.Result;
+	}
+
+	private async Task<RotateResult> RotateAsync(
+		string tokenHash,
+		CancellationToken ct)
+	{
+		UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: tokenHash,
+			ct: ct
+		);
+
+		if (session is null)
 		{
-			UserSession? session = await userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
-				tokenHash: tokenHash,
-				ct: ct
+			return new RotateResult(
+				Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
+				CompromisedUserId: null
 			);
+		}
 
-			if (session is null || !session.IsActive(now: dateProvider.UtcNow))
-				return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
+		if (!session.IsActive(now: dateProvider.UtcNow))
+			return await HandleInactiveSessionAsync(session: session, ct: ct);
 
-			Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(
-				userId: session.UserId,
-				ct: ct
+		return await IssueNewSessionAsync(session: session, ct: ct);
+	}
+
+	private async Task<RotateResult> HandleInactiveSessionAsync(
+		UserSession session,
+		CancellationToken ct)
+	{
+		if (session.RevokedAt is null)
+		{
+			return new RotateResult(
+				Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
+				CompromisedUserId: null
 			);
+		}
 
-			if (user is null)
-				return Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException());
+		logger.ZLogWarning(message: $"""
+			[Security] Reuse of an already-revoked refresh token detected for session {session.Id} (user {session.UserId}).
+			Revoking all active sessions for this user as a precaution.
+		""");
 
-			await userSessionWriteRepository.RevokeAsync(
-				sessionId: session.Id,
-				revokedAt: dateProvider.UtcNow,
-				ct: ct
+		await userSessionWriteRepository.RevokeAllAsync(
+			userId: session.UserId,
+			revokedAt: dateProvider.UtcNow,
+			ct: ct
+		);
+
+		return new RotateResult(
+			Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()), 
+			CompromisedUserId: session.UserId
+		);
+	}
+
+	private async Task<RotateResult> IssueNewSessionAsync(
+		UserSession session,
+		CancellationToken ct)
+	{
+		Core.Domains.User.User? user = await userAuthRepository.GetByIdAsync(
+			userId: session.UserId,
+			ct: ct
+		);
+
+		if (user is null)
+		{
+			return new RotateResult(
+				Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
+				CompromisedUserId: null
 			);
+		}
 
-			SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
-			return Result<SessionToken, DomainException>.Success(value: sessionToken);
-		}, ct: ct);
+		await userSessionWriteRepository.RevokeAsync(
+			sessionId: session.Id,
+			revokedAt: dateProvider.UtcNow,
+			ct: ct
+		);
+
+		SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
+		return new RotateResult(
+			Result: Result<SessionToken, DomainException>.Success(value: sessionToken), 
+			CompromisedUserId: null
+		);
+	}
+
+	private async Task PublishReuseDetectedAsync(Guid userId, CancellationToken ct)
+	{
+		try
+		{
+			await publisher.Publish(notification: new RefreshTokenReuseDetectedNotification(
+				UserId: userId,
+				OccurredAt: dateProvider.UtcNow
+			), cancellationToken: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"Failed to publish RefreshTokenReuseDetectedNotification for user {userId} after successful commit.");
+		}
 	}
 }

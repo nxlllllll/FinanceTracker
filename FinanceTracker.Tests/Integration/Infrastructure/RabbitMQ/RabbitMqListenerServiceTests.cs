@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
@@ -80,9 +81,47 @@ public sealed class FailingMessageHandlerState
 }
 
 /// <summary>
+/// Handler that fails the first <paramref name="failuresBeforeSuccess"/> invocations, then succeeds —
+/// used to test the full "fail → parked for backoff → redelivered → succeeds" retry cycle, including
+/// the actual wall-clock gap between attempts.
+/// </summary>
+public sealed class FlakyMessageHandlerState(int failuresBeforeSuccess)
+{
+	private int _callCount;
+	private readonly ConcurrentQueue<DateTimeOffset> _callTimestamps = new ConcurrentQueue<DateTimeOffset>();
+	private readonly TaskCompletionSource _succeededTcs = new TaskCompletionSource(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
+
+	public int CallCount => _callCount;
+	public IReadOnlyList<DateTimeOffset> CallTimestamps => [.._callTimestamps.OrderBy(keySelector: t => t)];
+
+	public Task<bool> WaitForSuccessAsync(TimeSpan timeout)
+		=> _succeededTcs.Task.WaitAsync(timeout: timeout).ContinueWith(continuationFunction: t => t.IsCompletedSuccessfully);
+
+	public void RecordCallAndMaybeThrow()
+	{
+		_callTimestamps.Enqueue(item: DateTimeOffset.UtcNow);
+		int count = Interlocked.Increment(location: ref _callCount);
+
+		if (count <= failuresBeforeSuccess)
+			throw new InvalidOperationException(message: $"Simulated failure #{count}.");
+
+		_succeededTcs.TrySetResult();
+	}
+}
+
+public sealed class FlakyMessageHandler(FlakyMessageHandlerState state) : IMessageHandler<AggregateEventsMessage>
+{
+	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	{
+		state.RecordCallAndMaybeThrow();
+		return Task.CompletedTask;
+	}
+}
+
+/// <summary>
 /// Handler that blocks indefinitely (never acks) until <see cref="Release"/> is called —
 /// used to keep a delivered message "in flight" so tests can observe BasicQos prefetch
-/// limits at the protocol level (the broker withholding further deliveries).
+/// limits at the protocol level.
 /// </summary>
 public sealed class BlockingMessageHandlerState
 {
@@ -116,6 +155,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	private string _queueName = null!;
 	private string _deadLetterExchangeName = null!;
 	private string _deadLetterQueueName = null!;
+	private string _retryQueueName = null!;
 	private IConnection _setupConnection = null!;
 	private IChannel _setupChannel = null!;
 	private RabbitMqOptions _baseOptions = null!;
@@ -131,6 +171,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		_deadLetterExchangeName = $"{_queueName}.dlx";
 		_deadLetterQueueName = $"{_queueName}.dlq";
+		_retryQueueName = $"{_queueName}.retry";
 
 		_baseOptions = new RabbitMqOptions
 		{
@@ -379,24 +420,141 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	}
 
 	[Test]
-	public async Task Listener_WhenHandlerFailsOnce_ShouldRetryAndEventuallySucceed()
+	public async Task Listener_WhenHandlerFails_ShouldNotRedeliverBeforeBackoffDelayElapses()
 	{
-		RabbitMqOptions options = _baseOptions with { MaxRetries = 3 };
+		RabbitMqOptions options = _baseOptions with
+		{
+			MaxRetries = 5,
+			RetryBaseDelayMs = 2000,
+			RetryUseJitter = false
+		};
 
-		int attemptCount = 0;
-		ServiceCollection services = new ServiceCollection();
-		services.AddSingleton<Func<int>>(implementationFactory: _ => () => Interlocked.Increment(location: ref attemptCount));
-		await using ServiceProvider sp = services.BuildServiceProvider();
-
-		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
+		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
+		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
+		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
-			scopeFactory: BuildSuccessServiceProvider().GetRequiredService<IServiceScopeFactory>()
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
+			connectionFactory: _connectionFactory,
+			options: Options.Create(options: options)
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
 		await WaitForConsumerAsync();
+		await publisher.PublishAsync(message: BuildMessage());
+
+		await WaitForConditionAsync(
+			condition: () => Task.FromResult(result: handlerState.CallCount >= 1),
+			timeout: TimeSpan.FromSeconds(seconds: 10)
+		);
+
+		// Well within the 2s backoff window — a busy-loop would already show several extra calls by now.
+		await Task.Delay(millisecondsDelay: 500);
+
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
+
+		await Assert.That(value: handlerState.CallCount).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task Listener_WhenHandlerFails_ShouldParkMessageInRetryQueueWithBackoffExpiration()
+	{
+		RabbitMqOptions options = _baseOptions with
+		{
+			MaxRetries = 5,
+			RetryBaseDelayMs = 5000,
+			RetryUseJitter = false
+		};
+
+		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
+		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
+		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
+			options: options,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
+			connectionFactory: _connectionFactory,
+			options: Options.Create(options: options)
+		);
+
+		AggregateEventsMessage sent = BuildMessage();
+		BasicGetResult? parked = null;
+
+		await listener.StartAsync(ct: CancellationToken.None);
+		await WaitForConsumerAsync();
+		await publisher.PublishAsync(message: sent);
+
+		await WaitForConditionAsync(
+			condition: async () =>
+			{
+				parked = await _setupChannel.BasicGetAsync(queue: _retryQueueName, autoAck: true);
+				return parked is not null;
+			},
+			timeout: TimeSpan.FromSeconds(seconds: 5)
+		);
+
+		await listener.StopAsync(ct: CancellationToken.None);
+		listener.Dispose();
+
+		await Assert.That(value: parked).IsNotNull();
+		await Assert.That(value: parked!.BasicProperties.Expiration).IsEqualTo(expected: options.RetryBaseDelayMs.ToString());
+
+		AggregateEventsMessage? recovered = JsonSerializer.Deserialize<AggregateEventsMessage>(utf8Json: parked.Body.ToArray());
+		await Assert.That(value: recovered).IsNotNull();
+		await Assert.That(value: recovered!.MessageId).IsEqualTo(expected: sent.MessageId);
+	}
+
+	[Test]
+	public async Task Listener_WhenHandlerFailsOnce_ShouldRedeliverAfterBackoffDelayAndSucceed()
+	{
+		RabbitMqOptions options = _baseOptions with
+		{
+			MaxRetries = 3,
+			RetryBaseDelayMs = 1000,
+			RetryUseJitter = false
+		};
+
+		FlakyMessageHandlerState handlerState = new FlakyMessageHandlerState(failuresBeforeSuccess: 1);
+		ServiceCollection services = new ServiceCollection();
+		services.AddSingleton<FlakyMessageHandlerState>(implementationFactory: _ => handlerState);
+		services.AddScoped<FlakyMessageHandler>();
+		await using ServiceProvider sp = services.BuildServiceProvider();
+
+		RabbitMqListenerService<AggregateEventsMessage, FlakyMessageHandler> listener = BuildListener<FlakyMessageHandler>(
+			options: options,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
+			connectionFactory: _connectionFactory,
+			options: Options.Create(options: options)
+		);
+
+		await listener.StartAsync(ct: CancellationToken.None);
+		await WaitForConsumerAsync();
+		await publisher.PublishAsync(message: BuildMessage());
+
+		bool succeeded = await handlerState.WaitForSuccessAsync(timeout: TimeSpan.FromSeconds(seconds: 15));
+
+		await Task.Delay(millisecondsDelay: 300);
+		await listener.StopAsync(ct: CancellationToken.None);
+		listener.Dispose();
+
+		IReadOnlyList<DateTimeOffset> timestamps = handlerState.CallTimestamps;
+
+		await Assert.That(value: succeeded).IsTrue();
+		await Assert.That(value: handlerState.CallCount).IsEqualTo(expected: 2);
+		await Assert.That(value: timestamps.Count).IsEqualTo(expected: 2);
+
+		TimeSpan elapsed = timestamps[1] - timestamps[0];
+		// Backoff is RetryBaseDelayMs(1000ms) * 2^0, no jitter — allow some scheduling slack either side.
+		await Assert.That(value: elapsed).IsGreaterThan(minimum: TimeSpan.FromMilliseconds(value: 700));
+
+		QueueDeclareOk mainQueue = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
+		QueueDeclareOk retryQueue = await _setupChannel.QueueDeclarePassiveAsync(queue: _retryQueueName);
+		await Assert.That(value: (int)mainQueue.MessageCount).IsEqualTo(expected: 0);
+		await Assert.That(value: (int)retryQueue.MessageCount).IsEqualTo(expected: 0);
 	}
 
 	[Test]

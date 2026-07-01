@@ -11,7 +11,8 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 	INotificationHandler<UserRegisteredNotification>,
 	INotificationHandler<UserEmailChangedNotification>,
 	INotificationHandler<UserPasswordChangedNotification>,
-	INotificationHandler<UserBaseCurrencyChangedNotification>
+	INotificationHandler<UserBaseCurrencyChangedNotification>,
+	INotificationHandler<RefreshTokenReuseDetectedNotification>
 {
 	public Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken)
 	{
@@ -44,6 +45,15 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 		logger.ZLogInformation(message: $"""
 			[Audit] User base currency changed. UserId: {notification.UserId}, OldBaseCurrency: {notification.OldBaseCurrency},	
 			NewBaseCurrency: {notification.NewBaseCurrency}, OccurredAt: {notification.OccurredAt:O}.
+		""");
+		return Task.CompletedTask;
+	}
+
+	public Task Handle(RefreshTokenReuseDetectedNotification notification, CancellationToken cancellationToken)
+	{
+		logger.ZLogWarning(message: $"""
+			[Security] Refresh token reuse detected — all active sessions revoked.
+			UserId: {notification.UserId}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}

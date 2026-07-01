@@ -4,6 +4,7 @@
     <File Path=".env.example" />
     <File Path=".github/workflows/ci.yml" />
     <File Path="compose.yaml" />
+    <File Path="Directory.Packages.props" />
     <File Path="prometheus.yml" />
   </Folder>
   <Project Path="FinanceTracker.Application/FinanceTracker.Application.csproj" />

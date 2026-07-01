@@ -10,6 +10,7 @@ using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Tracing;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Retry;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,12 @@ namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 /// using <see cref="IRetryCounter"/> (Redis-backed with in-memory fallback).
 /// </para>
 /// <para>
+/// A failed delivery that hasn't exhausted its retries is not immediately requeued. Instead, it is republished
+/// into a per-queue "parking" queue (<c>{queue}.retry</c>) with a per-message TTL equal to the exponential
+/// backoff delay (<see cref="RetryDelayCalculator"/>); once that TTL elapses, the broker dead-letters
+/// it back into the original exchange/routing key, redelivering it to this same  listener
+/// </para>
+/// <para>
 /// Messages that exhaust all retries are nacked without requeue, which RabbitMQ then routes —
 /// via a dedicated per-queue dead-letter exchange (<c>{queue}.dlx</c>, fanout) — into
 /// <c>{queue}.dlq</c>, where the <em>full, untouched</em> message body is preserved for manual
@@ -50,6 +57,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	where THandler : IMessageHandler<TMessage>
 {
 	public const string DeadLetterExchangeArgument = "x-dead-letter-exchange";
+	public const string DeadLetterRoutingKeyArgument = "x-dead-letter-routing-key";
 
 	private readonly RabbitMqOptions _options = options.Value;
 	private readonly string _routingKey = GetRoutingKey();
@@ -60,6 +68,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 	private string DeadLetterExchangeName => $"{_queueName}.dlx";
 	private string DeadLetterQueueName => $"{_queueName}.dlq";
+	private string RetryQueueName => $"{_queueName}.retry";
 
 	private static string GetRoutingKey()
 	{
@@ -145,6 +154,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		);
 
 		await DeclareDeadLetterInfrastructureAsync(ct: ct);
+		await DeclareRetryInfrastructureAsync(ct: ct);
 
 		await _channel.QueueDeclareAsync(
 			queue: _queueName,
@@ -188,6 +198,22 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			queue: DeadLetterQueueName,
 			exchange: DeadLetterExchangeName,
 			routingKey: String.Empty,
+			cancellationToken: ct
+		);
+	}
+
+	private async Task DeclareRetryInfrastructureAsync(CancellationToken ct)
+	{
+		await _channel!.QueueDeclareAsync(
+			queue: RetryQueueName,
+			durable: true,
+			exclusive: false,
+			autoDelete: false,
+			arguments: new Dictionary<string, object?>
+			{
+				[DeadLetterExchangeArgument] = _options.ExchangeName,
+				[DeadLetterRoutingKeyArgument] = _routingKey
+			},
 			cancellationToken: ct
 		);
 	}
@@ -317,12 +343,20 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			}
 			else
 			{
-				logger.ZLogWarning(
-					exception: ex,
-					message: $"[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag} (attempt {deliveryCount + 1}/{_options.MaxRetries + 1}). Requeuing."
+				int delayMs = Math.Min(
+					val1: RetryDelayCalculator.Calculate(
+						attempt: deliveryCount,
+						baseDelayMs: _options.RetryBaseDelayMs,
+						useJitter: _options.RetryUseJitter
+					),
+					val2: _options.RetryMaxDelayMs
 				);
 
-				await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
+				logger.ZLogWarning(exception: ex, message: $"""
+					[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag} (attempt {deliveryCount + 1}/{_options.MaxRetries + 1}). Parking for {delayMs}ms.
+				""");
+
+				await ScheduleRetryAsync(ea: ea, delayMs: delayMs, ct: ct);
 			}
 		}
 	}
@@ -336,12 +370,49 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	}
 
 	/// <summary>
-	 /// Acks a delivery, swallowing <see cref="AlreadyClosedException"/>/<see cref="ObjectDisposedException"/>.
-	 /// If the channel already closed concurrently, RabbitMQ will automatically requeue the unacked
-	 /// delivery once it notices the channel/connection is gone — the <c>ChannelShutdownAsync</c>/
-	 /// <c>ConnectionShutdownAsync</c> handlers in <see cref="ConsumeAsync"/> will then trigger a
-	 /// reconnect. Letting this exception propagate unhandled out of an AsyncEventingBasicConsumer
-	 /// event handler would otherwise just vanish silently without ever surfacing in logs.
+	/// Republishes the delivery into <see cref="RetryQueueName"/> with a per-message <c>Expiration</c>
+	/// equal to <paramref name="delayMs"/>, preserving the original body, headers, and correlation id,
+	/// then acks the original delivery.
+	/// </summary>
+	private async Task ScheduleRetryAsync(BasicDeliverEventArgs ea, int delayMs, CancellationToken ct)
+	{
+		try
+		{
+			BasicProperties retryProps = new BasicProperties
+			{
+				Headers = ea.BasicProperties.Headers,
+				CorrelationId = ea.BasicProperties.CorrelationId,
+				ContentType = ea.BasicProperties.ContentType,
+				ContentEncoding = ea.BasicProperties.ContentEncoding,
+				DeliveryMode = DeliveryModes.Persistent,
+				Expiration = delayMs.ToString()
+			};
+
+			await _channel!.BasicPublishAsync(
+				exchange: String.Empty,
+				routingKey: RetryQueueName,
+				mandatory: false,
+				basicProperties: retryProps,
+				body: ea.Body,
+				cancellationToken: ct
+			);
+
+			await SafeAckAsync(deliveryTag: ea.DeliveryTag, ct: ct);
+		}
+		catch (Exception ex)
+		{
+			logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Failed to park message {ea.DeliveryTag} for delayed retry. Requeuing immediately instead.");
+			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
+		}
+	}
+
+	/// <summary>
+	/// Acks a delivery, swallowing <see cref="AlreadyClosedException"/>/<see cref="ObjectDisposedException"/>.
+	/// If the channel already closed concurrently, RabbitMQ will automatically requeue the unacked
+	/// delivery once it notices the channel/connection is gone — the <c>ChannelShutdownAsync</c>/
+	/// <c>ConnectionShutdownAsync</c> handlers in <see cref="ConsumeAsync"/> will then trigger a
+	/// reconnect. Letting this exception propagate unhandled out of an AsyncEventingBasicConsumer
+	/// event handler would otherwise just vanish silently without ever surfacing in logs.
 	/// </summary>
 	private async Task SafeAckAsync(ulong deliveryTag, CancellationToken ct)
 	{

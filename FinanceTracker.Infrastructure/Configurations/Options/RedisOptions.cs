@@ -2,10 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FinanceTracker.Infrastructure.Configurations.Options;
 
-/// <summary>
-/// Configuration for Redis connection.
-/// Bind from <c>appsettings.json</c> under the <c>"Redis"</c> section.
-/// </summary>
+/// <summary>Configuration for Redis connection. Bind from <c>appsettings.json</c> under the <c>"Redis"</c> section.</summary>
 public sealed class RedisOptions
 {
 	public const string SectionName = "Redis";
