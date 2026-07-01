@@ -4,14 +4,21 @@ on:
   push:
     branches: ['**']
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  LINE_COVERAGE_THRESHOLD: 85
+  BRANCH_COVERAGE_THRESHOLD: 65
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -35,7 +42,55 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN']);
             core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
 
-      - name: Run tests
-        run: dotnet run --project FinanceTracker.Tests/FinanceTracker.Tests.csproj --configuration Release --no-build
+      - name: Run tests with coverage
+        run: >
+          dotnet run
+          --project FinanceTracker.Tests/FinanceTracker.Tests.csproj
+          --configuration Release --no-build
+          --
+          --coverage
+          --coverage-output-format cobertura
+          --coverage-output coverage.cobertura.xml
+          --coverage-settings coverage.runsettings
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 14
+
+      - name: Generate coverage report
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"**/coverage.cobertura.xml" \
+            -targetdir:coveragereport \
+            -reporttypes:"Html;JsonSummary;MarkdownSummaryGithub"
+
+      - name: Publish coverage summary
+        run: cat coveragereport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coveragereport
+          retention-days: 14
+
+      - name: Enforce coverage thresholds
+        run: |
+          LINE=$(jq -r '.summary.linecoverage' coveragereport/Summary.json)
+          BRANCH=$(jq -r '.summary.branchcoverage' coveragereport/Summary.json)
+
+          echo "Line coverage:   ${LINE}% (threshold: ${LINE_COVERAGE_THRESHOLD}%)"
+          echo "Branch coverage: ${BRANCH}% (threshold: ${BRANCH_COVERAGE_THRESHOLD}%)"
+
+          FAILED=0
+
+          if awk "BEGIN { exit !($LINE < $LINE_COVERAGE_THRESHOLD) }"; then
+            echo "::error::Line coverage ${LINE}% is below the ${LINE_COVERAGE_THRESHOLD}% threshold."
+            FAILED=1
+          fi
+
+          if awk "BEGIN { exit !($BRANCH < $BRANCH_COVERAGE_THRESHOLD) }"; then
+            echo "::error::Branch coverage ${BRANCH}% is below the ${BRANCH_COVERAGE_THRESHOLD}% threshold."
+            FAILED=1
+          fi
+
+          exit $FAILED
