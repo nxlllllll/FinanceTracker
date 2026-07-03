@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using MediatR;
 

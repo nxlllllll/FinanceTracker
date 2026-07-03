@@ -18,7 +18,7 @@ public sealed class CachedCurrencyRateReadRepository(
 {
 	private static readonly TimeSpan NotFoundTtl = TimeSpan.FromMinutes(value: 1);
 	private static readonly TimeSpan StableTtl = TimeSpan.FromDays(value: 30);
-	
+
 	private DistributedCacheEntryOptions EndOfDay
 	{
 		get
@@ -178,39 +178,6 @@ public sealed class CachedCurrencyRateReadRepository(
 			optionsFor: _ => Stable,
 			ct: ct
 		);
-	}
-
-	public async Task<Dictionary<CurrencyRateRequest, decimal>> GetRatesBatchAsync(
-		IReadOnlyCollection<CurrencyRateRequest> requests,
-		CancellationToken ct = default)
-	{
-		if (requests.Count == 0)
-			return [];
-
-		(Dictionary<CurrencyRateRequest, decimal> result, List<CurrencyRateRequest> cacheMisses) = await SplitCacheAsync(
-			requests: requests,
-			from: r => r.From,
-			to: r => r.To,
-			keyFor: RateKey,
-			ct: ct
-		);
-
-		if (cacheMisses.Count == 0)
-			return result;
-
-		Dictionary<CurrencyRateRequest, decimal> dbResults = await inner.GetRatesBatchAsync(requests: cacheMisses, ct: ct);
-
-		await WriteBackAsync(
-			result: result,
-			cacheMisses: cacheMisses,
-			dbResults: dbResults,
-			keyFor: RateKey,
-			foundOptions: EndOfDay,
-			notFoundOptions: NotFound,
-			ct: ct
-		);
-
-		return result;
 	}
 
 	public async Task<Dictionary<CurrencyLatestRateRequest, decimal>> GetLatestRatesBatchAsync(

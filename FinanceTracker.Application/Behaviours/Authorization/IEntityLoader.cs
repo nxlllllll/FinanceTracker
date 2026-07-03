@@ -23,3 +23,13 @@ public interface IEntityLoader<in TRequest, TEntity, TError>
 		CancellationToken ct
 	);
 }
+
+public interface IEntityLoader<in TRequest, TError>
+	where TRequest : IAuthorizable
+	where TError : AppException
+{
+	Task<Result<Unit, TError>> LoadAsync(
+		TRequest request,
+		CancellationToken ct
+	);
+}

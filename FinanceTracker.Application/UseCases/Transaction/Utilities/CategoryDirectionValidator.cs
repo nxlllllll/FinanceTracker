@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
@@ -13,8 +13,8 @@ public static class CategoryDirectionValidator
 	{
 		bool valid = (direction, category.Type) switch
 		{
-			(DirectionType.Debit,  CategoryType.Expense) => true,
-			(DirectionType.Credit, CategoryType.Income)  => true,
+			(DirectionType.Debit, CategoryType.Expense) => true,
+			(DirectionType.Credit, CategoryType.Income) => true,
 			_ => false
 		};
 

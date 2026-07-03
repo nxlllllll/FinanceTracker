@@ -49,7 +49,6 @@ public sealed class CreateTransferHandlerTests
 			currencyConversionService: _currencyConversionService,
 			unitOfWork: _unitOfWork,
 			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CreateTransferHandler>>()
 		);
 	}

@@ -8,7 +8,7 @@ namespace FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAccountCommand>
 {
 	public CreateAccountCommandValidator(
-		ICurrencyReadRepository currencyReadRepository, 
+		ICurrencyReadRepository currencyReadRepository,
 		IOptionsMonitor<MoneyLimitsOptions> moneyLimits)
 	{
 		RuleFor(expression: command => command.UserId)

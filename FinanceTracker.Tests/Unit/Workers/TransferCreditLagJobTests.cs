@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -140,7 +140,7 @@ public sealed class TransferCreditLagJobTests
 			transfer: Arg.Any<PendingCreditTransfer>(),
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "Database connection lost."));
-		
+
 		await _job.Execute(context: _jobContext);
 	}
 }

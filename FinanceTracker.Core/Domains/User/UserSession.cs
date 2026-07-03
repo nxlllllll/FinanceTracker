@@ -18,7 +18,7 @@ public sealed class UserSession
 	public DateTimeOffset CreatedAt { get; private set; }
 	/// <summary>UTC timestamp of explicit revocation. <c>null</c> if still active.</summary>
 	public DateTimeOffset? RevokedAt { get; private set; }
-	
+
 	private UserSession() { }
 
 	public static UserSession Create(
@@ -65,9 +65,9 @@ public sealed class UserSession
 		RevokedAt = revokedAt;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
-	
+
 	/// <summary>Returns <c>true</c> if the session has not been revoked and has not yet expired.</summary>
 	public bool IsActive(DateTimeOffset now)
 		=> RevokedAt is null && now < ExpiresAt;
-	
+
 }

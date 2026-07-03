@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Domains.Transfer;
@@ -52,7 +52,7 @@ public sealed class BalanceAdjustmentJob(
 		await ProcessTransactionsAsync(options: options, ct: ct);
 		await ProcessTransfersAsync(options: options, ct: ct);
 	}
-	
+
 	private async Task ProcessPendingAsync<T>(
 		IReadOnlyList<T> pending,
 		BalanceAdjustmentJobOptions options,

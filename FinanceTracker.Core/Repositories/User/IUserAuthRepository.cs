@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.User;
+namespace FinanceTracker.Core.Repositories.User;
 
 /// <summary>
 /// Read access to User for authentication purposes only.

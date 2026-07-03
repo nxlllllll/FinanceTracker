@@ -34,6 +34,9 @@ public sealed class TransferLoader(
 		if (toAccount is null)
 			return Result<TransferAccounts, DomainException>.Failure(error: new NotFoundException(message: "Destination account not found.", id: toAccountId));
 
+		if (toAccount.IsArchived)
+			return Result<TransferAccounts, DomainException>.Failure(error: new ArchivedOperationException(message: "Cannot transfer to an archived account."));
+
 		return Result<TransferAccounts, DomainException>.Success(value: new TransferAccounts(
 			FromAccount: account,
 			ToAccountCurrency: toAccount.Balance.Currency

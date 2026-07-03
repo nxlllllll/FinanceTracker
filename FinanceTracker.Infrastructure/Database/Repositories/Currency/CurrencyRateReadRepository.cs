@@ -86,42 +86,6 @@ public sealed class CurrencyRateReadRepository(FinanceTrackerContext context) : 
 			.FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
-	public async Task<Dictionary<CurrencyRateRequest, decimal>> GetRatesBatchAsync(
-		IReadOnlyCollection<CurrencyRateRequest> requests,
-		CancellationToken ct = default)
-	{
-		if (requests.Count == 0)
-			return [];
-
-		Dictionary<CurrencyRateRequest, decimal> result = SplitSameCurrency(
-			requests: requests,
-			from: r => r.From,
-			to: r => r.To,
-			foreignRequests: out List<CurrencyRateRequest> foreignRequests
-		);
-
-		if (foreignRequests.Count == 0)
-			return result;
-
-		HashSet<Core.ValueObjects.Currency> fromSet = foreignRequests.Select(selector: r => r.From).ToHashSet();
-		HashSet<Core.ValueObjects.Currency> toSet = foreignRequests.Select(selector: r => r.To).ToHashSet();
-		HashSet<DateOnly> dateSet = foreignRequests.Select(selector: r => r.Date).ToHashSet();
-
-		Dictionary<CurrencyRateRequest, decimal> dbLookup = await context.CurrencyRates.AsNoTracking()
-			.Where(predicate: rate => fromSet.Contains(rate.BaseCode) && toSet.Contains(rate.TargetCode) && dateSet.Contains(rate.ActualAt))
-			.ToDictionaryAsync(
-				keySelector: rate => new CurrencyRateRequest(From: rate.BaseCode, To: rate.TargetCode, Date: rate.ActualAt),
-				elementSelector: rate => rate.Rate,
-				cancellationToken: ct
-			);
-
-		foreach (CurrencyRateRequest request in foreignRequests)
-			if (dbLookup.TryGetValue(key: request, out decimal rate))
-				result[request] = rate;
-
-		return result;
-	}
-
 	public async Task<Dictionary<CurrencyLatestRateRequest, decimal>> GetLatestRatesBatchAsync(
 		IReadOnlyCollection<CurrencyLatestRateRequest> pairs,
 		CancellationToken ct = default)

@@ -1,7 +1,7 @@
 using System.Collections.Frozen;
 using System.Reflection;
 using FinanceTracker.Contracts.Events;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -18,7 +18,7 @@ public sealed class IntegrationEventTypeResolver : IIntegrationEventTypeResolver
 		ILogger<IntegrationEventTypeResolver> logger)
 	{
 		List<Type> integrationEventTypes = contractsAssembly.GetTypes()
-			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IAccountIntegrationEvent).IsAssignableFrom(c: t))
+			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IIntegrationEvent).IsAssignableFrom(c: t))
 			.ToList();
 
 		List<string> missingAttribute = integrationEventTypes.Where(predicate: t => t.GetCustomAttribute<IntegrationEventTypeAttribute>() is null)

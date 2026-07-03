@@ -16,7 +16,7 @@ public readonly partial record struct Currency
 {
 	[GeneratedRegex(pattern: "^[A-Z]{3}$", options: RegexOptions.Compiled)]
 	private static partial Regex CurrencyRegex();
-	
+
 	/// <summary>The normalised 3-letter currency code.</summary>
 	public string Value { get; }
 

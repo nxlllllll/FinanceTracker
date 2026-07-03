@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.Domains.Transfer;
 
 namespace FinanceTracker.Core.Repositories.Operation;
 

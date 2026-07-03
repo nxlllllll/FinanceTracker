@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.DateProvider;
@@ -67,7 +67,7 @@ public sealed class CurrencyRateJob(
 					)).ToList();
 
 				await unitOfWork.ExecuteInTransactionAsync(
-					operation: async () => await currencyRateWriteRepository.UpsertRatesAsync(rates: entries, ct: ct), 
+					operation: async () => await currencyRateWriteRepository.UpsertRatesAsync(rates: entries, ct: ct),
 					ct: ct
 				);
 

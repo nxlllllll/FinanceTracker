@@ -1,4 +1,4 @@
-namespace FinanceTracker.Contracts.Messages.Account;
+namespace FinanceTracker.Contracts.Messages;
 
 /// <summary>
 /// Wraps a single serialized integration event inside an <see cref="AggregateEventsMessage"/>.

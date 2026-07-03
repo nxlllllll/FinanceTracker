@@ -29,7 +29,7 @@ public sealed class TransactionLoader(
 		ChangeTransactionCategoryCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
-	
+
 	public Task<Result<Core.Domains.Transaction.Transaction, DomainException>> LoadAsync(
 		ChangeTransactionDescriptionCommand request,
 		CancellationToken ct

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Application.Behaviours.RateLimit;
+namespace FinanceTracker.Application.Behaviours.RateLimit;
 
 /// <summary>
 /// Marks a request as email-scoped for rate limiting purposes, for commands that

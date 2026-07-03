@@ -20,6 +20,10 @@ public sealed class EFUnitOfWork(
 
 	private IDbContextTransaction? _transaction;
 	private readonly Stack<string> _savepoints = new Stack<string>();
+	private List<Action> _onCommittedCallbacks = [];
+
+	public void OnCommitted(Action callback)
+		=> _onCommittedCallbacks.Add(item: callback);
 
 	public async Task BeginTransactionAsync(CancellationToken ct = default)
 	{
@@ -83,12 +87,19 @@ public sealed class EFUnitOfWork(
 		await _transaction.CommitAsync(cancellationToken: ct);
 		await _transaction.DisposeAsync();
 		_transaction = null;
+
+		List<Action> callbacks = _onCommittedCallbacks;
+		_onCommittedCallbacks = [];
+		foreach (Action callback in callbacks)
+			callback();
 	}
 
 	public async Task RollbackAsync(CancellationToken ct = default)
 	{
 		if (_transaction is null)
 			return;
+
+		_onCommittedCallbacks = [];
 
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
@@ -179,6 +190,7 @@ public sealed class EFUnitOfWork(
 			return;
 
 		_savepoints.Clear();
+		_onCommittedCallbacks = [];
 		await _transaction.RollbackAsync();
 		await _transaction.DisposeAsync();
 		_transaction = null;

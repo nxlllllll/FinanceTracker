@@ -565,7 +565,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: balance).IsEqualTo(expected: 9000m);
 	}
-	
+
 	[Test]
 	public async Task DebitAsync_WhenAccountBalanceRowDoesNotExist_ShouldThrowNotFoundException()
 	{

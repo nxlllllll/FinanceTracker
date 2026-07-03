@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels;
 
 namespace FinanceTracker.Core.Repositories;
 

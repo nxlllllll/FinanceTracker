@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
-using FinanceTracker.Contracts.Messages.Account;
+using System.Text.Json;
+using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -51,7 +51,7 @@ public sealed class AccountEventsConsumer(
 						return;
 					}
 
-					List<IAccountIntegrationEvent> events = [..message.Events.Select(selector: MapEnvelopeToIntegration)];
+					List<IIntegrationEvent> events = [.. message.Events.Select(selector: MapEnvelopeToIntegration)];
 
 					await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: innerCt);
 
@@ -77,9 +77,9 @@ public sealed class AccountEventsConsumer(
 		);
 	}
 
-	private IAccountIntegrationEvent MapEnvelopeToIntegration(EventEnvelope e)
+	private IIntegrationEvent MapEnvelopeToIntegration(EventEnvelope e)
 	{
 		Type type = integrationEventTypeResolver.ResolveType(eventType: e.EventType);
-		return (IAccountIntegrationEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
+		return (IIntegrationEvent)JsonSerializer.Deserialize(json: e.EventPayload, returnType: type, options: FinanceTrackerJsonOptions.Payload)!;
 	}
 }

@@ -47,7 +47,7 @@ public sealed class RegisterUserHandler(
 		Core.Domains.User.User user = userResult.Value!;
 
 		try
-		{ 
+		{
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.CreateAsync(user: user, ct: ct), ct: ct);
 		}
 		catch (UniqueConstraintException ex)

@@ -18,17 +18,16 @@ public sealed class CreateRecurringTransactionHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<CreateRecurringTransactionHandler> logger
-) : IAuthorizedHandler<CreateRecurringTransactionCommand, Core.Domains.Account.Account, Guid, DomainException>
+) : IAuthorizedHandler<CreateRecurringTransactionCommand, Guid, DomainException>
 {
 	public async Task<Result<Guid, DomainException>> HandleAsync(
 		CreateRecurringTransactionCommand command,
-		Core.Domains.Account.Account accounts,
 		CancellationToken ct = default)
 	{
 		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: command.Currency);
-		if (moneyResult.IsFailure) 
+		if (moneyResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: moneyResult.Error!);
- 
+
 		Result<Core.Domains.RecurringTransaction.RecurringTransaction, DomainException> rtResult = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
 			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
@@ -39,9 +38,9 @@ public sealed class CreateRecurringTransactionHandler(
 			dayOfMonth: command.DayOfMonth,
 			description: command.Description
 		);
-		if (rtResult.IsFailure) 
+		if (rtResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: rtResult.Error!);
- 
+
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = rtResult.Value!;
 
 		await unitOfWork.ExecuteInTransactionAsync(

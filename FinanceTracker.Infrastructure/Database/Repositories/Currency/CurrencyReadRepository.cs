@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +41,7 @@ public sealed class CurrencyReadRepository(
 				IsActive: currency.IsActive
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
-	
+
 	public async Task<bool> ExistsAsync(string code, CancellationToken ct = default)
 		=> await context.Currencies.AnyAsync(predicate: c => c.Code == code && c.IsActive, cancellationToken: ct);
 }

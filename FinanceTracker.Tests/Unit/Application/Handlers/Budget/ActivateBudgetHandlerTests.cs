@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
+using FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;

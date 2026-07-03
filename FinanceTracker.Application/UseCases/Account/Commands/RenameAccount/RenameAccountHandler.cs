@@ -19,12 +19,12 @@ public sealed class RenameAccountHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = accounts.Rename(occurredAt: dateProvider.UtcNow, newName: command.NewName);
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		if (accounts.Events.Count > 0)
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: accounts, ct: ct), ct: ct);
-		
+
 		return Result<Guid, DomainException>.Success(value: accounts.Id);
 	}
 }

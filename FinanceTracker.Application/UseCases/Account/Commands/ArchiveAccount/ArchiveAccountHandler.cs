@@ -19,7 +19,7 @@ public sealed class ArchiveAccountHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = accounts.Archive(occurredAt: dateProvider.UtcNow);
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: accounts, ct: ct), ct: ct);

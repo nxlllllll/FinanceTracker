@@ -19,7 +19,7 @@ public sealed class UnarchiveAccountHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = accounts.Unarchive(occurredAt: dateProvider.UtcNow);
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: accounts, ct: ct), ct: ct);

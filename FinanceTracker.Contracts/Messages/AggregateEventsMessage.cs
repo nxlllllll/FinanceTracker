@@ -1,6 +1,6 @@
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 
-namespace FinanceTracker.Contracts.Messages.Account;
+namespace FinanceTracker.Contracts.Messages;
 
 /// <summary>
 /// Integration message published to RabbitMQ after each successful <c>IEventStore.SaveAsync</c>.

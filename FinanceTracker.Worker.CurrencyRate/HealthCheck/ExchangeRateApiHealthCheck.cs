@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Polly.CircuitBreaker;
 
 namespace FinanceTracker.Worker.CurrencyRate.HealthCheck;

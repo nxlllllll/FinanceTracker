@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Upcast;

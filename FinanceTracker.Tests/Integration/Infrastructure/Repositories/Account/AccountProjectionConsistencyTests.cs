@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Account;
@@ -45,7 +45,7 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 		),
 		integrationEventMapper: new AccountIntegrationEventMapper(logger: Substitute.For<ILogger<AccountIntegrationEventMapper>>()),
 		integrationEventTypeResolver: new IntegrationEventTypeResolver(
-			contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
 		),
 		dateProvider: FakeDateProvider.Default,
@@ -69,7 +69,8 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 
 		_accountRepository = new AccountRepository(
 			eventStore: eventStore,
-			snapshotSerializer: new AccountSnapshotSerializer()
+			snapshotSerializer: new AccountSnapshotSerializer(),
+			unitOfWork: UnitOfWork
 		);
 		_writeRepository = new AccountWriteRepository(
 			context: Context,

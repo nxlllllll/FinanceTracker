@@ -8,7 +8,7 @@ namespace FinanceTracker.Application.UseCases.Transfer.Commands;
 public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTransferCommand>
 {
 	public CreateTransferCommandValidator(
-		IDateProvider dateProvider, 
+		IDateProvider dateProvider,
 		IOptionsMonitor<MoneyLimitsOptions> moneyLimits)
 	{
 		RuleFor(command => command.Amount)

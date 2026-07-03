@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;
 using Microsoft.Extensions.Caching.Distributed;
 
@@ -47,7 +47,7 @@ public sealed class CachedCurrencyReadRepository(
 	{
 		string key = $"currency:{code}";
 		CacheEntry<CurrencyInfo?> entry = await redisCache.TryGetAsync<CurrencyInfo?>(key: key, ct: ct);
-		if (entry.Found) 
+		if (entry.Found)
 			return entry.Value;
 
 		CurrencyInfo? result = await inner.GetByCodeAsync(code: code, ct: ct);
@@ -59,7 +59,7 @@ public sealed class CachedCurrencyReadRepository(
 	{
 		string key = $"currency:exists:{code}";
 		CacheEntry<bool> entry = await redisCache.TryGetAsync<bool>(key: key, ct: ct);
-		if (entry.Found) 
+		if (entry.Found)
 			return entry.Value;
 
 		bool result = await inner.ExistsAsync(code: code, ct: ct);

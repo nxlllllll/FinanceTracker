@@ -13,7 +13,7 @@ public interface IRecurringTransactionWriteRepository
 		int expectedVersion,
 		CancellationToken ct = default
 	);
-	
+
 	Task ChangeCurrencyAsync(
 		Guid recurringTransactionId,
 		ValueObjects.Currency currency,
@@ -44,7 +44,7 @@ public interface IRecurringTransactionWriteRepository
 		Guid categoryId,
 		CancellationToken ct = default
 	);
-	
+
 	Task MarkExecutedAsync(
 		Guid recurringTransactionId,
 		DateTimeOffset executedAt,

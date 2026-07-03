@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.ReadModels;
+namespace FinanceTracker.Core.ReadModels;
 
 /// <summary>
 /// Marker interface for read model types returned by query repositories.

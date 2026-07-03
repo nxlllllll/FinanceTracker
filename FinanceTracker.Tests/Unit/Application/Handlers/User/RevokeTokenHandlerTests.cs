@@ -50,7 +50,7 @@ public sealed class RevokeTokenHandlerTests
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
-		
+
 		_handler = new RevokeTokenHandler(
 			userSessionReadRepository: _userSessionReadRepository,
 			userSessionWriteRepository: _userSessionWriteRepository,
@@ -64,7 +64,7 @@ public sealed class RevokeTokenHandlerTests
 	public async Task Handle_WhenSessionNotFound_ShouldReturnSuccessIdempotently()
 	{
 		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
-			tokenHash: Arg.Any<string>(), 
+			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserSession?)null);
 
@@ -93,7 +93,7 @@ public sealed class RevokeTokenHandlerTests
 			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
-			tokenHash: Arg.Any<string>(), 
+			tokenHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: revokedSession);
 

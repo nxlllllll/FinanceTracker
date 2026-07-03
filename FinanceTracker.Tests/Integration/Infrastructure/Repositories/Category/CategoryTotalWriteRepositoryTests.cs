@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
@@ -221,7 +221,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 		Core.ValueObjects.Currency rub = Core.ValueObjects.Currency.Create(value: "RUB").Value;
 
 		DateTimeOffset transactionOccurredAt = new DateTimeOffset(year: 2025, month: 1, day: 10, hour: 9, minute: 0, second: 0, offset: TimeSpan.Zero);
-		
+
 		await SeedRateAsync(
 			baseCode: usd,
 			targetCode: rub,

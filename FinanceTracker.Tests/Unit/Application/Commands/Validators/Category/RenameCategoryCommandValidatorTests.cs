@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
+using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;
 

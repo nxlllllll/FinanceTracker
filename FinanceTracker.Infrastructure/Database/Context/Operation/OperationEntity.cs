@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Context.Operation;
+namespace FinanceTracker.Infrastructure.Database.Context.Operation;
 
 public sealed class OperationEntity
 {

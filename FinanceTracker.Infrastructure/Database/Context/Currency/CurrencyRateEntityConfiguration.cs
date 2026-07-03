@@ -31,7 +31,7 @@ public sealed class CurrencyRateEntityConfiguration : IEntityTypeConfiguration<C
 				convertToProviderExpression: currency => currency.Value,
 				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
 			);
-		
+
 		builder.Property(propertyExpression: r => r.Rate)
 			.HasColumnName(name: "rate")
 			.HasColumnType(typeName: "numeric(18,6)");
@@ -41,12 +41,12 @@ public sealed class CurrencyRateEntityConfiguration : IEntityTypeConfiguration<C
 
 		builder.Property(propertyExpression: r => r.CreatedAt)
 			.HasColumnName(name: "created_at");
-		
+
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.BaseCode)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict)
 			.HasPrincipalKey(keyExpression: c => c.Code);
-		
+
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.TargetCode)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict)

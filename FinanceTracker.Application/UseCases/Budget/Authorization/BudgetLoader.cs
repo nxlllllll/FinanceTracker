@@ -35,7 +35,7 @@ public sealed class BudgetLoader(
 		ActivateBudgetCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(budgetId: request.BudgetId, userId: request.UserId, ct: ct);
-	
+
 	private async Task<Result<Core.Domains.Budget.Budget, DomainException>> LoadAndAuthorize(Guid budgetId, Guid userId, CancellationToken ct)
 	{
 		Core.Domains.Budget.Budget? budget = await budgetRepository.GetByIdAsync(budgetId: budgetId, userId: userId, ct);

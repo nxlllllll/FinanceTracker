@@ -3,6 +3,7 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY ["Directory.Packages.props", "Directory.Packages.props"]
 COPY ["FinanceTracker.Migrator/FinanceTracker.Migrator.csproj", "FinanceTracker.Migrator/"]
 RUN dotnet restore "FinanceTracker.Migrator/FinanceTracker.Migrator.csproj"
 COPY ["FinanceTracker.Migrator/", "FinanceTracker.Migrator/"]

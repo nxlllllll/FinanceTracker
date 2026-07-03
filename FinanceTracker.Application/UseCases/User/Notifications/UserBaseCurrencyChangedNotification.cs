@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.User.Notifications;

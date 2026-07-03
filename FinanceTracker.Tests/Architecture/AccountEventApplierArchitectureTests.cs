@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Infrastructure.Services.Rebuild.Account;
@@ -23,8 +23,8 @@ public sealed class AccountEventApplierArchitectureTests
 			&& t.Namespace == "FinanceTracker.Core.Domains.Account.Events")
 		.ToArray();
 
-	private static readonly Type[] AccountIntegrationEventTypes = typeof(IAccountIntegrationEvent).Assembly.GetTypes()
-		.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IAccountIntegrationEvent).IsAssignableFrom(c: t))
+	private static readonly Type[] AccountIntegrationEventTypes = typeof(IIntegrationEvent).Assembly.GetTypes()
+		.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IIntegrationEvent).IsAssignableFrom(c: t))
 		.ToArray();
 
 	[Test]
@@ -48,7 +48,7 @@ public sealed class AccountEventApplierArchitectureTests
 
 		IReadOnlyList<string> unhandled = await SwitchExhaustivenessChecker.FindUnhandledAsync(
 			candidateTypes: AccountIntegrationEventTypes,
-			invoke: instance => applier.ApplyAsync(@event: (IAccountIntegrationEvent)instance, ct: CancellationToken.None)
+			invoke: instance => applier.ApplyAsync(@event: (IIntegrationEvent)instance, ct: CancellationToken.None)
 		);
 
 		await Assert.That(value: unhandled).IsEmpty()

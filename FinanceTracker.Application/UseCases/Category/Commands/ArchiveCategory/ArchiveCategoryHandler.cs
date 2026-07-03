@@ -30,7 +30,7 @@ public sealed class ArchiveCategoryHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.Archive();
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
@@ -38,7 +38,7 @@ public sealed class ArchiveCategoryHandler(
 			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: entity.RowVersion, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 			await budgetWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
-		}, 
+		},
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {entity.Id}."),
 		ct: ct);
 

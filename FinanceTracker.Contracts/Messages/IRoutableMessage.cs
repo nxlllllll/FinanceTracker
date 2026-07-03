@@ -13,7 +13,7 @@ public interface IRoutableMessage
 	/// Typically, matches the aggregate type name (e.g. <c>"Account"</c>).
 	/// </summary>
 	string RoutingKey { get; }
-	
+
 	/// <summary>
 	/// Unique identifier of this message instance.
 	/// Used by consumers for idempotency deduplication via the

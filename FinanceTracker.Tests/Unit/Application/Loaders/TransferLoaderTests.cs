@@ -33,7 +33,7 @@ public sealed class TransferLoaderTests
 
 		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
-				fromAccountId: accountId, 
+				fromAccountId: accountId,
 				toAccountId: accountId,
 				amount: 100m
 			),
@@ -96,7 +96,7 @@ public sealed class TransferLoaderTests
 
 		_accountReadRepository.GetByIdAsync(
 			accountId: toAccount.Id,
-			userId: fromAccount.UserId, 
+			userId: fromAccount.UserId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<AccountReadModel?>(result: null));
 
@@ -143,5 +143,35 @@ public sealed class TransferLoaderTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value!.FromAccount.Id).IsEqualTo(expected: fromAccount.Id);
 		await Assert.That(value: result.Value!.ToAccountCurrency).IsEqualTo(expected: toAccountReadModel.Balance.Currency);
+	}
+
+	[Test]
+	public async Task LoadAsync_WhenToAccountIsArchived_ShouldThrowArchivedOperationException()
+	{
+		Account fromAccount = AccountFactory.CreateWithArchivation();
+		AccountReadModel toAccountReadModel = AccountFactory.CreateReadModel(userId: fromAccount.UserId, currency: "USD", isArchived: true);
+
+		_accountRepository.GetByIdAsync(
+			accountId: fromAccount.Id,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: fromAccount);
+		_accountReadRepository.GetByIdAsync(
+			accountId: toAccountReadModel.Id,
+			userId: fromAccount.UserId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: toAccountReadModel);
+
+		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
+			request: CreateTransferCommandFactory.Create(
+				userId: fromAccount.UserId,
+				fromAccountId: fromAccount.Id,
+				toAccountId: toAccountReadModel.Id,
+				amount: 100m
+			),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
 	}
 }

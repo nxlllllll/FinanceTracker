@@ -27,3 +27,13 @@ public interface IAuthorizedHandler<in TRequest, in TEntity, TValue, TError>
 		CancellationToken ct
 	);
 }
+
+public interface IAuthorizedHandler<in TRequest, TValue, TError>
+	where TRequest : IRequest<Result<TValue, TError>>
+	where TError : AppException
+{
+	Task<Result<TValue, TError>> HandleAsync(
+		TRequest request,
+		CancellationToken ct
+	);
+}

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 
 namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 
@@ -57,7 +57,7 @@ public abstract class EventUpcaster<TFrom, TTo> : IEventUpcaster
 
 	/// <inheritdoc/>
 	public Type ToType { get; } = typeof(TTo);
-	
+
 	protected EventUpcaster()
 	{
 		EventTypeAttribute eventTypeAttr = (EventTypeAttribute?)Attribute.GetCustomAttribute(element: typeof(TFrom), attributeType: typeof(EventTypeAttribute))

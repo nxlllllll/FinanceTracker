@@ -25,7 +25,7 @@ public static class RetryDelayCalculator
 
 		if (!useJitter)
 			return exponential;
-		
+
 		return Jitter.Next(minValue: 0, maxValue: exponential + 1);
 	}
 

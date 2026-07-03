@@ -8,140 +8,140 @@ using Microsoft.EntityFrameworkCore;
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 
 public sealed class TransactionWriteRepository(
-    FinanceTrackerContext context,
-    IOperationWriteRepository operationRepository
+	FinanceTrackerContext context,
+	IOperationWriteRepository operationRepository
 ) : ITransactionWriteRepository
 {
-    public async Task CreateAsync(
-        Core.Domains.Transaction.Transaction transaction,
-        CancellationToken ct = default)
-    {
-        await context.Transactions.AddAsync(entity: new TransactionEntity
-        {
-            Id = transaction.Id,
-            AccountId = transaction.AccountId,
-            UserId = transaction.UserId,
-            CategoryId = transaction.CategoryId,
-            Amount = transaction.Amount.Amount,
-            Currency = transaction.Amount.Currency,
-            BaseCurrency = transaction.BaseCurrency,
-            Direction = transaction.Direction,
-            ExchangeRate = transaction.ExchangeRate,
-            Description = transaction.Description,
-            IsExcluded = false,
-            IsRatePending = transaction.IsRatePending,
-            RowVersion = 0,
-            OccurredAt = transaction.OccurredAt
-        }, cancellationToken: ct);
+	public async Task CreateAsync(
+		Core.Domains.Transaction.Transaction transaction,
+		CancellationToken ct = default)
+	{
+		await context.Transactions.AddAsync(entity: new TransactionEntity
+		{
+			Id = transaction.Id,
+			AccountId = transaction.AccountId,
+			UserId = transaction.UserId,
+			CategoryId = transaction.CategoryId,
+			Amount = transaction.Amount.Amount,
+			Currency = transaction.Amount.Currency,
+			BaseCurrency = transaction.BaseCurrency,
+			Direction = transaction.Direction,
+			ExchangeRate = transaction.ExchangeRate,
+			Description = transaction.Description,
+			IsExcluded = false,
+			IsRatePending = transaction.IsRatePending,
+			RowVersion = 0,
+			OccurredAt = transaction.OccurredAt
+		}, cancellationToken: ct);
 
-        await operationRepository.InsertTransactionAsync(transaction: transaction, ct: ct);
-    }
+		await operationRepository.InsertTransactionAsync(transaction: transaction, ct: ct);
+	}
 
-    public async Task ChangeCategoryAsync(
-        Guid transactionId,
-        Guid userId,
-        Guid categoryId,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: e => e.CategoryId, valueExpression: categoryId)
-                .SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+	public async Task ChangeCategoryAsync(
+		Guid transactionId,
+		Guid userId,
+		Guid categoryId,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.CategoryId, valueExpression: categoryId)
+				.SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
-        
-        await operationRepository.UpdateTransactionCategoryAsync(
-            transactionId: transactionId,
-            userId: userId,
-            categoryId: categoryId,
-            ct: ct
-        );
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
 
-    public async Task ChangeDescriptionAsync(
-        Guid transactionId,
-        string? description,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: e => e.Description, valueExpression: description)
-                .SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+		await operationRepository.UpdateTransactionCategoryAsync(
+			transactionId: transactionId,
+			userId: userId,
+			categoryId: categoryId,
+			ct: ct
+		);
+	}
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
-    }
+	public async Task ChangeDescriptionAsync(
+		Guid transactionId,
+		string? description,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.Description, valueExpression: description)
+				.SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-    public async Task IncludeAsync(
-        Guid transactionId,
-        Guid userId,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: e => e.IsExcluded, valueExpression: false)
-                .SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+	}
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
-        
-        await operationRepository.UpdateTransactionExclusionAsync(
-            transactionId: transactionId,
-            userId: userId,
-            isExcluded: false,
-            ct: ct
-        );
-    }
+	public async Task IncludeAsync(
+		Guid transactionId,
+		Guid userId,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.IsExcluded, valueExpression: false)
+				.SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-    public async Task ExcludeAsync(
-        Guid transactionId,
-        Guid userId,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: e => e.IsExcluded, valueExpression: true)
-                .SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
-        
-        await operationRepository.UpdateTransactionExclusionAsync(
-            transactionId: transactionId,
-            userId: userId,
-            isExcluded: true,
-            ct: ct
-        );
-    }
+		await operationRepository.UpdateTransactionExclusionAsync(
+			transactionId: transactionId,
+			userId: userId,
+			isExcluded: false,
+			ct: ct
+		);
+	}
 
-    public async Task UpdateRateAsync(
-        Guid transactionId,
-        decimal newRate,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
-                .SetProperty(propertyExpression: t => t.IsRatePending, valueExpression: false)
-                .SetProperty(propertyExpression: t => t.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+	public async Task ExcludeAsync(
+		Guid transactionId,
+		Guid userId,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.IsExcluded, valueExpression: true)
+				.SetProperty(propertyExpression: e => e.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+
+		await operationRepository.UpdateTransactionExclusionAsync(
+			transactionId: transactionId,
+			userId: userId,
+			isExcluded: true,
+			ct: ct
+		);
+	}
+
+	public async Task UpdateRateAsync(
+		Guid transactionId,
+		decimal newRate,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
+				.SetProperty(propertyExpression: t => t.IsRatePending, valueExpression: false)
+				.SetProperty(propertyExpression: t => t.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+	}
 }

@@ -1,17 +1,17 @@
 using System.Reflection;
 using FinanceTracker.Contracts.Events;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 
 namespace FinanceTracker.Tests.Architecture;
 
 public sealed class IntegrationEventAttributeTests
 {
-	private static readonly Assembly ContractsAssembly = typeof(IAccountIntegrationEvent).Assembly;
+	private static readonly Assembly ContractsAssembly = typeof(IIntegrationEvent).Assembly;
 	private static readonly Assembly CoreAssembly = typeof(IEvent).Assembly;
 
 	private static IReadOnlyList<Type> IntegrationEventTypes => ContractsAssembly.GetTypes()
-		.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IAccountIntegrationEvent).IsAssignableFrom(c: t))
+		.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IIntegrationEvent).IsAssignableFrom(c: t))
 		.ToList();
 
 	private static IReadOnlyList<Type> AccountDomainEventTypes => CoreAssembly.GetTypes()

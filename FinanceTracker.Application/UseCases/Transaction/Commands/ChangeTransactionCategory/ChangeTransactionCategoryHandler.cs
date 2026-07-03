@@ -35,7 +35,7 @@ public sealed class ChangeTransactionCategoryHandler(
 	{
 		if (accounts.CategoryId == command.CategoryId)
 			return Result<Guid, DomainException>.Success(value: accounts.Id);
-		
+
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
 		if (category is null)
 			return Result<Guid, DomainException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
@@ -43,12 +43,12 @@ public sealed class ChangeTransactionCategoryHandler(
 		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: accounts.Direction);
 		if (validationResult is not null)
 			return Result<Guid, DomainException>.Failure(error: validationResult);
-			
+
 		Guid oldCategoryId = accounts.CategoryId;
 		Result<Unit, DomainException> result = accounts.ChangeCategory(categoryId: command.CategoryId);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
+
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.ChangeCategoryAsync(

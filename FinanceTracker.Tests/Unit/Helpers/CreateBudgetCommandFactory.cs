@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
+using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;

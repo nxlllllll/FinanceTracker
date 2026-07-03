@@ -4,6 +4,7 @@ using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
@@ -88,7 +89,7 @@ public sealed class RecurringTransactionConsumer(
 				return;
 			}
 
-			Result<Guid, DomainException> result = await transactionCreationService.CreateAsync(command: new CreateTransactionCommand(
+			Result<Transaction, DomainException> result = await transactionCreationService.CreateAsync(command: new CreateTransactionCommand(
 				AccountId: message.AccountId,
 				UserId: message.UserId,
 				CategoryId: message.CategoryId,
@@ -105,9 +106,17 @@ public sealed class RecurringTransactionConsumer(
 				return;
 			}
 
+			Transaction transaction = result.Value!;
+
 			WorkerMetrics.TransactionsCreated.Add(delta: 1, new KeyValuePair<string, object?>(key: "direction", value: message.Direction));
 
 			await MarkProcessedAsync(message: message, ct: ct);
+
+			logger.ZLogInformation(message: $"""
+				[Audit] Transaction created. TransactionId: {transaction.Id}, UserId: {transaction.UserId}, AccountId: {transaction.AccountId},
+				CategoryId: {transaction.CategoryId}, Amount: {transaction.Amount}, Direction: {transaction.Direction},
+				ExchangeRate: {transaction.ExchangeRate}, IsRatePending: {transaction.IsRatePending}, OccurredAt: {transaction.OccurredAt:O}.
+			""");
 
 			logger.ZLogInformation(message: $"[{message.CorrelationId}] Created transaction for recurring transaction {message.RecurringTransactionId}.");
 		}, ct: ct);

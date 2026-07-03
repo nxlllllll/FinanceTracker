@@ -37,9 +37,9 @@ public static class TransactionFactory
 
 		if (result.IsFailure)
 			throw result.Error!;
-		
+
 		Transaction transaction = result.Value!;
-		
+
 		if (isExcluded)
 			transaction.Exclude();
 

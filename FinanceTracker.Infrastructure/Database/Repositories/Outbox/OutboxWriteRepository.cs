@@ -17,7 +17,7 @@ public sealed class OutboxWriteRepository(
 	{
 		await context.OutboxMessages.Where(predicate: x => x.Id == messageId).ExecuteUpdateAsync(
 			setPropertyCalls: s => s.SetProperty(
-				propertyExpression: x => x.ProcessedAt, 
+				propertyExpression: x => x.ProcessedAt,
 				valueExpression: processedAt
 			),
 			cancellationToken: ct

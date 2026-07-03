@@ -24,7 +24,7 @@ public sealed class ActivateRecurringTransactionHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.Activate();
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ActivateAsync(

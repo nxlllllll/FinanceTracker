@@ -83,7 +83,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 	private void SetupRepository(int count)
 	{
-		IReadOnlyList<RecurringTransactionReadModel> transactions = [..Enumerable.Range(start: 0, count: count).Select(selector: _ => RecurringTransactionFactory.CreateReadModel())];
+		IReadOnlyList<RecurringTransactionReadModel> transactions = [.. Enumerable.Range(start: 0, count: count).Select(selector: _ => RecurringTransactionFactory.CreateReadModel())];
 
 		SetupRepository(transactions: transactions);
 	}
@@ -311,9 +311,9 @@ public sealed class RecurringTransactionHandlingJobTests
 	[Test]
 	public async Task Execute_WhenPublishFailsOnSecond_ShouldMarkExecutedOnlyForFirst()
 	{
-		RecurringTransactionReadModel first  = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel first = RecurringTransactionFactory.CreateReadModel();
 		RecurringTransactionReadModel second = RecurringTransactionFactory.CreateReadModel();
-		RecurringTransactionReadModel third  = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel third = RecurringTransactionFactory.CreateReadModel();
 
 		SetupRepository(transactions: [first, second, third]);
 

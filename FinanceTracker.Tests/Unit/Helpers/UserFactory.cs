@@ -20,7 +20,7 @@ public static class UserFactory
 		Result<Currency, DomainException> currencyResult = Currency.Create(value: baseCurrencyCode);
 		if (currencyResult.IsFailure)
 			return Result<User, DomainException>.Failure(error: currencyResult.Error!);
-		
+
 		Result<User, DomainException> result = User.Register(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			email: Email.Create(value: email).Value,

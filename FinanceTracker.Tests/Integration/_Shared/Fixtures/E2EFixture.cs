@@ -1,6 +1,6 @@
-﻿using FinanceTracker.Application.Configurations;
+using FinanceTracker.Application.Configurations;
 using FinanceTracker.Application.UseCases.Transaction.Services;
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Services.TransferCompensation;
@@ -43,94 +43,94 @@ namespace FinanceTracker.Tests.Integration._Shared.Fixtures;
 /// </summary>
 public abstract class E2EFixture
 {
-    private const string TemplateDatabaseName = "ft_template";
+	private const string TemplateDatabaseName = "ft_template";
 
-    private static PostgreSqlContainer _postgres = null!;
-    private static RedisContainer _redis = null!;
-    private static RabbitMqContainer _rabbitMq = null!;
+	private static PostgreSqlContainer _postgres = null!;
+	private static RedisContainer _redis = null!;
+	private static RabbitMqContainer _rabbitMq = null!;
 
-    protected IHost Host = null!;
-    private string _connectionString = null!;
-    private const string RabbitData = "guest";
-    private string _testRunId = null!;
-    private Uri _rabbitUri = null!;
+	protected IHost Host = null!;
+	private string _connectionString = null!;
+	private const string RabbitData = "guest";
+	private string _testRunId = null!;
+	private Uri _rabbitUri = null!;
 
-    protected IMediator Mediator { get; private set; } = null!;
-    protected FinanceTrackerContext Context { get; private set; } = null!;
+	protected IMediator Mediator { get; private set; } = null!;
+	protected FinanceTrackerContext Context { get; private set; } = null!;
 
-    private static string AccountQueueName(string testRunId) => $"ft-e2e-account-{testRunId}";
-    private static string TransferQueueName(string testRunId) => $"ft-e2e-transfer-{testRunId}";
-    private static string RecurringQueueName(string testRunId) => $"ft-e2e-recurring-{testRunId}";
-    private static string ExchangeName(string testRunId) => $"ft-e2e-{testRunId}";
+	private static string AccountQueueName(string testRunId) => $"ft-e2e-account-{testRunId}";
+	private static string TransferQueueName(string testRunId) => $"ft-e2e-transfer-{testRunId}";
+	private static string RecurringQueueName(string testRunId) => $"ft-e2e-recurring-{testRunId}";
+	private static string ExchangeName(string testRunId) => $"ft-e2e-{testRunId}";
 
-    [Before(hookType: Assembly)]
-    public static async Task StartContainersAsync()
-    {
-        Task postgres = Task.Run(async () =>
-        {
-            _postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "700").Build();
-            await _postgres.StartAsync();
+	[Before(hookType: Assembly)]
+	public static async Task StartContainersAsync()
+	{
+		Task postgres = Task.Run(async () =>
+		{
+			_postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "700").Build();
+			await _postgres.StartAsync();
 
-            string templateConnectionString = new NpgsqlConnectionStringBuilder(connectionString: _postgres.GetConnectionString())
-            {
-                Database = TemplateDatabaseName
-            }.ConnectionString;
+			string templateConnectionString = new NpgsqlConnectionStringBuilder(connectionString: _postgres.GetConnectionString())
+			{
+				Database = TemplateDatabaseName
+			}.ConnectionString;
 
-            Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
-            NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
-        });
+			Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
+			NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
+		});
 
-        Task redis = Task.Run(async () =>
-        {
-            _redis = new RedisBuilder(image: "redis:7").Build();
-            await _redis.StartAsync();
-        });
+		Task redis = Task.Run(async () =>
+		{
+			_redis = new RedisBuilder(image: "redis:7").Build();
+			await _redis.StartAsync();
+		});
 
-        Task rabbitMq = Task.Run(async () =>
-        {
-            _rabbitMq = new RabbitMqBuilder(image: "rabbitmq:4.3.0")
-                .WithUsername(username: RabbitData)
-                .WithPassword(password: RabbitData)
-                .Build();
-            await _rabbitMq.StartAsync();
-        });
+		Task rabbitMq = Task.Run(async () =>
+		{
+			_rabbitMq = new RabbitMqBuilder(image: "rabbitmq:4.3.0")
+				.WithUsername(username: RabbitData)
+				.WithPassword(password: RabbitData)
+				.Build();
+			await _rabbitMq.StartAsync();
+		});
 
-        await Task.WhenAll(postgres, redis, rabbitMq);
-    }
+		await Task.WhenAll(postgres, redis, rabbitMq);
+	}
 
-    [Before(hookType: Test)]
-    public async Task SetupAsync()
-    {
-        string testRunId = Guid.CreateVersion7().ToString(format: "N");
-        _testRunId = testRunId;
+	[Before(hookType: Test)]
+	public async Task SetupAsync()
+	{
+		string testRunId = Guid.CreateVersion7().ToString(format: "N");
+		_testRunId = testRunId;
 
-        _connectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
-        {
-            Database = $"ft_e2e_{testRunId}"
-        }.ConnectionString;
+		_connectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
+		{
+			Database = $"ft_e2e_{testRunId}"
+		}.ConnectionString;
 
-        Uri rabbitUri = new Uri(_rabbitMq.GetConnectionString());
-        _rabbitUri = rabbitUri;
-        string redisCs = _redis.GetConnectionString() + ",allowAdmin=true";
+		Uri rabbitUri = new Uri(_rabbitMq.GetConnectionString());
+		_rabbitUri = rabbitUri;
+		string redisCs = _redis.GetConnectionString() + ",allowAdmin=true";
 
-        await DeclareRabbitTopologyAsync(rabbitUri: rabbitUri, testRunId: testRunId);
+		await DeclareRabbitTopologyAsync(rabbitUri: rabbitUri, testRunId: testRunId);
 
-        string adminConnectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
-        {
-            Database = "postgres"
-        }.ConnectionString;
+		string adminConnectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
+		{
+			Database = "postgres"
+		}.ConnectionString;
 
-        await using (NpgsqlConnection adminConnection = new NpgsqlConnection(connectionString: adminConnectionString))
-        {
-            await adminConnection.OpenAsync();
-            await using NpgsqlCommand command = new NpgsqlCommand(
-                cmdText: $"CREATE DATABASE \"ft_e2e_{testRunId}\" TEMPLATE {TemplateDatabaseName}",
-                connection: adminConnection
-            );
-            await command.ExecuteNonQueryAsync();
-        }
+		await using (NpgsqlConnection adminConnection = new NpgsqlConnection(connectionString: adminConnectionString))
+		{
+			await adminConnection.OpenAsync();
+			await using NpgsqlCommand command = new NpgsqlCommand(
+				cmdText: $"CREATE DATABASE \"ft_e2e_{testRunId}\" TEMPLATE {TemplateDatabaseName}",
+				connection: adminConnection
+			);
+			await command.ExecuteNonQueryAsync();
+		}
 
-        Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+		Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
 			.ConfigureAppConfiguration(configureDelegate: (_, b) => b.AddInMemoryCollection(initialData: new Dictionary<string, string?>
 			{
 				[$"ConnectionStrings:{nameof(FinanceTrackerContext)}"] = _connectionString,
@@ -231,179 +231,196 @@ public abstract class E2EFixture
 			})
 			.Build();
 
-        await Host.StartAsync();
+		await Host.StartAsync();
 
-        Migrator.DatabaseMigrator.Upgrade(connectionString: _connectionString, logToConsole: false);
+		Migrator.DatabaseMigrator.Upgrade(connectionString: _connectionString, logToConsole: false);
 
-        Context = Host.Services.GetRequiredService<FinanceTrackerContext>();
-        Mediator = Host.Services.GetRequiredService<IMediator>();
-    }
-	
-    private async Task DeclareRabbitTopologyAsync(Uri rabbitUri, string testRunId)
-    {
-        const string deadLetterExchangeArgument = "x-dead-letter-exchange"; // RabbitMqListenerService.DeadLetterExchangeArgument
+		Context = Host.Services.GetRequiredService<FinanceTrackerContext>();
+		Mediator = Host.Services.GetRequiredService<IMediator>();
+	}
 
-        (string Queue, string RoutingKey)[] queues =
-        [
-            (AccountQueueName(testRunId: testRunId), AggregateTypeNames.Account),
-            (TransferQueueName(testRunId: testRunId), AggregateTypeNames.Account),
-            (RecurringQueueName(testRunId: testRunId), AggregateTypeNames.RecurringTransaction)
-        ];
+	private async Task DeclareRabbitTopologyAsync(Uri rabbitUri, string testRunId)
+	{
+		const string queueTypeArgument = "x-queue-type";
+		const string deliveryLimitArgument = "x-delivery-limit";
+		const string delayedRetryTypeArgument = "x-delayed-retry-type";
+		const string delayedRetryMinArgument = "x-delayed-retry-min";
+		const string delayedRetryMaxArgument = "x-delayed-retry-max";
+		const string deadLetterExchangeArgument = "x-dead-letter-exchange";
 
-        ConnectionFactory factory = new ConnectionFactory
-        {
-            HostName = rabbitUri.Host,
-            Port = rabbitUri.Port,
-            UserName = RabbitData,
-            Password = RabbitData
-        };
+		const int maxRetries = 3;
+		const int delayedRetryMinMs = 1000;
+		const int delayedRetryMaxMs = 30000;
 
-        await using IConnection connection = await factory.CreateConnectionAsync();
-        await using IChannel channel = await connection.CreateChannelAsync();
+		(string Queue, string RoutingKey)[] queues =
+		[
+			(AccountQueueName(testRunId: testRunId), AggregateTypeNames.Account),
+			(TransferQueueName(testRunId: testRunId), AggregateTypeNames.Account),
+			(RecurringQueueName(testRunId: testRunId), AggregateTypeNames.RecurringTransaction)
+		];
 
-        string exchangeName = ExchangeName(testRunId: testRunId);
-        await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic, durable: true);
+		ConnectionFactory factory = new ConnectionFactory
+		{
+			HostName = rabbitUri.Host,
+			Port = rabbitUri.Port,
+			UserName = RabbitData,
+			Password = RabbitData
+		};
 
-        foreach ((string queue, string routingKey) in queues)
-        {
-            string dlxName = $"{queue}.dlx";
-            string dlqName = $"{queue}.dlq";
+		await using IConnection connection = await factory.CreateConnectionAsync();
+		await using IChannel channel = await connection.CreateChannelAsync();
 
-            await channel.ExchangeDeclareAsync(exchange: dlxName, type: ExchangeType.Fanout, durable: true);
-            await channel.QueueDeclareAsync(queue: dlqName, durable: true, exclusive: false, autoDelete: false);
-            await channel.QueueBindAsync(queue: dlqName, exchange: dlxName, routingKey: String.Empty);
+		string exchangeName = ExchangeName(testRunId: testRunId);
+		await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic, durable: true);
 
-            await channel.QueueDeclareAsync(
-                queue: queue,
-                durable: true,
-                exclusive: false,
-                autoDelete: false,
-                arguments: new Dictionary<string, object?> { [deadLetterExchangeArgument] = dlxName }
-            );
-            await channel.QueueBindAsync(queue: queue, exchange: exchangeName, routingKey: routingKey);
-        }
-    }
+		foreach ((string queue, string routingKey) in queues)
+		{
+			string dlxName = $"{queue}.dlx";
+			string dlqName = $"{queue}.dlq";
 
-    protected virtual void ConfigureAdditionalServices(IServiceCollection services, IConfiguration configuration) { }
+			await channel.ExchangeDeclareAsync(exchange: dlxName, type: ExchangeType.Fanout, durable: true);
+			await channel.QueueDeclareAsync(queue: dlqName, durable: true, exclusive: false, autoDelete: false);
+			await channel.QueueBindAsync(queue: dlqName, exchange: dlxName, routingKey: String.Empty);
 
-    [After(hookType: Test)]
-    public async Task TeardownAsync()
-    {
-        await Context.Database.CloseConnectionAsync();
-        NpgsqlConnection.ClearAllPools();
-        await Context.Database.EnsureDeletedAsync();
-        await Context.DisposeAsync();
+			await channel.QueueDeclareAsync(
+				queue: queue,
+				durable: true,
+				exclusive: false,
+				autoDelete: false,
+				arguments: new Dictionary<string, object?>
+				{
+					[queueTypeArgument] = "quorum",
+					[deadLetterExchangeArgument] = dlxName,
+					[deliveryLimitArgument] = maxRetries,
+					[delayedRetryTypeArgument] = "failed",
+					[delayedRetryMinArgument] = delayedRetryMinMs,
+					[delayedRetryMaxArgument] = delayedRetryMaxMs
+				}
+			);
+			await channel.QueueBindAsync(queue: queue, exchange: exchangeName, routingKey: routingKey);
+		}
+	}
 
-        try
-        {
-            IConnectionMultiplexer redis = Host.Services.GetRequiredService<IConnectionMultiplexer>();
-            IServer server = redis.GetServer(endpoint: redis.GetEndPoints().First());
-            await server.FlushAllDatabasesAsync();
-        }
-        catch { /* non-critical */ }
+	protected virtual void ConfigureAdditionalServices(IServiceCollection services, IConfiguration configuration) { }
 
-        await Host.StopAsync();
-        Host.Dispose();
+	[After(hookType: Test)]
+	public async Task TeardownAsync()
+	{
+		await Context.Database.CloseConnectionAsync();
+		NpgsqlConnection.ClearAllPools();
+		await Context.Database.EnsureDeletedAsync();
+		await Context.DisposeAsync();
 
-        await DeleteTestQueuesAsync();
-    }
+		try
+		{
+			IConnectionMultiplexer redis = Host.Services.GetRequiredService<IConnectionMultiplexer>();
+			IServer server = redis.GetServer(endpoint: redis.GetEndPoints().First());
+			await server.FlushAllDatabasesAsync();
+		}
+		catch { /* non-critical */ }
 
-    private async Task DeleteTestQueuesAsync()
-    {
-        try
-        {
-            ConnectionFactory factory = new ConnectionFactory
-            {
-                HostName = _rabbitUri.Host,
-                Port = _rabbitUri.Port,
-                UserName = RabbitData,
-                Password = RabbitData
-            };
+		await Host.StopAsync();
+		Host.Dispose();
 
-            await using IConnection connection = await factory.CreateConnectionAsync();
-            await using IChannel channel = await connection.CreateChannelAsync();
+		await DeleteTestQueuesAsync();
+	}
 
-            string[] queues =
-            [
-                AccountQueueName(testRunId: _testRunId),
-                TransferQueueName(testRunId: _testRunId),
-                RecurringQueueName(testRunId: _testRunId)
-            ];
+	private async Task DeleteTestQueuesAsync()
+	{
+		try
+		{
+			ConnectionFactory factory = new ConnectionFactory
+			{
+				HostName = _rabbitUri.Host,
+				Port = _rabbitUri.Port,
+				UserName = RabbitData,
+				Password = RabbitData
+			};
 
-            foreach (string queue in queues)
-                await channel.QueueDeleteAsync(queue: queue, ifUnused: false, ifEmpty: false);
+			await using IConnection connection = await factory.CreateConnectionAsync();
+			await using IChannel channel = await connection.CreateChannelAsync();
 
-            await channel.ExchangeDeleteAsync(exchange: ExchangeName(_testRunId), ifUnused: false);
-        }
-        catch { /* non-critical */ }
-    }
+			string[] queues =
+			[
+				AccountQueueName(testRunId: _testRunId),
+				TransferQueueName(testRunId: _testRunId),
+				RecurringQueueName(testRunId: _testRunId)
+			];
 
-    [After(hookType: Assembly)]
-    public static async Task StopContainersAsync()
-    {
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _redis.DisposeAsync().AsTask(),
-            _rabbitMq.DisposeAsync().AsTask()
-        );
-    }
+			foreach (string queue in queues)
+				await channel.QueueDeleteAsync(queue: queue, ifUnused: false, ifEmpty: false);
 
-    protected FinanceTrackerContext CreateReadContext()
-    {
-        DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>().UseNpgsql(connectionString: _connectionString).Options;
-        return new FinanceTrackerContext(options: options);
-    }
+			await channel.ExchangeDeleteAsync(exchange: ExchangeName(_testRunId), ifUnused: false);
+		}
+		catch { /* non-critical */ }
+	}
 
-    private static IJobExecutionContext MockJobContext() =>
-        Substitute.For<IJobExecutionContext>();
+	[After(hookType: Assembly)]
+	public static async Task StopContainersAsync()
+	{
+		await Task.WhenAll(
+			_postgres.DisposeAsync().AsTask(),
+			_redis.DisposeAsync().AsTask(),
+			_rabbitMq.DisposeAsync().AsTask()
+		);
+	}
 
-    protected async Task RunOutboxAsync()
-    {
-        await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<OutboxPublisherJob>().Execute(context: MockJobContext());
-    }
+	protected FinanceTrackerContext CreateReadContext()
+	{
+		DbContextOptions<FinanceTrackerContext> options = new DbContextOptionsBuilder<FinanceTrackerContext>().UseNpgsql(connectionString: _connectionString).Options;
+		return new FinanceTrackerContext(options: options);
+	}
 
-    protected async Task RunBalanceAdjustmentAsync()
-    {
-        await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<BalanceAdjustmentJob>().Execute(context: MockJobContext());
-    }
+	private static IJobExecutionContext MockJobContext() =>
+		Substitute.For<IJobExecutionContext>();
 
-    protected async Task RunTransferCreditLagAsync()
-    {
-        await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<TransferCreditLagJob>().Execute(context: MockJobContext());
-    }
+	protected async Task RunOutboxAsync()
+	{
+		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
+		await scope.ServiceProvider.GetRequiredService<OutboxPublisherJob>().Execute(context: MockJobContext());
+	}
 
-    protected async Task RunRecurringTransactionJobAsync()
-    {
-        await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<RecurringTransactionHandlingJob>().Execute(context: MockJobContext());
-    }
+	protected async Task RunBalanceAdjustmentAsync()
+	{
+		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
+		await scope.ServiceProvider.GetRequiredService<BalanceAdjustmentJob>().Execute(context: MockJobContext());
+	}
 
-    protected async Task ProcessRecurringTransactionDirectAsync(RecurringTransactionTriggeredMessage message)
-    {
-        await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<RecurringTransactionConsumer>().HandleAsync(message: message);
-    }
+	protected async Task RunTransferCreditLagAsync()
+	{
+		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
+		await scope.ServiceProvider.GetRequiredService<TransferCreditLagJob>().Execute(context: MockJobContext());
+	}
 
-    protected static async Task WaitForConditionAsync(
-        Func<Task<bool>> condition,
-        TimeSpan? timeout = null,
-        TimeSpan? pollInterval = null)
-    {
-        TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 10);
-        TimeSpan poll = pollInterval ?? TimeSpan.FromMilliseconds(milliseconds: 100);
-        DateTimeOffset start = DateTimeOffset.UtcNow;
+	protected async Task RunRecurringTransactionJobAsync()
+	{
+		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
+		await scope.ServiceProvider.GetRequiredService<RecurringTransactionHandlingJob>().Execute(context: MockJobContext());
+	}
 
-        while (DateTimeOffset.UtcNow - start < deadline)
-        {
-            if (await condition())
-                return;
+	protected async Task ProcessRecurringTransactionDirectAsync(RecurringTransactionTriggeredMessage message)
+	{
+		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
+		await scope.ServiceProvider.GetRequiredService<RecurringTransactionConsumer>().HandleAsync(message: message);
+	}
 
-            await Task.Delay(delay: poll);
-        }
+	protected static async Task WaitForConditionAsync(
+		Func<Task<bool>> condition,
+		TimeSpan? timeout = null,
+		TimeSpan? pollInterval = null)
+	{
+		TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 10);
+		TimeSpan poll = pollInterval ?? TimeSpan.FromMilliseconds(milliseconds: 100);
+		DateTimeOffset start = DateTimeOffset.UtcNow;
 
-        throw new TimeoutException(message: $"Condition not met within {deadline.TotalSeconds}s.");
-    }
+		while (DateTimeOffset.UtcNow - start < deadline)
+		{
+			if (await condition())
+				return;
+
+			await Task.Delay(delay: poll);
+		}
+
+		throw new TimeoutException(message: $"Condition not met within {deadline.TotalSeconds}s.");
+	}
 }

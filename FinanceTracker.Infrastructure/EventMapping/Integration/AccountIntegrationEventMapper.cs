@@ -1,5 +1,5 @@
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Account;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
 using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@ namespace FinanceTracker.Infrastructure.EventMapping.Integration;
 
 public sealed class AccountIntegrationEventMapper(ILogger<AccountIntegrationEventMapper> logger) : IIntegrationEventMapper
 {
-	public IAccountIntegrationEvent? Map(IEvent @event) => @event switch
+	public IIntegrationEvent? Map(IEvent @event) => @event switch
 	{
 		AccountCreated e => new AccountCreatedEvent(
 			EventId: e.Id,
@@ -109,9 +109,9 @@ public sealed class AccountIntegrationEventMapper(ILogger<AccountIntegrationEven
 		_ => ExecuteDefaultCase(@event: @event)
 	};
 
-	private IAccountIntegrationEvent? ExecuteDefaultCase(IEvent @event)
+	private IIntegrationEvent? ExecuteDefaultCase(IEvent @event)
 	{
-		logger.ZLogWarning(message: 
+		logger.ZLogWarning(message:
 			$"[IntegrationEventMapper] No integration event mapping defined for domain event '{@event.GetType().Name}'. " +
 			$"The event will not be published to the outbox. Add a mapping if outbox propagation is required."
 		);

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Auth;
+namespace FinanceTracker.Core.Services.Auth;
 
 /// <summary>
 /// Issued by <see cref="ISessionIssuer"/> after successful authentication.

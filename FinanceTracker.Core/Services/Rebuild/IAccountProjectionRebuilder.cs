@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Rebuild;
+namespace FinanceTracker.Core.Services.Rebuild;
 
 /// <summary>
 /// Rebuilds the Account read-model projection from the event store.

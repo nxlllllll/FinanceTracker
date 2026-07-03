@@ -6,7 +6,7 @@ namespace FinanceTracker.Core.Services.Token;
 /// <param name="Token">The signed JWT access token string.</param>
 /// <param name="ExpiresAt">UTC expiry of the token.</param>
 /// </summary>
-public sealed record AccessTokenResult( 
+public sealed record AccessTokenResult(
 	string Token,
 	DateTimeOffset ExpiresAt
 );

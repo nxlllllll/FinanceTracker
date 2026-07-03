@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Transfer;
+namespace FinanceTracker.Core.Repositories.Transfer;
 
 public interface ITransferRepository
 {

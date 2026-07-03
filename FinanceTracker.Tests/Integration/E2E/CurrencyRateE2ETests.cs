@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
@@ -22,147 +22,147 @@ namespace FinanceTracker.Tests.Integration.E2E;
 /// </summary>
 public sealed class CurrencyRateE2ETests : E2EFixture
 {
-    private FakeHttpMessageHandler _httpHandler = null!;
+	private FakeHttpMessageHandler _httpHandler = null!;
 
-    protected override void ConfigureAdditionalServices(IServiceCollection services, IConfiguration configuration)
-    {
-        _httpHandler = new FakeHttpMessageHandler();
+	protected override void ConfigureAdditionalServices(IServiceCollection services, IConfiguration configuration)
+	{
+		_httpHandler = new FakeHttpMessageHandler();
 
-        services.AddHttpClient<ExchangeRateApiClient>().ConfigurePrimaryHttpMessageHandler(configureHandler: _ => _httpHandler);
+		services.AddHttpClient<ExchangeRateApiClient>().ConfigurePrimaryHttpMessageHandler(configureHandler: _ => _httpHandler);
 
-        services.AddScoped<CurrencyRateJob>();
+		services.AddScoped<CurrencyRateJob>();
 
-        services.AddOptions<ExchangeRateApiOptions>();
-        
-        services.AddOptions<CurrencyRateJobOptions>();
-    }
+		services.AddOptions<ExchangeRateApiOptions>();
 
-    [Before(hookType: Test)]
-    public async Task SetupDataAsync()
-    {
-        await new CurrencyBuilder(context: Context).CreateAsync(code: "RUB", isActive: true);
-        await new CurrencyBuilder(context: Context).CreateAsync(code: "USD", isActive: true);
-        await new CurrencyBuilder(context: Context).CreateAsync(code: "EUR", isActive: true);
-    }
+		services.AddOptions<CurrencyRateJobOptions>();
+	}
 
-    private async Task RunCurrencyRateJobAsync()
-    {
-        await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-        CurrencyRateJob job = scope.ServiceProvider.GetRequiredService<CurrencyRateJob>();
-        IJobExecutionContext ctx = Substitute.For<IJobExecutionContext>();
-        await job.Execute(context: ctx);
-    }
+	[Before(hookType: Test)]
+	public async Task SetupDataAsync()
+	{
+		await new CurrencyBuilder(context: Context).CreateAsync(code: "RUB", isActive: true);
+		await new CurrencyBuilder(context: Context).CreateAsync(code: "USD", isActive: true);
+		await new CurrencyBuilder(context: Context).CreateAsync(code: "EUR", isActive: true);
+	}
 
-    private static string BuildSuccessResponse(string baseCode, Dictionary<string, decimal> rates) => JsonSerializer.Serialize(new
-    {
-        result = "success",
-        base_code = baseCode,
-        conversion_rates = rates
-    });
+	private async Task RunCurrencyRateJobAsync()
+	{
+		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
+		CurrencyRateJob job = scope.ServiceProvider.GetRequiredService<CurrencyRateJob>();
+		IJobExecutionContext ctx = Substitute.For<IJobExecutionContext>();
+		await job.Execute(context: ctx);
+	}
 
-    [Test]
-    public async Task CurrencyRateJob_WithActiveRates_ShouldUpsertRatesForAllActiveCurrencies()
-    {
-        _httpHandler.SetupResponse(baseCode: "RUB", json: BuildSuccessResponse(
-            baseCode: "RUB",
-            rates: new Dictionary<string, decimal> { ["USD"] = 0.011m, ["EUR"] = 0.010m }
-        ));
-        _httpHandler.SetupResponse(baseCode: "USD", json: BuildSuccessResponse(
-            baseCode: "USD",
-            rates: new Dictionary<string, decimal> { ["RUB"] = 90m, ["EUR"] = 0.93m }
-        ));
-        _httpHandler.SetupResponse(baseCode: "EUR", json: BuildSuccessResponse(
-            baseCode: "EUR",
-            rates: new Dictionary<string, decimal> { ["RUB"] = 97m, ["USD"] = 1.07m }
-        ));
+	private static string BuildSuccessResponse(string baseCode, Dictionary<string, decimal> rates) => JsonSerializer.Serialize(new
+	{
+		result = "success",
+		base_code = baseCode,
+		conversion_rates = rates
+	});
 
-        await RunCurrencyRateJobAsync();
+	[Test]
+	public async Task CurrencyRateJob_WithActiveRates_ShouldUpsertRatesForAllActiveCurrencies()
+	{
+		_httpHandler.SetupResponse(baseCode: "RUB", json: BuildSuccessResponse(
+			baseCode: "RUB",
+			rates: new Dictionary<string, decimal> { ["USD"] = 0.011m, ["EUR"] = 0.010m }
+		));
+		_httpHandler.SetupResponse(baseCode: "USD", json: BuildSuccessResponse(
+			baseCode: "USD",
+			rates: new Dictionary<string, decimal> { ["RUB"] = 90m, ["EUR"] = 0.93m }
+		));
+		_httpHandler.SetupResponse(baseCode: "EUR", json: BuildSuccessResponse(
+			baseCode: "EUR",
+			rates: new Dictionary<string, decimal> { ["RUB"] = 97m, ["USD"] = 1.07m }
+		));
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
-        int rateCount = await readCtx.CurrencyRates.CountAsync();
+		await RunCurrencyRateJobAsync();
 
-        await Assert.That(value: rateCount).IsGreaterThan(minimum: 0);
+		await using FinanceTrackerContext readCtx = CreateReadContext();
+		int rateCount = await readCtx.CurrencyRates.CountAsync();
 
-        bool rubToUsd = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "RUB" && r.TargetCode == "USD");
-        await Assert.That(value: rubToUsd).IsTrue();
-    }
+		await Assert.That(value: rateCount).IsGreaterThan(minimum: 0);
 
-    [Test]
-    public async Task CurrencyRateJob_WhenNoActiveCurrencies_ShouldSkipGracefully()
-    {
-        foreach (CurrencyEntity currency in Context.Currencies)
-            currency.IsActive = false;
+		bool rubToUsd = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "RUB" && r.TargetCode == "USD");
+		await Assert.That(value: rubToUsd).IsTrue();
+	}
 
-        await Context.SaveChangesAsync();
+	[Test]
+	public async Task CurrencyRateJob_WhenNoActiveCurrencies_ShouldSkipGracefully()
+	{
+		foreach (CurrencyEntity currency in Context.Currencies)
+			currency.IsActive = false;
 
-        await RunCurrencyRateJobAsync();
+		await Context.SaveChangesAsync();
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
-        int rateCount = await readCtx.CurrencyRates.CountAsync();
+		await RunCurrencyRateJobAsync();
 
-        // HTTP should not be called, courses should not appear
-        await Assert.That(value: rateCount).IsEqualTo(expected: 0);
-        await Assert.That(value: _httpHandler.CallCount).IsEqualTo(expected: 0);
-    }
+		await using FinanceTrackerContext readCtx = CreateReadContext();
+		int rateCount = await readCtx.CurrencyRates.CountAsync();
 
-    [Test]
-    public async Task CurrencyRateJob_WhenOneApiCallFails_ShouldProcessOtherCurrencies()
-    {
-        // RUB — successful
-        _httpHandler.SetupResponse(baseCode: "RUB", json: BuildSuccessResponse(
-            baseCode: "RUB",
-            rates: new Dictionary<string, decimal> { ["USD"] = 0.011m, ["EUR"] = 0.010m }
-        ));
+		// HTTP should not be called, courses should not appear
+		await Assert.That(value: rateCount).IsEqualTo(expected: 0);
+		await Assert.That(value: _httpHandler.CallCount).IsEqualTo(expected: 0);
+	}
 
-        // USD — 500, Polly retry is exhausted → this currency is skipped
-        _httpHandler.SetupError(baseCode: "USD", statusCode: HttpStatusCode.InternalServerError);
+	[Test]
+	public async Task CurrencyRateJob_WhenOneApiCallFails_ShouldProcessOtherCurrencies()
+	{
+		// RUB — successful
+		_httpHandler.SetupResponse(baseCode: "RUB", json: BuildSuccessResponse(
+			baseCode: "RUB",
+			rates: new Dictionary<string, decimal> { ["USD"] = 0.011m, ["EUR"] = 0.010m }
+		));
 
-        // EUR — successful
-        _httpHandler.SetupResponse(baseCode: "EUR", json: BuildSuccessResponse(
-            baseCode: "EUR",
-            rates: new Dictionary<string, decimal> { ["RUB"] = 97m, ["USD"] = 1.07m }
-        ));
+		// USD — 500, Polly retry is exhausted → this currency is skipped
+		_httpHandler.SetupError(baseCode: "USD", statusCode: HttpStatusCode.InternalServerError);
 
-        await RunCurrencyRateJobAsync();
+		// EUR — successful
+		_httpHandler.SetupResponse(baseCode: "EUR", json: BuildSuccessResponse(
+			baseCode: "EUR",
+			rates: new Dictionary<string, decimal> { ["RUB"] = 97m, ["USD"] = 1.07m }
+		));
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
+		await RunCurrencyRateJobAsync();
 
-        bool hasRubRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "RUB");
-        bool hasEurRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "EUR");
+		await using FinanceTrackerContext readCtx = CreateReadContext();
 
-        await Assert.That(value: hasRubRates).IsTrue();
-        await Assert.That(value: hasEurRates).IsTrue();
-    }
+		bool hasRubRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "RUB");
+		bool hasEurRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "EUR");
 
-    [Test]
-    public async Task CurrencyRateJob_WithRetry_ShouldSucceedAfterTransientFailure()
-    {
-        // Polly retry works at the HttpClient level — before the exception
-        // reaches GetRatesAsync. Therefore, the first 500 → Polly retry → the second request is 200.
-        // For RUB: failCount=1 means that the first HTTP call will return 500,
-        // Polly retry will launch the second one, which is successful.
-        _httpHandler.SetupTransientError(baseCode: "RUB", failCount: 1, successJson: BuildSuccessResponse(
-            baseCode: "RUB",
-            rates: new Dictionary<string, decimal> { ["USD"] = 0.011m }
-        ));
+		await Assert.That(value: hasRubRates).IsTrue();
+		await Assert.That(value: hasEurRates).IsTrue();
+	}
 
-        _httpHandler.SetupResponse(baseCode: "USD", json: BuildSuccessResponse(
-            baseCode: "USD",
-            rates: new Dictionary<string, decimal> { ["RUB"] = 90m }
-        ));
-        _httpHandler.SetupResponse(baseCode: "EUR", json: BuildSuccessResponse(
-            baseCode: "EUR",
-            rates: new Dictionary<string, decimal> { ["RUB"] = 97m }
-        ));
+	[Test]
+	public async Task CurrencyRateJob_WithRetry_ShouldSucceedAfterTransientFailure()
+	{
+		// Polly retry works at the HttpClient level — before the exception
+		// reaches GetRatesAsync. Therefore, the first 500 → Polly retry → the second request is 200.
+		// For RUB: failCount=1 means that the first HTTP call will return 500,
+		// Polly retry will launch the second one, which is successful.
+		_httpHandler.SetupTransientError(baseCode: "RUB", failCount: 1, successJson: BuildSuccessResponse(
+			baseCode: "RUB",
+			rates: new Dictionary<string, decimal> { ["USD"] = 0.011m }
+		));
 
-        await RunCurrencyRateJobAsync();
+		_httpHandler.SetupResponse(baseCode: "USD", json: BuildSuccessResponse(
+			baseCode: "USD",
+			rates: new Dictionary<string, decimal> { ["RUB"] = 90m }
+		));
+		_httpHandler.SetupResponse(baseCode: "EUR", json: BuildSuccessResponse(
+			baseCode: "EUR",
+			rates: new Dictionary<string, decimal> { ["RUB"] = 97m }
+		));
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
+		await RunCurrencyRateJobAsync();
 
-        // Polly retry should have picked up RUB on the second try
-        bool hasRubRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "RUB");
-        bool hasUsdRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "USD");
+		await using FinanceTrackerContext readCtx = CreateReadContext();
 
-        await Assert.That(value: hasUsdRates).IsTrue();
-    }
+		// Polly retry should have picked up RUB on the second try
+		bool hasRubRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "RUB");
+		bool hasUsdRates = await readCtx.CurrencyRates.AnyAsync(predicate: r => r.BaseCode == "USD");
+
+		await Assert.That(value: hasUsdRates).IsTrue();
+	}
 }

@@ -10,18 +10,18 @@ public sealed class MoneyJsonConverter : JsonConverter<Money>
 	{
 		if (reader.TokenType != JsonTokenType.StartObject)
 			throw new JsonException(message: "Expected start of object for Money.");
- 
+
 		decimal amount = 0;
 		Currency currency = default;
- 
+
 		while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
 		{
 			if (reader.TokenType != JsonTokenType.PropertyName)
 				throw new JsonException(message: "Expected property name.");
- 
+
 			string? propertyName = reader.GetString();
 			reader.Read();
- 
+
 			switch (propertyName)
 			{
 				case nameof(Money.Amount):
@@ -32,10 +32,10 @@ public sealed class MoneyJsonConverter : JsonConverter<Money>
 					break;
 			}
 		}
- 
+
 		return Money.Reconstitute(amount: amount, currency: currency);
 	}
- 
+
 	public override void Write(Utf8JsonWriter writer, Money value, JsonSerializerOptions options)
 	{
 		writer.WriteStartObject();

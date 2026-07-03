@@ -20,7 +20,7 @@ public sealed class RegisterUserCommandValidatorTests
 
 		_validator = new RegisterUserCommandValidator(currencyReadRepository: _currencyReadRepository);
 	}
-	
+
 	[Test]
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
@@ -74,12 +74,12 @@ public sealed class RegisterUserCommandValidatorTests
 		await Assert.That(value: result.IsValid).IsFalse();
 		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Password))).IsTrue();
 	}
-	
+
 	[Test]
 	public async Task Validate_WithNonExistentCurrency_ShouldHaveError()
 	{
 		RegisterUserCommand command = RegisterUserCommandFactory.Create(baseCurrencyCode: "XYZ");
-		
+
 		_currencyReadRepository.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: false);
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);

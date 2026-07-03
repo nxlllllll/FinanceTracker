@@ -26,7 +26,7 @@ public sealed class CreateCategoryHandler(
 		Result<Name, DomainException> nameResult = Name.Create(value: command.Name);
 		if (nameResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: nameResult.Error!);
-		
+
 		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
 			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,

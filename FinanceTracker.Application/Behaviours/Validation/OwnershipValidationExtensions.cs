@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace FinanceTracker.Application.Behaviours.Validation;
 

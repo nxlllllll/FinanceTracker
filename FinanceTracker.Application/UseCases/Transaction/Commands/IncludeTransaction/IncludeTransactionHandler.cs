@@ -37,12 +37,12 @@ public sealed class IncludeTransactionHandler(
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.IncludeAsync(
-				transactionId: command.TransactionId, 
+				transactionId: command.TransactionId,
 				userId: accounts.UserId,
 				expectedVersion: accounts.RowVersion,
 				ct: ct
 			);
-			
+
 			if (accounts.Direction != DirectionType.Debit)
 				return;
 
@@ -63,7 +63,7 @@ public sealed class IncludeTransactionHandler(
 				occurredAt: accounts.OccurredAt,
 				ct: ct
 			);
-		}, 
+		},
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {accounts.Id}."),
 		ct: ct);
 

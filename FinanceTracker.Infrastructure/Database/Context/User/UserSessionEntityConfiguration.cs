@@ -32,7 +32,7 @@ public sealed class UserSessionEntityConfiguration : IEntityTypeConfiguration<Us
 
 		// builder.HasIndex(indexExpression: s => s.RefreshTokenHash)
 		// 	.IsUnique();
-		
+
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: s => s.UserId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);

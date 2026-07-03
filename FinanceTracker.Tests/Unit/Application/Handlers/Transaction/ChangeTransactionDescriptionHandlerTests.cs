@@ -20,7 +20,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 	{
 		_transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
 		_publisher = Substitute.For<IPublisher>();
-		
+
 		_handler = new ChangeTransactionDescriptionHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			publisher: _publisher,

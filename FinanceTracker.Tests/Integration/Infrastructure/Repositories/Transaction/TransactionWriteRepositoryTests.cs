@@ -70,9 +70,9 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 	}
 
 	private Core.Domains.Transaction.Transaction BuildTransaction(
-		Guid accountId, 
-		Guid userId, 
-		Guid categoryId, 
+		Guid accountId,
+		Guid userId,
+		Guid categoryId,
 		string description = "тест"
 	) => Core.Domains.Transaction.Transaction.Reconstitute(
 		id: Guid.CreateVersion7(),
@@ -239,8 +239,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await _writeRepository.ExcludeAsync(transactionId: transaction.Id, userId: transaction.UserId, expectedVersion: 0);
 
 		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.ExcludeAsync(
-			transactionId: transaction.Id, 
-			userId: transaction.UserId, 
+			transactionId: transaction.Id,
+			userId: transaction.UserId,
 			expectedVersion: 0
 		));
 	}

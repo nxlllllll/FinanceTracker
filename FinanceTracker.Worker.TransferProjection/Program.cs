@@ -1,7 +1,8 @@
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Host;
 using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
@@ -18,6 +19,7 @@ public sealed class Program
 	public static void Main(string[] args)
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+		builder.UseStrictDependencyValidation();
 
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 

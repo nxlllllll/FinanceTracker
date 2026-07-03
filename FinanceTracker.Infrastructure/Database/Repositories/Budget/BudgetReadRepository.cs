@@ -25,7 +25,7 @@ public sealed class BudgetReadRepository(
 				Amount: Money.Reconstitute(amount: b.Amount, currency: b.Currency),
 				From: b.From,
 				To: b.To,
-	            IsActive: b.IsActive,
+				IsActive: b.IsActive,
 				CreatedAt: b.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

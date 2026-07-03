@@ -1,5 +1,5 @@
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Account;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
@@ -15,7 +15,7 @@ namespace FinanceTracker.Worker.AccountProjection.Projection;
 /// </summary>
 public sealed class AccountEventApplier(IAccountWriteRepository repository)
 {
-	public Task ApplyAsync(IAccountIntegrationEvent @event, CancellationToken ct = default) => @event switch
+	public Task ApplyAsync(IIntegrationEvent @event, CancellationToken ct = default) => @event switch
 	{
 		AccountCreatedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountDebitedEvent e => ApplyAsync(e: e, ct: ct),

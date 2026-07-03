@@ -99,6 +99,7 @@ public sealed class ApplicationArchitectureTests
 		services.AddApplication();
 
 		Type authorizedHandlerOpen = typeof(IAuthorizedHandler<,,,>);
+		Type noEntityAuthorizedHandlerOpen = typeof(IAuthorizedHandler<,,>);
 		Type requestHandlerOpen = typeof(IRequestHandler<,>);
 		Type resultOpen = typeof(Result<,>);
 
@@ -117,6 +118,23 @@ public sealed class ApplicationArchitectureTests
 			.Where(predicate: x => x is not null)
 			.ToList()!;
 
+		List<string> missingNoEntity = ApplicationAssembly.GetTypes()
+			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && t.GetInterfaces().Any(predicate: i => i.IsGenericType && i.GetGenericTypeDefinition() == noEntityAuthorizedHandlerOpen))
+			.SelectMany(selector: impl => impl.GetInterfaces()
+				.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == noEntityAuthorizedHandlerOpen)
+				.Select(selector: handlerInterface =>
+				{
+					Type[] args = handlerInterface.GetGenericArguments();
+					Type requestHandlerInterface = requestHandlerOpen.MakeGenericType(args[0], resultOpen.MakeGenericType(args[1], args[2]));
+					if (services.Any(predicate: sd => sd.ServiceType == requestHandlerInterface))
+						return null;
+					return $"{impl.Name} > {requestHandlerInterface.Name}";
+				}))
+			.Where(predicate: x => x is not null)
+			.ToList()!;
+
+		missing.AddRange(collection: missingNoEntity);
+
 		await Assert.That(value: missing).IsEmpty()
 			.Because(message: $"Missing IRequestHandler registrations for: {String.Join(separator: ", ", values: missing)}");
 	}
@@ -128,6 +146,7 @@ public sealed class ApplicationArchitectureTests
 		services.AddApplication();
 
 		Type entityLoaderOpen = typeof(IEntityLoader<,,>);
+		Type noEntityLoaderOpen = typeof(IEntityLoader<,>);
 
 		List<string> missing = ApplicationAssembly.GetTypes()
 			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == entityLoaderOpen))
@@ -141,10 +160,24 @@ public sealed class ApplicationArchitectureTests
 			.Where(predicate: x => x is not null)
 			.ToList()!;
 
+		List<string> missingNoEntity = ApplicationAssembly.GetTypes()
+			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == noEntityLoaderOpen))
+			.SelectMany(selector: impl => impl.GetInterfaces()
+				.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == noEntityLoaderOpen)
+				.Select(selector: loaderInterface => services.Any(predicate: sd => sd.ServiceType == loaderInterface)
+					? null
+					: $"{impl.Name} as {loaderInterface.GetGenericArguments()[0].Name}"
+				)
+			)
+			.Where(predicate: x => x is not null)
+			.ToList()!;
+
+		missing.AddRange(collection: missingNoEntity);
+
 		await Assert.That(value: missing).IsEmpty()
 			.Because(message: $"Missing IEntityLoader registrations: {String.Join(separator: ", ", values: missing)}");
 	}
-	
+
 	[Test]
 	public async Task AllPipelineBehaviours_ShouldBeSealed()
 	{
@@ -161,7 +194,7 @@ public sealed class ApplicationArchitectureTests
 	[Test]
 	public async Task AllWriteCommands_ShouldReturnResult()
 	{
-		Type resultOpenType = typeof(Core.Results.Result<,>);
+		Type resultOpenType = typeof(Result<,>);
 
 		Type[] violations = ApplicationAssembly.GetTypes()
 			.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && t.Name.EndsWith(value: "Command", comparisonType: StringComparison.Ordinal))
@@ -169,7 +202,7 @@ public sealed class ApplicationArchitectureTests
 			{
 				Type? requestInterface = t.GetInterfaces().FirstOrDefault(predicate: i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
 
-				if (requestInterface is null) 
+				if (requestInterface is null)
 					return false;
 
 				Type responseType = requestInterface.GetGenericArguments()[0];

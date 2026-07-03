@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ReadModels;
@@ -59,29 +59,29 @@ public sealed class UserReadRepository(
 	}
 
 	public async Task<decimal> GetTotalBalanceAsync(
-	    Guid userId,
-	    Core.ValueObjects.Currency baseCurrency,
-	    DateOnly date,
-	    CancellationToken ct = default)
+		Guid userId,
+		Core.ValueObjects.Currency baseCurrency,
+		DateOnly date,
+		CancellationToken ct = default)
 	{
-	    return await context.Accounts.AsNoTracking().Where(predicate: a => a.UserId == userId && !a.IsArchived)
+		return await context.Accounts.AsNoTracking().Where(predicate: a => a.UserId == userId && !a.IsArchived)
 			.Join(
-	            inner: context.AccountBalances,
-	            outerKeySelector: a => a.Id,
-	            innerKeySelector: b => b.AccountId,
-	            resultSelector: (a, b) => new { a.Currency, b.Balance }
-	        ).Select(selector: x => new
-	        {
-	            x.Currency,
-	            x.Balance,
-	            ExactRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value && r.ActualAt == date)
-	                .Select(r => (decimal?)r.Rate)
+				inner: context.AccountBalances,
+				outerKeySelector: a => a.Id,
+				innerKeySelector: b => b.AccountId,
+				resultSelector: (a, b) => new { a.Currency, b.Balance }
+			).Select(selector: x => new
+			{
+				x.Currency,
+				x.Balance,
+				ExactRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value && r.ActualAt == date)
+					.Select(r => (decimal?)r.Rate)
 					.FirstOrDefault(),
-	            LatestRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value)
-	                .OrderByDescending(r => r.ActualAt)
-	                .Select(r => (decimal?)r.Rate)
-	                .FirstOrDefault()
-	        }).SumAsync(
+				LatestRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value)
+					.OrderByDescending(r => r.ActualAt)
+					.Select(r => (decimal?)r.Rate)
+					.FirstOrDefault()
+			}).SumAsync(
 				selector: x => x.Currency == baseCurrency ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? 1m),
 				cancellationToken: ct
 			);
@@ -102,39 +102,39 @@ public sealed class UserReadRepository(
 			.Select(selector: g => new { Type = g.Key, Sum = g.Sum(x => x.Total) })
 			.ToListAsync(cancellationToken: ct);
 
-		decimal income  = results.FirstOrDefault(predicate: x => x.Type == CategoryType.Income)?.Sum ?? 0;
+		decimal income = results.FirstOrDefault(predicate: x => x.Type == CategoryType.Income)?.Sum ?? 0;
 		decimal expense = results.FirstOrDefault(predicate: x => x.Type == CategoryType.Expense)?.Sum ?? 0;
 
 		return (income, expense);
 	}
 
 	public async Task<PagedResult<Core.ReadModels.Operation>> GetHistoryAsync(
-	    Guid userId,
-	    OperationFilterType? type = null,
-	    DateTimeOffset? dateFrom = null,
-	    DateTimeOffset? dateTo = null,
-	    DateTimeOffset? cursorOccurredAt = null,
-	    Guid? cursorId = null,
-	    int pageSize = 20,
-	    CancellationToken ct = default)
+		Guid userId,
+		OperationFilterType? type = null,
+		DateTimeOffset? dateFrom = null,
+		DateTimeOffset? dateTo = null,
+		DateTimeOffset? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
+		CancellationToken ct = default)
 	{
-	    IQueryable<OperationEntity> query = context.Operations
-	        .AsNoTracking()
-	        .Where(predicate: o => o.UserId == userId);
+		IQueryable<OperationEntity> query = context.Operations
+			.AsNoTracking()
+			.Where(predicate: o => o.UserId == userId);
 
-	    query = type switch
-	    {
-	        OperationFilterType.Income => query.Where(predicate: o => o.Type == AggregateTypeNames.Transaction && o.DirectionType == "credit"),
-	        OperationFilterType.Expense => query.Where(predicate: o => o.Type == AggregateTypeNames.Transaction && o.DirectionType == "debit"),
-	        OperationFilterType.Transfer => query.Where(predicate: o => o.Type == AggregateTypeNames.Transfer),
-	        _ => query
-	    };
+		query = type switch
+		{
+			OperationFilterType.Income => query.Where(predicate: o => o.Type == AggregateTypeNames.Transaction && o.DirectionType == "credit"),
+			OperationFilterType.Expense => query.Where(predicate: o => o.Type == AggregateTypeNames.Transaction && o.DirectionType == "debit"),
+			OperationFilterType.Transfer => query.Where(predicate: o => o.Type == AggregateTypeNames.Transfer),
+			_ => query
+		};
 
-	    if (dateFrom is not null)
-	        query = query.Where(predicate: o => o.OccurredAt >= dateFrom.Value);
+		if (dateFrom is not null)
+			query = query.Where(predicate: o => o.OccurredAt >= dateFrom.Value);
 
-	    if (dateTo is not null)
-	        query = query.Where(predicate: o => o.OccurredAt <= dateTo.Value);
+		if (dateTo is not null)
+			query = query.Where(predicate: o => o.OccurredAt <= dateTo.Value);
 
 		if (cursorOccurredAt is not null && cursorId is not null)
 			query = query.Where(predicate: o => o.OccurredAt < cursorOccurredAt.Value || (o.OccurredAt == cursorOccurredAt.Value && o.Id < cursorId.Value));
@@ -145,24 +145,24 @@ public sealed class UserReadRepository(
 			.Take(count: pageSize + 1)
 			.ToListAsync(cancellationToken: ct);
 
-	    bool hasNextPage = entities.Count > pageSize;
-	    if (hasNextPage)
-	        entities.RemoveAt(index: entities.Count - 1);
+		bool hasNextPage = entities.Count > pageSize;
+		if (hasNextPage)
+			entities.RemoveAt(index: entities.Count - 1);
 
-	    IReadOnlyList<Core.ReadModels.Operation> items = entities.Select(selector: MapOperation).ToList().AsReadOnly();
+		IReadOnlyList<Core.ReadModels.Operation> items = entities.Select(selector: MapOperation).ToList().AsReadOnly();
 		Core.ReadModels.Operation? last = items.Count > 0 ? items[^1] : null;
 
-	    return new PagedResult<Core.ReadModels.Operation>(
-	        Items: items,
-	        HasNextPage: hasNextPage,
-	        NextCursorDate: hasNextPage ? last?.OccurredAt : null,
-	        NextCursorId: hasNextPage ? last?.Id : null
-	    );
+		return new PagedResult<Core.ReadModels.Operation>(
+			Items: items,
+			HasNextPage: hasNextPage,
+			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
+			NextCursorId: hasNextPage ? last?.Id : null
+		);
 	}
 
 	private static Core.ReadModels.Operation MapOperation(OperationEntity o)
 	{
-	    bool isTransaction = o.Type == AggregateTypeNames.Transaction;
+		bool isTransaction = o.Type == AggregateTypeNames.Transaction;
 
 		if (!isTransaction)
 		{

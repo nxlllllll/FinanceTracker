@@ -47,22 +47,22 @@ public sealed class CleanupJobTests
 
 		_idempotencyWriteRepository.DeleteExpiredAsync(
 			before: Arg.Any<DateTimeOffset>(),
-			batchSize: Arg.Any<int>(), 
+			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
 		_outboxWriteRepository.DeleteProcessedAsync(
 			before: Arg.Any<DateTimeOffset>(),
-			batchSize: Arg.Any<int>(), 
+			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
 		_outboxWriteRepository.DeleteFailedAsync(
 			before: Arg.Any<DateTimeOffset>(),
-			batchSize: Arg.Any<int>(), 
+			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
 		_processedMessageWriteRepository.DeleteOldAsync(
 			before: Arg.Any<DateTimeOffset>(),
-			batchSize: Arg.Any<int>(), 
+			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0);
 		_snapshotWriteRepository.DeleteOldAsync(
@@ -261,8 +261,8 @@ public sealed class CleanupJobTests
 
 		int callCount = 0;
 		_idempotencyWriteRepository.DeleteExpiredAsync(
-			before: Arg.Any<DateTimeOffset>(), 
-			batchSize: Arg.Any<int>(), 
+			before: Arg.Any<DateTimeOffset>(),
+			batchSize: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: _ =>
 		{

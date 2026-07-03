@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Outbox;
@@ -20,152 +21,154 @@ namespace FinanceTracker.Tests.Integration.Application.Account;
 /// </summary>
 public sealed class CreateAccountFlowTests : MediatorFixture
 {
-    private CurrencyBuilder _currencyBuilder = null!;
-    private UserBuilder _userBuilder = null!;
+	private CurrencyBuilder _currencyBuilder = null!;
+	private UserBuilder _userBuilder = null!;
 
-    [Before(hookType: Test)]
-    public async Task SetupDataAsync()
-    {
-        _currencyBuilder = new CurrencyBuilder(context: Context);
-        _userBuilder = new UserBuilder(context: Context);
-        await _currencyBuilder.CreateAsync(code: "RUB");
-    }
+	[Before(hookType: Test)]
+	public async Task SetupDataAsync()
+	{
+		_currencyBuilder = new CurrencyBuilder(context: Context);
+		_userBuilder = new UserBuilder(context: Context);
+		await _currencyBuilder.CreateAsync(code: "RUB");
+	}
 
-    private CreateAccountCommand BuildCommand(Guid userId, Guid? idempotencyKey = null)
-    {
-        return new CreateAccountCommand(
-            UserId: userId,
-            Name: Name.Create(value: "Основной счёт").Value,
-            Type: AccountType.Checking,
-            Currency: Currency.Create(value: "RUB").Value,
-            InitialBalance: 10_000m
-        ) { IdempotencyKey = idempotencyKey ?? Guid.CreateVersion7() };
-    }
+	private CreateAccountCommand BuildCommand(Guid userId, Guid? idempotencyKey = null)
+	{
+		return new CreateAccountCommand(
+			UserId: userId,
+			Name: Name.Create(value: "Основной счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			InitialBalance: 10_000m
+		)
+		{ IdempotencyKey = idempotencyKey ?? Guid.CreateVersion7() };
+	}
 
-    [Test]
-    public async Task CreateAccount_ShouldSucceed()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
+	[Test]
+	public async Task CreateAccount_ShouldSucceed()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
 
-        Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
 
-        await Assert.That(value: result.IsSuccess).IsTrue();
-        await Assert.That(value: result.Value).IsNotDefault();
-    }
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsNotDefault();
+	}
 
-    [Test]
-    public async Task CreateAccount_ShouldPersistEventInEventStore()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
-        Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+	[Test]
+	public async Task CreateAccount_ShouldPersistEventInEventStore()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
-        bool eventExists = await readCtx.Events.AnyAsync(
-            predicate: e => e.AggregateId == result.Value! && e.EventType == "account.created"
-        );
+		await using FinanceTrackerContext readCtx = CreateReadContext();
+		bool eventExists = await readCtx.Events.AnyAsync(
+			predicate: e => e.AggregateId == result.Value! && e.EventType == "account.created"
+		);
 
-        await Assert.That(value: eventExists).IsTrue();
-    }
+		await Assert.That(value: eventExists).IsTrue();
+	}
 
-    [Test]
-    public async Task CreateAccount_ShouldCreateOutboxMessage()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
-        Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+	[Test]
+	public async Task CreateAccount_ShouldCreateOutboxMessage()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
-        bool outboxExists = await readCtx.OutboxMessages.AnyAsync(
-            predicate: o => o.AggregateId == result.Value!
-        );
+		await using FinanceTrackerContext readCtx = CreateReadContext();
+		bool outboxExists = await readCtx.OutboxMessages.AnyAsync(
+			predicate: o => o.AggregateId == result.Value!
+		);
 
-        await Assert.That(value: outboxExists).IsTrue();
-    }
+		await Assert.That(value: outboxExists).IsTrue();
+	}
 
-    [Test]
-    public async Task CreateAccount_AfterProjection_ShouldUpdateReadModel()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
-        Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
-        Guid accountId = result.Value!;
+	[Test]
+	public async Task CreateAccount_AfterProjection_ShouldUpdateReadModel()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+		Guid accountId = result.Value!;
 
-        await ApplyProjectionAsync(accountId: accountId);
+		await ApplyProjectionAsync(accountId: accountId);
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
+		await using FinanceTrackerContext readCtx = CreateReadContext();
 
-        bool accountExists = await readCtx.Accounts.AnyAsync(predicate: a => a.Id == accountId);
-        decimal balance = await readCtx.AccountBalances
-            .Where(predicate: b => b.AccountId == accountId)
-            .Select(selector: b => b.Balance)
-            .FirstOrDefaultAsync();
+		bool accountExists = await readCtx.Accounts.AnyAsync(predicate: a => a.Id == accountId);
+		decimal balance = await readCtx.AccountBalances
+			.Where(predicate: b => b.AccountId == accountId)
+			.Select(selector: b => b.Balance)
+			.FirstOrDefaultAsync();
 
-        await Assert.That(value: accountExists).IsTrue();
-        await Assert.That(value: balance).IsEqualTo(expected: 10_000m);
-    }
+		await Assert.That(value: accountExists).IsTrue();
+		await Assert.That(value: balance).IsEqualTo(expected: 10_000m);
+	}
 
-    [Test]
-    public async Task CreateAccount_WithSameIdempotencyKey_ShouldReturnCachedResult()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
-        Guid idempotencyKey = Guid.CreateVersion7();
-        CreateAccountCommand command = BuildCommand(userId: userId, idempotencyKey: idempotencyKey);
+	[Test]
+	public async Task CreateAccount_WithSameIdempotencyKey_ShouldReturnCachedResult()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid idempotencyKey = Guid.CreateVersion7();
+		CreateAccountCommand command = BuildCommand(userId: userId, idempotencyKey: idempotencyKey);
 
-        Result<Guid, DomainException> first = await Mediator.Send(request: command);
-        Result<Guid, DomainException> second = await Mediator.Send(request: command);
+		Result<Guid, DomainException> first = await Mediator.Send(request: command);
+		Result<Guid, DomainException> second = await Mediator.Send(request: command);
 
-        await Assert.That(value: first.IsSuccess).IsTrue();
-        await Assert.That(value: second.IsSuccess).IsTrue();
-        await Assert.That(value: second.Value).IsEqualTo(expected: first.Value);
+		await Assert.That(value: first.IsSuccess).IsTrue();
+		await Assert.That(value: second.IsSuccess).IsTrue();
+		await Assert.That(value: second.Value).IsEqualTo(expected: first.Value);
 
-        await using FinanceTrackerContext readCtx = CreateReadContext();
-        int eventCount = await readCtx.Events.CountAsync(
-            predicate: e => e.AggregateId == first.Value! && e.EventType == "account.created"
-        );
-        await Assert.That(value: eventCount).IsEqualTo(expected: 1);
-    }
+		await using FinanceTrackerContext readCtx = CreateReadContext();
+		int eventCount = await readCtx.Events.CountAsync(
+			predicate: e => e.AggregateId == first.Value! && e.EventType == "account.created"
+		);
+		await Assert.That(value: eventCount).IsEqualTo(expected: 1);
+	}
 
-    [Test]
-    public async Task CreateAccount_WithNegativeBalance_ShouldFail()
-    {
-        Guid userId = await _userBuilder.CreateAsync();
-        CreateAccountCommand command = new CreateAccountCommand(
-            UserId: userId,
-            Name: Name.Create(value: "Счёт").Value,
-            Type: AccountType.Checking,
-            Currency: Currency.Create(value: "RUB").Value,
-            InitialBalance: -100m
-        ) { IdempotencyKey = Guid.CreateVersion7() };
+	[Test]
+	public async Task CreateAccount_WithNegativeBalance_ShouldFail()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		CreateAccountCommand command = new CreateAccountCommand(
+			UserId: userId,
+			Name: Name.Create(value: "Счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			InitialBalance: -100m
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() };
 
-        Result<Guid, DomainException> result = await Mediator.Send(request: command);
+		Result<Guid, DomainException> result = await Mediator.Send(request: command);
 
-        await Assert.That(value: result.IsFailure).IsTrue();
-        await Assert.That(value: result.Error).IsTypeOf<InvalidInitialBalanceException>();
-    }
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidInitialBalanceException>();
+	}
 
-    /// <summary>
-    /// Reproduces what AccountEventsConsumer does:
-    /// reads events from the Event Store and applies them to the read model via AccountProjection.
-    /// </summary>
-    private async Task ApplyProjectionAsync(Guid accountId)
-    {
-        AccountEventsConsumer consumer = Host.Services.GetRequiredService<AccountEventsConsumer>();
-        OutboxMessageEntity outbox = await Context.OutboxMessages
-            .Where(predicate: o => o.AggregateId == accountId)
-            .FirstAsync();
+	/// <summary>
+	/// Reproduces what AccountEventsConsumer does:
+	/// reads events from the Event Store and applies them to the read model via AccountProjection.
+	/// </summary>
+	private async Task ApplyProjectionAsync(Guid accountId)
+	{
+		AccountEventsConsumer consumer = Host.Services.GetRequiredService<AccountEventsConsumer>();
+		OutboxMessageEntity outbox = await Context.OutboxMessages
+			.Where(predicate: o => o.AggregateId == accountId)
+			.FirstAsync();
 
-        OutboxPayload payload = System.Text.Json.JsonSerializer.Deserialize<OutboxPayload>(
-            json: outbox.Payload,
-            options: Core.Converters.Json.FinanceTrackerJsonOptions.Payload
-        )!;
+		OutboxPayload payload = System.Text.Json.JsonSerializer.Deserialize<OutboxPayload>(
+			json: outbox.Payload,
+			options: Core.Converters.Json.FinanceTrackerJsonOptions.Payload
+		)!;
 
-        await consumer.HandleAsync(message: new FinanceTracker.Contracts.Messages.Account.AggregateEventsMessage(
-            MessageId: Guid.CreateVersion7(),
-            AggregateId: accountId,
-            AggregateType: "Account",
-            CorrelationId: Guid.CreateVersion7(),
-            Events: payload.Events.Select(selector: e => new FinanceTracker.Contracts.Messages.Account.EventEnvelope(
-                EventType: e.EventType,
-                EventPayload: e.EventPayload
-            )).ToList()
-        ), ct: CancellationToken.None);
-    }
+		await consumer.HandleAsync(message: new AggregateEventsMessage(
+			MessageId: Guid.CreateVersion7(),
+			AggregateId: accountId,
+			AggregateType: "Account",
+			CorrelationId: Guid.CreateVersion7(),
+			Events: payload.Events.Select(selector: e => new EventEnvelope(
+				EventType: e.EventType,
+				EventPayload: e.EventPayload
+			)).ToList()
+		), ct: CancellationToken.None);
+	}
 }

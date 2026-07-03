@@ -45,7 +45,7 @@ public sealed class TransferCreditLagJob(
 		TimeSpan compensationThreshold = TimeSpan.FromMinutes(value: options.CompensationThresholdMinutes);
 
 		IReadOnlyList<Core.ReadModels.PendingCreditTransfer> stuck = await transferReadRepository.GetPendingCreditForCompensationAsync(
-			compensationThreshold: compensationThreshold, 
+			compensationThreshold: compensationThreshold,
 			ct: ct
 		);
 
@@ -64,7 +64,7 @@ public sealed class TransferCreditLagJob(
 			try
 			{
 				await unitOfWork.ExecuteInTransactionAsync(
-					operation: async () => await compensationService.CompensateAsync(transfer: transfer, ct: ct), 
+					operation: async () => await compensationService.CompensateAsync(transfer: transfer, ct: ct),
 					ct: ct
 				);
 			}

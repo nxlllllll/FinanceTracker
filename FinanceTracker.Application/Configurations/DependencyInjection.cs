@@ -23,12 +23,12 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: RetryOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
-		
+
 		services.AddOptions<IdempotencyOptions>()
 			.BindConfiguration(configSectionPath: IdempotencyOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
-		
+
 		services.AddOptions<RateLimitOptions>()
 			.BindConfiguration(configSectionPath: RateLimitOptions.SectionName)
 			.ValidateDataAnnotations()
@@ -43,7 +43,7 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: MoneyLimitsOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
-		
+
 		services.AddMediatR(configuration: cfg =>
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
@@ -58,9 +58,9 @@ public static class DependencyInjection
 		});
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);
-		
+
 		services.RegisterAuthorizedHandlers();
-		
+
 		return services;
 	}
 
@@ -71,6 +71,11 @@ public static class DependencyInjection
 		Type entityLoaderOpen = typeof(IEntityLoader<,,>);
 		Type authorizedHandlerOpen = typeof(IAuthorizedHandler<,,,>);
 		Type adapterOpen = typeof(AuthorizedHandlerAdapter<,,,>);
+
+		Type noEntityLoaderOpen = typeof(IEntityLoader<,>);
+		Type noEntityAuthorizedHandlerOpen = typeof(IAuthorizedHandler<,,>);
+		Type noEntityAdapterOpen = typeof(AuthorizedHandlerAdapter<,,>);
+
 		Type requestHandlerOpen = typeof(IRequestHandler<,>);
 		Type resultOpen = typeof(Result<,>);
 
@@ -85,6 +90,15 @@ public static class DependencyInjection
 					services.AddScoped(serviceType: iface, implementationFactory: sp => sp.GetRequiredService(serviceType: type));
 			}
 
+			Type[] noEntityLoaderInterfaces = type.GetInterfaces().Where(predicate: i => i.IsGenericType && i.GetGenericTypeDefinition() == noEntityLoaderOpen).ToArray();
+
+			if (noEntityLoaderInterfaces.Length > 0)
+			{
+				services.TryAddScoped(service: type);
+				foreach (Type iface in noEntityLoaderInterfaces)
+					services.AddScoped(serviceType: iface, implementationFactory: sp => sp.GetRequiredService(serviceType: type));
+			}
+
 			foreach (Type handlerInterface in type.GetInterfaces().Where(predicate: i => i.IsGenericType && i.GetGenericTypeDefinition() == authorizedHandlerOpen))
 			{
 				Type[] args = handlerInterface.GetGenericArguments();
@@ -93,6 +107,17 @@ public static class DependencyInjection
 				services.AddScoped(
 					serviceType: requestHandlerOpen.MakeGenericType(args[0], resultOpen.MakeGenericType(args[2], args[3])),
 					implementationType: adapterOpen.MakeGenericType(typeArguments: args)
+				);
+			}
+
+			foreach (Type handlerInterface in type.GetInterfaces().Where(predicate: i => i.IsGenericType && i.GetGenericTypeDefinition() == noEntityAuthorizedHandlerOpen))
+			{
+				Type[] args = handlerInterface.GetGenericArguments();
+
+				services.AddScoped(serviceType: handlerInterface, implementationType: type);
+				services.AddScoped(
+					serviceType: requestHandlerOpen.MakeGenericType(args[0], resultOpen.MakeGenericType(args[1], args[2])),
+					implementationType: noEntityAdapterOpen.MakeGenericType(typeArguments: args)
 				);
 			}
 		}

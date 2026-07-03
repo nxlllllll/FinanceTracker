@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 
 namespace FinanceTracker.Contracts.Events.Account;
 
@@ -13,4 +13,7 @@ public sealed record AccountCreatedEvent(
 	decimal Balance,
 	int Version,
 	DateTimeOffset OccurredAt
-) : IAccountIntegrationEvent;
+) : IIntegrationEvent
+{
+	Guid IIntegrationEvent.AggregateId => AccountId;
+}

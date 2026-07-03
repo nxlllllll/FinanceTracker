@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
 using MediatR;
@@ -18,7 +18,7 @@ public sealed class AccountProjection(
 {
 	public async Task Handle(AccountEventsNotification notification, CancellationToken ct = default)
 	{
-		foreach (IAccountIntegrationEvent @event in notification.Events)
+		foreach (IIntegrationEvent @event in notification.Events)
 		{
 			await applier.ApplyAsync(@event: @event, ct: ct);
 			logger.ZLogDebug(message: $"Projected {@event.GetType().Name}.");

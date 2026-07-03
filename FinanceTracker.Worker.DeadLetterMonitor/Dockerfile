@@ -4,6 +4,7 @@ EXPOSE 5104
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY ["Directory.Packages.props", "Directory.Packages.props"]
 COPY ["FinanceTracker.Worker.DeadLetterMonitor/FinanceTracker.Worker.DeadLetterMonitor.csproj", "FinanceTracker.Worker.DeadLetterMonitor/"]
 COPY ["FinanceTracker.Infrastructure/FinanceTracker.Infrastructure.csproj", "FinanceTracker.Infrastructure/"]
 COPY ["FinanceTracker.Core/FinanceTracker.Core.csproj", "FinanceTracker.Core/"]

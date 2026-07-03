@@ -17,7 +17,7 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 
 		builder.Property(propertyExpression: a => a.Id)
 			.HasColumnName(name: "id");
-		
+
 		builder.Property(propertyExpression: t => t.AccountId)
 			.HasColumnName(name: "account_id");
 
@@ -46,7 +46,7 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 				convertToProviderExpression: currency => currency.Value,
 				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
 			);
-		
+
 		builder.Property(propertyExpression: t => t.Direction)
 			.HasColumnName(name: "direction_type")
 			.HasMaxLength(maxLength: 10)
@@ -68,7 +68,7 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 
 		builder.Property(propertyExpression: t => t.IsRatePending)
 			.HasColumnName(name: "is_rate_pending");
-		
+
 		builder.Property(propertyExpression: t => t.RowVersion)
 			.HasColumnName(name: "row_version")
 			.HasDefaultValue(value: 0);
@@ -83,7 +83,7 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 		builder.HasOne<CategoryEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: t => t.CategoryId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);
-		
+
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.Currency)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict)

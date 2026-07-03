@@ -10,7 +10,7 @@ public interface ICategoryTotalWriteRepository
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
- 
+
 	Task SubtractAsync(
 		Guid userId,
 		Guid categoryId,
@@ -19,7 +19,7 @@ public interface ICategoryTotalWriteRepository
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
- 
+
 	Task ChangeCategoryAsync(
 		Guid userId,
 		Guid oldCategoryId,
@@ -29,7 +29,7 @@ public interface ICategoryTotalWriteRepository
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
-	
+
 	Task RecalculateAllForUserAsync(
 		Guid userId,
 		ValueObjects.Currency baseCurrency,

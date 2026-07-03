@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
+using FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Persistence;
@@ -24,12 +24,12 @@ public sealed class CreateCategoryHandlerTests
 		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_publisher = Substitute.For<IPublisher>();
-		
+
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
-		
+
 		_handler = new CreateCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
 			unitOfWork: _unitOfWork,

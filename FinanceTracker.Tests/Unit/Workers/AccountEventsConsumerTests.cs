@@ -1,5 +1,5 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Repositories.Account;
@@ -37,7 +37,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		_consumer = new AccountEventsConsumer(
 			projection: projection,
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
-				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+				contractsAssembly: typeof(IIntegrationEvent).Assembly,
 				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
 			),
 			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),

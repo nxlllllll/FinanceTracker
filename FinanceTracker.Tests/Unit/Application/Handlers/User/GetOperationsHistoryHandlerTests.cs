@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.User.Queries.GetOperationsHistory;
+using FinanceTracker.Application.UseCases.User.Queries.GetOperationsHistory;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;

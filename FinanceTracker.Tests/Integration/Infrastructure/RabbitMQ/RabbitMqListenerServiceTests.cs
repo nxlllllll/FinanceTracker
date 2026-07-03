@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
@@ -15,12 +15,12 @@ using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
-using FinanceTracker.Worker.Shared.RabbitMQ.Retry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.RabbitMQ;
 
@@ -82,8 +82,8 @@ public sealed class FailingMessageHandlerState
 
 /// <summary>
 /// Handler that fails the first <paramref name="failuresBeforeSuccess"/> invocations, then succeeds —
-/// used to test the full "fail → parked for backoff → redelivered → succeeds" retry cycle, including
-/// the actual wall-clock gap between attempts.
+/// used to test the full "fail → delayed by the quorum queue's native backoff → redelivered → succeeds"
+/// cycle, including the actual wall-clock gap between attempts.
 /// </summary>
 public sealed class FlakyMessageHandlerState(int failuresBeforeSuccess)
 {
@@ -92,7 +92,7 @@ public sealed class FlakyMessageHandlerState(int failuresBeforeSuccess)
 	private readonly TaskCompletionSource _succeededTcs = new TaskCompletionSource(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
 
 	public int CallCount => _callCount;
-	public IReadOnlyList<DateTimeOffset> CallTimestamps => [.._callTimestamps.OrderBy(keySelector: t => t)];
+	public IReadOnlyList<DateTimeOffset> CallTimestamps => [.. _callTimestamps.OrderBy(keySelector: t => t)];
 
 	public Task<bool> WaitForSuccessAsync(TimeSpan timeout)
 		=> _succeededTcs.Task.WaitAsync(timeout: timeout).ContinueWith(continuationFunction: t => t.IsCompletedSuccessfully);
@@ -155,7 +155,6 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	private string _queueName = null!;
 	private string _deadLetterExchangeName = null!;
 	private string _deadLetterQueueName = null!;
-	private string _retryQueueName = null!;
 	private IConnection _setupConnection = null!;
 	private IChannel _setupChannel = null!;
 	private RabbitMqOptions _baseOptions = null!;
@@ -171,7 +170,6 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		_deadLetterExchangeName = $"{_queueName}.dlx";
 		_deadLetterQueueName = $"{_queueName}.dlq";
-		_retryQueueName = $"{_queueName}.retry";
 
 		_baseOptions = new RabbitMqOptions
 		{
@@ -211,19 +209,6 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			routingKey: String.Empty
 		);
 
-		await _setupChannel.QueueDeclareAsync(
-			queue: _queueName,
-			durable: true,
-			exclusive: false,
-			autoDelete: false,
-			arguments: new Dictionary<string, object?> { ["x-dead-letter-exchange"] = _deadLetterExchangeName }
-		);
-		await _setupChannel.QueueBindAsync(
-			queue: _queueName,
-			exchange: _exchangeName,
-			routingKey: AggregateTypeNames.Account
-		);
-
 		_connectionFactory = new RabbitMqConnectionFactory(options: Options.Create(options: _baseOptions));
 	}
 
@@ -236,16 +221,27 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 	private RabbitMqListenerService<AggregateEventsMessage, THandler> BuildListener<THandler>(
 		RabbitMqOptions options,
-		IServiceScopeFactory scopeFactory,
-		IRetryCounter? retryCounter = null)
+		IServiceScopeFactory scopeFactory)
 		where THandler : class, IMessageHandler<AggregateEventsMessage>
 	{
 		return new RabbitMqListenerService<AggregateEventsMessage, THandler>(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: scopeFactory,
-			retryCounter: retryCounter ?? new InMemoryRetryCounter(options: Options.Create(options: _baseOptions)),
 			logger: NullLogger<RabbitMqListenerService<AggregateEventsMessage, THandler>>.Instance
+		);
+	}
+
+	private DeadLetterAuditListener<AggregateEventsMessage, THandler> BuildDeadLetterListener<THandler>(
+		RabbitMqOptions options,
+		IServiceScopeFactory scopeFactory)
+		where THandler : class, IMessageHandler<AggregateEventsMessage>
+	{
+		return new DeadLetterAuditListener<AggregateEventsMessage, THandler>(
+			connectionFactory: _connectionFactory,
+			options: Options.Create(options: options),
+			scopeFactory: scopeFactory,
+			logger: NullLogger<DeadLetterAuditListener<AggregateEventsMessage, THandler>>.Instance
 		);
 	}
 
@@ -289,9 +285,17 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(seconds: 10);
 		while (DateTimeOffset.UtcNow < deadline)
 		{
-			QueueDeclareOk result = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
-			if (result.ConsumerCount > 0)
-				return;
+			try
+			{
+				await using IChannel probeChannel = await _setupConnection.CreateChannelAsync();
+				QueueDeclareOk result = await probeChannel.QueueDeclarePassiveAsync(queue: _queueName);
+				if (result.ConsumerCount > 0)
+					return;
+			}
+			catch (OperationInterruptedException)
+			{
+				// Queue not declared yet by the listener's own ConnectAsync — expected during startup, retry.
+			}
 			await Task.Delay(millisecondsDelay: 100);
 		}
 		throw new TimeoutException(message: $"No consumer registered on '{_queueName}' within 10s.");
@@ -335,7 +339,9 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: _baseOptions)
+			options: Options.Create(options: _baseOptions),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -359,7 +365,9 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: _baseOptions)
+			options: Options.Create(options: _baseOptions),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -379,12 +387,14 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using ServiceProvider sp = BuildSuccessServiceProvider();
 		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
 			options: _baseOptions,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
 		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: _baseOptions)
+			options: Options.Create(options: _baseOptions),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -425,8 +435,8 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		RabbitMqOptions options = _baseOptions with
 		{
 			MaxRetries = 5,
-			RetryBaseDelayMs = 2000,
-			RetryUseJitter = false
+			DelayedRetryMinMs = 2000,
+			DelayedRetryMaxMs = 2000
 		};
 
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
@@ -437,7 +447,9 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -449,7 +461,6 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			timeout: TimeSpan.FromSeconds(seconds: 10)
 		);
 
-		// Well within the 2s backoff window — a busy-loop would already show several extra calls by now.
 		await Task.Delay(millisecondsDelay: 500);
 
 		await listener.StopAsync(ct: CancellationToken.None);
@@ -459,61 +470,13 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	}
 
 	[Test]
-	public async Task Listener_WhenHandlerFails_ShouldParkMessageInRetryQueueWithBackoffExpiration()
-	{
-		RabbitMqOptions options = _baseOptions with
-		{
-			MaxRetries = 5,
-			RetryBaseDelayMs = 5000,
-			RetryUseJitter = false
-		};
-
-		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
-		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
-			options: options,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
-		);
-		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
-			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
-		);
-
-		AggregateEventsMessage sent = BuildMessage();
-		BasicGetResult? parked = null;
-
-		await listener.StartAsync(ct: CancellationToken.None);
-		await WaitForConsumerAsync();
-		await publisher.PublishAsync(message: sent);
-
-		await WaitForConditionAsync(
-			condition: async () =>
-			{
-				parked = await _setupChannel.BasicGetAsync(queue: _retryQueueName, autoAck: true);
-				return parked is not null;
-			},
-			timeout: TimeSpan.FromSeconds(seconds: 5)
-		);
-
-		await listener.StopAsync(ct: CancellationToken.None);
-		listener.Dispose();
-
-		await Assert.That(value: parked).IsNotNull();
-		await Assert.That(value: parked!.BasicProperties.Expiration).IsEqualTo(expected: options.RetryBaseDelayMs.ToString());
-
-		AggregateEventsMessage? recovered = JsonSerializer.Deserialize<AggregateEventsMessage>(utf8Json: parked.Body.ToArray());
-		await Assert.That(value: recovered).IsNotNull();
-		await Assert.That(value: recovered!.MessageId).IsEqualTo(expected: sent.MessageId);
-	}
-
-	[Test]
 	public async Task Listener_WhenHandlerFailsOnce_ShouldRedeliverAfterBackoffDelayAndSucceed()
 	{
 		RabbitMqOptions options = _baseOptions with
 		{
 			MaxRetries = 3,
-			RetryBaseDelayMs = 1000,
-			RetryUseJitter = false
+			DelayedRetryMinMs = 1000,
+			DelayedRetryMaxMs = 1000
 		};
 
 		FlakyMessageHandlerState handlerState = new FlakyMessageHandlerState(failuresBeforeSuccess: 1);
@@ -528,7 +491,9 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -548,19 +513,16 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await Assert.That(value: timestamps.Count).IsEqualTo(expected: 2);
 
 		TimeSpan elapsed = timestamps[1] - timestamps[0];
-		// Backoff is RetryBaseDelayMs(1000ms) * 2^0, no jitter — allow some scheduling slack either side.
 		await Assert.That(value: elapsed).IsGreaterThan(minimum: TimeSpan.FromMilliseconds(value: 700));
 
 		QueueDeclareOk mainQueue = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
-		QueueDeclareOk retryQueue = await _setupChannel.QueueDeclarePassiveAsync(queue: _retryQueueName);
 		await Assert.That(value: (int)mainQueue.MessageCount).IsEqualTo(expected: 0);
-		await Assert.That(value: (int)retryQueue.MessageCount).IsEqualTo(expected: 0);
 	}
 
 	[Test]
-	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldNackWithoutRequeue()
+	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldEventuallyDeadLetter()
 	{
-		RabbitMqOptions options = _baseOptions with { MaxRetries = 2 };
+		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
 		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
@@ -569,40 +531,55 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
 		await WaitForConsumerAsync();
 		await publisher.PublishAsync(message: BuildMessage());
 
+		BasicGetResult? deadLettered = null;
 		await WaitForConditionAsync(
-			condition: () => Task.FromResult(result: handlerState.CallCount >= options.MaxRetries + 1),
+			condition: async () =>
+			{
+				deadLettered = await _setupChannel.BasicGetAsync(queue: _deadLetterQueueName, autoAck: true);
+				return deadLettered is not null;
+			},
 			timeout: TimeSpan.FromSeconds(seconds: 15)
 		);
 
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
 
-		await Assert.That(value: handlerState.CallCount).IsEqualTo(expected: options.MaxRetries + 1);
+		await Assert.That(value: deadLettered).IsNotNull();
+		await Assert.That(value: handlerState.CallCount).IsGreaterThanOrEqualTo(minimum: options.MaxRetries);
 	}
 
 	[Test]
 	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldRecordUnresolvableEvent()
 	{
-		RabbitMqOptions options = _baseOptions with { MaxRetries = 2 };
+		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
 		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+		DeadLetterAuditListener<AggregateEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
+			options: options,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
+		await auditListener.StartAsync(ct: CancellationToken.None);
 		await WaitForConsumerAsync();
 		await publisher.PublishAsync(message: BuildMessage());
 
@@ -613,6 +590,8 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
+		await auditListener.StopAsync(ct: CancellationToken.None);
+		auditListener.Dispose();
 
 		int count = await Context.UnresolvableEvents.CountAsync();
 		await Assert.That(value: count).IsEqualTo(expected: 1);
@@ -621,19 +600,26 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	[Test]
 	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldRecordCorrectUnresolvableEventType()
 	{
-		RabbitMqOptions options = _baseOptions with { MaxRetries = 2 };
+		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
 		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+		DeadLetterAuditListener<AggregateEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
+			options: options,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
+		await auditListener.StartAsync(ct: CancellationToken.None);
 		await WaitForConsumerAsync();
 		await publisher.PublishAsync(message: BuildMessage());
 
@@ -644,6 +630,8 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
+		await auditListener.StopAsync(ct: CancellationToken.None);
+		auditListener.Dispose();
 
 		UnresolvableEventEntity? entity = await Context.UnresolvableEvents.FirstOrDefaultAsync();
 		await Assert.That(value: entity).IsNotNull();
@@ -651,23 +639,32 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	}
 
 	[Test]
-	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldRecordPayloadWithMessageMetadata()
+	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldRecordPayloadWithFullMessageBody()
 	{
-		RabbitMqOptions options = _baseOptions with { MaxRetries = 2 };
+		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
 		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>() 
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+		DeadLetterAuditListener<AggregateEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
+			options: options,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
+		AggregateEventsMessage sent = BuildMessage();
+
 		await listener.StartAsync(ct: CancellationToken.None);
+		await auditListener.StartAsync(ct: CancellationToken.None);
 		await WaitForConsumerAsync();
-		await publisher.PublishAsync(message: BuildMessage());
+		await publisher.PublishAsync(message: sent);
 
 		await WaitForConditionAsync(
 			condition: async () => await Context.UnresolvableEvents.AnyAsync(),
@@ -676,6 +673,8 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
+		await auditListener.StopAsync(ct: CancellationToken.None);
+		auditListener.Dispose();
 
 		UnresolvableEventEntity? entity = await Context.UnresolvableEvents.FirstOrDefaultAsync();
 		await Assert.That(value: entity).IsNotNull();
@@ -684,15 +683,18 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		JsonElement root = doc.RootElement;
 
 		await Assert.That(value: root.GetProperty(propertyName: "messageType").GetString()).IsEqualTo(expected: nameof(AggregateEventsMessage));
-		await Assert.That(value: root.GetProperty(propertyName: "queue").GetString()).IsEqualTo(expected: _queueName);
-		await Assert.That(value: root.GetProperty(propertyName: "exceptionMessage").GetString()).IsEqualTo(expected: "Simulated handler failure.");
 		await Assert.That(value: root.GetProperty(propertyName: "deadLetterQueue").GetString()).IsEqualTo(expected: _deadLetterQueueName);
+
+		string fullBody = root.GetProperty(propertyName: "body").GetString()!;
+		AggregateEventsMessage? recovered = JsonSerializer.Deserialize<AggregateEventsMessage>(json: fullBody);
+		await Assert.That(value: recovered).IsNotNull();
+		await Assert.That(value: recovered!.MessageId).IsEqualTo(expected: sent.MessageId);
 	}
 
 	[Test]
 	public async Task Listener_WhenHandlerExceedsMaxRetries_ShouldRouteFullMessageToDeadLetterQueue()
 	{
-		RabbitMqOptions options = _baseOptions with { MaxRetries = 2 };
+		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
 		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
@@ -701,7 +703,9 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		AggregateEventsMessage sent = BuildMessage();
@@ -743,7 +747,9 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options)
+			options: Options.Create(options: options),
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);

@@ -30,5 +30,11 @@ public enum UnresolvableEventType
 	/// rule rejection (e.g. insufficient funds). The occurrence for this period is permanently
 	/// skipped; it won't be retried, since none of these causes resolve themselves on retry.
 	/// </summary>
-	RecurringTransactionFailed
+	RecurringTransactionFailed,
+
+	/// <summary>
+	/// A mandatory publish could not be routed to any queue by the broker (misconfigured
+	/// routing key, unbound exchange) and was returned via RabbitMQ's basic.return.
+	/// </summary>
+	PublisherUnroutable
 }

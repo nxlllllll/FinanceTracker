@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -29,7 +29,7 @@ public sealed class RefreshTokenHandler(
 		Result<SessionToken, DomainException> Result,
 		Guid? CompromisedUserId
 	);
-	
+
 	public async Task<Result<SessionToken, DomainException>> Handle(
 		RefreshTokenCommand command,
 		CancellationToken ct = default)
@@ -94,7 +94,7 @@ public sealed class RefreshTokenHandler(
 		);
 
 		return new RotateResult(
-			Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()), 
+			Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
 			CompromisedUserId: session.UserId
 		);
 	}
@@ -124,7 +124,7 @@ public sealed class RefreshTokenHandler(
 
 		SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
 		return new RotateResult(
-			Result: Result<SessionToken, DomainException>.Success(value: sessionToken), 
+			Result: Result<SessionToken, DomainException>.Success(value: sessionToken),
 			CompromisedUserId: null
 		);
 	}

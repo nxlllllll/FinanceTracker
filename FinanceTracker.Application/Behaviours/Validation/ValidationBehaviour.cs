@@ -26,13 +26,13 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 	{
 		if (!validators.Any())
 			return await next(t: cancellationToken);
- 
+
 		ValidationContext<TRequest> context = new ValidationContext<TRequest>(instanceToValidate: request);
- 
+
 		List<ValidationResult> results = new List<ValidationResult>(capacity: validators.Count());
 		foreach (IValidator<TRequest> validator in validators)
 			results.Add(item: await validator.ValidateAsync(context: context, cancellation: cancellationToken));
- 
+
 		List<string> errors = results.SelectMany(selector: result => result.Errors)
 			.Where(predicate: error => error is not null)
 			.Select(selector: error => error.ErrorMessage)
@@ -40,7 +40,7 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 
 		if (errors.Count == 0)
 			return await next(t: cancellationToken);
-		
+
 		logger.ZLogWarning(message: $"Validation failed for {request.GetType().Name}: {errors.Count} error(s).");
 		return TResponse.CreateFailure(error: new FinanceTracker.Core.Exceptions.ValidationException(errors: errors));
 	}

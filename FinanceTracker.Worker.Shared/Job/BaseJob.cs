@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Worker.Shared.Metrics;
+using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;

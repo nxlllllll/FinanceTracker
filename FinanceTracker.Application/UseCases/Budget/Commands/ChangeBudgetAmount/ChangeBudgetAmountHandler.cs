@@ -24,7 +24,7 @@ public sealed class ChangeBudgetAmountHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.ChangeAmount(amount: command.Amount);
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await budgetWriteRepository.ChangeAmountAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, amount: command.Amount, ct: ct);

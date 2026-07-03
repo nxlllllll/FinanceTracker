@@ -4,10 +4,10 @@ using FinanceTracker.Infrastructure.Database.Context.User;
 
 namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
-public class UserBuilder(FinanceTrackerContext context )
+public class UserBuilder(FinanceTrackerContext context)
 {
 	private readonly CurrencyBuilder _currencyBuilder = new CurrencyBuilder(context: context);
-	
+
 	public async Task<Guid> CreateAsync(string currencyCode = "RUB")
 	{
 		await _currencyBuilder.CreateAsync(code: currencyCode);
@@ -24,7 +24,7 @@ public class UserBuilder(FinanceTrackerContext context )
 		await context.SaveChangesAsync();
 		return userId;
 	}
-	
+
 	public async Task<Guid> CreateAsync(Currency currencyCode)
 	{
 		Guid userId = Guid.CreateVersion7();

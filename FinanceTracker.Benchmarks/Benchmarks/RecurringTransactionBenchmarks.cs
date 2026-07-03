@@ -1,4 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 
 namespace FinanceTracker.Benchmarks.Benchmarks;

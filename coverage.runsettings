@@ -9,17 +9,14 @@
               <Exclude>
                 <!-- Тестовый проект не считаем сам в себе -->
                 <ModulePath>.*FinanceTracker\.Tests\.dll$</ModulePath>
-                <!-- Консольный мигратор: bootstrap поверх DbUp -->
                 <ModulePath>.*FinanceTracker\.Migrator\.dll$</ModulePath>
-                <!-- Бенчмарки: не продакшен-код -->
                 <ModulePath>.*FinanceTracker\.Benchmarks\.dll$</ModulePath>
               </Exclude>
             </ModulePaths>
 
             <Functions>
               <Exclude>
-                <!-- Точки входа воркеров: композиция DI, проверяется E2E, не юнитами.
-                     Разделитель в полном имени функции — точка, не '::'. -->
+                <!-- Точки входа воркеров: композиция DI -->
                 <Function>^FinanceTracker\.Worker\..*\.Program\..*</Function>
               </Exclude>
             </Functions>
@@ -31,7 +28,6 @@
               </Exclude>
             </Attributes>
 
-            <!-- Не инструментируем сторонние сборки без PDB -->
             <UseVerifiableInstrumentation>True</UseVerifiableInstrumentation>
             <AllowLowIntegrityProcesses>True</AllowLowIntegrityProcesses>
             <CollectFromChildProcesses>True</CollectFromChildProcesses>

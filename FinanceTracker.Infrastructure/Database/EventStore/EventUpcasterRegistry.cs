@@ -20,7 +20,7 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 	{
 		_chains = upcasters.GroupBy(keySelector: u => u.EventType).ToFrozenDictionary(
 			keySelector: g => g.Key,
-			elementSelector: g => BuildChains(sorted: [..g.OrderBy(keySelector: u => u.FromVersion)])
+			elementSelector: g => BuildChains(sorted: [.. g.OrderBy(keySelector: u => u.FromVersion)])
 		);
 	}
 

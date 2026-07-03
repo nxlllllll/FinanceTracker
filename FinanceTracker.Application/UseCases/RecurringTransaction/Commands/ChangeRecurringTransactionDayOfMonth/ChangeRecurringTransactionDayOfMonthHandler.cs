@@ -24,9 +24,9 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
+
 		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(
 			recurringTransactionId: command.RecurringTransactionId,
 			expectedVersion: entity.RowVersion,

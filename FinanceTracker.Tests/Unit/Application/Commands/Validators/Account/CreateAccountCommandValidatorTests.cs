@@ -27,7 +27,7 @@ public sealed class CreateAccountCommandValidatorTests
 			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions())
 		);
 	}
-	
+
 	[Test]
 	public async Task Validate_WithValidCommand_ShouldNotHaveErrors()
 	{
@@ -73,12 +73,12 @@ public sealed class CreateAccountCommandValidatorTests
 
 		await Assert.That(value: result.IsValid).IsTrue();
 	}
-	
+
 	[Test]
 	public async Task Validate_WithEmptyUserId_ShouldHaveError()
 	{
 		CreateAccountCommand command = CreateAccountCommandFactory.Create(userId: Guid.Empty);
-		
+
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 
 		await Assert.That(value: result.IsValid).IsFalse();
@@ -91,7 +91,7 @@ public sealed class CreateAccountCommandValidatorTests
 	public async Task Validate_WithInvalidType_ShouldHaveError()
 	{
 		CreateAccountCommand command = CreateAccountCommandFactory.Create(type: (AccountType)99);
-		
+
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 
 		await Assert.That(value: result.IsValid).IsFalse();
@@ -99,7 +99,7 @@ public sealed class CreateAccountCommandValidatorTests
 			predicate: error => error.PropertyName == nameof(command.Type)
 		)).IsTrue();
 	}
-	
+
 	[Test]
 	public async Task Validate_WithNonExistentCurrency_ShouldHaveError()
 	{

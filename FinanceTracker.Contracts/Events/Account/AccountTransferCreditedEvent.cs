@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Account.Events;
 
 namespace FinanceTracker.Contracts.Events.Account;
@@ -14,4 +14,7 @@ public sealed record AccountTransferCreditedEvent(
 	string? Description,
 	int Version,
 	DateTimeOffset OccurredAt
-) : IAccountIntegrationEvent;
+) : IIntegrationEvent
+{
+	Guid IIntegrationEvent.AggregateId => AccountId;
+}

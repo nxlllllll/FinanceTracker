@@ -15,7 +15,7 @@ public sealed class CategoryEntityConfiguration : IEntityTypeConfiguration<Categ
 
 		builder.Property(propertyExpression: a => a.Id)
 			.HasColumnName(name: "id");
-		
+
 		builder.Property(propertyExpression: c => c.UserId)
 			.HasColumnName(name: "user_id");
 
@@ -24,7 +24,7 @@ public sealed class CategoryEntityConfiguration : IEntityTypeConfiguration<Categ
 
 		builder.Property(propertyExpression: c => c.Name)
 			.HasColumnName(name: "name")
-			.HasMaxLength(maxLength: 100)			
+			.HasMaxLength(maxLength: 100)
 			.HasConversion(
 				convertToProviderExpression: name => name.Value,
 				convertFromProviderExpression: name => Name.Reconstitute(value: name)

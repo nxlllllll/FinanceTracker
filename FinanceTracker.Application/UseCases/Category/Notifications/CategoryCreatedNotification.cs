@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Domains.Category;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Category.Notifications;

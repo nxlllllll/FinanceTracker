@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +21,7 @@ public sealed class TransactionRepository(
 				userId: t.UserId,
 				categoryId: t.CategoryId,
 				amount: Money.Reconstitute(amount: t.Amount, currency: t.Currency),
-	            baseCurrency: t.BaseCurrency,
+				baseCurrency: t.BaseCurrency,
 				direction: t.Direction,
 				exchangeRate: t.ExchangeRate,
 				isExcluded: t.IsExcluded,

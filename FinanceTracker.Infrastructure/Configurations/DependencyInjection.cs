@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
@@ -100,24 +100,24 @@ public static class DependencyInjection
 
 		services.AddSingleton<IConnectionMultiplexer>(implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisOptions.ConnectionString));
 		services.AddScoped<IRateLimiter, RedisRateLimiter>();
-		
+
 		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: s => new EventTypeResolver(
 			assembly: typeof(IEvent).Assembly,
 			logger: s.GetService<ILogger<EventTypeResolver>>()!
 		));
-		
+
 		services.AddSingleton<IIntegrationEventMapper, AccountIntegrationEventMapper>();
 
 		services.AddSingleton<IIntegrationEventTypeResolver, IntegrationEventTypeResolver>(implementationFactory: s => new IntegrationEventTypeResolver(
-			contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: s.GetRequiredService<ILogger<IntegrationEventTypeResolver>>()
 		));
-		
+
 		services.Scan(scan => scan
-		    .FromAssemblyOf<EventUpcasterRegistry>()
-		    .AddClasses(classes => classes.AssignableTo(typeof(EventUpcaster<,>)))
-		    .AsSelf()
-		    .WithSingletonLifetime()
+			.FromAssemblyOf<EventUpcasterRegistry>()
+			.AddClasses(classes => classes.AssignableTo(typeof(EventUpcaster<,>)))
+			.AsSelf()
+			.WithSingletonLifetime()
 		);
 
 		services.Scan(scan => scan
@@ -127,9 +127,9 @@ public static class DependencyInjection
 			.WithSingletonLifetime()
 		);
 		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
-		
+
 		services.AddScoped<IEventStore, PostgresEventStore>();
-		
+
 		// Account
 		services.AddScoped<IAccountRepository, AccountRepository>();
 		services.AddScoped<IAccountReadRepository, AccountReadRepository>();
@@ -181,7 +181,7 @@ public static class DependencyInjection
 		// UnresolvableEvent
 		services.AddScoped<IUnresolvableEventReadRepository, UnresolvableEventReadRepository>();
 		services.AddScoped<IUnresolvableEventWriteRepository, UnresolvableEventWriteRepository>();
-		
+
 		// Idempotency
 		services.AddScoped<IIdempotencyReadRepository, IdempotencyReadRepository>();
 		services.AddScoped<IIdempotencyWriteRepository, IdempotencyWriteRepository>();
@@ -193,13 +193,13 @@ public static class DependencyInjection
 		// Outbox
 		services.AddScoped<IOutboxReadRepository, OutboxReadRepository>();
 		services.AddScoped<IOutboxWriteRepository, OutboxWriteRepository>();
-		
+
 		// Snapshot
 		services.AddScoped<ISnapshotWriteRepository, SnapshotWriteRepository>();
-		
+
 		// Operation
 		services.AddScoped<IOperationWriteRepository, OperationWriteRepository>();
-		
+
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		services.AddSingleton<IDateProvider, DateProvider>();
@@ -207,11 +207,11 @@ public static class DependencyInjection
 
 		services.AddScoped<AccountDomainEventApplier>();
 		services.AddScoped<IAccountProjectionRebuilder, AccountProjectionRebuilder>();
-		
+
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
-		
+
 		services.AddSingleton<RedisCache>();
-		
+
 		return services;
 	}
 

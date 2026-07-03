@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.CurrencyRate.Client;

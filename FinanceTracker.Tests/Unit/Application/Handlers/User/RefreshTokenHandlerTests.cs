@@ -100,7 +100,7 @@ public sealed class RefreshTokenHandlerTests
 			operation: Arg.Any<Func<Task<RefreshTokenHandler.RotateResult>>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<RefreshTokenHandler.RotateResult>>>()());
-		
+
 		_handler = new RefreshTokenHandler(
 			userAuthRepository: _userAuthRepository,
 			userSessionReadRepository: _userSessionReadRepository,

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Category;
+namespace FinanceTracker.Core.Repositories.Category;
 
 public interface ICategoryRepository
 {

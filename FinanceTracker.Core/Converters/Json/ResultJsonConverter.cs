@@ -14,17 +14,17 @@ public sealed class ResultJsonConverter<TValue, TError> : JsonConverter<Result<T
 		JsonSerializerOptions options)
 	{
 		using JsonDocument doc = JsonDocument.ParseValue(ref reader);
- 
+
 		bool isSuccess = doc.RootElement.GetProperty(propertyName: "IsSuccess").GetBoolean();
- 
+
 		if (!isSuccess)
 			throw new JsonException(message: "Cannot reconstruct a failed Result<> from idempotency cache. Only successful results should be cached.");
- 
+
 		TValue? value = doc.RootElement.GetProperty(propertyName: "Value").Deserialize<TValue>(options: options);
- 
+
 		return Result<TValue, TError>.Success(value: value!);
 	}
- 
+
 	public override void Write(
 		Utf8JsonWriter writer,
 		Result<TValue, TError> value,

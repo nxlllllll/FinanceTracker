@@ -193,7 +193,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: entity.LastExecutedAt).IsNotNull();
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
-	
+
 	[Test]
 	public async Task MarkMissedAsync_ShouldSetLastMissedAt()
 	{
@@ -201,7 +201,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = 
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction =
 			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		DateTimeOffset missedAt = DateTimeOffset.UtcNow;
@@ -225,7 +225,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = 
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction =
 			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await Task.Run(function: async () => await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.MarkMissedAsync(
@@ -262,7 +262,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = 
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction =
 			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.ChangeAmountAsync(

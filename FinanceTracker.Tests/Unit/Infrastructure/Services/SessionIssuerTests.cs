@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Token;
@@ -60,7 +60,7 @@ public sealed class SessionIssuerTests
 	{
 		UserSession? capturedSession = null;
 		_userSessionWriteRepository.When(substituteCall: substitute => substitute.CreateAsync(
-			session: Arg.Any<UserSession>(), 
+			session: Arg.Any<UserSession>(),
 			ct: Arg.Any<CancellationToken>())
 		).Do(callbackWithArguments: callInfo => capturedSession = callInfo.Arg<UserSession>());
 

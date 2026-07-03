@@ -26,7 +26,7 @@ public sealed class DeactivateBudgetHandler(
 		Result<Unit, DomainException> result = entity.Deactivate();
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
+
 		await budgetWriteRepository.DeactivateAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, ct: ct);
 
 		try

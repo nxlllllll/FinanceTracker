@@ -10,13 +10,13 @@ public sealed class EventEntityConfiguration : IEntityTypeConfiguration<EventEnt
 	/// version-conflict violation by name, not declared here via EF metadata.
 	/// </summary>
 	public const string VersionConstraint = "uq_events_aggregate_version";
-	
+
 	public void Configure(EntityTypeBuilder<EventEntity> builder)
 	{
 		builder.ToTable(name: "events");
 
 		builder.HasKey(keyExpression: e => e.Id);
-		
+
 		builder.Property(propertyExpression: a => a.Id)
 			.HasColumnName(name: "id");
 

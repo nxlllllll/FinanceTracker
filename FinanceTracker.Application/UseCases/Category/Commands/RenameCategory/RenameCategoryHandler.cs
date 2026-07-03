@@ -27,17 +27,17 @@ public sealed class RenameCategoryHandler(
 		Result<Name, DomainException> nameResult = Name.Create(value: command.NewName);
 		if (nameResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: nameResult.Error!);
-		
+
 		string oldName = entity.Name;
-		
+
 		Result<Unit, DomainException> result = entity.Rename(newName: nameResult.Value);
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
 
 		await categoryWriteRepository.RenameAsync(
 			categoryId: command.CategoryId,
 			newName: nameResult.Value,
-			expectedVersion: entity.RowVersion, 
+			expectedVersion: entity.RowVersion,
 			ct: ct
 		);
 

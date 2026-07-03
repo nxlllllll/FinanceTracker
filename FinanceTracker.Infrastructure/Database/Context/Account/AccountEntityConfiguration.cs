@@ -17,7 +17,7 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.Property(propertyExpression: a => a.Id)
 			.HasColumnName(name: "id");
-		
+
 		builder.Property(propertyExpression: a => a.UserId)
 			.HasColumnName(name: "user_id");
 
@@ -53,7 +53,7 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.HasOne<AccountBalanceEntity>().WithOne()
 			.HasForeignKey<AccountBalanceEntity>(foreignKeyExpression: b => b.AccountId);
-		
+
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: a => a.UserId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);

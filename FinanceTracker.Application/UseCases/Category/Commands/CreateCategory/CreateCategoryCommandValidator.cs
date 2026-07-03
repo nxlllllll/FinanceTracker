@@ -10,7 +10,7 @@ public sealed class CreateCategoryCommandValidator : AbstractValidator<CreateCat
 	{
 		RuleFor(expression: command => command.UserId)
 		.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
-		
+
 		RuleFor(expression: command => command.Type)
 		.IsInEnum().WithMessage(errorMessage: "The category type can only be 'Income' or 'Expense'.");
 

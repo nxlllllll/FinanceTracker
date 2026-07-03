@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
+using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transaction;

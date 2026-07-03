@@ -19,15 +19,6 @@ public interface ICurrencyConversionService
 	);
 
 	/// <summary>
-	/// Batch variant of <see cref="GetConversionRateAsync"/> for loading multiple
-	/// rates in a single query. Used by <c>BalanceAdjustmentJob</c>.
-	/// </summary>
-	Task<Dictionary<CurrencyRateRequest, ConversionResult>> GetConversionRatesBatchAsync(
-		IReadOnlyCollection<CurrencyRateRequest> requests,
-		CancellationToken ct = default
-	);
-
-	/// <summary>
 	/// Returns the rate already known (recorded) at or before <paramref name="asOf"/> — a stable,
 	/// time-invariant answer for a fixed <paramref name="asOf"/>, unlike <see cref="GetConversionRateAsync"/>
 	/// which can resolve differently over time when it falls back to "latest available".

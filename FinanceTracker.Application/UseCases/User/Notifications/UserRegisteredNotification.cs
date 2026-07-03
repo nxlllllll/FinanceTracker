@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
+using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
 

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 

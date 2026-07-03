@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Idempotency;
+namespace FinanceTracker.Core.Repositories.Idempotency;
 
 /// <summary>
 /// Represents a stored idempotency record for an in-flight or completed command.

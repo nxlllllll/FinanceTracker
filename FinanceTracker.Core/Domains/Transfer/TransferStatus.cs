@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Transfer;
+namespace FinanceTracker.Core.Domains.Transfer;
 
 /// <summary>
 /// Lifecycle status of a two-phase transfer.

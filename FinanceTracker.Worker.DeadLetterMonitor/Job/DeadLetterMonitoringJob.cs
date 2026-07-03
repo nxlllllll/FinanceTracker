@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -23,8 +23,8 @@ public sealed class DeadLetterMonitoringJob(
 	{
 		int totalLogged = 0;
 		PagedResult<UnresolvableEvent> page;
-		
-		do 
+
+		do
 		{
 			page = await unresolvableEventReadRepository.GetUnacknowledgedBatchAsync(
 				batchSize: options.BatchSize,

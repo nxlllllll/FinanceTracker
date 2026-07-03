@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Configurations.Options;
+using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;

@@ -13,7 +13,7 @@ public sealed class Program
 		Console.ResetColor();
 		return exitCode;
 	}
-	
+
 	public static int Main(string[] args)
 	{
 		HostApplicationBuilder builder = Host.CreateApplicationBuilder(args: args);

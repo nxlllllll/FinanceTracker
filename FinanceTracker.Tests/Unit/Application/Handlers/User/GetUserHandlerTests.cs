@@ -47,7 +47,7 @@ public sealed class GetUserHandlerTests
 		GetUserQuery query = new GetUserQuery(UserId: userId);
 
 		_userQueryRepository.GetByIdAsync(
-			userId: userId, 
+			userId: userId,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserReadModel?)null);
 

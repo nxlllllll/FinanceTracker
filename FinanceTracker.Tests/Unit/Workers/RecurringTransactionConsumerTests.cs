@@ -2,6 +2,7 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
@@ -65,7 +66,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			command: Arg.Any<CreateTransactionCommand>(),
 			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<Guid, DomainException>.Success(value: Guid.CreateVersion7()));
+		).Returns(returnThis: Result<Transaction, DomainException>.Success(value: TransactionFactory.Create()));
 	}
 
 	private static RecurringTransactionTriggeredMessage BuildMessage(
@@ -136,7 +137,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
 		int countAfter = await Context.ProcessedMessages.CountAsync();
-		
+
 		await Assert.That(value: countAfter).IsEqualTo(expected: countBefore);
 	}
 
@@ -349,7 +350,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			command: Arg.Any<CreateTransactionCommand>(),
 			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<Guid, DomainException>.Failure(error: new InsufficientFundsException(
+		).Returns(returnThis: Result<Transaction, DomainException>.Failure(error: new InsufficientFundsException(
 			message: "Insufficient funds.",
 			balance: Money.Reconstitute(amount: 0m, currency: Currency.Reconstitute(value: "RUB"))
 		)));
@@ -382,7 +383,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 			command: Arg.Any<CreateTransactionCommand>(),
 			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<Guid, DomainException>.Failure(error: new InsufficientFundsException(
+		).Returns(returnThis: Result<Transaction, DomainException>.Failure(error: new InsufficientFundsException(
 			message: failureMessage,
 			balance: Money.Reconstitute(amount: 0m, currency: Currency.Reconstitute(value: "RUB"))
 		)));

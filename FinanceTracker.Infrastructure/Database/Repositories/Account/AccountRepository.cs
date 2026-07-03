@@ -8,7 +8,8 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.Account;
 
 public sealed class AccountRepository(
 	IEventStore eventStore,
-	ISnapshotSerializer<Core.Domains.Account.Account> snapshotSerializer
+	ISnapshotSerializer<Core.Domains.Account.Account> snapshotSerializer,
+	IUnitOfWork unitOfWork
 ) : IAccountRepository
 {
 	private const string AggregateType = AggregateTypeNames.Account;
@@ -49,6 +50,6 @@ public sealed class AccountRepository(
 			ct: ct
 		);
 
-		account.ClearEvents();
+		unitOfWork.OnCommitted(callback: account.ClearEvents);
 	}
 }

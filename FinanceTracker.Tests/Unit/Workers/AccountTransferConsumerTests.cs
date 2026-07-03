@@ -1,7 +1,7 @@
 using System.Text.Json;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Account;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
@@ -57,7 +57,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			transferRepository: _transferRepository,
 			transferWriteRepository: _transferWriteRepository,
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
-				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+				contractsAssembly: typeof(IIntegrationEvent).Assembly,
 				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
 			),
 			processedMessageReadRepository: new ProcessedMessageReadRepository(context: Context),

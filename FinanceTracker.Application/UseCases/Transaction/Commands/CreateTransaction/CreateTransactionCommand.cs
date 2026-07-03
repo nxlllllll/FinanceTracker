@@ -9,14 +9,14 @@ using MediatR;
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 
 public sealed record CreateTransactionCommand(
-    Guid AccountId,
-    Guid UserId,
-    Guid CategoryId,
-    decimal Amount,
-    Core.ValueObjects.Currency Currency,
-    DirectionType Direction,
-    string? Description,
-    DateTimeOffset OccurredAt
+	Guid AccountId,
+	Guid UserId,
+	Guid CategoryId,
+	decimal Amount,
+	Core.ValueObjects.Currency Currency,
+	DirectionType Direction,
+	string? Description,
+	DateTimeOffset OccurredAt
 ) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }

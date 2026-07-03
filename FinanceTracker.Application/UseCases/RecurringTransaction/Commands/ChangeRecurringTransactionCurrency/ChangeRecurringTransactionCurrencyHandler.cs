@@ -24,9 +24,9 @@ public sealed class ChangeRecurringTransactionCurrencyHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.ChangeCurrency(currency: command.Currency);
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
+
 		await recurringTransactionWriteRepository.ChangeCurrencyAsync(
 			recurringTransactionId: command.RecurringTransactionId,
 			expectedVersion: entity.RowVersion,

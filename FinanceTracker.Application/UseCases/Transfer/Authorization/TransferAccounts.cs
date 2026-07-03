@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Application.UseCases.Transfer.Authorization;
+namespace FinanceTracker.Application.UseCases.Transfer.Authorization;
 
 /// <summary>
 /// Carries both sides of a transfer after <see cref="TransferLoader"/> has loaded and

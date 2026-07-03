@@ -34,7 +34,7 @@ public sealed class BudgetLoaderTests
 			request: new ChangeBudgetAmountCommand(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7(), Amount: 1000m),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}

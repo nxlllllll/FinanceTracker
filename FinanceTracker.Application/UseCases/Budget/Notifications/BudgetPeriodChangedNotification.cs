@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Budget.Notifications;
 

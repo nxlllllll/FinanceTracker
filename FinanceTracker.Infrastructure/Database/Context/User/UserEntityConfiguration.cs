@@ -15,7 +15,7 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 
 		builder.Property(propertyExpression: a => a.Id)
 			.HasColumnName(name: "id");
-		
+
 		builder.Property(propertyExpression: u => u.Email)
 			.HasColumnName(name: "email")
 			.HasMaxLength(maxLength: 255)

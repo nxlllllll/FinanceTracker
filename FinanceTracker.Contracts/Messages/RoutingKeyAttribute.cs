@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Contracts.Messages;
+namespace FinanceTracker.Contracts.Messages;
 
 /// <summary>
 /// Declares the RabbitMQ routing key for a message class.

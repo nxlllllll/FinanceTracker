@@ -32,7 +32,7 @@ public sealed class ExcludeTransactionHandlerTests
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_publisher = Substitute.For<IPublisher>();
-		
+
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -42,7 +42,7 @@ public sealed class ExcludeTransactionHandlerTests
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
-		
+
 		_handler = new ExcludeTransactionHandler(
 			transactionWriteRepository: _transactionWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
@@ -81,7 +81,7 @@ public sealed class ExcludeTransactionHandlerTests
 		);
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ExcludeAsync(
-			transactionId: transaction.Id, 
+			transactionId: transaction.Id,
 			userId: transaction.UserId,
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -134,7 +134,7 @@ public sealed class ExcludeTransactionHandlerTests
 		);
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ExcludeAsync(
-			transactionId: transaction.Id, 
+			transactionId: transaction.Id,
 			userId: transaction.UserId,
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

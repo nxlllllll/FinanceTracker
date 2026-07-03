@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
@@ -74,10 +74,10 @@ public sealed class PostgresEventStore(
 				CreatedAt = now
 			});
 
-			IAccountIntegrationEvent? integrationEvent = integrationEventMapper.Map(@event: @event);
+			IIntegrationEvent? integrationEvent = integrationEventMapper.Map(@event: @event);
 			if (integrationEvent is null)
 				continue;
-			
+
 			string outboxEventType = integrationEventTypeResolver.ResolveTypeName(eventType: integrationEvent.GetType());
 			string outboxPayload = JsonSerializer.Serialize(value: integrationEvent, inputType: integrationEvent.GetType(), options: FinanceTrackerJsonOptions.Payload);
 			envelopes.Add(item: new OutboxEventEnvelope(EventType: outboxEventType, EventPayload: outboxPayload));
@@ -137,7 +137,7 @@ public sealed class PostgresEventStore(
 		Func<string>? snapshotFactory = null,
 		CancellationToken ct = default)
 	{
-		List<IEvent> eventList = [..events];
+		List<IEvent> eventList = [.. events];
 		if (eventList.Count == 0)
 			return;
 

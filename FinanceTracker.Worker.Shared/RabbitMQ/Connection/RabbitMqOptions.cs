@@ -36,38 +36,26 @@ public sealed record RabbitMqOptions
 	public Dictionary<string, string> QueueNameOverrides { get; } = new Dictionary<string, string>();
 
 	/// <summary>
-	/// Maximum number of handler attempts before a message is sent to the dead-letter exchange
-	/// and recorded in <c>unresolvable_events</c>. Default: 3.
+	/// Maximum number of redeliveries a message tolerates (RabbitMQ's native <c>x-delivery-limit</c> on the
+	/// quorum queue) before it is dead-lettered into <c>{queue}.dlx</c>/<c>{queue}.dlq</c>. Default: 3.
 	/// </summary>
 	[Range(minimum: 1, maximum: 100)]
 	public int MaxRetries { get; init; } = 3;
 
 	/// <summary>
-	/// How long the per-message retry counter is retained in Redis after the last attempt.
-	/// Prevents stale keys accumulating for messages that are eventually acked. Default: 24 hours.
-	/// </summary>
-	[Range(minimum: 1, maximum: 168)]
-	public int RetryCounterTtlHours { get; init; } = 24;
-
-	/// <summary>
-	/// Base delay (ms) for the exponential backoff applied between retry attempts — a failed message
-	/// is parked in <c>{queue}.retry</c> for <c>RetryBaseDelayMs * 2^attempt</c> (optionally jittered)
-	/// before the broker dead-letters it back into the main queue. Default: 1000.
+	/// Minimum delay (ms) before a failed delivery is redelivered — RabbitMQ's native <c>x-delayed-retry-min</c>
+	/// on the quorum queue. The broker applies linear backoff based on delivery count:
+	/// <c>min(DelayedRetryMinMs * delivery-count, DelayedRetryMaxMs)</c>. Default: 1000.
 	/// </summary>
 	[Range(minimum: 1, maximum: Int32.MaxValue)]
-	public int RetryBaseDelayMs { get; init; } = 1000;
+	public int DelayedRetryMinMs { get; init; } = 1000;
 
 	/// <summary>
-	/// Upper bound (ms) for the retry backoff delay, regardless of attempt count. Default: 30000.
+	/// Upper bound (ms) for the native delayed-retry delay, regardless of delivery count
+	/// (<c>x-delayed-retry-max</c>). Default: 30000.
 	/// </summary>
 	[Range(minimum: 1, maximum: Int32.MaxValue)]
-	public int RetryMaxDelayMs { get; init; } = 30000;
-
-	/// <summary>
-	/// Whether to randomise the retry backoff delay (full jitter in <c>[0, exponential]</c>) to avoid
-	/// many failed messages becoming eligible for redelivery at the exact same instant. Default: true.
-	/// </summary>
-	public bool RetryUseJitter { get; init; } = true;
+	public int DelayedRetryMaxMs { get; init; } = 30000;
 
 	/// <summary>
 	/// Maximum number of unacknowledged messages the broker will deliver to this consumer at once

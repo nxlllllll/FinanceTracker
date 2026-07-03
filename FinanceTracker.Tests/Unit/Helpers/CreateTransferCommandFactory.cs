@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Transfer.Commands;
+using FinanceTracker.Application.UseCases.Transfer.Commands;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 

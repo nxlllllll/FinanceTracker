@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.EventStore;
+using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
@@ -75,7 +75,7 @@ public sealed class AccountProjectionRebuilderTests
 		OccurredAt: FakeDateProvider.Default.UtcNow
 	);
 
-	private static Account BuildAccount() 
+	private static Account BuildAccount()
 		=> AccountFactory.Create(userId: Guid.CreateVersion7()).Value!;
 
 	[Test]

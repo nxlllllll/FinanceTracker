@@ -15,7 +15,7 @@ public sealed class QuartzHealthCheck(ISchedulerFactory schedulerFactory) : IHea
 
 		if (scheduler is { IsStarted: true, IsShutdown: false })
 			return HealthCheckResult.Healthy();
-		
+
 		return HealthCheckResult.Unhealthy(description: "Quartz scheduler is not running.");
 	}
 }

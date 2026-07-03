@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Shared.Job;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

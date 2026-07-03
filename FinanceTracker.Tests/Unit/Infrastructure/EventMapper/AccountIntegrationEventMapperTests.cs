@@ -1,5 +1,5 @@
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Account;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
@@ -42,7 +42,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
+		IIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsTypeOf<AccountCreatedEvent>();
 	}
@@ -62,7 +62,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
+		IIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsTypeOf<AccountDebitedEvent>();
 	}
@@ -82,7 +82,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
+		IIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsTypeOf<AccountCreditedEvent>();
 	}
@@ -95,7 +95,7 @@ public sealed class AccountIntegrationEventMapperTests
 			OccurredAt: DateTimeOffset.UtcNow
 		);
 
-		IAccountIntegrationEvent? result = _mapper.Map(@event: @event);
+		IIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsNull();
 	}

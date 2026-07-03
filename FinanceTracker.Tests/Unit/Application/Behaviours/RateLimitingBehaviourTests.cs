@@ -41,7 +41,7 @@ public sealed class RateLimitingBehaviourTests
 
 	private static RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> AllowedNext()
 	{
-		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = 
+		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next =
 			Substitute.For<RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>>>();
 
 		next(

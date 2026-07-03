@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Exceptions.DomainExceptions;
+namespace FinanceTracker.Core.Exceptions.DomainExceptions;
 
 /// <summary>
 /// Raised when an operation is attempted on an inactive recurring transaction.

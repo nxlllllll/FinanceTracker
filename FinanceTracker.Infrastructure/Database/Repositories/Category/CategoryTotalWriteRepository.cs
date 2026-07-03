@@ -35,26 +35,26 @@ public sealed class CategoryTotalWriteRepository(
 
 		UserReadModel user = await userQueryRepository.GetByIdAsync(userId: userId, ct: ct)
 			?? throw new NotFoundException(message: "User not found.", id: userId);
-		
+
 		decimal rate = await currencyConversionService.GetStableRateAsync(
 			fromCurrency: currency,
 			toCurrency: user.BaseCurrency,
 			asOf: occurredAt,
 			ct: ct
 		);
-			
+
 		await context.UpsertCategoryTotalAsync(entity: new CategoryTotalEntity
 		{
-		    Id = Guid.CreateVersion7(),
-		    UserId = userId,
-		    CategoryId = categoryId,
-		    Period = period,
-		    Total = delta * Money.ConvertedAmount(amount: amount, rate: rate),
-		    TransactionCount = delta,
-		    UpdatedAt = dateProvider.UtcNow
+			Id = Guid.CreateVersion7(),
+			UserId = userId,
+			CategoryId = categoryId,
+			Period = period,
+			Total = delta * Money.ConvertedAmount(amount: amount, rate: rate),
+			TransactionCount = delta,
+			UpdatedAt = dateProvider.UtcNow
 		}, ct: ct);
 	}
-	
+
 	public async Task AddAsync(
 		Guid userId,
 		Guid categoryId,
@@ -111,7 +111,7 @@ public sealed class CategoryTotalWriteRepository(
 			occurredAt: occurredAt,
 			ct: ct
 		);
-		
+
 		await ApplyDeltaAsync(
 			userId: userId,
 			categoryId: newCategoryId,

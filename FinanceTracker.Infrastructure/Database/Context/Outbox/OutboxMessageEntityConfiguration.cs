@@ -30,7 +30,7 @@ public sealed class OutboxMessageEntityConfiguration : IEntityTypeConfiguration<
 
 		builder.Property(propertyExpression: o => o.ProcessedAt)
 			.HasColumnName(name: "processed_at");
-		
+
 		builder.Property(propertyExpression: o => o.RetryCount)
 			.HasColumnName(name: "retry_count")
 			.HasDefaultValue(value: 0);

@@ -55,7 +55,7 @@ public sealed class RenameAccountHandlerTests
 		Name sameName = Name.Create(value: "Карта Сбер").Value!;
 
 		account.ClearEvents();
-		
+
 		await _handler.HandleAsync(
 			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: sameName),
 			accounts: account,

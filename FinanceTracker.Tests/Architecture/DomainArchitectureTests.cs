@@ -24,7 +24,7 @@ public sealed class DomainArchitectureTests
 
 	private static bool IsInitOnly(MethodInfo method)
 		=> method.ReturnParameter.GetRequiredCustomModifiers().Any(predicate: m => m.FullName == "System.Runtime.CompilerServices.IsExternalInit");
-	
+
 	[Test]
 	public async Task AllDomainClasses_ShouldBeSealed()
 	{
@@ -50,8 +50,8 @@ public sealed class DomainArchitectureTests
 				&& !t.Namespace.Contains(value: ".Abstractions", comparisonType: StringComparison.Ordinal)
 				&& t is { IsClass: true, IsAbstract: false }
 				&& !IsRecord(t: t))
-			.Where(predicate: t => 
-				t.GetProperties(bindingAttr: BindingFlags.Public | BindingFlags.Instance).Any(predicate: p => p.SetMethod is { IsPublic: true } 
+			.Where(predicate: t =>
+				t.GetProperties(bindingAttr: BindingFlags.Public | BindingFlags.Instance).Any(predicate: p => p.SetMethod is { IsPublic: true }
 				&& !IsInitOnly(method: p.SetMethod)))
 			.ToArray();
 

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
 

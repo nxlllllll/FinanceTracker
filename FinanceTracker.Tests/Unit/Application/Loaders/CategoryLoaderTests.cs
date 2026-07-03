@@ -34,7 +34,7 @@ public sealed class CategoryLoaderTests
 			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}

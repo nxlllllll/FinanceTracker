@@ -33,7 +33,7 @@ public sealed class ExcludeTransactionHandler(
 		Result<Unit, DomainException> result = accounts.Exclude();
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
+
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await transactionWriteRepository.ExcludeAsync(
@@ -42,7 +42,7 @@ public sealed class ExcludeTransactionHandler(
 				expectedVersion: accounts.RowVersion,
 				ct: ct
 			);
-			
+
 			if (accounts.Direction != DirectionType.Debit)
 				return;
 

@@ -1,5 +1,5 @@
-﻿using BenchmarkDotNet.Attributes;
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using BenchmarkDotNet.Attributes;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
@@ -49,7 +49,7 @@ public class EventStoreBenchmarks : BenchmarkBase
 		eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly, logger: NullLogger<EventTypeResolver>.Instance),
 		integrationEventMapper: new AccountIntegrationEventMapper(logger: NullLogger<AccountIntegrationEventMapper>.Instance),
 		integrationEventTypeResolver: new IntegrationEventTypeResolver(
-			contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: NullLogger<IntegrationEventTypeResolver>.Instance
 		),
 		dateProvider: new DateProvider(),

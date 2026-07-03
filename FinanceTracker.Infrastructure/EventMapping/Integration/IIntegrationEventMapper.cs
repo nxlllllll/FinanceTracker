@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 
 namespace FinanceTracker.Infrastructure.EventMapping.Integration;
@@ -11,8 +11,8 @@ namespace FinanceTracker.Infrastructure.EventMapping.Integration;
 public interface IIntegrationEventMapper
 {
 	/// <summary>
-	/// Maps <paramref name="event"/> to an <see cref="IAccountIntegrationEvent"/>,
+	/// Maps <paramref name="event"/> to an <see cref="IIntegrationEvent"/>,
 	/// or <c>null</c> if the event has no external representation.
 	/// </summary>
-	IAccountIntegrationEvent? Map(IEvent @event);
+	IIntegrationEvent? Map(IEvent @event);
 }

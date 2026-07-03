@@ -1,6 +1,7 @@
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.RecurringTransaction.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
+using FinanceTracker.Worker.Shared.Host;
 using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
@@ -14,6 +15,7 @@ public sealed class Program
 	public static void Main(string[] args)
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+		builder.UseStrictDependencyValidation();
 
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 
@@ -49,7 +51,7 @@ public sealed class Program
 		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
 
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
- 
+
 		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)
 			.AddCheck<RabbitMqHealthCheck>(name: "rabbitmq", tags: ["ready", "broker"])
 			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);

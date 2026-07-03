@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
+namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 
 /// <summary>
 /// Declares the schema version range that an <see cref="EventUpcaster{TFrom,TTo}"/> subclass covers.

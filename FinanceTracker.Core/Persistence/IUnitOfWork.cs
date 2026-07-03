@@ -62,4 +62,10 @@ public interface IUnitOfWork : IAsyncDisposable
 		Func<Exception, Task> onError,
 		CancellationToken ct = default
 	);
+
+	/// <summary>
+	/// Registers <paramref name="callback"/> to run once the outermost transaction actually
+	/// commits — never for a nested (savepoint) commit, and never if the transaction rolls back.
+	/// </summary>
+	void OnCommitted(Action callback);
 }

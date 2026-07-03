@@ -14,7 +14,7 @@ public sealed class User
 	public DateTimeOffset CreatedAt { get; private set; }
 
 	private User() { }
-	
+
 	public static Result<User, DomainException> Register(
 		DateTimeOffset createdAt,
 		Email email,

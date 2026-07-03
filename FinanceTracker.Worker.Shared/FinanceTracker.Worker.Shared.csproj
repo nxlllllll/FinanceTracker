@@ -20,7 +20,6 @@
         <PackageReference Include="Quartz.Extensions.Hosting" />
         <PackageReference Include="Quartz.Serialization.SystemTextJson" />
         <PackageReference Include="RabbitMQ.Client" />
-        <PackageReference Include="StackExchange.Redis" />
         <PackageReference Include="ZLogger" />
         <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />

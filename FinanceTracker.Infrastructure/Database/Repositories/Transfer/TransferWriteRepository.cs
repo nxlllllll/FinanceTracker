@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
 public sealed class TransferWriteRepository(
-    FinanceTrackerContext context,
-    IOperationWriteRepository operationRepository
+	FinanceTrackerContext context,
+	IOperationWriteRepository operationRepository
 ) : ITransferWriteRepository
 {
 	public async Task CreateAsync(
@@ -58,7 +58,7 @@ public sealed class TransferWriteRepository(
 
 	public async Task UpdateStatusAsync(
 		Guid transferId,
-        Guid userId,
+		Guid userId,
 		TransferStatus status,
 		int expectedVersion,
 		CancellationToken ct = default)
@@ -73,11 +73,11 @@ public sealed class TransferWriteRepository(
 		if (affected == 0)
 			throw new ConcurrencyConflictException(message: $"Transfer {transferId} was modified by another request.", id: transferId);
 
-        await operationRepository.UpdateTransferStatusAsync(
-            transferId: transferId,
-            userId: userId,
-            status: status,
-            ct: ct
-        );
+		await operationRepository.UpdateTransferStatusAsync(
+			transferId: transferId,
+			userId: userId,
+			status: status,
+			ct: ct
+		);
 	}
 }

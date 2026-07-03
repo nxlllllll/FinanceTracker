@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.User.Notifications;

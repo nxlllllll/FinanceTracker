@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account;
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
@@ -21,7 +21,7 @@ using ZLogger;
 namespace FinanceTracker.Worker.TransferProjection.Consumer;
 
 /// <summary>
-/// Applies the credit side of a transfer by consuming <see cref="AccountTransferDebitedEvent"/>.
+/// Applies the credit side of a transfer by consuming <see cref="TransferDebitedEvent"/>.
 /// </summary>
 /// <remarks>
 /// Transfer credit is intentionally eventual: debit and credit happen in separate transactions

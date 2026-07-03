@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.ReadModels;
+namespace FinanceTracker.Core.ReadModels;
 
 public sealed record UnresolvedBacklogSummary(
 	int TotalCount,

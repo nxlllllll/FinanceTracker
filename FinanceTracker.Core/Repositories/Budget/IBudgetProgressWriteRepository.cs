@@ -19,7 +19,7 @@ public interface IBudgetProgressWriteRepository
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
-	
+
 	Task ChangeCategoryAsync(
 		Guid userId,
 		Guid oldCategoryId,
@@ -29,9 +29,9 @@ public interface IBudgetProgressWriteRepository
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default
 	);
-	
+
 	Task RecalculateForBudgetAsync(
-		Guid budgetId, 
+		Guid budgetId,
 		Guid userId,
 		Guid categoryId,
 		DateOnly fromDate,

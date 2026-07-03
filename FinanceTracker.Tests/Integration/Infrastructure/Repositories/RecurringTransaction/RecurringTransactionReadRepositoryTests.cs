@@ -474,7 +474,7 @@ public sealed class RecurringTransactionReadRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: result).IsEmpty();
 	}
-	
+
 	[Test]
 	public async Task GetMissedThisMonthAsync_WhenMissedAtMonthBoundary_ShouldReturnRegardlessOfTodaysDay()
 	{

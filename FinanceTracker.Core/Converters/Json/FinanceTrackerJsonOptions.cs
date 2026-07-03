@@ -11,9 +11,9 @@ public static class FinanceTrackerJsonOptions
 		WriteIndented = false,
 		Converters = { new JsonStringEnumConverter() }
 	};
-	
+
 	public static readonly JsonSerializerOptions Application = BuildApplication();
- 
+
 	private static JsonSerializerOptions BuildApplication()
 	{
 		JsonSerializerOptions opts = new JsonSerializerOptions(options: Payload);

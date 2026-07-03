@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using INotification = MediatR.INotification;
 
@@ -10,4 +10,4 @@ namespace FinanceTracker.Worker.AccountProjection.Projection.Notifications;
 /// </summary>
 /// <param name="AccountId">The account this batch of events belongs to.</param>
 /// <param name="Events">Ordered list of integration events to apply to the read model.</param>
-public sealed record AccountEventsNotification(Guid AccountId, IReadOnlyList<IAccountIntegrationEvent> Events) : INotification;
+public sealed record AccountEventsNotification(Guid AccountId, IReadOnlyList<IIntegrationEvent> Events) : INotification;

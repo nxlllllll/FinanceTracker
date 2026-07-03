@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 

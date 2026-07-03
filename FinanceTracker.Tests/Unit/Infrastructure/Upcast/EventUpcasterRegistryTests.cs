@@ -40,10 +40,10 @@ public sealed class AccountCreatedV2ToV3Upcaster : EventUpcaster<AccountCreatedV
 
 public sealed class EventUpcasterRegistryTests
 {
-	private static EventUpcasterRegistry CreateRegistry(params IEventUpcaster[] upcasters) 
+	private static EventUpcasterRegistry CreateRegistry(params IEventUpcaster[] upcasters)
 		=> new EventUpcasterRegistry(upcasters: upcasters);
 
-	private static string Serialize<T>(T value) 
+	private static string Serialize<T>(T value)
 		=> JsonSerializer.Serialize(value: value, options: FinanceTrackerJsonOptions.Payload);
 
 	private static readonly AccountCreatedV1 SampleV1 = new AccountCreatedV1(

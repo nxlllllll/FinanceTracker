@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Core.Repositories.Idempotency;
@@ -131,7 +131,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 		);
 
 		string? transactionId = JsonDocument.Parse(json: entryForUserA!.ResponseJson!).RootElement.GetProperty(propertyName: "transactionId").GetString();
-		
+
 		await Assert.That(value: entryForUserA).IsNotNull();
 		await Assert.That(value: transactionId).IsEqualTo(expected: "secret-belongs-to-user-a");
 		await Assert.That(value: entryForUserB).IsNull();

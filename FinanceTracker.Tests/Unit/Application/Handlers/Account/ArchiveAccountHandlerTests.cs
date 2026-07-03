@@ -59,7 +59,7 @@ public sealed class ArchiveAccountHandlerTests
 			accounts: account,
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
 	}

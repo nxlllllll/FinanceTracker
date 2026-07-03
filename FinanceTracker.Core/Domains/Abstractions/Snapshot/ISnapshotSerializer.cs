@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.Snapshot;
+namespace FinanceTracker.Core.Domains.Abstractions.Snapshot;
 
 /// <summary>
 /// Serializes and deserializes an aggregate root to and from a snapshot string.

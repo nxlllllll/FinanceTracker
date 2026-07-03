@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Events.Account.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
@@ -43,7 +43,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 				logger: Substitute.For<ILogger<AccountIntegrationEventMapper>>()
 			),
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
-				contractsAssembly: typeof(IAccountIntegrationEvent).Assembly,
+				contractsAssembly: typeof(IIntegrationEvent).Assembly,
 				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
 			),
 			dateProvider: FakeDateProvider.Default,

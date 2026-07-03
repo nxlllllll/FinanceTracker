@@ -27,11 +27,11 @@ public sealed class CreateAccountHandler(
 		);
 		if (accountResult.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: accountResult.Error!);
- 
+
 		Core.Domains.Account.Account account = accountResult.Value!;
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: account, ct: ct), ct: ct);
-		
+
 		return Result<Guid, DomainException>.Success(value: account.Id);
 	}
 }

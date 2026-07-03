@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Worker.Shared.Job;
+namespace FinanceTracker.Worker.Shared.Job;
 
 public interface IJobOptions
 {

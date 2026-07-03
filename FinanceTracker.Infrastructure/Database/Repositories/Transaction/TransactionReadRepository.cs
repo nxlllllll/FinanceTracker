@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
@@ -100,16 +100,16 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 
 	public async Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(CancellationToken ct = default)
 	{
-	    return await context.Transactions.AsNoTracking().Where(predicate: t => t.IsRatePending).Select(selector: t => new PendingRateTransaction(
-		    TransactionId: t.Id,
-		    AccountId: t.AccountId,
-		    Amount: t.Amount,
-		    TransactionCurrency: t.Currency,
-		    BaseCurrency: t.BaseCurrency,
-		    CurrentRate: t.ExchangeRate,
-		    Direction: t.Direction,
-		    RowVersion: t.RowVersion,
-		    OccurredAt: t.OccurredAt
+		return await context.Transactions.AsNoTracking().Where(predicate: t => t.IsRatePending).Select(selector: t => new PendingRateTransaction(
+			TransactionId: t.Id,
+			AccountId: t.AccountId,
+			Amount: t.Amount,
+			TransactionCurrency: t.Currency,
+			BaseCurrency: t.BaseCurrency,
+			CurrentRate: t.ExchangeRate,
+			Direction: t.Direction,
+			RowVersion: t.RowVersion,
+			OccurredAt: t.OccurredAt
 		)).ToListAsync(cancellationToken: ct);
 	}
 }

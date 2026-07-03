@@ -1,4 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
@@ -27,20 +27,6 @@ public class CurrencyRateBenchmarks : BenchmarkBase
 	[Benchmark]
 	public async Task GetLatestRateAsync()
 		=> await _repository.GetLatestRateAsync(baseCurrencyCode: Usd, targetCurrencyCode: Rub);
-
-	[Benchmark]
-	public async Task GetRatesBatchAsync()
-	{
-		DateOnly today = DateOnly.FromDateTime(dateTime: DateTime.UtcNow);
-		IReadOnlyCollection<CurrencyRateRequest> requests =
-		[
-			new CurrencyRateRequest(From: Usd, To: Rub, Date: today),
-			new CurrencyRateRequest(From: Eur, To: Rub, Date: today),
-			new CurrencyRateRequest(From: Rub, To: Rub, Date: today),
-		];
-
-		await _repository.GetRatesBatchAsync(requests: requests);
-	}
 
 	[Benchmark]
 	public async Task GetLatestRatesBatchAsync()

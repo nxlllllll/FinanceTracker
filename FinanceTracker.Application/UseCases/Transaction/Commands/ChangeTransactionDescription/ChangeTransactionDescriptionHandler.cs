@@ -25,13 +25,13 @@ public sealed class ChangeTransactionDescriptionHandler(
 	{
 		if (accounts.Description == command.Description)
 			return Result<Guid, DomainException>.Success(value: accounts.Id);
-		
+
 		string? oldDescription = accounts.Description;
-		
+
 		Result<Unit, DomainException> result = accounts.ChangeDescription(description: command.Description);
 		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
+
 		await transactionWriteRepository.ChangeDescriptionAsync(
 			transactionId: command.TransactionId,
 			expectedVersion: accounts.RowVersion,

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.ReadModels;
 using MediatR;
 

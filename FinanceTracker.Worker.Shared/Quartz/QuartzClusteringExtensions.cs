@@ -1,4 +1,4 @@
-﻿using Quartz;
+using Quartz;
 
 namespace FinanceTracker.Worker.Shared.Quartz;
 

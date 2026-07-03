@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
+namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 
 /// <summary>
 /// Non-generic contract used by <c>EventUpcasterRegistry</c> to store a heterogeneous

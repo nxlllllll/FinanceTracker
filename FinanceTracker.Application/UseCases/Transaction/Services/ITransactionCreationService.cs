@@ -17,7 +17,7 @@ public interface ITransactionCreationService
 	/// updates category totals and budget progress, and handles exchange rate conversion.
 	/// All operations are executed within the caller's transaction scope.
 	/// </summary>
-	Task<Result<Guid, DomainException>> CreateAsync(
+	Task<Result<Core.Domains.Transaction.Transaction, DomainException>> CreateAsync(
 		CreateTransactionCommand command,
 		Core.Domains.Account.Account account,
 		CancellationToken ct = default

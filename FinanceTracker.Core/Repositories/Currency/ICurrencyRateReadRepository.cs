@@ -17,11 +17,6 @@ public interface ICurrencyRateReadRepository
 		CancellationToken ct = default
 	);
 
-	Task<Dictionary<CurrencyRateRequest, decimal>> GetRatesBatchAsync(
-		IReadOnlyCollection<CurrencyRateRequest> requests,
-		CancellationToken ct = default
-	);
-
 	Task<Dictionary<CurrencyLatestRateRequest, decimal>> GetLatestRatesBatchAsync(
 		IReadOnlyCollection<CurrencyLatestRateRequest> pairs,
 		CancellationToken ct = default

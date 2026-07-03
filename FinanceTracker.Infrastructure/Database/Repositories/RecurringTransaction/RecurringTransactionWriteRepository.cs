@@ -8,161 +8,161 @@ using Microsoft.EntityFrameworkCore;
 namespace FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
 
 public sealed class RecurringTransactionWriteRepository(
-    FinanceTrackerContext context,
-    IDateProvider dateProvider
+	FinanceTrackerContext context,
+	IDateProvider dateProvider
 ) : IRecurringTransactionWriteRepository
 {
-    public async Task CreateAsync(
-        Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
-        CancellationToken ct = default)
-    {
-        await context.RecurringTransactions.AddAsync(entity: new RecurringTransactionEntity()
-        {
-            Id = recurringTransaction.Id,
-            UserId = recurringTransaction.UserId,
-            AccountId = recurringTransaction.AccountId,
-            CategoryId = recurringTransaction.CategoryId,
-            Amount = recurringTransaction.Amount.Amount,
-            Currency = recurringTransaction.Amount.Currency,
-            Direction = recurringTransaction.Direction,
-            DayOfMonth = recurringTransaction.DayOfMonth,
-            Description = recurringTransaction.Description,
-            IsActive = true,
-            LastExecutedAt = null,
-            LastMissedAt = null,
-            RowVersion = 0,
-            CreatedAt = dateProvider.UtcNow
-        }, cancellationToken: ct);
-    }
+	public async Task CreateAsync(
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
+		CancellationToken ct = default)
+	{
+		await context.RecurringTransactions.AddAsync(entity: new RecurringTransactionEntity()
+		{
+			Id = recurringTransaction.Id,
+			UserId = recurringTransaction.UserId,
+			AccountId = recurringTransaction.AccountId,
+			CategoryId = recurringTransaction.CategoryId,
+			Amount = recurringTransaction.Amount.Amount,
+			Currency = recurringTransaction.Amount.Currency,
+			Direction = recurringTransaction.Direction,
+			DayOfMonth = recurringTransaction.DayOfMonth,
+			Description = recurringTransaction.Description,
+			IsActive = true,
+			LastExecutedAt = null,
+			LastMissedAt = null,
+			RowVersion = 0,
+			CreatedAt = dateProvider.UtcNow
+		}, cancellationToken: ct);
+	}
 
-    public async Task ChangeAmountAsync(
-        Guid recurringTransactionId,
-        decimal amount,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: r => r.Amount, valueExpression: amount)
-                .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+	public async Task ChangeAmountAsync(
+		Guid recurringTransactionId,
+		decimal amount,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: r => r.Amount, valueExpression: amount)
+				.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
 
-    public async Task ChangeCurrencyAsync(
-        Guid recurringTransactionId,
-        Core.ValueObjects.Currency currency,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: r => r.Currency, valueExpression: currency)
-                .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+	public async Task ChangeCurrencyAsync(
+		Guid recurringTransactionId,
+		Core.ValueObjects.Currency currency,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: r => r.Currency, valueExpression: currency)
+				.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
 
-    public async Task ChangeDayOfMonthAsync(
-        Guid recurringTransactionId,
-        int dayOfMonth,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: r => r.DayOfMonth, valueExpression: dayOfMonth)
-                .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+	public async Task ChangeDayOfMonthAsync(
+		Guid recurringTransactionId,
+		int dayOfMonth,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: r => r.DayOfMonth, valueExpression: dayOfMonth)
+				.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
 
-    public async Task ActivateAsync(
-        Guid recurringTransactionId,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: r => r.IsActive, valueExpression: true)
-                .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+	public async Task ActivateAsync(
+		Guid recurringTransactionId,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: r => r.IsActive, valueExpression: true)
+				.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
 
-    public async Task DeactivateAsync(
-        Guid recurringTransactionId,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: r => r.IsActive, valueExpression: false)
-                .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
-            cancellationToken: ct
-        );
+	public async Task DeactivateAsync(
+		Guid recurringTransactionId,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: r => r.IsActive, valueExpression: false)
+				.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
 
-    public async Task DeactivateByCategoryIdAsync(
-        Guid categoryId,
-        CancellationToken ct = default)
-    {
-        await context.RecurringTransactions.Where(predicate: r => r.CategoryId == categoryId).ExecuteUpdateAsync(
-            setPropertyCalls: builder => builder
-                .SetProperty(propertyExpression: r => r.IsActive, valueExpression: false)
-                .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: r => r.RowVersion + 1),
-            cancellationToken: ct
-        );
-    }
+	public async Task DeactivateByCategoryIdAsync(
+		Guid categoryId,
+		CancellationToken ct = default)
+	{
+		await context.RecurringTransactions.Where(predicate: r => r.CategoryId == categoryId).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: r => r.IsActive, valueExpression: false)
+				.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: r => r.RowVersion + 1),
+			cancellationToken: ct
+		);
+	}
 
-    public async Task MarkExecutedAsync(
-        Guid recurringTransactionId,
-        DateTimeOffset executedAt,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion)
-            .ExecuteUpdateAsync(
-                setPropertyCalls: builder => builder
-                    .SetProperty(propertyExpression: r => r.LastExecutedAt, valueExpression: executedAt)
-                    .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
-                cancellationToken: ct
-            );
+	public async Task MarkExecutedAsync(
+		Guid recurringTransactionId,
+		DateTimeOffset executedAt,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion)
+			.ExecuteUpdateAsync(
+				setPropertyCalls: builder => builder
+					.SetProperty(propertyExpression: r => r.LastExecutedAt, valueExpression: executedAt)
+					.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
+				cancellationToken: ct
+			);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
 
-    public async Task MarkMissedAsync(
-        Guid recurringTransactionId,
-        DateTimeOffset missedAt,
-        int expectedVersion,
-        CancellationToken ct = default)
-    {
-        int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion)
-            .ExecuteUpdateAsync(
-                setPropertyCalls: builder => builder
-                    .SetProperty(propertyExpression: r => r.LastMissedAt, valueExpression: missedAt)
-                    .SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
-                cancellationToken: ct
-            );
+	public async Task MarkMissedAsync(
+		Guid recurringTransactionId,
+		DateTimeOffset missedAt,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion)
+			.ExecuteUpdateAsync(
+				setPropertyCalls: builder => builder
+					.SetProperty(propertyExpression: r => r.LastMissedAt, valueExpression: missedAt)
+					.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
+				cancellationToken: ct
+			);
 
-        if (affected == 0)
-            throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
-    }
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
 }

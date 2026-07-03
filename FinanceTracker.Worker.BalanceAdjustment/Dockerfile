@@ -4,6 +4,7 @@ EXPOSE 5107
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY ["Directory.Packages.props", "Directory.Packages.props"]
 COPY ["FinanceTracker.Worker.BalanceAdjustment/FinanceTracker.Worker.BalanceAdjustment.csproj", "FinanceTracker.Worker.BalanceAdjustment/"]
 COPY ["FinanceTracker.Core/FinanceTracker.Core.csproj", "FinanceTracker.Core/"]
 COPY ["FinanceTracker.Contracts/FinanceTracker.Contracts.csproj", "FinanceTracker.Contracts/"]

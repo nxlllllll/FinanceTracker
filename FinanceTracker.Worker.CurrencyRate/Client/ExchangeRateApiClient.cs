@@ -16,11 +16,11 @@ public sealed class ExchangeRateApiClient(
 	ILogger<ExchangeRateApiClient> logger)
 {
 	private const string BearerShema = "Bearer";
-	
+
 	public async Task<ExchangeRateApiResponse?> GetRatesAsync(string baseCurrency, CancellationToken ct = default)
 	{
 		ExchangeRateApiOptions currentOptions = options.CurrentValue;
-		
+
 		if (!currentOptions.IsEnabled)
 		{
 			logger.ZLogInformation(message: $"[{nameof(ExchangeRateApiClient)}] Disabled. Skipping fetch for {baseCurrency}.");
@@ -42,7 +42,7 @@ public sealed class ExchangeRateApiClient(
 
 			if (result?.Result == "success")
 				return result;
-			
+
 			logger.ZLogWarning(message: $"ExchangeRateApi returned non-success result for {baseCurrency}: {result?.Result}.");
 			return null;
 		}

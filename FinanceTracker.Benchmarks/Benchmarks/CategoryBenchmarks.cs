@@ -1,4 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 

@@ -11,7 +11,7 @@ public sealed class GetRecurringTransactionsQueryValidator : AbstractValidator<G
 
 		RuleFor(x => x.CursorId).NotNull()
 			.When(predicate: x => x.CursorCreatedAt is not null).WithMessage("CursorId must be provided together with CursorCreatedAt.");
-		
+
 		RuleFor(x => x.CursorCreatedAt).NotNull()
 			.When(predicate: x => x.CursorId is not null).WithMessage("CursorCreatedAt must be provided together with CursorId.");
 	}

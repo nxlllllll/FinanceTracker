@@ -13,7 +13,7 @@ public sealed class ConcurrencyRetryBehaviourTests
 {
 	public sealed record TestCommand : IRequest<TestResponse>;
 	public sealed class TestResponse;
-	
+
 	private static ConcurrencyRetryBehaviour<TestCommand, TestResponse> CreateBehavior(
 		int maxRetries = 3,
 		int baseDelayMs = 0,
@@ -34,7 +34,7 @@ public sealed class ConcurrencyRetryBehaviourTests
 
 	private static ConcurrencyConflictException MakeConflict()
 		=> new ConcurrencyConflictException(message: "Conflict.", id: Guid.NewGuid());
-	
+
 	[Test]
 	public async Task Handle_WhenNoException_ShouldCallNextOnce()
 	{
@@ -67,7 +67,7 @@ public sealed class ConcurrencyRetryBehaviourTests
 
 		await Assert.That(value: result).IsEqualTo(expected: expected);
 	}
-	
+
 	[Test]
 	public async Task Handle_WhenFirstAttemptFails_ShouldRetryAndSucceed()
 	{
@@ -137,7 +137,7 @@ public sealed class ConcurrencyRetryBehaviourTests
 		await Assert.That(value: result).IsEqualTo(expected: expected);
 		await next.Received(requiredNumberOfCalls: maxRetries + 1).Invoke(t: Arg.Any<CancellationToken>());
 	}
-	
+
 	[Test]
 	public async Task Handle_WhenOtherExceptionThrown_ShouldNotRetry()
 	{
@@ -153,7 +153,7 @@ public sealed class ConcurrencyRetryBehaviourTests
 
 		await next.Received(requiredNumberOfCalls: 1).Invoke(t: Arg.Any<CancellationToken>());
 	}
-	
+
 	[Test]
 	public async Task Handle_WhenCancelledDuringDelay_ShouldThrowOperationCancelled()
 	{
@@ -174,7 +174,7 @@ public sealed class ConcurrencyRetryBehaviourTests
 			cancellationToken: cts.Token
 		));
 	}
-	
+
 	[Test]
 	[Arguments(1)]
 	[Arguments(2)]
@@ -193,7 +193,7 @@ public sealed class ConcurrencyRetryBehaviourTests
 
 		await next.Received(requiredNumberOfCalls: maxRetries + 1).Invoke(t: Arg.Any<CancellationToken>());
 	}
-	
+
 	[Test]
 	[Arguments(0)]
 	[Arguments(1)]
@@ -201,63 +201,63 @@ public sealed class ConcurrencyRetryBehaviourTests
 	[Arguments(3)]
 	public async Task CalculateDelay_ShouldNotOverflowAndReturnNonNegativeValue(int attempt)
 	{
-	    ConcurrencyRetryBehaviour<TestCommand, TestResponse> behaviour = CreateBehavior(maxRetries: 10, baseDelayMs: 10, useJitter: false);
+		ConcurrencyRetryBehaviour<TestCommand, TestResponse> behaviour = CreateBehavior(maxRetries: 10, baseDelayMs: 10, useJitter: false);
 
-	    int callCount = 0;
-	    RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
-	    next(t: Arg.Any<CancellationToken>()).Returns(returnThis: _ =>
-	    {
-	        if (callCount++ <= attempt)
-	            throw MakeConflict();
-	        return Task.FromResult(result: new TestResponse());
-	    });
+		int callCount = 0;
+		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
+		next(t: Arg.Any<CancellationToken>()).Returns(returnThis: _ =>
+		{
+			if (callCount++ <= attempt)
+				throw MakeConflict();
+			return Task.FromResult(result: new TestResponse());
+		});
 
-	    await behaviour.Handle(
-	        request: new TestCommand(),
-	        next: next,
-	        cancellationToken: CancellationToken.None
-	    );
+		await behaviour.Handle(
+			request: new TestCommand(),
+			next: next,
+			cancellationToken: CancellationToken.None
+		);
 
-	    await next.Received(requiredNumberOfCalls: attempt + 2).Invoke(t: Arg.Any<CancellationToken>());
+		await next.Received(requiredNumberOfCalls: attempt + 2).Invoke(t: Arg.Any<CancellationToken>());
 	}
 
 	[Test]
 	public async Task Handle_WithJitterEnabled_ShouldNotThrowAndReturnResult()
 	{
-	    ConcurrencyRetryBehaviour<TestCommand, TestResponse> behaviour = CreateBehavior(maxRetries: 3, baseDelayMs: 0, useJitter: true);
+		ConcurrencyRetryBehaviour<TestCommand, TestResponse> behaviour = CreateBehavior(maxRetries: 3, baseDelayMs: 0, useJitter: true);
 
-	    TestResponse expected = new TestResponse();
-	    int callCount = 0;
-	    RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
-	    next(t: Arg.Any<CancellationToken>()).Returns(returnThis: _ =>
-	    {
-	        if (callCount++ == 0)
-	            throw MakeConflict();
-	        return Task.FromResult(result: expected);
-	    });
+		TestResponse expected = new TestResponse();
+		int callCount = 0;
+		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
+		next(t: Arg.Any<CancellationToken>()).Returns(returnThis: _ =>
+		{
+			if (callCount++ == 0)
+				throw MakeConflict();
+			return Task.FromResult(result: expected);
+		});
 
-	    TestResponse result = await behaviour.Handle(
-	        request: new TestCommand(),
-	        next: next,
-	        cancellationToken: CancellationToken.None
-	    );
+		TestResponse result = await behaviour.Handle(
+			request: new TestCommand(),
+			next: next,
+			cancellationToken: CancellationToken.None
+		);
 
-	    await Assert.That(value: result).IsEqualTo(expected: expected);
+		await Assert.That(value: result).IsEqualTo(expected: expected);
 	}
 
 	[Test]
 	public async Task Handle_WithZeroMaxRetries_ShouldNotRetry()
 	{
-	    ConcurrencyRetryBehaviour<TestCommand, TestResponse> behaviour = CreateBehavior(maxRetries: 0);
-	    RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
-	    next(t: Arg.Any<CancellationToken>()).Throws(createException: _ => MakeConflict());
+		ConcurrencyRetryBehaviour<TestCommand, TestResponse> behaviour = CreateBehavior(maxRetries: 0);
+		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
+		next(t: Arg.Any<CancellationToken>()).Throws(createException: _ => MakeConflict());
 
-	    await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await behaviour.Handle(
-	        request: new TestCommand(),
-	        next: next,
-	        cancellationToken: CancellationToken.None
-	    ));
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await behaviour.Handle(
+			request: new TestCommand(),
+			next: next,
+			cancellationToken: CancellationToken.None
+		));
 
-	    await next.Received(requiredNumberOfCalls: 1).Invoke(t: Arg.Any<CancellationToken>());
+		await next.Received(requiredNumberOfCalls: 1).Invoke(t: Arg.Any<CancellationToken>());
 	}
 }

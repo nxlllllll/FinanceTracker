@@ -25,23 +25,23 @@ public sealed class IdempotencyWriteRepository(FinanceTrackerContext context) : 
 		);
 	}
 
-    public async Task CompleteAsync(
-        Guid idempotencyKey,
-        string commandType,
-        Guid userId,
-        string responseJson,
-        CancellationToken ct = default)
-    {
-        await context.IdempotentCommands.Where(predicate: e => e.IdempotencyKey == idempotencyKey && e.CommandType == commandType && e.UserId == userId)
+	public async Task CompleteAsync(
+		Guid idempotencyKey,
+		string commandType,
+		Guid userId,
+		string responseJson,
+		CancellationToken ct = default)
+	{
+		await context.IdempotentCommands.Where(predicate: e => e.IdempotencyKey == idempotencyKey && e.CommandType == commandType && e.UserId == userId)
 			.ExecuteUpdateAsync(
 				setPropertyCalls: s => s.SetProperty(
 					propertyExpression: e => e.ResponseJson,
 					valueExpression: responseJson
-				), 
+				),
 				cancellationToken: ct
 			);
-    }
-	
+	}
+
 	public async Task<int> DeleteExpiredAsync(
 		DateTimeOffset before,
 		int batchSize,
@@ -53,11 +53,11 @@ public sealed class IdempotencyWriteRepository(FinanceTrackerContext context) : 
 			.ExecuteDeleteAsync(cancellationToken: ct);
 	}
 
-    public async Task DeleteAsync(
-        Guid idempotencyKey,
-        string commandType,
-        Guid userId,
-        CancellationToken ct = default)
+	public async Task DeleteAsync(
+		Guid idempotencyKey,
+		string commandType,
+		Guid userId,
+		CancellationToken ct = default)
 	{
 		await context.IdempotentCommands.Where(
 			predicate: e => e.IdempotencyKey == idempotencyKey && e.CommandType == commandType && e.UserId == userId

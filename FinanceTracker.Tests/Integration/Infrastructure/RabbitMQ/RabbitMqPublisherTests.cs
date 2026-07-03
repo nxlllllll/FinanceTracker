@@ -1,12 +1,14 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -20,6 +22,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	private string _exchangeName = null!;
 	private string _queueName = null!;
 	private RabbitMqOptions _options = null!;
+	private ServiceProvider _serviceProvider = null!;
 	private RabbitMqPublisher _publisher = null!;
 
 	[Before(hookType: Test)]
@@ -62,9 +65,13 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 			routingKey: AggregateTypeNames.Account
 		);
 
+		_serviceProvider = new ServiceCollection().BuildServiceProvider();
+
 		_publisher = new RabbitMqPublisher(
 			connectionFactory: new RabbitMqConnectionFactory(options: Options.Create(options: _options)),
-			options: Options.Create(options: _options)
+			options: Options.Create(options: _options),
+			scopeFactory: _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 	}
 
@@ -74,6 +81,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 		await _publisher.DisposeAsync();
 		await _channel.DisposeAsync();
 		await _connection.DisposeAsync();
+		await _serviceProvider.DisposeAsync();
 	}
 
 	[Test]
@@ -224,7 +232,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	private static IChannel? GetInternalChannel(RabbitMqPublisher publisher)
 	{
 		FieldInfo? field = typeof(RabbitMqPublisher).GetField(
-			name: "_channel", 
+			name: "_channel",
 			bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance
 		);
 

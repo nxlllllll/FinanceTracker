@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Currency;
+namespace FinanceTracker.Core.Services.Currency;
 
 public readonly record struct CurrencyStableRateRequest(
 	ValueObjects.Currency From,

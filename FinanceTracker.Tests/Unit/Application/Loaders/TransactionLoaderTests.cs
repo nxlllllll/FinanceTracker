@@ -45,7 +45,7 @@ public sealed class TransactionLoaderTests
 			request: new ChangeTransactionCategoryCommand(UserId: Guid.CreateVersion7(), TransactionId: Guid.CreateVersion7(), CategoryId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
@@ -97,7 +97,7 @@ public sealed class TransactionLoaderTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: transaction.Id);
 	}
-	
+
 	[Test]
 	public async Task LoadAsync_CreateTransaction_WhenAccountNotFound_ShouldThrowNotFoundException()
 	{
@@ -109,7 +109,7 @@ public sealed class TransactionLoaderTests
 			request: CreateTransactionCommandFactory.Create(),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: resultAccount.IsFailure).IsTrue();
 		await Assert.That(value: resultAccount.Error).IsTypeOf<NotFoundException>();
 	}
@@ -126,7 +126,7 @@ public sealed class TransactionLoaderTests
 			request: CreateTransactionCommandFactory.Create(userId: Guid.CreateVersion7(), accountId: account.Id),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: resultAccount.IsFailure).IsTrue();
 		await Assert.That(value: resultAccount.Error).IsTypeOf<NotFoundException>();
 	}
@@ -137,7 +137,7 @@ public sealed class TransactionLoaderTests
 		Account account = AccountFactory.CreateWithArchivation();
 		Category category = CategoryFactory.Create().Value!;
 		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(), 
+			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 		_categoryRepository.GetByIdAsync(

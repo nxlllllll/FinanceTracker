@@ -33,7 +33,7 @@ public sealed class AccountLoaderTests
 			request: new ArchiveAccountCommand(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
@@ -51,7 +51,7 @@ public sealed class AccountLoaderTests
 			request: new ArchiveAccountCommand(UserId: Guid.CreateVersion7(), AccountId: account.Id),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
@@ -69,7 +69,7 @@ public sealed class AccountLoaderTests
 			request: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
 			ct: CancellationToken.None
 		);
-		
+
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: account.Id);
 	}

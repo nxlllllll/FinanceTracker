@@ -24,9 +24,9 @@ public sealed class UnarchiveCategoryHandler(
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.Unarchive();
-		if (result.IsFailure) 
+		if (result.IsFailure)
 			return Result<Guid, DomainException>.Failure(error: result.Error!);
-		
+
 		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: entity.RowVersion, ct: ct);
 
 		try

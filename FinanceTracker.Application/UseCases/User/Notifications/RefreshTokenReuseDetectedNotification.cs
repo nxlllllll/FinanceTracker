@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
+using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 using MediatR;
 
 namespace FinanceTracker.Application.UseCases.User.Notifications;

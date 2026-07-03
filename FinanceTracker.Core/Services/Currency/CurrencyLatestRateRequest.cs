@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Currency;
+namespace FinanceTracker.Core.Services.Currency;
 
 /// <summary>
 /// Request for the most recent available exchange rate between two currencies,

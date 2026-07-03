@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -8,9 +8,9 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 
 public sealed class UnresolvableEventReadRepository(FinanceTrackerContext context) : IUnresolvableEventReadRepository
 {
-public async Task<PagedResult<Core.ReadModels.UnresolvableEvent>> GetUnacknowledgedBatchAsync(
-		int batchSize,
-		CancellationToken ct = default)
+	public async Task<PagedResult<Core.ReadModels.UnresolvableEvent>> GetUnacknowledgedBatchAsync(
+			int batchSize,
+			CancellationToken ct = default)
 	{
 		List<Core.ReadModels.UnresolvableEvent> items = await context.UnresolvableEvents.AsNoTracking()
 			.Where(predicate: e => e.AcknowledgedAt == null && e.ResolvedAt == null)

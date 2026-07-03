@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 
 namespace FinanceTracker.Tests.Architecture.Helpers;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.DateProvider;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 

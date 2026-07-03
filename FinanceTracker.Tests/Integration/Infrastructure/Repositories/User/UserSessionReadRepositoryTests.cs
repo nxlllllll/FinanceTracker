@@ -16,7 +16,7 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 	{
 		_userSessionReadRepository = new UserSessionReadRepository(context: Context);
 		_userSessionWriteRepository = new UserSessionWriteRepository(context: Context);
-		_userBuilder = new UserBuilder(context: Context);	
+		_userBuilder = new UserBuilder(context: Context);
 	}
 
 	private async Task<Core.Domains.User.UserSession> CreateAndPersistSessionAsync(

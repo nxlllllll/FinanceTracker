@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
+using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;

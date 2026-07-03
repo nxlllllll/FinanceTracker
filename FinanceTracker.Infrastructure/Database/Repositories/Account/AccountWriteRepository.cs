@@ -169,7 +169,7 @@ public sealed class AccountWriteRepository(
 			cancellationToken: ct
 		);
 	}
-	
+
 	public async Task DeleteAsync(
 		Guid accountId,
 		CancellationToken ct = default)
