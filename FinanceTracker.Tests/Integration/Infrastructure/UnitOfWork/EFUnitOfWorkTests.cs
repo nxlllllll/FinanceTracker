@@ -90,10 +90,37 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		await _unitOfWork.CommitAsync();
 
 		int outCount = await Context.Currencies.CountAsync(predicate: c => c.Code == "OUT");
-		int innCount = await Context.Currencies.CountAsync(predicate: c => c.Code == "INN");
+		int testCount = await Context.Currencies.CountAsync(predicate: c => c.Code == "TST");
 
 		await Assert.That(value: outCount).IsEqualTo(expected: 1);
-		await Assert.That(value: innCount).IsEqualTo(expected: 0);
+		await Assert.That(value: testCount).IsEqualTo(expected: 0)
+			.Because(message: "The savepoint rollback should discard the nested transaction's insert at the database level.");
+	}
+
+	[Test]
+	public async Task NestedBeginAndRollback_ShouldNotLeaveTheRolledBackEntityTrackedAsUnchanged()
+	{
+		await _unitOfWork.BeginTransactionAsync();
+
+		await _unitOfWork.BeginTransactionAsync();
+		Context.Currencies.Add(new CurrencyEntity
+		{
+			Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+			Name = "Test",
+			Symbol = "T",
+			IsActive = true
+		});
+		await Context.SaveChangesAsync();
+		await _unitOfWork.RollbackAsync();
+
+		bool stillTracked = Context.ChangeTracker.Entries<CurrencyEntity>()
+			.Any(predicate: e => e.Entity.Code == "TST" && e.State != EntityState.Detached);
+
+		await Assert.That(value: stillTracked).IsFalse().Because(message: """
+		After a savepoint rollback, the entity the rolled-back nested transaction inserted must not remain tracked as if it still exists — the database no longer has it.
+		""");
+
+		await _unitOfWork.RollbackAsync();
 	}
 
 	[Test]
@@ -334,7 +361,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 			{
 				Context.Currencies.Add(new CurrencyEntity
 				{
-					Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+					Code = Currency.Create(value: "TST").Value,
 					Name = "Test",
 					Symbol = "T",
 					IsActive = true

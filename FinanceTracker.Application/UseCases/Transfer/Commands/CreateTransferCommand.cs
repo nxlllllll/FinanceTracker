@@ -1,7 +1,7 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Application.Behaviours.RateLimit;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
 
@@ -14,7 +14,7 @@ public sealed record CreateTransferCommand(
 	decimal Amount,
 	string? Description,
 	DateTimeOffset OccurredAt
-) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>, IAuthorizable, IUserScopedRequest
+) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
 }

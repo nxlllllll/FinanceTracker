@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgets;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
@@ -56,12 +57,13 @@ public sealed class GetBudgetsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: PageOf(items: budgets));
 
-		PagedResult<BudgetReadModel> result = await _handler.Handle(
+		Result<PagedResult<BudgetReadModel>, AppException> result = await _handler.Handle(
 			query: new GetBudgetsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Items.Count).IsEqualTo(expected: 2);
 	}
 
 	[Test]
@@ -75,11 +77,12 @@ public sealed class GetBudgetsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: EmptyPage());
 
-		PagedResult<BudgetReadModel> result = await _handler.Handle(
+		Result<PagedResult<BudgetReadModel>, AppException> result = await _handler.Handle(
 			query: new GetBudgetsQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Items).IsEmpty();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Items).IsEmpty();
 	}
 }

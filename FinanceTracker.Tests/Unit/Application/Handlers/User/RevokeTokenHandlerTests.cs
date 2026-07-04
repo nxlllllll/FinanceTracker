@@ -1,7 +1,7 @@
 using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.RevokeToken;
 using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -68,7 +68,7 @@ public sealed class RevokeTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserSession?)null);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _handler.Handle(
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(
 			command: new RevokeTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -97,7 +97,7 @@ public sealed class RevokeTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: revokedSession);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _handler.Handle(
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(
 			command: new RevokeTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -119,7 +119,7 @@ public sealed class RevokeTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: session);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _handler.Handle(
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(
 			command: new RevokeTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);

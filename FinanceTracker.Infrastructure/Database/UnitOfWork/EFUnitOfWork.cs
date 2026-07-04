@@ -3,6 +3,7 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -20,6 +21,9 @@ public sealed class EFUnitOfWork(
 
 	private IDbContextTransaction? _transaction;
 	private readonly Stack<string> _savepoints = new Stack<string>();
+
+	private readonly Stack<HashSet<object>> _savepointSnapshots = new Stack<HashSet<object>>();
+
 	private List<Action> _onCommittedCallbacks = [];
 
 	public void OnCommitted(Action callback)
@@ -33,9 +37,15 @@ public sealed class EFUnitOfWork(
 			return;
 		}
 
+		HashSet<object> snapshot = new HashSet<object>(
+			collection: context.ChangeTracker.Entries().Select(selector: e => e.Entity),
+			comparer: ReferenceEqualityComparer.Instance
+		);
+
 		string savepointName = $"sp_{Guid.CreateVersion7():N}";
 		await _transaction.CreateSavepointAsync(name: savepointName, cancellationToken: ct);
 		_savepoints.Push(item: savepointName);
+		_savepointSnapshots.Push(item: snapshot);
 	}
 
 	public async Task CommitAsync(CancellationToken ct = default)
@@ -81,6 +91,7 @@ public sealed class EFUnitOfWork(
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
 			await _transaction.ReleaseSavepointAsync(name: savepointName, cancellationToken: ct);
+			_savepointSnapshots.Pop();
 			return;
 		}
 
@@ -104,7 +115,9 @@ public sealed class EFUnitOfWork(
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
 			await _transaction.RollbackToSavepointAsync(name: savepointName, cancellationToken: ct);
-			context.ChangeTracker.Clear();
+
+			HashSet<object> snapshot = _savepointSnapshots.Pop();
+			await ReconcileChangeTrackerAsync(snapshotBeforeSavepoint: snapshot, ct: ct);
 			return;
 		}
 
@@ -112,6 +125,21 @@ public sealed class EFUnitOfWork(
 		await _transaction.DisposeAsync();
 		_transaction = null;
 		context.ChangeTracker.Clear();
+	}
+
+	/// <summary>
+	/// Brings the <c>ChangeTracker</c> back in sync with the database after a savepoint rollback,
+	/// instead of either leaving stale entries behind or wiping tracking the outer scope still needs.
+	/// </summary>
+	private async Task ReconcileChangeTrackerAsync(HashSet<object> snapshotBeforeSavepoint, CancellationToken ct)
+	{
+		foreach (EntityEntry entry in context.ChangeTracker.Entries().ToList())
+		{
+			if (snapshotBeforeSavepoint.Contains(item: entry.Entity))
+				await entry.ReloadAsync(cancellationToken: ct);
+			else
+				entry.State = EntityState.Detached;
+		}
 	}
 
 	public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken ct = default)
@@ -190,6 +218,7 @@ public sealed class EFUnitOfWork(
 			return;
 
 		_savepoints.Clear();
+		_savepointSnapshots.Clear();
 		_onCommittedCallbacks = [];
 		await _transaction.RollbackAsync();
 		await _transaction.DisposeAsync();

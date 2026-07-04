@@ -3,7 +3,7 @@ using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -32,7 +32,7 @@ public sealed class AccountProjectionE2ETests : E2EFixture
 
 	private async Task<Guid> CreateAccountAsync(Guid userId, decimal balance = 10_000m)
 	{
-		Result<Guid, DomainException> result = await Mediator.Send(request: new CreateAccountCommand(
+		Result<Guid, AppException> result = await Mediator.Send(request: new CreateAccountCommand(
 			UserId: userId,
 			Name: Name.Create(value: "Тестовый счёт").Value,
 			Type: AccountType.Checking,

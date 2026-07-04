@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
@@ -7,18 +8,18 @@ namespace FinanceTracker.Application.UseCases.Budget.Queries.GetBudgets;
 
 public sealed class GetBudgetsHandler(
 	IBudgetReadRepository budgetReadRepository
-) : IRequestHandler<GetBudgetsQuery, PagedResult<BudgetReadModel>>
+) : IRequestHandler<GetBudgetsQuery, Result<PagedResult<BudgetReadModel>, AppException>>
 {
-	public async Task<PagedResult<BudgetReadModel>> Handle(
+	public async Task<Result<PagedResult<BudgetReadModel>, AppException>> Handle(
 		GetBudgetsQuery query,
 		CancellationToken ct = default)
 	{
-		return await budgetReadRepository.GetAllAsync(
+		return Result<PagedResult<BudgetReadModel>, AppException>.Success(value: await budgetReadRepository.GetAllAsync(
 			userId: query.UserId,
 			cursorCreatedAt: query.CursorCreatedAt,
 			cursorId: query.CursorId,
 			pageSize: query.PageSize,
 			ct: ct
-		);
+		));
 	}
 }

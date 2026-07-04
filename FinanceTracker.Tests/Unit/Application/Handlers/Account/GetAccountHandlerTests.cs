@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Account.Queries.GetAccount;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
@@ -33,7 +34,7 @@ public sealed class GetAccountHandlerTests
 			.GetByIdAsync(accountId: model.Id, userId: model.UserId, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: model);
 
-		Result<AccountReadModel, DomainException> result = await _handler.Handle(
+		Result<AccountReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);
@@ -55,7 +56,7 @@ public sealed class GetAccountHandlerTests
 			.GetByIdAsync(accountId: accountId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: (AccountReadModel?)null);
 
-		Result<AccountReadModel, DomainException> result = await _handler.Handle(
+		Result<AccountReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);

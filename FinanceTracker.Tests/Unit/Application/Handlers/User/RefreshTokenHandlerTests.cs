@@ -2,6 +2,7 @@ using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -122,7 +123,7 @@ public sealed class RefreshTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserSession?)null);
 
-		Result<SessionToken, DomainException> result = await _handler.Handle(
+		Result<SessionToken, AppException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -159,7 +160,7 @@ public sealed class RefreshTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: RevokedSession());
 
-		Result<SessionToken, DomainException> result = await _handler.Handle(
+		Result<SessionToken, AppException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -217,7 +218,7 @@ public sealed class RefreshTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: ExpiredButNotRevokedSession());
 
-		Result<SessionToken, DomainException> result = await _handler.Handle(
+		Result<SessionToken, AppException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -277,7 +278,7 @@ public sealed class RefreshTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
-		Result<SessionToken, DomainException> result = await _handler.Handle(
+		Result<SessionToken, AppException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -370,7 +371,7 @@ public sealed class RefreshTokenHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestUser);
 
-		Result<SessionToken, DomainException> result = await _handler.Handle(
+		Result<SessionToken, AppException> result = await _handler.Handle(
 			command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);

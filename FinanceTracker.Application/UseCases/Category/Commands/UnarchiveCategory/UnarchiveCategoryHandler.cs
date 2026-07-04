@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Category.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
@@ -16,16 +17,16 @@ public sealed class UnarchiveCategoryHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<UnarchiveCategoryHandler> logger
-) : IAuthorizedHandler<UnarchiveCategoryCommand, Core.Domains.Category.Category, Guid, DomainException>
+) : IAuthorizedHandler<UnarchiveCategoryCommand, Core.Domains.Category.Category, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		UnarchiveCategoryCommand command,
 		Core.Domains.Category.Category entity,
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.Unarchive();
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: entity.RowVersion, ct: ct);
 
@@ -42,6 +43,6 @@ public sealed class UnarchiveCategoryHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryUnarchivedNotification for category {entity.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: entity.Id);
 	}
 }

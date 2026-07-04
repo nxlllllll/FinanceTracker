@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
@@ -33,7 +34,7 @@ public sealed class GetBudgetProgressHandlerTests
 			.GetByBudgetIdAsync(budgetId: model.BudgetId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: model);
 
-		Result<BudgetProgress, DomainException> result = await _handler.Handle(
+		Result<BudgetProgress, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);
@@ -55,7 +56,7 @@ public sealed class GetBudgetProgressHandlerTests
 			.GetByBudgetIdAsync(budgetId: budgetId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: (BudgetProgress?)null);
 
-		Result<BudgetProgress, DomainException> result = await _handler.Handle(
+		Result<BudgetProgress, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);

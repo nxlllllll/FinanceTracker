@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Budget.Commands.DeactivateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
@@ -70,7 +71,7 @@ public sealed class DeactivateBudgetHandlerTests
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new DeactivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
 			entity: budget,
 			ct: CancellationToken.None

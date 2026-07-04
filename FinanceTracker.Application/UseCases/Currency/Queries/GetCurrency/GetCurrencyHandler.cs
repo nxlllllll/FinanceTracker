@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;
@@ -8,9 +9,9 @@ namespace FinanceTracker.Application.UseCases.Currency.Queries.GetCurrency;
 
 public sealed class GetCurrencyHandler(
 	ICurrencyReadRepository currencyReadRepository
-) : IRequestHandler<GetCurrencyQuery, Result<CurrencyInfo, DomainException>>
+) : IRequestHandler<GetCurrencyQuery, Result<CurrencyInfo, AppException>>
 {
-	public async Task<Result<CurrencyInfo, DomainException>> Handle(
+	public async Task<Result<CurrencyInfo, AppException>> Handle(
 		GetCurrencyQuery query,
 		CancellationToken ct = default)
 	{
@@ -20,8 +21,8 @@ public sealed class GetCurrencyHandler(
 		);
 
 		if (model is null)
-			return Result<CurrencyInfo, DomainException>.Failure(error: new CurrencyException(message: $"Currency '{query.Code}' not found."));
+			return Result<CurrencyInfo, AppException>.Failure(error: new CurrencyException(message: $"Currency '{query.Code}' not found."));
 
-		return Result<CurrencyInfo, DomainException>.Success(value: model);
+		return Result<CurrencyInfo, AppException>.Success(value: model);
 	}
 }

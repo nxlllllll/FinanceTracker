@@ -2,6 +2,7 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
@@ -58,7 +59,7 @@ public sealed class CreateTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Domains.Transaction.Transaction, DomainException>.Success(value: transaction));
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
 			accounts: account,
 			ct: CancellationToken.None
@@ -89,7 +90,7 @@ public sealed class CreateTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Domains.Transaction.Transaction, DomainException>.Failure(error: error));
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
 			accounts: account,
 			ct: CancellationToken.None
@@ -114,7 +115,7 @@ public sealed class CreateTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: CategoryFactory.CreateReadModel(type: CategoryType.Expense, archived: true));
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
 			accounts: account,
 			ct: CancellationToken.None

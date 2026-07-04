@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Budget;
@@ -8,9 +9,9 @@ namespace FinanceTracker.Application.UseCases.Budget.Queries.GetBudget;
 
 public sealed class GetBudgetHandler(
 	IBudgetReadRepository budgetReadRepository
-) : IRequestHandler<GetBudgetQuery, Result<BudgetReadModel, DomainException>>
+) : IRequestHandler<GetBudgetQuery, Result<BudgetReadModel, AppException>>
 {
-	public async Task<Result<BudgetReadModel, DomainException>> Handle(
+	public async Task<Result<BudgetReadModel, AppException>> Handle(
 		GetBudgetQuery query,
 		CancellationToken ct = default)
 	{
@@ -21,8 +22,8 @@ public sealed class GetBudgetHandler(
 		);
 
 		if (model is null)
-			return Result<BudgetReadModel, DomainException>.Failure(error: new NotFoundException(message: "Budget not found.", id: query.BudgetId));
+			return Result<BudgetReadModel, AppException>.Failure(error: new NotFoundException(message: "Budget not found.", id: query.BudgetId));
 
-		return Result<BudgetReadModel, DomainException>.Success(value: model);
+		return Result<BudgetReadModel, AppException>.Success(value: model);
 	}
 }

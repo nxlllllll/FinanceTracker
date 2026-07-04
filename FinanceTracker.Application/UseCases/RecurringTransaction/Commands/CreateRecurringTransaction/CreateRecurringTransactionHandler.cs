@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -18,15 +19,15 @@ public sealed class CreateRecurringTransactionHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<CreateRecurringTransactionHandler> logger
-) : IAuthorizedHandler<CreateRecurringTransactionCommand, Guid, DomainException>
+) : IAuthorizedHandler<CreateRecurringTransactionCommand, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		CreateRecurringTransactionCommand command,
 		CancellationToken ct = default)
 	{
 		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: command.Currency);
 		if (moneyResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: moneyResult.Error!);
+			return Result<Guid, AppException>.Failure(error: moneyResult.Error!);
 
 		Result<Core.Domains.RecurringTransaction.RecurringTransaction, DomainException> rtResult = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
 			createdAt: dateProvider.UtcNow,
@@ -39,7 +40,7 @@ public sealed class CreateRecurringTransactionHandler(
 			description: command.Description
 		);
 		if (rtResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: rtResult.Error!);
+			return Result<Guid, AppException>.Failure(error: rtResult.Error!);
 
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = rtResult.Value!;
 
@@ -67,6 +68,6 @@ public sealed class CreateRecurringTransactionHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionCreatedNotification for recurring transaction {recurringTransaction.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: recurringTransaction.Id);
+		return Result<Guid, AppException>.Success(value: recurringTransaction.Id);
 	}
 }

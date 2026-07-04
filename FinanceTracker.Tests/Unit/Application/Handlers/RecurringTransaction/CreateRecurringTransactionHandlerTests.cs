@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -44,7 +45,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			recurringTransaction: Arg.Any<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(),
@@ -75,7 +76,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: 0m);
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
@@ -99,7 +100,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(amount: -100m);
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
@@ -110,7 +111,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(dayOfMonth: 0);
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
@@ -121,7 +122,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(dayOfMonth: 32);
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();

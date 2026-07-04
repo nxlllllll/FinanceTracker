@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
@@ -8,9 +9,9 @@ namespace FinanceTracker.Application.UseCases.Category.Queries.GetCategory;
 
 public sealed class GetCategoryHandler(
 	ICategoryReadRepository categoryReadRepository
-) : IRequestHandler<GetCategoryQuery, Result<CategoryReadModel, DomainException>>
+) : IRequestHandler<GetCategoryQuery, Result<CategoryReadModel, AppException>>
 {
-	public async Task<Result<CategoryReadModel, DomainException>> Handle(
+	public async Task<Result<CategoryReadModel, AppException>> Handle(
 		GetCategoryQuery query,
 		CancellationToken ct = default)
 	{
@@ -21,8 +22,8 @@ public sealed class GetCategoryHandler(
 		);
 
 		if (model is null)
-			return Result<CategoryReadModel, DomainException>.Failure(error: new NotFoundException(message: "Category not found.", id: query.CategoryId));
+			return Result<CategoryReadModel, AppException>.Failure(error: new NotFoundException(message: "Category not found.", id: query.CategoryId));
 
-		return Result<CategoryReadModel, DomainException>.Success(value: model);
+		return Result<CategoryReadModel, AppException>.Success(value: model);
 	}
 }

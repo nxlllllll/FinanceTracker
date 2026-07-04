@@ -1,5 +1,6 @@
 using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Password;
@@ -67,7 +68,7 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 
 		RegisterUserCommand command = BuildCommand(email: email);
 
-		Result<Guid, DomainException>[] results = await Task.WhenAll(
+		Result<Guid, AppException>[] results = await Task.WhenAll(
 			handler1.Handle(command: command, ct: CancellationToken.None),
 			handler2.Handle(command: command, ct: CancellationToken.None)
 		);
@@ -117,12 +118,12 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 
 		RegisterUserCommand command = BuildCommand(email: email);
 
-		Result<Guid, DomainException>[] results = await Task.WhenAll(
+		Result<Guid, AppException>[] results = await Task.WhenAll(
 			handler1.Handle(command: command, ct: CancellationToken.None),
 			handler2.Handle(command: command, ct: CancellationToken.None)
 		);
 
-		Result<Guid, DomainException>? failure = results.FirstOrDefault(predicate: r => r.IsFailure);
+		Result<Guid, AppException>? failure = results.FirstOrDefault(predicate: r => r.IsFailure);
 
 		await Assert.That(value: failure).IsNotNull();
 		await Assert.That(value: failure.Value.Error).IsTypeOf<EmailException>();
@@ -134,14 +135,14 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 		string email = $"{Guid.CreateVersion7():N}@test.com";
 		RegisterUserCommand command = BuildCommand(email: email);
 
-		IEnumerable<Task<Result<Guid, DomainException>>> tasks = Enumerable.Range(start: 0, count: 10).Select(selector: _ =>
+		IEnumerable<Task<Result<Guid, AppException>>> tasks = Enumerable.Range(start: 0, count: 10).Select(selector: _ =>
 		{
 			FinanceTracker.Infrastructure.Database.Context.FinanceTrackerContext ctx = CreateAdditionalContext();
 			RegisterUserHandler handler = BuildHandler(context: ctx);
 			return handler.Handle(command: command, ct: CancellationToken.None);
 		});
 
-		Result<Guid, DomainException>[] results = await Task.WhenAll(tasks);
+		Result<Guid, AppException>[] results = await Task.WhenAll(tasks);
 
 		int successCount = results.Count(predicate: r => r.IsSuccess);
 		int count = await Context.Users.CountAsync(predicate: u => u.Email == Email.Create(value: email).Value);

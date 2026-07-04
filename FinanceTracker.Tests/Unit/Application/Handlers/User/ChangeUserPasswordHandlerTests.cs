@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -126,7 +127,7 @@ public sealed class ChangeUserPasswordHandlerTests
 
 		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: String.Empty);
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeUserPasswordCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), NewPassword: String.Empty),
 			accounts: user,
 			ct: CancellationToken.None

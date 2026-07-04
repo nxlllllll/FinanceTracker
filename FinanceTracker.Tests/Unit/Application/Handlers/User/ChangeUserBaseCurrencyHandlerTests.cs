@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Category;
@@ -105,7 +106,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: Currency.Create(value: "RUB").Value),
 			user: user,
 			ct: CancellationToken.None

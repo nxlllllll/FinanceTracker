@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -19,16 +20,16 @@ public sealed class ActivateBudgetHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ActivateBudgetHandler> logger
-) : IAuthorizedHandler<ActivateBudgetCommand, Core.Domains.Budget.Budget, Guid, DomainException>
+) : IAuthorizedHandler<ActivateBudgetCommand, Core.Domains.Budget.Budget, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ActivateBudgetCommand command,
 		Core.Domains.Budget.Budget entity,
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.Activate();
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		bool hasOverlap;
 
@@ -60,7 +61,7 @@ public sealed class ActivateBudgetHandler(
 
 		if (hasOverlap)
 		{
-			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(
 				message: "Cannot activate: a budget for this category already exists in an overlapping period."
 			));
 		}
@@ -78,6 +79,6 @@ public sealed class ActivateBudgetHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetActivatedNotification for budget {entity.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: entity.Id);
 	}
 }

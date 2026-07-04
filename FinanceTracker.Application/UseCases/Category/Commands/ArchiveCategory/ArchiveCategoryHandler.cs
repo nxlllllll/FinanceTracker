@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Category.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -22,16 +23,16 @@ public sealed class ArchiveCategoryHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ArchiveCategoryHandler> logger
-) : IAuthorizedHandler<ArchiveCategoryCommand, Core.Domains.Category.Category, Guid, DomainException>
+) : IAuthorizedHandler<ArchiveCategoryCommand, Core.Domains.Category.Category, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ArchiveCategoryCommand command,
 		Core.Domains.Category.Category entity,
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.Archive();
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
@@ -55,6 +56,6 @@ public sealed class ArchiveCategoryHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryArchivedNotification for category {entity.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: entity.Id);
 	}
 }

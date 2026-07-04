@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Budget.Authorization;
 using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount;
 using FinanceTracker.Core.Domains.Budget;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
@@ -30,7 +31,7 @@ public sealed class BudgetLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Budget?>(result: null));
 
-		Result<Budget, DomainException> result = await _loader.LoadAsync(
+		Result<Budget, AppException> result = await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7(), Amount: 1000m),
 			ct: CancellationToken.None
 		);
@@ -49,7 +50,7 @@ public sealed class BudgetLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: budget);
 
-		Result<Budget, DomainException> result = await _loader.LoadAsync(
+		Result<Budget, AppException> result = await _loader.LoadAsync(
 			request: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 1000m),
 			ct: CancellationToken.None
 		);

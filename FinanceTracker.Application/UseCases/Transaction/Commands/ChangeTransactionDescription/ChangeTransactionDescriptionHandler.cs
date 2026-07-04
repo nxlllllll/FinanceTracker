@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
@@ -16,21 +17,21 @@ public sealed class ChangeTransactionDescriptionHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ChangeTransactionDescriptionHandler> logger
-) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
+) : IAuthorizedHandler<ChangeTransactionDescriptionCommand, Core.Domains.Transaction.Transaction, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeTransactionDescriptionCommand command,
 		Core.Domains.Transaction.Transaction accounts,
 		CancellationToken ct = default)
 	{
 		if (accounts.Description == command.Description)
-			return Result<Guid, DomainException>.Success(value: accounts.Id);
+			return Result<Guid, AppException>.Success(value: accounts.Id);
 
 		string? oldDescription = accounts.Description;
 
 		Result<Unit, DomainException> result = accounts.ChangeDescription(description: command.Description);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await transactionWriteRepository.ChangeDescriptionAsync(
 			transactionId: command.TransactionId,
@@ -54,6 +55,6 @@ public sealed class ChangeTransactionDescriptionHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionDescriptionChangedNotification for transaction {accounts.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: accounts.Id);
 	}
 }

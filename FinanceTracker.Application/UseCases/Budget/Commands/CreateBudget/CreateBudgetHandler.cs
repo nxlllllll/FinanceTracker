@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -18,15 +19,15 @@ public sealed class CreateBudgetHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<CreateBudgetHandler> logger
-) : IRequestHandler<CreateBudgetCommand, Result<Guid, DomainException>>
+) : IRequestHandler<CreateBudgetCommand, Result<Guid, AppException>>
 {
-	public async Task<Result<Guid, DomainException>> Handle(
+	public async Task<Result<Guid, AppException>> Handle(
 		CreateBudgetCommand command,
 		CancellationToken ct = default)
 	{
 		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: command.Currency);
 		if (moneyResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: moneyResult.Error!);
+			return Result<Guid, AppException>.Failure(error: moneyResult.Error!);
 
 		Result<Core.Domains.Budget.Budget, DomainException> budgetResult = Core.Domains.Budget.Budget.Create(
 			userId: command.UserId,
@@ -37,7 +38,7 @@ public sealed class CreateBudgetHandler(
 			createdAt: dateProvider.UtcNow
 		);
 		if (budgetResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: budgetResult.Error!);
+			return Result<Guid, AppException>.Failure(error: budgetResult.Error!);
 
 		Core.Domains.Budget.Budget budget = budgetResult.Value!;
 		bool hasOverlap = false;
@@ -66,7 +67,7 @@ public sealed class CreateBudgetHandler(
 		}
 
 		if (hasOverlap)
-			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
 		try
 		{
@@ -85,6 +86,6 @@ public sealed class CreateBudgetHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetCreatedNotification for budget {budget.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: budget.Id);
+		return Result<Guid, AppException>.Success(value: budget.Id);
 	}
 }

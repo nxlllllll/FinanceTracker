@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Category.Commands.ArchiveCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -124,7 +125,7 @@ public sealed class ArchiveCategoryHandlerTests
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true).Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
 			entity: category,
 			ct: CancellationToken.None

@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
@@ -8,9 +9,9 @@ namespace FinanceTracker.Application.UseCases.User.Queries.GetUser;
 
 public sealed class GetUserHandler(
 	IUserQueryRepository userQueryRepository
-) : IRequestHandler<GetUserQuery, Result<UserReadModel, DomainException>>
+) : IRequestHandler<GetUserQuery, Result<UserReadModel, AppException>>
 {
-	public async Task<Result<UserReadModel, DomainException>> Handle(
+	public async Task<Result<UserReadModel, AppException>> Handle(
 		GetUserQuery query,
 		CancellationToken ct = default)
 	{
@@ -20,8 +21,8 @@ public sealed class GetUserHandler(
 		);
 
 		if (model is null)
-			return Result<UserReadModel, DomainException>.Failure(error: new NotFoundException(message: "User not found.", id: query.UserId));
+			return Result<UserReadModel, AppException>.Failure(error: new NotFoundException(message: "User not found.", id: query.UserId));
 
-		return Result<UserReadModel, DomainException>.Success(value: model);
+		return Result<UserReadModel, AppException>.Success(value: model);
 	}
 }

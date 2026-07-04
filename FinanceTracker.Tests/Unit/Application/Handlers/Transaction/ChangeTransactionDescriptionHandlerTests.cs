@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -34,7 +35,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(description: "Old description");
 
-		Result<Guid, FinanceTracker.Core.Exceptions.DomainExceptions.DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeTransactionDescriptionCommand(
 				UserId: transaction.UserId,
 				TransactionId: transaction.Id,
@@ -83,7 +84,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(description: "Same description");
 
-		Result<Guid, FinanceTracker.Core.Exceptions.DomainExceptions.DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeTransactionDescriptionCommand(
 				UserId: transaction.UserId,
 				TransactionId: transaction.Id,
@@ -128,7 +129,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create();
 
-		Result<Guid, FinanceTracker.Core.Exceptions.DomainExceptions.DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeTransactionDescriptionCommand(
 				UserId: transaction.UserId,
 				TransactionId: transaction.Id,

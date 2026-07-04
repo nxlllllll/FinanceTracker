@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -21,9 +22,9 @@ public sealed class ChangeUserPasswordHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ChangeUserPasswordHandler> logger
-) : IAuthorizedHandler<ChangeUserPasswordCommand, Core.Domains.User.User, Guid, DomainException>
+) : IAuthorizedHandler<ChangeUserPasswordCommand, Core.Domains.User.User, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeUserPasswordCommand command,
 		Core.Domains.User.User accounts,
 		CancellationToken ct = default)
@@ -32,7 +33,7 @@ public sealed class ChangeUserPasswordHandler(
 
 		Result<Unit, DomainException> result = accounts.ChangePassword(newPasswordHash: newPasswordHash);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
@@ -63,6 +64,6 @@ public sealed class ChangeUserPasswordHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish UserPasswordChangedNotification for user {accounts.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: accounts.Id);
 	}
 }

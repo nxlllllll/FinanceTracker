@@ -4,8 +4,10 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Tests.Unit.Helpers;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using StackExchange.Redis;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Cache;
@@ -33,12 +35,10 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 		IOptionsMonitor<RedisOptions> redisOptions = Substitute.For<IOptionsMonitor<RedisOptions>>();
 		redisOptions.CurrentValue.Returns(returnThis: new RedisOptions { InstanceName = "ft_test:" });
 
-		RedisCache redisCache = new RedisCache(connectionMultiplexer: _connectionMultiplexer, options: redisOptions);
+		RedisCache redisCache = new RedisCache(connectionMultiplexer: _connectionMultiplexer, options: redisOptions, logger: NullLogger<RedisCache>.Instance);
 		_repository = new CachedCurrencyRateReadRepository(inner: _inner, redisCache: redisCache, dateProvider: FakeDateProvider.Default);
 
-		_database
-			.StringGetAsync(key: Arg.Any<RedisKey>())
-			.Returns(returnThis: RedisValue.Null);
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: RedisValue.Null);
 	}
 
 	[Test]
@@ -83,9 +83,7 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 	[Test]
 	public async Task GetRateAsync_OnCacheHit_DoesNotCallInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)90m));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)90m));
 
 		await _repository.GetRateAsync(baseCurrencyCode: Usd, targetCurrencyCode: Rub, date: Today);
 
@@ -124,9 +122,7 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 	[Test]
 	public async Task GetRateAsync_WhenNullIsCached_ReturnsNullWithoutCallingInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)null));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)null));
 
 		decimal? result = await _repository.GetRateAsync(
 			baseCurrencyCode: Usd,
@@ -164,9 +160,7 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 	[Test]
 	public async Task GetLatestRateAsync_OnCacheHit_DoesNotCallInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)90m));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)90m));
 
 		await _repository.GetLatestRateAsync(baseCurrencyCode: Usd, targetCurrencyCode: Rub);
 
@@ -200,9 +194,7 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 	[Test]
 	public async Task GetRateKnownAtOrBeforeAsync_OnCacheHit_DoesNotCallInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)90m));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)90m));
 
 		await _repository.GetRateKnownAtOrBeforeAsync(baseCurrencyCode: Usd, targetCurrencyCode: Rub, asOf: AsOf);
 
@@ -238,9 +230,7 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 	[Test]
 	public async Task GetRateKnownAtOrBeforeAsync_WhenNullIsCached_ReturnsNullWithoutCallingInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)null));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (decimal?)null));
 
 		decimal? result = await _repository.GetRateKnownAtOrBeforeAsync(baseCurrencyCode: Usd, targetCurrencyCode: Rub, asOf: AsOf);
 
@@ -249,6 +239,30 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 			baseCurrencyCode: Arg.Any<Currency>(),
 			targetCurrencyCode: Arg.Any<Currency>(),
 			asOf: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task GetRateAsync_WhenRedisIsUnavailable_FallsThroughToInnerInsteadOfThrowing()
+	{
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).ThrowsAsync(
+			ex: new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost.")
+		);
+		_inner.GetRateAsync(
+			baseCurrencyCode: Arg.Any<Currency>(),
+			targetCurrencyCode: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: 90m);
+
+		decimal? result = await _repository.GetRateAsync(baseCurrencyCode: Usd, targetCurrencyCode: Rub, date: Today);
+
+		await Assert.That(value: result).IsEqualTo(expected: 90m);
+		await _inner.Received(requiredNumberOfCalls: 1).GetRateAsync(
+			baseCurrencyCode: Usd,
+			targetCurrencyCode: Rub,
+			date: Today,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

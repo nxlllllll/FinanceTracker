@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.Activate
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
@@ -39,7 +40,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<RecurringTransaction?>(result: null));
 
-		Result<RecurringTransaction, DomainException> result = await _loader.LoadAsync(
+		Result<RecurringTransaction, AppException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: Guid.CreateVersion7(), RecurringTransactionId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -57,7 +58,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: recurringTransaction);
 
-		Result<RecurringTransaction, DomainException> result = await _loader.LoadAsync(
+		Result<RecurringTransaction, AppException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: Guid.CreateVersion7(), RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
 		);
@@ -75,7 +76,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: recurringTransaction);
 
-		Result<RecurringTransaction, DomainException> result = await _loader.LoadAsync(
+		Result<RecurringTransaction, AppException> result = await _loader.LoadAsync(
 			request: new ActivateRecurringTransactionCommand(UserId: recurringTransaction.UserId, RecurringTransactionId: recurringTransaction.Id),
 			ct: CancellationToken.None
 		);
@@ -95,7 +96,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<AccountReadModel?>(result: null));
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _loader.LoadAsync(request: command, ct: CancellationToken.None);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _loader.LoadAsync(request: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
@@ -121,7 +122,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _loader.LoadAsync(request: command, ct: CancellationToken.None);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _loader.LoadAsync(request: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
@@ -147,7 +148,7 @@ public sealed class RecurringTransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _loader.LoadAsync(request: command, ct: CancellationToken.None);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _loader.LoadAsync(request: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 	}

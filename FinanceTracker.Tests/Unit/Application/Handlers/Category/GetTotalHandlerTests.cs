@@ -1,6 +1,9 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetTotal;
+using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -23,7 +26,7 @@ public sealed class GetTotalHandlerTests
 	{
 		Guid userId = Guid.CreateVersion7();
 		Guid categoryId = Guid.CreateVersion7();
-		DateOnly period = new DateOnly(2025, 1, 1);
+		DateOnly period = new DateOnly(year: 2025, month: 1, day: 1);
 
 		CategoryTotal dto = new CategoryTotal(
 			CategoryId: categoryId,
@@ -40,19 +43,20 @@ public sealed class GetTotalHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: dto);
 
-		CategoryTotal? result = await _handler.Handle(
+		Result<CategoryTotal, AppException> result = await _handler.Handle(
 			query: new GetTotalQuery(UserId: userId, CategoryId: categoryId, Period: period),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNotNull();
-		await Assert.That(value: result!.CategoryId).IsEqualTo(expected: categoryId);
-		await Assert.That(value: result.Total).IsEqualTo(expected: 5000m);
-		await Assert.That(value: result.Count).IsEqualTo(expected: 3);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsNotNull();
+		await Assert.That(value: result.Value.CategoryId).IsEqualTo(expected: categoryId);
+		await Assert.That(value: result.Value.Total).IsEqualTo(expected: 5000m);
+		await Assert.That(value: result.Value.Count).IsEqualTo(expected: 3);
 	}
 
 	[Test]
-	public async Task Handle_WhenTotalNotFound_ShouldReturnNull()
+	public async Task Handle_WhenTotalNotFound_ShouldReturnEmptyTotal()
 	{
 		_categoryTotalReadRepository.GetByCategoryAsync(
 			userId: Arg.Any<Guid>(),
@@ -61,7 +65,7 @@ public sealed class GetTotalHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<CategoryTotal?>(result: null));
 
-		CategoryTotal? result = await _handler.Handle(
+		Result<CategoryTotal, AppException> result = await _handler.Handle(
 			query: new GetTotalQuery(
 				UserId: Guid.CreateVersion7(),
 				CategoryId: Guid.CreateVersion7(),
@@ -70,6 +74,10 @@ public sealed class GetTotalHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsNull();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsNotNull();
+		await Assert.That(value: result.Value.Total).IsEqualTo(expected: 0);
+		await Assert.That(value: result.Value.Count).IsEqualTo(expected: 0);
+		await Assert.That(value: result.Value.UpdatedAt).IsNull();
 	}
 }

@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Category.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Category;
@@ -17,15 +18,15 @@ public sealed class CreateCategoryHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<CreateCategoryHandler> logger
-) : IRequestHandler<CreateCategoryCommand, Result<Guid, DomainException>>
+) : IRequestHandler<CreateCategoryCommand, Result<Guid, AppException>>
 {
-	public async Task<Result<Guid, DomainException>> Handle(
+	public async Task<Result<Guid, AppException>> Handle(
 		CreateCategoryCommand command,
 		CancellationToken ct = default)
 	{
 		Result<Name, DomainException> nameResult = Name.Create(value: command.Name);
 		if (nameResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: nameResult.Error!);
+			return Result<Guid, AppException>.Failure(error: nameResult.Error!);
 
 		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
 			createdAt: dateProvider.UtcNow,
@@ -53,6 +54,6 @@ public sealed class CreateCategoryHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryCreatedNotification for category {category.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: category.Id);
+		return Result<Guid, AppException>.Success(value: category.Id);
 	}
 }

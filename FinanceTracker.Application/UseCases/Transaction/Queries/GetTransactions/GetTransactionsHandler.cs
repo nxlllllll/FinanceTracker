@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
@@ -7,13 +8,13 @@ namespace FinanceTracker.Application.UseCases.Transaction.Queries.GetTransaction
 
 public sealed class GetTransactionsHandler(
 	ITransactionReadRepository transactionReadRepository
-) : IRequestHandler<GetTransactionsQuery, PagedResult<TransactionReadModel>>
+) : IRequestHandler<GetTransactionsQuery, Result<PagedResult<TransactionReadModel>, AppException>>
 {
-	public async Task<PagedResult<TransactionReadModel>> Handle(
+	public async Task<Result<PagedResult<TransactionReadModel>, AppException>> Handle(
 		GetTransactionsQuery query,
 		CancellationToken ct = default)
 	{
-		return await transactionReadRepository.GetAllAsync(
+		return Result<PagedResult<TransactionReadModel>, AppException>.Success(value: await transactionReadRepository.GetAllAsync(
 			userId: query.UserId,
 			accountId: query.AccountId,
 			categoryId: query.CategoryId,
@@ -25,6 +26,6 @@ public sealed class GetTransactionsHandler(
 			cursorId: query.CursorId,
 			pageSize: query.PageSize,
 			ct: ct
-		);
+		));
 	}
 }

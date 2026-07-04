@@ -23,47 +23,47 @@ public sealed class CachedCurrencyReadRepository(
 
 	public async Task<IReadOnlyList<CurrencyInfo>> GetAllAsync(CancellationToken ct = default)
 	{
-		CacheEntry<IReadOnlyList<CurrencyInfo>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyInfo>>(key: AllKey, ct: ct);
+		CacheEntry<IReadOnlyList<CurrencyInfo>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyInfo>>(key: AllKey);
 		if (entry.Found)
 			return entry.Value ?? [];
 
 		IReadOnlyList<CurrencyInfo> result = await inner.GetAllAsync(ct: ct);
-		await redisCache.SetAsync(key: AllKey, value: result, options: Ttl, ct: ct);
+		await redisCache.SetAsync(key: AllKey, value: result, options: Ttl);
 		return result;
 	}
 
 	public async Task<IReadOnlyList<CurrencyInfo>> GetAllActiveAsync(CancellationToken ct = default)
 	{
-		CacheEntry<IReadOnlyList<CurrencyInfo>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyInfo>>(key: AllActiveKey, ct: ct);
+		CacheEntry<IReadOnlyList<CurrencyInfo>> entry = await redisCache.TryGetAsync<IReadOnlyList<CurrencyInfo>>(key: AllActiveKey);
 		if (entry.Found)
 			return entry.Value ?? [];
 
 		IReadOnlyList<CurrencyInfo> result = await inner.GetAllActiveAsync(ct: ct);
-		await redisCache.SetAsync(key: AllActiveKey, value: result, options: Ttl, ct: ct);
+		await redisCache.SetAsync(key: AllActiveKey, value: result, options: Ttl);
 		return result;
 	}
 
 	public async Task<CurrencyInfo?> GetByCodeAsync(string code, CancellationToken ct = default)
 	{
 		string key = $"currency:{code}";
-		CacheEntry<CurrencyInfo?> entry = await redisCache.TryGetAsync<CurrencyInfo?>(key: key, ct: ct);
+		CacheEntry<CurrencyInfo?> entry = await redisCache.TryGetAsync<CurrencyInfo?>(key: key);
 		if (entry.Found)
 			return entry.Value;
 
 		CurrencyInfo? result = await inner.GetByCodeAsync(code: code, ct: ct);
-		await redisCache.SetAsync(key: key, value: result, options: Ttl, ct: ct);
+		await redisCache.SetAsync(key: key, value: result, options: Ttl);
 		return result;
 	}
 
 	public async Task<bool> ExistsAsync(string code, CancellationToken ct = default)
 	{
 		string key = $"currency:exists:{code}";
-		CacheEntry<bool> entry = await redisCache.TryGetAsync<bool>(key: key, ct: ct);
+		CacheEntry<bool> entry = await redisCache.TryGetAsync<bool>(key: key);
 		if (entry.Found)
 			return entry.Value;
 
 		bool result = await inner.ExistsAsync(code: code, ct: ct);
-		await redisCache.SetAsync(key: key, value: result, options: Ttl, ct: ct);
+		await redisCache.SetAsync(key: key, value: result, options: Ttl);
 		return result;
 	}
 }

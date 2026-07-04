@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Account.Authorization;
 using FinanceTracker.Application.UseCases.Account.Commands.ArchiveAccount;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
@@ -29,7 +30,7 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		Result<Account, DomainException> result = await _loader.LoadAsync(
+		Result<Account, AppException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -47,7 +48,7 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		Result<Account, DomainException> result = await _loader.LoadAsync(
+		Result<Account, AppException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: Guid.CreateVersion7(), AccountId: account.Id),
 			ct: CancellationToken.None
 		);
@@ -65,7 +66,7 @@ public sealed class AccountLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		Result<Account, DomainException> result = await _loader.LoadAsync(
+		Result<Account, AppException> result = await _loader.LoadAsync(
 			request: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
 			ct: CancellationToken.None
 		);

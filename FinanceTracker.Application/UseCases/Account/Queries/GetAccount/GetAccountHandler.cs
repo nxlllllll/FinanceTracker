@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
@@ -8,9 +9,9 @@ namespace FinanceTracker.Application.UseCases.Account.Queries.GetAccount;
 
 public sealed class GetAccountHandler(
 	IAccountReadRepository accountReadRepository
-) : IRequestHandler<GetAccountQuery, Result<AccountReadModel, DomainException>>
+) : IRequestHandler<GetAccountQuery, Result<AccountReadModel, AppException>>
 {
-	public async Task<Result<AccountReadModel, DomainException>> Handle(
+	public async Task<Result<AccountReadModel, AppException>> Handle(
 		GetAccountQuery query,
 		CancellationToken ct = default)
 	{
@@ -21,8 +22,8 @@ public sealed class GetAccountHandler(
 		);
 
 		if (model is null)
-			return Result<AccountReadModel, DomainException>.Failure(error: new NotFoundException(message: "Account not found.", id: query.AccountId));
+			return Result<AccountReadModel, AppException>.Failure(error: new NotFoundException(message: "Account not found.", id: query.AccountId));
 
-		return Result<AccountReadModel, DomainException>.Success(value: model);
+		return Result<AccountReadModel, AppException>.Success(value: model);
 	}
 }

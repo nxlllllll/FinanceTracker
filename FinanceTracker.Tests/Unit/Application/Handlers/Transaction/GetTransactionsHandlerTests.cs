@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Transaction.Queries.GetTransactions;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
@@ -64,12 +65,13 @@ public sealed class GetTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: PageOf(items: transactions));
 
-		PagedResult<TransactionReadModel> result = await _handler.Handle(
+		Result<PagedResult<TransactionReadModel>, AppException> result = await _handler.Handle(
 			query: new GetTransactionsQuery(UserId: userId, AccountId: accountId),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Items.Count).IsEqualTo(expected: 2);
 	}
 
 	[Test]
@@ -244,12 +246,13 @@ public sealed class GetTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: EmptyPage());
 
-		PagedResult<TransactionReadModel> result = await _handler.Handle(
+		Result<PagedResult<TransactionReadModel>, AppException> result = await _handler.Handle(
 			query: new GetTransactionsQuery(UserId: Guid.CreateVersion7(), AccountId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Items).IsEmpty();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Items).IsEmpty();
 	}
 
 	[Test]

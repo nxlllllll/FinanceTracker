@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
@@ -8,9 +9,9 @@ namespace FinanceTracker.Application.UseCases.Transaction.Queries.GetTransaction
 
 public sealed class GetTransactionHandler(
 	ITransactionReadRepository transactionReadRepository
-) : IRequestHandler<GetTransactionQuery, Result<TransactionReadModel, DomainException>>
+) : IRequestHandler<GetTransactionQuery, Result<TransactionReadModel, AppException>>
 {
-	public async Task<Result<TransactionReadModel, DomainException>> Handle(
+	public async Task<Result<TransactionReadModel, AppException>> Handle(
 		GetTransactionQuery query,
 		CancellationToken ct = default)
 	{
@@ -21,8 +22,8 @@ public sealed class GetTransactionHandler(
 		);
 
 		if (model is null)
-			return Result<TransactionReadModel, DomainException>.Failure(error: new NotFoundException(message: "Transaction not found.", id: query.TransactionId));
+			return Result<TransactionReadModel, AppException>.Failure(error: new NotFoundException(message: "Transaction not found.", id: query.TransactionId));
 
-		return Result<TransactionReadModel, DomainException>.Success(value: model);
+		return Result<TransactionReadModel, AppException>.Success(value: model);
 	}
 }

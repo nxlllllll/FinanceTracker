@@ -34,6 +34,7 @@ public sealed class OutboxWriteRepository(
 			setPropertyCalls: s => s
 				.SetProperty(propertyExpression: x => x.RetryCount, valueExpression: retryCount)
 				.SetProperty(propertyExpression: x => x.FailedAt, valueExpression: failedAt)
+				.SetProperty(propertyExpression: x => x.LockedUntil, valueExpression: (DateTimeOffset?)null)
 				.SetProperty(propertyExpression: x => x.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);

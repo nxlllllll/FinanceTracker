@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Application.UseCases.Transfer.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -65,7 +66,7 @@ public sealed class CreateTransferHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
 			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
@@ -160,7 +161,7 @@ public sealed class CreateTransferHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
 			accounts: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None

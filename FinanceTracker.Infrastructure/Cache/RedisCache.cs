@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -13,7 +14,8 @@ namespace FinanceTracker.Infrastructure.Cache;
 /// </summary>
 public sealed class RedisCache(
 	IConnectionMultiplexer connectionMultiplexer,
-	IOptionsMonitor<RedisOptions> options)
+	IOptionsMonitor<RedisOptions> options,
+	ILogger<RedisCache> logger)
 {
 	private string Prefixed(string key)
 		=> $"{options.CurrentValue.InstanceName}{key}";
@@ -38,10 +40,20 @@ public sealed class RedisCache(
 		);
 	}
 
-	public async Task<CacheEntry<T>> TryGetAsync<T>(string key, CancellationToken ct = default)
+	public async Task<CacheEntry<T>> TryGetAsync<T>(string key)
 	{
 		IDatabase database = connectionMultiplexer.GetDatabase();
-		RedisValue value = await database.StringGetAsync(key: Prefixed(key: key));
+
+		RedisValue value;
+		try
+		{
+			value = await database.StringGetAsync(key: Prefixed(key: key));
+		}
+		catch (RedisException ex)
+		{
+			logger.LogWarning(exception: ex, message: "Redis unavailable reading key {Key} — reporting a cache miss.", Prefixed(key: key));
+			return new CacheEntry<T>(Found: false, Value: default!);
+		}
 
 		if (value.IsNull)
 			return new CacheEntry<T>(Found: false, Value: default!);
@@ -55,15 +67,21 @@ public sealed class RedisCache(
 	public async Task SetAsync<T>(
 		string key,
 		T value,
-		DistributedCacheEntryOptions options,
-		CancellationToken ct = default)
+		DistributedCacheEntryOptions options)
 	{
 		IDatabase database = connectionMultiplexer.GetDatabase();
-		await database.StringSetAsync(
-			key: Prefixed(key: key),
-			value: JsonSerializer.SerializeToUtf8Bytes(value: value),
-			expiry: ToExpiry(cacheOptions: options)
-		);
+		try
+		{
+			await database.StringSetAsync(
+				key: Prefixed(key: key),
+				value: JsonSerializer.SerializeToUtf8Bytes(value: value),
+				expiry: ToExpiry(cacheOptions: options)
+			);
+		}
+		catch (RedisException ex)
+		{
+			logger.LogWarning(exception: ex, message: "Redis unavailable writing key {Key} — leaving the cache cold for this entry.", Prefixed(key: key));
+		}
 	}
 
 	/// <summary>
@@ -71,9 +89,7 @@ public sealed class RedisCache(
 	/// The result always has exactly one entry per input key — missing keys come back as
 	/// <see cref="CacheEntry{T}.Found"/> <c>false</c> rather than being omitted.
 	/// </summary>
-	public async Task<Dictionary<string, CacheEntry<T>>> TryGetBatchAsync<T>(
-		IReadOnlyList<string> keys,
-		CancellationToken ct = default)
+	public async Task<Dictionary<string, CacheEntry<T>>> TryGetBatchAsync<T>(IReadOnlyList<string> keys)
 	{
 		if (keys.Count == 0)
 			return [];
@@ -83,7 +99,20 @@ public sealed class RedisCache(
 			redisKeys[i] = Prefixed(key: keys[i]);
 
 		IDatabase database = connectionMultiplexer.GetDatabase();
-		RedisValue[] values = await database.StringGetAsync(keys: redisKeys);
+
+		RedisValue[] values;
+		try
+		{
+			values = await database.StringGetAsync(keys: redisKeys);
+		}
+		catch (RedisException ex)
+		{
+			logger.LogWarning(exception: ex, message: "Redis unavailable reading a batch of {Count} keys — reporting all as cache misses.", keys.Count);
+			Dictionary<string, CacheEntry<T>> allMissed = new Dictionary<string, CacheEntry<T>>(capacity: keys.Count);
+			foreach (string k in keys)
+				allMissed[k] = new CacheEntry<T>(Found: false, Value: default!);
+			return allMissed;
+		}
 
 		Dictionary<string, CacheEntry<T>> result = new Dictionary<string, CacheEntry<T>>(capacity: keys.Count);
 		for (int i = 0; i < keys.Count; i++)
@@ -101,9 +130,7 @@ public sealed class RedisCache(
 	/// Writes multiple keys in a single pipelined batch — one network flush, all commands
 	/// awaited together, instead of one round-trip per key.
 	/// </summary>
-	public async Task SetBatchAsync<T>(
-		IReadOnlyList<(string Key, T Value, DistributedCacheEntryOptions Options)> items,
-		CancellationToken ct = default)
+	public async Task SetBatchAsync<T>(IReadOnlyList<(string Key, T Value, DistributedCacheEntryOptions Options)> items)
 	{
 		if (items.Count == 0)
 			return;
@@ -123,6 +150,14 @@ public sealed class RedisCache(
 		}
 
 		batch.Execute();
-		await Task.WhenAll(tasks);
+
+		try
+		{
+			await Task.WhenAll(tasks);
+		}
+		catch (RedisException ex)
+		{
+			logger.LogWarning(exception: ex, message: "Redis unavailable writing a batch of {Count} keys — leaving the cache cold for these entries.", items.Count);
+		}
 	}
 }

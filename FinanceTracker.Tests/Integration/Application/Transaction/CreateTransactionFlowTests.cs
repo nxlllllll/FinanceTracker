@@ -2,6 +2,7 @@ using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -36,7 +37,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	/// <summary>Creates an account through MediatR and gets into the Event Store and read model.</summary>
 	private async Task<Guid> CreateAccountAsync(Guid userId, decimal balance = 10_000m)
 	{
-		Result<Guid, DomainException> result = await Mediator.Send(request: new CreateAccountCommand(
+		Result<Guid, AppException> result = await Mediator.Send(request: new CreateAccountCommand(
 			UserId: userId,
 			Name: Name.Create(value: "Основной счёт").Value,
 			Type: AccountType.Checking,
@@ -96,7 +97,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Result<Guid, DomainException> result = await Mediator.Send(
+		Result<Guid, AppException> result = await Mediator.Send(
 			request: BuildCommand(userId: userId, accountId: accountId, categoryId: categoryId)
 		);
 
@@ -187,7 +188,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 		Guid accountId = await CreateAccountAsync(userId: userId, balance: 500m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Result<Guid, DomainException> result = await Mediator.Send(
+		Result<Guid, AppException> result = await Mediator.Send(
 			request: BuildCommand(userId: userId, accountId: accountId, categoryId: categoryId, amount: 1_000m)
 		);
 

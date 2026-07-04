@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -37,7 +38,7 @@ public sealed class CreateAccountHandlerTests
 	{
 		CreateAccountCommand command = CreateAccountCommandFactory.Create();
 
-		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value).IsNotEqualTo(notExpected: Guid.Empty);
@@ -65,7 +66,7 @@ public sealed class CreateAccountHandlerTests
 	{
 		CreateAccountCommand command = CreateAccountCommandFactory.Create(initialBalance: -100);
 
-		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await _accountRepository.DidNotReceive().SaveAsync(

@@ -2,6 +2,7 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Utilities;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
@@ -26,28 +27,28 @@ public sealed class ChangeTransactionCategoryHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ChangeTransactionCategoryHandler> logger
-) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
+) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Core.Domains.Transaction.Transaction, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeTransactionCategoryCommand command,
 		Core.Domains.Transaction.Transaction accounts,
 		CancellationToken ct = default)
 	{
 		if (accounts.CategoryId == command.CategoryId)
-			return Result<Guid, DomainException>.Success(value: accounts.Id);
+			return Result<Guid, AppException>.Success(value: accounts.Id);
 
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
 		if (category is null)
-			return Result<Guid, DomainException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
+			return Result<Guid, AppException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
 
 		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: accounts.Direction);
 		if (validationResult is not null)
-			return Result<Guid, DomainException>.Failure(error: validationResult);
+			return Result<Guid, AppException>.Failure(error: validationResult);
 
 		Guid oldCategoryId = accounts.CategoryId;
 		Result<Unit, DomainException> result = accounts.ChangeCategory(categoryId: command.CategoryId);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
@@ -98,6 +99,6 @@ public sealed class ChangeTransactionCategoryHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionCategoryChangedNotification for transaction {accounts.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: accounts.Id);
 	}
 }

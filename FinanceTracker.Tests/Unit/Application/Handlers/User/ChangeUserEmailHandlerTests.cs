@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -100,7 +101,7 @@ public sealed class ChangeUserEmailHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: anotherUser);
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
 			accounts: user,
 			ct: CancellationToken.None

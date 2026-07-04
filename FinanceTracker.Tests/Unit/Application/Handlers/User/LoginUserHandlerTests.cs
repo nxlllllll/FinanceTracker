@@ -1,5 +1,6 @@
 using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -60,7 +61,7 @@ public sealed class LoginUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
-		Result<SessionToken, DomainException> result = await _userHandler.Handle(
+		Result<SessionToken, AppException> result = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -100,7 +101,7 @@ public sealed class LoginUserHandlerTests
 			storedHash: Arg.Any<string?>()
 		).Returns(returnThis: false);
 
-		Result<SessionToken, DomainException> result = await _userHandler.Handle(
+		Result<SessionToken, AppException> result = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrongpassword", IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -152,7 +153,7 @@ public sealed class LoginUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: TestSessionToken);
 
-		Result<SessionToken, DomainException> result = await _userHandler.Handle(
+		Result<SessionToken, AppException> result = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -169,7 +170,7 @@ public sealed class LoginUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (FinanceTracker.Core.Domains.User.User?)null);
 
-		Result<SessionToken, DomainException> resultNoUser = await _userHandler.Handle(
+		Result<SessionToken, AppException> resultNoUser = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: RawPassword, IpAddress: _testIp),
 			ct: CancellationToken.None
 		);
@@ -183,7 +184,7 @@ public sealed class LoginUserHandlerTests
 			storedHash: Arg.Any<string?>()
 		).Returns(returnThis: false);
 
-		Result<SessionToken, DomainException> resultWrongPassword = await _userHandler.Handle(
+		Result<SessionToken, AppException> resultWrongPassword = await _userHandler.Handle(
 			userCommand: new LoginUserCommand(Email: TestEmail, Password: "wrong", IpAddress: _testIp),
 			ct: CancellationToken.None
 		);

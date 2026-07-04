@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransaction
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Category;
@@ -41,7 +42,7 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Transaction?>(result: null));
 
-		Result<Transaction, DomainException> result = await _loader.LoadAsync(
+		Result<Transaction, AppException> result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: Guid.CreateVersion7(), TransactionId: Guid.CreateVersion7(), CategoryId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -60,7 +61,7 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Transaction?>(result: null));
 
-		Result<Transaction, DomainException> result = await _loader.LoadAsync(
+		Result<Transaction, AppException> result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(
 				UserId: Guid.CreateVersion7(),
 				TransactionId: transaction.Id,
@@ -89,7 +90,7 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		Result<Transaction, DomainException> result = await _loader.LoadAsync(
+		Result<Transaction, AppException> result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -105,7 +106,7 @@ public sealed class TransactionLoaderTests
 			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		Result<Account, DomainException> resultAccount = await _loader.LoadAsync(
+		Result<Account, AppException> resultAccount = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(),
 			ct: CancellationToken.None
 		);
@@ -122,7 +123,7 @@ public sealed class TransactionLoaderTests
 			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
-		Result<Account, DomainException> resultAccount = await _loader.LoadAsync(
+		Result<Account, AppException> resultAccount = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(userId: Guid.CreateVersion7(), accountId: account.Id),
 			ct: CancellationToken.None
 		);
@@ -146,7 +147,7 @@ public sealed class TransactionLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		Result<Account, DomainException> result = await _loader.LoadAsync(
+		Result<Account, AppException> result = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(userId: account.UserId, accountId: account.Id),
 			ct: CancellationToken.None
 		);

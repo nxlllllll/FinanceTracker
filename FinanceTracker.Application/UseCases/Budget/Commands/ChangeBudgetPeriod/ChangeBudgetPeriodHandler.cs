@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -20,16 +21,16 @@ public sealed class ChangeBudgetPeriodHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ChangeBudgetPeriodHandler> logger
-) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Core.Domains.Budget.Budget, Guid, DomainException>
+) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Core.Domains.Budget.Budget, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeBudgetPeriodCommand command,
 		Core.Domains.Budget.Budget entity,
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> domainResult = entity.ChangePeriod(from: command.From, to: command.To);
 		if (domainResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: domainResult.Error!);
+			return Result<Guid, AppException>.Failure(error: domainResult.Error!);
 
 		bool hasOverlap;
 
@@ -77,7 +78,7 @@ public sealed class ChangeBudgetPeriodHandler(
 		}
 
 		if (hasOverlap)
-			return Result<Guid, DomainException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
 		try
 		{
@@ -94,6 +95,6 @@ public sealed class ChangeBudgetPeriodHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetPeriodChangedNotification for budget {entity.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: entity.Id);
 	}
 }

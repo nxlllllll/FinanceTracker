@@ -1,7 +1,9 @@
 using FinanceTracker.Application.UseCases.User.Queries.GetTotalBalance;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -47,13 +49,14 @@ public sealed class GetTotalBalanceHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 5000m);
 
-		Money result = await _handler.Handle(
+		Result<Money, AppException> result = await _handler.Handle(
 			query: new GetTotalBalanceQuery(UserId: user.Id),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Amount).IsEqualTo(expected: 5000m);
-		await Assert.That(value: result.Currency.Value).IsEqualTo(expected: "RUB");
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value.Amount).IsEqualTo(expected: 5000m);
+		await Assert.That(value: result.Value.Currency.Value).IsEqualTo(expected: "RUB");
 	}
 
 	[Test]
@@ -93,11 +96,12 @@ public sealed class GetTotalBalanceHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserReadModel?)null);
 
-		await Assert.ThrowsAsync<NotFoundException>(
-			action: async () => await _handler.Handle(
-				query: new GetTotalBalanceQuery(UserId: Guid.CreateVersion7()),
-				ct: CancellationToken.None
-			)
+		Result<Money, AppException> result = await _handler.Handle(
+			query: new GetTotalBalanceQuery(UserId: Guid.CreateVersion7()),
+			ct: CancellationToken.None
 		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

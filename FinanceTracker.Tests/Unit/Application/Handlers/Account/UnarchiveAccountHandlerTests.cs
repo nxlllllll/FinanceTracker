@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Account.Commands.UnarchiveAccount;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -54,7 +55,7 @@ public sealed class UnarchiveAccountHandlerTests
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation();
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new UnarchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
 			accounts: account,
 			ct: CancellationToken.None

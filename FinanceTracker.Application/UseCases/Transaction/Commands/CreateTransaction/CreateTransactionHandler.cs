@@ -2,6 +2,7 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Application.UseCases.Transaction.Utilities;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
@@ -17,27 +18,27 @@ public sealed class CreateTransactionHandler(
 	ICategoryReadRepository categoryReadRepository,
 	IPublisher publisher,
 	ILogger<CreateTransactionHandler> logger
-) : IAuthorizedHandler<CreateTransactionCommand, Core.Domains.Account.Account, Guid, DomainException>
+) : IAuthorizedHandler<CreateTransactionCommand, Core.Domains.Account.Account, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		CreateTransactionCommand command,
 		Core.Domains.Account.Account accounts,
 		CancellationToken ct = default)
 	{
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
 		if (category is null)
-			return Result<Guid, DomainException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
+			return Result<Guid, AppException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
 
 		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: command.Direction);
 		if (validationResult is not null)
-			return Result<Guid, DomainException>.Failure(error: validationResult);
+			return Result<Guid, AppException>.Failure(error: validationResult);
 
 		if (category.IsArchived)
-			return Result<Guid, DomainException>.Failure(error: new ArchivedOperationException(message: "Cannot create a transaction for an archived category."));
+			return Result<Guid, AppException>.Failure(error: new ArchivedOperationException(message: "Cannot create a transaction for an archived category."));
 
 		Result<Core.Domains.Transaction.Transaction, DomainException> result = await transactionCreationService.CreateAsync(command: command, account: accounts, ct: ct);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		Core.Domains.Transaction.Transaction transaction = result.Value!;
 
@@ -61,6 +62,6 @@ public sealed class CreateTransactionHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionCreatedNotification for transaction {transaction.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: transaction.Id);
+		return Result<Guid, AppException>.Success(value: transaction.Id);
 	}
 }

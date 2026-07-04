@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
@@ -16,16 +17,16 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ChangeRecurringTransactionDayOfMonthHandler> logger
-) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, Core.Domains.RecurringTransaction.RecurringTransaction, Guid, DomainException>
+) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, Core.Domains.RecurringTransaction.RecurringTransaction, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeRecurringTransactionDayOfMonthCommand command,
 		Core.Domains.RecurringTransaction.RecurringTransaction entity,
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(
 			recurringTransactionId: command.RecurringTransactionId,
@@ -48,6 +49,6 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionDayOfMonthChangedNotification for recurring transaction {entity.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: entity.Id);
 	}
 }

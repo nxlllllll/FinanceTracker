@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Category;
@@ -20,9 +21,9 @@ public sealed class ChangeUserBaseCurrencyHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ChangeUserBaseCurrencyHandler> logger
-) : IAuthorizedHandler<ChangeUserBaseCurrencyCommand, Core.Domains.User.User, Guid, DomainException>
+) : IAuthorizedHandler<ChangeUserBaseCurrencyCommand, Core.Domains.User.User, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeUserBaseCurrencyCommand command,
 		Core.Domains.User.User user,
 		CancellationToken ct = default)
@@ -31,10 +32,10 @@ public sealed class ChangeUserBaseCurrencyHandler(
 
 		Result<Unit, DomainException> result = user.ChangeBaseCurrency(newBaseCurrency: command.NewBaseCurrency);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		if (user.BaseCurrency == oldBaseCurrency)
-			return Result<Guid, DomainException>.Success(value: user.Id);
+			return Result<Guid, AppException>.Success(value: user.Id);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
@@ -66,6 +67,6 @@ public sealed class ChangeUserBaseCurrencyHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish UserBaseCurrencyChangedNotification for user {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

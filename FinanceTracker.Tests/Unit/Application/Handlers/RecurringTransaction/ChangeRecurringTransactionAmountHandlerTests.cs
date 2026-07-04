@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionAmount;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
@@ -73,7 +74,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 	{
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionAmountCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Amount: -1m),
 			entity: rt,
 			ct: CancellationToken.None

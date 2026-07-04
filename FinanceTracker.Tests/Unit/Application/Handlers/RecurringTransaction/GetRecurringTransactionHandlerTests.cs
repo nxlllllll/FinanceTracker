@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRecurringTransaction;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -35,7 +36,7 @@ public sealed class GetRecurringTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: model);
 
-		Result<RecurringTransactionReadModel, DomainException> result = await _handler.Handle(
+		Result<RecurringTransactionReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);
@@ -59,7 +60,7 @@ public sealed class GetRecurringTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (RecurringTransactionReadModel?)null);
 
-		Result<RecurringTransactionReadModel, DomainException> result = await _handler.Handle(
+		Result<RecurringTransactionReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);

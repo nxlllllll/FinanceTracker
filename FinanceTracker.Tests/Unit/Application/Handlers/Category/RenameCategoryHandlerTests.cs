@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
@@ -76,7 +77,7 @@ public sealed class RenameCategoryHandlerTests
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: String.Empty)),
 			entity: category,
 			ct: CancellationToken.None

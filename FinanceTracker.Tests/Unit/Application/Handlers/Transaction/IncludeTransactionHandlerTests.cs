@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -96,7 +97,7 @@ public sealed class IncludeTransactionHandlerTests
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
 			accounts: transaction,
 			ct: CancellationToken.None

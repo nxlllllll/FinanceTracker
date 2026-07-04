@@ -4,7 +4,10 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
+using StackExchange.Redis;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
@@ -30,12 +33,12 @@ public sealed class RateLimitingBehaviourTests
 		_behaviour = CreateCommandBehavior();
 	}
 
-	private RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>> CreateCommandBehavior(
-		RateLimitOptions? options = null)
+	private RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>> CreateCommandBehavior(RateLimitOptions? options = null)
 	{
 		return new RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
 			rateLimiter: _rateLimiter,
-			options: new FakeOptionsMonitor<RateLimitOptions>(options ?? DefaultOptions)
+			options: new FakeOptionsMonitor<RateLimitOptions>(options ?? DefaultOptions),
+			logger: NullLogger<RateLimitingBehaviour<TestCommand, Result<FinanceTracker.Core.Results.Unit, DomainException>>>.Instance
 		);
 	}
 
@@ -56,7 +59,8 @@ public sealed class RateLimitingBehaviourTests
 		RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour =
 			new RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
 				rateLimiter: _rateLimiter,
-				options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
+				options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions),
+				logger: NullLogger<RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>>>.Instance
 			);
 
 		await behaviour.Handle(
@@ -79,7 +83,8 @@ public sealed class RateLimitingBehaviourTests
 		RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour =
 			new RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
 				rateLimiter: _rateLimiter,
-				options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
+				options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions),
+				logger: NullLogger<RateLimitingBehaviour<TestCommandWithoutScope, Result<FinanceTracker.Core.Results.Unit, DomainException>>>.Instance
 			);
 
 		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
@@ -237,7 +242,8 @@ public sealed class RateLimitingBehaviourTests
 		RateLimitingBehaviour<TestQuery, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour =
 			new RateLimitingBehaviour<TestQuery, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
 				rateLimiter: _rateLimiter,
-				options: new FakeOptionsMonitor<RateLimitOptions>(DefaultOptions)
+				options: new FakeOptionsMonitor<RateLimitOptions>(DefaultOptions),
+				logger: NullLogger<RateLimitingBehaviour<TestQuery, Result<FinanceTracker.Core.Results.Unit, DomainException>>>.Instance
 			);
 
 		await behaviour.Handle(
@@ -252,5 +258,27 @@ public sealed class RateLimitingBehaviourTests
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task Handle_WhenRateLimiterThrowsRedisException_ShouldFailOpenAndCallNext()
+	{
+		_rateLimiter.IsAllowedAsync(
+			key: Arg.Any<string>(),
+			requestsPerWindow: Arg.Any<int>(),
+			windowSeconds: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).ThrowsAsync(new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost."));
+
+		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = await _behaviour.Handle(
+			request: new TestCommand(UserId: Guid.CreateVersion7()),
+			next: next,
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await next.Received(requiredNumberOfCalls: 1).Invoke(t: Arg.Any<CancellationToken>());
 	}
 }

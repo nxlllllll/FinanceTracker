@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -8,9 +9,9 @@ namespace FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRe
 
 public sealed class GetRecurringTransactionHandler(
 	IRecurringTransactionReadRepository recurringTransactionReadRepository
-) : IRequestHandler<GetRecurringTransactionQuery, Result<RecurringTransactionReadModel, DomainException>>
+) : IRequestHandler<GetRecurringTransactionQuery, Result<RecurringTransactionReadModel, AppException>>
 {
-	public async Task<Result<RecurringTransactionReadModel, DomainException>> Handle(
+	public async Task<Result<RecurringTransactionReadModel, AppException>> Handle(
 		GetRecurringTransactionQuery query,
 		CancellationToken ct = default)
 	{
@@ -21,8 +22,8 @@ public sealed class GetRecurringTransactionHandler(
 		);
 
 		if (model is null)
-			return Result<RecurringTransactionReadModel, DomainException>.Failure(error: new NotFoundException(message: "Recurring transaction not found.", id: query.RecurringTransactionId));
+			return Result<RecurringTransactionReadModel, AppException>.Failure(error: new NotFoundException(message: "Recurring transaction not found.", id: query.RecurringTransactionId));
 
-		return Result<RecurringTransactionReadModel, DomainException>.Success(value: model);
+		return Result<RecurringTransactionReadModel, AppException>.Success(value: model);
 	}
 }

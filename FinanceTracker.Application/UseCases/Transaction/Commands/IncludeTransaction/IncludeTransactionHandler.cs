@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -23,16 +24,16 @@ public sealed class IncludeTransactionHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<IncludeTransactionHandler> logger
-) : IAuthorizedHandler<IncludeTransactionCommand, Core.Domains.Transaction.Transaction, Guid, DomainException>
+) : IAuthorizedHandler<IncludeTransactionCommand, Core.Domains.Transaction.Transaction, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		IncludeTransactionCommand command,
 		Core.Domains.Transaction.Transaction accounts,
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = accounts.Include();
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
@@ -80,6 +81,6 @@ public sealed class IncludeTransactionHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionIncludedNotification for transaction {accounts.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: accounts.Id);
 	}
 }

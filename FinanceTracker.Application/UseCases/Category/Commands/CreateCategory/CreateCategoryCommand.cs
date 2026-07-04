@@ -1,7 +1,7 @@
 using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
@@ -13,7 +13,7 @@ public sealed record CreateCategoryCommand(
 	Name Name,
 	CategoryType Type,
 	Guid? ParentId
-) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>, IUserScopedRequest
+) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
 }

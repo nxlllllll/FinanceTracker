@@ -1,6 +1,6 @@
 using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Application.Behaviours.RateLimit;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
 
@@ -13,7 +13,7 @@ public sealed record CreateBudgetCommand(
 	decimal Amount,
 	DateOnly From,
 	DateOnly To
-) : IIdempotentCommand, IRequest<Result<Guid, DomainException>>, IUserScopedRequest
+) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
 }

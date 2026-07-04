@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetCategory;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
@@ -33,7 +34,7 @@ public sealed class GetCategoryHandlerTests
 			.GetByIdAsync(categoryId: model.Id, userId: model.UserId, ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: model);
 
-		Result<CategoryReadModel, DomainException> result = await _handler.Handle(
+		Result<CategoryReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);
@@ -55,7 +56,7 @@ public sealed class GetCategoryHandlerTests
 			.GetByIdAsync(categoryId: categoryId, userId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: (CategoryReadModel?)null);
 
-		Result<CategoryReadModel, DomainException> result = await _handler.Handle(
+		Result<CategoryReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);

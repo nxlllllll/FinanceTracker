@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Queries.GetRecurringTransactions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
@@ -57,12 +58,13 @@ public sealed class GetRecurringTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: PageOf(items: items));
 
-		PagedResult<RecurringTransactionReadModel> result = await _handler.Handle(
+		Result<PagedResult<RecurringTransactionReadModel>, AppException> result = await _handler.Handle(
 			query: new GetRecurringTransactionsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Items.Count).IsEqualTo(expected: 2);
 	}
 
 	[Test]
@@ -76,11 +78,12 @@ public sealed class GetRecurringTransactionsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: EmptyPage());
 
-		PagedResult<RecurringTransactionReadModel> result = await _handler.Handle(
+		Result<PagedResult<RecurringTransactionReadModel>, AppException> result = await _handler.Handle(
 			query: new GetRecurringTransactionsQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Items).IsEmpty();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Items).IsEmpty();
 	}
 }

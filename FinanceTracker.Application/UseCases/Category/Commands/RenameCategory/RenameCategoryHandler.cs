@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Category.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
@@ -17,22 +18,22 @@ public sealed class RenameCategoryHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<RenameCategoryHandler> logger
-) : IAuthorizedHandler<RenameCategoryCommand, Core.Domains.Category.Category, Guid, DomainException>
+) : IAuthorizedHandler<RenameCategoryCommand, Core.Domains.Category.Category, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		RenameCategoryCommand command,
 		Core.Domains.Category.Category entity,
 		CancellationToken ct = default)
 	{
 		Result<Name, DomainException> nameResult = Name.Create(value: command.NewName);
 		if (nameResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: nameResult.Error!);
+			return Result<Guid, AppException>.Failure(error: nameResult.Error!);
 
 		string oldName = entity.Name;
 
 		Result<Unit, DomainException> result = entity.Rename(newName: nameResult.Value);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await categoryWriteRepository.RenameAsync(
 			categoryId: command.CategoryId,
@@ -56,6 +57,6 @@ public sealed class RenameCategoryHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryRenamedNotification for category {entity.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: entity.Id);
 	}
 }

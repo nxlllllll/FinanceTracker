@@ -1,7 +1,9 @@
 using FinanceTracker.Application.Dtos;
 using FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -44,15 +46,16 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (Income: 10000m, Expense: 4000m));
 
-		IncomeExpenseSummary result = await _handler.Handle(
+		Result<IncomeExpenseSummary, AppException> result = await _handler.Handle(
 			query: new GetIncomeExpenseSummaryQuery(UserId: user.Id, Period: period),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Income).IsEqualTo(expected: 10000m);
-		await Assert.That(value: result.Expense).IsEqualTo(expected: 4000m);
-		await Assert.That(value: result.Currency.Value).IsEqualTo(expected: "RUB");
-		await Assert.That(value: result.Period).IsEqualTo(expected: period);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Income).IsEqualTo(expected: 10000m);
+		await Assert.That(value: result.Value?.Expense).IsEqualTo(expected: 4000m);
+		await Assert.That(value: result.Value?.Currency.Value).IsEqualTo(expected: "RUB");
+		await Assert.That(value: result.Value?.Period).IsEqualTo(expected: period);
 	}
 
 	[Test]
@@ -72,13 +75,14 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (Income: 0m, Expense: 0m));
 
-		IncomeExpenseSummary result = await _handler.Handle(
+		Result<IncomeExpenseSummary, AppException> result = await _handler.Handle(
 			query: new GetIncomeExpenseSummaryQuery(UserId: user.Id, Period: period),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Income).IsEqualTo(expected: 0m);
-		await Assert.That(value: result.Expense).IsEqualTo(expected: 0m);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Income).IsEqualTo(expected: 0m);
+		await Assert.That(value: result.Value?.Expense).IsEqualTo(expected: 0m);
 	}
 
 	[Test]

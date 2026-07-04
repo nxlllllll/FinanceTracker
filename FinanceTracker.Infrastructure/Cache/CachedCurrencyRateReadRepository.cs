@@ -67,12 +67,12 @@ public sealed class CachedCurrencyRateReadRepository(
 		Func<decimal?, DistributedCacheEntryOptions> optionsFor,
 		CancellationToken ct)
 	{
-		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key, ct: ct);
+		CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: key);
 		if (entry.Found)
 			return entry.Value;
 
 		decimal? result = await fetch();
-		await redisCache.SetAsync(key: key, value: result, options: optionsFor(result), ct: ct);
+		await redisCache.SetAsync(key: key, value: result, options: optionsFor(result));
 		return result;
 	}
 
@@ -101,7 +101,7 @@ public sealed class CachedCurrencyRateReadRepository(
 				continue;
 			}
 
-			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: keyFor(request), ct: ct);
+			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: keyFor(request));
 			if (entry is { Found: true, Value: not null })
 				result[request] = entry.Value.Value;
 			else
@@ -132,10 +132,10 @@ public sealed class CachedCurrencyRateReadRepository(
 			if (dbResults.TryGetValue(key: request, out decimal rate))
 			{
 				result[request] = rate;
-				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: foundOptions, ct: ct);
+				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: foundOptions);
 			}
 			else
-				await redisCache.SetAsync(key: key, value: (decimal?)null, options: notFoundOptions, ct: ct);
+				await redisCache.SetAsync(key: key, value: (decimal?)null, options: notFoundOptions);
 		}
 	}
 

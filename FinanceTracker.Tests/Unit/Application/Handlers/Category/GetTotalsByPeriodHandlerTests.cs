@@ -1,6 +1,8 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetTotalsByPeriod;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -48,12 +50,13 @@ public sealed class GetTotalsByPeriodHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: totals);
 
-		IReadOnlyList<CategoryTotal> result = await _handler.Handle(
+		Result<IReadOnlyList<CategoryTotal>, AppException> result = await _handler.Handle(
 			query: new GetTotalsByPeriodQuery(UserId: userId, Period: period),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Count).IsEqualTo(expected: 2);
 	}
 
 	[Test]
@@ -65,7 +68,7 @@ public sealed class GetTotalsByPeriodHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 
-		IReadOnlyList<CategoryTotal> result = await _handler.Handle(
+		Result<IReadOnlyList<CategoryTotal>, AppException> result = await _handler.Handle(
 			query: new GetTotalsByPeriodQuery(
 				UserId: Guid.CreateVersion7(),
 				Period: new DateOnly(year: 2025, month: 1, day: 1)
@@ -73,6 +76,7 @@ public sealed class GetTotalsByPeriodHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result).IsEmpty();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsEmpty();
 	}
 }

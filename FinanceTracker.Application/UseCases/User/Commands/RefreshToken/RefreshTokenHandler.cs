@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -23,14 +24,14 @@ public sealed class RefreshTokenHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<RefreshTokenHandler> logger
-) : IRequestHandler<RefreshTokenCommand, Result<SessionToken, DomainException>>
+) : IRequestHandler<RefreshTokenCommand, Result<SessionToken, AppException>>
 {
 	internal sealed record RotateResult(
-		Result<SessionToken, DomainException> Result,
+		Result<SessionToken, AppException> Result,
 		Guid? CompromisedUserId
 	);
 
-	public async Task<Result<SessionToken, DomainException>> Handle(
+	public async Task<Result<SessionToken, AppException>> Handle(
 		RefreshTokenCommand command,
 		CancellationToken ct = default)
 	{
@@ -59,7 +60,7 @@ public sealed class RefreshTokenHandler(
 		if (session is null)
 		{
 			return new RotateResult(
-				Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
+				Result: Result<SessionToken, AppException>.Failure(error: new InvalidTokenException()),
 				CompromisedUserId: null
 			);
 		}
@@ -77,7 +78,7 @@ public sealed class RefreshTokenHandler(
 		if (session.RevokedAt is null)
 		{
 			return new RotateResult(
-				Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
+				Result: Result<SessionToken, AppException>.Failure(error: new InvalidTokenException()),
 				CompromisedUserId: null
 			);
 		}
@@ -94,7 +95,7 @@ public sealed class RefreshTokenHandler(
 		);
 
 		return new RotateResult(
-			Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
+			Result: Result<SessionToken, AppException>.Failure(error: new InvalidTokenException()),
 			CompromisedUserId: session.UserId
 		);
 	}
@@ -111,7 +112,7 @@ public sealed class RefreshTokenHandler(
 		if (user is null)
 		{
 			return new RotateResult(
-				Result: Result<SessionToken, DomainException>.Failure(error: new InvalidTokenException()),
+				Result: Result<SessionToken, AppException>.Failure(error: new InvalidTokenException()),
 				CompromisedUserId: null
 			);
 		}
@@ -124,7 +125,7 @@ public sealed class RefreshTokenHandler(
 
 		SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
 		return new RotateResult(
-			Result: Result<SessionToken, DomainException>.Success(value: sessionToken),
+			Result: Result<SessionToken, AppException>.Success(value: sessionToken),
 			CompromisedUserId: null
 		);
 	}

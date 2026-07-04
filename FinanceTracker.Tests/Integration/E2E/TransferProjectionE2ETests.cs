@@ -2,7 +2,7 @@ using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -29,7 +29,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 
 	private async Task<Guid> CreateAccountViaCommandAsync(Guid userId, decimal balance)
 	{
-		Result<Guid, DomainException> result = await Mediator.Send(request: new CreateAccountCommand(
+		Result<Guid, AppException> result = await Mediator.Send(request: new CreateAccountCommand(
 			UserId: userId,
 			Name: Name.Create(value: "Счёт").Value,
 			Type: AccountType.Checking,

@@ -5,5 +5,5 @@ public sealed record CategoryTotal(
 	DateOnly Period,
 	decimal Total,
 	int Count,
-	DateTimeOffset UpdatedAt
+	DateTimeOffset? UpdatedAt
 ) : IReadModel;

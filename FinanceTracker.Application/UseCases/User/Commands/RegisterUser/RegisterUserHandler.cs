@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -19,9 +20,9 @@ public sealed class RegisterUserHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<RegisterUserHandler> logger
-) : IRequestHandler<RegisterUserCommand, Result<Guid, DomainException>>
+) : IRequestHandler<RegisterUserCommand, Result<Guid, AppException>>
 {
-	public async Task<Result<Guid, DomainException>> Handle(
+	public async Task<Result<Guid, AppException>> Handle(
 		RegisterUserCommand command,
 		CancellationToken ct = default)
 	{
@@ -29,7 +30,7 @@ public sealed class RegisterUserHandler(
 			email: command.Email.Value, ct: ct);
 
 		if (existing is not null)
-			return Result<Guid, DomainException>.Failure(error: new EmailException(
+			return Result<Guid, AppException>.Failure(error: new EmailException(
 				message: "The user with this email address already exists.",
 				email: command.Email));
 
@@ -42,7 +43,7 @@ public sealed class RegisterUserHandler(
 			baseCurrency: command.BaseCurrencyCode
 		);
 		if (userResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: userResult.Error!);
+			return Result<Guid, AppException>.Failure(error: userResult.Error!);
 
 		Core.Domains.User.User user = userResult.Value!;
 
@@ -53,7 +54,7 @@ public sealed class RegisterUserHandler(
 		catch (UniqueConstraintException ex)
 		{
 			logger.ZLogWarning(message: $"Duplicate email race condition detected for user registration: {command.Email.Value}. Constraint: {ex.ConstraintName}.");
-			return Result<Guid, DomainException>.Failure(error: new EmailException(
+			return Result<Guid, AppException>.Failure(error: new EmailException(
 				message: "The user with this email address already exists.",
 				email: command.Email.Value
 			));
@@ -75,6 +76,6 @@ public sealed class RegisterUserHandler(
 
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
 
-		return Result<Guid, DomainException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

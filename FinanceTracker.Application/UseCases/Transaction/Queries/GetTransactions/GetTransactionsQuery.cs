@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -17,4 +18,4 @@ public sealed record GetTransactionsQuery(
 	DateTimeOffset? CursorOccurredAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20
-) : IRequest<PagedResult<TransactionReadModel>>, IUserScopedRequest;
+) : IRequest<Result<PagedResult<TransactionReadModel>, AppException>>, IUserScopedRequest;

@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
@@ -31,7 +32,7 @@ public sealed class TransferLoaderTests
 	{
 		Guid accountId = Guid.CreateVersion7();
 
-		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
+		Result<TransferAccounts, AppException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: accountId,
 				toAccountId: accountId,
@@ -50,7 +51,7 @@ public sealed class TransferLoaderTests
 		_accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>())
 			.Returns(returnThis: Task.FromResult<Account?>(result: null));
 
-		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
+		Result<TransferAccounts, AppException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(),
 			ct: CancellationToken.None
 		);
@@ -70,7 +71,7 @@ public sealed class TransferLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: fromAccount);
 
-		Result<TransferAccounts, DomainException> resultFrom = await _loader.LoadAsync(
+		Result<TransferAccounts, AppException> resultFrom = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				fromAccountId: fromAccount.Id,
 				toAccountId: toAccount.Id,
@@ -100,7 +101,7 @@ public sealed class TransferLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<AccountReadModel?>(result: null));
 
-		Result<TransferAccounts, DomainException> resultTo = await _loader.LoadAsync(
+		Result<TransferAccounts, AppException> resultTo = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
@@ -130,7 +131,7 @@ public sealed class TransferLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: toAccountReadModel);
 
-		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
+		Result<TransferAccounts, AppException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
@@ -161,7 +162,7 @@ public sealed class TransferLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: toAccountReadModel);
 
-		Result<TransferAccounts, DomainException> result = await _loader.LoadAsync(
+		Result<TransferAccounts, AppException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,

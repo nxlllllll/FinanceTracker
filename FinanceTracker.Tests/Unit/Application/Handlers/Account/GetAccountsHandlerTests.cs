@@ -1,6 +1,8 @@
 using FinanceTracker.Application.UseCases.User.Queries.GetAccounts;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -30,12 +32,13 @@ public sealed class GetAccountsHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: accounts);
 
-		IReadOnlyList<AccountReadModel> result = await _handler.Handle(
+		Result<IReadOnlyList<AccountReadModel>, AppException> result = await _handler.Handle(
 			query: new GetAccountsQuery(UserId: userId),
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value?.Count).IsEqualTo(expected: 2);
 	}
 
 	[Test]

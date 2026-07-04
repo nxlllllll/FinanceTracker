@@ -1,7 +1,7 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Utilities;
 using FinanceTracker.Core.ValueObjects;
@@ -32,7 +32,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
 
 	private async Task<Guid> CreateAccountViaCommandAsync(Guid userId, string currencyCode, decimal balance)
 	{
-		Result<Guid, DomainException> result = await Mediator.Send(request: new CreateAccountCommand(
+		Result<Guid, AppException> result = await Mediator.Send(request: new CreateAccountCommand(
 			UserId: userId,
 			Name: Name.Create(value: "Счёт").Value,
 			Type: AccountType.Checking,

@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Application.UseCases.User.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -111,7 +112,7 @@ public sealed class RegisterUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
 
-		Result<Guid, DomainException> result = await _handler.Handle(
+		Result<Guid, AppException> result = await _handler.Handle(
 			command: RegisterUserCommandFactory.Create(),
 			ct: CancellationToken.None
 		);
@@ -128,7 +129,7 @@ public sealed class RegisterUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: UserFactory.Create().Value!);
 
-		Result<Guid, DomainException> result = await _handler.Handle(
+		Result<Guid, AppException> result = await _handler.Handle(
 			command: RegisterUserCommandFactory.Create(),
 			ct: CancellationToken.None
 		);

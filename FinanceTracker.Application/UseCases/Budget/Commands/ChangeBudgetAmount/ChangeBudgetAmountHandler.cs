@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
@@ -16,16 +17,16 @@ public sealed class ChangeBudgetAmountHandler(
 	IPublisher publisher,
 	IDateProvider dateProvider,
 	ILogger<ChangeBudgetAmountHandler> logger
-) : IAuthorizedHandler<ChangeBudgetAmountCommand, Core.Domains.Budget.Budget, Guid, DomainException>
+) : IAuthorizedHandler<ChangeBudgetAmountCommand, Core.Domains.Budget.Budget, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeBudgetAmountCommand command,
 		Core.Domains.Budget.Budget entity,
 		CancellationToken ct = default)
 	{
 		Result<Unit, DomainException> result = entity.ChangeAmount(amount: command.Amount);
 		if (result.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: result.Error!);
+			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await budgetWriteRepository.ChangeAmountAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, amount: command.Amount, ct: ct);
 
@@ -43,6 +44,6 @@ public sealed class ChangeBudgetAmountHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetAmountChangedNotification for budget {entity.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: entity.Id);
 	}
 }

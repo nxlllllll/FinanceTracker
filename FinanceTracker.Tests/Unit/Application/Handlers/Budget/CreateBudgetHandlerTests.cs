@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -63,7 +64,7 @@ public sealed class CreateBudgetHandlerTests
 			To: new DateOnly(year: 2025, month: 1, day: 31)
 		);
 
-		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value).IsNotEqualTo(notExpected: Guid.Empty);
@@ -137,7 +138,7 @@ public sealed class CreateBudgetHandlerTests
 			To: new DateOnly(year: 2025, month: 1, day: 31)
 		);
 
-		Result<Guid, DomainException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<OverlappingBudgetException>();

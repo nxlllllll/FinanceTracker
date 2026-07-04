@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Category.Authorization;
 using FinanceTracker.Application.UseCases.Category.Commands.ArchiveCategory;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
@@ -30,7 +31,7 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Category?>(result: null));
 
-		Result<Category, DomainException> result = await _loader.LoadAsync(
+		Result<Category, AppException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);
@@ -49,7 +50,7 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<Category?>(null));
 
-		Result<Category, DomainException> result = await _loader.LoadAsync(
+		Result<Category, AppException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: Guid.CreateVersion7(), CategoryId: category.Id),
 			ct: CancellationToken.None
 		);
@@ -68,7 +69,7 @@ public sealed class CategoryLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
 
-		Result<Category, DomainException> result = await _loader.LoadAsync(
+		Result<Category, AppException> result = await _loader.LoadAsync(
 			request: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
 			ct: CancellationToken.None
 		);

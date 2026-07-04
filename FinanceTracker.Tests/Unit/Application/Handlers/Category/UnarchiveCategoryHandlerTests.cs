@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Category.Commands.UnarchiveCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
@@ -69,7 +70,7 @@ public sealed class UnarchiveCategoryHandlerTests
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: false).Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
 			entity: category,
 			ct: CancellationToken.None

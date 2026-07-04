@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.User.Queries.GetUser;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
@@ -31,7 +32,7 @@ public sealed class GetUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: model);
 
-		Result<UserReadModel, DomainException> result = await _handler.Handle(
+		Result<UserReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);
@@ -51,7 +52,7 @@ public sealed class GetUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserReadModel?)null);
 
-		Result<UserReadModel, DomainException> result = await _handler.Handle(
+		Result<UserReadModel, AppException> result = await _handler.Handle(
 			query: query,
 			ct: CancellationToken.None
 		);

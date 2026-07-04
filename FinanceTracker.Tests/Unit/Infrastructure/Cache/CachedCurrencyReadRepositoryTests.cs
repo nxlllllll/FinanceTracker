@@ -3,8 +3,10 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using StackExchange.Redis;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Cache;
@@ -34,12 +36,14 @@ public sealed class CachedCurrencyReadRepositoryTests
 		IOptionsMonitor<RedisOptions> redisOptions = Substitute.For<IOptionsMonitor<RedisOptions>>();
 		redisOptions.CurrentValue.Returns(returnThis: new RedisOptions { InstanceName = "ft_test:" });
 
-		RedisCache redisCache = new RedisCache(connectionMultiplexer: _connectionMultiplexer, options: redisOptions);
+		RedisCache redisCache = new RedisCache(
+			connectionMultiplexer: _connectionMultiplexer,
+			options: redisOptions,
+			logger: NullLogger<RedisCache>.Instance
+		);
 		_repository = new CachedCurrencyReadRepository(inner: _inner, redisCache: redisCache);
 
-		_database
-			.StringGetAsync(key: Arg.Any<RedisKey>())
-			.Returns(returnThis: RedisValue.Null);
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: RedisValue.Null);
 	}
 
 	[Test]
@@ -69,9 +73,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	[Test]
 	public async Task GetAllAsync_OnCacheHit_DoesNotCallInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyInfo> { RubDto }));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyInfo> { RubDto }));
 
 		await _repository.GetAllAsync();
 
@@ -81,9 +83,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	[Test]
 	public async Task GetAllAsync_OnCacheHit_ReturnsCorrectValue()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyInfo> { RubDto }));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: new List<CurrencyInfo> { RubDto }));
 
 		IReadOnlyList<CurrencyInfo> result = await _repository.GetAllAsync();
 
@@ -107,9 +107,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	[Test]
 	public async Task GetByCodeAsync_OnCacheHit_DoesNotCallInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: RubDto));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: RubDto));
 
 		await _repository.GetByCodeAsync(code: "RUB");
 
@@ -137,9 +135,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	[Test]
 	public async Task GetByCodeAsync_WhenNullIsCached_ReturnsNullWithoutCallingInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (CurrencyInfo?)null));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: (CurrencyInfo?)null));
 
 		CurrencyInfo? result = await _repository.GetByCodeAsync(code: "XXX");
 
@@ -163,9 +159,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 	[Test]
 	public async Task ExistsAsync_OnCacheHit_DoesNotCallInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: true));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: true));
 
 		await _repository.ExistsAsync(code: "RUB");
 
@@ -175,13 +169,25 @@ public sealed class CachedCurrencyReadRepositoryTests
 	[Test]
 	public async Task ExistsAsync_WhenFalseIsCached_ReturnsFalseWithoutCallingInner()
 	{
-		_database.StringGetAsync(
-			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: false));
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: false));
 
 		bool result = await _repository.ExistsAsync(code: "XXX");
 
 		await Assert.That(value: result).IsFalse();
 		await _inner.DidNotReceive().ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>());
+	}
+
+	[Test]
+	public async Task ExistsAsync_WhenRedisIsUnavailable_FallsThroughToInnerInsteadOfThrowing()
+	{
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).ThrowsAsync(
+			ex: new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost.")
+		);
+		_inner.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
+
+		bool result = await _repository.ExistsAsync(code: "RUB");
+
+		await Assert.That(value: result).IsTrue();
+		await _inner.Received(requiredNumberOfCalls: 1).ExistsAsync(code: "RUB", ct: Arg.Any<CancellationToken>());
 	}
 }

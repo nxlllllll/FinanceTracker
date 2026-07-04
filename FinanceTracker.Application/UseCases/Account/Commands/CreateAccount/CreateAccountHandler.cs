@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -11,9 +12,9 @@ public sealed class CreateAccountHandler(
 	IAccountRepository accountRepository,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider
-) : IRequestHandler<CreateAccountCommand, Result<Guid, DomainException>>
+) : IRequestHandler<CreateAccountCommand, Result<Guid, AppException>>
 {
-	public async Task<Result<Guid, DomainException>> Handle(
+	public async Task<Result<Guid, AppException>> Handle(
 		CreateAccountCommand command,
 		CancellationToken ct = default)
 	{
@@ -26,12 +27,12 @@ public sealed class CreateAccountHandler(
 			balance: command.InitialBalance
 		);
 		if (accountResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: accountResult.Error!);
+			return Result<Guid, AppException>.Failure(error: accountResult.Error!);
 
 		Core.Domains.Account.Account account = accountResult.Value!;
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: account, ct: ct), ct: ct);
 
-		return Result<Guid, DomainException>.Success(value: account.Id);
+		return Result<Guid, AppException>.Success(value: account.Id);
 	}
 }

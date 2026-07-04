@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetPeriod;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -114,7 +115,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 
-		Result<Guid, DomainException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeBudgetPeriodCommand(UserId: budget.UserId, BudgetId: budget.Id, From: DateOnly.MinValue, To: DateOnly.MaxValue),
 			entity: budget,
 			ct: CancellationToken.None

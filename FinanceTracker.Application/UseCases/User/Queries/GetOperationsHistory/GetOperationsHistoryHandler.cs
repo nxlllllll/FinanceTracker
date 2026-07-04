@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -7,13 +8,13 @@ namespace FinanceTracker.Application.UseCases.User.Queries.GetOperationsHistory;
 
 public sealed class GetOperationsHistoryHandler(
 	IUserQueryRepository userQueryRepository
-) : IRequestHandler<GetOperationsHistoryQuery, PagedResult<Operation>>
+) : IRequestHandler<GetOperationsHistoryQuery, Result<PagedResult<Operation>, AppException>>
 {
-	public async Task<PagedResult<Operation>> Handle(
+	public async Task<Result<PagedResult<Operation>, AppException>> Handle(
 		GetOperationsHistoryQuery query,
 		CancellationToken ct = default)
 	{
-		return await userQueryRepository.GetHistoryAsync(
+		return Result<PagedResult<Operation>, AppException>.Success(value: await userQueryRepository.GetHistoryAsync(
 			userId: query.UserId,
 			type: query.Type,
 			dateFrom: query.DateFrom,
@@ -22,6 +23,6 @@ public sealed class GetOperationsHistoryHandler(
 			cursorId: query.CursorId,
 			pageSize: query.PageSize,
 			ct: ct
-		);
+		));
 	}
 }

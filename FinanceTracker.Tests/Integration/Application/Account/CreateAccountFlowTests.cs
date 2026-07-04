@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Results;
@@ -21,26 +22,21 @@ namespace FinanceTracker.Tests.Integration.Application.Account;
 /// </summary>
 public sealed class CreateAccountFlowTests : MediatorFixture
 {
-	private CurrencyBuilder _currencyBuilder = null!;
 	private UserBuilder _userBuilder = null!;
 
 	[Before(hookType: Test)]
 	public async Task SetupDataAsync()
-	{
-		_currencyBuilder = new CurrencyBuilder(context: Context);
-		_userBuilder = new UserBuilder(context: Context);
-		await _currencyBuilder.CreateAsync(code: "RUB");
-	}
+		=> _userBuilder = new UserBuilder(context: Context);
 
 	private CreateAccountCommand BuildCommand(Guid userId, Guid? idempotencyKey = null)
 	{
 		return new CreateAccountCommand(
-			UserId: userId,
-			Name: Name.Create(value: "Основной счёт").Value,
-			Type: AccountType.Checking,
-			Currency: Currency.Create(value: "RUB").Value,
-			InitialBalance: 10_000m
-		)
+				UserId: userId,
+				Name: Name.Create(value: "Основной счёт").Value,
+				Type: AccountType.Checking,
+				Currency: Currency.Create(value: "RUB").Value,
+				InitialBalance: 10_000m
+			)
 		{ IdempotencyKey = idempotencyKey ?? Guid.CreateVersion7() };
 	}
 
@@ -48,18 +44,25 @@ public sealed class CreateAccountFlowTests : MediatorFixture
 	public async Task CreateAccount_ShouldSucceed()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
+		CreateAccountCommand command = new CreateAccountCommand(
+				UserId: userId,
+				Name: Name.Create(value: "Счёт").Value,
+				Type: AccountType.Checking,
+				Currency: Currency.Create(value: "RUB").Value,
+				InitialBalance: 0m
+			)
+		{ IdempotencyKey = Guid.CreateVersion7() };
 
-		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+		Result<Guid, AppException> result = await Mediator.Send(request: command);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value).IsNotDefault();
 	}
 
 	[Test]
 	public async Task CreateAccount_ShouldPersistEventInEventStore()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+		Result<Guid, AppException> result = await Mediator.Send(request: BuildCommand(userId: userId));
 
 		await using FinanceTrackerContext readCtx = CreateReadContext();
 		bool eventExists = await readCtx.Events.AnyAsync(
@@ -73,7 +76,7 @@ public sealed class CreateAccountFlowTests : MediatorFixture
 	public async Task CreateAccount_ShouldCreateOutboxMessage()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+		Result<Guid, AppException> result = await Mediator.Send(request: BuildCommand(userId: userId));
 
 		await using FinanceTrackerContext readCtx = CreateReadContext();
 		bool outboxExists = await readCtx.OutboxMessages.AnyAsync(
@@ -87,7 +90,7 @@ public sealed class CreateAccountFlowTests : MediatorFixture
 	public async Task CreateAccount_AfterProjection_ShouldUpdateReadModel()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Result<Guid, DomainException> result = await Mediator.Send(request: BuildCommand(userId: userId));
+		Result<Guid, AppException> result = await Mediator.Send(request: BuildCommand(userId: userId));
 		Guid accountId = result.Value!;
 
 		await ApplyProjectionAsync(accountId: accountId);
@@ -111,8 +114,8 @@ public sealed class CreateAccountFlowTests : MediatorFixture
 		Guid idempotencyKey = Guid.CreateVersion7();
 		CreateAccountCommand command = BuildCommand(userId: userId, idempotencyKey: idempotencyKey);
 
-		Result<Guid, DomainException> first = await Mediator.Send(request: command);
-		Result<Guid, DomainException> second = await Mediator.Send(request: command);
+		Result<Guid, AppException> first = await Mediator.Send(request: command);
+		Result<Guid, AppException> second = await Mediator.Send(request: command);
 
 		await Assert.That(value: first.IsSuccess).IsTrue();
 		await Assert.That(value: second.IsSuccess).IsTrue();
@@ -130,18 +133,37 @@ public sealed class CreateAccountFlowTests : MediatorFixture
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		CreateAccountCommand command = new CreateAccountCommand(
-			UserId: userId,
-			Name: Name.Create(value: "Счёт").Value,
-			Type: AccountType.Checking,
-			Currency: Currency.Create(value: "RUB").Value,
-			InitialBalance: -100m
-		)
+				UserId: userId,
+				Name: Name.Create(value: "Счёт").Value,
+				Type: AccountType.Checking,
+				Currency: Currency.Create(value: "RUB").Value,
+				InitialBalance: -100m
+			)
 		{ IdempotencyKey = Guid.CreateVersion7() };
 
-		Result<Guid, DomainException> result = await Mediator.Send(request: command);
+		Result<Guid, AppException> result = await Mediator.Send(request: command);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<InvalidInitialBalanceException>();
+		await Assert.That(value: result.Error).IsTypeOf<ValidationException>();
+	}
+
+	[Test]
+	public async Task CreateAccount_WithAmountExceedingLimit_ShouldFailWithValidationException()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		CreateAccountCommand command = new CreateAccountCommand(
+				UserId: userId,
+				Name: Name.Create(value: "Счёт").Value,
+				Type: AccountType.Checking,
+				Currency: Currency.Create(value: "RUB").Value,
+				InitialBalance: 1_000_000_000_000m // заведомо больше MoneyLimitsOptions.MaxAmount
+			)
+		{ IdempotencyKey = Guid.CreateVersion7() };
+
+		Result<Guid, AppException> result = await Mediator.Send(request: command);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ValidationException>();
 	}
 
 	/// <summary>

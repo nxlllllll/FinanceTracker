@@ -1,5 +1,5 @@
 using FinanceTracker.Core.Domains.User;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -16,9 +16,9 @@ public sealed class RevokeTokenHandler(
 	ITokenService tokenService,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider
-) : IRequestHandler<RevokeTokenCommand, Result<Unit, DomainException>>
+) : IRequestHandler<RevokeTokenCommand, Result<Unit, AppException>>
 {
-	public async Task<Result<Unit, DomainException>> Handle(
+	public async Task<Result<Unit, AppException>> Handle(
 		RevokeTokenCommand command,
 		CancellationToken ct = default)
 	{
@@ -38,6 +38,6 @@ public sealed class RevokeTokenHandler(
 			);
 		}, ct: ct);
 
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<Unit, AppException>.Success(value: Unit.Default);
 	}
 }

@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Notifications;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -21,9 +22,9 @@ public sealed class CreateTransferHandler(
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
 	ILogger<CreateTransferHandler> logger
-) : IAuthorizedHandler<CreateTransferCommand, TransferAccounts, Guid, DomainException>
+) : IAuthorizedHandler<CreateTransferCommand, TransferAccounts, Guid, AppException>
 {
-	public async Task<Result<Guid, DomainException>> HandleAsync(
+	public async Task<Result<Guid, AppException>> HandleAsync(
 		CreateTransferCommand command,
 		TransferAccounts accounts,
 		CancellationToken ct = default)
@@ -50,7 +51,7 @@ public sealed class CreateTransferHandler(
 			occurredAt: command.OccurredAt
 		);
 		if (transferResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: transferResult.Error!);
+			return Result<Guid, AppException>.Failure(error: transferResult.Error!);
 
 		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;
 
@@ -63,7 +64,7 @@ public sealed class CreateTransferHandler(
 			description: command.Description
 		);
 		if (debitResult.IsFailure)
-			return Result<Guid, DomainException>.Failure(error: debitResult.Error!);
+			return Result<Guid, AppException>.Failure(error: debitResult.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
@@ -95,6 +96,6 @@ public sealed class CreateTransferHandler(
 			logger.ZLogError(exception: ex, message: $"Failed to publish TransferCreatedNotification for transfer {transfer.Id} after successful commit.");
 		}
 
-		return Result<Guid, DomainException>.Success(value: transfer.Id);
+		return Result<Guid, AppException>.Success(value: transfer.Id);
 	}
 }
