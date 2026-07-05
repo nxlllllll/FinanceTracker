@@ -20,9 +20,12 @@ namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 
 /// <summary>
 /// Publishes <see cref="IRoutableMessage"/> instances to a RabbitMQ topic exchange.
-/// Concurrent callers never race to create duplicate connections, and the cached channel
-/// is re-validated via <see cref="IChannel.IsOpen"/> before reuse so a dropped connection
-/// (broker restart, network blip) is transparently recreated rather than silently reused forever. 
+/// All channel access — creation, reconnection, and publishing — happens inside a single
+/// critical section guarded by <see cref="_channelLock"/>. This is intentional: publishing
+/// on a channel that another thread is concurrently disposing/recreating (e.g. after a broker
+/// blip) is unsafe, so "get a valid channel" and "use it" must be one atomic step, not two.
+/// The cached channel is re-validated via <see cref="IChannel.IsOpen"/> before reuse so a
+/// dropped connection is transparently recreated rather than silently reused forever.
 /// Propagates the W3C <c>traceparent</c> header for distributed tracing across service boundaries.
 /// </summary>
 public sealed class RabbitMqPublisher(
@@ -42,8 +45,6 @@ public sealed class RabbitMqPublisher(
 		Guid? correlationId = default,
 		CancellationToken ct = default) where TMessage : class, IRoutableMessage
 	{
-		IChannel channel = await GetOrCreateChannelAsync(ct: ct);
-
 		byte[] body = Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: message, options: FinanceTrackerJsonOptions.Payload));
 
 		BasicProperties props = new BasicProperties()
@@ -65,55 +66,69 @@ public sealed class RabbitMqPublisher(
 				props.Headers[FinanceTrackerActivitySource.TraceContextHeaders.TraceState] = Encoding.UTF8.GetBytes(s: current.TraceStateString);
 		}
 
-		await channel.BasicPublishAsync(
+		await WithChannelAsync(action: async channel => await channel.BasicPublishAsync(
 			exchange: _options.ExchangeName,
 			routingKey: message.RoutingKey,
 			mandatory: true,
 			basicProperties: props,
 			body: body,
 			cancellationToken: ct
-		);
+		), ct: ct);
 	}
 
-	private async Task<IChannel> GetOrCreateChannelAsync(CancellationToken ct)
+	/// <summary>
+	/// Runs <paramref name="action"/> against a guaranteed-open channel, with the entire
+	/// "ensure channel is usable" + "use it" sequence protected by <see cref="_channelLock"/>.
+	/// This is deliberately the only place that touches <see cref="_channel"/>: no caller ever
+	/// obtains a channel reference and uses it outside this lock where one thread could
+	/// publish on a channel another thread is disposing.
+	/// </summary>
+	private async Task WithChannelAsync(Func<IChannel, Task> action, CancellationToken ct)
 	{
-		if (_channel is { IsOpen: true })
-			return _channel;
-
 		await _channelLock.WaitAsync(cancellationToken: ct);
 
 		try
 		{
-			if (_channel is { IsOpen: true })
-				return _channel;
-
-			await DisposeStaleConnectionAsync();
-
-			_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
-
-			_channel = await _connection.CreateChannelAsync(
-				options: new CreateChannelOptions(
-					publisherConfirmationsEnabled: true,
-					publisherConfirmationTrackingEnabled: true
-				),
-				cancellationToken: ct
-			);
-
-			_channel.BasicReturnAsync += OnBasicReturnAsync;
-
-			await _channel.ExchangeDeclareAsync(
-				exchange: _options.ExchangeName,
-				type: ExchangeType.Topic,
-				durable: true,
-				cancellationToken: ct
-			);
-
-			return _channel;
+			IChannel channel = await EnsureChannelAsync(ct: ct);
+			await action(channel);
 		}
 		finally
 		{
 			_channelLock.Release();
 		}
+	}
+
+	/// <summary>
+	/// Returns the current channel if open, otherwise (re)creates connection + channel.
+	/// Callers must already hold <see cref="_channelLock"/> — this method does not lock itself.
+	/// </summary>
+	private async Task<IChannel> EnsureChannelAsync(CancellationToken ct)
+	{
+		if (_channel is { IsOpen: true })
+			return _channel;
+
+		await DisposeStaleConnectionAsync();
+
+		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
+
+		_channel = await _connection.CreateChannelAsync(
+			options: new CreateChannelOptions(
+				publisherConfirmationsEnabled: true,
+				publisherConfirmationTrackingEnabled: true
+			),
+			cancellationToken: ct
+		);
+
+		_channel.BasicReturnAsync += OnBasicReturnAsync;
+
+		await _channel.ExchangeDeclareAsync(
+			exchange: _options.ExchangeName,
+			type: ExchangeType.Topic,
+			durable: true,
+			cancellationToken: ct
+		);
+
+		return _channel;
 	}
 
 	/// <summary>
@@ -126,7 +141,7 @@ public sealed class RabbitMqPublisher(
 	private async Task OnBasicReturnAsync(object sender, BasicReturnEventArgs args)
 	{
 		logger.ZLogError(message: $"""
-			[RabbitMqPublisher] Message returned as unroutable: exchange='{args.Exchange}', 
+			[RabbitMqPublisher] Message returned as unroutable: exchange='{args.Exchange}',
 			routingKey='{args.RoutingKey}', replyCode={args.ReplyCode}, replyText='{args.ReplyText}'.
 		""");
 

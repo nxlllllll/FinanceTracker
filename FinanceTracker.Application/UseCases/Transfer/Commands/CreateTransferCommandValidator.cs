@@ -36,10 +36,5 @@ public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTra
 			.MaximumLength(maximumLength: 255)
 			.WithMessage(errorMessage: "The description cannot exceed 255 characters.")
 			.When(predicate: command => command.Description is not null);
-
-		RuleFor(command => command)
-			.Must(predicate: command => command.FromAccountId != command.ToAccountId)
-			.WithName(overridePropertyName: nameof(CreateTransferCommand.ToAccountId))
-			.WithMessage(errorMessage: "The source and destination accounts must be different.");
 	}
 }

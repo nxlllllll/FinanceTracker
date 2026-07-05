@@ -15,7 +15,7 @@ public sealed class ExchangeRateApiClient(
 	IOptionsMonitor<ExchangeRateApiOptions> options,
 	ILogger<ExchangeRateApiClient> logger)
 {
-	private const string BearerShema = "Bearer";
+	private const string BearerScheme = "Bearer";
 
 	public async Task<ExchangeRateApiResponse?> GetRatesAsync(string baseCurrency, CancellationToken ct = default)
 	{
@@ -32,7 +32,7 @@ public sealed class ExchangeRateApiClient(
 		try
 		{
 			using HttpRequestMessage request = new HttpRequestMessage(method: HttpMethod.Get, requestUri: url);
-			request.Headers.Authorization = new AuthenticationHeaderValue(scheme: BearerShema, parameter: currentOptions.ApiKey);
+			request.Headers.Authorization = new AuthenticationHeaderValue(scheme: BearerScheme, parameter: currentOptions.ApiKey);
 
 			HttpResponseMessage response = await httpClient.SendAsync(request: request, cancellationToken: ct);
 

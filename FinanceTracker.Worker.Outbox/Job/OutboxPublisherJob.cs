@@ -74,12 +74,11 @@ public sealed class OutboxPublisherJob(
 
 				await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
 
-				await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-					await outboxWriteRepository.MarkAsPublishedAsync(
-						messageId: message.Id,
-						processedAt: dateProvider.UtcNow,
-						ct: ct
-					), ct: ct);
+				await outboxWriteRepository.MarkAsPublishedAsync(
+					messageId: message.Id,
+					processedAt: dateProvider.UtcNow,
+					ct: ct
+				);
 
 				WorkerMetrics.OutboxPublished.Add(delta: 1);
 				logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
