@@ -31,7 +31,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 	{
 		Result<TEntity, TError> entity = await loader.LoadAsync(request: request, ct: ct);
 		if (entity.IsSuccess)
-			return await handler.HandleAsync(request: request, entity: entity.Value!, ct: ct);
+			return await handler.HandleAsync(request: request, user: entity.Value!, ct: ct);
 
 		logger.ZLogWarning(message: $"Authorization failed for {request.GetType().Name}: {entity.Error!.Message}");
 		return Result<TValue, TError>.Failure(error: entity.Error!);

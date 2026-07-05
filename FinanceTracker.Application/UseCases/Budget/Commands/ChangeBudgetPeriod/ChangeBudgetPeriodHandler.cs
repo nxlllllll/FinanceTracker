@@ -25,10 +25,10 @@ public sealed class ChangeBudgetPeriodHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeBudgetPeriodCommand command,
-		Core.Domains.Budget.Budget entity,
+		Core.Domains.Budget.Budget user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> domainResult = entity.ChangePeriod(from: command.From, to: command.To);
+		Result<Unit, DomainException> domainResult = user.ChangePeriod(from: command.From, to: command.To);
 		if (domainResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: domainResult.Error!);
 
@@ -40,10 +40,10 @@ public sealed class ChangeBudgetPeriodHandler(
 			{
 				bool overlap = await budgetReadRepository.HasOverlappingAsync(
 					userId: command.UserId,
-					categoryId: entity.CategoryId,
+					categoryId: user.CategoryId,
 					from: command.From,
 					to: command.To,
-					excludeBudgetId: entity.Id,
+					excludeBudgetId: user.Id,
 					ct: ct
 				);
 
@@ -51,17 +51,17 @@ public sealed class ChangeBudgetPeriodHandler(
 					return true;
 
 				await budgetWriteRepository.ChangePeriodAsync(
-					budgetId: entity.Id,
+					budgetId: user.Id,
 					from: command.From,
 					to: command.To,
-					expectedVersion: entity.RowVersion,
+					expectedVersion: user.RowVersion,
 					ct: ct
 				);
 
 				await budgetProgressWriteRepository.RecalculateForBudgetAsync(
-					budgetId: entity.Id,
+					budgetId: user.Id,
 					userId: command.UserId,
-					categoryId: entity.CategoryId,
+					categoryId: user.CategoryId,
 					fromDate: command.From,
 					toDate: command.To,
 					ct: ct
@@ -69,7 +69,7 @@ public sealed class ChangeBudgetPeriodHandler(
 
 				return false;
 			},
-			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {entity.Id} ({command.From} > {command.To})."),
+			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {user.Id} ({command.From} > {command.To})."),
 			ct: ct);
 		}
 		catch (UniqueConstraintException)
@@ -83,8 +83,8 @@ public sealed class ChangeBudgetPeriodHandler(
 		try
 		{
 			await publisher.Publish(notification: new BudgetPeriodChangedNotification(
-				BudgetId: entity.Id,
-				UserId: entity.UserId,
+				BudgetId: user.Id,
+				UserId: user.UserId,
 				NewFrom: command.From,
 				NewTo: command.To,
 				OccurredAt: dateProvider.UtcNow
@@ -92,9 +92,9 @@ public sealed class ChangeBudgetPeriodHandler(
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetPeriodChangedNotification for budget {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetPeriodChangedNotification for budget {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

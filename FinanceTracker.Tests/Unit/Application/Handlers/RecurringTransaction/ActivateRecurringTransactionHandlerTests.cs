@@ -37,7 +37,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 
@@ -52,7 +52,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 
@@ -69,7 +69,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 
@@ -87,7 +87,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateRecurringTransactionCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 

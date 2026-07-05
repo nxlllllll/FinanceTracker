@@ -99,7 +99,15 @@ public static class DependencyInjection
 		});
 
 		services.AddSingleton<IConnectionMultiplexer>(implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisOptions.ConnectionString));
-		services.AddScoped<IRateLimiter, RedisRateLimiter>();
+
+		services.AddOptions<RateLimiterFallbackOptions>()
+			.BindConfiguration(configSectionPath: RateLimiterFallbackOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddSingleton<IRateLimiter, RedisRateLimiter>();
+		services.AddSingleton<InMemoryRateLimiter>();
+		services.Decorate<IRateLimiter, FallbackRateLimiter>();
 
 		services.AddSingleton<IEventTypeResolver, EventTypeResolver>(implementationFactory: s => new EventTypeResolver(
 			assembly: typeof(IEvent).Assembly,

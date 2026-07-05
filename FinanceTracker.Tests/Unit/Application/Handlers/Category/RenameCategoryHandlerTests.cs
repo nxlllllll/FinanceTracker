@@ -38,7 +38,7 @@ public sealed class RenameCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: "Транспорт")),
-			entity: category,
+			user: category,
 			ct: CancellationToken.None
 		);
 
@@ -58,7 +58,7 @@ public sealed class RenameCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: "Транспорт")),
-			entity: category,
+			user: category,
 			ct: CancellationToken.None
 		);
 
@@ -79,7 +79,7 @@ public sealed class RenameCategoryHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: String.Empty)),
-			entity: category,
+			user: category,
 			ct: CancellationToken.None
 		);
 
@@ -93,7 +93,7 @@ public sealed class RenameCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: String.Empty)),
-			entity: category,
+			user: category,
 			ct: CancellationToken.None
 		);
 

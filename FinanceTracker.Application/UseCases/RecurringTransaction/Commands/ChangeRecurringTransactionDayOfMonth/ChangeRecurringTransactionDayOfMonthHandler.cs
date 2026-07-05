@@ -21,16 +21,16 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeRecurringTransactionDayOfMonthCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction entity,
+		Core.Domains.RecurringTransaction.RecurringTransaction user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
+		Result<Unit, DomainException> result = user.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ChangeDayOfMonthAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: entity.RowVersion,
+			expectedVersion: user.RowVersion,
 			dayOfMonth: command.DayOfMonth,
 			ct: ct
 		);
@@ -38,17 +38,17 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 		try
 		{
 			await publisher.Publish(notification: new RecurringTransactionDayOfMonthChangedNotification(
-				RecurringTransactionId: entity.Id,
-				UserId: entity.UserId,
+				RecurringTransactionId: user.Id,
+				UserId: user.UserId,
 				NewDayOfMonth: command.DayOfMonth,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionDayOfMonthChangedNotification for recurring transaction {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionDayOfMonthChangedNotification for recurring transaction {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

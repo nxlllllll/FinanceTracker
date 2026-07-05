@@ -21,16 +21,16 @@ public sealed class ChangeRecurringTransactionCurrencyHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeRecurringTransactionCurrencyCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction entity,
+		Core.Domains.RecurringTransaction.RecurringTransaction user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.ChangeCurrency(currency: command.Currency);
+		Result<Unit, DomainException> result = user.ChangeCurrency(currency: command.Currency);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ChangeCurrencyAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: entity.RowVersion,
+			expectedVersion: user.RowVersion,
 			currency: command.Currency,
 			ct: ct
 		);
@@ -38,17 +38,17 @@ public sealed class ChangeRecurringTransactionCurrencyHandler(
 		try
 		{
 			await publisher.Publish(notification: new RecurringTransactionCurrencyChangedNotification(
-				RecurringTransactionId: entity.Id,
-				UserId: entity.UserId,
+				RecurringTransactionId: user.Id,
+				UserId: user.UserId,
 				NewCurrency: command.Currency,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionCurrencyChangedNotification for recurring transaction {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionCurrencyChangedNotification for recurring transaction {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

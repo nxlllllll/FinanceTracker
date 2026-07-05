@@ -21,28 +21,28 @@ public sealed class UnarchiveCategoryHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		UnarchiveCategoryCommand command,
-		Core.Domains.Category.Category entity,
+		Core.Domains.Category.Category user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.Unarchive();
+		Result<Unit, DomainException> result = user.Unarchive();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
-		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: entity.RowVersion, ct: ct);
+		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: user.RowVersion, ct: ct);
 
 		try
 		{
 			await publisher.Publish(notification: new CategoryUnarchivedNotification(
-				CategoryId: entity.Id,
-				UserId: entity.UserId,
+				CategoryId: user.Id,
+				UserId: user.UserId,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryUnarchivedNotification for category {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryUnarchivedNotification for category {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

@@ -40,7 +40,7 @@ public sealed class ArchiveAccountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 
@@ -57,7 +57,7 @@ public sealed class ArchiveAccountHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 
@@ -72,7 +72,7 @@ public sealed class ArchiveAccountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 

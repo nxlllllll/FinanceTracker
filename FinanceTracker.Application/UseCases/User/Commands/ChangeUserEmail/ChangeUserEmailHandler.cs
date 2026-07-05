@@ -6,6 +6,7 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,8 @@ namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 public sealed class ChangeUserEmailHandler(
 	IUserAuthRepository userAuthRepository,
 	IUserWriteRepository userWriteRepository,
+	IUserSessionWriteRepository userSessionWriteRepository,
+	IPasswordHasher passwordHasher,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
 	IDateProvider dateProvider,
@@ -25,9 +28,17 @@ public sealed class ChangeUserEmailHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeUserEmailCommand command,
-		Core.Domains.User.User accounts,
+		Core.Domains.User.User user,
 		CancellationToken ct = default)
 	{
+		bool currentPasswordMatches = await passwordHasher.Verify(
+			password: command.CurrentPassword,
+			storedHash: user.PasswordHash
+		);
+
+		if (!currentPasswordMatches)
+			return Result<Guid, AppException>.Failure(error: new InvalidCredentialsException());
+
 		Core.Domains.User.User? existing = await userAuthRepository.GetByEmailAsync(email: command.NewEmail, ct: ct);
 		if (existing is not null)
 			return Result<Guid, AppException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.NewEmail));
@@ -36,20 +47,30 @@ public sealed class ChangeUserEmailHandler(
 		if (newEmailResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: newEmailResult.Error!);
 
-		Email oldEmail = accounts.Email;
+		Email oldEmail = user.Email;
 
-		Result<Unit, DomainException> result = accounts.ChangeEmail(newEmail: newEmailResult.Value);
+		Result<Unit, DomainException> result = user.ChangeEmail(newEmail: newEmailResult.Value);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		try
 		{
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.ChangeEmailAsync(
-				userId: command.UserId,
-				expectedVersion: accounts.RowVersion,
-				newEmail: newEmailResult.Value,
-				ct: ct
-			), ct: ct);
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			{
+				await userWriteRepository.ChangeEmailAsync(
+					userId: command.UserId,
+					expectedVersion: user.RowVersion,
+					newEmail: newEmailResult.Value,
+					ct: ct
+				);
+
+				await userSessionWriteRepository.RevokeAllExceptAsync(
+					userId: command.UserId,
+					exceptSessionId: command.CurrentSessionId,
+					revokedAt: dateProvider.UtcNow,
+					ct: ct
+				);
+			}, ct: ct);
 		}
 		catch (EmailException exception)
 		{
@@ -59,7 +80,7 @@ public sealed class ChangeUserEmailHandler(
 		try
 		{
 			await publisher.Publish(notification: new UserEmailChangedNotification(
-				UserId: accounts.Id,
+				UserId: user.Id,
 				OldEmail: oldEmail,
 				NewEmail: newEmailResult.Value,
 				OccurredAt: dateProvider.UtcNow
@@ -67,9 +88,9 @@ public sealed class ChangeUserEmailHandler(
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish UserEmailChangedNotification for user {accounts.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish UserEmailChangedNotification for user {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

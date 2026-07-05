@@ -62,7 +62,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -77,7 +77,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -112,7 +112,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -130,7 +130,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -157,7 +157,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 

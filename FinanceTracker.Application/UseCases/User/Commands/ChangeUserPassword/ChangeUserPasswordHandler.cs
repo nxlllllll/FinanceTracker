@@ -26,12 +26,20 @@ public sealed class ChangeUserPasswordHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeUserPasswordCommand command,
-		Core.Domains.User.User accounts,
+		Core.Domains.User.User user,
 		CancellationToken ct = default)
 	{
+		bool currentPasswordMatches = await passwordHasher.Verify(
+			password: command.CurrentPassword,
+			storedHash: user.PasswordHash
+		);
+
+		if (!currentPasswordMatches)
+			return Result<Guid, AppException>.Failure(error: new InvalidCredentialsException());
+
 		string newPasswordHash = await passwordHasher.Hash(password: command.NewPassword);
 
-		Result<Unit, DomainException> result = accounts.ChangePassword(newPasswordHash: newPasswordHash);
+		Result<Unit, DomainException> result = user.ChangePassword(newPasswordHash: newPasswordHash);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
@@ -39,7 +47,7 @@ public sealed class ChangeUserPasswordHandler(
 		{
 			await userWriteRepository.ChangePasswordAsync(
 				userId: command.UserId,
-				expectedVersion: accounts.RowVersion,
+				expectedVersion: user.RowVersion,
 				newPasswordHash: newPasswordHash,
 				ct: ct
 			);
@@ -55,15 +63,15 @@ public sealed class ChangeUserPasswordHandler(
 		try
 		{
 			await publisher.Publish(notification: new UserPasswordChangedNotification(
-				UserId: accounts.Id,
+				UserId: user.Id,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish UserPasswordChangedNotification for user {accounts.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish UserPasswordChangedNotification for user {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

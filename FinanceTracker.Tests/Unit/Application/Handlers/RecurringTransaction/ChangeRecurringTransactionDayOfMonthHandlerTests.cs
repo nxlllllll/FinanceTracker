@@ -37,7 +37,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 15),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 
@@ -56,7 +56,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 15),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 
@@ -76,7 +76,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 0),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 
@@ -91,7 +91,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 0),
-			entity: rt,
+			user: rt,
 			ct: CancellationToken.None
 		);
 

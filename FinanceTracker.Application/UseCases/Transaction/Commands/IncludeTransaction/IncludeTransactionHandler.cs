@@ -28,10 +28,10 @@ public sealed class IncludeTransactionHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		IncludeTransactionCommand command,
-		Core.Domains.Transaction.Transaction accounts,
+		Core.Domains.Transaction.Transaction user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = accounts.Include();
+		Result<Unit, DomainException> result = user.Include();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
@@ -39,48 +39,48 @@ public sealed class IncludeTransactionHandler(
 		{
 			await transactionWriteRepository.IncludeAsync(
 				transactionId: command.TransactionId,
-				userId: accounts.UserId,
-				expectedVersion: accounts.RowVersion,
+				userId: user.UserId,
+				expectedVersion: user.RowVersion,
 				ct: ct
 			);
 
-			if (accounts.Direction != DirectionType.Debit)
+			if (user.Direction != DirectionType.Debit)
 				return;
 
 			await categoryTotalWriteRepository.AddAsync(
-				userId: accounts.UserId,
-				categoryId: accounts.CategoryId,
-				currency: accounts.Amount.Currency,
-				amount: accounts.Amount.Amount,
-				occurredAt: accounts.OccurredAt,
+				userId: user.UserId,
+				categoryId: user.CategoryId,
+				currency: user.Amount.Currency,
+				amount: user.Amount.Amount,
+				occurredAt: user.OccurredAt,
 				ct: ct
 			);
 
 			await budgetProgressWriteRepository.AddAsync(
-				userId: accounts.UserId,
-				categoryId: accounts.CategoryId,
-				currencyCode: accounts.Amount.Currency,
-				amount: accounts.Amount.Amount,
-				occurredAt: accounts.OccurredAt,
+				userId: user.UserId,
+				categoryId: user.CategoryId,
+				currencyCode: user.Amount.Currency,
+				amount: user.Amount.Amount,
+				occurredAt: user.OccurredAt,
 				ct: ct
 			);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {accounts.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {user.Id}."),
 		ct: ct);
 
 		try
 		{
 			await publisher.Publish(notification: new TransactionIncludedNotification(
-				TransactionId: accounts.Id,
-				UserId: accounts.UserId,
+				TransactionId: user.Id,
+				UserId: user.UserId,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionIncludedNotification for transaction {accounts.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionIncludedNotification for transaction {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

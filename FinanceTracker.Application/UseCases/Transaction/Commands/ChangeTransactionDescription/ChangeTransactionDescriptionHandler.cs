@@ -21,21 +21,21 @@ public sealed class ChangeTransactionDescriptionHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeTransactionDescriptionCommand command,
-		Core.Domains.Transaction.Transaction accounts,
+		Core.Domains.Transaction.Transaction user,
 		CancellationToken ct = default)
 	{
-		if (accounts.Description == command.Description)
-			return Result<Guid, AppException>.Success(value: accounts.Id);
+		if (user.Description == command.Description)
+			return Result<Guid, AppException>.Success(value: user.Id);
 
-		string? oldDescription = accounts.Description;
+		string? oldDescription = user.Description;
 
-		Result<Unit, DomainException> result = accounts.ChangeDescription(description: command.Description);
+		Result<Unit, DomainException> result = user.ChangeDescription(description: command.Description);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await transactionWriteRepository.ChangeDescriptionAsync(
 			transactionId: command.TransactionId,
-			expectedVersion: accounts.RowVersion,
+			expectedVersion: user.RowVersion,
 			description: command.Description,
 			ct: ct
 		);
@@ -43,8 +43,8 @@ public sealed class ChangeTransactionDescriptionHandler(
 		try
 		{
 			await publisher.Publish(notification: new TransactionDescriptionChangedNotification(
-				TransactionId: accounts.Id,
-				UserId: accounts.UserId,
+				TransactionId: user.Id,
+				UserId: user.UserId,
 				OldDescription: oldDescription,
 				NewDescription: command.Description,
 				OccurredAt: dateProvider.UtcNow
@@ -52,9 +52,9 @@ public sealed class ChangeTransactionDescriptionHandler(
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionDescriptionChangedNotification for transaction {accounts.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionDescriptionChangedNotification for transaction {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

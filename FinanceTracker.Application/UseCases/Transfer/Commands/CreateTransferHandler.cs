@@ -26,14 +26,14 @@ public sealed class CreateTransferHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		CreateTransferCommand command,
-		TransferAccounts accounts,
+		TransferAccounts user,
 		CancellationToken ct = default)
 	{
-		Core.Domains.Account.Account account = accounts.FromAccount;
+		Core.Domains.Account.Account account = user.FromAccount;
 
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: account.Currency,
-			toCurrency: accounts.ToAccountCurrency,
+			toCurrency: user.ToAccountCurrency,
 			date: DateOnly.FromDateTime(dateTime: command.OccurredAt.UtcDateTime),
 			ct: ct
 		);
@@ -44,7 +44,7 @@ public sealed class CreateTransferHandler(
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,
 			currencyFrom: account.Currency,
-			currencyTo: accounts.ToAccountCurrency,
+			currencyTo: user.ToAccountCurrency,
 			exchangeRate: conversion.Rate,
 			isRatePending: conversion.IsPending,
 			description: command.Description,

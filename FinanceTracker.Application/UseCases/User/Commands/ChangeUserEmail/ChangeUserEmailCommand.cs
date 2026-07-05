@@ -8,5 +8,7 @@ namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 
 public sealed record ChangeUserEmailCommand(
 	Guid UserId,
+	Guid CurrentSessionId,
+	string CurrentPassword,
 	string NewEmail
 ) : IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest;

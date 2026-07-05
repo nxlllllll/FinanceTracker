@@ -21,28 +21,28 @@ public sealed class DeactivateBudgetHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		DeactivateBudgetCommand command,
-		Core.Domains.Budget.Budget entity,
+		Core.Domains.Budget.Budget user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.Deactivate();
+		Result<Unit, DomainException> result = user.Deactivate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
-		await budgetWriteRepository.DeactivateAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, ct: ct);
+		await budgetWriteRepository.DeactivateAsync(budgetId: user.Id, expectedVersion: user.RowVersion, ct: ct);
 
 		try
 		{
 			await publisher.Publish(notification: new BudgetDeactivatedNotification(
-				BudgetId: entity.Id,
-				UserId: entity.UserId,
+				BudgetId: user.Id,
+				UserId: user.UserId,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetDeactivatedNotification for budget {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetDeactivatedNotification for budget {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

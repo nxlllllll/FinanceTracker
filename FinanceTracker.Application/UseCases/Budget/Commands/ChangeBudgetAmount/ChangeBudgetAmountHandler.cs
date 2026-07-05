@@ -21,29 +21,29 @@ public sealed class ChangeBudgetAmountHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeBudgetAmountCommand command,
-		Core.Domains.Budget.Budget entity,
+		Core.Domains.Budget.Budget user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.ChangeAmount(amount: command.Amount);
+		Result<Unit, DomainException> result = user.ChangeAmount(amount: command.Amount);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
-		await budgetWriteRepository.ChangeAmountAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, amount: command.Amount, ct: ct);
+		await budgetWriteRepository.ChangeAmountAsync(budgetId: user.Id, expectedVersion: user.RowVersion, amount: command.Amount, ct: ct);
 
 		try
 		{
 			await publisher.Publish(notification: new BudgetAmountChangedNotification(
-				BudgetId: entity.Id,
-				UserId: entity.UserId,
+				BudgetId: user.Id,
+				UserId: user.UserId,
 				NewAmount: command.Amount,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetAmountChangedNotification for budget {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetAmountChangedNotification for budget {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

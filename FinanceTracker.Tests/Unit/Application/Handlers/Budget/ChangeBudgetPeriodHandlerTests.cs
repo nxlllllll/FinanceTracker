@@ -65,7 +65,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeBudgetPeriodCommand(UserId: budget.UserId, BudgetId: budget.Id, From: newFrom, To: newTo),
-			entity: budget,
+			user: budget,
 			ct: CancellationToken.None
 		);
 
@@ -87,7 +87,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeBudgetPeriodCommand(UserId: budget.UserId, BudgetId: budget.Id, From: newFrom, To: newTo),
-			entity: budget,
+			user: budget,
 			ct: CancellationToken.None
 		);
 
@@ -117,7 +117,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeBudgetPeriodCommand(UserId: budget.UserId, BudgetId: budget.Id, From: DateOnly.MinValue, To: DateOnly.MaxValue),
-			entity: budget,
+			user: budget,
 			ct: CancellationToken.None
 		);
 
@@ -141,7 +141,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeBudgetPeriodCommand(UserId: budget.UserId, BudgetId: budget.Id, From: DateOnly.MinValue, To: DateOnly.MaxValue),
-			entity: budget,
+			user: budget,
 			ct: CancellationToken.None
 		);
 

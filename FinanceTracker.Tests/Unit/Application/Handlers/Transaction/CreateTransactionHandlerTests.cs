@@ -61,7 +61,7 @@ public sealed class CreateTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 
@@ -92,7 +92,7 @@ public sealed class CreateTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 
@@ -117,7 +117,7 @@ public sealed class CreateTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 
@@ -142,7 +142,7 @@ public sealed class CreateTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: command,
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 
@@ -169,7 +169,7 @@ public sealed class CreateTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Domains.Transaction.Transaction, DomainException>.Success(value: transaction));
 
-		await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
+		await _handler.HandleAsync(command: command, user: account, ct: CancellationToken.None);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
 			notification: Arg.Is<TransactionCreatedNotification>(n =>
@@ -197,7 +197,7 @@ public sealed class CreateTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Domains.Transaction.Transaction, DomainException>.Failure(error: new InvalidAmountException(message: "Invalid amount.")));
 
-		await _handler.HandleAsync(command: command, accounts: account, ct: CancellationToken.None);
+		await _handler.HandleAsync(command: command, user: account, ct: CancellationToken.None);
 
 		await _publisher.DidNotReceive().Publish(
 			notification: Arg.Any<TransactionCreatedNotification>(),

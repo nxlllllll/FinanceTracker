@@ -22,31 +22,31 @@ public sealed class RenameCategoryHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		RenameCategoryCommand command,
-		Core.Domains.Category.Category entity,
+		Core.Domains.Category.Category user,
 		CancellationToken ct = default)
 	{
 		Result<Name, DomainException> nameResult = Name.Create(value: command.NewName);
 		if (nameResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: nameResult.Error!);
 
-		string oldName = entity.Name;
+		string oldName = user.Name;
 
-		Result<Unit, DomainException> result = entity.Rename(newName: nameResult.Value);
+		Result<Unit, DomainException> result = user.Rename(newName: nameResult.Value);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await categoryWriteRepository.RenameAsync(
 			categoryId: command.CategoryId,
 			newName: nameResult.Value,
-			expectedVersion: entity.RowVersion,
+			expectedVersion: user.RowVersion,
 			ct: ct
 		);
 
 		try
 		{
 			await publisher.Publish(notification: new CategoryRenamedNotification(
-				CategoryId: entity.Id,
-				UserId: entity.UserId,
+				CategoryId: user.Id,
+				UserId: user.UserId,
 				OldName: oldName,
 				NewName: nameResult.Value,
 				OccurredAt: dateProvider.UtcNow
@@ -54,9 +54,9 @@ public sealed class RenameCategoryHandler(
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryRenamedNotification for category {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryRenamedNotification for category {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

@@ -27,35 +27,35 @@ public sealed class ArchiveCategoryHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ArchiveCategoryCommand command,
-		Core.Domains.Category.Category entity,
+		Core.Domains.Category.Category user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.Archive();
+		Result<Unit, DomainException> result = user.Archive();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: entity.RowVersion, ct: ct);
+			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: user.RowVersion, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 			await budgetWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {entity.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {user.Id}."),
 		ct: ct);
 
 		try
 		{
 			await publisher.Publish(notification: new CategoryArchivedNotification(
-				CategoryId: entity.Id,
-				UserId: entity.UserId,
+				CategoryId: user.Id,
+				UserId: user.UserId,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryArchivedNotification for category {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryArchivedNotification for category {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

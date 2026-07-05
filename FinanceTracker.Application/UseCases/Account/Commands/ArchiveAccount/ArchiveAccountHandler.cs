@@ -16,15 +16,15 @@ public sealed class ArchiveAccountHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ArchiveAccountCommand command,
-		Core.Domains.Account.Account accounts,
+		Core.Domains.Account.Account user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = accounts.Archive(occurredAt: dateProvider.UtcNow);
+		Result<Unit, DomainException> result = user.Archive(occurredAt: dateProvider.UtcNow);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: accounts, ct: ct), ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: user, ct: ct), ct: ct);
 
-		return Result<Guid, AppException>.Success(value: accounts.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

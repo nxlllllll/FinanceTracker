@@ -21,16 +21,16 @@ public sealed class ChangeRecurringTransactionAmountHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeRecurringTransactionAmountCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction entity,
+		Core.Domains.RecurringTransaction.RecurringTransaction user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.ChangeAmount(amount: command.Amount);
+		Result<Unit, DomainException> result = user.ChangeAmount(amount: command.Amount);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ChangeAmountAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: entity.RowVersion,
+			expectedVersion: user.RowVersion,
 			amount: command.Amount,
 			ct: ct
 		);
@@ -38,17 +38,17 @@ public sealed class ChangeRecurringTransactionAmountHandler(
 		try
 		{
 			await publisher.Publish(notification: new RecurringTransactionAmountChangedNotification(
-				RecurringTransactionId: entity.Id,
-				UserId: entity.UserId,
+				RecurringTransactionId: user.Id,
+				UserId: user.UserId,
 				NewAmount: command.Amount,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionAmountChangedNotification for recurring transaction {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionAmountChangedNotification for recurring transaction {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

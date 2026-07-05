@@ -21,32 +21,32 @@ public sealed class ActivateRecurringTransactionHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ActivateRecurringTransactionCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction entity,
+		Core.Domains.RecurringTransaction.RecurringTransaction user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.Activate();
+		Result<Unit, DomainException> result = user.Activate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		await recurringTransactionWriteRepository.ActivateAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: entity.RowVersion,
+			expectedVersion: user.RowVersion,
 			ct: ct
 		);
 
 		try
 		{
 			await publisher.Publish(notification: new RecurringTransactionActivatedNotification(
-				RecurringTransactionId: entity.Id,
-				UserId: entity.UserId,
+				RecurringTransactionId: user.Id,
+				UserId: user.UserId,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionActivatedNotification for recurring transaction {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionActivatedNotification for recurring transaction {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

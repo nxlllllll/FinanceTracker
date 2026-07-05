@@ -24,10 +24,10 @@ public sealed class ActivateBudgetHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ActivateBudgetCommand command,
-		Core.Domains.Budget.Budget entity,
+		Core.Domains.Budget.Budget user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = entity.Activate();
+		Result<Unit, DomainException> result = user.Activate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
@@ -39,17 +39,17 @@ public sealed class ActivateBudgetHandler(
 			{
 				bool overlap = await budgetReadRepository.HasOverlappingAsync(
 					userId: command.UserId,
-					categoryId: entity.CategoryId,
-					from: entity.From,
-					to: entity.To,
-					excludeBudgetId: entity.Id,
+					categoryId: user.CategoryId,
+					from: user.From,
+					to: user.To,
+					excludeBudgetId: user.Id,
 					ct: ct
 				);
 
 				if (overlap)
 					return true;
 
-				await budgetWriteRepository.ActivateAsync(budgetId: entity.Id, expectedVersion: entity.RowVersion, ct: ct);
+				await budgetWriteRepository.ActivateAsync(budgetId: user.Id, expectedVersion: user.RowVersion, ct: ct);
 
 				return false;
 			}, ct: ct);
@@ -69,16 +69,16 @@ public sealed class ActivateBudgetHandler(
 		try
 		{
 			await publisher.Publish(notification: new BudgetActivatedNotification(
-				BudgetId: entity.Id,
-				UserId: entity.UserId,
+				BudgetId: user.Id,
+				UserId: user.UserId,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetActivatedNotification for budget {entity.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetActivatedNotification for budget {user.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: entity.Id);
+		return Result<Guid, AppException>.Success(value: user.Id);
 	}
 }

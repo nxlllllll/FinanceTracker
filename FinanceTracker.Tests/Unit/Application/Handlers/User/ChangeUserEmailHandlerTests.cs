@@ -5,6 +5,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
@@ -17,18 +18,29 @@ public sealed class ChangeUserEmailHandlerTests
 {
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IUserWriteRepository _userWriteRepository = null!;
+	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
+	private IPasswordHasher _passwordHasher = null!;
 	private IPublisher _publisher = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ChangeUserEmailHandler _handler = null!;
+
+	private const string CurrentPassword = "currentPassword";
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
+		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
+		_passwordHasher = Substitute.For<IPasswordHasher>();
 		_publisher = Substitute.For<IPublisher>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
+		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: true);
+		_userAuthRepository.GetByEmailAsync(
+			email: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -37,6 +49,8 @@ public sealed class ChangeUserEmailHandlerTests
 		_handler = new ChangeUserEmailHandler(
 			userAuthRepository: _userAuthRepository,
 			userWriteRepository: _userWriteRepository,
+			userSessionWriteRepository: _userSessionWriteRepository,
+			passwordHasher: _passwordHasher,
 			unitOfWork: _unitOfWork,
 			publisher: _publisher,
 			dateProvider: FakeDateProvider.Default,
@@ -45,18 +59,27 @@ public sealed class ChangeUserEmailHandlerTests
 	}
 
 	[Test]
+	public async Task HandleAsync_WithValidCommand_ShouldVerifyCurrentPassword()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(passwordHash: "storedHash").Value!;
+
+		await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: CurrentPassword, NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _passwordHasher.Received(requiredNumberOfCalls: 1).Verify(password: CurrentPassword, storedHash: "storedHash");
+	}
+
+	[Test]
 	public async Task HandleAsync_WithValidCommand_ShouldChangeEmail()
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
-		_userAuthRepository.GetByEmailAsync(
-			email: Arg.Any<string>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
-
 		await _handler.HandleAsync(
-			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			accounts: user,
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: CurrentPassword, NewEmail: "new@test.com"),
+			user: user,
 			ct: CancellationToken.None
 		);
 
@@ -69,18 +92,33 @@ public sealed class ChangeUserEmailHandlerTests
 	}
 
 	[Test]
+	public async Task HandleAsync_WithValidCommand_ShouldRevokeAllOtherSessions()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+		Guid currentSessionId = Guid.CreateVersion7();
+
+		await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: currentSessionId, CurrentPassword: CurrentPassword, NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAllExceptAsync(
+			userId: user.Id,
+			exceptSessionId: currentSessionId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
 	public async Task HandleAsync_WithValidCommand_ShouldPublishUserEmailChangedNotification()
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
 
-		_userAuthRepository.GetByEmailAsync(
-			email: Arg.Any<string>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
-
 		await _handler.HandleAsync(
-			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			accounts: user,
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: CurrentPassword, NewEmail: "new@test.com"),
+			user: user,
 			ct: CancellationToken.None
 		);
 
@@ -88,6 +126,103 @@ public sealed class ChangeUserEmailHandlerTests
 			n.UserId == user.Id &&
 			n.NewEmail.Value == "new@test.com"
 		), cancellationToken: Arg.Any<CancellationToken>());
+	}
+
+	[Test]
+	public async Task HandleAsync_WithWrongCurrentPassword_ShouldReturnInvalidCredentialsException()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+
+		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: false);
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: "wrongPassword", NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidCredentialsException>();
+	}
+
+	[Test]
+	public async Task HandleAsync_WithWrongCurrentPassword_ShouldNotCheckEmailUniqueness()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+
+		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: false);
+
+		await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: "wrongPassword", NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _userAuthRepository.DidNotReceive().GetByEmailAsync(
+			email: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithWrongCurrentPassword_ShouldNotChangeEmail()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+
+		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: false);
+
+		await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: "wrongPassword", NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _userWriteRepository.DidNotReceive().ChangeEmailAsync(
+			userId: Arg.Any<Guid>(),
+			newEmail: Arg.Any<Email>(),
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithWrongCurrentPassword_ShouldNotRevokeSessions()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+
+		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: false);
+
+		await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: "wrongPassword", NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAllExceptAsync(
+			userId: Arg.Any<Guid>(),
+			exceptSessionId: Arg.Any<Guid>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WithWrongCurrentPassword_ShouldNotPublishNotification()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+
+		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: false);
+
+		await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: "wrongPassword", NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<INotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -102,13 +237,38 @@ public sealed class ChangeUserEmailHandlerTests
 		).Returns(returnThis: anotherUser);
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
-			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			accounts: user,
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: CurrentPassword, NewEmail: "new@test.com"),
+			user: user,
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<EmailException>();
+	}
+
+	[Test]
+	public async Task HandleAsync_WithDuplicateEmail_ShouldNotRevokeSessions()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create().Value!;
+		FinanceTracker.Core.Domains.User.User anotherUser = UserFactory.Create(email: "new@test.com").Value!;
+
+		_userAuthRepository.GetByEmailAsync(
+			email: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: anotherUser);
+
+		await _handler.HandleAsync(
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: CurrentPassword, NewEmail: "new@test.com"),
+			user: user,
+			ct: CancellationToken.None
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAllExceptAsync(
+			userId: Arg.Any<Guid>(),
+			exceptSessionId: Arg.Any<Guid>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -123,8 +283,8 @@ public sealed class ChangeUserEmailHandlerTests
 		).Returns(returnThis: anotherUser);
 
 		await _handler.HandleAsync(
-			command: new ChangeUserEmailCommand(UserId: user.Id, NewEmail: "new@test.com"),
-			accounts: user,
+			command: new ChangeUserEmailCommand(UserId: user.Id, CurrentSessionId: Guid.CreateVersion7(), CurrentPassword: CurrentPassword, NewEmail: "new@test.com"),
+			user: user,
 			ct: CancellationToken.None
 		);
 

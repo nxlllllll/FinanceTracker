@@ -40,7 +40,7 @@ public sealed class UnarchiveAccountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new UnarchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 
@@ -57,7 +57,7 @@ public sealed class UnarchiveAccountHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new UnarchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
-			accounts: account,
+			user: account,
 			ct: CancellationToken.None
 		);
 

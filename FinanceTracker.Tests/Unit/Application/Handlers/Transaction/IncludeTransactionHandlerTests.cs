@@ -61,7 +61,7 @@ public sealed class IncludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -80,7 +80,7 @@ public sealed class IncludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -99,7 +99,7 @@ public sealed class IncludeTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -113,7 +113,7 @@ public sealed class IncludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new IncludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			accounts: transaction,
+			user: transaction,
 			ct: CancellationToken.None
 		);
 
