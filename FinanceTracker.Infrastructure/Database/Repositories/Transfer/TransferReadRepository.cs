@@ -1,13 +1,17 @@
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 
-public sealed class TransferReadRepository(FinanceTrackerContext context) : ITransferReadRepository
+public sealed class TransferReadRepository(
+	FinanceTrackerContext context,
+	IDateProvider dateProvider
+) : ITransferReadRepository
 {
 	public async Task<TransferReadModel?> GetByIdAsync(
 		Guid transferId,
@@ -105,7 +109,7 @@ public sealed class TransferReadRepository(FinanceTrackerContext context) : ITra
 
 	public async Task<int> GetPendingCreditCountAsync(TimeSpan gracePeriod, CancellationToken ct = default)
 	{
-		DateTimeOffset threshold = DateTimeOffset.UtcNow - gracePeriod;
+		DateTimeOffset threshold = dateProvider.UtcNow - gracePeriod;
 		return await context.Transfers.AsNoTracking().CountAsync(
 			predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.OccurredAt < threshold,
 			cancellationToken: ct
@@ -116,7 +120,7 @@ public sealed class TransferReadRepository(FinanceTrackerContext context) : ITra
 		TimeSpan compensationThreshold,
 		CancellationToken ct = default)
 	{
-		DateTimeOffset threshold = DateTimeOffset.UtcNow - compensationThreshold;
+		DateTimeOffset threshold = dateProvider.UtcNow - compensationThreshold;
 		return await context.Transfers.AsNoTracking()
 			.Where(predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.OccurredAt < threshold)
 			.Select(selector: t => new PendingCreditTransfer(

@@ -31,22 +31,22 @@ public sealed class ChangeTransactionCategoryHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeTransactionCategoryCommand command,
-		Core.Domains.Transaction.Transaction user,
+		Core.Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default)
 	{
-		if (user.CategoryId == command.CategoryId)
-			return Result<Guid, AppException>.Success(value: user.Id);
+		if (transaction.CategoryId == command.CategoryId)
+			return Result<Guid, AppException>.Success(value: transaction.Id);
 
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
 		if (category is null)
 			return Result<Guid, AppException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
 
-		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: user.Direction);
+		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: transaction.Direction);
 		if (validationResult is not null)
 			return Result<Guid, AppException>.Failure(error: validationResult);
 
-		Guid oldCategoryId = user.CategoryId;
-		Result<Unit, DomainException> result = user.ChangeCategory(categoryId: command.CategoryId);
+		Guid oldCategoryId = transaction.CategoryId;
+		Result<Unit, DomainException> result = transaction.ChangeCategory(categoryId: command.CategoryId);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
@@ -54,32 +54,32 @@ public sealed class ChangeTransactionCategoryHandler(
 		{
 			await transactionWriteRepository.ChangeCategoryAsync(
 				transactionId: command.TransactionId,
-				userId: user.UserId,
+				userId: transaction.UserId,
 				categoryId: command.CategoryId,
-				expectedVersion: user.RowVersion,
+				expectedVersion: transaction.RowVersion,
 				ct: ct
 			);
 
-			if (user is not { IsExcluded: false, Direction: DirectionType.Debit })
+			if (transaction is not { IsExcluded: false, Direction: DirectionType.Debit })
 				return;
 
 			await categoryTotalWriteRepository.ChangeCategoryAsync(
-				userId: user.UserId,
+				userId: transaction.UserId,
 				oldCategoryId: oldCategoryId,
 				newCategoryId: command.CategoryId,
-				currency: user.Amount.Currency,
-				amount: user.Amount.Amount,
-				occurredAt: user.OccurredAt,
+				currency: transaction.Amount.Currency,
+				amount: transaction.Amount.Amount,
+				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
 
 			await budgetProgressWriteRepository.ChangeCategoryAsync(
-				userId: user.UserId,
+				userId: transaction.UserId,
 				oldCategoryId: oldCategoryId,
 				newCategoryId: command.CategoryId,
-				currencyCode: user.Amount.Currency,
-				amount: user.Amount.Amount,
-				occurredAt: user.OccurredAt,
+				currencyCode: transaction.Amount.Currency,
+				amount: transaction.Amount.Amount,
+				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
 		}, ct: ct);
@@ -87,8 +87,8 @@ public sealed class ChangeTransactionCategoryHandler(
 		try
 		{
 			await publisher.Publish(notification: new TransactionCategoryChangedNotification(
-				TransactionId: user.Id,
-				UserId: user.UserId,
+				TransactionId: transaction.Id,
+				UserId: transaction.UserId,
 				OldCategoryId: oldCategoryId,
 				NewCategoryId: command.CategoryId,
 				OccurredAt: dateProvider.UtcNow
@@ -96,9 +96,9 @@ public sealed class ChangeTransactionCategoryHandler(
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionCategoryChangedNotification for transaction {user.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionCategoryChangedNotification for transaction {transaction.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: transaction.Id);
 	}
 }

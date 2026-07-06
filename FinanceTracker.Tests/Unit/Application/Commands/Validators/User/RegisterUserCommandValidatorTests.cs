@@ -76,6 +76,17 @@ public sealed class RegisterUserCommandValidatorTests
 	}
 
 	[Test]
+	public async Task Validate_WithTooLongPassword_ShouldHaveError()
+	{
+		RegisterUserCommand command = RegisterUserCommandFactory.Create(password: new String(c: 'a', count: 129));
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Password))).IsTrue();
+	}
+
+	[Test]
 	public async Task Validate_WithNonExistentCurrency_ShouldHaveError()
 	{
 		RegisterUserCommand command = RegisterUserCommandFactory.Create(baseCurrencyCode: "XYZ");

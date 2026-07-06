@@ -47,7 +47,9 @@ public sealed class RedisRateLimiter(
 			now,
 			windowMs,
 			limit = requestsPerWindow,
+#pragma warning disable RS0030 // Banned API — jitter only needs uniqueness, not time-ordering, so a random Guid is fine here.
 			unique = Guid.NewGuid().ToString(format: "N")
+#pragma warning restore RS0030
 		});
 
 		return (long)result == 1;

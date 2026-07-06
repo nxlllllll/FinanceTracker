@@ -1,0 +1,21 @@
+﻿// Use IDateProvider (Core/Services/DateProvider) instead of the system clock directly —
+// keeps time deterministic and testable via FakeDateProvider.
+P:System.DateTime.Now;Use IDateProvider.UtcNow instead of DateTime.Now.
+P:System.DateTime.UtcNow;Use IDateProvider.UtcNow instead of DateTime.UtcNow.
+P:System.DateTimeOffset.Now;Use IDateProvider.UtcNow instead of DateTimeOffset.Now.
+P:System.DateTimeOffset.UtcNow;Use IDateProvider.UtcNow instead of DateTimeOffset.UtcNow.
+
+// Use Guid.CreateVersion7() instead — time-ordered GUIDs are index-friendly (sequential inserts)
+// and sort naturally by creation time, unlike random v4 GUIDs from Guid.NewGuid().
+M:System.Guid.NewGuid;Use Guid.CreateVersion7() instead of Guid.NewGuid() for time-ordered identifiers.
+
+// Never block on async code — always await. Blocking risks deadlocks (e.g. on a captured
+// SynchronizationContext) and defeats the purpose of the async pipeline throughout this codebase.
+P:System.Threading.Tasks.Task`1.Result;Do not block on async code with .Result — await the task instead.
+M:System.Threading.Tasks.Task.Wait;Do not block on async code with .Wait() — await the task instead.
+M:System.Threading.Tasks.Task.Wait(System.Int32);Do not block on async code with .Wait() — await the task instead.
+M:System.Threading.Tasks.Task.Wait(System.TimeSpan);Do not block on async code with .Wait() — await the task instead.
+M:System.Threading.Tasks.Task.Wait(System.Threading.CancellationToken);Do not block on async code with .Wait() — await the task instead.
+M:System.Threading.Tasks.Task.Wait(System.Int32,System.Threading.CancellationToken);Do not block on async code with .Wait() — await the task instead.
+M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;Do not block on async code with GetAwaiter().GetResult() — await the task instead.
+M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;Do not block on async code with GetAwaiter().GetResult() — await the task instead.

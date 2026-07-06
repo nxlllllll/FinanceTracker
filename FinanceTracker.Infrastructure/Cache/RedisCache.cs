@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -15,19 +16,21 @@ namespace FinanceTracker.Infrastructure.Cache;
 public sealed class RedisCache(
 	IConnectionMultiplexer connectionMultiplexer,
 	IOptionsMonitor<RedisOptions> options,
-	ILogger<RedisCache> logger)
+	IDateProvider dateProvider,
+	ILogger<RedisCache> logger
+)
 {
 	private string Prefixed(string key)
 		=> $"{options.CurrentValue.InstanceName}{key}";
 
-	private static TimeSpan ToExpiry(DistributedCacheEntryOptions cacheOptions)
+	private TimeSpan ToExpiry(DistributedCacheEntryOptions cacheOptions)
 	{
 		if (cacheOptions.AbsoluteExpirationRelativeToNow is { } relative)
 			return relative;
 
 		if (cacheOptions.AbsoluteExpiration is { } absolute)
 		{
-			TimeSpan ttl = absolute - DateTimeOffset.UtcNow;
+			TimeSpan ttl = absolute - dateProvider.UtcNow;
 			return ttl > TimeSpan.Zero ? ttl : TimeSpan.FromSeconds(value: 1);
 		}
 

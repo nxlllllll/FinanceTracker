@@ -54,7 +54,7 @@ public sealed class GetOperationsHistoryHandlerTests
 				AccountId: Guid.CreateVersion7(),
 				CategoryId: Guid.CreateVersion7(),
 				Amount: 1000m,
-				Currency: Currency.Create(value: "RUB").Value,
+				Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 				Direction: DirectionType.Credit,
 				IsExcluded: false
 			),

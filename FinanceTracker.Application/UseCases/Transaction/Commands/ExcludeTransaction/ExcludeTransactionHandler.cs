@@ -28,10 +28,10 @@ public sealed class ExcludeTransactionHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ExcludeTransactionCommand command,
-		Core.Domains.Transaction.Transaction user,
+		Core.Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Exclude();
+		Result<Unit, DomainException> result = transaction.Exclude();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
@@ -39,48 +39,48 @@ public sealed class ExcludeTransactionHandler(
 		{
 			await transactionWriteRepository.ExcludeAsync(
 				transactionId: command.TransactionId,
-				userId: user.UserId,
-				expectedVersion: user.RowVersion,
+				userId: transaction.UserId,
+				expectedVersion: transaction.RowVersion,
 				ct: ct
 			);
 
-			if (user.Direction != DirectionType.Debit)
+			if (transaction.Direction != DirectionType.Debit)
 				return;
 
 			await categoryTotalWriteRepository.SubtractAsync(
-				userId: user.UserId,
-				categoryId: user.CategoryId,
-				currency: user.Amount.Currency,
-				amount: user.Amount.Amount,
-				occurredAt: user.OccurredAt,
+				userId: transaction.UserId,
+				categoryId: transaction.CategoryId,
+				currency: transaction.Amount.Currency,
+				amount: transaction.Amount.Amount,
+				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
 
 			await budgetProgressWriteRepository.SubtractAsync(
-				userId: user.UserId,
-				categoryId: user.CategoryId,
-				currencyCode: user.Amount.Currency,
-				amount: user.Amount.Amount,
-				occurredAt: user.OccurredAt,
+				userId: transaction.UserId,
+				categoryId: transaction.CategoryId,
+				currencyCode: transaction.Amount.Currency,
+				amount: transaction.Amount.Amount,
+				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to exclude transaction {user.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to exclude transaction {transaction.Id}."),
 		ct: ct);
 
 		try
 		{
 			await publisher.Publish(notification: new TransactionExcludedNotification(
-				TransactionId: user.Id,
-				UserId: user.UserId,
+				TransactionId: transaction.Id,
+				UserId: transaction.UserId,
 				OccurredAt: dateProvider.UtcNow
 			), cancellationToken: ct);
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionExcludedNotification for transaction {user.Id} after successful commit.");
+			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionExcludedNotification for transaction {transaction.Id} after successful commit.");
 		}
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: transaction.Id);
 	}
 }

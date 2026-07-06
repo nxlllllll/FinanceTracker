@@ -22,7 +22,7 @@ public sealed class CreateTransactionHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		CreateTransactionCommand command,
-		Core.Domains.Account.Account user,
+		Core.Domains.Account.Account account,
 		CancellationToken ct = default)
 	{
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
@@ -36,7 +36,7 @@ public sealed class CreateTransactionHandler(
 		if (category.IsArchived)
 			return Result<Guid, AppException>.Failure(error: new ArchivedOperationException(message: "Cannot create a transaction for an archived category."));
 
-		Result<Core.Domains.Transaction.Transaction, DomainException> result = await transactionCreationService.CreateAsync(command: command, account: user, ct: ct);
+		Result<Core.Domains.Transaction.Transaction, DomainException> result = await transactionCreationService.CreateAsync(command: command, account: account, ct: ct);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 

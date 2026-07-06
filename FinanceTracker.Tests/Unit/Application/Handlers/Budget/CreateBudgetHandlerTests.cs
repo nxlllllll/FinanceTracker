@@ -58,7 +58,7 @@ public sealed class CreateBudgetHandlerTests
 		CreateBudgetCommand command = new CreateBudgetCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
-			Currency: Currency.Create(value: "RUB").Value,
+			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
 			To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -76,7 +76,7 @@ public sealed class CreateBudgetHandlerTests
 		CreateBudgetCommand command = new CreateBudgetCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
-			Currency: Currency.Create(value: "RUB").Value,
+			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
 			To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -102,7 +102,7 @@ public sealed class CreateBudgetHandlerTests
 		CreateBudgetCommand command = new CreateBudgetCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
-			Currency: Currency.Create(value: "RUB").Value,
+			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
 			To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -132,7 +132,7 @@ public sealed class CreateBudgetHandlerTests
 		CreateBudgetCommand command = new CreateBudgetCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
-			Currency: Currency.Create(value: "RUB").Value,
+			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
 			To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -158,7 +158,7 @@ public sealed class CreateBudgetHandlerTests
 		CreateBudgetCommand command = new CreateBudgetCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
-			Currency: Currency.Create(value: "RUB").Value,
+			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
 			To: new DateOnly(year: 2025, month: 1, day: 31)
@@ -186,7 +186,7 @@ public sealed class CreateBudgetHandlerTests
 		CreateBudgetCommand command = new CreateBudgetCommand(
 			UserId: Guid.CreateVersion7(),
 			CategoryId: Guid.CreateVersion7(),
-			Currency: Currency.Create(value: "RUB").Value,
+			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			Amount: 10000m,
 			From: new DateOnly(year: 2025, month: 1, day: 1),
 			To: new DateOnly(year: 2025, month: 1, day: 31)

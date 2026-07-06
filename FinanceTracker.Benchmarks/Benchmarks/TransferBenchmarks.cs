@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
+using FinanceTracker.Infrastructure.Services.Date;
 
 namespace FinanceTracker.Benchmarks.Benchmarks;
 
@@ -11,7 +12,10 @@ public class TransferBenchmarks : BenchmarkBase
 	public override void IterationSetup()
 	{
 		base.IterationSetup();
-		_repository = new TransferReadRepository(context: Context);
+		_repository = new TransferReadRepository(
+			context: Context,
+			dateProvider: new DateProvider()
+		);
 	}
 
 	[Benchmark]

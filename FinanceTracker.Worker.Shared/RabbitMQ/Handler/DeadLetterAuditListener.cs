@@ -88,6 +88,8 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 	private async Task ConnectAsync(CancellationToken ct)
 	{
 		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
+		RabbitMqVersionGuard.EnsureSupportedVersion(connection: _connection);
+
 		_channel = await _connection.CreateChannelAsync(cancellationToken: ct);
 
 		await _channel.BasicQosAsync(
@@ -139,7 +141,7 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 		};
 
 		AsyncEventingBasicConsumer consumer = new AsyncEventingBasicConsumer(channel: _channel!);
-		consumer.ReceivedAsync += async (sender, ea) =>
+		consumer.ReceivedAsync += async (_, ea) =>
 		{
 			try
 			{
@@ -172,7 +174,7 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 			IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 			IDateProvider dateProvider = scope.ServiceProvider.GetRequiredService<IDateProvider>();
 
-			(string reason, string? originalQueue, long? deathCount) = ExtractDeathInfo(headers: ea.BasicProperties?.Headers);
+			(string reason, string? originalQueue, long? deathCount) = ExtractDeathInfo(headers: ea.BasicProperties.Headers);
 			string fullBody = Encoding.UTF8.GetString(bytes: ea.Body.ToArray());
 
 			string payload = JsonSerializer.Serialize(value: new
@@ -182,7 +184,7 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 				originalQueue,
 				deathCount,
 				deliveryTag = ea.DeliveryTag,
-				correlationId = ea.BasicProperties?.CorrelationId,
+				correlationId = ea.BasicProperties.CorrelationId,
 				body = fullBody
 			});
 

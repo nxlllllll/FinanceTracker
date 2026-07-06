@@ -16,15 +16,15 @@ public sealed class UnarchiveAccountHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		UnarchiveAccountCommand command,
-		Core.Domains.Account.Account user,
+		Core.Domains.Account.Account account,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Unarchive(occurredAt: dateProvider.UtcNow);
+		Result<Unit, DomainException> result = account.Unarchive(occurredAt: dateProvider.UtcNow);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: user, ct: ct), ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: account, ct: ct), ct: ct);
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: account.Id);
 	}
 }

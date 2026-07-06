@@ -1,0 +1,16 @@
+﻿<Project>
+  <!--
+    Enforces a small set of solution-wide coding conventions via Microsoft.CodeAnalysis.BannedApiAnalyzers:
+    - Use IDateProvider instead of DateTime.Now/UtcNow and DateTimeOffset.Now/UtcNow, for testable, deterministic time.
+    - Use Guid.CreateVersion7() instead of Guid.NewGuid(), for time-ordered, index-friendly identifiers.
+    - Never block on async code with .Result, .Wait(), or GetAwaiter().GetResult() — always await.
+  -->
+  <PropertyGroup>
+    <IsBannedApiEnforced Condition="!$(MSBuildProjectName.EndsWith('Tests')) AND !$(MSBuildProjectName.EndsWith('Benchmarks'))">true</IsBannedApiEnforced>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsBannedApiEnforced)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+</Project>

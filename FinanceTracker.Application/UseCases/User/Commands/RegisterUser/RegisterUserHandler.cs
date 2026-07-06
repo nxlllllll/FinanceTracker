@@ -30,9 +30,7 @@ public sealed class RegisterUserHandler(
 			email: command.Email.Value, ct: ct);
 
 		if (existing is not null)
-			return Result<Guid, AppException>.Failure(error: new EmailException(
-				message: "The user with this email address already exists.",
-				email: command.Email));
+			return Result<Guid, AppException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.Email));
 
 		string passwordHash = await passwordHasher.Hash(password: command.Password);
 
@@ -53,7 +51,7 @@ public sealed class RegisterUserHandler(
 		}
 		catch (UniqueConstraintException ex)
 		{
-			logger.ZLogWarning(message: $"Duplicate email race condition detected for user registration: {command.Email.Value}. Constraint: {ex.ConstraintName}.");
+			logger.ZLogWarning(message: $"Duplicate email race condition detected for user registration: {command.Email.Masked}. Constraint: {ex.ConstraintName}.");
 			return Result<Guid, AppException>.Failure(error: new EmailException(
 				message: "The user with this email address already exists.",
 				email: command.Email.Value

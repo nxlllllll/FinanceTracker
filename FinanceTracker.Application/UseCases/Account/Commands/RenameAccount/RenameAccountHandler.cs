@@ -16,16 +16,16 @@ public sealed class RenameAccountHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		RenameAccountCommand command,
-		Core.Domains.Account.Account user,
+		Core.Domains.Account.Account account,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Rename(occurredAt: dateProvider.UtcNow, newName: command.NewName);
+		Result<Unit, DomainException> result = account.Rename(occurredAt: dateProvider.UtcNow, newName: command.NewName);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
-		if (user.Events.Count > 0)
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: user, ct: ct), ct: ct);
+		if (account.Events.Count > 0)
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: account, ct: ct), ct: ct);
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: account.Id);
 	}
 }

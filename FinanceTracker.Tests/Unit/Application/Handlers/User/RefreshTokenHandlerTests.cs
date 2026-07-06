@@ -39,7 +39,7 @@ public sealed class RefreshTokenHandlerTests
 		id: UserId,
 		email: Email.Create(value: "test@test.com").Value!,
 		passwordHash: "hash",
-		baseCurrencyCode: Currency.Create(value: "RUB").Value,
+		baseCurrencyCode: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 		rowVersion: 0,
 		createdAt: FakeDateProvider.Default.UtcNow
 	);

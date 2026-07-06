@@ -3,6 +3,7 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -39,6 +40,7 @@ public sealed class CachedCurrencyReadRepositoryTests
 		RedisCache redisCache = new RedisCache(
 			connectionMultiplexer: _connectionMultiplexer,
 			options: redisOptions,
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RedisCache>.Instance
 		);
 		_repository = new CachedCurrencyReadRepository(inner: _inner, redisCache: redisCache);

@@ -262,7 +262,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		try
 		{
 			return JsonSerializer.Deserialize<TMessage>(
-				json: Encoding.UTF8.GetString(bytes: ea.Body.ToArray()),
+				utf8Json: ea.Body.Span,
 				options: FinanceTrackerJsonOptions.Payload
 			) ?? throw new InvalidOperationException(message: $"Failed to deserialize {typeof(TMessage).Name}.");
 		}

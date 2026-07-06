@@ -38,7 +38,7 @@ public sealed class RenameAccountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: Name.Create(value: "Карта Тинькофф").Value),
-			user: account,
+			account: account,
 			ct: CancellationToken.None
 		);
 
@@ -58,7 +58,7 @@ public sealed class RenameAccountHandlerTests
 
 		await _handler.HandleAsync(
 			command: new RenameAccountCommand(UserId: account.UserId, AccountId: account.Id, NewName: sameName),
-			user: account,
+			account: account,
 			ct: CancellationToken.None
 		);
 

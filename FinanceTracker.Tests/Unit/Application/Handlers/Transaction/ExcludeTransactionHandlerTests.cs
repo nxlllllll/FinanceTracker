@@ -62,7 +62,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			user: transaction,
+			transaction: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -77,7 +77,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			user: transaction,
+			transaction: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -112,7 +112,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			user: transaction,
+			transaction: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -130,7 +130,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			user: transaction,
+			transaction: transaction,
 			ct: CancellationToken.None
 		);
 
@@ -144,7 +144,7 @@ public sealed class ExcludeTransactionHandlerTests
 			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
 			amount: Arg.Any<decimal>(),
-			currency: Arg.Any<Currency>(),
+			currency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			occurredAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -157,7 +157,7 @@ public sealed class ExcludeTransactionHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ExcludeTransactionCommand(UserId: transaction.UserId, TransactionId: transaction.Id),
-			user: transaction,
+			transaction: transaction,
 			ct: CancellationToken.None
 		);
 

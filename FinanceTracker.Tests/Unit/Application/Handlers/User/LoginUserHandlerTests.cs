@@ -28,7 +28,7 @@ public sealed class LoginUserHandlerTests
 		id: Guid.CreateVersion7(),
 		email: TestEmail,
 		passwordHash: PasswordHash,
-		baseCurrencyCode: Currency.Create(value: "RUB").Value,
+		baseCurrencyCode: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 		rowVersion: 0,
 		createdAt: FakeDateProvider.Default.UtcNow
 	);

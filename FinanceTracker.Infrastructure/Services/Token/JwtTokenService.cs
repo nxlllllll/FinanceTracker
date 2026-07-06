@@ -57,7 +57,7 @@ public sealed class JwtTokenService(
 	public string HashRefreshToken(string refreshToken)
 	{
 		Hash hash = Hasher.Hash(input: Encoding.UTF8.GetBytes(s: refreshToken));
-		return Convert.ToHexString(inArray: hash.AsSpan().ToArray()).ToLowerInvariant();
+		return Convert.ToHexStringLower(bytes: hash.AsSpan());
 	}
 
 	public DateTimeOffset GetRefreshTokenExpiry()

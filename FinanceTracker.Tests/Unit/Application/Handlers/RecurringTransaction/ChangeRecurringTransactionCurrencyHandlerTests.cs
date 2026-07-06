@@ -32,7 +32,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 	public async Task HandleAsync_WithValidCurrency_ShouldCallChangeCurrencyAsync()
 	{
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
-		Currency newCurrency = Currency.Create(value: "EUR").Value;
+		FinanceTracker.Core.ValueObjects.Currency newCurrency = FinanceTracker.Core.ValueObjects.Currency.Create(value: "EUR").Value;
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionCurrencyCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Currency: newCurrency),
@@ -52,7 +52,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 	public async Task HandleAsync_WithValidCurrency_ShouldPublishNotification()
 	{
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
-		Currency newCurrency = Currency.Create(value: "EUR").Value;
+		FinanceTracker.Core.ValueObjects.Currency newCurrency = FinanceTracker.Core.ValueObjects.Currency.Create(value: "EUR").Value;
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionCurrencyCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, Currency: newCurrency),

@@ -18,7 +18,7 @@ public sealed class GetTotalBalanceHandlerTests
 	private static UserReadModel CreateUserReadModel(string currency = "RUB") => new UserReadModel(
 		Id: Guid.CreateVersion7(),
 		Email: Email.Create(value: "test@test.com").Value!,
-		BaseCurrency: Currency.Create(value: currency).Value,
+		BaseCurrency: FinanceTracker.Core.ValueObjects.Currency.Create(value: currency).Value,
 		CreatedAt: FakeDateProvider.Default.UtcNow
 	);
 
@@ -44,7 +44,7 @@ public sealed class GetTotalBalanceHandlerTests
 		).Returns(returnThis: user);
 		_userQueryRepository.GetTotalBalanceAsync(
 			userId: Arg.Any<Guid>(),
-			baseCurrency: Arg.Any<Currency>(),
+			baseCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 5000m);
@@ -70,7 +70,7 @@ public sealed class GetTotalBalanceHandlerTests
 		).Returns(returnThis: user);
 		_userQueryRepository.GetTotalBalanceAsync(
 			userId: Arg.Any<Guid>(),
-			baseCurrency: Arg.Any<Currency>(),
+			baseCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 0m);

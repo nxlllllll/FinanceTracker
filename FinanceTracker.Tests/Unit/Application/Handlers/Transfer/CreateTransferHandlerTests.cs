@@ -60,8 +60,8 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(),
-			toCurrency: Arg.Any<Currency>(),
+			fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
@@ -82,8 +82,8 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(),
-			toCurrency: Arg.Any<Currency>(),
+			fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
@@ -106,8 +106,8 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 5000m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(),
-			toCurrency: Arg.Any<Currency>(),
+			fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
@@ -128,8 +128,8 @@ public sealed class CreateTransferHandlerTests
 		Guid toAccountId = Guid.CreateVersion7();
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(),
-			toCurrency: Arg.Any<Currency>(),
+			fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
@@ -155,8 +155,8 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 100m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(),
-			toCurrency: Arg.Any<Currency>(),
+			fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
@@ -176,8 +176,8 @@ public sealed class CreateTransferHandlerTests
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.CreateWithArchivation(balance: 100m);
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(),
-			toCurrency: Arg.Any<Currency>(),
+			fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
@@ -199,11 +199,11 @@ public sealed class CreateTransferHandlerTests
 	{
 		FinanceTracker.Core.Domains.Account.Account fromAccount = AccountFactory.Create(balance: 5000m, currency: "USD").Value!;
 		fromAccount.ClearEvents();
-		Currency toAccountCurrency = Currency.Create(value: "EUR").Value!;
+		FinanceTracker.Core.ValueObjects.Currency toAccountCurrency = FinanceTracker.Core.ValueObjects.Currency.Create(value: "EUR").Value!;
 
 		_currencyConversionService.GetConversionRateAsync(
-			fromCurrency: Arg.Any<Currency>(),
-			toCurrency: Arg.Any<Currency>(),
+			fromCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: 0.9m, IsPending: false));

@@ -18,7 +18,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 	private static UserReadModel CreateUserReadModel(string currency = "RUB") => new UserReadModel(
 		Id: Guid.CreateVersion7(),
 		Email: Email.Create(value: "test@test.com").Value!,
-		BaseCurrency: Currency.Create(value: currency).Value,
+		BaseCurrency: FinanceTracker.Core.ValueObjects.Currency.Create(value: currency).Value,
 		CreatedAt: FakeDateProvider.Default.UtcNow
 	);
 

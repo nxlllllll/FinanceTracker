@@ -3,6 +3,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Transfer;
 
@@ -16,7 +17,10 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupRepositories()
 	{
-		_readRepository = new TransferReadRepository(context: Context);
+		_readRepository = new TransferReadRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
 		_transferBuilder = new TransferBuilder(context: Context);
 		_userBuilder = new UserBuilder(context: Context);
 		_accountBuilder = new AccountBuilder(context: Context);

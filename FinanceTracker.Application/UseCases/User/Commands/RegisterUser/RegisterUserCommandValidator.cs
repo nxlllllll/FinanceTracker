@@ -12,7 +12,8 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
 
 		RuleFor(expression: command => command.Password)
 			.NotEmpty().WithMessage(errorMessage: "The password cannot be empty.")
-			.MinimumLength(minimumLength: 8).WithMessage(errorMessage: "The password must be at least 8 characters.");
+			.MinimumLength(minimumLength: 8).WithMessage(errorMessage: "The password must be at least 8 characters.")
+			.MaximumLength(maximumLength: 128).WithMessage(errorMessage: "The password must not exceed 128 characters.");
 
 		RuleFor(expression: command => command.BaseCurrencyCode)
 			.MustAsync(predicate: async (currency, ct) => await currencyReadRepository.ExistsAsync(code: currency.Value, ct: ct))

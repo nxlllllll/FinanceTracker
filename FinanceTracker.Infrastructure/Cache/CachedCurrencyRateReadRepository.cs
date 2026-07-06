@@ -78,9 +78,9 @@ public sealed class CachedCurrencyRateReadRepository(
 
 	/// <summary>
 	/// Shared first pass for every batch method below: resolves same-currency pairs immediately
-	/// (no cache, no DB), and for the rest, checks the cache — splitting into already-cached
-	/// hits (added directly to the result) and genuine cache misses (returned for the caller's
-	/// own DB batch call).
+	/// (no cache, no DB), and for the rest, reads the cache in a single MGET round-trip —
+	/// splitting into already-cached hits (added directly to the result) and genuine cache
+	/// misses (returned for the caller's own DB batch call).
 	/// </summary>
 	private async Task<(Dictionary<TRequest, decimal> Result, List<TRequest> CacheMisses)> SplitCacheAsync<TRequest>(
 		IReadOnlyCollection<TRequest> requests,
@@ -91,17 +91,26 @@ public sealed class CachedCurrencyRateReadRepository(
 		where TRequest : notnull
 	{
 		Dictionary<TRequest, decimal> result = [];
-		List<TRequest> cacheMisses = [];
+		List<TRequest> needsLookup = [];
 
 		foreach (TRequest request in requests)
 		{
 			if (from(request) == to(request))
-			{
 				result[request] = 1m;
-				continue;
-			}
+			else
+				needsLookup.Add(item: request);
+		}
 
-			CacheEntry<decimal?> entry = await redisCache.TryGetAsync<decimal?>(key: keyFor(request));
+		if (needsLookup.Count == 0)
+			return (result, []);
+
+		List<string> keys = needsLookup.Select(selector: keyFor).ToList();
+		Dictionary<string, CacheEntry<decimal?>> cacheEntries = await redisCache.TryGetBatchAsync<decimal?>(keys: keys);
+
+		List<TRequest> cacheMisses = [];
+		foreach (TRequest request in needsLookup)
+		{
+			CacheEntry<decimal?> entry = cacheEntries[keyFor(request)];
 			if (entry is { Found: true, Value: not null })
 				result[request] = entry.Value.Value;
 			else
@@ -113,8 +122,8 @@ public sealed class CachedCurrencyRateReadRepository(
 
 	/// <summary>
 	/// Shared write-back for every batch method below: for each item that missed the cache,
-	/// either record what the DB returned (and cache it under <paramref name="foundOptions"/>),
-	/// or cache the absence under <paramref name="notFoundOptions"/>.
+	/// either records what the DB returned or the absence, then writes all of them in a
+	/// single pipelined batch instead of one round-trip per key.
 	/// </summary>
 	private async Task WriteBackAsync<TRequest>(
 		Dictionary<TRequest, decimal> result,
@@ -126,17 +135,25 @@ public sealed class CachedCurrencyRateReadRepository(
 		CancellationToken ct)
 		where TRequest : notnull
 	{
+		if (cacheMisses.Count == 0)
+			return;
+
+		List<(string Key, decimal? Value, DistributedCacheEntryOptions Options)> writes =
+			new List<(string Key, decimal? Value, DistributedCacheEntryOptions Options)>(capacity: cacheMisses.Count);
+
 		foreach (TRequest request in cacheMisses)
 		{
 			string key = keyFor(request);
 			if (dbResults.TryGetValue(key: request, out decimal rate))
 			{
 				result[request] = rate;
-				await redisCache.SetAsync(key: key, value: (decimal?)rate, options: foundOptions);
+				writes.Add(item: (key, (decimal?)rate, foundOptions));
 			}
 			else
-				await redisCache.SetAsync(key: key, value: (decimal?)null, options: notFoundOptions);
+				writes.Add(item: (key, (decimal?)null, notFoundOptions));
 		}
+
+		await redisCache.SetBatchAsync(items: writes);
 	}
 
 	public Task<decimal?> GetRateAsync(
