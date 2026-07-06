@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -58,33 +59,45 @@ public sealed class UserReadRepository(
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
+	private sealed record AccountBalanceProjection(
+		Core.ValueObjects.Currency Currency,
+		decimal Balance,
+		decimal? ExactRate,
+		decimal? LatestRate
+	);
+
 	public async Task<decimal> GetTotalBalanceAsync(
 		Guid userId,
 		Core.ValueObjects.Currency baseCurrency,
 		DateOnly date,
 		CancellationToken ct = default)
 	{
-		return await context.Accounts.AsNoTracking().Where(predicate: a => a.UserId == userId && !a.IsArchived)
+		List<AccountBalanceProjection> accounts = await context.Accounts.AsNoTracking()
+			.Where(predicate: a => a.UserId == userId && !a.IsArchived)
 			.Join(
 				inner: context.AccountBalances,
 				outerKeySelector: a => a.Id,
 				innerKeySelector: b => b.AccountId,
 				resultSelector: (a, b) => new { a.Currency, b.Balance }
-			).Select(selector: x => new
-			{
-				x.Currency,
-				x.Balance,
-				ExactRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value && r.ActualAt == date)
+			).Select(selector: x => new AccountBalanceProjection(
+				Currency: x.Currency,
+				Balance: x.Balance,
+				ExactRate: context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value && r.ActualAt == date)
 					.Select(r => (decimal?)r.Rate)
 					.FirstOrDefault(),
-				LatestRate = context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value)
+				LatestRate: context.CurrencyRates.Where(r => r.BaseCode == x.Currency && r.TargetCode == baseCurrency.Value)
 					.OrderByDescending(r => r.ActualAt)
 					.Select(r => (decimal?)r.Rate)
 					.FirstOrDefault()
-			}).SumAsync(
-				selector: x => x.Currency == baseCurrency ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? 1m),
-				cancellationToken: ct
-			);
+			)).ToListAsync(cancellationToken: ct);
+
+		return accounts.Sum(
+			selector: x => x.Currency == baseCurrency ? x.Balance : x.Balance * (x.ExactRate ?? x.LatestRate ?? throw new CurrencyRateMissingException(
+				message: $"No exchange rate found for {x.Currency.Value} to {baseCurrency.Value} — the total balance cannot be computed accurately.",
+				fromCurrency: x.Currency,
+				toCurrency: baseCurrency
+			)
+		));
 	}
 
 	public async Task<(decimal Income, decimal Expense)> GetIncomeExpenseSummaryAsync(

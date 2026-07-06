@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
@@ -499,5 +500,57 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 		);
 
 		await Assert.That(value: result).IsEqualTo(expected: 5000m);
+	}
+
+	[Test]
+	public async Task GetTotalBalanceAsync_WithForeignCurrencyAccountAndNoRateAtAll_ShouldThrowCurrencyRateMissingException()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync(currencyCode: "RUB");
+		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
+
+		CurrencyRateMissingException? exception = await Assert.ThrowsAsync<CurrencyRateMissingException>(action: async () => await _readRepository.GetTotalBalanceAsync(
+			userId: user.Id,
+			baseCurrency: user.BaseCurrency,
+			date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
+		));
+
+		await Assert.That(value: exception).IsNotNull();
+		await Assert.That(value: exception!.FromCurrency).IsEqualTo(expected: Core.ValueObjects.Currency.Reconstitute(value: "USD"));
+		await Assert.That(value: exception.ToCurrency).IsEqualTo(expected: user.BaseCurrency);
+	}
+
+	[Test]
+	public async Task GetTotalBalanceAsync_WithNoExactRateButHistoricalRateExists_ShouldFallBackWithoutThrowing()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync(currencyCode: "RUB");
+		DateOnly today = DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime);
+		DateOnly lastWeek = today.AddDays(value: -7);
+		await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 85m, date: lastWeek);
+		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
+
+		decimal result = await _readRepository.GetTotalBalanceAsync(
+			userId: user.Id,
+			baseCurrency: user.BaseCurrency,
+			date: today
+		);
+
+		await Assert.That(value: result).IsEqualTo(expected: 8500m);
+	}
+
+	[Test]
+	public async Task GetTotalBalanceAsync_WithOneAccountMissingRateAmongMultiple_ShouldThrowBeforeSummingAny()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync(currencyCode: "RUB");
+		DateOnly today = DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime);
+		await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 90m, date: today);
+		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "RUB", balance: 5000m);
+		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
+		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "EUR", balance: 50m);
+
+		await Assert.ThrowsAsync<CurrencyRateMissingException>(action: async () => await _readRepository.GetTotalBalanceAsync(
+			userId: user.Id,
+			baseCurrency: user.BaseCurrency,
+			date: today
+		));
 	}
 }

@@ -110,6 +110,7 @@ public sealed class RabbitMqPublisher(
 		await DisposeStaleConnectionAsync();
 
 		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
+		RabbitMqVersionGuard.EnsureSupportedVersion(connection: _connection);
 
 		_channel = await _connection.CreateChannelAsync(
 			options: new CreateChannelOptions(

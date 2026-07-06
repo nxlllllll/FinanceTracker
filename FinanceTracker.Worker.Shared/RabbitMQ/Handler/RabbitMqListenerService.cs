@@ -62,7 +62,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	public override async Task StartAsync(CancellationToken ct)
 	{
 		logger.ZLogInformation(message: $"""
-			[{typeof(TMessage).Name}] Listener starting. Queue: '{_queueName}', 
+			[{typeof(TMessage).Name}] Listener starting. Queue: '{_queueName}',
 			Exchange: '{_options.ExchangeName}', RoutingKey: '{_routingKey}', MaxRetries: {_options.MaxRetries}.
 		""");
 		await base.StartAsync(cancellationToken: ct);
@@ -104,6 +104,8 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	private async Task ConnectAsync(CancellationToken ct)
 	{
 		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
+		RabbitMqVersionGuard.EnsureSupportedVersion(connection: _connection);
+
 		_channel = await _connection.CreateChannelAsync(cancellationToken: ct);
 
 		await _channel.BasicQosAsync(
@@ -307,7 +309,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			activity?.AddException(exception: ex);
 
 			logger.ZLogWarning(exception: ex, message: $"""
-				[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag}. Rejecting for native 
+				[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag}. Rejecting for native
 				delayed retry (delivery-limit {_options.MaxRetries}, {_options.DelayedRetryMinMs}-{_options.DelayedRetryMaxMs}ms linear backoff).
 			""");
 
