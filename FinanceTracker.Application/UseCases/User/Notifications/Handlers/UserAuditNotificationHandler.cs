@@ -17,7 +17,7 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 	public Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken)
 	{
 		logger.ZLogInformation(message: $"""
-			[Audit] User registered. UserId: {notification.UserId}, Email: {notification.Email},
+			[Audit] User registered. UserId: {notification.UserId}, Email: {notification.Email.Masked},
 			BaseCurrency: {notification.BaseCurrency}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
@@ -26,8 +26,8 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 	public Task Handle(UserEmailChangedNotification notification, CancellationToken cancellationToken)
 	{
 		logger.ZLogInformation(message: $"""
-			[Audit] User email changed. UserId: {notification.UserId}, OldEmail: {notification.OldEmail},
-			NewEmail: {notification.NewEmail}, OccurredAt: {notification.OccurredAt:O}.
+			[Audit] User email changed. UserId: {notification.UserId}, OldEmail: {notification.OldEmail.Masked},
+			NewEmail: {notification.NewEmail.Masked}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}
@@ -43,7 +43,7 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 	public Task Handle(UserBaseCurrencyChangedNotification notification, CancellationToken cancellationToken)
 	{
 		logger.ZLogInformation(message: $"""
-			[Audit] User base currency changed. UserId: {notification.UserId}, OldBaseCurrency: {notification.OldBaseCurrency},	
+			[Audit] User base currency changed. UserId: {notification.UserId}, OldBaseCurrency: {notification.OldBaseCurrency},
 			NewBaseCurrency: {notification.NewBaseCurrency}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;

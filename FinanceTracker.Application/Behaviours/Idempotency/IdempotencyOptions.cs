@@ -29,10 +29,10 @@ public sealed class IdempotencyOptions
 	/// <summary>
 	/// Age in seconds after which an in-flight record is considered abandoned
 	/// (i.e. the original handler crashed). The record is deleted and the client
-	/// receives an error suggesting a retry. Default: 5s.
+	/// receives an error suggesting a retry. Default: 30s.
 	/// </summary>
 	[Required, Range(minimum: 5, maximum: 300)]
-	public int AbandonedAfterSeconds { get; init; } = 5;
+	public int AbandonedAfterSeconds { get; init; } = 30;
 
 	/// <summary>
 	/// When <c>true</c>, applies full jitter to polling delays via <c>RetryDelayCalculator</c>

@@ -3,6 +3,7 @@ using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -26,6 +27,7 @@ public sealed class IdempotencyBehaviourTests
 
 	private IIdempotencyReadRepository _readRepository = null!;
 	private IIdempotencyWriteRepository _writeRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private IdempotencyBehaviour<TestCommand, Result<Guid, DomainException>> _behaviour = null!;
 
 	private static readonly Guid ValidKey = Guid.CreateVersion7();
@@ -45,6 +47,13 @@ public sealed class IdempotencyBehaviourTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task<Result<Guid, DomainException>>>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: call => call.Arg<Func<Task<Result<Guid, DomainException>>>>()());
+
 		_behaviour = BuildBehavior<TestCommand>();
 	}
 
@@ -57,6 +66,7 @@ public sealed class IdempotencyBehaviourTests
 		return new IdempotencyBehaviour<TReq, Result<Guid, DomainException>>(
 			idempotencyReadRepository: _readRepository,
 			idempotencyWriteRepository: _writeRepository,
+			unitOfWork: _unitOfWork,
 			options: new FakeOptionsMonitor<IdempotencyOptions>(value: new IdempotencyOptions
 			{
 				ExpiryHours = expiryHours,
@@ -109,6 +119,21 @@ public sealed class IdempotencyBehaviourTests
 			userId: Arg.Any<Guid>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenRequestIsNotIIdempotentCommand_ShouldNotOpenTransaction()
+	{
+		await BuildBehavior<NonIdempotentCommand>().Handle(
+			request: new NonIdempotentCommand(),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task<Result<Guid, DomainException>>>>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -228,6 +253,28 @@ public sealed class IdempotencyBehaviourTests
 		}, cancellationToken: CancellationToken.None);
 
 		await Assert.That(value: nextCalled).IsTrue();
+	}
+
+	[Test]
+	public async Task Handle_WhenNoCacheAndSlotAcquired_ShouldRunNextInsideTheOuterTransaction()
+	{
+		_readRepository.GetAsync(
+			idempotencyKey: Arg.Any<Guid>(),
+			commandType: Arg.Any<string>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (IdempotencyEntry?)null);
+
+		await _behaviour.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task<Result<Guid, DomainException>>>>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -393,7 +440,7 @@ public sealed class IdempotencyBehaviourTests
 	}
 
 	[Test]
-	public async Task Handle_WhenCompletedCacheFound_ShouldNotTouchWriteRepository()
+	public async Task Handle_WhenCompletedCacheFound_ShouldNotTouchWriteRepositoryOrTransaction()
 	{
 		_readRepository.GetAsync(
 			idempotencyKey: ValidKey,
@@ -421,6 +468,10 @@ public sealed class IdempotencyBehaviourTests
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
 			responseJson: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task<Result<Guid, DomainException>>>>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

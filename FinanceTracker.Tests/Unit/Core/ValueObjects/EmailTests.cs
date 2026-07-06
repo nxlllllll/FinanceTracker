@@ -204,4 +204,64 @@ public sealed class EmailTests
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<EmailException>();
 	}
+
+	[Test]
+	public async Task Masked_WithLocalPartLongerThanThreeChars_ShouldShowFirstThreeCharsOnly()
+	{
+		Email email = Email.Reconstitute(value: "username@example.com");
+
+		string masked = email.Masked;
+
+		await Assert.That(value: masked).IsEqualTo(expected: "use***@example.com");
+	}
+
+	[Test]
+	public async Task Masked_WithLocalPartExactlyThreeChars_ShouldShowAllOfIt()
+	{
+		Email email = Email.Reconstitute(value: "abc@example.com");
+
+		string masked = email.Masked;
+
+		await Assert.That(value: masked).IsEqualTo(expected: "abc***@example.com");
+	}
+
+	[Test]
+	public async Task Masked_WithLocalPartShorterThanThreeChars_ShouldShowWhateverIsAvailable()
+	{
+		Email email = Email.Reconstitute(value: "ab@example.com");
+
+		string masked = email.Masked;
+
+		await Assert.That(value: masked).IsEqualTo(expected: "ab***@example.com");
+	}
+
+	[Test]
+	public async Task Masked_WithSingleCharLocalPart_ShouldShowThatOneChar()
+	{
+		Email email = Email.Reconstitute(value: "a@example.com");
+
+		string masked = email.Masked;
+
+		await Assert.That(value: masked).IsEqualTo(expected: "a***@example.com");
+	}
+
+	[Test]
+	public async Task Masked_ShouldKeepDomainFullyVisible()
+	{
+		Email email = Email.Reconstitute(value: "first.last@mail.example.com");
+
+		string masked = email.Masked;
+
+		await Assert.That(value: masked).IsEqualTo(expected: "fir***@mail.example.com");
+	}
+
+	[Test]
+	public async Task Masked_ShouldNeverContainFullOriginalValue()
+	{
+		Email email = Email.Reconstitute(value: "verylongusername@example.com");
+
+		string masked = email.Masked;
+
+		await Assert.That(value: masked).IsNotEqualTo(notExpected: email.Value);
+	}
 }

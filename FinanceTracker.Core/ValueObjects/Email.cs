@@ -18,8 +18,29 @@ public readonly partial record struct Email
 	private static partial Regex EmailRegex();
 	private static readonly Regex FormatRegex = EmailRegex();
 
+	private const int MaskedVisibleLocalPartLength = 3;
+
 	/// <summary>The normalised, lowercase email address.</summary>
 	public string Value { get; }
+
+	/// <summary>
+	/// A partially-obscured form suitable for logs and audit trails — e.g. <c>use***@example.com</c>.
+	/// Keeps the domain visible (needed to tell audit entries apart) while hiding the exact
+	/// local-part length and its remaining characters. Use this instead of <see cref="Value"/>
+	/// or <see cref="ToString"/> anywhere an email would end up in a log line.
+	/// </summary>
+	public string Masked
+	{
+		get
+		{
+			int atIndex = Value.IndexOf(value: '@');
+			string localPart = Value[..atIndex];
+			string domain = Value[(atIndex + 1)..];
+
+			int visibleLength = Math.Min(val1: MaskedVisibleLocalPartLength, val2: localPart.Length);
+			return $"{localPart[..visibleLength]}***@{domain}";
+		}
+	}
 
 	private Email(string value)
 		=> Value = value;

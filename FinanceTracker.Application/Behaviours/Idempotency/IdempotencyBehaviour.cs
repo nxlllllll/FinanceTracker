@@ -3,6 +3,7 @@ using System.Text.Json;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -17,6 +18,7 @@ namespace FinanceTracker.Application.Behaviours.Idempotency;
 public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 	IIdempotencyReadRepository idempotencyReadRepository,
 	IIdempotencyWriteRepository idempotencyWriteRepository,
+	IUnitOfWork unitOfWork,
 	IOptionsMonitor<IdempotencyOptions> options,
 	IDateProvider dateProvider,
 	ILogger<IdempotencyBehaviour<TRequest, TResponse>> logger
@@ -91,7 +93,23 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		TResponse response;
 		try
 		{
-			response = await next(t: cancellationToken);
+			response = await unitOfWork.ExecuteInTransactionAsync<TResponse>(operation: async () =>
+			{
+				TResponse result = await next(t: cancellationToken);
+
+				if (result is IResult { IsSuccess: true })
+				{
+					await idempotencyWriteRepository.CompleteAsync(
+						idempotencyKey: idempotent.IdempotencyKey,
+						commandType: commandType,
+						userId: userId,
+						responseJson: JsonSerializer.Serialize(value: result, options: FinanceTrackerJsonOptions.Application),
+						ct: cancellationToken
+					);
+				}
+
+				return result;
+			}, ct: cancellationToken);
 		}
 		catch
 		{
@@ -109,14 +127,6 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
 		if (response is IResult { IsSuccess: true })
 		{
-			await idempotencyWriteRepository.CompleteAsync(
-				idempotencyKey: idempotent.IdempotencyKey,
-				commandType: commandType,
-				userId: userId,
-				responseJson: JsonSerializer.Serialize(value: response, options: FinanceTrackerJsonOptions.Application),
-				ct: cancellationToken
-			);
-
 			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} (expires: {expiresAt:O}).");
 		}
 		else
