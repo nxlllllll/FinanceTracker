@@ -49,13 +49,4 @@ public readonly struct Result<TValue, TError> : IResult, IResult<Result<TValue, 
 	/// <inheritdoc/>
 	static Result<TValue, TError> IResult<Result<TValue, TError>, TError>.CreateFailure(TError error)
 		=> Failure(error: error);
-
-	/// <summary>
-	/// Pattern-matches on the result, invoking <paramref name="onSuccess"/> or
-	/// <paramref name="onFailure"/> depending on the outcome.
-	/// </summary>
-	public TResult Match<TResult>(
-		Func<TValue, TResult> onSuccess,
-		Func<TError, TResult> onFailure
-	) => IsSuccess ? onSuccess(_value!) : onFailure(_error!);
 }

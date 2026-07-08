@@ -1,0 +1,7 @@
+﻿{
+  "stryker-config": {
+    "project": "FinanceTracker.Application.csproj",
+    "test-runner": "mtp",
+    "additional-timeout": 60000
+  }
+}

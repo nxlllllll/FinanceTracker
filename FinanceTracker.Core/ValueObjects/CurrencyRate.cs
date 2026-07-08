@@ -5,7 +5,6 @@ namespace FinanceTracker.Core.ValueObjects;
 
 /// <summary>
 /// Immutable value object representing an exchange rate between two currencies on a specific date.
-/// Use <see cref="Create"/> for user-supplied or API-sourced values (validates positive rate),
 /// and <see cref="Reconstitute"/> when loading from storage.
 /// </summary>
 public readonly record struct CurrencyRate
@@ -28,21 +27,6 @@ public readonly record struct CurrencyRate
 		Target = target;
 		Rate = rate;
 		Date = date;
-	}
-
-	/// <summary>
-	/// Creates a <see cref="CurrencyRate"/>. Fails if <paramref name="rate"/> is zero or negative.
-	/// </summary>
-	public static Result<CurrencyRate, DomainException> Create(
-		Currency baseCurrency,
-		Currency target,
-		decimal rate,
-		DateOnly date)
-	{
-		if (rate <= 0)
-			return Result<CurrencyRate, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
-
-		return Result<CurrencyRate, DomainException>.Success(value: new CurrencyRate(baseCurrency: baseCurrency, target: target, rate: rate, date: date));
 	}
 
 	/// <summary>Bypasses validation. Use only when loading from a trusted storage source.</summary>

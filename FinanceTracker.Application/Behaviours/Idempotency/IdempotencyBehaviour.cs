@@ -93,7 +93,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		TResponse response;
 		try
 		{
-			response = await unitOfWork.ExecuteInTransactionAsync<TResponse>(operation: async () =>
+			response = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
 				TResponse result = await next(t: cancellationToken);
 
