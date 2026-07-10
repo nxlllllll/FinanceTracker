@@ -150,12 +150,15 @@ public sealed class PostgresEventStore(
 		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateType, value: aggregateType);
 		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsCount, value: eventList.Count);
 
-		await EnsureExpectedVersionAsync(
-			aggregateId: aggregateId,
-			aggregateType: aggregateType,
-			expectedVersion: expectedVersion,
-			ct: ct
-		);
+		if (options.CurrentValue.PreValidateExpectedVersion)
+		{
+			await EnsureExpectedVersionAsync(
+				aggregateId: aggregateId,
+				aggregateType: aggregateType,
+				expectedVersion: expectedVersion,
+				ct: ct
+			);
+		}
 
 		(List<EventEntity> entities, List<OutboxEventEnvelope> envelopes) = BuildEntities(
 			aggregateId: aggregateId,
@@ -256,7 +259,7 @@ public sealed class PostgresEventStore(
 			catch (Exception ex)
 			{
 				logger.ZLogError(exception: ex, message: $"""
-					Failed to deserialize event '{entity.EventType}' v{entity.SchemaVersion} (id: {entity.Id}) for {aggregateType} {aggregateId}. 
+					Failed to deserialize event '{entity.EventType}' v{entity.SchemaVersion} (id: {entity.Id}) for {aggregateType} {aggregateId}.
 					Stored at version {entity.Version}.
 				""");
 				throw;

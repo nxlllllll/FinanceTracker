@@ -26,5 +26,10 @@ public interface ITransactionReadRepository : IReadRepository<TransactionReadMod
 		CancellationToken ct = default
 	);
 
-	Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(CancellationToken ct = default);
+	Task<IReadOnlyList<PendingRateTransaction>> GetPendingRateAsync(
+		int batchSize,
+		DateTimeOffset? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		CancellationToken ct = default
+	);
 }

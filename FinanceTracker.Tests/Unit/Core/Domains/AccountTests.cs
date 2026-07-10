@@ -346,6 +346,28 @@ public sealed class AccountTests
 	}
 
 	[Test]
+	public async Task AdjustBalance_WhenRoundingEachConversionDiffersFromRoundingTheRateDifference_ShouldMatchSumOfRoundedPostings()
+	{
+		Account account = AccountFactory.Create(balance: 0m).Value!;
+		account.ClearEvents();
+
+		account.AdjustBalance(
+			occurredAt: Now,
+			sourceId: Guid.CreateVersion7(),
+			sourceType: AggregateTypeNames.Transaction,
+			direction: DirectionType.Credit,
+			oldRate: 1.111m,
+			newRate: 1.222m,
+			amount: 10.05m
+		);
+
+		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 1.11m);
+
+		AccountBalanceAdjusted @event = (AccountBalanceAdjusted)account.Events[0];
+		await Assert.That(value: @event.Delta).IsEqualTo(expected: 1.11m);
+	}
+
+	[Test]
 	public async Task DebitTransfer_ShouldReduceBalanceByAmountOnly_IgnoringForexRate()
 	{
 		Account account = AccountFactory.Create(balance: 10000m).Value!;

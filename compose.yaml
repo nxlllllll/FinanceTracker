@@ -55,7 +55,7 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
-  
+
   worker-outbox:
     build:
       context: .
@@ -200,7 +200,7 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
-  
+
   worker-currency-rate:
     build:
       context: .
@@ -221,7 +221,7 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
-  
+
   worker-balance-adjustment:
     build:
       context: .
@@ -241,7 +241,7 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
-  
+
   worker-cleanup:
     build:
       context: .
@@ -261,7 +261,7 @@ services:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
-  
+
   migrator:
     build:
       context: .
@@ -272,15 +272,24 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-  
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+
   prometheus:
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
     depends_on:
       - grafana
+      - alertmanager
 
   grafana:
     image: grafana/grafana:latest

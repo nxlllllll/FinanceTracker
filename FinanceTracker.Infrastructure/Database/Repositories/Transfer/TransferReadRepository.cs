@@ -17,20 +17,19 @@ public sealed class TransferReadRepository(
 		Guid transferId,
 		CancellationToken ct = default)
 	{
-		return await context.Transfers.AsNoTracking().Where(predicate: t => t.Id == transferId)
-			.Select(selector: t => new TransferReadModel(
-				Id: t.Id,
-				UserId: t.UserId,
-				FromAccountId: t.FromAccountId,
-				ToAccountId: t.ToAccountId,
-				AmountFrom: Money.Reconstitute(amount: t.AmountFrom, currency: t.CurrencyFrom),
-				AmountTo: Money.Reconstitute(amount: t.AmountTo, currency: t.CurrencyTo),
-				ExchangeRate: t.ExchangeRate,
-				IsRatePending: t.IsRatePending,
-				Status: t.Status,
-				Description: t.Description,
-				OccurredAt: t.OccurredAt
-			)).FirstOrDefaultAsync(cancellationToken: ct);
+		return await context.Transfers.AsNoTracking().Where(predicate: t => t.Id == transferId).Select(selector: t => new TransferReadModel(
+			Id: t.Id,
+			UserId: t.UserId,
+			FromAccountId: t.FromAccountId,
+			ToAccountId: t.ToAccountId,
+			AmountFrom: Money.Reconstitute(amount: t.AmountFrom, currency: t.CurrencyFrom),
+			AmountTo: Money.Reconstitute(amount: t.AmountTo, currency: t.CurrencyTo),
+			ExchangeRate: t.ExchangeRate,
+			IsRatePending: t.IsRatePending,
+			Status: t.Status,
+			Description: t.Description,
+			OccurredAt: t.OccurredAt
+		)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
 	public async Task<PagedResult<TransferReadModel>> GetAllAsync(
@@ -48,9 +47,12 @@ public sealed class TransferReadRepository(
 			.Where(predicate: t => t.UserId == userId);
 
 		if (accountId is not null)
+		{
 			query = query.Where(predicate: t =>
 				t.FromAccountId == accountId.Value ||
-				t.ToAccountId == accountId.Value);
+				t.ToAccountId == accountId.Value
+			);
+		}
 
 		if (dateFrom is not null)
 			query = query.Where(predicate: t => t.OccurredAt >= dateFrom.Value);
@@ -92,19 +94,36 @@ public sealed class TransferReadRepository(
 		);
 	}
 
-	public async Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(CancellationToken ct = default)
+	public async Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(
+		int batchSize,
+		DateTimeOffset? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		CancellationToken ct = default)
 	{
-		return await context.Transfers.AsNoTracking().Where(predicate: t => t.IsRatePending).Select(selector: t => new PendingRateTransfer(
-			TransferId: t.Id,
-			FromAccountId: t.FromAccountId,
-			ToAccountId: t.ToAccountId,
-			AmountFrom: t.AmountFrom,
-			CurrencyFrom: t.CurrencyFrom,
-			CurrencyTo: t.CurrencyTo,
-			CurrentRate: t.ExchangeRate,
-			RowVersion: t.RowVersion,
-			OccurredAt: t.OccurredAt
-		)).ToListAsync(cancellationToken: ct);
+		IQueryable<Context.Transfer.TransferEntity> query = context.Transfers.AsNoTracking().Where(predicate: t => t.IsRatePending);
+
+		if (cursorOccurredAt is not null && cursorId is not null)
+		{
+			query = query.Where(predicate: t =>
+				t.OccurredAt > cursorOccurredAt.Value ||
+				(t.OccurredAt == cursorOccurredAt.Value && t.Id > cursorId.Value)
+			);
+		}
+
+		return await query.OrderBy(keySelector: t => t.OccurredAt)
+			.ThenBy(keySelector: t => t.Id)
+			.Take(count: batchSize)
+			.Select(selector: t => new PendingRateTransfer(
+				TransferId: t.Id,
+				FromAccountId: t.FromAccountId,
+				ToAccountId: t.ToAccountId,
+				AmountFrom: t.AmountFrom,
+				CurrencyFrom: t.CurrencyFrom,
+				CurrencyTo: t.CurrencyTo,
+				CurrentRate: t.ExchangeRate,
+				RowVersion: t.RowVersion,
+				OccurredAt: t.OccurredAt
+			)).ToListAsync(cancellationToken: ct);
 	}
 
 	public async Task<int> GetPendingCreditCountAsync(TimeSpan gracePeriod, CancellationToken ct = default)

@@ -47,15 +47,6 @@ public sealed class CachedCurrencyRateReadRepository(
 	private DistributedCacheEntryOptions OptionsFor(decimal? value)
 		=> value is null ? NotFound : EndOfDay;
 
-	private static string RateKey(CurrencyRateRequest request)
-		=> $"rate:{request.From.Value}:{request.To.Value}:{request.Date:yyyyMMdd}";
-
-	private static string LatestRateKey(Currency from, Currency to)
-		=> $"rate:latest:{from.Value}:{to.Value}";
-
-	private static string StableRateKey(CurrencyStableRateRequest request)
-		=> $"rate:stable:{request.From.Value}:{request.To.Value}:{request.AsOf.UtcTicks}";
-
 	/// <summary>
 	/// Shared shape for every single-item method below: cache hit → return it; cache miss →
 	/// ask <paramref name="fetch"/> (always a call into <see cref="inner"/>), cache whatever
@@ -147,10 +138,10 @@ public sealed class CachedCurrencyRateReadRepository(
 			if (dbResults.TryGetValue(key: request, out decimal rate))
 			{
 				result[request] = rate;
-				writes.Add(item: (key, (decimal?)rate, foundOptions));
+				writes.Add(item: (key, rate, foundOptions));
 			}
 			else
-				writes.Add(item: (key, (decimal?)null, notFoundOptions));
+				writes.Add(item: (key, null, notFoundOptions));
 		}
 
 		await redisCache.SetBatchAsync(items: writes);
@@ -163,7 +154,7 @@ public sealed class CachedCurrencyRateReadRepository(
 		CancellationToken ct = default)
 	{
 		return GetOrFetchAsync(
-			key: RateKey(request: new CurrencyRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, Date: date)),
+			key: CurrencyRateCacheKeys.RateKey(request: new CurrencyRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, Date: date)),
 			fetch: () => inner.GetRateAsync(baseCurrencyCode: baseCurrencyCode, targetCurrencyCode: targetCurrencyCode, date: date, ct: ct),
 			optionsFor: OptionsFor,
 			ct: ct
@@ -176,7 +167,7 @@ public sealed class CachedCurrencyRateReadRepository(
 		CancellationToken ct = default)
 	{
 		return GetOrFetchAsync(
-			key: LatestRateKey(from: baseCurrencyCode, to: targetCurrencyCode),
+			key: CurrencyRateCacheKeys.LatestRateKey(from: baseCurrencyCode, to: targetCurrencyCode),
 			fetch: () => inner.GetLatestRateAsync(baseCurrencyCode: baseCurrencyCode, targetCurrencyCode: targetCurrencyCode, ct: ct),
 			optionsFor: OptionsFor,
 			ct: ct
@@ -190,7 +181,7 @@ public sealed class CachedCurrencyRateReadRepository(
 		CancellationToken ct = default)
 	{
 		return GetOrFetchAsync(
-			key: StableRateKey(request: new CurrencyStableRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, AsOf: asOf)),
+			key: CurrencyRateCacheKeys.StableRateKey(request: new CurrencyStableRateRequest(From: baseCurrencyCode, To: targetCurrencyCode, AsOf: asOf)),
 			fetch: () => inner.GetRateKnownAtOrBeforeAsync(baseCurrencyCode: baseCurrencyCode, targetCurrencyCode: targetCurrencyCode, asOf: asOf, ct: ct),
 			optionsFor: _ => Stable,
 			ct: ct
@@ -208,7 +199,7 @@ public sealed class CachedCurrencyRateReadRepository(
 			requests: pairs,
 			from: p => p.From,
 			to: p => p.To,
-			keyFor: p => LatestRateKey(from: p.From, to: p.To),
+			keyFor: p => CurrencyRateCacheKeys.LatestRateKey(from: p.From, to: p.To),
 			ct: ct
 		);
 
@@ -221,7 +212,7 @@ public sealed class CachedCurrencyRateReadRepository(
 			result: result,
 			cacheMisses: cacheMisses,
 			dbResults: dbResults,
-			keyFor: p => LatestRateKey(from: p.From, to: p.To),
+			keyFor: p => CurrencyRateCacheKeys.LatestRateKey(from: p.From, to: p.To),
 			foundOptions: EndOfDay,
 			notFoundOptions: NotFound,
 			ct: ct
@@ -241,7 +232,7 @@ public sealed class CachedCurrencyRateReadRepository(
 			requests: requests,
 			from: r => r.From,
 			to: r => r.To,
-			keyFor: StableRateKey,
+			keyFor: CurrencyRateCacheKeys.StableRateKey,
 			ct: ct
 		);
 
@@ -254,7 +245,7 @@ public sealed class CachedCurrencyRateReadRepository(
 			result: result,
 			cacheMisses: cacheMisses,
 			dbResults: dbResults,
-			keyFor: StableRateKey,
+			keyFor: CurrencyRateCacheKeys.StableRateKey,
 			foundOptions: Stable,
 			notFoundOptions: Stable,
 			ct: ct

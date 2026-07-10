@@ -163,6 +163,7 @@ public static class DependencyInjection
 		services.AddScoped<ICurrencyRateReadRepository, CurrencyRateReadRepository>();
 		services.Decorate<ICurrencyRateReadRepository, CachedCurrencyRateReadRepository>();
 		services.AddScoped<ICurrencyRateWriteRepository, CurrencyRateWriteRepository>();
+		services.Decorate<ICurrencyRateWriteRepository, CachedCurrencyRateWriteRepository>();
 
 		// RecurringTransaction
 		services.AddScoped<IRecurringTransactionRepository, RecurringTransactionRepository>();

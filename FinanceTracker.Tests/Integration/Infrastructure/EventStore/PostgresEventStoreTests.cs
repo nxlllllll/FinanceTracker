@@ -28,7 +28,9 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 	private EFUnitOfWork _unitOfWork = null!;
 	private readonly AccountSnapshotSerializer _serializer = new AccountSnapshotSerializer();
 
-	private PostgresEventStore CreateEventStore(FinanceTrackerContext? ctx = null)
+	private PostgresEventStore CreateEventStore(
+		FinanceTrackerContext? ctx = null,
+		EventStoreOptions? eventStoreOptions = null)
 	{
 		IEventUpcasterRegistry upcasterRegistry = Substitute.For<IEventUpcasterRegistry>();
 		upcasterRegistry.HasChain(eventType: Arg.Any<string>()).Returns(returnThis: false);
@@ -49,7 +51,7 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			dateProvider: FakeDateProvider.Default,
 			correlationContext: Substitute.For<ICorrelationContext>(),
 			upcasterRegistry: upcasterRegistry,
-			options: new FakeOptionsMonitor<EventStoreOptions>(value: new EventStoreOptions()),
+			options: new FakeOptionsMonitor<EventStoreOptions>(value: eventStoreOptions ?? new EventStoreOptions()),
 			logger: Substitute.For<ILogger<PostgresEventStore>>()
 		);
 	}
@@ -219,6 +221,50 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			)],
 			expectedVersion: 0
 		))).Throws<ConcurrencyConflictException>();
+	}
+
+	[Test]
+	public async Task SaveAsync_WithPreValidateExpectedVersionEnabled_AndStaleVersion_ShouldThrowWithoutRequiringCommit()
+	{
+		Guid accountId = Guid.CreateVersion7();
+		AccountCreated @event = new AccountCreated(
+			Id: Guid.CreateVersion7(),
+			AccountId: accountId,
+			UserId: Guid.CreateVersion7(),
+			Name: Name.Create(value: "Новый счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			Balance: 0,
+			Version: 0,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+
+		await SaveAsync(
+			store: _eventStore,
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [@event],
+			expectedVersion: 0
+		);
+
+		PostgresEventStore preValidatingStore = CreateEventStore(eventStoreOptions: new EventStoreOptions { PreValidateExpectedVersion = true });
+
+		await Assert.That(async () => await preValidatingStore.SaveAsync(
+			aggregateId: accountId,
+			aggregateType: AggregateTypeNames.Account,
+			events: [new AccountDebited(
+				Id: Guid.CreateVersion7(),
+				AccountId: accountId,
+				TransactionId: Guid.CreateVersion7(),
+				CategoryId: Guid.CreateVersion7(),
+				Amount: 100m,
+				ExchangeRate: 1m,
+				Description: null,
+				Version: 0,
+				OccurredAt: DateTimeOffset.UtcNow
+			)],
+			expectedVersion: 0
+		)).Throws<ConcurrencyConflictException>();
 	}
 
 	[Test]

@@ -377,7 +377,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task DebitAsync_WithDuplicateVersion_ShouldThrowConcurrencyConflictException()
+	public async Task DebitAsync_WithDuplicateVersion_ShouldBeIdempotentNoOp()
 	{
 		AccountCreated created = await CreateAccountAsync();
 
@@ -393,7 +393,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
-		await Assert.That(async () => await _writeRepository.DebitAsync(@event: new AccountDebited(
+		await _writeRepository.DebitAsync(@event: new AccountDebited(
 			Id: Guid.CreateVersion7(),
 			AccountId: created.AccountId,
 			TransactionId: Guid.CreateVersion7(),
@@ -403,11 +403,17 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			Description: null,
 			Version: 2,
 			OccurredAt: DateTimeOffset.UtcNow
-		))).Throws<ConcurrencyConflictException>();
+		));
+
+		decimal balance = await Context.AccountBalances.Where(predicate: b => b.AccountId == created.AccountId)
+			.Select(selector: b => b.Balance)
+			.FirstAsync();
+
+		await Assert.That(value: balance).IsEqualTo(expected: 9000m);
 	}
 
 	[Test]
-	public async Task DebitAsync_WithStaleVersion_ShouldThrowConcurrencyConflictException()
+	public async Task DebitAsync_WithOutOfOrderVersion_ShouldStillApply()
 	{
 		AccountCreated created = await CreateAccountAsync();
 
@@ -423,7 +429,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
-		await Assert.That(async () => await _writeRepository.DebitAsync(@event: new AccountDebited(
+		await _writeRepository.DebitAsync(@event: new AccountDebited(
 			Id: Guid.CreateVersion7(),
 			AccountId: created.AccountId,
 			TransactionId: Guid.CreateVersion7(),
@@ -433,7 +439,13 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			Description: null,
 			Version: 1,
 			OccurredAt: DateTimeOffset.UtcNow
-		))).Throws<ConcurrencyConflictException>();
+		));
+
+		decimal balance = await Context.AccountBalances.Where(predicate: b => b.AccountId == created.AccountId)
+			.Select(selector: b => b.Balance)
+			.FirstAsync();
+
+		await Assert.That(value: balance).IsEqualTo(expected: 8500m);
 	}
 
 	[Test]
@@ -454,8 +466,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 		);
 
 		await _writeRepository.DebitAsync(@event: @event);
-
-		await Assert.That(async () => await _writeRepository.DebitAsync(@event: @event)).Throws<ConcurrencyConflictException>();
+		await _writeRepository.DebitAsync(@event: @event);
 
 		decimal balance = await Context.AccountBalances.Where(predicate: b => b.AccountId == created.AccountId)
 			.Select(selector: b => b.Balance)
@@ -465,7 +476,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task CreditAsync_WithDuplicateVersion_ShouldThrowConcurrencyConflictException()
+	public async Task CreditAsync_WithDuplicateVersion_ShouldBeIdempotentNoOp()
 	{
 		AccountCreated created = await CreateAccountAsync();
 
@@ -481,7 +492,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
-		await Assert.That(async () => await _writeRepository.CreditAsync(@event: new AccountCredited(
+		await _writeRepository.CreditAsync(@event: new AccountCredited(
 			Id: Guid.CreateVersion7(),
 			AccountId: created.AccountId,
 			TransactionId: Guid.CreateVersion7(),
@@ -491,11 +502,17 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			Description: null,
 			Version: 2,
 			OccurredAt: DateTimeOffset.UtcNow
-		))).Throws<ConcurrencyConflictException>();
+		));
+
+		decimal balance = await Context.AccountBalances.Where(predicate: b => b.AccountId == created.AccountId)
+			.Select(selector: b => b.Balance)
+			.FirstAsync();
+
+		await Assert.That(value: balance).IsEqualTo(expected: 10500m);
 	}
 
 	[Test]
-	public async Task AdjustBalanceAsync_WithDuplicateVersion_ShouldThrowConcurrencyConflictException()
+	public async Task AdjustBalanceAsync_WithDuplicateVersion_ShouldBeIdempotentNoOp()
 	{
 		AccountCreated created = await CreateAccountAsync();
 
@@ -512,7 +529,7 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
-		await Assert.That(async () => await _writeRepository.AdjustBalanceAsync(@event: new AccountBalanceAdjusted(
+		await _writeRepository.AdjustBalanceAsync(@event: new AccountBalanceAdjusted(
 			Id: Guid.CreateVersion7(),
 			AccountId: created.AccountId,
 			SourceId: Guid.CreateVersion7(),
@@ -523,47 +540,13 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			Delta: 5000m,
 			Version: 2,
 			OccurredAt: DateTimeOffset.UtcNow
-		))).Throws<ConcurrencyConflictException>();
-	}
-
-	[Test]
-	public async Task DebitAsync_WithDuplicateVersion_ShouldNotChangeBalance()
-	{
-		AccountCreated created = await CreateAccountAsync();
-
-		await _writeRepository.DebitAsync(@event: new AccountDebited(
-			Id: Guid.CreateVersion7(),
-			AccountId: created.AccountId,
-			TransactionId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Amount: 1000m,
-			ExchangeRate: 1m,
-			Description: null,
-			Version: 2,
-			OccurredAt: DateTimeOffset.UtcNow
 		));
-
-		try
-		{
-			await _writeRepository.DebitAsync(@event: new AccountDebited(
-				Id: Guid.CreateVersion7(),
-				AccountId: created.AccountId,
-				TransactionId: Guid.CreateVersion7(),
-				CategoryId: Guid.CreateVersion7(),
-				Amount: 999m,
-				ExchangeRate: 1m,
-				Description: null,
-				Version: 2,
-				OccurredAt: DateTimeOffset.UtcNow
-			));
-		}
-		catch (ConcurrencyConflictException) { }
 
 		decimal balance = await Context.AccountBalances.Where(predicate: b => b.AccountId == created.AccountId)
 			.Select(selector: b => b.Balance)
 			.FirstAsync();
 
-		await Assert.That(value: balance).IsEqualTo(expected: 9000m);
+		await Assert.That(value: balance).IsEqualTo(expected: 15000m);
 	}
 
 	[Test]

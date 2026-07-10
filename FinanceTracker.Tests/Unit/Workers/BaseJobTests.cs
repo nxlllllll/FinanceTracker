@@ -113,7 +113,7 @@ public sealed class BaseJobTests
 	}
 
 	[Test]
-	public async Task Execute_WhenProcessAsyncThrows_ShouldRethrowSameException()
+	public async Task Execute_WhenProcessAsyncThrows_ShouldWrapInJobExecutionException()
 	{
 		IOptionsMonitor<TestJobOptions> monitor = Substitute.For<IOptionsMonitor<TestJobOptions>>();
 		monitor.CurrentValue.Returns(returnThis: new TestJobOptions { IsEnabled = true });
@@ -121,11 +121,12 @@ public sealed class BaseJobTests
 		InvalidOperationException thrown = new InvalidOperationException(message: "boom");
 		TrackingJob job = new TrackingJob(options: monitor) { ExceptionToThrow = thrown };
 
-		InvalidOperationException? caught = await Assert.ThrowsAsync<InvalidOperationException>(
+		JobExecutionException? caught = await Assert.ThrowsAsync<JobExecutionException>(
 			action: async () => await job.Execute(context: BuildContext())
 		);
 
-		await Assert.That(value: caught).IsEqualTo(expected: thrown);
+		await Assert.That(value: caught!.InnerException).IsEqualTo(expected: thrown);
+		await Assert.That(value: caught.RefireImmediately).IsFalse();
 	}
 
 	[Test]
@@ -144,7 +145,7 @@ public sealed class BaseJobTests
 		{
 			await job.Execute(context: BuildContext());
 		}
-		catch (InvalidOperationException) { /* Expected — Execute rethrows after logging; */ }
+		catch (JobExecutionException) { /* Expected — Execute wraps and rethrows after logging; */ }
 
 		await Assert.That(value: logger.ErrorLogged).IsTrue();
 	}

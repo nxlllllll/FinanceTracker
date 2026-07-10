@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
@@ -16,6 +17,7 @@ public sealed class CleanupJob(
 	IOutboxWriteRepository outboxRepository,
 	IProcessedMessageWriteRepository processedMessageRepository,
 	ISnapshotWriteRepository snapshotRepository,
+	IAccountWriteRepository accountWriteRepository,
 	IDateProvider dateProvider,
 	IOptionsMonitor<CleanupOptions> options,
 	ILogger<CleanupJob> logger
@@ -30,6 +32,7 @@ public sealed class CleanupJob(
 		await CleanupOutboxProcessedAsync(options: options, now: now, ct: ct);
 		await CleanupOutboxFailedAsync(options: options, now: now, ct: ct);
 		await CleanupSnapshotsAsync(options: options, ct: ct);
+		await CleanupAccountBalanceLedgerAsync(options: options, now: now, ct: ct);
 	}
 
 	private async Task CleanupIdempotentCommandsAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
@@ -96,6 +99,20 @@ public sealed class CleanupJob(
 
 		if (total > 0)
 			logger.ZLogInformation(message: $"[Cleanup] snapshots: deleted {total} non-latest row(s).");
+	}
+
+	private async Task CleanupAccountBalanceLedgerAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
+	{
+		DateTimeOffset before = now.AddDays(days: -options.AccountBalanceLedgerRetentionDays);
+
+		int total = await DeleteInBatchesAsync(
+			batchSize: options.BatchSize,
+			deleteFunc: batchSize => accountWriteRepository.DeleteOldBalanceLedgerEntriesAsync(before: before, batchSize: batchSize, ct: ct),
+			ct: ct
+		);
+
+		if (total > 0)
+			logger.ZLogInformation(message: $"[Cleanup] rm_account_balance_applied_events: deleted {total} row(s) older than {options.AccountBalanceLedgerRetentionDays} day(s).");
 	}
 
 	private async Task<int> DeleteInBatchesAsync(

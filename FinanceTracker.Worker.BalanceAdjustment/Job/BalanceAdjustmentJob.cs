@@ -130,22 +130,50 @@ public sealed class BalanceAdjustmentJob(
 
 	private async Task ProcessTransactionsAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
-		IReadOnlyList<PendingRateTransaction> pending = await transactionReadRepository.GetPendingRateAsync(ct: ct);
+		DateTimeOffset? cursorOccurredAt = null;
+		Guid? cursorId = null;
+		bool anyPageProcessed = false;
 
-		await ProcessPendingAsync(
-			pending: pending,
-			options: options,
-			entityName: nameof(Transaction),
-			strategy: new Strategy<PendingRateTransaction>(
-				GetId: item => item.AccountId,
-				GetCurrentRate: item => item.CurrentRate,
-				GetNewRateAsync: GetTransactionRateAsync,
-				BuildSkipMessage: BuildTransactionSkipMessage,
-				OnRateUnchangedAsync: UpdateTransactionRateAsync,
-				OnAdjustAsync: AdjustTransactionAsync
-			),
-			ct: ct
-		);
+		while (!ct.IsCancellationRequested)
+		{
+			IReadOnlyList<PendingRateTransaction> page = await transactionReadRepository.GetPendingRateAsync(
+				batchSize: options.BatchSize,
+				cursorOccurredAt: cursorOccurredAt,
+				cursorId: cursorId,
+				ct: ct
+			);
+
+			if (page.Count == 0)
+			{
+				if (!anyPageProcessed)
+					logger.ZLogInformation(message: $"No pending rate {nameof(Transaction)}s found.");
+				break;
+			}
+
+			anyPageProcessed = true;
+
+			await ProcessPendingAsync(
+				pending: page,
+				options: options,
+				entityName: nameof(Transaction),
+				strategy: new Strategy<PendingRateTransaction>(
+					GetId: item => item.AccountId,
+					GetCurrentRate: item => item.CurrentRate,
+					GetNewRateAsync: GetTransactionRateAsync,
+					BuildSkipMessage: BuildTransactionSkipMessage,
+					OnRateUnchangedAsync: UpdateTransactionRateAsync,
+					OnAdjustAsync: AdjustTransactionAsync
+				),
+				ct: ct
+			);
+
+			PendingRateTransaction last = page[^1];
+			cursorOccurredAt = last.OccurredAt;
+			cursorId = last.TransactionId;
+
+			if (page.Count < options.BatchSize)
+				break;
+		}
 	}
 
 	private Task<decimal?> GetTransactionRateAsync(PendingRateTransaction item, CancellationToken ct) => currencyRateReadRepository.GetRateAsync(
@@ -212,22 +240,50 @@ public sealed class BalanceAdjustmentJob(
 
 	private async Task ProcessTransfersAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
-		IReadOnlyList<PendingRateTransfer> pending = await transferReadRepository.GetPendingRateAsync(ct: ct);
+		DateTimeOffset? cursorOccurredAt = null;
+		Guid? cursorId = null;
+		bool anyPageProcessed = false;
 
-		await ProcessPendingAsync(
-			pending: pending,
-			options: options,
-			entityName: nameof(Transfer),
-			strategy: new Strategy<PendingRateTransfer>(
-				GetId: item => item.ToAccountId,
-				GetCurrentRate: item => item.CurrentRate,
-				GetNewRateAsync: GetTransferRateAsync,
-				BuildSkipMessage: BuildTransferSkipMessage,
-				OnRateUnchangedAsync: UpdateTransferRateAsync,
-				OnAdjustAsync: AdjustTransferAsync
-			),
-			ct: ct
-		);
+		while (!ct.IsCancellationRequested)
+		{
+			IReadOnlyList<PendingRateTransfer> page = await transferReadRepository.GetPendingRateAsync(
+				batchSize: options.BatchSize,
+				cursorOccurredAt: cursorOccurredAt,
+				cursorId: cursorId,
+				ct: ct
+			);
+
+			if (page.Count == 0)
+			{
+				if (!anyPageProcessed)
+					logger.ZLogInformation(message: $"No pending rate {nameof(Transfer)}s found.");
+				break;
+			}
+
+			anyPageProcessed = true;
+
+			await ProcessPendingAsync(
+				pending: page,
+				options: options,
+				entityName: nameof(Transfer),
+				strategy: new Strategy<PendingRateTransfer>(
+					GetId: item => item.ToAccountId,
+					GetCurrentRate: item => item.CurrentRate,
+					GetNewRateAsync: GetTransferRateAsync,
+					BuildSkipMessage: BuildTransferSkipMessage,
+					OnRateUnchangedAsync: UpdateTransferRateAsync,
+					OnAdjustAsync: AdjustTransferAsync
+				),
+				ct: ct
+			);
+
+			PendingRateTransfer last = page[^1];
+			cursorOccurredAt = last.OccurredAt;
+			cursorId = last.TransferId;
+
+			if (page.Count < options.BatchSize)
+				break;
+		}
 	}
 
 	private Task<decimal?> GetTransferRateAsync(PendingRateTransfer item, CancellationToken ct) => currencyRateReadRepository.GetRateAsync(
@@ -319,6 +375,7 @@ public sealed class BalanceAdjustmentJob(
 		}
 		catch (Exception ex)
 		{
+			accountCache.Remove(key: itemId);
 			logger.ZLogError(exception: ex, message: $"Failed to adjust item {itemId}.");
 			return AdjustResult.Failed;
 		}
@@ -332,12 +389,14 @@ public sealed class BalanceAdjustmentJob(
 		Guid accountId,
 		CancellationToken ct)
 	{
-		if (cache.TryGetValue(key: accountId, out Account? cached))
+		if (cache.TryGetValue(key: accountId, out Account? cached) && cached.Events.Count == 0)
 			return cached;
 
 		Account? loaded = await accountRepository.GetByIdAsync(accountId: accountId, ct: ct);
 		if (loaded is not null)
 			cache[accountId] = loaded;
+		else
+			cache.Remove(key: accountId);
 
 		return loaded;
 	}

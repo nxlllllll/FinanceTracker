@@ -78,6 +78,18 @@ public sealed class OperationWriteRepository(FinanceTrackerContext context) : IO
 		);
 	}
 
+	public async Task UpdateTransactionDescriptionAsync(
+		Guid transactionId,
+		Guid userId,
+		string? description,
+		CancellationToken ct = default)
+	{
+		await context.Operations.Where(predicate: o => o.Id == transactionId && o.UserId == userId && o.Type == Transaction).ExecuteUpdateAsync(
+			setPropertyCalls: b => b.SetProperty(propertyExpression: o => o.Description, valueExpression: description),
+			cancellationToken: ct
+		);
+	}
+
 	public async Task UpdateTransactionExclusionAsync(
 		Guid transactionId,
 		Guid userId,

@@ -77,5 +77,5 @@ public class TransactionBenchmarks : BenchmarkBase
 
 	[Benchmark]
 	public async Task GetPendingRateAsync()
-		=> await _repository.GetPendingRateAsync();
+		=> await _repository.GetPendingRateAsync(batchSize: PageSize);
 }

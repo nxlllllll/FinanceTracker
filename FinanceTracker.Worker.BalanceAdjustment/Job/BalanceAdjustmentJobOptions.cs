@@ -31,4 +31,8 @@ public sealed class BalanceAdjustmentJobOptions : IJobOptions
 
 	/// <summary>When <c>true</c>, applies jitter to retry delays. Default: <c>true</c>.</summary>
 	public bool UseJitter { get; init; } = true;
+
+	/// <summary>Maximum number of pending-rate rows fetched per page.</summary>
+	[Range(minimum: 1, maximum: 10_000)]
+	public int BatchSize { get; init; } = 500;
 }

@@ -161,6 +161,22 @@ public static class DbContextExtensions
 		""", cancellationToken: ct);
 	}
 
+	public static async Task<bool> TryRecordAccountBalanceEventAppliedAsync(
+		this DbContext context,
+		Guid accountId,
+		int version,
+		DateTimeOffset appliedAt,
+		CancellationToken ct = default)
+	{
+		int rows = await context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO rm_account_balance_applied_events (account_id, version, applied_at)
+			VALUES ({accountId}, {version}, {appliedAt})
+			ON CONFLICT (account_id, version) DO NOTHING
+		""", cancellationToken: ct);
+
+		return rows == 1;
+	}
+
 	public static Task UpsertCurrencyRatesAsync(
 		this DbContext context,
 		string[] baseCodes,

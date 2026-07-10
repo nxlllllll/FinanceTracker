@@ -22,6 +22,9 @@ public interface ITransferReadRepository : IReadRepository<TransferReadModel>
 	);
 
 	Task<IReadOnlyList<PendingRateTransfer>> GetPendingRateAsync(
+		int batchSize,
+		DateTimeOffset? cursorOccurredAt = null,
+		Guid? cursorId = null,
 		CancellationToken ct = default
 	);
 

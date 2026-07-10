@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
@@ -12,6 +13,7 @@ namespace FinanceTracker.Tests.Unit.Workers;
 
 public sealed class CleanupJobTests
 {
+	private IAccountWriteRepository _accountWriteRepository = null!;
 	private IIdempotencyWriteRepository _idempotencyWriteRepository = null!;
 	private IOutboxWriteRepository _outboxWriteRepository = null!;
 	private IProcessedMessageWriteRepository _processedMessageWriteRepository = null!;
@@ -34,6 +36,7 @@ public sealed class CleanupJobTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
+		_accountWriteRepository = Substitute.For<IAccountWriteRepository>();
 		_idempotencyWriteRepository = Substitute.For<IIdempotencyWriteRepository>();
 		_outboxWriteRepository = Substitute.For<IOutboxWriteRepository>();
 		_processedMessageWriteRepository = Substitute.For<IProcessedMessageWriteRepository>();
@@ -72,6 +75,7 @@ public sealed class CleanupJobTests
 
 		_job = new CleanupJob(
 			idempotencyRepository: _idempotencyWriteRepository,
+			accountWriteRepository: _accountWriteRepository,
 			outboxRepository: _outboxWriteRepository,
 			processedMessageRepository: _processedMessageWriteRepository,
 			snapshotRepository: _snapshotWriteRepository,

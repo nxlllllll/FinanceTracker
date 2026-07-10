@@ -17,6 +17,7 @@ public interface ITransactionWriteRepository
 
 	Task ChangeDescriptionAsync(
 		Guid transactionId,
+		Guid userId,
 		string? description,
 		int expectedVersion,
 		CancellationToken ct = default

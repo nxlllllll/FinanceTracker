@@ -10,10 +10,6 @@ namespace FinanceTracker.Application.Behaviours.Retry;
 /// <summary>
 /// MediatR pipeline behaviour that automatically retries a request when a
 /// <see cref="ConcurrencyConflictException"/> is thrown, using exponential backoff with optional jitter.
-/// <para>
-/// Applies to all requests in the pipeline. The retry count and delay are configured
-/// via <see cref="RetryOptions"/>.
-/// </para>
 /// </summary>
 public sealed class ConcurrencyRetryBehaviour<TRequest, TResponse>(
 	ILogger<ConcurrencyRetryBehaviour<TRequest, TResponse>> logger,

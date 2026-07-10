@@ -48,6 +48,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).ChangeDescriptionAsync(
 			transactionId: transaction.Id,
+			userId: transaction.UserId,
 			description: "New description",
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -97,6 +98,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _transactionWriteRepository.DidNotReceive().ChangeDescriptionAsync(
 			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
 			description: Arg.Any<string?>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

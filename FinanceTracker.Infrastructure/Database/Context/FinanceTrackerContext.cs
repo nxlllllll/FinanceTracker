@@ -24,8 +24,9 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 
 	public DbSet<AccountBalanceEntity> AccountBalances => Set<AccountBalanceEntity>();
 
-	public DbSet<CategoryEntity> Categories => Set<CategoryEntity>();
+	public DbSet<AccountBalanceAppliedEventEntity> AccountBalanceAppliedEvents => Set<AccountBalanceAppliedEventEntity>();
 
+	public DbSet<CategoryEntity> Categories => Set<CategoryEntity>();
 	public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
 
 	public DbSet<CurrencyEntity> Currencies => Set<CurrencyEntity>();

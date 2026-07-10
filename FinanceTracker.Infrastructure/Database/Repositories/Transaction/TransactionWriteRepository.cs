@@ -64,6 +64,7 @@ public sealed class TransactionWriteRepository(
 
 	public async Task ChangeDescriptionAsync(
 		Guid transactionId,
+		Guid userId,
 		string? description,
 		int expectedVersion,
 		CancellationToken ct = default)
@@ -77,6 +78,13 @@ public sealed class TransactionWriteRepository(
 
 		if (affected == 0)
 			throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+
+		await operationRepository.UpdateTransactionDescriptionAsync(
+			transactionId: transactionId,
+			userId: userId,
+			description: description,
+			ct: ct
+		);
 	}
 
 	public async Task IncludeAsync(

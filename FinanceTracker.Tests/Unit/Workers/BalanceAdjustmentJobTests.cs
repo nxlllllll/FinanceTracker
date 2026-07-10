@@ -32,7 +32,8 @@ public sealed class BalanceAdjustmentJobTests
 	{
 		MaxRetries = 1,
 		BaseDelayMs = 0,
-		UseJitter = false
+		UseJitter = false,
+		BatchSize = 500
 	};
 
 	[Before(hookType: Test)]
@@ -72,8 +73,18 @@ public sealed class BalanceAdjustmentJobTests
 
 	private void SetupEmptyRepositories()
 	{
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: []);
-		_transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: []);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: []);
+		_transferReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: []);
 	}
 
 	private static PendingRateTransaction BuildTransaction(
@@ -137,8 +148,12 @@ public sealed class BalanceAdjustmentJobTests
 	public async Task Execute_WhenTransactionRateNotFound_ShouldNotLoadAccount()
 	{
 		PendingRateTransaction transaction = BuildTransaction();
-
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transaction]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -166,7 +181,12 @@ public sealed class BalanceAdjustmentJobTests
 		PendingRateTransaction transaction = BuildTransaction(accountId: accountId, currentRate: 90m, rowVersion: 0);
 		Account account = AccountFactory.Create(balance: 5000m).Value!;
 
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transaction]);
 
 		_accountRepository.GetByIdAsync(accountId: accountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: account);
 
@@ -199,7 +219,12 @@ public sealed class BalanceAdjustmentJobTests
 		PendingRateTransaction transaction = BuildTransaction(accountId: accountId, currentRate: 80m);
 		Account account = AccountFactory.Create(balance: 5000m).Value!;
 
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transaction]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -225,7 +250,12 @@ public sealed class BalanceAdjustmentJobTests
 		PendingRateTransaction transaction = BuildTransaction(transactionId: transactionId, currentRate: 80m, rowVersion: 0);
 		Account account = AccountFactory.Create(balance: 5000m).Value!;
 
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transaction]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -251,7 +281,12 @@ public sealed class BalanceAdjustmentJobTests
 	{
 		PendingRateTransaction transaction = BuildTransaction(currentRate: 80m);
 
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transaction]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -281,7 +316,12 @@ public sealed class BalanceAdjustmentJobTests
 		Account firstAccount = AccountFactory.Create(balance: 5000m).Value!;
 		Account secondAccount = AccountFactory.Create(balance: 5000m).Value!;
 
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [first, second]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [first, second]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -309,12 +349,66 @@ public sealed class BalanceAdjustmentJobTests
 	}
 
 	[Test]
+	public async Task Execute_WhenSaveThrowsNonConcurrencyExceptionForSameAccount_ShouldNotCarryStaleEventToNextTransaction()
+	{
+		Guid accountId = Guid.CreateVersion7();
+
+		PendingRateTransaction first = BuildTransaction(accountId: accountId, currentRate: 80m);
+		PendingRateTransaction second = BuildTransaction(accountId: accountId, currentRate: 80m);
+
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [first, second]);
+
+		_currencyRateReadRepository.GetRateAsync(
+			baseCurrencyCode: Arg.Any<Currency>(),
+			targetCurrencyCode: Arg.Any<Currency>(),
+			date: Arg.Any<DateOnly>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: 90m);
+
+		_accountRepository.GetByIdAsync(
+			accountId: accountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ => AccountFactory.CreateWithArchivation(balance: 5000m));
+
+		List<Account> savedAccounts = [];
+		int saveCallCount = 0;
+		_accountRepository.SaveAsync(
+			account: Arg.Do<Account>(useArgument: savedAccounts.Add),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ =>
+		{
+			if (++saveCallCount == 1)
+				throw new InvalidOperationException(message: "Database error");
+			return Task.CompletedTask;
+		});
+
+		await _job.Execute(context: _jobContext);
+
+		await Assert.That(value: saveCallCount).IsEqualTo(expected: 2);
+		await Assert.That(value: savedAccounts).Count().IsEqualTo(expected: 2);
+
+		Account secondSavedAccount = savedAccounts[1];
+		await Assert.That(value: secondSavedAccount.Events.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: secondSavedAccount.Balance.Amount).IsEqualTo(expected: -5000m);
+	}
+
+	[Test]
 	public async Task Execute_WhenConcurrencyConflict_ShouldRetryAndSucceed()
 	{
 		PendingRateTransaction transaction = BuildTransaction(currentRate: 80m);
 		Account account = AccountFactory.Create(balance: 5000m).Value!;
 
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transaction]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transaction]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -347,7 +441,12 @@ public sealed class BalanceAdjustmentJobTests
 		PendingRateTransaction first = BuildTransaction(currentRate: 80m);
 		PendingRateTransaction second = BuildTransaction(currentRate: 80m);
 
-		_transactionReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [first, second]);
+		_transactionReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [first, second]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -360,7 +459,10 @@ public sealed class BalanceAdjustmentJobTests
 			return 90m;
 		});
 
-		_accountRepository.GetByIdAsync(accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: AccountFactory.Create(balance: 5000m).Value!);
+		_accountRepository.GetByIdAsync(
+			accountId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: AccountFactory.Create(balance: 5000m).Value!);
 
 		await _job.Execute(context: _jobContext);
 
@@ -388,7 +490,12 @@ public sealed class BalanceAdjustmentJobTests
 	{
 		PendingRateTransfer transfer = BuildTransfer();
 
-		_transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+		_transferReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transfer]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -410,7 +517,12 @@ public sealed class BalanceAdjustmentJobTests
 	{
 		PendingRateTransfer transfer = BuildTransfer(currentRate: 90m, rowVersion: 0);
 
-		_transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+		_transferReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transfer]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -441,7 +553,12 @@ public sealed class BalanceAdjustmentJobTests
 		Guid toAccountId = Guid.CreateVersion7();
 		PendingRateTransfer transfer = BuildTransfer(fromAccountId: fromAccountId, toAccountId: toAccountId, currentRate: 80m);
 
-		_transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+		_transferReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transfer]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -478,9 +595,17 @@ public sealed class BalanceAdjustmentJobTests
 			currentRate: 80m
 		);
 
-		_transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+		_transferReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transfer]);
 
-		_accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: toAccount);
+		_accountRepository.GetByIdAsync(
+			accountId: toAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: toAccount);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -521,9 +646,17 @@ public sealed class BalanceAdjustmentJobTests
 			currentRate: 80m
 		);
 
-		_transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+		_transferReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transfer]);
 
-		_accountRepository.GetByIdAsync(accountId: toAccountId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: (Account?)null);
+		_accountRepository.GetByIdAsync(
+			accountId: toAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Account?)null);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -555,7 +688,12 @@ public sealed class BalanceAdjustmentJobTests
 			currentRate: 90m
 		);
 
-		_transferReadRepository.GetPendingRateAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: [transfer]);
+		_transferReadRepository.GetPendingRateAsync(
+			batchSize: Arg.Any<int>(),
+			cursorOccurredAt: Arg.Any<DateTimeOffset?>(),
+			cursorId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [transfer]);
 
 		_currencyRateReadRepository.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),

@@ -1,0 +1,82 @@
+﻿groups:
+  - name: finance-tracker-jobs
+    rules:
+      - alert: JobExecutionFailed
+        expr: increase(job_execution_failed_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} threw an unhandled exception"
+          description: "{{ $labels.job }} failed at least once in the last 10 minutes. Check its logs for the exception wrapped in JobExecutionException."
+
+  - name: finance-tracker-messaging
+    rules:
+      - alert: OutboxMessageDeadLettered
+        expr: increase(outbox_failed_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "An outbox message was moved to dead letter"
+          description: "outbox_failed_total increased in the last 15 minutes — a message the system was supposed to publish at-least-once did not make it out. Investigate OutboxPublisherJob and the affected AggregateId in outbox_messages."
+
+      - alert: DeadLetterBacklogNotDraining
+        expr: dead_letter_count > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dead letter queue has had messages for 30+ minutes"
+          description: "dead_letter_count has been above zero for at least 30 minutes. Check DeadLetterMonitoringJob and the {queue}.dlq queues for messages that need manual replay or resolution."
+
+      - alert: DeadLetterBacklogStale
+        expr: dead_letter_count > 0
+        for: 2h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dead letter queue has been non-empty for 2+ hours"
+          description: "Messages have been sitting in a dead letter queue for over 2 hours without resolution. This needs manual attention now, not just monitoring."
+
+  - name: finance-tracker-transfers
+    rules:
+      - alert: TransferCreditStuckPastCompensation
+        expr: transfer_credit_pending > 0
+        for: 45m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A transfer's credit side has been pending past the auto-compensation window"
+          description: "transfer_credit_pending has been above zero for 45+ minutes, well past the 30-minute auto-compensation threshold. Check whether TransferCreditLagJob is running."
+
+      - alert: TransferEscalatedToManualResolution
+        expr: increase(transfers_failed_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A transfer requires manual resolution"
+          description: "transfers_failed_total increased in the last hour — a transfer could not be completed or compensated automatically and needs manual review in unresolvable_events."
+
+  - name: finance-tracker-recurring-transactions
+    rules:
+      - alert: RecurringTransactionEscalated
+        expr: increase(recurring_transactions_failed_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A recurring transaction occurrence could not be created"
+          description: "recurring_transactions_failed_total increased in the last hour — an occurrence was escalated to unresolvable_events instead of becoming a transaction."
+
+  - name: finance-tracker-currency-rates
+    rules:
+      - alert: CurrencyRateFetchRepeatedlyFailing
+        expr: increase(currency_rates_fetch_failed_total[1h]) > 2
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The exchange-rate API has failed repeatedly"
+          description: "currency_rates_fetch_failed_total increased by more than 2 in the last hour. New rates aren't landing, so cached 'latest' rates (see CachedCurrencyRateReadRepository) will keep serving increasingly stale values until this recovers."

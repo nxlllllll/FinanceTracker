@@ -78,6 +78,10 @@
         <EmbeddedResource Include="Migrations\V031__widen_events_version_constraint.sql" />
         <None Remove="Migrations\V032__cover_pending_rate_indexes.sql" />
         <EmbeddedResource Include="Migrations\V032__cover_pending_rate_indexes.sql" />
+        <None Remove="Migrations\V033__account_balance_applied_events.sql" />
+        <EmbeddedResource Include="Migrations\V033__account_balance_applied_events.sql" />
+        <None Remove="Migrations\V034__pending_rate_indexes_keyset.sql" />
+        <EmbeddedResource Include="Migrations\V034__pending_rate_indexes_keyset.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">

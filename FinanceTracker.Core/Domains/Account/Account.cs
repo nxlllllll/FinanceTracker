@@ -208,7 +208,7 @@ public sealed class Account : AggregateRoot
 			return constraints;
 
 		int sign = GetSign(direction: direction);
-		decimal delta = Money.ConvertedAmount(amount: amount, rate: newRate - oldRate) * sign;
+		decimal delta = (Money.ConvertedAmount(amount: amount, rate: newRate) - Money.ConvertedAmount(amount: amount, rate: oldRate)) * sign;
 
 		if (delta == 0)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);

@@ -21,6 +21,13 @@ public interface IOperationWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task UpdateTransactionDescriptionAsync(
+		Guid transactionId,
+		Guid userId,
+		string? description,
+		CancellationToken ct = default
+	);
+
 	Task UpdateTransactionExclusionAsync(
 		Guid transactionId,
 		Guid userId,
@@ -35,3 +42,4 @@ public interface IOperationWriteRepository
 		CancellationToken ct = default
 	);
 }
+

@@ -163,4 +163,24 @@ public sealed class RedisCache(
 			logger.LogWarning(exception: ex, message: "Redis unavailable writing a batch of {Count} keys — leaving the cache cold for these entries.", items.Count);
 		}
 	}
+
+	public async Task DeleteBatchAsync(IReadOnlyList<string> keys)
+	{
+		if (keys.Count == 0)
+			return;
+
+		RedisKey[] redisKeys = new RedisKey[keys.Count];
+		for (int i = 0; i < keys.Count; i++)
+			redisKeys[i] = Prefixed(key: keys[i]);
+
+		IDatabase database = connectionMultiplexer.GetDatabase();
+		try
+		{
+			await database.KeyDeleteAsync(keys: redisKeys);
+		}
+		catch (RedisException ex)
+		{
+			logger.LogWarning(exception: ex, message: "Redis unavailable deleting a batch of {Count} keys — stale entries may remain until their TTL expires.", keys.Count);
+		}
+	}
 }

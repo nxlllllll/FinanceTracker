@@ -29,7 +29,6 @@ public sealed class JwtTokenService(
 		List<Claim> claims =
 		[
 			new Claim(type: JwtRegisteredClaimNames.Sub, value: user.Id.ToString()),
-			new Claim(type: JwtRegisteredClaimNames.Email, value: user.Email.Value),
 			new Claim(type: JwtRegisteredClaimNames.Jti, value: Guid.CreateVersion7().ToString()),
 			new Claim(type: JwtRegisteredClaimNames.Sid, value: sessionId.ToString())
 		];

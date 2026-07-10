@@ -34,7 +34,7 @@ public abstract class BaseJob<TOptions>(
 		{
 			WorkerMetrics.JobExecutionFailed.Add(delta: 1, new KeyValuePair<string, object?>(key: "job", value: GetType().Name));
 			logger.ZLogError(exception: ex, message: $"[{GetType().Name}] Unhandled exception during execution.");
-			throw;
+			throw new JobExecutionException(cause: ex, refireImmediately: false);
 		}
 	}
 

@@ -36,4 +36,11 @@ public sealed class CleanupOptions : IJobOptions
 	/// <summary>How long failed outbox records are retained before deletion. Default: 30 days.</summary>
 	[Range(minimum: 1, maximum: 365)]
 	public int OutboxFailedRetentionDays { get; init; } = 30;
+
+	/// <summary>
+	/// How long rows in the account-balance-applied-events idempotency ledger are retained
+	/// before deletion. Default: 30 days.
+	/// </summary>
+	[Range(minimum: 1, maximum: 365)]
+	public int AccountBalanceLedgerRetentionDays { get; init; } = 30;
 }

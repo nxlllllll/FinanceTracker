@@ -17,8 +17,13 @@ public sealed record RabbitMqOptions
 	/// <summary>RabbitMQ broker port. Default: <c>5672</c>.</summary>
 	public int Port { get; init; } = 5672;
 
-	public string Username { get; init; } = "guest";
-	public string Password { get; init; } = "guest";
+	/// <summary>RabbitMQ username.</summary>
+	[Required]
+	public string Username { get; init; } = String.Empty;
+
+	/// <summary>RabbitMQ password.</summary>
+	[Required]
+	public string Password { get; init; } = String.Empty;
 
 	/// <summary>Topic exchange name. Must match across publishers and consumers. Default: <c>finance-tracker</c>.</summary>
 	public string ExchangeName { get; init; } = "finance-tracker";

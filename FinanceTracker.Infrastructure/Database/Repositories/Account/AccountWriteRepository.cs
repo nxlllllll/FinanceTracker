@@ -20,28 +20,42 @@ public sealed class AccountWriteRepository(
 		int version,
 		CancellationToken ct)
 	{
-		int rows = await context.AccountBalances.Where(predicate: b => b.AccountId == accountId && b.LastVersion < version).ExecuteUpdateAsync(
+		DateTimeOffset now = dateProvider.UtcNow;
+
+		bool balanceRowExists = await context.AccountBalances.AnyAsync(predicate: b => b.AccountId == accountId, cancellationToken: ct);
+		if (!balanceRowExists)
+			throw new NotFoundException(message: $"Account balance row for {accountId} does not exist yet (AccountCreated not projected?).", id: accountId);
+
+		bool isNewlyApplied = await context.TryRecordAccountBalanceEventAppliedAsync(
+			accountId: accountId,
+			version: version,
+			appliedAt: now,
+			ct: ct
+		);
+
+		if (!isNewlyApplied)
+			return;
+
+		int rows = await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Balance, valueExpression: e => e.Balance + delta)
-				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: version)
-				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: dateProvider.UtcNow),
+											.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: e => e.LastVersion > version ? e.LastVersion : version)
+											.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: now),
 			cancellationToken: ct
 		);
 
-		if (rows > 0)
-			return;
-
-		int? currentVersion = await context.AccountBalances
-			.Where(predicate: b => b.AccountId == accountId)
-			.Select(selector: b => (int?)b.LastVersion)
-			.FirstOrDefaultAsync(cancellationToken: ct);
-
-		if (currentVersion is null)
+		if (rows == 0)
 			throw new NotFoundException(message: $"Account balance row for {accountId} does not exist yet (AccountCreated not projected?).", id: accountId);
+	}
 
-		throw new ConcurrencyConflictException(
-			message: $"Account balance {accountId}: cannot apply version {version}, current LastVersion is already {currentVersion}.",
-			id: accountId
-		);
+	public async Task<int> DeleteOldBalanceLedgerEntriesAsync(
+		DateTimeOffset before,
+		int batchSize,
+		CancellationToken ct = default)
+	{
+		return await context.AccountBalanceAppliedEvents.Where(predicate: e => e.AppliedAt < before)
+			.OrderBy(keySelector: e => e.AppliedAt)
+			.Take(count: batchSize)
+			.ExecuteDeleteAsync(cancellationToken: ct);
 	}
 
 	public async Task CreateAsync(
@@ -174,6 +188,7 @@ public sealed class AccountWriteRepository(
 		Guid accountId,
 		CancellationToken ct = default)
 	{
+		await context.AccountBalanceAppliedEvents.Where(predicate: e => e.AccountId == accountId).ExecuteDeleteAsync(cancellationToken: ct);
 		await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteDeleteAsync(cancellationToken: ct);
 		await context.Accounts.Where(predicate: a => a.Id == accountId).ExecuteDeleteAsync(cancellationToken: ct);
 	}

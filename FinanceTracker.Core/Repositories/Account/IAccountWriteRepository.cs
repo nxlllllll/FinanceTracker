@@ -63,4 +63,10 @@ public interface IAccountWriteRepository
 		Domains.Account.Account account,
 		CancellationToken ct = default
 	);
+
+	Task<int> DeleteOldBalanceLedgerEntriesAsync(
+		DateTimeOffset before,
+		int batchSize,
+		CancellationToken ct = default
+	);
 }

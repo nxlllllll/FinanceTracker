@@ -55,7 +55,7 @@ public class TransferBenchmarks : BenchmarkBase
 
 	[Benchmark]
 	public async Task GetPendingRateAsync()
-		=> await _repository.GetPendingRateAsync();
+		=> await _repository.GetPendingRateAsync(batchSize: PageSize);
 
 	[Benchmark]
 	public async Task GetPendingCreditCountAsync()

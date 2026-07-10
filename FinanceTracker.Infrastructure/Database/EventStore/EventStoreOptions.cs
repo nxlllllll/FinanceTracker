@@ -17,4 +17,12 @@ public sealed class EventStoreOptions
 	/// </summary>
 	[Range(minimum: 1, maximum: 1000)]
 	public int SnapshotThreshold { get; init; } = 25;
+
+	/// <summary>
+	/// If enabled, <c>SaveAsync</c> runs an extra <c>SELECT MAX(version)</c> round-trip before
+	/// building and inserting events, failing fast on a version mismatch instead of relying
+	/// solely on the <c>uq_events_aggregate_version</c> constraint at commit time.
+	/// </summary>
+	public bool PreValidateExpectedVersion { get; init; } = false;
 }
+

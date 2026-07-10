@@ -171,7 +171,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
 
-	[Test]
+[Test]
 	public async Task ChangeDescriptionAsync_ShouldUpdateDescription()
 	{
 		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
@@ -182,6 +182,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
 		await _writeRepository.ChangeDescriptionAsync(
 			transactionId: transaction.Id,
+			userId: transaction.UserId,
 			description: "новое",
 			expectedVersion: 0
 		);
@@ -190,6 +191,30 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: entity.Description).IsEqualTo(expected: "новое");
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task ChangeDescriptionAsync_ShouldSyncOperationsFeedDescription()
+	{
+		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();
+		Core.Domains.Transaction.Transaction transaction = BuildTransaction(accountId: accountId, userId: userId, categoryId: categoryId, description: "старое");
+
+		await _writeRepository.CreateAsync(transaction: transaction);
+		await Context.SaveChangesAsync();
+
+		await _writeRepository.ChangeDescriptionAsync(
+			transactionId: transaction.Id,
+			userId: transaction.UserId,
+			description: "новое",
+			expectedVersion: 0
+		);
+
+		string? operationDescription = await Context.Operations.AsNoTracking()
+			.Where(predicate: o => o.Id == transaction.Id)
+			.Select(selector: o => o.Description)
+			.FirstAsync();
+
+		await Assert.That(value: operationDescription).IsEqualTo(expected: "новое");
 	}
 
 	[Test]

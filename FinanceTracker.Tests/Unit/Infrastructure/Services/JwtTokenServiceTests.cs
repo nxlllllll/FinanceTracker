@@ -67,17 +67,6 @@ public sealed class JwtTokenServiceTests
 	}
 
 	[Test]
-	public async Task GenerateAccessToken_ShouldContainEmailClaim()
-	{
-		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser, sessionId: TestSessionId);
-
-		JwtSecurityToken decoded = new JwtSecurityTokenHandler().ReadJwtToken(token: result.Token);
-		string? email = decoded.Claims.FirstOrDefault(predicate: c => c.Type == JwtRegisteredClaimNames.Email)?.Value;
-
-		await Assert.That(value: email).IsEqualTo(expected: TestUser.Email.Value);
-	}
-
-	[Test]
 	public async Task GenerateAccessToken_ShouldContainSessionIdClaim()
 	{
 		AccessTokenResult result = _tokenService.GenerateAccessToken(user: TestUser, sessionId: TestSessionId);

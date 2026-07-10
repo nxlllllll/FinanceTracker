@@ -9,3 +9,4 @@ appsettings.Production.json
 appsettings.Staging.json
 .idea/
 /.config
+/alertmanager/alertmanager.yml
