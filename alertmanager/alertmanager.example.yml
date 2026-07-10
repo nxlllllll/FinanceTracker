@@ -1,6 +1,6 @@
 ﻿global:
   resolve_timeout: 5m
-  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_smarthost: 'smtp.mail.ru:587'
   smtp_from: 'alerts@example.com'
   smtp_auth_username: 'alerts@example.com'
   smtp_auth_password: 'CHANGE_ME_APP_PASSWORD'
