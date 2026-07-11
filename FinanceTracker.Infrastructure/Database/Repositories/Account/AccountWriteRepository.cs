@@ -38,13 +38,20 @@ public sealed class AccountWriteRepository(
 
 		int rows = await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Balance, valueExpression: e => e.Balance + delta)
-											.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: e => e.LastVersion > version ? e.LastVersion : version)
-											.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: now),
+				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: e => e.LastVersion > version ? e.LastVersion : version)
+				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: now),
 			cancellationToken: ct
 		);
 
 		if (rows == 0)
 			throw new NotFoundException(message: $"Account balance row for {accountId} does not exist yet (AccountCreated not projected?).", id: accountId);
+	}
+
+	private async Task EnsureAccountExistsAsync(Guid accountId, CancellationToken ct)
+	{
+		bool accountExists = await context.Accounts.AnyAsync(predicate: a => a.Id == accountId, cancellationToken: ct);
+		if (!accountExists)
+			throw new NotFoundException(message: $"Account {accountId} does not exist yet (AccountCreated not projected?).", id: accountId);
 	}
 
 	public async Task<int> DeleteOldBalanceLedgerEntriesAsync(
@@ -69,6 +76,7 @@ public sealed class AccountWriteRepository(
 			accountTypeCode: @event.Type.ToString().ToLowerInvariant(),
 			currencyCode: @event.Currency.Value,
 			isArchived: false,
+			lastVersion: @event.Version,
 			createdAt: @event.OccurredAt,
 			ct: ct
 		);
@@ -158,8 +166,12 @@ public sealed class AccountWriteRepository(
 		AccountRenamed @event,
 		CancellationToken ct = default)
 	{
-		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Name, valueExpression: @event.NewName),
+		await EnsureAccountExistsAsync(accountId: @event.AccountId, ct: ct);
+
+		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId && a.LastVersion < @event.Version).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.Name, valueExpression: @event.NewName)
+				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: @event.Version),
 			cancellationToken: ct
 		);
 	}
@@ -168,8 +180,12 @@ public sealed class AccountWriteRepository(
 		AccountArchived @event,
 		CancellationToken ct = default)
 	{
-		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: true),
+		await EnsureAccountExistsAsync(accountId: @event.AccountId, ct: ct);
+
+		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId && a.LastVersion < @event.Version).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: true)
+				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: @event.Version),
 			cancellationToken: ct
 		);
 	}
@@ -178,8 +194,12 @@ public sealed class AccountWriteRepository(
 		AccountUnarchived @event,
 		CancellationToken ct = default)
 	{
-		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: false),
+		await EnsureAccountExistsAsync(accountId: @event.AccountId, ct: ct);
+
+		await context.Accounts.Where(predicate: a => a.Id == @event.AccountId && a.LastVersion < @event.Version).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.IsArchived, valueExpression: false)
+				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: @event.Version),
 			cancellationToken: ct
 		);
 	}
@@ -206,6 +226,7 @@ public sealed class AccountWriteRepository(
 			accountTypeCode: account.Type.ToString().ToLowerInvariant(),
 			currencyCode: account.Currency.Value,
 			isArchived: account.IsArchived,
+			lastVersion: account.Version,
 			createdAt: account.CreatedAt,
 			ct: ct
 		);

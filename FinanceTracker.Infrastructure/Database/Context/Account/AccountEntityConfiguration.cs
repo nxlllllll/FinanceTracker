@@ -48,6 +48,9 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 		builder.Property(propertyExpression: a => a.IsArchived)
 			.HasColumnName(name: "is_archived");
 
+		builder.Property(propertyExpression: a => a.LastVersion)
+			.HasColumnName(name: "last_version");
+
 		builder.Property(propertyExpression: a => a.CreatedAt)
 			.HasColumnName(name: "created_at");
 

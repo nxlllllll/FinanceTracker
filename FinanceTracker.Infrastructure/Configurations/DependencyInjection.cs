@@ -105,6 +105,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<InMemoryRateLimiterOptions>()
+			.BindConfiguration(configSectionPath: InMemoryRateLimiterOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddSingleton<IRateLimiter, RedisRateLimiter>();
 		services.AddSingleton<InMemoryRateLimiter>();
 		services.Decorate<IRateLimiter, FallbackRateLimiter>();

@@ -30,29 +30,27 @@ public sealed class TransactionCreationService(
 		CreateTransactionCommand command,
 		Guid transactionId,
 		decimal rate,
-		DateTimeOffset occurredAt)
+		DateTimeOffset occurredAt
+	) => command.Direction switch
 	{
-		return command.Direction switch
-		{
-			DirectionType.Debit => account.Debit(
-				occurredAt: occurredAt,
-				transactionId: transactionId,
-				categoryId: command.CategoryId,
-				amount: command.Amount,
-				exchangeRate: rate,
-				description: command.Description
-			),
-			DirectionType.Credit => account.Credit(
-				occurredAt: occurredAt,
-				transactionId: transactionId,
-				categoryId: command.CategoryId,
-				amount: command.Amount,
-				exchangeRate: rate,
-				description: command.Description
-			),
-			_ => throw new InvalidTransactionDirectionException(message: "Direction is unknown.")
-		};
-	}
+		DirectionType.Debit => account.Debit(
+			occurredAt: occurredAt,
+			transactionId: transactionId,
+			categoryId: command.CategoryId,
+			amount: command.Amount,
+			exchangeRate: rate,
+			description: command.Description
+		),
+		DirectionType.Credit => account.Credit(
+			occurredAt: occurredAt,
+			transactionId: transactionId,
+			categoryId: command.CategoryId,
+			amount: command.Amount,
+			exchangeRate: rate,
+			description: command.Description
+		),
+		_ => throw new InvalidTransactionDirectionException(message: "Direction is unknown.")
+	};
 
 	public async Task<Result<Core.Domains.Transaction.Transaction, DomainException>> CreateAsync(
 		CreateTransactionCommand command,

@@ -566,4 +566,134 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		))).Throws<NotFoundException>();
 	}
+
+	[Test]
+	public async Task RenameAsync_WithOutOfOrderOlderVersion_ShouldNotOverwriteNewerName()
+	{
+		AccountCreated created = await CreateAccountAsync();
+
+		await _writeRepository.RenameAsync(@event: new AccountRenamed(
+			Id: Guid.CreateVersion7(),
+			AccountId: created.AccountId,
+			NewName: Name.Create(value: "Newer name").Value,
+			Version: 3,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
+
+		await _writeRepository.RenameAsync(@event: new AccountRenamed(
+			Id: Guid.CreateVersion7(),
+			AccountId: created.AccountId,
+			NewName: Name.Create(value: "Stale name").Value,
+			Version: 2,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
+
+		string name = await Context.Accounts
+			.Where(predicate: a => a.Id == created.AccountId)
+			.Select(selector: a => a.Name)
+			.FirstAsync();
+
+		await Assert.That(value: name).IsEqualTo(expected: "Newer name").Because(message: """
+			A rename event delivered out of order — with a version older than one already applied —
+			must not regress the read model back to a stale name.
+		""");
+	}
+
+	[Test]
+	public async Task RenameAsync_WithDuplicateVersion_ShouldBeIdempotentNoOp()
+	{
+		AccountCreated created = await CreateAccountAsync();
+
+		AccountRenamed @event = new AccountRenamed(
+			Id: Guid.CreateVersion7(),
+			AccountId: created.AccountId,
+			NewName: Name.Create(value: "First name").Value,
+			Version: 2,
+			OccurredAt: DateTimeOffset.UtcNow
+		);
+
+		await _writeRepository.RenameAsync(@event: @event);
+		await _writeRepository.RenameAsync(@event: @event);
+
+		string name = await Context.Accounts
+			.Where(predicate: a => a.Id == created.AccountId)
+			.Select(selector: a => a.Name)
+			.FirstAsync();
+
+		await Assert.That(value: name).IsEqualTo(expected: "First name");
+	}
+
+	[Test]
+	public async Task ArchiveAsync_WithOutOfOrderOlderVersion_ShouldNotOverwriteNewerState()
+	{
+		AccountCreated created = await CreateAccountAsync();
+
+		await _writeRepository.UnarchiveAsync(@event: new AccountUnarchived(
+			Id: Guid.CreateVersion7(),
+			AccountId: created.AccountId,
+			Version: 3,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
+
+		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+			Id: Guid.CreateVersion7(),
+			AccountId: created.AccountId,
+			Version: 2,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
+
+		bool isArchived = await Context.Accounts
+			.Where(predicate: a => a.Id == created.AccountId)
+			.Select(selector: a => a.IsArchived)
+			.FirstAsync();
+
+		await Assert.That(value: isArchived).IsFalse().Because(message: """
+			An archive event delivered out of order — older than an unarchive already applied — must not
+			regress the read model back to archived.
+		""");
+	}
+
+	[Test]
+	public async Task UnarchiveAsync_WithOutOfOrderOlderVersion_ShouldNotOverwriteNewerState()
+	{
+		AccountCreated created = await CreateAccountAsync();
+
+		await _writeRepository.ArchiveAsync(@event: new AccountArchived(
+			Id: Guid.CreateVersion7(),
+			AccountId: created.AccountId,
+			Version: 3,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
+
+		await _writeRepository.UnarchiveAsync(@event: new AccountUnarchived(
+			Id: Guid.CreateVersion7(),
+			AccountId: created.AccountId,
+			Version: 2,
+			OccurredAt: DateTimeOffset.UtcNow
+		));
+
+		bool isArchived = await Context.Accounts
+			.Where(predicate: a => a.Id == created.AccountId)
+			.Select(selector: a => a.IsArchived)
+			.FirstAsync();
+
+		await Assert.That(value: isArchived).IsTrue().Because(message: """
+			An unarchive event delivered out of order — older than an archive already applied — must not
+			regress the read model back to unarchived.
+		""");
+	}
+
+	[Test]
+	public async Task RenameAsync_WhenAccountDoesNotExist_ShouldThrowNotFoundException()
+	{
+		Guid nonExistentAccountId = Guid.CreateVersion7();
+
+		await Assert.That(action: async () => await _writeRepository.RenameAsync(@event: new AccountRenamed(
+			Id: Guid.CreateVersion7(),
+			AccountId: nonExistentAccountId,
+			NewName: Name.Create(value: "Doesn't matter").Value,
+			Version: 1,
+			OccurredAt: DateTimeOffset.UtcNow
+		))).Throws<NotFoundException>();
+	}
 }

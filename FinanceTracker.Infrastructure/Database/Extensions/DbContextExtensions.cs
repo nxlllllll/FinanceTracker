@@ -136,12 +136,13 @@ public static class DbContextExtensions
 		string accountTypeCode,
 		string currencyCode,
 		bool isArchived,
+		int lastVersion,
 		DateTimeOffset createdAt,
 		CancellationToken ct = default)
 	{
 		return context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO accounts (id, user_id, name, account_type_code, currency_code, is_archived, created_at)
-			VALUES ({id}, {userId}, {name}, {accountTypeCode}, {currencyCode}, {isArchived}, {createdAt})
+			INSERT INTO accounts (id, user_id, name, account_type_code, currency_code, is_archived, last_version, created_at)
+			VALUES ({id}, {userId}, {name}, {accountTypeCode}, {currencyCode}, {isArchived}, {lastVersion}, {createdAt})
 			ON CONFLICT (id) DO NOTHING
 		""", cancellationToken: ct);
 	}

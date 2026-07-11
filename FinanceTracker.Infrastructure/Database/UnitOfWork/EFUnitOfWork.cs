@@ -24,10 +24,21 @@ public sealed class EFUnitOfWork(
 
 	private readonly Stack<HashSet<object>> _savepointSnapshots = new Stack<HashSet<object>>();
 
-	private List<Action> _onCommittedCallbacks = [];
+	private readonly Stack<List<Action>> _callbackScopes = new Stack<List<Action>>();
+
+	private List<Action> CurrentCallbackScope
+	{
+		get
+		{
+			if (_callbackScopes.Count == 0)
+				_callbackScopes.Push(item: []);
+
+			return _callbackScopes.Peek();
+		}
+	}
 
 	public void OnCommitted(Action callback)
-		=> _onCommittedCallbacks.Add(item: callback);
+		=> CurrentCallbackScope.Add(item: callback);
 
 	public async Task BeginTransactionAsync(CancellationToken ct = default)
 	{
@@ -46,6 +57,7 @@ public sealed class EFUnitOfWork(
 		await _transaction.CreateSavepointAsync(name: savepointName, cancellationToken: ct);
 		_savepoints.Push(item: savepointName);
 		_savepointSnapshots.Push(item: snapshot);
+		_callbackScopes.Push(item: []);
 	}
 
 	public async Task CommitAsync(CancellationToken ct = default)
@@ -62,8 +74,10 @@ public sealed class EFUnitOfWork(
 		}
 		catch (DbUpdateConcurrencyException ex)
 		{
-			Guid aggregateId = ex.Entries[0].Property(propertyName: "Id").CurrentValue is Guid id ? id : Guid.Empty;
-			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on entity {ex.Entries[0].Metadata.Name} {aggregateId}.");
+			EntityEntry entry = ex.Entries[0];
+			Guid aggregateId = entry.Metadata.FindProperty(name: "Id") is not null && entry.Property(propertyName: "Id").CurrentValue is Guid id ? id : Guid.Empty;
+
+			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on entity {entry.Metadata.Name} {aggregateId}.");
 			throw new ConcurrencyConflictException(message: "Conflict: the record was modified by another request.", id: aggregateId);
 		}
 		catch (DbUpdateException ex) when (ex.InnerException is PostgresException
@@ -92,6 +106,9 @@ public sealed class EFUnitOfWork(
 		{
 			await _transaction.ReleaseSavepointAsync(name: savepointName, cancellationToken: ct);
 			_savepointSnapshots.Pop();
+
+			List<Action> completedScope = _callbackScopes.Pop();
+			CurrentCallbackScope.AddRange(collection: completedScope);
 			return;
 		}
 
@@ -99,10 +116,9 @@ public sealed class EFUnitOfWork(
 		await _transaction.DisposeAsync();
 		_transaction = null;
 
-		List<Action> callbacks = _onCommittedCallbacks;
-		_onCommittedCallbacks = [];
-		foreach (Action callback in callbacks)
-			callback();
+		List<Action> callbacks = _callbackScopes.Count > 0 ? _callbackScopes.Pop() : [];
+		_callbackScopes.Clear();
+		RunCommittedCallbacks(callbacks: callbacks);
 	}
 
 	public async Task RollbackAsync(CancellationToken ct = default)
@@ -110,13 +126,13 @@ public sealed class EFUnitOfWork(
 		if (_transaction is null)
 			return;
 
-		_onCommittedCallbacks = [];
-
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
 			await _transaction.RollbackToSavepointAsync(name: savepointName, cancellationToken: ct);
 
 			HashSet<object> snapshot = _savepointSnapshots.Pop();
+			_callbackScopes.Pop();
+
 			await ReconcileChangeTrackerAsync(snapshotBeforeSavepoint: snapshot, ct: ct);
 			return;
 		}
@@ -124,7 +140,33 @@ public sealed class EFUnitOfWork(
 		await _transaction.RollbackAsync(cancellationToken: ct);
 		await _transaction.DisposeAsync();
 		_transaction = null;
+		_callbackScopes.Clear();
 		context.ChangeTracker.Clear();
+	}
+
+	private void RunCommittedCallbacks(List<Action> callbacks)
+	{
+		List<Exception> failures = [];
+
+		foreach (Action callback in callbacks)
+		{
+			try
+			{
+				callback();
+			}
+			catch (Exception ex)
+			{
+				logger.ZLogError(exception: ex, message: $"[UnitOfWork] An OnCommitted callback threw after a successful commit.");
+				failures.Add(item: ex);
+			}
+		}
+
+		switch (failures.Count)
+		{
+			case 0: return;
+			case 1: throw failures[0];
+			default: throw new AggregateException(message: "One or more OnCommitted callbacks failed after a successful commit.", innerExceptions: failures);
+		}
 	}
 
 	/// <summary>
@@ -219,7 +261,7 @@ public sealed class EFUnitOfWork(
 
 		_savepoints.Clear();
 		_savepointSnapshots.Clear();
-		_onCommittedCallbacks = [];
+		_callbackScopes.Clear();
 		await _transaction.RollbackAsync();
 		await _transaction.DisposeAsync();
 		_transaction = null;

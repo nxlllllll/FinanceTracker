@@ -34,7 +34,8 @@ public sealed class AssemblyDependencyTests
 		"Konscious.Security.Cryptography",
 		"Microsoft.IdentityModel.Tokens",
 		"Blake3",
-		"StackExchange.Redis"
+		"StackExchange.Redis",
+		"Microsoft.IdentityModel.JsonWebTokens"
 	];
 
 	[Test]

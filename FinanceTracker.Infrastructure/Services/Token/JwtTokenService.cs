@@ -1,11 +1,10 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Blake3;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
 namespace FinanceTracker.Infrastructure.Services.Token;
@@ -22,30 +21,31 @@ public sealed class JwtTokenService(
 {
 	private readonly JwtOptions _options = options.Value;
 
+	private static readonly JsonWebTokenHandler Handler = new JsonWebTokenHandler();
+
 	public AccessTokenResult GenerateAccessToken(Core.Domains.User.User user, Guid sessionId)
 	{
 		DateTimeOffset expiresAt = dateProvider.UtcNow.AddMinutes(minutes: _options.AccessTokenTtlMinutes);
 
-		List<Claim> claims =
-		[
-			new Claim(type: JwtRegisteredClaimNames.Sub, value: user.Id.ToString()),
-			new Claim(type: JwtRegisteredClaimNames.Jti, value: Guid.CreateVersion7().ToString()),
-			new Claim(type: JwtRegisteredClaimNames.Sid, value: sessionId.ToString())
-		];
-
 		SymmetricSecurityKey key = new SymmetricSecurityKey(key: Encoding.UTF8.GetBytes(s: _options.Secret));
 		SigningCredentials credentials = new SigningCredentials(key: key, algorithm: SecurityAlgorithms.HmacSha256);
 
-		JwtSecurityToken token = new JwtSecurityToken(
-			issuer: _options.Issuer,
-			audience: _options.Audience,
-			claims: claims,
-			expires: expiresAt.UtcDateTime,
-			signingCredentials: credentials
-		);
+		SecurityTokenDescriptor descriptor = new SecurityTokenDescriptor
+		{
+			Issuer = _options.Issuer,
+			Audience = _options.Audience,
+			Expires = expiresAt.UtcDateTime,
+			SigningCredentials = credentials,
+			Claims = new Dictionary<string, object>
+			{
+				[JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
+				[JwtRegisteredClaimNames.Jti] = Guid.CreateVersion7().ToString(),
+				[JwtRegisteredClaimNames.Sid] = sessionId.ToString()
+			}
+		};
 
 		return new AccessTokenResult(
-			Token: new JwtSecurityTokenHandler().WriteToken(token: token),
+			Token: Handler.CreateToken(tokenDescriptor: descriptor),
 			ExpiresAt: expiresAt
 		);
 	}

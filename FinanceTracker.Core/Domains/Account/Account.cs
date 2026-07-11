@@ -27,16 +27,12 @@ public sealed class Account : AggregateRoot
 
 	private Account() { }
 
-	private static int GetSign(DirectionType direction)
+	private static int GetSign(DirectionType direction) => direction switch
 	{
-		int sign = direction switch
-		{
-			DirectionType.Credit => 1,
-			DirectionType.Debit => -1,
-			_ => throw new InvalidTransactionDirectionException(message: "Unknown direction type.")
-		};
-		return sign;
-	}
+		DirectionType.Credit => 1,
+		DirectionType.Debit => -1,
+		_ => throw new InvalidTransactionDirectionException(message: "Unknown direction type.")
+	};
 
 	/// <summary>
 	/// Creates a new account and raises <c>AccountCreated</c>.

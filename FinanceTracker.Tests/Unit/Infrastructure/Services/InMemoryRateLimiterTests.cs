@@ -1,5 +1,6 @@
 ﻿using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Services.RateLimit;
+using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Services;
 
@@ -18,7 +19,10 @@ public sealed class InMemoryRateLimiterTests
 	public void Setup()
 	{
 		_dateProvider = new MutableDateProvider();
-		_limiter = new InMemoryRateLimiter(dateProvider: _dateProvider);
+		_limiter = new InMemoryRateLimiter(
+			dateProvider: _dateProvider,
+			options: new FakeOptionsMonitor<InMemoryRateLimiterOptions>(value: new InMemoryRateLimiterOptions())
+		);
 	}
 
 	[Test]
@@ -101,5 +105,71 @@ public sealed class InMemoryRateLimiterTests
 		bool[] results = await Task.WhenAll(tasks: tasks);
 
 		await Assert.That(value: results.Count(predicate: allowed => allowed)).IsEqualTo(expected: limit);
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_WhenAtMaxTrackedKeys_ShouldDenyNeverSeenKey()
+	{
+		InMemoryRateLimiter limiter = new InMemoryRateLimiter(
+			dateProvider: _dateProvider,
+			options: new FakeOptionsMonitor<InMemoryRateLimiterOptions>(value: new InMemoryRateLimiterOptions
+			{
+				MaxTrackedKeys = 2,
+				SweepIntervalCalls = 1_000_000
+			})
+		);
+
+		await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 10, windowSeconds: 60);
+		await limiter.IsAllowedAsync(key: "key-b", requestsPerWindow: 10, windowSeconds: 60);
+		bool thirdKeyAllowed = await limiter.IsAllowedAsync(key: "key-c", requestsPerWindow: 10, windowSeconds: 60);
+
+		await Assert.That(value: thirdKeyAllowed).IsFalse().Because(message: """
+			Once the table is at MaxTrackedKeys, a key we've never tracked before must be denied rather
+			than growing the table further — this is the safety valve against unbounded key cardinality.
+		""");
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_WhenAtMaxTrackedKeys_ShouldStillAllowAlreadyTrackedKey()
+	{
+		InMemoryRateLimiter limiter = new InMemoryRateLimiter(
+			dateProvider: _dateProvider,
+			options: new FakeOptionsMonitor<InMemoryRateLimiterOptions>(value: new InMemoryRateLimiterOptions
+			{
+				MaxTrackedKeys = 1,
+				SweepIntervalCalls = 1_000_000
+			})
+		);
+
+		await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 10, windowSeconds: 60);
+		bool sameKeyAllowedAgain = await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 10, windowSeconds: 60);
+
+		await Assert.That(value: sameKeyAllowedAgain).IsTrue().Because(message: """
+			The cap only blocks growth from new keys — a key already in the table must keep working
+			normally even while at capacity.
+		""");
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_AfterKeyGoesIdlePastTimeout_ShouldReclaimItOnNextSweep()
+	{
+		InMemoryRateLimiter limiter = new InMemoryRateLimiter(
+			dateProvider: _dateProvider,
+			options: new FakeOptionsMonitor<InMemoryRateLimiterOptions>(value: new InMemoryRateLimiterOptions
+			{
+				MaxTrackedKeys = 1,
+				SweepIntervalCalls = 2,
+				KeyIdleTimeoutMs = 1_000
+			})
+		);
+
+		await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 1, windowSeconds: 60);
+		_dateProvider.UtcNow = _dateProvider.UtcNow.AddMilliseconds(milliseconds: 2_000);
+		bool newKeyAllowed = await limiter.IsAllowedAsync(key: "key-b", requestsPerWindow: 1, windowSeconds: 60);
+
+		await Assert.That(value: newKeyAllowed).IsTrue().Because(message: """
+			key-a went idle past KeyIdleTimeoutMs without ever being queried again, so the periodic
+			sweep — not a lazy per-key trim — must be what reclaims its slot for a new key.
+		""");
 	}
 }

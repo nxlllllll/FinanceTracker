@@ -82,6 +82,8 @@
         <EmbeddedResource Include="Migrations\V033__account_balance_applied_events.sql" />
         <None Remove="Migrations\V034__pending_rate_indexes_keyset.sql" />
         <EmbeddedResource Include="Migrations\V034__pending_rate_indexes_keyset.sql" />
+        <None Remove="Migrations\V035__add_last_version_to_accounts.sql" />
+        <EmbeddedResource Include="Migrations\V035__add_last_version_to_accounts.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">

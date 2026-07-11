@@ -31,7 +31,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		await _unitOfWork.BeginTransactionAsync();
 		Context.Currencies.Add(new CurrencyEntity
 		{
-			Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+			Code = Currency.Create(value: "TST").Value,
 			Name = "Test",
 			Symbol = "T",
 			IsActive = true
@@ -49,7 +49,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		await _unitOfWork.BeginTransactionAsync();
 		Context.Currencies.Add(new CurrencyEntity
 		{
-			Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+			Code = Currency.Create(value: "TST").Value,
 			Name = "Test",
 			Symbol = "T",
 			IsActive = true
@@ -68,7 +68,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
 		Context.Currencies.Add(new CurrencyEntity
 		{
-			Code = Core.ValueObjects.Currency.Create(value: "OUT").Value,
+			Code = Currency.Create(value: "OUT").Value,
 			Name = "Output",
 			Symbol = "O",
 			IsActive = true
@@ -79,7 +79,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		await _unitOfWork.BeginTransactionAsync();
 		Context.Currencies.Add(new CurrencyEntity
 		{
-			Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+			Code = Currency.Create(value: "TST").Value,
 			Name = "Test",
 			Symbol = "T",
 			IsActive = true
@@ -105,7 +105,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		await _unitOfWork.BeginTransactionAsync();
 		Context.Currencies.Add(new CurrencyEntity
 		{
-			Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+			Code = Currency.Create(value: "TST").Value,
 			Name = "Test",
 			Symbol = "T",
 			IsActive = true
@@ -130,7 +130,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
 		Context.Currencies.Add(new CurrencyEntity
 		{
-			Code = Core.ValueObjects.Currency.Create(value: "OUT").Value,
+			Code = Currency.Create(value: "OUT").Value,
 			Name = "Output",
 			Symbol = "O",
 			IsActive = true
@@ -140,7 +140,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		await _unitOfWork.BeginTransactionAsync();
 		Context.Currencies.Add(new CurrencyEntity
 		{
-			Code = Core.ValueObjects.Currency.Create(value: "INN").Value,
+			Code = Currency.Create(value: "INN").Value,
 			Name = "Inner",
 			Symbol = "I",
 			IsActive = true
@@ -160,19 +160,11 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
 	[Test]
 	public async Task RollbackWithoutTransaction_ShouldNotThrow()
-	{
-		await Assert.That(
-			action: async () => await _unitOfWork.RollbackAsync()
-		).ThrowsNothing();
-	}
+		=> await Assert.That(action: async () => await _unitOfWork.RollbackAsync()).ThrowsNothing();
 
 	[Test]
 	public async Task CommitWithoutTransaction_ShouldThrowInvalidOperationException()
-	{
-		await Assert.That(
-			action: async () => await _unitOfWork.CommitAsync()
-		).Throws<InvalidOperationException>();
-	}
+		=> await Assert.That(action: async () => await _unitOfWork.CommitAsync()).Throws<InvalidOperationException>();
 
 	[Test]
 	public async Task ExecuteInTransactionAsync_WhenOperationSucceeds_ShouldPersistChanges()
@@ -181,7 +173,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		{
 			Context.Currencies.Add(new CurrencyEntity
 			{
-				Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
+				Code = Currency.Create(value: "TST").Value,
 				Name = "Test",
 				Symbol = "T",
 				IsActive = true
@@ -196,21 +188,18 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 	[Test]
 	public async Task ExecuteInTransactionAsync_WhenOperationThrows_ShouldRollbackAndRethrow()
 	{
-		await Assert.That(action: async () =>
+		await Assert.That(action: async () => await _unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await _unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			Context.Currencies.Add(new CurrencyEntity
 			{
-				Context.Currencies.Add(new CurrencyEntity
-				{
-					Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
-					Name = "Test",
-					Symbol = "T",
-					IsActive = true
-				});
-				await Context.SaveChangesAsync();
-				throw new InvalidOperationException("Simulated failure");
+				Code = Currency.Create(value: "TST").Value,
+				Name = "Test",
+				Symbol = "T",
+				IsActive = true
 			});
-		}).Throws<InvalidOperationException>();
+			await Context.SaveChangesAsync();
+			throw new InvalidOperationException("Simulated failure");
+		})).Throws<InvalidOperationException>();
 
 		int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
 		await Assert.That(value: count).IsEqualTo(expected: 0);
@@ -221,28 +210,25 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 	{
 		bool onErrorCalled = false;
 
-		await Assert.That(action: async () =>
-		{
-			await _unitOfWork.ExecuteInTransactionAsync(
-				operation: async () =>
+		await Assert.That(action: async () => await _unitOfWork.ExecuteInTransactionAsync(
+			operation: async () =>
+			{
+				Context.Currencies.Add(new CurrencyEntity
 				{
-					Context.Currencies.Add(new CurrencyEntity
-					{
-						Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
-						Name = "Test",
-						Symbol = "T",
-						IsActive = true
-					});
-					await Context.SaveChangesAsync();
-					throw new InvalidOperationException("Simulated failure");
-				},
-				onError: _ =>
-				{
-					onErrorCalled = true;
-					return Task.CompletedTask;
-				}
-			);
-		}).Throws<InvalidOperationException>();
+					Code = Currency.Create(value: "TST").Value,
+					Name = "Test",
+					Symbol = "T",
+					IsActive = true
+				});
+				await Context.SaveChangesAsync();
+				throw new InvalidOperationException("Simulated failure");
+			},
+			onError: _ =>
+			{
+				onErrorCalled = true;
+				return Task.CompletedTask;
+			}
+		)).Throws<InvalidOperationException>();
 
 		int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
 		await Assert.That(value: count).IsEqualTo(expected: 0);
@@ -254,24 +240,22 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 	{
 		bool onErrorCalled = false;
 
-		await _unitOfWork.ExecuteInTransactionAsync(
-			operation: async () =>
+		await _unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			Context.Currencies.Add(new CurrencyEntity
 			{
-				Context.Currencies.Add(new CurrencyEntity
-				{
-					Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
-					Name = "Test",
-					Symbol = "T",
-					IsActive = true
-				});
-				await Context.SaveChangesAsync();
-			},
-			onError: _ =>
-			{
-				onErrorCalled = true;
-				return Task.CompletedTask;
-			}
-		);
+				Code = Currency.Create(value: "TST").Value,
+				Name = "Test",
+				Symbol = "T",
+				IsActive = true
+			});
+			await Context.SaveChangesAsync();
+		},
+		onError: _ =>
+		{
+			onErrorCalled = true;
+			return Task.CompletedTask;
+		});
 
 		await Assert.That(value: onErrorCalled).IsFalse();
 		int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
@@ -326,25 +310,23 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 	{
 		bool onErrorCalled = false;
 
-		await Assert.That(action: async () => await _unitOfWork.ExecuteInTransactionAsync(
-			operation: async () =>
+		await Assert.That(action: async () => await _unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			Context.Currencies.Add(new CurrencyEntity
 			{
-				Context.Currencies.Add(new CurrencyEntity
-				{
-					Code = Core.ValueObjects.Currency.Create(value: "TST").Value,
-					Name = "Test",
-					Symbol = "T",
-					IsActive = true
-				});
-				await Context.SaveChangesAsync();
-				throw new InvalidOperationException("Simulated failure");
-			},
-			onError: _ =>
-			{
-				onErrorCalled = true;
-				return Task.CompletedTask;
-			}
-		)).Throws<InvalidOperationException>();
+				Code = Currency.Create(value: "TST").Value,
+				Name = "Test",
+				Symbol = "T",
+				IsActive = true
+			});
+			await Context.SaveChangesAsync();
+			throw new InvalidOperationException("Simulated failure");
+		},
+		onError: _ =>
+		{
+			onErrorCalled = true;
+			return Task.CompletedTask;
+		})).Throws<InvalidOperationException>();
 
 		int count = await Context.Currencies.CountAsync(c => c.Code == "TST");
 		await Assert.That(value: count).IsEqualTo(expected: 0);
@@ -356,27 +338,188 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 	{
 		bool onErrorCalled = false;
 
-		string returned = await _unitOfWork.ExecuteInTransactionAsync(
-			operation: async () =>
+		string returned = await _unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			Context.Currencies.Add(new CurrencyEntity
 			{
-				Context.Currencies.Add(new CurrencyEntity
-				{
-					Code = Currency.Create(value: "TST").Value,
-					Name = "Test",
-					Symbol = "T",
-					IsActive = true
-				});
-				await Context.SaveChangesAsync();
-				return "ok";
-			},
-			onError: _ =>
-			{
-				onErrorCalled = true;
-				return Task.CompletedTask;
-			}
-		);
+				Code = Currency.Create(value: "TST").Value,
+				Name = "Test",
+				Symbol = "T",
+				IsActive = true
+			});
+			await Context.SaveChangesAsync();
+			return "ok";
+		},
+		onError: _ =>
+		{
+			onErrorCalled = true;
+			return Task.CompletedTask;
+		});
 
 		await Assert.That(value: returned).IsEqualTo(expected: "ok");
 		await Assert.That(value: onErrorCalled).IsFalse();
+	}
+
+	[Test]
+	public async Task OnCommitted_WhenTransactionCommits_ShouldRunCallback()
+	{
+		bool called = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => called = true);
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: called).IsTrue();
+	}
+
+	[Test]
+	public async Task OnCommitted_WhenTransactionRollsBack_ShouldNotRunCallback()
+	{
+		bool called = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => called = true);
+		await _unitOfWork.RollbackAsync();
+
+		await Assert.That(value: called).IsFalse();
+	}
+
+	[Test]
+	public async Task OnCommitted_RegisteredBeforeNestedSavepoint_WhenNestedSavepointRollsBack_ShouldStillRunOnOuterCommit()
+	{
+		bool outerCallbackCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => outerCallbackCalled = true);
+
+		await _unitOfWork.BeginTransactionAsync();
+		Context.Currencies.Add(new CurrencyEntity
+		{
+			Code = Currency.Create(value: "TST").Value,
+			Name = "Test",
+			Symbol = "T",
+			IsActive = true
+		});
+		await Context.SaveChangesAsync();
+		await _unitOfWork.RollbackAsync();
+
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: outerCallbackCalled).IsTrue().Because(message: """
+			A callback registered before a nested savepoint describes work that already belongs to the
+			outer scope. Rolling back the nested savepoint must not discard it — it must still run once
+			the outer transaction, which is still committing successfully, actually commits.
+		""");
+	}
+
+	[Test]
+	public async Task OnCommitted_RegisteredInsideSavepoint_WhenSavepointRollsBack_ShouldNotRun()
+	{
+		bool innerCallbackCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => innerCallbackCalled = true);
+		await _unitOfWork.RollbackAsync();
+
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: innerCallbackCalled).IsFalse().Because(message: """
+			A callback registered inside a savepoint describes work that was just rolled back — it must
+			be discarded along with that work, not survive to the outer commit.
+		""");
+	}
+
+	[Test]
+	public async Task OnCommitted_RegisteredInsideSavepoint_WhenSavepointCommitsButOuterRollsBack_ShouldNotRun()
+	{
+		bool innerCallbackCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => innerCallbackCalled = true);
+		await _unitOfWork.CommitAsync();
+
+		await _unitOfWork.RollbackAsync();
+
+		await Assert.That(value: innerCallbackCalled).IsFalse().Because(message: """
+			Releasing a savepoint is not a durable commit. A callback that graduated to the outer scope
+			must still be discarded if the outer transaction itself subsequently rolls back.
+		""");
+	}
+
+	[Test]
+	public async Task OnCommitted_MultipleCallbacksInSameSavepointScope_WhenSavepointRollsBack_ShouldDiscardBoth()
+	{
+		bool firstCalled = false;
+		bool secondCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => firstCalled = true);
+		_unitOfWork.OnCommitted(callback: () => secondCalled = true);
+		await _unitOfWork.RollbackAsync();
+
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: firstCalled).IsFalse();
+		await Assert.That(value: secondCalled).IsFalse();
+	}
+
+	[Test]
+	public async Task OnCommitted_MultipleCallbacksAcrossScopes_WhenOuterCommits_ShouldRunInRegistrationOrder()
+	{
+		List<int> executionOrder = [];
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => executionOrder.Add(item: 1));
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => executionOrder.Add(item: 2));
+		_unitOfWork.OnCommitted(callback: () => executionOrder.Add(item: 3));
+		await _unitOfWork.CommitAsync();
+
+		_unitOfWork.OnCommitted(callback: () => executionOrder.Add(item: 4));
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: executionOrder.Count).IsEqualTo(expected: 4);
+		await Assert.That(value: executionOrder[0]).IsEqualTo(expected: 1);
+		await Assert.That(value: executionOrder[1]).IsEqualTo(expected: 2);
+		await Assert.That(value: executionOrder[2]).IsEqualTo(expected: 3);
+		await Assert.That(value: executionOrder[3]).IsEqualTo(expected: 4);
+	}
+
+	[Test]
+	public async Task OnCommitted_WhenOneCallbackThrows_ShouldStillRunRemainingCallbacksAndRethrow()
+	{
+		bool secondCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "First callback failed"));
+		_unitOfWork.OnCommitted(callback: () => secondCalled = true);
+
+		await Assert.That(
+			action: async () => await _unitOfWork.CommitAsync()
+		).Throws<InvalidOperationException>();
+
+		await Assert.That(value: secondCalled).IsTrue().Because(message: """
+			The transaction has already committed successfully by the time OnCommitted callbacks run, so
+			one callback throwing must not prevent an unrelated callback from still doing its job.
+		""");
+	}
+
+	[Test]
+	public async Task OnCommitted_WhenMultipleCallbacksThrow_ShouldThrowAggregateExceptionWithAllFailures()
+	{
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "First callback failed"));
+		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "Second callback failed"));
+
+		await Assert.That(
+			action: async () => await _unitOfWork.CommitAsync()
+		).Throws<AggregateException>();
 	}
 }

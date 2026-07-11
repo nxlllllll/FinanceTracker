@@ -11,5 +11,6 @@ public sealed class AccountEntity
 	public AccountType AccountType { get; init; }
 	public Core.ValueObjects.Currency Currency { get; init; }
 	public bool IsArchived { get; init; }
+	public int LastVersion { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

@@ -24,7 +24,10 @@ public sealed class FallbackRateLimiterTests
 	public void Setup()
 	{
 		_inner = Substitute.For<IRateLimiter>();
-		_fallback = new InMemoryRateLimiter(dateProvider: new DateProvider());
+		_fallback = new InMemoryRateLimiter(
+			dateProvider: new DateProvider(),
+			options: new FakeOptionsMonitor<InMemoryRateLimiterOptions>(value: new InMemoryRateLimiterOptions())
+		);
 
 		_limiter = new FallbackRateLimiter(
 			inner: _inner,
