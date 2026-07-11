@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Currency.Queries.GetCurrencies;
+using FinanceTracker.Application.UseCases.Currency.Queries.GetCurrencies;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Currency;

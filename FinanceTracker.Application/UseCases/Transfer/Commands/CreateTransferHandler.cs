@@ -8,6 +8,7 @@ using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
+using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -21,6 +22,7 @@ public sealed class CreateTransferHandler(
 	ICurrencyConversionService currencyConversionService,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
+	IDateProvider dateProvider,
 	ILogger<CreateTransferHandler> logger
 ) : IAuthorizedHandler<CreateTransferCommand, TransferAccounts, Guid, AppException>
 {
@@ -39,6 +41,7 @@ public sealed class CreateTransferHandler(
 		);
 
 		Result<Core.Domains.Transfer.Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
+			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,

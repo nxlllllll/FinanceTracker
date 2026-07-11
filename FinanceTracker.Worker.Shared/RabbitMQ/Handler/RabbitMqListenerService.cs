@@ -209,7 +209,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			catch (Exception ex)
 			{
 				logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Unhandled exception processing delivery {ea.DeliveryTag}.");
-				await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
+				await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true);
 			}
 		};
 
@@ -271,7 +271,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: ex.Message);
 			logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Deserialization failed for message {ea.DeliveryTag}. Rejecting to DLQ.");
 
-			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: false, ct: ct);
+			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: false);
 			return null;
 		}
 	}
@@ -295,13 +295,13 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			await handler.HandleAsync(message: message, ct: ct);
 
 			activity?.SetStatus(code: ActivityStatusCode.Ok);
-			await SafeAckAsync(deliveryTag: ea.DeliveryTag, ct: ct);
+			await SafeAckAsync(deliveryTag: ea.DeliveryTag);
 		}
 		catch (OperationCanceledException) when (ct.IsCancellationRequested)
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: "Cancelled.");
 			logger.ZLogWarning(message: $"[{typeof(TMessage).Name}] Processing cancelled for message {ea.DeliveryTag}. Requeuing without penalty.");
-			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
+			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true);
 		}
 		catch (Exception ex)
 		{
@@ -313,25 +313,27 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 				delayed retry (delivery-limit {_options.MaxRetries}, {_options.DelayedRetryMinMs}-{_options.DelayedRetryMaxMs}ms linear backoff).
 			""");
 
-			await SafeRejectAsync(deliveryTag: ea.DeliveryTag, requeue: true, ct: ct);
+			await SafeRejectAsync(deliveryTag: ea.DeliveryTag, requeue: true);
 		}
 	}
 
 	/// <summary>
-	/// Acks a delivery, swallowing <see cref="AlreadyClosedException"/>/<see cref="ObjectDisposedException"/>.
-	/// If the channel already closed concurrently, RabbitMQ will automatically requeue the unacked
-	/// delivery once it notices the channel/connection is gone — the <c>ChannelShutdownAsync</c>/
-	/// <c>ConnectionShutdownAsync</c> handlers in <see cref="ConsumeAsync"/> will then trigger a
-	/// reconnect. Letting this exception propagate unhandled out of an AsyncEventingBasicConsumer
-	/// event handler would otherwise just vanish silently without ever surfacing in logs.
+	/// Acks a delivery, swallowing <see cref="AlreadyClosedException"/>/<see cref="ObjectDisposedException"/>/
+	/// <see cref="OperationCanceledException"/>. (e.g. during graceful shutdown) must never prevent
+	/// the outcome from actually reaching the broker. If the channel already closed concurrently,
+	/// RabbitMQ will automatically requeue the unacked delivery once it notices the channel/connection
+	/// is gone — the <c>ChannelShutdownAsync</c>/<c>ConnectionShutdownAsync</c> handlers in
+	/// <see cref="ConsumeAsync"/> will then trigger a reconnect. Letting this exception propagate
+	/// unhandled out of an AsyncEventingBasicConsumer event handler would otherwise just vanish
+	/// silently without ever surfacing in logs.
 	/// </summary>
-	private async Task SafeAckAsync(ulong deliveryTag, CancellationToken ct)
+	private async Task SafeAckAsync(ulong deliveryTag)
 	{
 		try
 		{
-			await _channel!.BasicAckAsync(deliveryTag: deliveryTag, multiple: false, cancellationToken: ct);
+			await _channel!.BasicAckAsync(deliveryTag: deliveryTag, multiple: false, cancellationToken: CancellationToken.None);
 		}
-		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException)
+		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException or OperationCanceledException)
 		{
 			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Ack failed for delivery {deliveryTag}: channel already closed.");
 		}
@@ -341,15 +343,16 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	/// See <see cref="SafeAckAsync"/> — same rationale, for the nack path. Used specifically where a
 	/// requeue must <b>not</b> count toward the quorum queue's <c>x-delivery-limit</c> (cooperative
 	/// cancellation), since <c>basic.nack(requeue: true)</c> is treated by RabbitMQ 4.3+ as an
-	/// application-level "explicit return" rather than a failed redelivery.
+	/// application-level "explicit return" rather than a failed redelivery — which only holds if the
+	/// nack actually reaches the broker, hence always using <see cref="CancellationToken.None"/> here too.
 	/// </summary>
-	private async Task SafeNackAsync(ulong deliveryTag, bool requeue, CancellationToken ct)
+	private async Task SafeNackAsync(ulong deliveryTag, bool requeue)
 	{
 		try
 		{
-			await _channel!.BasicNackAsync(deliveryTag: deliveryTag, multiple: false, requeue: requeue, cancellationToken: ct);
+			await _channel!.BasicNackAsync(deliveryTag: deliveryTag, multiple: false, requeue: requeue, cancellationToken: CancellationToken.None);
 		}
-		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException)
+		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException or OperationCanceledException)
 		{
 			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Nack failed for delivery {deliveryTag}: channel already closed.");
 		}
@@ -360,13 +363,13 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	/// failures: unlike <see cref="SafeNackAsync"/>, <c>basic.reject</c> counts toward the quorum
 	/// queue's <c>x-delivery-limit</c> and triggers its native delayed-retry backoff.
 	/// </summary>
-	private async Task SafeRejectAsync(ulong deliveryTag, bool requeue, CancellationToken ct)
+	private async Task SafeRejectAsync(ulong deliveryTag, bool requeue)
 	{
 		try
 		{
-			await _channel!.BasicRejectAsync(deliveryTag: deliveryTag, requeue: requeue, cancellationToken: ct);
+			await _channel!.BasicRejectAsync(deliveryTag: deliveryTag, requeue: requeue, cancellationToken: CancellationToken.None);
 		}
-		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException)
+		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException or OperationCanceledException)
 		{
 			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Reject failed for delivery {deliveryTag}: channel already closed.");
 		}

@@ -1,4 +1,3 @@
-using FinanceTracker.Application.Configurations;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Infrastructure.Configurations;

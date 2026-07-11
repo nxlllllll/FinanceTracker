@@ -12,16 +12,19 @@ public static class DatabaseMigrator
 	{
 		EnsureDatabase.For.PostgresqlDatabase(connectionString: connectionString);
 
-		return logToConsole
-			? DeployChanges.To.PostgresqlDatabase(connectionString: connectionString)
+		if (logToConsole)
+		{
+			return DeployChanges.To.PostgresqlDatabase(connectionString: connectionString)
 				.WithScriptsEmbeddedInAssembly(assembly: Assembly.GetExecutingAssembly())
 				.WithTransactionPerScript()
 				.LogToConsole()
-				.Build()
-			: DeployChanges.To.PostgresqlDatabase(connectionString: connectionString)
-				.WithScriptsEmbeddedInAssembly(assembly: Assembly.GetExecutingAssembly())
-				.WithTransactionPerScript()
 				.Build();
+		}
+
+		return DeployChanges.To.PostgresqlDatabase(connectionString: connectionString)
+			.WithScriptsEmbeddedInAssembly(assembly: Assembly.GetExecutingAssembly())
+			.WithTransactionPerScript()
+			.Build();
 	}
 
 	/// <summary>Ensures the database exists and applies any pending migrations, throwing if any script fails.</summary>

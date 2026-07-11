@@ -285,6 +285,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 		Guid toAccountId = await _accountBuilder.CreateAsync(userId: userId);
 
 		Core.Domains.Transfer.Transfer transfer = Core.Domains.Transfer.Transfer.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			fromAccountId: fromAccountId,
 			toAccountId: toAccountId,

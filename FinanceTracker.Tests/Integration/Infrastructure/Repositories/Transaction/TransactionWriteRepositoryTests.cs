@@ -171,7 +171,7 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
 
-[Test]
+	[Test]
 	public async Task ChangeDescriptionAsync_ShouldUpdateDescription()
 	{
 		(Guid accountId, Guid categoryId, Guid userId) = await CreateAccountAndCategoryAsync();

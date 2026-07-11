@@ -4,7 +4,6 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
-using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;

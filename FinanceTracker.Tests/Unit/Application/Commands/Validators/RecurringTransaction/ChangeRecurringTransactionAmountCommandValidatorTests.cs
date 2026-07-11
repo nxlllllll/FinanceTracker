@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Configurations.Options;
+using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionAmount;
 using FluentValidation.Results;
 using Microsoft.Extensions.Options;

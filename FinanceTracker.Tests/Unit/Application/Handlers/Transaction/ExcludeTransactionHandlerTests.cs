@@ -8,7 +8,6 @@ using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;

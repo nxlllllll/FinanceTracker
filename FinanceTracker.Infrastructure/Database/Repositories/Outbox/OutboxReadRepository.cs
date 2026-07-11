@@ -23,9 +23,17 @@ public sealed class OutboxReadRepository(FinanceTrackerContext context) : IOutbo
 				SELECT id
 				FROM outbox_messages
 				WHERE processed_at IS NULL
-				  AND failed_at IS NULL
-				  AND (locked_until IS NULL OR locked_until < {now})
-				ORDER BY updated_at
+					AND failed_at IS NULL
+					AND (locked_until IS NULL OR locked_until < {now})
+					AND NOT EXISTS (
+						SELECT 1
+						FROM outbox_messages older
+						WHERE older.aggregate_id = outbox_messages.aggregate_id
+							AND older.processed_at IS NULL
+							AND older.failed_at IS NULL
+							AND older.id < outbox_messages.id
+				  )
+				ORDER BY updated_at, id
 				LIMIT {batchSize}
 				FOR UPDATE SKIP LOCKED
 			)

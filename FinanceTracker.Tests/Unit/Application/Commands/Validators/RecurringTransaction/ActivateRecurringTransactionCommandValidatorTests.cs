@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ActivateRecurringTransaction;
+using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ActivateRecurringTransaction;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.RecurringTransaction;

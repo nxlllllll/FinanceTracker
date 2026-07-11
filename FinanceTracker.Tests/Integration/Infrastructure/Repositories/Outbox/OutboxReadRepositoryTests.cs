@@ -18,18 +18,20 @@ public sealed class OutboxReadRepositoryTests : DatabaseFixture
 	private async Task<Guid> SeedMessageAsync(
 		DateTimeOffset? lockedUntil = null,
 		DateTimeOffset? updatedAt = null,
-		DateTimeOffset? processedAt = null)
+		DateTimeOffset? processedAt = null,
+		DateTimeOffset? failedAt = null,
+		Guid? aggregateId = null)
 	{
 		Guid id = Guid.CreateVersion7();
 		await Context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity
 		{
 			Id = id,
-			AggregateId = Guid.CreateVersion7(),
+			AggregateId = aggregateId ?? Guid.CreateVersion7(),
 			AggregateType = "Account",
 			Payload = "{}",
 			UpdatedAt = updatedAt ?? FakeDateProvider.Default.UtcNow,
 			ProcessedAt = processedAt,
-			FailedAt = null,
+			FailedAt = failedAt,
 			LockedUntil = lockedUntil
 		});
 		await Context.SaveChangesAsync();
@@ -148,5 +150,81 @@ public sealed class OutboxReadRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: result[0].Id).IsEqualTo(expected: older);
 		await Assert.That(value: result[1].Id).IsEqualTo(expected: newer);
+	}
+
+	[Test]
+	public async Task ClaimPendingBatchAsync_WhenOlderUnprocessedMessageExistsForSameAggregate_ShouldNotReturnNewer()
+	{
+		DateTimeOffset baseTime = FakeDateProvider.Default.UtcNow;
+		Guid aggregateId = Guid.CreateVersion7();
+
+		Guid olderMessageId = await SeedMessageAsync(updatedAt: baseTime.AddMinutes(minutes: -5), aggregateId: aggregateId);
+		Guid newerMessageId = await SeedMessageAsync(updatedAt: baseTime, aggregateId: aggregateId);
+
+		IReadOnlyList<PendingOutboxMessage> result = await _repository.ClaimPendingBatchAsync(
+			batchSize: 10,
+			now: baseTime,
+			leaseDuration: TimeSpan.FromSeconds(value: 60),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.Any(predicate: m => m.Id == olderMessageId)).IsTrue();
+		await Assert.That(value: result.Any(predicate: m => m.Id == newerMessageId)).IsFalse();
+	}
+
+	[Test]
+	public async Task ClaimPendingBatchAsync_WhenOlderMessageForSameAggregateIsAlreadyProcessed_ShouldReturnNewer()
+	{
+		DateTimeOffset baseTime = FakeDateProvider.Default.UtcNow;
+		Guid aggregateId = Guid.CreateVersion7();
+
+		await SeedMessageAsync(updatedAt: baseTime.AddMinutes(minutes: -5), processedAt: baseTime.AddMinutes(minutes: -1), aggregateId: aggregateId);
+		Guid newerMessageId = await SeedMessageAsync(updatedAt: baseTime, aggregateId: aggregateId);
+
+		IReadOnlyList<PendingOutboxMessage> result = await _repository.ClaimPendingBatchAsync(
+			batchSize: 10,
+			now: baseTime,
+			leaseDuration: TimeSpan.FromSeconds(value: 60),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.Any(predicate: m => m.Id == newerMessageId)).IsTrue();
+	}
+
+	[Test]
+	public async Task ClaimPendingBatchAsync_WhenOlderMessageForSameAggregateHasPermanentlyFailed_ShouldReturnNewer()
+	{
+		DateTimeOffset baseTime = FakeDateProvider.Default.UtcNow;
+		Guid aggregateId = Guid.CreateVersion7();
+
+		await SeedMessageAsync(updatedAt: baseTime.AddMinutes(minutes: -5), failedAt: baseTime.AddMinutes(minutes: -1), aggregateId: aggregateId);
+		Guid newerMessageId = await SeedMessageAsync(updatedAt: baseTime, aggregateId: aggregateId);
+
+		IReadOnlyList<PendingOutboxMessage> result = await _repository.ClaimPendingBatchAsync(
+			batchSize: 10,
+			now: baseTime,
+			leaseDuration: TimeSpan.FromSeconds(value: 60),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.Any(predicate: m => m.Id == newerMessageId)).IsTrue();
+	}
+
+	[Test]
+	public async Task ClaimPendingBatchAsync_WhenBlockedMessageExistsForOtherAggregate_ShouldStillReturnCurrentAggregateMessage()
+	{
+		DateTimeOffset baseTime = FakeDateProvider.Default.UtcNow;
+
+		await SeedMessageAsync(updatedAt: baseTime.AddMinutes(minutes: -10));
+		Guid id = await SeedMessageAsync(updatedAt: baseTime);
+
+		IReadOnlyList<PendingOutboxMessage> result = await _repository.ClaimPendingBatchAsync(
+			batchSize: 10,
+			now: baseTime,
+			leaseDuration: TimeSpan.FromSeconds(value: 60),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.Any(predicate: m => m.Id == id)).IsTrue();
 	}
 }

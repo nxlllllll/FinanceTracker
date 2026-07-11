@@ -2,7 +2,6 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransactio
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;

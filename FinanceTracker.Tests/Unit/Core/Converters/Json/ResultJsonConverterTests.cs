@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;

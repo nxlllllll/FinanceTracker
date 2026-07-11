@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
 using FinanceTracker.Core.ValueObjects;
 using FluentValidation.Results;

@@ -29,10 +29,12 @@ public sealed class Transfer
 	public string? Description { get; private set; }
 	public int RowVersion { get; private set; }
 	public DateTimeOffset OccurredAt { get; private set; }
+	public DateTimeOffset CreatedAt { get; private set; }
 
 	private Transfer() { }
 
 	public static Result<Transfer, DomainException> Create(
+		DateTimeOffset createdAt,
 		Guid userId,
 		Guid fromAccountId,
 		Guid toAccountId,
@@ -71,7 +73,8 @@ public sealed class Transfer
 			Status = TransferStatus.PendingCredit,
 			Description = description,
 			RowVersion = 0,
-			OccurredAt = occurredAt
+			OccurredAt = occurredAt,
+			CreatedAt = createdAt
 		});
 	}
 
@@ -87,7 +90,8 @@ public sealed class Transfer
 		TransferStatus status,
 		string? description,
 		int rowVersion,
-		DateTimeOffset occurredAt)
+		DateTimeOffset occurredAt,
+		DateTimeOffset createdAt)
 	{
 		return new Transfer
 		{
@@ -102,7 +106,8 @@ public sealed class Transfer
 			Status = status,
 			Description = description,
 			RowVersion = rowVersion,
-			OccurredAt = occurredAt
+			OccurredAt = occurredAt,
+			CreatedAt = createdAt
 		};
 	}
 

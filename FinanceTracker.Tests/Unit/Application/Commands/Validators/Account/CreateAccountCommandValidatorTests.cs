@@ -5,7 +5,6 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Account;

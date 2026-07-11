@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using Microsoft.EntityFrameworkCore;
@@ -146,7 +147,7 @@ public sealed class EFUnitOfWork(
 
 	private void RunCommittedCallbacks(List<Action> callbacks)
 	{
-		List<Exception> failures = [];
+		int failureCount = 0;
 
 		foreach (Action callback in callbacks)
 		{
@@ -157,16 +158,12 @@ public sealed class EFUnitOfWork(
 			catch (Exception ex)
 			{
 				logger.ZLogError(exception: ex, message: $"[UnitOfWork] An OnCommitted callback threw after a successful commit.");
-				failures.Add(item: ex);
+				failureCount++;
 			}
 		}
 
-		switch (failures.Count)
-		{
-			case 0: return;
-			case 1: throw failures[0];
-			default: throw new AggregateException(message: "One or more OnCommitted callbacks failed after a successful commit.", innerExceptions: failures);
-		}
+		if (failureCount > 0)
+			FinanceTrackerMetrics.OnCommittedCallbackFailures.Add(delta: failureCount);
 	}
 
 	/// <summary>

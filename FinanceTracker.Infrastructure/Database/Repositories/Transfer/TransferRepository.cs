@@ -26,7 +26,8 @@ public sealed class TransferRepository(
 				status: entity.Status,
 				description: entity.Description,
 				rowVersion: entity.RowVersion,
-				occurredAt: entity.OccurredAt
+				occurredAt: entity.OccurredAt,
+				createdAt: entity.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 }

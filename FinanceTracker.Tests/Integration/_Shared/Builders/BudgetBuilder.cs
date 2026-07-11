@@ -20,7 +20,8 @@ public class BudgetBuilder(FinanceTrackerContext context)
 		string currency = "RUB",
 		decimal amount = 10000m,
 		DateOnly? dateFrom = null,
-		DateOnly? dateTo = null)
+		DateOnly? dateTo = null,
+		bool isActive = true)
 	{
 		Result<Core.Domains.Budget.Budget, DomainException> result = Core.Domains.Budget.Budget.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
@@ -34,6 +35,12 @@ public class BudgetBuilder(FinanceTrackerContext context)
 		Core.Domains.Budget.Budget budget = result.Value!;
 
 		await _writeRepository.CreateAsync(budget: budget);
+		await context.SaveChangesAsync();
+
+		if (isActive)
+			return budget.Id;
+
+		await _writeRepository.DeactivateAsync(budgetId: budget.Id, expectedVersion: 0);
 		await context.SaveChangesAsync();
 		return budget.Id;
 	}

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Configurations.Options;
+using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount;
 using FluentValidation.Results;
 using Microsoft.Extensions.Options;

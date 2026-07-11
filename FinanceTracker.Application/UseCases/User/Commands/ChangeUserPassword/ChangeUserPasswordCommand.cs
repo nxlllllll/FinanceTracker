@@ -11,4 +11,7 @@ public sealed record ChangeUserPasswordCommand(
 	Guid CurrentSessionId,
 	string CurrentPassword,
 	string NewPassword
-) : IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest;
+) : IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest
+{
+	public override string ToString() => $"ChangeUserPasswordCommand{{UserId={UserId},CurrentSessionId={CurrentSessionId},CurrentPassword=******,NewPassword=******}}";
+}

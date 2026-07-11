@@ -493,7 +493,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task OnCommitted_WhenOneCallbackThrows_ShouldStillRunRemainingCallbacksAndRethrow()
+	public async Task OnCommitted_WhenOneCallbackThrows_ShouldStillRunRemainingCallbacksAndNotRethrow()
 	{
 		bool secondCalled = false;
 
@@ -501,9 +501,7 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "First callback failed"));
 		_unitOfWork.OnCommitted(callback: () => secondCalled = true);
 
-		await Assert.That(
-			action: async () => await _unitOfWork.CommitAsync()
-		).Throws<InvalidOperationException>();
+		await _unitOfWork.CommitAsync();
 
 		await Assert.That(value: secondCalled).IsTrue().Because(message: """
 			The transaction has already committed successfully by the time OnCommitted callbacks run, so
@@ -512,14 +510,33 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task OnCommitted_WhenMultipleCallbacksThrow_ShouldThrowAggregateExceptionWithAllFailures()
+	public async Task OnCommitted_WhenOneCallbackThrows_ShouldNotRethrowToCaller()
 	{
 		await _unitOfWork.BeginTransactionAsync();
-		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "First callback failed"));
-		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "Second callback failed"));
+		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "Callback failed"));
 
 		await Assert.That(
 			action: async () => await _unitOfWork.CommitAsync()
-		).Throws<AggregateException>();
+		).ThrowsNothing().Because(message: """
+			By the time OnCommitted callbacks run, the transaction is already durably committed —
+			a callback failure must never be mistaken for the operation itself failing (e.g. it must
+			not cause an idempotent command handler to release its key and re-execute on retry).
+			The failure is still logged and counted via FinanceTrackerMetrics.OnCommittedCallbackFailures.
+		""");
+	}
+
+	[Test]
+	public async Task OnCommitted_WhenMultipleCallbacksThrow_ShouldStillRunAllAndNotRethrow()
+	{
+		bool thirdCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "First callback failed"));
+		_unitOfWork.OnCommitted(callback: () => throw new InvalidOperationException(message: "Second callback failed"));
+		_unitOfWork.OnCommitted(callback: () => thirdCalled = true);
+
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: thirdCalled).IsTrue();
 	}
 }

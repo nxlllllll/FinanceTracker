@@ -22,4 +22,13 @@ public static class FinanceTrackerMetrics
 		name: "ratelimiter.fallback.activated",
 		description: "Total number of requests where the rate limiter fell back to in-memory because Redis was unavailable."
 	);
+
+	/// <summary>
+	/// Incremented for every <c>IUnitOfWork.OnCommitted</c> callback that throws
+	/// after its enclosing transaction already committed successfully
+	/// </summary>
+	public static readonly Counter<long> OnCommittedCallbackFailures = Meter.CreateCounter<long>(
+		name: "unitofwork.oncommitted_callback.failures",
+		description: "Total number of OnCommitted callbacks that threw after their transaction already committed successfully."
+	);
 }

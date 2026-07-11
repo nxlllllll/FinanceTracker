@@ -16,4 +16,6 @@ public sealed record RegisterUserCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IIpScopedRequest, IEmailScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	public override string ToString() => $"RegisterUserCommand{{Email={Email},Password=******,BaseCurrencyCode={BaseCurrencyCode},IpAddress={IpAddress}}}";
 }

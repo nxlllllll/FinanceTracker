@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Database.Context.Outbox;
+using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.Outbox;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgets;
+using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgets;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Queries.Validators.Budget;

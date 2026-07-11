@@ -1,10 +1,17 @@
 using System.Reflection;
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Correlation;
+using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Application.Behaviours.Retry;
+using FinanceTracker.Application.Behaviours.Tracing;
+using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Results;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
+using TUnit.Assertions.Enums;
 using TestResult = NetArchTest.Rules.TestResult;
 
 namespace FinanceTracker.Tests.Architecture;
@@ -258,5 +265,54 @@ public sealed class ApplicationArchitectureTests
 
 		await Assert.That(value: violations).IsEmpty()
 			.Because(message: String.Join(separator: "\n", values: violations));
+	}
+
+	[Test]
+	public async Task AllCommandsWithPasswordProperties_ShouldOverrideToStringToRedactThem()
+	{
+		List<string> offenders = ApplicationAssembly.GetTypes()
+			.Where(predicate: t => t.GetProperties().Any(predicate: p =>
+				p.Name.Contains(value: "Password", comparisonType: StringComparison.Ordinal) &&
+				p.PropertyType == typeof(string)
+			))
+			.Where(predicate: t => t.GetMethod(name: nameof(ToString), types: Type.EmptyTypes)?.DeclaringType != t)
+			.Select(selector: t => t.Name)
+			.ToList();
+
+		await Assert.That(value: offenders).IsEmpty().Because(message: $"""
+			These types have a string property containing "Password" but don't override ToString()
+			to redact it — the compiler-generated record ToString() would print the raw password.
+			Offenders: {String.Join(separator: ", ", values: offenders)}
+		""");
+	}
+
+	[Test]
+	public async Task PipelineBehaviours_ShouldBeRegisteredInTheExpectedOrder()
+	{
+		Type[] expectedOrder =
+		[
+			typeof(TracingBehaviour<,>),
+			typeof(CorrelationBehaviour<,>),
+			typeof(AuthRateLimitingBehaviour<,>),
+			typeof(RateLimitingBehaviour<,>),
+			typeof(ValidationBehaviour<,>),
+			typeof(IdempotencyBehaviour<,>),
+			typeof(ConcurrencyRetryBehaviour<,>)
+		];
+
+		IServiceCollection services = new ServiceCollection();
+		services.AddApplication();
+
+		Type pipelineBehaviourOpen = typeof(IPipelineBehavior<,>);
+
+		Type[] actualOrder = services
+			.Where(predicate: sd => sd.ServiceType.IsGenericType && sd.ServiceType.GetGenericTypeDefinition() == pipelineBehaviourOpen && sd.ImplementationType is not null)
+			.Select(selector: sd => sd.ImplementationType!)
+			.ToArray();
+
+		await Assert.That(value: actualOrder).IsEquivalentTo(expectedOrder, CollectionOrdering.Matching).Because(message: $"""
+			Expected: {String.Join(separator: " -> ", values: expectedOrder.Select(selector: t => t.Name))}
+			Actual: {String.Join(separator: " -> ", values: actualOrder.Select(selector: t => t.Name))}
+		""");
 	}
 }

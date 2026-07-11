@@ -136,17 +136,18 @@ public sealed class BlockingMessageHandlerState
 
 	public void Release() => _releaseTcs.TrySetResult();
 
-	public async Task HandleAsync()
+	public async Task HandleAsync(CancellationToken ct)
 	{
 		Interlocked.Increment(location: ref _callCount);
 		_firstMessageReceivedTcs.TrySetResult();
-		await _releaseTcs.Task;
+		await _releaseTcs.Task.WaitAsync(cancellationToken: ct);
 	}
 }
 
 public sealed class BlockingMessageHandler(BlockingMessageHandlerState state) : IMessageHandler<AggregateEventsMessage>
 {
-	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default) => state.HandleAsync();
+	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+		=> state.HandleAsync(ct: ct);
 }
 
 public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture

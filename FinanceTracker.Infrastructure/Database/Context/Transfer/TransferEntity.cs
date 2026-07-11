@@ -15,6 +15,7 @@ public sealed class TransferEntity
 	public decimal ExchangeRate { get; init; }
 	public string? Description { get; init; }
 	public DateTimeOffset OccurredAt { get; init; }
+	public DateTimeOffset CreatedAt { get; init; }
 	public bool IsRatePending { get; init; }
 	public TransferStatus Status { get; init; }
 	public int RowVersion { get; init; }

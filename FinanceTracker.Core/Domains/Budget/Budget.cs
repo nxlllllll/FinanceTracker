@@ -27,7 +27,7 @@ public sealed class Budget
 	private Budget() { }
 
 	/// <summary>
-	/// Creates a new budget. Fails if <paramref name="to"/> is not after <paramref name="from"/>.
+	/// Creates a new budget. Fails if <paramref name="to"/> is before <paramref name="from"/>;
 	/// </summary>
 	public static Result<Budget, DomainException> Create(
 		DateTimeOffset createdAt,
@@ -37,7 +37,7 @@ public sealed class Budget
 		DateOnly from,
 		DateOnly to)
 	{
-		if (to <= from)
+		if (to < from)
 			return Result<Budget, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must be after start date."));
 
 		return Result<Budget, DomainException>.Success(value: new Budget
@@ -98,7 +98,7 @@ public sealed class Budget
 		if (!IsActive)
 			return Result<Unit, DomainException>.Failure(error: new InactiveBudgetException(message: "Cannot change period of an inactive budget."));
 
-		if (to <= from)
+		if (to < from)
 			return Result<Unit, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must be after start date."));
 
 		From = from;

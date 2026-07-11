@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
+using FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
 using FluentValidation.Results;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Budget;

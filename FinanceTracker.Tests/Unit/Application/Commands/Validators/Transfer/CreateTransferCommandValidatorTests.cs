@@ -2,7 +2,6 @@ using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
-using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Transfer;
 

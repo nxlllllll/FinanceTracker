@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Configurations;
+using FinanceTracker.Application.Configurations;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
@@ -134,7 +134,8 @@ public sealed class RedisOutageChaosTests
 			Type: AccountType.Checking,
 			Currency: Currency.Create(value: "USD").Value,
 			InitialBalance: 0m
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 	}
 
 	private async Task<Guid> RegisterUserAsync()

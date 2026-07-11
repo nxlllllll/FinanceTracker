@@ -12,4 +12,7 @@ public sealed record LoginUserCommand(
 	Email Email,
 	string Password,
 	IPAddress IpAddress
-) : IRequest<Result<SessionToken, AppException>>, IIpScopedRequest, IEmailScopedRequest;
+) : IRequest<Result<SessionToken, AppException>>, IIpScopedRequest, IEmailScopedRequest
+{
+	public override string ToString() => $"LoginUserCommand{{Email={Email},Password=******,IpAddress={IpAddress}}}";
+}

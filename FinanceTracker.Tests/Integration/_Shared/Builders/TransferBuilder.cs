@@ -22,9 +22,11 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		decimal amount = 1000m,
 		decimal exchangeRate = 1m,
 		bool isRatePending = false,
-		DateTimeOffset? occurredAt = null)
+		DateTimeOffset? occurredAt = null,
+		DateTimeOffset? createdAt = null)
 	{
 		Result<Core.Domains.Transfer.Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
+			createdAt: createdAt ?? DateTimeOffset.UtcNow,
 			userId: userId,
 			fromAccountId: fromAccountId,
 			toAccountId: toAccountId,

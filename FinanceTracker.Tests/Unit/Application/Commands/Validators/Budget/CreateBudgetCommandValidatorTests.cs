@@ -4,7 +4,6 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Commands.Validators.Budget;
@@ -139,5 +138,16 @@ public sealed class CreateBudgetCommandValidatorTests
 
 		await Assert.That(value: result.IsValid).IsFalse();
 		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.To))).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithEndDateEqualToStartDate_ShouldNotHaveError()
+	{
+		DateOnly sameDate = DateOnly.FromDateTime(dateTime: DateTime.UtcNow);
+		CreateBudgetCommand command = CreateBudgetCommandFactory.Create(from: sameDate, to: sameDate);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsTrue();
 	}
 }

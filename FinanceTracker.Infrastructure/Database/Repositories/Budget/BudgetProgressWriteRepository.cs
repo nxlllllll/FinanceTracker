@@ -17,43 +17,42 @@ public sealed class BudgetProgressWriteRepository(
 ) : IBudgetProgressWriteRepository
 {
 	private async Task ChangeSpentAsync(
-			Guid userId,
-			Guid categoryId,
-			Core.ValueObjects.Currency currencyCode,
-			decimal amount,
-			DateTimeOffset occurredAt,
-			int delta,
-			CancellationToken ct)
+		Guid userId,
+		Guid categoryId,
+		Core.ValueObjects.Currency currencyCode,
+		decimal amount,
+		DateTimeOffset occurredAt,
+		int delta,
+		CancellationToken ct)
 	{
 		DateOnly date = DateOnly.FromDateTime(dateTime: occurredAt.UtcDateTime);
 
-		BudgetEntity? budget = await context.Budgets.AsNoTracking().FirstOrDefaultAsync(predicate: b =>
+		List<BudgetEntity> budgets = await context.Budgets.AsNoTracking().Where(predicate: b =>
 			b.UserId == userId &&
 			b.CategoryId == categoryId &&
 			b.From <= date &&
-			b.To >= date,
-			cancellationToken: ct
-		);
+			b.To >= date
+		).ToListAsync(cancellationToken: ct);
 
-		if (budget is null)
-			return;
+		foreach (BudgetEntity budget in budgets)
+		{
+			decimal rate = await currencyConversionService.GetStableRateAsync(
+				fromCurrency: currencyCode,
+				toCurrency: budget.Currency,
+				asOf: occurredAt,
+				ct: ct
+			);
 
-		decimal rate = await currencyConversionService.GetStableRateAsync(
-			fromCurrency: currencyCode,
-			toCurrency: budget.Currency,
-			asOf: occurredAt,
-			ct: ct
-		);
+			decimal additionSpent = delta * Money.ConvertedAmount(amount: amount, rate: rate);
 
-		decimal additionSpent = delta * Money.ConvertedAmount(amount: amount, rate: rate);
-
-		await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				.SetProperty(propertyExpression: p => p.Spent, valueExpression: p => p.Spent + additionSpent)
-				.SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
-				.SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
-			cancellationToken: ct
-		);
+			await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
+				setPropertyCalls: builder => builder
+					.SetProperty(propertyExpression: p => p.Spent, valueExpression: p => p.Spent + additionSpent)
+					.SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
+					.SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
+				cancellationToken: ct
+			);
+		}
 	}
 
 	public Task AddAsync(

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Database.Context;

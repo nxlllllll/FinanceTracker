@@ -113,33 +113,55 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task SubtractAsync_ShouldDecreaseSpent()
+	public async Task AddAsync_WhenMultipleBudgetsOverlapPeriod_ShouldUpdateBothActiveAndInactive()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
-		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
-		DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		Guid oldBudgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, isActive: false);
+		Guid newBudgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, isActive: true);
 
 		await _writeRepository.AddAsync(
 			userId: userId,
 			categoryId: categoryId,
 			currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			amount: 5000m,
-			occurredAt: occurredAt
+			amount: 3000m,
+			occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
 		);
-		await _writeRepository.SubtractAsync(
+
+		BudgetProgressEntity oldProgress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(predicate: p => p.BudgetId == oldBudgetId);
+		BudgetProgressEntity newProgress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(predicate: p => p.BudgetId == newBudgetId);
+
+		await Assert.That(value: oldProgress.Spent).IsEqualTo(expected: 3000m);
+		await Assert.That(value: newProgress.Spent).IsEqualTo(expected: 3000m);
+	}
+
+	[Test]
+	public async Task AddAsync_WhenReactivatingOldBudget_ShouldAlreadyHaveCorrectProgressWithoutRecalculation()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Core.ValueObjects.Currency rub = Core.ValueObjects.Currency.Create(value: "RUB").Value;
+
+		Guid budgetAId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, isActive: false);
+		Guid budgetBId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, isActive: true);
+
+		await _writeRepository.AddAsync(
 			userId: userId,
 			categoryId: categoryId,
-			currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			amount: 2000m,
-			occurredAt: occurredAt
+			currencyCode: rub,
+			amount: 4000m,
+			occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
 		);
 
-		BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
-			predicate: p => p.BudgetId == budgetId
-		);
+		BudgetWriteRepository budgetWriteRepository = new BudgetWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
+		await budgetWriteRepository.DeactivateAsync(budgetId: budgetBId, expectedVersion: 0);
+		await budgetWriteRepository.ActivateAsync(budgetId: budgetAId, expectedVersion: 1);
+		await Context.SaveChangesAsync();
 
-		await Assert.That(value: progress.Spent).IsEqualTo(expected: 3000m);
+		BudgetProgressEntity progressA = await Context.BudgetProgresses.AsNoTracking().FirstAsync(predicate: p => p.BudgetId == budgetAId);
+
+		await Assert.That(value: progressA.Spent).IsEqualTo(expected: 4000m);
 	}
 
 	[Test]
@@ -207,6 +229,57 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 			asOf: occurredAt,
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task SubtractAsync_WhenMultipleBudgetsOverlapPeriod_ShouldDecreaseBothActiveAndInactive()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Core.ValueObjects.Currency rub = Core.ValueObjects.Currency.Create(value: "RUB").Value;
+		DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		Guid oldBudgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, isActive: false);
+		Guid newBudgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, isActive: true);
+
+		await _writeRepository.AddAsync(userId: userId, categoryId: categoryId, currencyCode: rub, amount: 5000m, occurredAt: occurredAt);
+		await _writeRepository.SubtractAsync(userId: userId, categoryId: categoryId, currencyCode: rub, amount: 2000m, occurredAt: occurredAt);
+
+		BudgetProgressEntity oldProgress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(predicate: p => p.BudgetId == oldBudgetId);
+		BudgetProgressEntity newProgress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(predicate: p => p.BudgetId == newBudgetId);
+
+		await Assert.That(value: oldProgress.Spent).IsEqualTo(expected: 3000m);
+		await Assert.That(value: newProgress.Spent).IsEqualTo(expected: 3000m);
+	}
+
+	[Test]
+	public async Task SubtractAsync_ShouldDecreaseSpent()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
+		DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+			amount: 5000m,
+			occurredAt: occurredAt
+		);
+		await _writeRepository.SubtractAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+			amount: 2000m,
+			occurredAt: occurredAt
+		);
+
+		BudgetProgressEntity progress = await Context.BudgetProgresses.AsNoTracking().FirstAsync(
+			predicate: p => p.BudgetId == budgetId
+		);
+
+		await Assert.That(value: progress.Spent).IsEqualTo(expected: 3000m);
 	}
 
 	[Test]

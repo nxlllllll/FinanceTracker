@@ -15,7 +15,7 @@ public sealed class CreateBudgetCommandValidator : AbstractValidator<CreateBudge
 		IOptionsMonitor<MoneyLimitsOptions> moneyLimits)
 	{
 		RuleFor(expression: command => command.UserId)
-		.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
+			.NotEmpty().WithMessage(errorMessage: "The user cannot be empty.");
 
 		RuleFor(expression: command => command.CategoryId).Cascade(cascadeMode: CascadeMode.Stop)
 			.NotEmpty().WithMessage(errorMessage: "The category cannot be empty.")
@@ -35,6 +35,6 @@ public sealed class CreateBudgetCommandValidator : AbstractValidator<CreateBudge
 			.WithMessage(errorMessage: $"The amount cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.");
 
 		RuleFor(expression: command => command.To)
-			.GreaterThan(expression: command => command.From).WithMessage(errorMessage: "The end date must be after the start date.");
+			.GreaterThanOrEqualTo(expression: command => command.From).WithMessage(errorMessage: "The end date cannot be before the start date.");
 	}
 }

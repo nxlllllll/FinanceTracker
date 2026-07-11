@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Tests.Unit.Helpers;
 

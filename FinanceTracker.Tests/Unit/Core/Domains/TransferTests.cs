@@ -36,6 +36,19 @@ public sealed class TransferTests
 		await Assert.That(value: transfer.IsRatePending).IsFalse();
 		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.PendingCredit);
 		await Assert.That(value: transfer.OccurredAt).IsNotDefault();
+		await Assert.That(value: transfer.CreatedAt).IsNotDefault();
+	}
+
+	[Test]
+	public async Task Create_WhenBackdated_ShouldKeepOccurredAtAndCreatedAtIndependent()
+	{
+		DateTimeOffset createdAt = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset occurredAt = createdAt.AddDays(days: -3);
+
+		Transfer transfer = TransferFactory.Create(occurredAt: occurredAt, createdAt: createdAt);
+
+		await Assert.That(value: transfer.OccurredAt).IsEqualTo(expected: occurredAt);
+		await Assert.That(value: transfer.CreatedAt).IsEqualTo(expected: createdAt);
 	}
 
 	[Test]
@@ -59,6 +72,7 @@ public sealed class TransferTests
 	public async Task Create_WithZeroExchangeRate_ShouldReturnFailure()
 	{
 		Result<Transfer, DomainException> result = Transfer.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: Guid.CreateVersion7(),
 			fromAccountId: Guid.CreateVersion7(),
 			toAccountId: Guid.CreateVersion7(),
@@ -81,6 +95,7 @@ public sealed class TransferTests
 		Guid accountId = Guid.CreateVersion7();
 
 		Result<Transfer, DomainException> result = Transfer.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: Guid.CreateVersion7(),
 			fromAccountId: accountId,
 			toAccountId: accountId,

@@ -1,7 +1,6 @@
 using FinanceTracker.Application.UseCases.Category.Commands.UnarchiveCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;

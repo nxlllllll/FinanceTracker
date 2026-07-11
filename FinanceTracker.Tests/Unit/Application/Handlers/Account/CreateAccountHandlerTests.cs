@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;

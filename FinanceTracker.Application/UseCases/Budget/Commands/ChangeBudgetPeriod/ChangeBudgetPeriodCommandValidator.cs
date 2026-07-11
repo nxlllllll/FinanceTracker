@@ -13,6 +13,6 @@ public sealed class ChangeBudgetPeriodCommandValidator : AbstractValidator<Chang
 			.NotEmpty().WithMessage(errorMessage: "The budget cannot be empty.");
 
 		RuleFor(expression: command => command.To)
-			.GreaterThan(expression: command => command.From).WithMessage(errorMessage: "The end date must be after the start date.");
+			.GreaterThanOrEqualTo(expression: command => command.From).WithMessage(errorMessage: "The end date cannot be before the start date.");
 	}
 }

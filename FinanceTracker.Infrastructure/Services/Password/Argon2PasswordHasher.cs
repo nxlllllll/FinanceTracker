@@ -12,14 +12,9 @@ public sealed partial class Argon2PasswordHasher(
 ) : IPasswordHasher
 {
 	/// <summary>
-	/// Fixed, valid PHC-format hash used as a verification target when the caller has no real
-	/// hash to check against (e.g. login with an unknown email). Its content is irrelevant — it never
-	/// needs to match anything real — its only job is to make <see cref="Verify"/> run the exact same
-	/// Argon2id computation it would run for a real account, so the response time doesn't leak whether
-	/// the account exists. Its parameters are deliberately fixed (not read from <see cref="Argon2Options"/>)
-	/// so a config change can never silently disable this protection.
+	/// Fixed salt used only for the "no such account" verification path (see <see cref="Verify"/>).
 	/// </summary>
-	private const string DummyHash = "$argon2id$v=19$m=65536,t=3,p=4$SQzm0/WXdnO0CHsghWSVIQ==$uoeugdraCvtZ2/mflW32Ni283Qq2PM5acyaRxYVjrmw=";
+	private static readonly byte[] DummySalt = Convert.FromBase64String(s: "SQzm0/WXdnO0CHsghWSVIQ==");
 
 	[GeneratedRegex(pattern: @"^\$argon2id\$v=(?<version>\d+)\$m=(?<memory>\d+),t=(?<iterations>\d+),p=(?<parallelism>\d+)\$(?<salt>[A-Za-z0-9+/=]+)\$(?<hash>[A-Za-z0-9+/=]+)$", options: RegexOptions.Compiled)]
 	private static partial Regex PhcFormatRegex();
@@ -55,7 +50,20 @@ public sealed partial class Argon2PasswordHasher(
 	/// </summary>
 	public async Task<bool> Verify(string password, string? storedHash)
 	{
-		Match match = PhcFormatRegex().Match(input: storedHash ?? DummyHash);
+		if (storedHash is null)
+		{
+			await ComputeHash(
+				password: password,
+				salt: DummySalt,
+				memorySize: _options.MemorySize,
+				iterations: _options.Iterations,
+				degreeOfParallelism: _options.DegreeOfParallelism,
+				hashLength: _options.HashLength
+			);
+			return false;
+		}
+
+		Match match = PhcFormatRegex().Match(input: storedHash);
 		if (!match.Success)
 			return false;
 

@@ -30,6 +30,7 @@ public sealed class TransferWriteRepository(
 			ExchangeRate = transfer.ExchangeRate,
 			Description = transfer.Description,
 			OccurredAt = transfer.OccurredAt,
+			CreatedAt = transfer.CreatedAt,
 			IsRatePending = transfer.IsRatePending,
 			Status = transfer.Status,
 			RowVersion = 0

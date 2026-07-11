@@ -1,12 +1,10 @@
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;

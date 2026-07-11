@@ -126,22 +126,24 @@ public sealed class TransferReadRepository(
 			)).ToListAsync(cancellationToken: ct);
 	}
 
+	/// <summary>Counts transfers whose credit side has been pending longer than <paramref name="gracePeriod"/>.</summary>
 	public async Task<int> GetPendingCreditCountAsync(TimeSpan gracePeriod, CancellationToken ct = default)
 	{
 		DateTimeOffset threshold = dateProvider.UtcNow - gracePeriod;
 		return await context.Transfers.AsNoTracking().CountAsync(
-			predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.OccurredAt < threshold,
+			predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.CreatedAt < threshold,
 			cancellationToken: ct
 		);
 	}
 
+	/// <summary>Selects transfers eligible for auto-compensation</summary>
 	public async Task<IReadOnlyList<PendingCreditTransfer>> GetPendingCreditForCompensationAsync(
 		TimeSpan compensationThreshold,
 		CancellationToken ct = default)
 	{
 		DateTimeOffset threshold = dateProvider.UtcNow - compensationThreshold;
 		return await context.Transfers.AsNoTracking()
-			.Where(predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.OccurredAt < threshold)
+			.Where(predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.CreatedAt < threshold)
 			.Select(selector: t => new PendingCreditTransfer(
 				TransferId: t.Id,
 				FromAccountId: t.FromAccountId,

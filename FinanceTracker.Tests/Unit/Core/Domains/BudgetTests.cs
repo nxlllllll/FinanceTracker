@@ -43,18 +43,22 @@ public sealed class BudgetTests
 	}
 
 	[Test]
-	public async Task Create_WhenEndDateEqualsStartDate_ShouldThrowInvalidBudgetPeriodException()
+	public async Task Create_WhenEndDateEqualsStartDate_ShouldSucceedAsSingleDayBudget()
 	{
+		DateOnly sameDate = new DateOnly(year: 2025, month: 1, day: 1);
+
 		Result<Budget, DomainException> result = Budget.Create(
 			createdAt: DateTimeOffset.UtcNow,
 			userId: Guid.CreateVersion7(),
 			categoryId: Guid.CreateVersion7(),
 			amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,
-			from: new DateOnly(year: 2025, month: 1, day: 1),
-			to: new DateOnly(year: 2025, month: 1, day: 1)
+			from: sameDate,
+			to: sameDate
 		);
-		await Assert.That(result.IsFailure).IsTrue();
-		await Assert.That(result.Error).IsTypeOf<InvalidBudgetPeriodException>();
+
+		await Assert.That(result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.From).IsEqualTo(expected: sameDate);
+		await Assert.That(value: result.Value!.To).IsEqualTo(expected: sameDate);
 	}
 
 	[Test]

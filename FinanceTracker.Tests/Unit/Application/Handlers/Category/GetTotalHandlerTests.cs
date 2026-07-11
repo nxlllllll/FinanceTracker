@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetTotal;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;

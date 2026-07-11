@@ -38,7 +38,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 		)
 		{ IdempotencyKey = Guid.CreateVersion7() });
 
-		Guid accountId = result.Value!;
+		Guid accountId = result.Value;
 
 		await RunOutboxAsync();
 		await WaitForConditionAsync(condition: async () =>
@@ -184,9 +184,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 
 		TransferBuilder transferBuilder = new TransferBuilder(context: Context);
 
-		// toAccount does not exist in ES — consumer compensates when trying to apply credit
-		// But for the lag job test, we need a transfer to PendingCredit, which was created a long time ago.
-		// We create directly through the builder and mark occurred_at in the past
+		// for the lag job test, we need a transfer stuck in PendingCredit whose RECORD is old
 		Guid toAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 0m);
 		Guid transferId = await transferBuilder.CreateAsync(
 			userId: userId,
@@ -195,7 +193,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			toAccountId: toAccountId,
 			currencyTo: "RUB",
 			amount: 2_000m,
-			occurredAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -60) // older than CompensationThreshold
+			createdAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -60) // older than CompensationThreshold
 		);
 
 		await RunTransferCreditLagAsync();
@@ -212,6 +210,53 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			.FirstAsync();
 
 		await Assert.That(value: status).IsEqualTo(expected: TransferStatus.Compensated);
+	}
+
+	[Test]
+	public async Task CreateTransfer_Backdated_LagJobShouldNotCompensateBeforeConsumer()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid fromAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 10_000m);
+		Guid toAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 0m);
+
+		// backdated transfer
+		await Mediator.Send(request: new CreateTransferCommand(
+			UserId: userId,
+			FromAccountId: fromAccountId,
+			ToAccountId: toAccountId,
+			Amount: 3_000m,
+			Description: null,
+			OccurredAt: DateTimeOffset.UtcNow.AddDays(days: -3)
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
+
+		await RunTransferCreditLagAsync();
+
+		await using (FinanceTrackerContext ctx = CreateReadContext())
+		{
+			TransferStatus statusAfterLagJob = await ctx.Transfers
+				.Where(predicate: t => t.FromAccountId == fromAccountId)
+				.Select(selector: t => t.Status)
+				.FirstAsync();
+
+			await Assert.That(value: statusAfterLagJob).IsEqualTo(expected: TransferStatus.PendingCredit);
+		}
+
+		// the transfer must complete, not compensate.
+		await RunOutboxAsync();
+		await WaitForConditionAsync(condition: async () =>
+		{
+			await using FinanceTrackerContext readCtx = CreateReadContext();
+			return await readCtx.Transfers.AnyAsync(predicate: t => t.FromAccountId == fromAccountId && t.Status == TransferStatus.Completed);
+		});
+
+		await using FinanceTrackerContext finalCtx = CreateReadContext();
+		TransferStatus finalStatus = await finalCtx.Transfers
+			.Where(predicate: t => t.FromAccountId == fromAccountId)
+			.Select(selector: t => t.Status)
+			.FirstAsync();
+
+		await Assert.That(value: finalStatus).IsEqualTo(expected: TransferStatus.Completed);
 	}
 
 	[Test]

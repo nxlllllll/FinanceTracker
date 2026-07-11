@@ -14,9 +14,12 @@ public static class TransferFactory
 		string currencyTo = "RUB",
 		decimal exchangeRate = 1m,
 		bool isRatePending = false,
-		string? description = null)
+		string? description = null,
+		DateTimeOffset? occurredAt = null,
+		DateTimeOffset? createdAt = null)
 	{
 		return Transfer.Create(
+			createdAt: createdAt ?? FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.CreateVersion7(),
 			fromAccountId: fromAccountId ?? Guid.CreateVersion7(),
 			toAccountId: toAccountId ?? Guid.CreateVersion7(),
@@ -26,7 +29,7 @@ public static class TransferFactory
 			exchangeRate: exchangeRate,
 			isRatePending: isRatePending,
 			description: description,
-			occurredAt: FakeDateProvider.Default.UtcNow
+			occurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow
 		).Value!;
 	}
 
@@ -42,7 +45,9 @@ public static class TransferFactory
 		bool isRatePending = false,
 		TransferStatus status = TransferStatus.PendingCredit,
 		int rowVersion = 0,
-		string? description = null)
+		string? description = null,
+		DateTimeOffset? occurredAt = null,
+		DateTimeOffset? createdAt = null)
 	{
 		Currency from = Currency.Reconstitute(value: currencyFrom);
 		Currency to = Currency.Reconstitute(value: currencyTo);
@@ -59,7 +64,8 @@ public static class TransferFactory
 			status: status,
 			description: description,
 			rowVersion: rowVersion,
-			occurredAt: FakeDateProvider.Default.UtcNow
+			occurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow,
+			createdAt: createdAt ?? FakeDateProvider.Default.UtcNow
 		);
 	}
 }

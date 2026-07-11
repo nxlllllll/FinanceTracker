@@ -62,6 +62,9 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 		builder.Property(propertyExpression: t => t.OccurredAt)
 			.HasColumnName(name: "occurred_at");
 
+		builder.Property(propertyExpression: t => t.CreatedAt)
+			.HasColumnName(name: "created_at");
+
 		builder.Property(propertyExpression: t => t.IsRatePending)
 			.HasColumnName(name: "is_rate_pending");
 

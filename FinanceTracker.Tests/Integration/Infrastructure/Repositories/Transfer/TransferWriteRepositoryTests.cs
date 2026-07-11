@@ -30,6 +30,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 		Guid toAccountId = await _accountBuilder.CreateAsync(userId: userId);
 
 		Core.Domains.Transfer.Transfer transfer = Core.Domains.Transfer.Transfer.Create(
+			createdAt: DateTimeOffset.UtcNow,
 			userId: userId,
 			fromAccountId: fromAccountId,
 			toAccountId: toAccountId,
@@ -61,6 +62,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: entity.IsRatePending).IsFalse();
 		await Assert.That(value: entity.Description).IsEqualTo(expected: "Test transfer");
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 0);
+		await Assert.That(value: entity.CreatedAt).IsEqualTo(expected: transfer.CreatedAt);
 	}
 
 	[Test]

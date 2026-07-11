@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Services.Password;
+using FinanceTracker.Infrastructure.Services.Password;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 
