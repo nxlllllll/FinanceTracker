@@ -1,9 +1,11 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
@@ -17,12 +19,10 @@ using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Services;
 
-// NB: TransactionCreationService deliberately has no MediatR/IPublisher dependency — it's shared by
-// both CreateTransactionHandler (command pipeline) and RecurringTransactionConsumer (a worker with no
-// MediatR container). Publish-on-success behavior now lives in CreateTransactionHandlerTests instead.
 public sealed class TransactionCreationServiceTests
 {
 	private IAccountRepository _accountRepository = null!;
+	private ICategoryReadRepository _categoryReadRepository = null!;
 	private ITransactionWriteRepository _transactionWriteRepository = null!;
 	private ICurrencyConversionService _currencyConversionService = null!;
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
@@ -34,11 +34,14 @@ public sealed class TransactionCreationServiceTests
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
+		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 		_transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
 		_currencyConversionService = Substitute.For<ICurrencyConversionService>();
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+
+		SetupCategory(type: CategoryType.Expense);
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -52,6 +55,7 @@ public sealed class TransactionCreationServiceTests
 
 		_service = new TransactionCreationService(
 			accountRepository: _accountRepository,
+			categoryReadRepository: _categoryReadRepository,
 			transactionWriteRepository: _transactionWriteRepository,
 			currencyConversionService: _currencyConversionService,
 			unitOfWork: _unitOfWork,
@@ -69,6 +73,27 @@ public sealed class TransactionCreationServiceTests
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new ConversionResult(Rate: rate, IsPending: isPending));
+	}
+
+	private CategoryReadModel SetupCategory(
+		CategoryType type = CategoryType.Expense,
+		bool archived = false,
+		Guid? categoryId = null,
+		Guid? userId = null)
+	{
+		CategoryReadModel category = CategoryFactory.CreateReadModel(
+			userId: userId,
+			type: type,
+			archived: archived
+		) with { Id = categoryId ?? Guid.CreateVersion7() };
+
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
+
+		return category;
 	}
 
 	[Test]
@@ -136,6 +161,7 @@ public sealed class TransactionCreationServiceTests
 	{
 		Account account = AccountFactory.CreateWithArchivation(balance: 10000m);
 		SetupConversionRate();
+		SetupCategory(type: CategoryType.Income);
 
 		await _service.CreateAsync(
 			command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Credit),
@@ -207,6 +233,79 @@ public sealed class TransactionCreationServiceTests
 	}
 
 	[Test]
+	public async Task CreateAsync_WhenCategoryNotFound_ShouldReturnNotFoundException()
+	{
+		Account account = AccountFactory.CreateWithArchivation();
+		SetupConversionRate();
+
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (CategoryReadModel?)null);
+
+		Result<Transaction, DomainException> result = await _service.CreateAsync(
+			command: CreateTransactionCommandFactory.Create(userId: account.UserId),
+			account: account,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
+	}
+
+	[Test]
+	public async Task CreateAsync_WhenCategoryArchived_ShouldReturnArchivedOperationException()
+	{
+		Account account = AccountFactory.CreateWithArchivation();
+		SetupConversionRate();
+		SetupCategory(type: CategoryType.Expense, archived: true);
+
+		Result<Transaction, DomainException> result = await _service.CreateAsync(
+			command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Debit),
+			account: account,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
+	}
+
+	[Test]
+	public async Task CreateAsync_WhenDebitDirectionWithIncomeCategory_ShouldReturnInvalidTransactionDirectionException()
+	{
+		Account account = AccountFactory.CreateWithArchivation();
+		SetupConversionRate();
+		SetupCategory(type: CategoryType.Income);
+
+		Result<Transaction, DomainException> result = await _service.CreateAsync(
+			command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Debit),
+			account: account,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransactionDirectionException>();
+	}
+
+	[Test]
+	public async Task CreateAsync_WhenCreditDirectionWithExpenseCategory_ShouldReturnInvalidTransactionDirectionException()
+	{
+		Account account = AccountFactory.CreateWithArchivation();
+		SetupConversionRate();
+		SetupCategory(type: CategoryType.Expense);
+
+		Result<Transaction, DomainException> result = await _service.CreateAsync(
+			command: CreateTransactionCommandFactory.Create(userId: account.UserId, direction: DirectionType.Credit),
+			account: account,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransactionDirectionException>();
+	}
+
+	[Test]
 	public async Task CreateAsync_WithDebitDirection_ShouldAddCategoryTotal()
 	{
 		Account account = AccountFactory.CreateWithArchivation();
@@ -253,7 +352,7 @@ public sealed class TransactionCreationServiceTests
 	}
 
 	[Test]
-	public async Task CreateAsync_WithCreditDirection_ShouldNotAddCategoryTotal()
+	public async Task CreateAsync_WithCreditDirection_ShouldAddCategoryTotal()
 	{
 		Account account = AccountFactory.CreateWithArchivation();
 		SetupConversionRate();
@@ -262,15 +361,16 @@ public sealed class TransactionCreationServiceTests
 			userId: account.UserId,
 			direction: DirectionType.Credit
 		);
+		SetupCategory(type: CategoryType.Income, categoryId: command.CategoryId, userId: account.UserId);
 
 		await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
 
-		await _categoryTotalWriteRepository.DidNotReceive().AddAsync(
-			userId: Arg.Any<Guid>(),
-			categoryId: Arg.Any<Guid>(),
-			amount: Arg.Any<decimal>(),
-			currency: Arg.Any<Currency>(),
-			occurredAt: Arg.Any<DateTimeOffset>(),
+		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).AddAsync(
+			userId: command.UserId,
+			categoryId: command.CategoryId,
+			amount: command.Amount,
+			currency: command.Currency,
+			occurredAt: command.OccurredAt,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -285,6 +385,7 @@ public sealed class TransactionCreationServiceTests
 			userId: account.UserId,
 			direction: DirectionType.Credit
 		);
+		SetupCategory(type: CategoryType.Income, categoryId: command.CategoryId, userId: account.UserId);
 
 		await _service.CreateAsync(command: command, account: account, ct: CancellationToken.None);
 

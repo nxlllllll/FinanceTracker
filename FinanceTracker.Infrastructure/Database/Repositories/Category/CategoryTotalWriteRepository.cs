@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
@@ -129,7 +128,7 @@ public sealed class CategoryTotalWriteRepository(
 		CancellationToken ct = default)
 	{
 		List<TransactionConversionInput> transactions = await context.Transactions.AsNoTracking()
-			.Where(predicate: t => t.UserId == userId && !t.IsExcluded && t.Direction == DirectionType.Debit)
+			.Where(predicate: t => t.UserId == userId && !t.IsExcluded)
 			.Select(selector: t => new TransactionConversionInput(t.CategoryId, t.Currency, t.Amount, t.OccurredAt))
 			.ToListAsync(cancellationToken: ct);
 

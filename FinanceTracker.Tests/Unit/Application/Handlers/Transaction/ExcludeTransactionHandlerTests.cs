@@ -123,8 +123,11 @@ public sealed class ExcludeTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WithIncludedCredit_ShouldExcludeButNotSubtractTotals()
+	public async Task HandleAsync_WithIncludedCredit_ShouldExcludeAndSubtractCategoryTotalButNotBudgetProgress()
 	{
+		// category_totals tracks both directions (income and expense); budget progress only
+		// tracks spending, so a Credit (income) transaction still subtracts from category_totals
+		// but must never touch budget_progress.
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: false);
 
 		await _handler.HandleAsync(
@@ -139,11 +142,19 @@ public sealed class ExcludeTransactionHandlerTests
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
-		await _categoryTotalWriteRepository.DidNotReceive().SubtractAsync(
+		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).SubtractAsync(
+			userId: transaction.UserId,
+			categoryId: transaction.CategoryId,
+			currency: transaction.Amount.Currency,
+			amount: transaction.Amount.Amount,
+			occurredAt: transaction.OccurredAt,
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _budgetProgressWriteRepository.DidNotReceive().SubtractAsync(
 			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
+			currencyCode: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			amount: Arg.Any<decimal>(),
-			currency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			occurredAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);

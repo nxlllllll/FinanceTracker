@@ -44,9 +44,6 @@ public sealed class IncludeTransactionHandler(
 				ct: ct
 			);
 
-			if (transaction.Direction != DirectionType.Debit)
-				return;
-
 			await categoryTotalWriteRepository.AddAsync(
 				userId: transaction.UserId,
 				categoryId: transaction.CategoryId,
@@ -55,6 +52,9 @@ public sealed class IncludeTransactionHandler(
 				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
+
+			if (transaction.Direction != DirectionType.Debit)
+				return;
 
 			await budgetProgressWriteRepository.AddAsync(
 				userId: transaction.UserId,

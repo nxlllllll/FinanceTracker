@@ -44,12 +44,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
 
-		CategoryReadModel category = CategoryFactory.CreateReadModel(type: CategoryType.Expense);
-		_categoryReadRepository.GetByIdAsync(
-			categoryId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: category);
+		SetupNewCategory(type: CategoryType.Expense);
 
 		_handler = new ChangeTransactionCategoryHandler(
 			transactionWriteRepository: _transactionWriteRepository,
@@ -61,6 +56,16 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<ChangeTransactionCategoryHandler>>()
 		);
+	}
+
+	private void SetupNewCategory(CategoryType type)
+	{
+		CategoryReadModel category = CategoryFactory.CreateReadModel(type: type);
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 	}
 
 	[Test]
@@ -142,24 +147,52 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WithCreditTransaction_ShouldNotUpdateTotals()
+	public async Task HandleAsync_WithCreditTransaction_ShouldUpdateCategoryTotalButNotBudgetProgress()
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Credit, isExcluded: false);
+		Guid oldCategoryId = transaction.CategoryId;
+		Guid newCategoryId = Guid.CreateVersion7();
+		SetupNewCategory(type: CategoryType.Income);
 
 		await _handler.HandleAsync(
+			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: newCategoryId),
+			transaction: transaction,
+			ct: CancellationToken.None
+		);
+
+		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).ChangeCategoryAsync(
+			userId: transaction.UserId,
+			oldCategoryId: oldCategoryId,
+			newCategoryId: newCategoryId,
+			currency: transaction.Amount.Currency,
+			amount: transaction.Amount.Amount,
+			occurredAt: transaction.OccurredAt,
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _budgetProgressWriteRepository.DidNotReceive().ChangeCategoryAsync(
+			userId: Arg.Any<Guid>(),
+			oldCategoryId: Arg.Any<Guid>(),
+			newCategoryId: Arg.Any<Guid>(),
+			currencyCode: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			amount: Arg.Any<decimal>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenNewCategoryDirectionMismatch_ShouldReturnInvalidTransactionDirectionException()
+	{
+		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
+		SetupNewCategory(type: CategoryType.Income);
+
+		FinanceTracker.Core.Results.Result<Guid, FinanceTracker.Core.Exceptions.AppException> result = await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
 			transaction: transaction,
 			ct: CancellationToken.None
 		);
 
-		await _categoryTotalWriteRepository.DidNotReceive().ChangeCategoryAsync(
-			userId: Arg.Any<Guid>(),
-			oldCategoryId: Arg.Any<Guid>(),
-			newCategoryId: Arg.Any<Guid>(),
-			currency: transaction.Amount.Currency,
-			amount: Arg.Any<decimal>(),
-			occurredAt: Arg.Any<DateTimeOffset>(),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<FinanceTracker.Core.Exceptions.DomainExceptions.InvalidTransactionDirectionException>();
 	}
 }

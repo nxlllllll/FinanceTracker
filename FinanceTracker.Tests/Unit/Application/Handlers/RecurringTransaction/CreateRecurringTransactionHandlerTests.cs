@@ -1,8 +1,11 @@
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -14,6 +17,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
 
 public sealed class CreateRecurringTransactionHandlerTests
 {
+	private ICategoryReadRepository _categoryReadRepository = null!;
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private IPublisher _publisher = null!;
@@ -22,9 +26,12 @@ public sealed class CreateRecurringTransactionHandlerTests
 	[Before(hookType: Test)]
 	public void Setup()
 	{
+		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_publisher = Substitute.For<IPublisher>();
+
+		SetupCategory(type: CategoryType.Expense);
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -32,12 +39,24 @@ public sealed class CreateRecurringTransactionHandlerTests
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
 
 		_handler = new CreateRecurringTransactionHandler(
+			categoryReadRepository: _categoryReadRepository,
 			recurringTransactionWriteRepository: _writeRepository,
 			unitOfWork: _unitOfWork,
 			publisher: _publisher,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CreateRecurringTransactionHandler>>()
 		);
+	}
+
+	private void SetupCategory(CategoryType type = CategoryType.Expense, bool archived = false)
+	{
+		CategoryReadModel category = CategoryFactory.CreateReadModel(type: type, archived: archived);
+
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: category);
 	}
 
 	[Test]
@@ -126,5 +145,94 @@ public sealed class CreateRecurringTransactionHandlerTests
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCategoryNotFound_ShouldReturnNotFoundException()
+	{
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (CategoryReadModel?)null);
+
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCategoryNotFound_ShouldNotCreateRecurringTransaction()
+	{
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (CategoryReadModel?)null);
+
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
+
+		await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+
+		await _writeRepository.DidNotReceive().CreateAsync(
+			recurringTransaction: Arg.Any<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenDebitDirectionWithIncomeCategory_ShouldReturnInvalidTransactionDirectionException()
+	{
+		SetupCategory(type: CategoryType.Income);
+
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Debit);
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransactionDirectionException>();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCreditDirectionWithExpenseCategory_ShouldReturnInvalidTransactionDirectionException()
+	{
+		SetupCategory(type: CategoryType.Expense);
+
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Credit);
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransactionDirectionException>();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenDirectionMismatchesCategory_ShouldNotCreateRecurringTransaction()
+	{
+		SetupCategory(type: CategoryType.Income);
+
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Debit);
+
+		await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+
+		await _writeRepository.DidNotReceive().CreateAsync(
+			recurringTransaction: Arg.Any<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenCreditDirectionWithIncomeCategory_ShouldSucceed()
+	{
+		SetupCategory(type: CategoryType.Income);
+
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Credit);
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 }

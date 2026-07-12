@@ -44,9 +44,6 @@ public sealed class ExcludeTransactionHandler(
 				ct: ct
 			);
 
-			if (transaction.Direction != DirectionType.Debit)
-				return;
-
 			await categoryTotalWriteRepository.SubtractAsync(
 				userId: transaction.UserId,
 				categoryId: transaction.CategoryId,
@@ -55,6 +52,9 @@ public sealed class ExcludeTransactionHandler(
 				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
+
+			if (transaction.Direction != DirectionType.Debit)
+				return;
 
 			await budgetProgressWriteRepository.SubtractAsync(
 				userId: transaction.UserId,

@@ -1,7 +1,9 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
+using FinanceTracker.Application.UseCases.Transaction.Utilities;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
@@ -17,6 +19,7 @@ namespace FinanceTracker.Application.UseCases.Transaction.Services;
 
 public sealed class TransactionCreationService(
 	IAccountRepository accountRepository,
+	ICategoryReadRepository categoryReadRepository,
 	ITransactionWriteRepository transactionWriteRepository,
 	ICurrencyConversionService currencyConversionService,
 	IUnitOfWork unitOfWork,
@@ -52,11 +55,34 @@ public sealed class TransactionCreationService(
 		_ => throw new InvalidTransactionDirectionException(message: "Direction is unknown.")
 	};
 
+	private async Task<DomainException?> ValidateCategoryAsync(
+		CreateTransactionCommand command,
+		CancellationToken ct)
+	{
+		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(
+			categoryId: command.CategoryId,
+			userId: command.UserId,
+			ct: ct
+		);
+
+		if (category is null)
+			return new NotFoundException(message: "Category not found.", id: command.CategoryId);
+
+		if (category.IsArchived)
+			return new ArchivedOperationException(message: "Cannot create a transaction for an archived category.");
+
+		return CategoryDirectionValidator.Validate(category: category, direction: command.Direction);
+	}
+
 	public async Task<Result<Core.Domains.Transaction.Transaction, DomainException>> CreateAsync(
 		CreateTransactionCommand command,
 		Core.Domains.Account.Account account,
 		CancellationToken ct = default)
 	{
+		DomainException? categoryError = await ValidateCategoryAsync(command: command, ct: ct);
+		if (categoryError is not null)
+			return Result<Core.Domains.Transaction.Transaction, DomainException>.Failure(error: categoryError);
+
 		Result<Money, DomainException> amountResult = Money.Create(amount: command.Amount, currency: command.Currency);
 		if (amountResult.IsFailure)
 			return Result<Core.Domains.Transaction.Transaction, DomainException>.Failure(error: amountResult.Error!);
@@ -101,9 +127,6 @@ public sealed class TransactionCreationService(
 			await transactionWriteRepository.CreateAsync(transaction: transaction, ct: ct);
 			await accountRepository.SaveAsync(account: account, ct: ct);
 
-			if (command.Direction != DirectionType.Debit)
-				return;
-
 			await categoryTotalWriteRepository.AddAsync(
 				userId: command.UserId,
 				categoryId: command.CategoryId,
@@ -112,6 +135,9 @@ public sealed class TransactionCreationService(
 				occurredAt: command.OccurredAt,
 				ct: ct
 			);
+
+			if (command.Direction != DirectionType.Debit)
+				return;
 
 			await budgetProgressWriteRepository.AddAsync(
 				userId: command.UserId,

@@ -1,8 +1,11 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
+using FinanceTracker.Application.UseCases.Transaction.Utilities;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -14,6 +17,7 @@ using ZLogger;
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 
 public sealed class CreateRecurringTransactionHandler(
+	ICategoryReadRepository categoryReadRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IUnitOfWork unitOfWork,
 	IPublisher publisher,
@@ -25,6 +29,14 @@ public sealed class CreateRecurringTransactionHandler(
 		CreateRecurringTransactionCommand command,
 		CancellationToken ct = default)
 	{
+		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
+		if (category is null)
+			return Result<Guid, AppException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
+
+		DomainException? directionError = CategoryDirectionValidator.Validate(category: category, direction: command.Direction);
+		if (directionError is not null)
+			return Result<Guid, AppException>.Failure(error: directionError);
+
 		Result<Money, DomainException> moneyResult = Money.Positive(amount: command.Amount, currency: command.Currency);
 		if (moneyResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: moneyResult.Error!);

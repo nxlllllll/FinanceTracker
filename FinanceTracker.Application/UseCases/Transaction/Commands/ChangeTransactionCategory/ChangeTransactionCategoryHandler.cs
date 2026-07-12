@@ -60,7 +60,7 @@ public sealed class ChangeTransactionCategoryHandler(
 				ct: ct
 			);
 
-			if (transaction is not { IsExcluded: false, Direction: DirectionType.Debit })
+			if (transaction.IsExcluded)
 				return;
 
 			await categoryTotalWriteRepository.ChangeCategoryAsync(
@@ -72,6 +72,9 @@ public sealed class ChangeTransactionCategoryHandler(
 				occurredAt: transaction.OccurredAt,
 				ct: ct
 			);
+
+			if (transaction.Direction != DirectionType.Debit)
+				return;
 
 			await budgetProgressWriteRepository.ChangeCategoryAsync(
 				userId: transaction.UserId,
