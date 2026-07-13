@@ -289,7 +289,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _compensationService.Received(requiredNumberOfCalls: 1).CompensateAsync(
 			transfer: Arg.Is<PendingCreditTransfer>(t =>
-				t.TransferId == TransferId &&
+				t!.TransferId == TransferId &&
 				t.FromAccountId == FromAccountId &&
 				t.Amount == 1000m),
 			ct: Arg.Any<CancellationToken>()

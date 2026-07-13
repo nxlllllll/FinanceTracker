@@ -37,7 +37,7 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),

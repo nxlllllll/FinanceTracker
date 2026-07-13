@@ -38,7 +38,7 @@ public sealed class RegisterUserHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new RegisterUserHandler(
 			userWriteRepository: _userWriteRepository,
@@ -65,7 +65,7 @@ public sealed class RegisterUserHandlerTests
 		);
 
 		await _userWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(user: Arg.Is<FinanceTracker.Core.Domains.User.User>(u =>
-			u.Email == "test@test.com" &&
+			u!.Email == "test@test.com" &&
 			u.BaseCurrency == "RUB"
 		), ct: Arg.Any<CancellationToken>());
 	}
@@ -84,7 +84,7 @@ public sealed class RegisterUserHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<UserRegisteredNotification>(n =>
-			n.Email.Value == "test@test.com" &&
+			n!.Email.Value == "test@test.com" &&
 			n.BaseCurrency.Value == "RUB"
 		));
 	}

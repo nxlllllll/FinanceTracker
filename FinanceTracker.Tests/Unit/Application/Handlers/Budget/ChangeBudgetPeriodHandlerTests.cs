@@ -34,7 +34,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 			operation: Arg.Any<Func<Task<bool>>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<bool>>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<bool>>>()?.Invoke());
 
 		_budgetReadRepository.HasOverlappingAsync(
 			userId: Arg.Any<Guid>(),
@@ -92,7 +92,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<BudgetPeriodChangedNotification>(n =>
-			n.BudgetId == budget.Id &&
+			n!.BudgetId == budget.Id &&
 			n.UserId == budget.UserId &&
 			n.NewFrom == newFrom &&
 			n.NewTo == newTo

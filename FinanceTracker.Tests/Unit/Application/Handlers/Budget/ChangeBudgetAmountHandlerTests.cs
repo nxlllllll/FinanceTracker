@@ -56,7 +56,7 @@ public sealed class ChangeBudgetAmountHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<BudgetAmountChangedNotification>(n =>
-			n.BudgetId == budget.Id &&
+			n!.BudgetId == budget.Id &&
 			n.UserId == budget.UserId &&
 			n.NewAmount == 5000m
 		));

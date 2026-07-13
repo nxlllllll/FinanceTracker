@@ -58,7 +58,7 @@ public sealed class ChangeRecurringTransactionAmountHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionAmountChangedNotification>(n =>
-			n.RecurringTransactionId == rt.Id &&
+			n!.RecurringTransactionId == rt.Id &&
 			n.UserId == rt.UserId &&
 			n.NewAmount == 500m
 		));

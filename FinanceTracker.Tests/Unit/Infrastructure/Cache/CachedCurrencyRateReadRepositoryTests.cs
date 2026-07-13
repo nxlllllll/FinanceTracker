@@ -51,7 +51,7 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 	{
 		_database.StringGetAsync(keys: Arg.Any<RedisKey[]>()).Returns(returnThis: callInfo =>
 		{
-			RedisKey[] keys = callInfo.Arg<RedisKey[]>();
+			RedisKey[] keys = callInfo.Arg<RedisKey[]>() ?? [];
 			RedisValue[] values = new RedisValue[keys.Length];
 
 			for (int i = 0; i < keys.Length; i++)

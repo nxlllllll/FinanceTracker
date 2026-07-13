@@ -35,7 +35,7 @@ public sealed class IncludeTransactionHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),
@@ -84,7 +84,7 @@ public sealed class IncludeTransactionHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionIncludedNotification>(n =>
-			n.TransactionId == transaction.Id &&
+			n!.TransactionId == transaction.Id &&
 			n.UserId == transaction.UserId
 		));
 	}

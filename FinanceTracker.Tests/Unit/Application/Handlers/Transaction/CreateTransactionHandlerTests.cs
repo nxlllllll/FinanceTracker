@@ -104,7 +104,7 @@ public sealed class CreateTransactionHandlerTests
 		await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionCreatedNotification>(n =>
-			n.TransactionId == transaction.Id &&
+			n!.TransactionId == transaction.Id &&
 			n.UserId == transaction.UserId &&
 			n.AccountId == transaction.AccountId &&
 			n.CategoryId == transaction.CategoryId &&

@@ -30,7 +30,7 @@ public sealed class CreateBudgetHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_budgetReadRepository.HasOverlappingAsync(
 			userId: Arg.Any<Guid>(),
@@ -83,7 +83,7 @@ public sealed class CreateBudgetHandlerTests
 
 		await _budgetWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			budget: Arg.Is<FinanceTracker.Core.Domains.Budget.Budget>(b =>
-				b.UserId == command.UserId &&
+				b!.UserId == command.UserId &&
 				b.CategoryId == command.CategoryId &&
 				b.Amount.Currency == command.Currency &&
 				b.Amount.Amount == command.Amount &&
@@ -108,7 +108,7 @@ public sealed class CreateBudgetHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<BudgetCreatedNotification>(n =>
-			n.UserId == command.UserId &&
+			n!.UserId == command.UserId &&
 			n.CategoryId == command.CategoryId
 		));
 	}

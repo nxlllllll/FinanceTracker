@@ -52,7 +52,7 @@ public sealed class IdempotencyBehaviourTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task<Result<Guid, DomainException>>>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task<Result<Guid, DomainException>>>>()());
+		).Returns(returnThis: call => call.Arg<Func<Task<Result<Guid, DomainException>>>>()?.Invoke());
 
 		_behaviour = BuildBehavior<TestCommand>();
 	}

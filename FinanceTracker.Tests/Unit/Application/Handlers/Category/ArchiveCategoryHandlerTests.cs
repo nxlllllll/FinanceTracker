@@ -34,7 +34,7 @@ public sealed class ArchiveCategoryHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),
@@ -115,7 +115,7 @@ public sealed class ArchiveCategoryHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
-			notification: Arg.Is<CategoryArchivedNotification>(n => n.CategoryId == category.Id && n.UserId == category.UserId)
+			notification: Arg.Is<CategoryArchivedNotification>(n => n!.CategoryId == category.Id && n.UserId == category.UserId)
 		);
 	}
 

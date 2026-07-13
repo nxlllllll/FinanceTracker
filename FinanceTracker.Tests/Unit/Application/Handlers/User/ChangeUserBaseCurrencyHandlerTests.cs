@@ -31,7 +31,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new ChangeUserBaseCurrencyHandler(
 			userWriteRepository: _userWriteRepository,
@@ -92,7 +92,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<UserBaseCurrencyChangedNotification>(n =>
-			n.UserId == user.Id &&
+			n!.UserId == user.Id &&
 			n.OldBaseCurrency.Value == "RUB" &&
 			n.NewBaseCurrency.Value == "USD"
 		));

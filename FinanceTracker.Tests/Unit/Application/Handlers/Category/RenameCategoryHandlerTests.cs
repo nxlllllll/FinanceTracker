@@ -60,7 +60,7 @@ public sealed class RenameCategoryHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<CategoryRenamedNotification>(n =>
-			n.CategoryId == category.Id &&
+			n!.CategoryId == category.Id &&
 			n.UserId == category.UserId &&
 			n.OldName == oldName &&
 			n.NewName == "Транспорт"

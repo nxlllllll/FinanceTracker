@@ -24,7 +24,7 @@ public sealed class UnarchiveAccountHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new UnarchiveAccountHandler(
 			accountRepository: _accountRepository,

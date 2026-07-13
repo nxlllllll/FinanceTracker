@@ -100,7 +100,7 @@ public sealed class RefreshTokenHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task<RefreshTokenHandler.RotateResult>>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<RefreshTokenHandler.RotateResult>>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<RefreshTokenHandler.RotateResult>>>()?.Invoke());
 
 		_handler = new RefreshTokenHandler(
 			userAuthRepository: _userAuthRepository,
@@ -205,7 +205,7 @@ public sealed class RefreshTokenHandlerTests
 		);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<RefreshTokenReuseDetectedNotification>(n => n.UserId == revokedSession.UserId),
+			notification: Arg.Is<RefreshTokenReuseDetectedNotification>(n => n!.UserId == revokedSession.UserId),
 			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}

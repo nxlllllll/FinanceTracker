@@ -23,7 +23,7 @@ public sealed class CreateAccountHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new CreateAccountHandler(
 			accountRepository: _accountRepository,
@@ -51,8 +51,8 @@ public sealed class CreateAccountHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(account =>
-				account.Name == command.Name &&
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: account =>
+				account!.Name == command.Name &&
 				account.UserId == command.UserId &&
 				account.Type == command.Type &&
 				account.Currency == command.Currency

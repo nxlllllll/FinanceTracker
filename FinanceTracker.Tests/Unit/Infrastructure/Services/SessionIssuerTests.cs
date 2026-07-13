@@ -114,7 +114,7 @@ public sealed class SessionIssuerTests
 		await _sessionIssuer.IssueAsync(user: TestUser);
 
 		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			session: Arg.Is<UserSession>(s => s.RefreshTokenHash == "hashed-refresh-token"),
+			session: Arg.Is<UserSession>(s => s!.RefreshTokenHash == "hashed-refresh-token"),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

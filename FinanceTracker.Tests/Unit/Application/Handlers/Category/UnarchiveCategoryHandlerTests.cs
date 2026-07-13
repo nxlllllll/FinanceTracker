@@ -57,7 +57,7 @@ public sealed class UnarchiveCategoryHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
-			notification: Arg.Is<CategoryUnarchivedNotification>(n => n.CategoryId == category.Id && n.UserId == category.UserId)
+			notification: Arg.Is<CategoryUnarchivedNotification>(n => n!.CategoryId == category.Id && n.UserId == category.UserId)
 		);
 	}
 

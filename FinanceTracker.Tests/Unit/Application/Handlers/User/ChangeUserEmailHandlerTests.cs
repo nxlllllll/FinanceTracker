@@ -44,7 +44,7 @@ public sealed class ChangeUserEmailHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new ChangeUserEmailHandler(
 			userAuthRepository: _userAuthRepository,
@@ -122,7 +122,7 @@ public sealed class ChangeUserEmailHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<UserEmailChangedNotification>(n =>
-			n.UserId == user.Id &&
+			n!.UserId == user.Id &&
 			n.NewEmail.Value == "new@test.com"
 		));
 	}

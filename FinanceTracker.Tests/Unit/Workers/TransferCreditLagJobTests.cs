@@ -33,7 +33,7 @@ public sealed class TransferCreditLagJobTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
+		).Returns(returnThis: call => call.Arg<Func<Task>>()?.Invoke());
 
 		_transferReadRepository.GetPendingCreditCountAsync(
 			gracePeriod: Arg.Any<TimeSpan>(),

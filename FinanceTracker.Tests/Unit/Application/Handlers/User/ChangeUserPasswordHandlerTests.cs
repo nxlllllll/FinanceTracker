@@ -39,7 +39,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new ChangeUserPasswordHandler(
 			userWriteRepository: _userWriteRepository,
@@ -155,7 +155,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
-			notification: Arg.Is<UserPasswordChangedNotification>(n => n.UserId == user.Id)
+			notification: Arg.Is<UserPasswordChangedNotification>(n => n!.UserId == user.Id)
 		);
 	}
 

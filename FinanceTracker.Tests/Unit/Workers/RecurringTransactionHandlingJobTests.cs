@@ -44,7 +44,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
+		).Returns(returnThis: call => call.Arg<Func<Task>>()?.Invoke());
 
 		SetupNoMissedTransactions();
 
@@ -159,7 +159,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _job.Execute(context: _jobContext);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(message: Arg.Is<RecurringTransactionTriggeredMessage>(m =>
-			m.RecurringTransactionId == transaction.Id &&
+			m!.RecurringTransactionId == transaction.Id &&
 			m.AccountId == transaction.AccountId &&
 			m.UserId == transaction.UserId &&
 			m.CorrelationId == _correlationContext.CorrelationId
@@ -178,7 +178,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _job.Execute(context: _jobContext);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
-			message: Arg.Is<RecurringTransactionTriggeredMessage>(predicate: m => m.MessageId == expectedMessageId),
+			message: Arg.Is<RecurringTransactionTriggeredMessage>(predicate: m => m!.MessageId == expectedMessageId),
 			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);

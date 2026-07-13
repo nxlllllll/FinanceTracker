@@ -36,7 +36,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 		_currencyConversionService.GetStableRatesBatchAsync(
 			requests: Arg.Any<IReadOnlyCollection<CurrencyStableRateRequest>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<IReadOnlyCollection<CurrencyStableRateRequest>>().ToDictionary(
+		).Returns(returnThis: callInfo => callInfo.Arg<IReadOnlyCollection<CurrencyStableRateRequest>>()!.ToDictionary(
 			keySelector: r => r,
 			elementSelector: _ => 1m
 		));

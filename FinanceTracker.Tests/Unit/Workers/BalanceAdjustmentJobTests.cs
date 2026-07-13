@@ -53,7 +53,7 @@ public sealed class BalanceAdjustmentJobTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
+		).Returns(returnThis: call => call.Arg<Func<Task>>()?.Invoke());
 
 		SetupEmptyRepositories();
 
@@ -617,7 +617,7 @@ public sealed class BalanceAdjustmentJobTests
 		await _job.Execute(_jobContext);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<Account>(a => a.Id == toAccountId && a.Balance.Amount == 9000m),
+			account: Arg.Is<Account>(a => a!.Id == toAccountId && a.Balance.Amount == 9000m),
 			ct: Arg.Any<CancellationToken>()
 		);
 
@@ -626,7 +626,7 @@ public sealed class BalanceAdjustmentJobTests
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _accountRepository.DidNotReceive().SaveAsync(
-			account: Arg.Is<Account>(a => a.Id == fromAccountId),
+			account: Arg.Is<Account>(a => a!.Id == fromAccountId),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

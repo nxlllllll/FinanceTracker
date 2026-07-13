@@ -57,7 +57,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionDeactivatedNotification>(n =>
-			n.RecurringTransactionId == rt.Id &&
+			n!.RecurringTransactionId == rt.Id &&
 			n.UserId == rt.UserId
 		));
 	}

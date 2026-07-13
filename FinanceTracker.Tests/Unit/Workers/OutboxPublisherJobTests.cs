@@ -70,13 +70,13 @@ public sealed class OutboxPublisherJobTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
+		).Returns(returnThis: call => call.Arg<Func<Task>>()?.Invoke());
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: call => call.Arg<Func<Task>>()());
+		).Returns(returnThis: call => call.Arg<Func<Task>>()?.Invoke());
 
 		_readRepository.ClaimPendingBatchAsync(
 			batchSize: Arg.Any<int>(),

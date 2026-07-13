@@ -35,7 +35,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new CreateRecurringTransactionHandler(
 			categoryReadRepository: _categoryReadRepository,
@@ -80,7 +80,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionCreatedNotification>(n =>
-			n.UserId == command.UserId &&
+			n!.UserId == command.UserId &&
 			n.AccountId == command.AccountId &&
 			n.CategoryId == command.CategoryId
 		));

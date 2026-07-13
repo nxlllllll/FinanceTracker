@@ -58,7 +58,7 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionCurrencyChangedNotification>(n =>
-			n.RecurringTransactionId == rt.Id &&
+			n!.RecurringTransactionId == rt.Id &&
 			n.UserId == rt.UserId &&
 			n.NewCurrency == newCurrency
 		));

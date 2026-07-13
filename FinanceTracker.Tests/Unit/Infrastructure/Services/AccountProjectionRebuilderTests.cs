@@ -35,7 +35,7 @@ public sealed class AccountProjectionRebuilderTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		AccountDomainEventApplier applier = new AccountDomainEventApplier(repository: _repository);
 

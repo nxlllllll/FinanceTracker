@@ -22,7 +22,7 @@ public sealed class RenameAccountHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new RenameAccountHandler(
 			accountRepository: _accountRepository,
@@ -43,7 +43,7 @@ public sealed class RenameAccountHandlerTests
 		);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a.Name.Value == "Карта Тинькофф"),
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(predicate: a => a!.Name.Value == "Карта Тинькофф"),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

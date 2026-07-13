@@ -69,7 +69,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionDescriptionChangedNotification>(n =>
-			n.TransactionId == transaction.Id &&
+			n!.TransactionId == transaction.Id &&
 			n.UserId == transaction.UserId &&
 			n.OldDescription == "Old description" &&
 			n.NewDescription == "New description"

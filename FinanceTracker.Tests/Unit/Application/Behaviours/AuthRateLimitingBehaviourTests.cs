@@ -273,13 +273,13 @@ public sealed class AuthRateLimitingBehaviourTests
 	public async Task Handle_WhenBothScopedAndOnlyIpDenies_ShouldReturnFailureAndNotCheckEmail()
 	{
 		_rateLimiter.IsAllowedAsync(
-			key: Arg.Is<string>(predicate: k => k.StartsWith(value: "ratelimit:ip:")),
+			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:ip:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: false);
 		_rateLimiter.IsAllowedAsync(
-			key: Arg.Is<string>(predicate: k => k.StartsWith(value: "ratelimit:email:")),
+			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:email:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -298,7 +298,7 @@ public sealed class AuthRateLimitingBehaviourTests
 		await Assert.That(value: result.Error).IsTypeOf<RateLimitExceededException>();
 		await next.DidNotReceive().Invoke(t: Arg.Any<CancellationToken>());
 		await _rateLimiter.DidNotReceive().IsAllowedAsync(
-			key: Arg.Is<string>(predicate: k => k.StartsWith(value: "ratelimit:email:")),
+			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:email:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -309,13 +309,13 @@ public sealed class AuthRateLimitingBehaviourTests
 	public async Task Handle_WhenBothScopedAndOnlyEmailDenies_ShouldReturnFailure()
 	{
 		_rateLimiter.IsAllowedAsync(
-			key: Arg.Is<string>(predicate: k => k.StartsWith(value: "ratelimit:ip:")),
+			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:ip:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 		_rateLimiter.IsAllowedAsync(
-			key: Arg.Is<string>(predicate: k => k.StartsWith(value: "ratelimit:email:")),
+			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:email:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

@@ -27,7 +27,7 @@ public sealed class CreateCategoryHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_handler = new CreateCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
@@ -51,7 +51,7 @@ public sealed class CreateCategoryHandlerTests
 
 		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c =>
-				c.Name == "Еда" &&
+				c!.Name == "Еда" &&
 				c.Type == CategoryType.Expense &&
 				c.IsArchived == false
 			),
@@ -73,7 +73,7 @@ public sealed class CreateCategoryHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _categoryWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c => c.ParentId == parentId),
+			category: Arg.Is<FinanceTracker.Core.Domains.Category.Category>(c => c!.ParentId == parentId),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -91,7 +91,7 @@ public sealed class CreateCategoryHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<CategoryCreatedNotification>(n =>
-			n.UserId == command.UserId &&
+			n!.UserId == command.UserId &&
 			n.Name == "Еда" &&
 			n.Type == CategoryType.Expense
 		));

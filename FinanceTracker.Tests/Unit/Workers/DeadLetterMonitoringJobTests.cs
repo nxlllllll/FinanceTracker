@@ -186,7 +186,7 @@ public sealed class DeadLetterMonitoringJobTests
 		await _job.Execute(context: _jobContext);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).AcknowledgeBatchAsync(
-			ids: Arg.Is<IReadOnlyList<Guid>>(predicate: ids => ids.Contains(e1.Id) && ids.Contains(e2.Id) && ids.Count == 2),
+			ids: Arg.Is<IReadOnlyList<Guid>>(predicate: ids => ids != null && ids.Contains(e1.Id) && ids.Contains(e2.Id) && ids.Count == 2),
 			acknowledgedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);

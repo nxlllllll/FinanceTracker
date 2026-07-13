@@ -35,7 +35,7 @@ public sealed class CreateTransferHandlerTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),
@@ -94,7 +94,7 @@ public sealed class CreateTransferHandlerTests
 		);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(a => a.Id == fromAccount.Id),
+			account: Arg.Is<FinanceTracker.Core.Domains.Account.Account>(a => a!.Id == fromAccount.Id),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -140,7 +140,7 @@ public sealed class CreateTransferHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransferCreatedNotification>(n =>
-			n.UserId == fromAccount.UserId &&
+			n!.UserId == fromAccount.UserId &&
 			n.FromAccountId == fromAccount.Id &&
 			n.ToAccountId == toAccountId
 		));

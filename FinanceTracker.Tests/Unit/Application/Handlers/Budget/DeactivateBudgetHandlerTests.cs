@@ -58,7 +58,7 @@ public sealed class DeactivateBudgetHandlerTests
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
-			notification: Arg.Is<BudgetDeactivatedNotification>(n => n.BudgetId == budget.Id && n.UserId == budget.UserId
+			notification: Arg.Is<BudgetDeactivatedNotification>(n => n!.BudgetId == budget.Id && n.UserId == budget.UserId
 		));
 	}
 

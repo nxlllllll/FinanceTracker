@@ -46,7 +46,7 @@ public sealed class TransactionCreationServiceTests
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			onError: Arg.Any<Func<Exception, Task>>(),
@@ -151,7 +151,7 @@ public sealed class TransactionCreationServiceTests
 		);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<Account>(predicate: a => a.Balance.Amount == 9000m),
+			account: Arg.Is<Account>(predicate: a => a!.Balance.Amount == 9000m),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -170,7 +170,7 @@ public sealed class TransactionCreationServiceTests
 		);
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			account: Arg.Is<Account>(predicate: a => a.Balance.Amount == 11000m),
+			account: Arg.Is<Account>(predicate: a => a!.Balance.Amount == 11000m),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -188,7 +188,7 @@ public sealed class TransactionCreationServiceTests
 		);
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			transaction: Arg.Is<Transaction>(predicate: t => t.ExchangeRate == 0.85m && t.IsRatePending),
+			transaction: Arg.Is<Transaction>(predicate: t => t!.ExchangeRate == 0.85m && t.IsRatePending),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
