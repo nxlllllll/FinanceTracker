@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.DeactivateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -14,19 +15,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
 public sealed class DeactivateBudgetHandlerTests
 {
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private DeactivateBudgetHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_handler = new DeactivateBudgetHandler(
 			budgetWriteRepository: _budgetWriteRepository,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<DeactivateBudgetHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -59,10 +59,9 @@ public sealed class DeactivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<BudgetDeactivatedNotification>(n => n.BudgetId == budget.Id && n.UserId == budget.UserId),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Is<BudgetDeactivatedNotification>(n => n.BudgetId == budget.Id && n.UserId == budget.UserId
+		));
 	}
 
 	[Test]
@@ -93,9 +92,6 @@ public sealed class DeactivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<BudgetDeactivatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<BudgetDeactivatedNotification>());
 	}
 }

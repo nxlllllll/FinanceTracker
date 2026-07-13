@@ -35,6 +35,6 @@ public sealed class CreateBudgetCommandValidator : AbstractValidator<CreateBudge
 			.WithMessage(errorMessage: $"The amount cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.");
 
 		RuleFor(expression: command => command.To)
-			.GreaterThanOrEqualTo(expression: command => command.From).WithMessage(errorMessage: "The end date cannot be before the start date.");
+			.GreaterThan(expression: command => command.From).WithMessage(errorMessage: "The end date must be after the start date.");
 	}
 }

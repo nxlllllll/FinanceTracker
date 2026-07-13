@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -16,7 +17,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 {
 	private IUserWriteRepository _userWriteRepository = null!;
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ChangeUserBaseCurrencyHandler _handler = null!;
 
@@ -25,7 +26,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 	{
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
@@ -37,9 +38,8 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 			userWriteRepository: _userWriteRepository,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ChangeUserBaseCurrencyHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -92,11 +92,11 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(notification: Arg.Is<UserBaseCurrencyChangedNotification>(n =>
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<UserBaseCurrencyChangedNotification>(n =>
 			n.UserId == user.Id &&
 			n.OldBaseCurrency.Value == "RUB" &&
 			n.NewBaseCurrency.Value == "USD"
-		), cancellationToken: Arg.Any<CancellationToken>());
+		));
 	}
 
 	[Test]
@@ -148,9 +148,6 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
 	}
 }

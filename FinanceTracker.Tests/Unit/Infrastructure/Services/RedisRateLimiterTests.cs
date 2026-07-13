@@ -1,4 +1,3 @@
-using FinanceTracker.Infrastructure.Services.Date;
 using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 
@@ -11,7 +10,7 @@ public sealed class RedisRateLimiterTests : RedisFixture
 
 	[Before(hookType: Test)]
 	public void Setup()
-		=> _rateLimiter = new RedisRateLimiter(connectionMultiplexer: Redis, dateProvider: new DateProvider());
+		=> _rateLimiter = new RedisRateLimiter(connectionMultiplexer: Redis);
 
 	[Test]
 	public async Task IsAllowedAsync_WhenUnderLimit_ShouldAllow()
@@ -50,5 +49,24 @@ public sealed class RedisRateLimiterTests : RedisFixture
 
 		await Assert.That(value: key1Allowed).IsFalse();
 		await Assert.That(value: key2Allowed).IsTrue();
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_AfterWindowElapses_ShouldAllowAgain()
+	{
+		string key = $"test:ratelimit:{Guid.CreateVersion7():N}";
+		const int limit = 1;
+		const int windowSeconds = 1;
+
+		bool firstAllowed = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: windowSeconds);
+		bool immediatelyDenied = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: windowSeconds);
+
+		await Task.Delay(delay: TimeSpan.FromSeconds(value: windowSeconds + 1));
+
+		bool allowedAfterWindow = await _rateLimiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: windowSeconds);
+
+		await Assert.That(value: firstAllowed).IsTrue();
+		await Assert.That(value: immediatelyDenied).IsFalse();
+		await Assert.That(value: allowedAfterWindow).IsTrue();
 	}
 }

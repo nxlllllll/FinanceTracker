@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -8,9 +9,6 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.ValueObjects;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
@@ -21,9 +19,8 @@ public sealed class ChangeUserEmailHandler(
 	IUserSessionWriteRepository userSessionWriteRepository,
 	IPasswordHasher passwordHasher,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
-	IDateProvider dateProvider,
-	ILogger<ChangeUserEmailHandler> logger
+	IPostCommitNotifications postCommitNotifications,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeUserEmailCommand, Core.Domains.User.User, Guid, AppException>
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
@@ -77,19 +74,12 @@ public sealed class ChangeUserEmailHandler(
 			return Result<Guid, AppException>.Failure(error: exception);
 		}
 
-		try
-		{
-			await publisher.Publish(notification: new UserEmailChangedNotification(
-				UserId: user.Id,
-				OldEmail: oldEmail,
-				NewEmail: newEmailResult.Value,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish UserEmailChangedNotification for user {user.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new UserEmailChangedNotification(
+			UserId: user.Id,
+			OldEmail: oldEmail,
+			NewEmail: newEmailResult.Value,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: user.Id);
 	}

@@ -185,4 +185,30 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
 			await _writeRepository.CreateAsync(budget: overlappingBudget, ct: CancellationToken.None)
 		));
 	}
+
+	[Test]
+	public async Task CreateAsync_WhenPeriodIsSingleDay_ShouldThrowCheckConstraintException()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		DateOnly sameDay = new DateOnly(year: 2025, month: 3, day: 10);
+		Core.Domains.Budget.Budget singleDayBudget = Core.Domains.Budget.Budget.Reconstitute(
+			id: Guid.CreateVersion7(),
+			userId: userId,
+			categoryId: categoryId,
+			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
+			isActive: true,
+			from: sameDay,
+			to: sameDay,
+			rowVersion: 0,
+			createdAt: FakeDateProvider.Default.UtcNow
+		);
+
+		EFUnitOfWork unitOfWork = new EFUnitOfWork(context: Context, logger: NullLogger<EFUnitOfWork>.Instance);
+
+		await Assert.ThrowsAsync<CheckConstraintException>(action: async () => await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			await _writeRepository.CreateAsync(budget: singleDayBudget, ct: CancellationToken.None)
+		));
+	}
 }

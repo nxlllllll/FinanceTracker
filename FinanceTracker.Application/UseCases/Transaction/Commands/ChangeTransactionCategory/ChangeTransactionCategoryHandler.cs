@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Utilities;
 using FinanceTracker.Core.Domains.Account;
@@ -11,9 +12,6 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
@@ -24,9 +22,8 @@ public sealed class ChangeTransactionCategoryHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IUnitOfWork unitOfWork,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
-	IPublisher publisher,
-	IDateProvider dateProvider,
-	ILogger<ChangeTransactionCategoryHandler> logger
+	IPostCommitNotifications postCommitNotifications,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeTransactionCategoryCommand, Core.Domains.Transaction.Transaction, Guid, AppException>
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
@@ -87,20 +84,13 @@ public sealed class ChangeTransactionCategoryHandler(
 			);
 		}, ct: ct);
 
-		try
-		{
-			await publisher.Publish(notification: new TransactionCategoryChangedNotification(
-				TransactionId: transaction.Id,
-				UserId: transaction.UserId,
-				OldCategoryId: oldCategoryId,
-				NewCategoryId: command.CategoryId,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionCategoryChangedNotification for transaction {transaction.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new TransactionCategoryChangedNotification(
+			TransactionId: transaction.Id,
+			UserId: transaction.UserId,
+			OldCategoryId: oldCategoryId,
+			NewCategoryId: command.CategoryId,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: transaction.Id);
 	}

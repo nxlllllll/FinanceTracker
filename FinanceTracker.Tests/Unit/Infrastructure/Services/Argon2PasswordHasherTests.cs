@@ -19,10 +19,10 @@ public sealed class Argon2PasswordHasherTests
 
 	private static Argon2PasswordHasher CreateHasher(Argon2Options? options = null)
 	{
-		IOptions<Argon2Options> optionsWrapper = Substitute.For<IOptions<Argon2Options>>();
-		optionsWrapper.Value.Returns(returnThis: options ?? FastOptions);
+		IOptionsMonitor<Argon2Options> optionsMonitor = Substitute.For<IOptionsMonitor<Argon2Options>>();
+		optionsMonitor.CurrentValue.Returns(returnThis: options ?? FastOptions);
 
-		return new Argon2PasswordHasher(options: optionsWrapper);
+		return new Argon2PasswordHasher(options: optionsMonitor);
 	}
 
 	[Test]
@@ -143,6 +143,223 @@ public sealed class Argon2PasswordHasherTests
 		Argon2PasswordHasher hasher = CreateHasher();
 
 		bool result = await hasher.Verify(password: Password, storedHash: null);
+
+		await Assert.That(value: result).IsFalse();
+	}
+
+	private static string ReplacePhcHeader(string hash, string newHeader)
+	{
+		int firstDollarAfterVersion = hash.IndexOf(value: '$', startIndex: "$argon2id$v=19".Length);
+		int secondDollar = hash.IndexOf(value: '$', startIndex: firstDollarAfterVersion + 1);
+		return hash[..(firstDollarAfterVersion + 1)] + newHeader + hash[secondDollar..];
+	}
+
+	[Test]
+	public async Task Verify_WithMemorySizeGrosslyExceedingConfig_ShouldReturnFalse()
+	{
+		Argon2PasswordHasher hasher = CreateHasher();
+		string hash = await hasher.Hash(password: Password);
+		string tampered = ReplacePhcHeader(hash: hash, newHeader: "m=2000000000,t=2,p=1");
+
+		bool result = await hasher.Verify(password: Password, storedHash: tampered);
+
+		await Assert.That(value: result).IsFalse();
+	}
+
+	[Test]
+	public async Task Verify_WithIterationsGrosslyExceedingConfig_ShouldReturnFalse()
+	{
+		Argon2PasswordHasher hasher = CreateHasher();
+		string hash = await hasher.Hash(password: Password);
+		string tampered = ReplacePhcHeader(hash: hash, newHeader: "m=19456,t=999999,p=1");
+
+		bool result = await hasher.Verify(password: Password, storedHash: tampered);
+
+		await Assert.That(value: result).IsFalse();
+	}
+
+	[Test]
+	public async Task Verify_WithParallelismGrosslyExceedingConfig_ShouldReturnFalse()
+	{
+		Argon2PasswordHasher hasher = CreateHasher();
+		string hash = await hasher.Hash(password: Password);
+		string tampered = ReplacePhcHeader(hash: hash, newHeader: "m=19456,t=2,p=999999");
+
+		bool result = await hasher.Verify(password: Password, storedHash: tampered);
+
+		await Assert.That(value: result).IsFalse();
+	}
+
+	[Test]
+	public async Task Verify_WithZeroOrNegativeParameters_ShouldReturnFalse()
+	{
+		Argon2PasswordHasher hasher = CreateHasher();
+		string hash = await hasher.Hash(password: Password);
+		string tampered = ReplacePhcHeader(hash: hash, newHeader: "m=0,t=2,p=1");
+
+		bool result = await hasher.Verify(password: Password, storedHash: tampered);
+
+		await Assert.That(value: result).IsFalse();
+	}
+
+	[Test]
+	public async Task Verify_WithMemorySizeExactlyAtDerivedCap_ShouldSucceed()
+	{
+		Argon2PasswordHasher hasherAtHashTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 32_768,
+			Iterations = 2,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+		string hash = await hasherAtHashTime.Hash(password: Password);
+
+		Argon2PasswordHasher hasherAtVerifyTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 16_384,
+			Iterations = 2,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+
+		bool result = await hasherAtVerifyTime.Verify(password: Password, storedHash: hash);
+
+		await Assert.That(value: result).IsTrue();
+	}
+
+	[Test]
+	public async Task Verify_WithMemorySizeOneAboveDerivedCap_ShouldReturnFalse()
+	{
+		Argon2PasswordHasher hasherAtHashTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 32_768,
+			Iterations = 2,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+		string hash = await hasherAtHashTime.Hash(password: Password);
+
+		Argon2PasswordHasher hasherAtVerifyTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 16_383,
+			Iterations = 2,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+
+		bool result = await hasherAtVerifyTime.Verify(password: Password, storedHash: hash);
+
+		await Assert.That(value: result).IsFalse();
+	}
+
+	[Test]
+	public async Task Verify_WithIterationsExactlyAtDerivedCap_ShouldSucceed()
+	{
+		Argon2PasswordHasher hasherAtHashTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 8,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+		string hash = await hasherAtHashTime.Hash(password: Password);
+
+		Argon2PasswordHasher hasherAtVerifyTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 4,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+
+		bool result = await hasherAtVerifyTime.Verify(password: Password, storedHash: hash);
+
+		await Assert.That(value: result).IsTrue();
+	}
+
+	[Test]
+	public async Task Verify_WithIterationsOneAboveDerivedCap_ShouldReturnFalse()
+	{
+		Argon2PasswordHasher hasherAtHashTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 8,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+		string hash = await hasherAtHashTime.Hash(password: Password);
+
+		Argon2PasswordHasher hasherAtVerifyTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 3,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+
+		bool result = await hasherAtVerifyTime.Verify(password: Password, storedHash: hash);
+
+		await Assert.That(value: result).IsFalse();
+	}
+
+	[Test]
+	public async Task Verify_WithParallelismExactlyAtDerivedCap_ShouldSucceed()
+	{
+		Argon2PasswordHasher hasherAtHashTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 2,
+			DegreeOfParallelism = 8,
+			HashLength = 16,
+			SaltLength = 16
+		});
+		string hash = await hasherAtHashTime.Hash(password: Password);
+
+		Argon2PasswordHasher hasherAtVerifyTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 2,
+			DegreeOfParallelism = 2,
+			HashLength = 16,
+			SaltLength = 16
+		});
+
+		bool result = await hasherAtVerifyTime.Verify(password: Password, storedHash: hash);
+
+		await Assert.That(value: result).IsTrue();
+	}
+
+	[Test]
+	public async Task Verify_WithParallelismOneAboveDerivedCap_ShouldReturnFalse()
+	{
+		Argon2PasswordHasher hasherAtHashTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 2,
+			DegreeOfParallelism = 8,
+			HashLength = 16,
+			SaltLength = 16
+		});
+		string hash = await hasherAtHashTime.Hash(password: Password);
+
+		Argon2PasswordHasher hasherAtVerifyTime = CreateHasher(options: new Argon2Options
+		{
+			MemorySize = 19_456,
+			Iterations = 2,
+			DegreeOfParallelism = 1,
+			HashLength = 16,
+			SaltLength = 16
+		});
+
+		bool result = await hasherAtVerifyTime.Verify(password: Password, storedHash: hash);
 
 		await Assert.That(value: result).IsFalse();
 	}

@@ -62,13 +62,14 @@ public sealed class ChangeBudgetPeriodCommandValidatorTests
 	}
 
 	[Test]
-	public async Task Validate_WithEndDateEqualToStartDate_ShouldNotHaveError()
+	public async Task Validate_WithEndDateEqualToStartDate_ShouldHaveError()
 	{
 		DateOnly sameDate = new DateOnly(year: 2026, month: 1, day: 15);
 		ChangeBudgetPeriodCommand command = ValidCommand() with { From = sameDate, To = sameDate };
 
 		ValidationResult result = await _validator.ValidateAsync(instance: command);
 
-		await Assert.That(value: result.IsValid).IsTrue();
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.To))).IsTrue();
 	}
 }

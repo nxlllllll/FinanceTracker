@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.RateLimit;
 using StackExchange.Redis;
 
@@ -6,20 +5,18 @@ namespace FinanceTracker.Infrastructure.Services.RateLimit;
 
 /// <summary>
 /// Redis-backed sliding-window rate limiter using an atomic Lua script.
-/// The script executes <c>ZREMRANGEBYSCORE</c>, <c>ZCARD</c>, <c>ZADD</c>, and <c>PEXPIRE</c>
-/// in a single round-trip, eliminating race conditions between check and increment.
+/// The script executes <c>TIME</c>, <c>ZREMRANGEBYSCORE</c>, <c>ZCARD</c>, <c>ZADD</c>, and
+/// <c>PEXPIRE</c> in a single round-trip, eliminating race conditions between check and increment.
 /// </summary>
-public sealed class RedisRateLimiter(
-	IConnectionMultiplexer connectionMultiplexer,
-	IDateProvider dateProvider
-) : IRateLimiter
+public sealed class RedisRateLimiter(IConnectionMultiplexer connectionMultiplexer) : IRateLimiter
 {
 	private static readonly LuaScript SlidingWindowScript = LuaScript.Prepare(script: """
 		local key = @key
-		local now = tonumber(@now)
 		local windowMs = tonumber(@windowMs)
 		local limit = tonumber(@limit)
 		local unique = @unique
+		local time = redis.call('TIME')
+		local now = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
 		redis.call('ZREMRANGEBYSCORE', key, '-inf', now - windowMs)
 		local count = redis.call('ZCARD', key)
 		if count < limit then
@@ -28,7 +25,7 @@ public sealed class RedisRateLimiter(
 		    return 1
 		end
 		return 0
-	""");
+		""");
 
 	public async Task<bool> IsAllowedAsync(
 		string key,
@@ -38,13 +35,11 @@ public sealed class RedisRateLimiter(
 	{
 		IDatabase database = connectionMultiplexer.GetDatabase();
 
-		long now = dateProvider.UtcNow.ToUnixTimeMilliseconds();
 		long windowMs = windowSeconds * 1000L;
 
 		RedisResult result = await database.ScriptEvaluateAsync(script: SlidingWindowScript, parameters: new
 		{
 			key = (RedisKey)key,
-			now,
 			windowMs,
 			limit = requestsPerWindow,
 #pragma warning disable RS0030 // Banned API — jitter only needs uniqueness, not time-ordering, so a random Guid is fine here.

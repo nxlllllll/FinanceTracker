@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
@@ -20,7 +21,7 @@ public sealed class IncludeTransactionHandlerTests
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
 	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private IncludeTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -30,7 +31,7 @@ public sealed class IncludeTransactionHandlerTests
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -47,7 +48,7 @@ public sealed class IncludeTransactionHandlerTests
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
+			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<IncludeTransactionHandler>>()
 		);
@@ -83,12 +84,10 @@ public sealed class IncludeTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<TransactionIncludedNotification>(n =>
-				n.TransactionId == transaction.Id &&
-				n.UserId == transaction.UserId),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionIncludedNotification>(n =>
+			n.TransactionId == transaction.Id &&
+			n.UserId == transaction.UserId
+		));
 	}
 
 	[Test]
@@ -116,9 +115,6 @@ public sealed class IncludeTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<TransactionIncludedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<TransactionIncludedNotification>());
 	}
 }

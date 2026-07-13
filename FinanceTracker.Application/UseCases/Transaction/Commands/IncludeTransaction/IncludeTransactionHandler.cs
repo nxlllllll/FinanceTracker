@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
@@ -9,7 +10,6 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
@@ -21,7 +21,7 @@ public sealed class IncludeTransactionHandler(
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
+	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider,
 	ILogger<IncludeTransactionHandler> logger
 ) : IAuthorizedHandler<IncludeTransactionCommand, Core.Domains.Transaction.Transaction, Guid, AppException>
@@ -68,18 +68,11 @@ public sealed class IncludeTransactionHandler(
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to include transaction {transaction.Id}."),
 		ct: ct);
 
-		try
-		{
-			await publisher.Publish(notification: new TransactionIncludedNotification(
-				TransactionId: transaction.Id,
-				UserId: transaction.UserId,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish TransactionIncludedNotification for transaction {transaction.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new TransactionIncludedNotification(
+			TransactionId: transaction.Id,
+			UserId: transaction.UserId,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: transaction.Id);
 	}

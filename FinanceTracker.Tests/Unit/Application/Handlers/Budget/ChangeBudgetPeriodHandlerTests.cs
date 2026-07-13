@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetPeriod;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -18,7 +19,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ChangeBudgetPeriodHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -28,7 +29,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync<bool>(
 			operation: Arg.Any<Func<Task<bool>>>(),
@@ -50,7 +51,7 @@ public sealed class ChangeBudgetPeriodHandlerTests
 			budgetWriteRepository: _budgetWriteRepository,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
+			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<ChangeBudgetPeriodHandler>>()
 		);
@@ -91,14 +92,12 @@ public sealed class ChangeBudgetPeriodHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<BudgetPeriodChangedNotification>(n =>
-				n.BudgetId == budget.Id &&
-				n.UserId == budget.UserId &&
-				n.NewFrom == newFrom &&
-				n.NewTo == newTo),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<BudgetPeriodChangedNotification>(n =>
+			n.BudgetId == budget.Id &&
+			n.UserId == budget.UserId &&
+			n.NewFrom == newFrom &&
+			n.NewTo == newTo
+		));
 	}
 
 	[Test]
@@ -145,9 +144,6 @@ public sealed class ChangeBudgetPeriodHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<BudgetPeriodChangedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<BudgetPeriodChangedNotification>());
 	}
 }

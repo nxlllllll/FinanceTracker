@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Category.Commands.UnarchiveCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -13,19 +14,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 public sealed class UnarchiveCategoryHandlerTests
 {
 	private ICategoryWriteRepository _categoryWriteRepository = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private UnarchiveCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_handler = new UnarchiveCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<UnarchiveCategoryHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -58,9 +58,8 @@ public sealed class UnarchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<CategoryUnarchivedNotification>(n => n.CategoryId == category.Id && n.UserId == category.UserId),
-			cancellationToken: Arg.Any<CancellationToken>()
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Is<CategoryUnarchivedNotification>(n => n.CategoryId == category.Id && n.UserId == category.UserId)
 		);
 	}
 
@@ -89,9 +88,6 @@ public sealed class UnarchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<CategoryUnarchivedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<CategoryUnarchivedNotification>());
 	}
 }

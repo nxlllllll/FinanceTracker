@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -6,9 +7,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
@@ -17,9 +15,8 @@ public sealed class ActivateBudgetHandler(
 	IBudgetReadRepository budgetReadRepository,
 	IBudgetWriteRepository budgetWriteRepository,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
-	IDateProvider dateProvider,
-	ILogger<ActivateBudgetHandler> logger
+	IPostCommitNotifications postCommitNotifications,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<ActivateBudgetCommand, Core.Domains.Budget.Budget, Guid, AppException>
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
@@ -66,18 +63,11 @@ public sealed class ActivateBudgetHandler(
 			));
 		}
 
-		try
-		{
-			await publisher.Publish(notification: new BudgetActivatedNotification(
-				BudgetId: user.Id,
-				UserId: user.UserId,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetActivatedNotification for budget {user.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new BudgetActivatedNotification(
+			BudgetId: user.Id,
+			UserId: user.UserId,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: user.Id);
 	}

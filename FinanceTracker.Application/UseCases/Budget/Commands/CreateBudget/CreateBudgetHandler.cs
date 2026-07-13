@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -7,8 +8,6 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 
@@ -16,9 +15,8 @@ public sealed class CreateBudgetHandler(
 	IBudgetReadRepository budgetReadRepository,
 	IBudgetWriteRepository budgetWriteRepository,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
-	IDateProvider dateProvider,
-	ILogger<CreateBudgetHandler> logger
+	IPostCommitNotifications postCommitNotifications,
+	IDateProvider dateProvider
 ) : IRequestHandler<CreateBudgetCommand, Result<Guid, AppException>>
 {
 	public async Task<Result<Guid, AppException>> Handle(
@@ -69,22 +67,15 @@ public sealed class CreateBudgetHandler(
 		if (hasOverlap)
 			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
-		try
-		{
-			await publisher.Publish(notification: new BudgetCreatedNotification(
-				BudgetId: budget.Id,
-				UserId: budget.UserId,
-				CategoryId: budget.CategoryId,
-				Amount: budget.Amount,
-				From: budget.From,
-				To: budget.To,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetCreatedNotification for budget {budget.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new BudgetCreatedNotification(
+			BudgetId: budget.Id,
+			UserId: budget.UserId,
+			CategoryId: budget.CategoryId,
+			Amount: budget.Amount,
+			From: budget.From,
+			To: budget.To,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: budget.Id);
 	}

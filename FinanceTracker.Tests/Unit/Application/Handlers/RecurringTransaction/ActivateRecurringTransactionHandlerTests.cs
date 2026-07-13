@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ActivateRecurringTransaction;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -14,19 +15,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
 public sealed class ActivateRecurringTransactionHandlerTests
 {
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ActivateRecurringTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_handler = new ActivateRecurringTransactionHandler(
 			recurringTransactionWriteRepository: _writeRepository,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ActivateRecurringTransactionHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -56,10 +56,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<RecurringTransactionActivatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<RecurringTransactionActivatedNotification>());
 	}
 
 	[Test]
@@ -91,11 +88,9 @@ public sealed class ActivateRecurringTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<RecurringTransactionActivatedNotification>(n =>
-				n.RecurringTransactionId == rt.Id &&
-				n.UserId == rt.UserId),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionActivatedNotification>(n =>
+			n.RecurringTransactionId == rt.Id &&
+			n.UserId == rt.UserId
+		));
 	}
 }

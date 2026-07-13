@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionCurrency;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -11,19 +12,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
 public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 {
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ChangeRecurringTransactionCurrencyHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_handler = new ChangeRecurringTransactionCurrencyHandler(
 			recurringTransactionWriteRepository: _writeRepository,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ChangeRecurringTransactionCurrencyHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -59,12 +59,10 @@ public sealed class ChangeRecurringTransactionCurrencyHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<RecurringTransactionCurrencyChangedNotification>(n =>
-				n.RecurringTransactionId == rt.Id &&
-				n.UserId == rt.UserId &&
-				n.NewCurrency == newCurrency),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionCurrencyChangedNotification>(n =>
+			n.RecurringTransactionId == rt.Id &&
+			n.UserId == rt.UserId &&
+			n.NewCurrency == newCurrency
+		));
 	}
 }

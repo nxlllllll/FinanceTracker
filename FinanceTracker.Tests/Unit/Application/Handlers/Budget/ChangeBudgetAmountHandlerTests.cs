@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Repositories.Budget;
@@ -11,19 +12,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
 public sealed class ChangeBudgetAmountHandlerTests
 {
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ChangeBudgetAmountHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_handler = new ChangeBudgetAmountHandler(
 			budgetWriteRepository: _budgetWriteRepository,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ChangeBudgetAmountHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -57,13 +57,11 @@ public sealed class ChangeBudgetAmountHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<BudgetAmountChangedNotification>(n =>
-				n.BudgetId == budget.Id &&
-				n.UserId == budget.UserId &&
-				n.NewAmount == 5000m),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<BudgetAmountChangedNotification>(n =>
+			n.BudgetId == budget.Id &&
+			n.UserId == budget.UserId &&
+			n.NewAmount == 5000m
+		));
 	}
 
 	[Test]
@@ -77,9 +75,6 @@ public sealed class ChangeBudgetAmountHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<BudgetAmountChangedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<BudgetAmountChangedNotification>());
 	}
 }

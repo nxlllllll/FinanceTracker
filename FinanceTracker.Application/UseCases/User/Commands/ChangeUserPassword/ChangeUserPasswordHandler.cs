@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -7,9 +8,6 @@ using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Password;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
@@ -19,9 +17,8 @@ public sealed class ChangeUserPasswordHandler(
 	IUserSessionWriteRepository userSessionWriteRepository,
 	IPasswordHasher passwordHasher,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
-	IDateProvider dateProvider,
-	ILogger<ChangeUserPasswordHandler> logger
+	IPostCommitNotifications postCommitNotifications,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeUserPasswordCommand, Core.Domains.User.User, Guid, AppException>
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
@@ -60,17 +57,10 @@ public sealed class ChangeUserPasswordHandler(
 			);
 		}, ct: ct);
 
-		try
-		{
-			await publisher.Publish(notification: new UserPasswordChangedNotification(
-				UserId: user.Id,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish UserPasswordChangedNotification for user {user.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new UserPasswordChangedNotification(
+			UserId: user.Id,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: user.Id);
 	}

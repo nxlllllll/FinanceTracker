@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -13,20 +14,19 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class ChangeTransactionDescriptionHandlerTests
 {
 	private ITransactionWriteRepository _transactionWriteRepository = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ChangeTransactionDescriptionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_transactionWriteRepository = Substitute.For<ITransactionWriteRepository>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_handler = new ChangeTransactionDescriptionHandler(
 			transactionWriteRepository: _transactionWriteRepository,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ChangeTransactionDescriptionHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -70,14 +70,12 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<TransactionDescriptionChangedNotification>(n =>
-				n.TransactionId == transaction.Id &&
-				n.UserId == transaction.UserId &&
-				n.OldDescription == "Old description" &&
-				n.NewDescription == "New description"),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionDescriptionChangedNotification>(n =>
+			n.TransactionId == transaction.Id &&
+			n.UserId == transaction.UserId &&
+			n.OldDescription == "Old description" &&
+			n.NewDescription == "New description"
+		));
 	}
 
 	[Test]
@@ -120,10 +118,7 @@ public sealed class ChangeTransactionDescriptionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<TransactionDescriptionChangedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<TransactionDescriptionChangedNotification>());
 	}
 
 	[Test]

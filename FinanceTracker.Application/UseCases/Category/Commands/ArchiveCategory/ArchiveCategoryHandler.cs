@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -8,7 +9,6 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
@@ -20,7 +20,7 @@ public sealed class ArchiveCategoryHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IBudgetWriteRepository budgetWriteRepository,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
+	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider,
 	ILogger<ArchiveCategoryHandler> logger
 ) : IAuthorizedHandler<ArchiveCategoryCommand, Core.Domains.Category.Category, Guid, AppException>
@@ -43,18 +43,11 @@ public sealed class ArchiveCategoryHandler(
 		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {user.Id}."),
 		ct: ct);
 
-		try
-		{
-			await publisher.Publish(notification: new CategoryArchivedNotification(
-				CategoryId: user.Id,
-				UserId: user.UserId,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish CategoryArchivedNotification for category {user.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new CategoryArchivedNotification(
+			CategoryId: user.Id,
+			UserId: user.UserId,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: user.Id);
 	}

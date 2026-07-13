@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -17,7 +18,7 @@ public sealed class ActivateBudgetHandlerTests
 	private IBudgetReadRepository _budgetReadRepository = null!;
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ActivateBudgetHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -26,7 +27,7 @@ public sealed class ActivateBudgetHandlerTests
 		_budgetReadRepository = Substitute.For<IBudgetReadRepository>();
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task<bool>>>(),
@@ -46,9 +47,8 @@ public sealed class ActivateBudgetHandlerTests
 			budgetReadRepository: _budgetReadRepository,
 			budgetWriteRepository: _budgetWriteRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ActivateBudgetHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -121,9 +121,8 @@ public sealed class ActivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<BudgetActivatedNotification>(n => n.BudgetId == budget.Id && n.UserId == budget.UserId),
-			cancellationToken: Arg.Any<CancellationToken>()
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Is<BudgetActivatedNotification>(predicate: n => n.BudgetId == budget.Id && n.UserId == budget.UserId)
 		);
 	}
 
@@ -171,10 +170,7 @@ public sealed class ActivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<BudgetActivatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<BudgetActivatedNotification>());
 	}
 
 	[Test]
@@ -251,9 +247,6 @@ public sealed class ActivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<BudgetActivatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<BudgetActivatedNotification>());
 	}
 }

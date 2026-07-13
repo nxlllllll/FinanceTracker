@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -6,7 +7,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 using Unit = FinanceTracker.Core.Results.Unit;
@@ -18,7 +18,7 @@ public sealed class ChangeBudgetPeriodHandler(
 	IBudgetWriteRepository budgetWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
+	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider,
 	ILogger<ChangeBudgetPeriodHandler> logger
 ) : IAuthorizedHandler<ChangeBudgetPeriodCommand, Core.Domains.Budget.Budget, Guid, AppException>
@@ -80,20 +80,13 @@ public sealed class ChangeBudgetPeriodHandler(
 		if (hasOverlap)
 			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
 
-		try
-		{
-			await publisher.Publish(notification: new BudgetPeriodChangedNotification(
-				BudgetId: user.Id,
-				UserId: user.UserId,
-				NewFrom: command.From,
-				NewTo: command.To,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish BudgetPeriodChangedNotification for budget {user.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new BudgetPeriodChangedNotification(
+			BudgetId: user.Id,
+			UserId: user.UserId,
+			NewFrom: command.From,
+			NewTo: command.To,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: user.Id);
 	}

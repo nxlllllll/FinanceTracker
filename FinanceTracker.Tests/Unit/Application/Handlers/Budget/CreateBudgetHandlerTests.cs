@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -6,8 +7,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
-using MediatR;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
@@ -17,7 +16,7 @@ public sealed class CreateBudgetHandlerTests
 	private IBudgetReadRepository _budgetReadRepository = null!;
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private CreateBudgetHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -26,7 +25,7 @@ public sealed class CreateBudgetHandlerTests
 		_budgetReadRepository = Substitute.For<IBudgetReadRepository>();
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -45,9 +44,8 @@ public sealed class CreateBudgetHandlerTests
 			budgetReadRepository: _budgetReadRepository,
 			budgetWriteRepository: _budgetWriteRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<CreateBudgetHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -109,12 +107,10 @@ public sealed class CreateBudgetHandlerTests
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<BudgetCreatedNotification>(n =>
-				n.UserId == command.UserId &&
-				n.CategoryId == command.CategoryId),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<BudgetCreatedNotification>(n =>
+			n.UserId == command.UserId &&
+			n.CategoryId == command.CategoryId
+		));
 	}
 
 	[Test]
@@ -193,9 +189,6 @@ public sealed class CreateBudgetHandlerTests
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<BudgetCreatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<BudgetCreatedNotification>());
 	}
 }

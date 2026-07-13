@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Category.Commands.ArchiveCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -20,7 +21,7 @@ public sealed class ArchiveCategoryHandlerTests
 	private IRecurringTransactionWriteRepository _recurringTransactionWriteRepository = null!;
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ArchiveCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -30,7 +31,7 @@ public sealed class ArchiveCategoryHandlerTests
 		_recurringTransactionWriteRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
@@ -45,7 +46,7 @@ public sealed class ArchiveCategoryHandlerTests
 			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
 			budgetWriteRepository: _budgetWriteRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
+			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<ArchiveCategoryHandler>>()
 		);
@@ -114,9 +115,8 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<CategoryArchivedNotification>(n => n.CategoryId == category.Id && n.UserId == category.UserId),
-			cancellationToken: Arg.Any<CancellationToken>()
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Is<CategoryArchivedNotification>(n => n.CategoryId == category.Id && n.UserId == category.UserId)
 		);
 	}
 
@@ -172,9 +172,6 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<CategoryArchivedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<CategoryArchivedNotification>());
 	}
 }

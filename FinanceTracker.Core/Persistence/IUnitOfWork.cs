@@ -68,4 +68,14 @@ public interface IUnitOfWork : IAsyncDisposable
 	/// commits — never for a nested (savepoint) commit, and never if the transaction rolls back.
 	/// </summary>
 	void OnCommitted(Action callback);
+
+	/// <summary>
+	/// Same as <see cref="OnCommitted(Action)"/>, but for callbacks that need to await
+	/// asynchronous work — e.g. publishing a MediatR notification after a real commit.
+	/// Use this instead of wrapping an async call in a synchronous <see cref="Action"/>:
+	/// blocking on async code is banned in this codebase (see <c>BannedSymbols.txt</c>), and an
+	/// un-awaited fire-and-forget <c>Task</c> would silently swallow both completion and
+	/// exceptions raised by <paramref name="callback"/>.
+	/// </summary>
+	void OnCommitted(Func<Task> callback);
 }

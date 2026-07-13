@@ -2,6 +2,7 @@ using System.Reflection;
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Behaviours.Correlation;
 using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Behaviours.Tracing;
@@ -44,6 +45,10 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddScoped<PostCommitNotificationCollector>();
+		services.AddScoped<IPostCommitNotifications>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
+		services.AddScoped<IPostCommitNotificationSink>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
+
 		services.AddMediatR(configuration: cfg =>
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
@@ -53,6 +58,7 @@ public static class DependencyInjection
 			cfg.AddOpenBehavior(openBehaviorType: typeof(AuthRateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(RateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ValidationBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(PostCommitNotificationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ConcurrencyRetryBehaviour<,>));
 		});

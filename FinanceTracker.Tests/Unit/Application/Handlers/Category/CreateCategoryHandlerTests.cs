@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Domains.Category;
@@ -15,7 +16,7 @@ public sealed class CreateCategoryHandlerTests
 {
 	private ICategoryWriteRepository _categoryWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private CreateCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -23,7 +24,7 @@ public sealed class CreateCategoryHandlerTests
 	{
 		_categoryWriteRepository = Substitute.For<ICategoryWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -33,9 +34,8 @@ public sealed class CreateCategoryHandlerTests
 		_handler = new CreateCategoryHandler(
 			categoryWriteRepository: _categoryWriteRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<CreateCategoryHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -92,12 +92,10 @@ public sealed class CreateCategoryHandlerTests
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<CategoryCreatedNotification>(n =>
-				n.UserId == command.UserId &&
-				n.Name == "Еда" &&
-				n.Type == CategoryType.Expense),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<CategoryCreatedNotification>(n =>
+			n.UserId == command.UserId &&
+			n.Name == "Еда" &&
+			n.Type == CategoryType.Expense
+		));
 	}
 }

@@ -539,4 +539,104 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 
 		await Assert.That(value: thirdCalled).IsTrue();
 	}
+
+	[Test]
+	public async Task OnCommittedAsync_WhenTransactionCommits_ShouldAwaitCallback()
+	{
+		bool called = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: async () =>
+		{
+			await Task.Yield();
+			called = true;
+		});
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: called).IsTrue().Because(message: """
+			The async overload exists specifically so callers (e.g. a MediatR Publish call) can
+			run real awaited work after commit — a fire-and-forget wrapper would make this
+			unreliable, since the test would frequently observe `called` still false.
+		""");
+	}
+
+	[Test]
+	public async Task OnCommittedAsync_WhenTransactionRollsBack_ShouldNotRunCallback()
+	{
+		bool called = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: async () =>
+		{
+			await Task.Yield();
+			called = true;
+		});
+		await _unitOfWork.RollbackAsync();
+
+		await Assert.That(value: called).IsFalse();
+	}
+
+	[Test]
+	public async Task OnCommittedAsync_RegisteredInsideSavepoint_WhenSavepointRollsBack_ShouldNotRun()
+	{
+		bool innerCallbackCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: async () =>
+		{
+			await Task.Yield();
+			innerCallbackCalled = true;
+		});
+		await _unitOfWork.RollbackAsync();
+
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: innerCallbackCalled).IsFalse();
+	}
+
+	[Test]
+	public async Task OnCommittedAsync_AndSyncCallbacksInSameScope_ShouldBothRunInRegistrationOrder()
+	{
+		List<int> executionOrder = [];
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: () => executionOrder.Add(item: 1));
+		_unitOfWork.OnCommitted(callback: async () =>
+		{
+			await Task.Yield();
+			executionOrder.Add(item: 2);
+		});
+		_unitOfWork.OnCommitted(callback: () => executionOrder.Add(item: 3));
+
+		await _unitOfWork.CommitAsync();
+
+		await Assert.That(value: executionOrder.Count).IsEqualTo(expected: 3);
+		await Assert.That(value: executionOrder[0]).IsEqualTo(expected: 1);
+		await Assert.That(value: executionOrder[1]).IsEqualTo(expected: 2);
+		await Assert.That(value: executionOrder[2]).IsEqualTo(expected: 3);
+	}
+
+	[Test]
+	public async Task OnCommittedAsync_WhenCallbackThrows_ShouldStillRunRemainingCallbacksAndNotRethrow()
+	{
+		bool secondCalled = false;
+
+		await _unitOfWork.BeginTransactionAsync();
+		_unitOfWork.OnCommitted(callback: async () =>
+		{
+			await Task.Yield();
+			throw new InvalidOperationException(message: "Async callback failed");
+		});
+		_unitOfWork.OnCommitted(callback: () => secondCalled = true);
+
+		await Assert.That(
+			action: async () => await _unitOfWork.CommitAsync()
+		).ThrowsNothing().Because(message: """
+			Same guarantee as the sync overload: a failing OnCommitted callback runs strictly
+			after the real commit, so it must never surface as a failure of the commit itself.
+		""");
+		await Assert.That(value: secondCalled).IsTrue();
+	}
 }

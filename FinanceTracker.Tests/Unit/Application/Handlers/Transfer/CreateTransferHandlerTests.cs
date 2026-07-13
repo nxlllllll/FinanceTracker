@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Application.UseCases.Transfer.Notifications;
@@ -20,7 +21,7 @@ public sealed class CreateTransferHandlerTests
 	private ITransferWriteRepository _transferWriteRepository = null!;
 	private ICurrencyConversionService _currencyConversionService = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private CreateTransferHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -30,7 +31,7 @@ public sealed class CreateTransferHandlerTests
 		_transferWriteRepository = Substitute.For<ITransferWriteRepository>();
 		_currencyConversionService = Substitute.For<ICurrencyConversionService>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -47,7 +48,7 @@ public sealed class CreateTransferHandlerTests
 			transferWriteRepository: _transferWriteRepository,
 			currencyConversionService: _currencyConversionService,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
+			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CreateTransferHandler>>()
 		);
@@ -139,13 +140,11 @@ public sealed class CreateTransferHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<TransferCreatedNotification>(n =>
-				n.UserId == fromAccount.UserId &&
-				n.FromAccountId == fromAccount.Id &&
-				n.ToAccountId == toAccountId),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransferCreatedNotification>(n =>
+			n.UserId == fromAccount.UserId &&
+			n.FromAccountId == fromAccount.Id &&
+			n.ToAccountId == toAccountId
+		));
 	}
 
 	[Test]
@@ -187,10 +186,7 @@ public sealed class CreateTransferHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<TransferCreatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<TransferCreatedNotification>());
 	}
 
 	[Test]

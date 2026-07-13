@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace FinanceTracker.Infrastructure.Services.Password;
 
 public sealed partial class Argon2PasswordHasher(
-	IOptions<Argon2Options> options
+	IOptionsMonitor<Argon2Options> options
 ) : IPasswordHasher
 {
 	/// <summary>
@@ -16,10 +16,12 @@ public sealed partial class Argon2PasswordHasher(
 	/// </summary>
 	private static readonly byte[] DummySalt = Convert.FromBase64String(s: "SQzm0/WXdnO0CHsghWSVIQ==");
 
+	private const int MemorySizeMultiplier = 2;
+	private const int IterationsMultiplier = 2;
+	private const int ParallelismMultiplier = 4;
+
 	[GeneratedRegex(pattern: @"^\$argon2id\$v=(?<version>\d+)\$m=(?<memory>\d+),t=(?<iterations>\d+),p=(?<parallelism>\d+)\$(?<salt>[A-Za-z0-9+/=]+)\$(?<hash>[A-Za-z0-9+/=]+)$", options: RegexOptions.Compiled)]
 	private static partial Regex PhcFormatRegex();
-
-	private readonly Argon2Options _options = options.Value;
 
 	/// <summary>
 	/// Hashes <paramref name="password"/> and returns a self-describing PHC-format string
@@ -29,17 +31,19 @@ public sealed partial class Argon2PasswordHasher(
 	/// </summary>
 	public async Task<string> Hash(string password)
 	{
-		byte[] salt = RandomNumberGenerator.GetBytes(count: _options.SaltLength);
+		Argon2Options current = options.CurrentValue;
+
+		byte[] salt = RandomNumberGenerator.GetBytes(count: current.SaltLength);
 		byte[] hash = await ComputeHash(
 			password: password,
 			salt: salt,
-			memorySize: _options.MemorySize,
-			iterations: _options.Iterations,
-			degreeOfParallelism: _options.DegreeOfParallelism,
-			hashLength: _options.HashLength
+			memorySize: current.MemorySize,
+			iterations: current.Iterations,
+			degreeOfParallelism: current.DegreeOfParallelism,
+			hashLength: current.HashLength
 		);
 
-		return $"$argon2id$v=19$m={_options.MemorySize},t={_options.Iterations},p={_options.DegreeOfParallelism}${Convert.ToBase64String(inArray: salt)}${Convert.ToBase64String(inArray: hash)}";
+		return $"$argon2id$v=19$m={current.MemorySize},t={current.Iterations},p={current.DegreeOfParallelism}${Convert.ToBase64String(inArray: salt)}${Convert.ToBase64String(inArray: hash)}";
 	}
 
 	/// <summary>
@@ -50,15 +54,17 @@ public sealed partial class Argon2PasswordHasher(
 	/// </summary>
 	public async Task<bool> Verify(string password, string? storedHash)
 	{
+		Argon2Options current = options.CurrentValue;
+
 		if (storedHash is null)
 		{
 			await ComputeHash(
 				password: password,
 				salt: DummySalt,
-				memorySize: _options.MemorySize,
-				iterations: _options.Iterations,
-				degreeOfParallelism: _options.DegreeOfParallelism,
-				hashLength: _options.HashLength
+				memorySize: current.MemorySize,
+				iterations: current.Iterations,
+				degreeOfParallelism: current.DegreeOfParallelism,
+				hashLength: current.HashLength
 			);
 			return false;
 		}
@@ -70,6 +76,11 @@ public sealed partial class Argon2PasswordHasher(
 		if (!Int32.TryParse(s: match.Groups["memory"].Value, result: out int memorySize) ||
 			!Int32.TryParse(s: match.Groups["iterations"].Value, result: out int iterations) ||
 			!Int32.TryParse(s: match.Groups["parallelism"].Value, result: out int parallelism)
+		) return false;
+
+		if (memorySize <= 0 || memorySize > current.MemorySize * MemorySizeMultiplier ||
+			iterations <= 0 || iterations > current.Iterations * IterationsMultiplier ||
+			parallelism <= 0 || parallelism > current.DegreeOfParallelism * ParallelismMultiplier
 		) return false;
 
 		byte[] salt;

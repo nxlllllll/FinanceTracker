@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Services;
@@ -5,8 +6,6 @@ using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
-using MediatR;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
@@ -14,19 +13,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Transaction;
 public sealed class CreateTransactionHandlerTests
 {
 	private ITransactionCreationService _transactionCreationService = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private CreateTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_transactionCreationService = Substitute.For<ITransactionCreationService>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_handler = new CreateTransactionHandler(
 			transactionCreationService: _transactionCreationService,
-			publisher: _publisher,
-			logger: Substitute.For<ILogger<CreateTransactionHandler>>()
+			postCommitNotifications: _postCommitNotifications
 		);
 	}
 
@@ -88,7 +86,7 @@ public sealed class CreateTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenServiceSucceeds_ShouldPublishNotificationWithTransactionData()
+	public async Task HandleAsync_WhenServiceSucceeds_ShouldStageNotificationWithTransactionData()
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create().Value!;
 		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
@@ -105,19 +103,17 @@ public sealed class CreateTransactionHandlerTests
 
 		await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<TransactionCreatedNotification>(n =>
-				n.TransactionId == transaction.Id &&
-				n.UserId == transaction.UserId &&
-				n.AccountId == transaction.AccountId &&
-				n.CategoryId == transaction.CategoryId &&
-				n.OccurredAt == transaction.OccurredAt),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionCreatedNotification>(n =>
+			n.TransactionId == transaction.Id &&
+			n.UserId == transaction.UserId &&
+			n.AccountId == transaction.AccountId &&
+			n.CategoryId == transaction.CategoryId &&
+			n.OccurredAt == transaction.OccurredAt
+		));
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenServiceReturnsFailure_ShouldNotPublishNotification()
+	public async Task HandleAsync_WhenServiceReturnsFailure_ShouldNotStageNotification()
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.Create().Value!;
 		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
@@ -133,9 +129,6 @@ public sealed class CreateTransactionHandlerTests
 
 		await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<TransactionCreatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<TransactionCreatedNotification>());
 	}
 }

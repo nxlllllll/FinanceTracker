@@ -19,15 +19,16 @@ public sealed class EFUnitOfWork(
 {
 	private const string PostgresUniqueViolationCode = "23505";
 	private const string PostgresExclusionViolationCode = "23P01";
+	private const string PostgresCheckViolationCode = "23514";
 
 	private IDbContextTransaction? _transaction;
 	private readonly Stack<string> _savepoints = new Stack<string>();
 
 	private readonly Stack<HashSet<object>> _savepointSnapshots = new Stack<HashSet<object>>();
 
-	private readonly Stack<List<Action>> _callbackScopes = new Stack<List<Action>>();
+	private readonly Stack<List<Func<Task>>> _callbackScopes = new Stack<List<Func<Task>>>();
 
-	private List<Action> CurrentCallbackScope
+	private List<Func<Task>> CurrentCallbackScope
 	{
 		get
 		{
@@ -38,7 +39,13 @@ public sealed class EFUnitOfWork(
 		}
 	}
 
-	public void OnCommitted(Action callback)
+	public void OnCommitted(Action callback) => CurrentCallbackScope.Add(item: () =>
+	{
+		callback();
+		return Task.CompletedTask;
+	});
+
+	public void OnCommitted(Func<Task> callback)
 		=> CurrentCallbackScope.Add(item: callback);
 
 	public async Task BeginTransactionAsync(CancellationToken ct = default)
@@ -102,13 +109,21 @@ public sealed class EFUnitOfWork(
 				constraintName: pgEx.ConstraintName ?? String.Empty
 			);
 		}
+		catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresCheckViolationCode } pgEx)
+		{
+			logger.ZLogWarning(message: $"CHECK constraint '{pgEx.ConstraintName}' violated — application-level validation should have caught this before the write.");
+			throw new CheckConstraintException(
+				message: "The operation violates a data constraint.",
+				constraintName: pgEx.ConstraintName ?? String.Empty
+			);
+		}
 
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
 			await _transaction.ReleaseSavepointAsync(name: savepointName, cancellationToken: ct);
 			_savepointSnapshots.Pop();
 
-			List<Action> completedScope = _callbackScopes.Pop();
+			List<Func<Task>> completedScope = _callbackScopes.Pop();
 			CurrentCallbackScope.AddRange(collection: completedScope);
 			return;
 		}
@@ -117,9 +132,9 @@ public sealed class EFUnitOfWork(
 		await _transaction.DisposeAsync();
 		_transaction = null;
 
-		List<Action> callbacks = _callbackScopes.Count > 0 ? _callbackScopes.Pop() : [];
+		List<Func<Task>> callbacks = _callbackScopes.Count > 0 ? _callbackScopes.Pop() : [];
 		_callbackScopes.Clear();
-		RunCommittedCallbacks(callbacks: callbacks);
+		await RunCommittedCallbacksAsync(callbacks: callbacks);
 	}
 
 	public async Task RollbackAsync(CancellationToken ct = default)
@@ -145,15 +160,15 @@ public sealed class EFUnitOfWork(
 		context.ChangeTracker.Clear();
 	}
 
-	private void RunCommittedCallbacks(List<Action> callbacks)
+	private async Task RunCommittedCallbacksAsync(List<Func<Task>> callbacks)
 	{
 		int failureCount = 0;
 
-		foreach (Action callback in callbacks)
+		foreach (Func<Task> callback in callbacks)
 		{
 			try
 			{
-				callback();
+				await callback();
 			}
 			catch (Exception ex)
 			{

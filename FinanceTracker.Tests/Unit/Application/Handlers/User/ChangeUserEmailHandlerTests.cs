@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -20,7 +21,7 @@ public sealed class ChangeUserEmailHandlerTests
 	private IUserWriteRepository _userWriteRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ChangeUserEmailHandler _handler = null!;
 
@@ -33,7 +34,7 @@ public sealed class ChangeUserEmailHandlerTests
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: true);
@@ -52,9 +53,8 @@ public sealed class ChangeUserEmailHandlerTests
 			userSessionWriteRepository: _userSessionWriteRepository,
 			passwordHasher: _passwordHasher,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ChangeUserEmailHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -122,10 +122,10 @@ public sealed class ChangeUserEmailHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(notification: Arg.Is<UserEmailChangedNotification>(n =>
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<UserEmailChangedNotification>(n =>
 			n.UserId == user.Id &&
 			n.NewEmail.Value == "new@test.com"
-		), cancellationToken: Arg.Any<CancellationToken>());
+		));
 	}
 
 	[Test]
@@ -219,10 +219,7 @@ public sealed class ChangeUserEmailHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
 	}
 
 	[Test]
@@ -288,9 +285,6 @@ public sealed class ChangeUserEmailHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
 	}
 }

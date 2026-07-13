@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Core.Domains.Category;
@@ -20,7 +21,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	private ICategoryReadRepository _categoryReadRepository = null!;
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private CreateRecurringTransactionHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -29,7 +30,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		SetupCategory(type: CategoryType.Expense);
 
@@ -42,9 +43,8 @@ public sealed class CreateRecurringTransactionHandlerTests
 			categoryReadRepository: _categoryReadRepository,
 			recurringTransactionWriteRepository: _writeRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<CreateRecurringTransactionHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -81,13 +81,11 @@ public sealed class CreateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<RecurringTransactionCreatedNotification>(n =>
-				n.UserId == command.UserId &&
-				n.AccountId == command.AccountId &&
-				n.CategoryId == command.CategoryId),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionCreatedNotification>(n =>
+			n.UserId == command.UserId &&
+			n.AccountId == command.AccountId &&
+			n.CategoryId == command.CategoryId
+		));
 	}
 
 	[Test]
@@ -108,10 +106,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 
 		await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<RecurringTransactionCreatedNotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<RecurringTransactionCreatedNotification>());
 	}
 
 	[Test]

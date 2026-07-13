@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -18,7 +19,7 @@ public sealed class ChangeUserPasswordHandlerTests
 	private IUserWriteRepository _userWriteRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ChangeUserPasswordHandler _handler = null!;
 
@@ -31,7 +32,7 @@ public sealed class ChangeUserPasswordHandlerTests
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_userSessionWriteRepository = Substitute.For<IUserSessionWriteRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_passwordHasher.Verify(password: Arg.Any<string>(), storedHash: Arg.Any<string>()).Returns(returnThis: true);
@@ -46,9 +47,8 @@ public sealed class ChangeUserPasswordHandlerTests
 			userSessionWriteRepository: _userSessionWriteRepository,
 			passwordHasher: _passwordHasher,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ChangeUserPasswordHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -155,9 +155,8 @@ public sealed class ChangeUserPasswordHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<UserPasswordChangedNotification>(n => n.UserId == user.Id),
-			cancellationToken: Arg.Any<CancellationToken>()
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Is<UserPasswordChangedNotification>(n => n.UserId == user.Id)
 		);
 	}
 
@@ -274,10 +273,7 @@ public sealed class ChangeUserPasswordHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
 	}
 
 	[Test]
@@ -320,10 +316,7 @@ public sealed class ChangeUserPasswordHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
 	}
 
 	[Test]

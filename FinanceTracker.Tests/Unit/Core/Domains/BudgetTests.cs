@@ -43,7 +43,7 @@ public sealed class BudgetTests
 	}
 
 	[Test]
-	public async Task Create_WhenEndDateEqualsStartDate_ShouldSucceedAsSingleDayBudget()
+	public async Task Create_WhenEndDateEqualsStartDate_ShouldThrowInvalidBudgetPeriodException()
 	{
 		DateOnly sameDate = new DateOnly(year: 2025, month: 1, day: 1);
 
@@ -56,9 +56,8 @@ public sealed class BudgetTests
 			to: sameDate
 		);
 
-		await Assert.That(result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value!.From).IsEqualTo(expected: sameDate);
-		await Assert.That(value: result.Value!.To).IsEqualTo(expected: sameDate);
+		await Assert.That(result.IsFailure).IsTrue();
+		await Assert.That(result.Error).IsTypeOf<InvalidBudgetPeriodException>();
 	}
 
 	[Test]

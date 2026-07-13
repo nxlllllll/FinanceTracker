@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
@@ -21,7 +22,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
 	private IBudgetProgressWriteRepository _budgetProgressWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ChangeTransactionCategoryHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -32,7 +33,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_budgetProgressWriteRepository = Substitute.For<IBudgetProgressWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -52,9 +53,8 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			unitOfWork: _unitOfWork,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			logger: Substitute.For<ILogger<ChangeTransactionCategoryHandler>>()
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -114,14 +114,12 @@ public sealed class ChangeTransactionCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Is<TransactionCategoryChangedNotification>(n =>
-				n.TransactionId == transaction.Id &&
-				n.UserId == transaction.UserId &&
-				n.OldCategoryId == oldCategoryId &&
-				n.NewCategoryId == newCategoryId),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionCategoryChangedNotification>(n =>
+			n.TransactionId == transaction.Id &&
+			n.UserId == transaction.UserId &&
+			n.OldCategoryId == oldCategoryId &&
+			n.NewCategoryId == newCategoryId
+		));
 	}
 
 	[Test]

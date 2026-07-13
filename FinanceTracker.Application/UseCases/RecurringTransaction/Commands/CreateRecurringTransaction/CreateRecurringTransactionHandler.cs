@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Application.UseCases.Transaction.Utilities;
 using FinanceTracker.Core.Exceptions;
@@ -10,9 +11,6 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 
@@ -20,9 +18,8 @@ public sealed class CreateRecurringTransactionHandler(
 	ICategoryReadRepository categoryReadRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
-	IDateProvider dateProvider,
-	ILogger<CreateRecurringTransactionHandler> logger
+	IPostCommitNotifications postCommitNotifications,
+	IDateProvider dateProvider
 ) : IAuthorizedHandler<CreateRecurringTransactionCommand, Guid, AppException>
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
@@ -61,24 +58,17 @@ public sealed class CreateRecurringTransactionHandler(
 			ct: ct
 		);
 
-		try
-		{
-			await publisher.Publish(notification: new RecurringTransactionCreatedNotification(
-				RecurringTransactionId: recurringTransaction.Id,
-				UserId: recurringTransaction.UserId,
-				AccountId: recurringTransaction.AccountId,
-				CategoryId: recurringTransaction.CategoryId,
-				Amount: recurringTransaction.Amount,
-				Direction: recurringTransaction.Direction,
-				DayOfMonth: recurringTransaction.DayOfMonth,
-				Description: recurringTransaction.Description,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish RecurringTransactionCreatedNotification for recurring transaction {recurringTransaction.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new RecurringTransactionCreatedNotification(
+			RecurringTransactionId: recurringTransaction.Id,
+			UserId: recurringTransaction.UserId,
+			AccountId: recurringTransaction.AccountId,
+			CategoryId: recurringTransaction.CategoryId,
+			Amount: recurringTransaction.Amount,
+			Direction: recurringTransaction.Direction,
+			DayOfMonth: recurringTransaction.DayOfMonth,
+			Description: recurringTransaction.Description,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Guid, AppException>.Success(value: recurringTransaction.Id);
 	}

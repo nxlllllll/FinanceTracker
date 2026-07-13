@@ -2,6 +2,7 @@ using System.Reflection;
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Behaviours.Correlation;
 using FinanceTracker.Application.Behaviours.Idempotency;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Behaviours.Tracing;
@@ -296,6 +297,7 @@ public sealed class ApplicationArchitectureTests
 			typeof(AuthRateLimitingBehaviour<,>),
 			typeof(RateLimitingBehaviour<,>),
 			typeof(ValidationBehaviour<,>),
+			typeof(PostCommitNotificationBehaviour<,>),
 			typeof(IdempotencyBehaviour<,>),
 			typeof(ConcurrencyRetryBehaviour<,>)
 		];

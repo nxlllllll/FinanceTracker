@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -17,7 +18,7 @@ public sealed class RegisterUserHandler(
 	IUserWriteRepository userWriteRepository,
 	IPasswordHasher passwordHasher,
 	IUnitOfWork unitOfWork,
-	IPublisher publisher,
+	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider,
 	ILogger<RegisterUserHandler> logger
 ) : IRequestHandler<RegisterUserCommand, Result<Guid, AppException>>
@@ -47,7 +48,10 @@ public sealed class RegisterUserHandler(
 
 		try
 		{
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await userWriteRepository.CreateAsync(user: user, ct: ct), ct: ct);
+			await unitOfWork.ExecuteInTransactionAsync(
+				operation: async () => await userWriteRepository.CreateAsync(user: user, ct: ct),
+				ct: ct
+			);
 		}
 		catch (UniqueConstraintException ex)
 		{
@@ -58,19 +62,12 @@ public sealed class RegisterUserHandler(
 			));
 		}
 
-		try
-		{
-			await publisher.Publish(notification: new UserRegisteredNotification(
-				UserId: user.Id,
-				Email: user.Email,
-				BaseCurrency: user.BaseCurrency,
-				OccurredAt: dateProvider.UtcNow
-			), cancellationToken: ct);
-		}
-		catch (Exception ex)
-		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish UserRegisteredNotification for user {user.Id} after successful commit.");
-		}
+		postCommitNotifications.Stage(notification: new UserRegisteredNotification(
+			UserId: user.Id,
+			Email: user.Email,
+			BaseCurrency: user.BaseCurrency,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
 

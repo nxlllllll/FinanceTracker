@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
@@ -18,7 +19,7 @@ public sealed class RegisterUserHandlerTests
 	private IUserWriteRepository _userWriteRepository = null!;
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
-	private IPublisher _publisher = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private RegisterUserHandler _handler = null!;
 
@@ -30,7 +31,7 @@ public sealed class RegisterUserHandlerTests
 		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
-		_publisher = Substitute.For<IPublisher>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: HashedPassword);
@@ -44,7 +45,7 @@ public sealed class RegisterUserHandlerTests
 			passwordHasher: _passwordHasher,
 			userAuthRepository: _userAuthRepository,
 			unitOfWork: _unitOfWork,
-			publisher: _publisher,
+			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<RegisterUserHandler>>()
 		);
@@ -82,10 +83,10 @@ public sealed class RegisterUserHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(notification: Arg.Is<UserRegisteredNotification>(n =>
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<UserRegisteredNotification>(n =>
 			n.Email.Value == "test@test.com" &&
 			n.BaseCurrency.Value == "RUB"
-		), cancellationToken: Arg.Any<CancellationToken>());
+		));
 	}
 
 	[Test]
@@ -151,9 +152,6 @@ public sealed class RegisterUserHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _publisher.DidNotReceive().Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
 	}
 }

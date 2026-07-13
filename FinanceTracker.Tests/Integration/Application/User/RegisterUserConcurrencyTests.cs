@@ -1,4 +1,5 @@
 using System.Net;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -42,7 +43,7 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 			userWriteRepository: writeRepository,
 			passwordHasher: passwordHasher,
 			unitOfWork: unitOfWork,
-			publisher: Substitute.For<IPublisher>(),
+			postCommitNotifications: Substitute.For<IPostCommitNotifications>(),
 			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RegisterUserHandler>.Instance
 		);
