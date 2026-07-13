@@ -6,8 +6,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
-using MediatR;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;

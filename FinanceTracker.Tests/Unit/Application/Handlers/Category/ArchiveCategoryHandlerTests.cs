@@ -9,7 +9,6 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 

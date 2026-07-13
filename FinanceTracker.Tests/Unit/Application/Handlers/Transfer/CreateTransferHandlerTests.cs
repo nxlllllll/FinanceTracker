@@ -9,7 +9,6 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Tests.Unit.Helpers;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
