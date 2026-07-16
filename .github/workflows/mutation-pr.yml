@@ -28,11 +28,8 @@ jobs:
           for proj in Core Application Infrastructure; do
             dotnet stryker \
               --project "FinanceTracker.$proj.csproj" \
-              --test-runner mtp \
-              --since:origin/${{ github.base_ref }} \
-              --additional-timeout 60000 \
-              --reporter progress --reporter json \
-              --break-at 60
+              --config-file-path stryker-config.pr-diff.json \
+              --since:origin/${{ github.base_ref }}
           done
 
       - name: Upload mutation reports
