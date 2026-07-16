@@ -22,6 +22,7 @@
     <File Path="prometheus/alerts.yml" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="FinanceTracker.Api/FinanceTracker.Api.csproj" />
   <Project Path="FinanceTracker.Application/FinanceTracker.Application.csproj" />
   <Project Path="FinanceTracker.Benchmarks/FinanceTracker.Benchmarks.csproj" />
   <Project Path="FinanceTracker.Contracts/FinanceTracker.Contracts.csproj" />
