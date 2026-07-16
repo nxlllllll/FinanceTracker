@@ -4,7 +4,15 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Core</RootNamespace>
+        <RootNamespace>FinanceTracker.Core</RootNamespace>
     </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="FinanceTracker.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Utilities\" />
+    </ItemGroup>
 
 </Project>

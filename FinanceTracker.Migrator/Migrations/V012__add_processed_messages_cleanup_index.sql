@@ -1,0 +1,1 @@
+﻿create index idx_processed_messages_processed_at on processed_messages (processed_at);

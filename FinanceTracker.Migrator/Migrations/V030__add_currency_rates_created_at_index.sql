@@ -1,0 +1,1 @@
+﻿create index idx_currency_rates_created_at_lookup on currency_rates (base_code, target_code, created_at desc) include (rate);

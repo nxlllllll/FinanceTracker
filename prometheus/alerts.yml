@@ -1,0 +1,111 @@
+﻿groups:
+  - name: finance-tracker-jobs
+    rules:
+      - alert: JobExecutionFailed
+        expr: increase(job_execution_failed_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} threw an unhandled exception"
+          description: "{{ $labels.job }} failed at least once in the last 10 minutes. Check its logs for the exception wrapped in JobExecutionException."
+
+  - name: finance-tracker-messaging
+    rules:
+      - alert: OutboxMessageDeadLettered
+        expr: increase(outbox_failed_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "An outbox message was moved to dead letter"
+          description: "outbox_failed_total increased in the last 15 minutes — a message the system was supposed to publish at-least-once did not make it out. Investigate OutboxPublisherJob and the affected AggregateId in outbox_messages."
+
+      - alert: DeadLetterBacklogNotDraining
+        expr: dead_letter_count > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dead letter queue has had messages for 30+ minutes"
+          description: "dead_letter_count has been above zero for at least 30 minutes. Check DeadLetterMonitoringJob and the {queue}.dlq queues for messages that need manual replay or resolution."
+
+      - alert: DeadLetterBacklogStale
+        expr: dead_letter_count > 0
+        for: 2h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dead letter queue has been non-empty for 2+ hours"
+          description: "Messages have been sitting in a dead letter queue for over 2 hours without resolution. This needs manual attention now, not just monitoring."
+
+  - name: finance-tracker-transfers
+    rules:
+      - alert: TransferCreditStuckPastCompensation
+        expr: transfer_credit_pending > 0
+        for: 45m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A transfer's credit side has been pending past the auto-compensation window"
+          description: "transfer_credit_pending has been above zero for 45+ minutes, well past the 30-minute auto-compensation threshold. Check whether TransferCreditLagJob is running."
+
+      - alert: TransferEscalatedToManualResolution
+        expr: increase(transfers_failed_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A transfer requires manual resolution"
+          description: "transfers_failed_total increased in the last hour — a transfer could not be completed or compensated automatically and needs manual review in unresolvable_events."
+
+  - name: finance-tracker-recurring-transactions
+    rules:
+      - alert: RecurringTransactionEscalated
+        expr: increase(recurring_transactions_failed_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A recurring transaction occurrence could not be created"
+          description: "recurring_transactions_failed_total increased in the last hour — an occurrence was escalated to unresolvable_events instead of becoming a transaction."
+
+  - name: finance-tracker-currency-rates
+    rules:
+      - alert: CurrencyRateFetchRepeatedlyFailing
+        expr: increase(currency_rates_fetch_failed_total[1h]) > 2
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The exchange-rate API has failed repeatedly"
+          description: "currency_rates_fetch_failed_total increased by more than 2 in the last hour. New rates aren't landing, so cached 'latest' rates (see CachedCurrencyRateReadRepository) will keep serving increasingly stale values until this recovers."
+
+  - name: finance-tracker-rate-adjustments
+    rules:
+      - alert: RateAdjustmentUnresolvable
+        expr: increase(balance_adjustment_unresolvable_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A rate correction was rejected — a recorded balance is knowingly wrong"
+          description: "BalanceAdjustmentJob got the real rate but could not apply the correction ({{ $labels.source_type }}). The usual cause is an account archived while its rate was still pending: an archived account refuses balance adjustments. The affected balance is still computed from the placeholder rate and will not fix itself — the operation is now terminal (Unresolvable) and will never be retried. Investigate unresolvable_events, type RateAdjustmentFailed."
+
+      - alert: RateApproximationSpike
+        expr: increase(balance_adjustment_approximated_total[24h]) > 10
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusual number of operations closed at an approximate rate"
+          description: "{{ $value }} operations ({{ $labels.source_type }}) were closed as Approximated in the last 24h — the exact rate for their date never arrived within the grace period. A trickle is expected and harmless: these are backdated entries, and rate history is never back-filled (only /latest/ is fetched). A spike usually means something else — CurrencyRateJob is not delivering a currency pair users actually transact in. Cross-check currency_rates_fetch_failed_total and whether the pair is in the active currency list."
+
+      - alert: PendingRateBacklogGrowing
+        expr: increase(balance_adjustment_resolved_total[24h]) == 0 and increase(balance_adjustment_approximated_total[24h]) == 0 and increase(balance_adjustment_unresolvable_total[24h]) == 0 and increase(job_execution_failed_total{job="BalanceAdjustmentJob"}[24h]) == 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "BalanceAdjustmentJob has settled nothing in 24 hours"
+          description: "The job is not throwing, yet nothing has left the pending-rate queue in a day. Either there is genuinely nothing to settle (fine — but verify against a count of rows where rate_status = 'pending'), or the queue is silently not being drained: a broken query filter, a cron that never fires, or a worker that is up but idle. This is the failure mode the old boolean flag hid for months, so it now has its own alert rather than relying on someone noticing an absence."

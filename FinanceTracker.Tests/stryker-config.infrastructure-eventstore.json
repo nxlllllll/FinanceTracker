@@ -1,0 +1,13 @@
+﻿{
+  "stryker-config": {
+    "project": "FinanceTracker.Infrastructure.csproj",
+    "test-runner": "mtp",
+    "mutate": [
+      "**/Database/EventStore/**/*.cs",
+      "**/Database/Converters/**/*.cs",
+      "**/Database/UnitOfWork/**/*.cs",
+      "**/EventMapping/**/*.cs"
+    ],
+    "additional-timeout": 60000
+  }
+}

@@ -1,0 +1,1 @@
+﻿drop table if exists domain_event_outbox;

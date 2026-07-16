@@ -1,0 +1,25 @@
+﻿global:
+  scrape_interval: 15s
+
+rule_files:
+  - 'alerts.yml'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+scrape_configs:
+  - job_name: 'finance-tracker-workers'
+    static_configs:
+      - targets:
+          - 'worker-outbox:5000'
+          - 'worker-account-projection:5001'
+          - 'worker-recurring-transaction:5002'
+          - 'worker-recurring-transaction-projection:5003'
+          - 'worker-dead-letter-monitor:5004'
+          - 'worker-transfer-projection:5005'
+          - 'worker-currency-rate:5006'
+          - 'worker-balance-adjustment:5007'
+          - 'worker-cleanup:5008'

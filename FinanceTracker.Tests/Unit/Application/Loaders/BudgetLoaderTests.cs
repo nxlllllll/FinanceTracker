@@ -1,0 +1,61 @@
+using FinanceTracker.Application.UseCases.Budget.Authorization;
+using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount;
+using FinanceTracker.Core.Domains.Budget;
+using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Repositories.Budget;
+using FinanceTracker.Core.Results;
+using FinanceTracker.Tests.Unit.Helpers;
+using NSubstitute;
+
+namespace FinanceTracker.Tests.Unit.Application.Loaders;
+
+public sealed class BudgetLoaderTests
+{
+	private IBudgetRepository _budgetRepository = null!;
+	private BudgetLoader _loader = null!;
+
+	[Before(hookType: Test)]
+	public void Setup()
+	{
+		_budgetRepository = Substitute.For<IBudgetRepository>();
+		_loader = new BudgetLoader(budgetRepository: _budgetRepository);
+	}
+
+	[Test]
+	public async Task LoadAsync_WhenNotFound_ShouldThrowNotFoundException()
+	{
+		_budgetRepository.GetByIdAsync(
+			budgetId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<Budget?>(result: null));
+
+		Result<Budget, AppException> result = await _loader.LoadAsync(
+			request: new ChangeBudgetAmountCommand(UserId: Guid.CreateVersion7(), BudgetId: Guid.CreateVersion7(), Amount: 1000m),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
+	}
+
+	[Test]
+	public async Task LoadAsync_WhenOwner_ShouldReturnBudget()
+	{
+		Budget budget = BudgetFactory.Create().Value!;
+		_budgetRepository.GetByIdAsync(
+			budgetId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: budget);
+
+		Result<Budget, AppException> result = await _loader.LoadAsync(
+			request: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 1000m),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.Id).IsEqualTo(expected: budget.Id);
+	}
+}

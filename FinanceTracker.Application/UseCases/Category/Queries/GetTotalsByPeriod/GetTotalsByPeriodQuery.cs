@@ -1,0 +1,12 @@
+using FinanceTracker.Application.Behaviours.RateLimit;
+using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Results;
+using MediatR;
+
+namespace FinanceTracker.Application.UseCases.Category.Queries.GetTotalsByPeriod;
+
+public sealed record GetTotalsByPeriodQuery(
+	Guid UserId,
+	DateOnly Period
+) : IRequest<Result<IReadOnlyList<CategoryTotal>, AppException>>, IUserScopedRequest;

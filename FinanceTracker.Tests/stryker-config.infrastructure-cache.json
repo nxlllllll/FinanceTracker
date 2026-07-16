@@ -1,0 +1,8 @@
+﻿{
+  "stryker-config": {
+    "project": "FinanceTracker.Infrastructure.csproj",
+    "test-runner": "mtp",
+    "mutate": ["**/Cache/**/*.cs"],
+    "additional-timeout": 60000
+  }
+}

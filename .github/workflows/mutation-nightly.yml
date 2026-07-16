@@ -1,0 +1,44 @@
+﻿name: Mutation Testing (Nightly)
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  mutation-full:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - stryker-config.core.json
+          - stryker-config.application.json
+          - stryker-config.infrastructure-cache.json
+          - stryker-config.infrastructure-eventstore.json
+          - stryker-config.infrastructure-services.json
+          - stryker-config.infrastructure-repositories.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install Stryker
+        run: dotnet tool install -g dotnet-stryker
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Run full mutation testing
+        working-directory: FinanceTracker.Tests
+        run: dotnet stryker -f ${{ matrix.config }}
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report-${{ matrix.config }}
+          path: FinanceTracker.Tests/StrykerOutput/**/reports/*
+          retention-days: 30

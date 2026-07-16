@@ -1,0 +1,219 @@
+using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Repositories.Category;
+using FinanceTracker.Tests.Integration._Shared.Builders;
+using FinanceTracker.Tests.Integration._Shared.Fixtures;
+using FinanceTracker.Tests.Unit.Helpers;
+
+namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Category;
+
+public sealed class CategoryReadRepositoryTests : DatabaseFixture
+{
+	private CategoryReadRepository _readRepository = null!;
+	private CategoryWriteRepository _writeRepository = null!;
+	private UserBuilder _userBuilder = null!;
+	private Core.ValueObjects.Currency _currency;
+
+	[Before(hookType: Test)]
+	public async Task SetupRepositoryAsync()
+	{
+		_readRepository = new CategoryReadRepository(context: Context);
+		_writeRepository = new CategoryWriteRepository(context: Context);
+		_userBuilder = new UserBuilder(context: Context);
+
+		CurrencyBuilder currencyBuilder = new CurrencyBuilder(context: Context);
+		_currency = await currencyBuilder.CreateAsync();
+	}
+
+	private async Task<Guid> CreateUserAsync()
+		=> await _userBuilder.CreateAsync(currencyCode: _currency);
+
+	private async Task<Core.Domains.Category.Category> CreateAndSaveCategoryAsync(
+		Guid userId,
+		CategoryType type = CategoryType.Expense,
+		bool isArchived = false,
+		Guid? parentId = null)
+	{
+		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
+			userId: userId,
+			name: Name.Create(value: "Еда").Value,
+			type: type,
+			parentId: parentId
+		);
+
+		await _writeRepository.CreateAsync(category: category);
+		await Context.SaveChangesAsync();
+		if (isArchived)
+			await _writeRepository.ArchiveAsync(categoryId: category.Id, expectedVersion: 0);
+		return category;
+	}
+
+	[Test]
+	public async Task GetByIdAsync_WithNonExistentCategory_ShouldReturnNull()
+	{
+		CategoryReadModel? result = await _readRepository.GetByIdAsync(
+			categoryId: Guid.CreateVersion7(),
+			userId: Guid.CreateVersion7()
+		);
+		await Assert.That(value: result).IsNull();
+	}
+
+	[Test]
+	public async Task GetByIdAsync_WithExistingCategory_ShouldReturnCorrectCategory()
+	{
+		Guid userId = await CreateUserAsync();
+		Core.Domains.Category.Category category = await CreateAndSaveCategoryAsync(userId: userId);
+
+		CategoryReadModel? loaded = await _readRepository.GetByIdAsync(
+			categoryId: category.Id,
+			userId: userId
+		);
+
+		await Assert.That(value: loaded).IsNotNull();
+		await Assert.That(value: loaded!.Id).IsEqualTo(expected: category.Id);
+		await Assert.That(value: loaded.Name.Value).IsEqualTo(expected: "Еда");
+		await Assert.That(value: loaded.Type).IsEqualTo(expected: CategoryType.Expense);
+		await Assert.That(value: loaded.IsArchived).IsFalse();
+		await Assert.That(value: loaded.ParentId).IsNull();
+	}
+
+	[Test]
+	public async Task GetByIdAsync_WithParentId_ShouldSetParentId()
+	{
+		Guid userId = await CreateUserAsync();
+		Core.Domains.Category.Category parent = await CreateAndSaveCategoryAsync(userId: userId);
+		Core.Domains.Category.Category child = await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
+
+		CategoryReadModel? loaded = await _readRepository.GetByIdAsync(
+			categoryId: child.Id,
+			userId: userId
+		);
+
+		await Assert.That(value: loaded).IsNotNull();
+		await Assert.That(value: loaded!.ParentId).IsEqualTo(expected: parent.Id);
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithNoCategories_ShouldReturnEmptyList()
+	{
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 0);
+		await Assert.That(value: result.HasNextPage).IsFalse();
+	}
+
+	[Test]
+	public async Task GetAllAsync_ShouldReturnOnlyUserCategories()
+	{
+		Guid userId = await CreateUserAsync();
+		await CreateAndSaveCategoryAsync(userId: userId);
+		await CreateAndSaveCategoryAsync(userId: await CreateUserAsync());
+
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: userId);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].UserId).IsEqualTo(expected: userId);
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithTypeFilter_ShouldReturnOnlyMatchingCategories()
+	{
+		Guid userId = await CreateUserAsync();
+		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
+		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
+
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
+			userId: userId,
+			type: CategoryType.Expense
+		);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].Type).IsEqualTo(expected: CategoryType.Expense);
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithIsArchivedFilter_ShouldReturnOnlyMatchingCategories()
+	{
+		Guid userId = await CreateUserAsync();
+		await CreateAndSaveCategoryAsync(userId: userId, isArchived: false);
+		await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
+
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
+			userId: userId,
+			isArchived: false
+		);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].IsArchived).IsFalse();
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithParentIdFilter_ShouldReturnOnlySubcategories()
+	{
+		Guid userId = await CreateUserAsync();
+		Core.Domains.Category.Category parent = await CreateAndSaveCategoryAsync(userId: userId);
+		await CreateAndSaveCategoryAsync(userId: userId, parentId: parent.Id);
+		await CreateAndSaveCategoryAsync(userId: userId);
+
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(
+			userId: userId,
+			parentId: parent.Id
+		);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].ParentId).IsEqualTo(expected: parent.Id);
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithNullFilters_ShouldReturnAllCategories()
+	{
+		Guid userId = await CreateUserAsync();
+		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Expense);
+		await CreateAndSaveCategoryAsync(userId: userId, type: CategoryType.Income);
+		await CreateAndSaveCategoryAsync(userId: userId, isArchived: true);
+
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: userId);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 3);
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithoutCursor_WhenMoreItemsExist_ShouldSetHasNextPage()
+	{
+		Guid userId = await CreateUserAsync();
+		for (int i = 0; i < 4; i++)
+			await CreateAndSaveCategoryAsync(userId: userId);
+
+		PagedResult<CategoryReadModel> result = await _readRepository.GetAllAsync(userId: userId, pageSize: 3);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 3);
+		await Assert.That(value: result.HasNextPage).IsTrue();
+		await Assert.That(value: result.NextCursorDate).IsNotNull();
+		await Assert.That(value: result.NextCursorId).IsNotNull();
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithCursor_ShouldReturnNextPage()
+	{
+		Guid userId = await CreateUserAsync();
+		for (int i = 0; i < 4; i++)
+			await CreateAndSaveCategoryAsync(userId: userId);
+
+		PagedResult<CategoryReadModel> firstPage = await _readRepository.GetAllAsync(userId: userId, pageSize: 3);
+		CategoryReadModel lastItem = firstPage.Items[^1];
+
+		PagedResult<CategoryReadModel> secondPage = await _readRepository.GetAllAsync(
+			userId: userId,
+			cursorCreatedAt: lastItem.CreatedAt,
+			cursorId: lastItem.Id,
+			pageSize: 3
+		);
+
+		await Assert.That(value: secondPage.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: secondPage.HasNextPage).IsFalse();
+		await Assert.That(value: secondPage.Items.Any(c => firstPage.Items.Any(f => f.Id == c.Id))).IsFalse();
+	}
+}

@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>{{TITLE}} — Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>{{STYLES}}</style>
+</head>
+<body>
+<header class="header">
+    <div class="header-top">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 14 14" fill="none">
+                    <rect x="0" y="6" width="3" height="8" rx="1" fill="#080a0f"/>
+                    <rect x="4" y="3" width="3" height="11" rx="1" fill="#080a0f"/>
+                    <rect x="8" y="0" width="3" height="14" rx="1" fill="#080a0f"/>
+                    <rect x="12" y="4" width="2" height="10" rx="1" fill="#080a0f"/>
+                </svg>
+            </div>
+            <div>
+                <div class="logo-text">{{TITLE}}</div>
+                <div class="logo-sub">{{RUN_META}}</div>
+            </div>
+        </div>
+        <div class="header-kpis" id="kpi-chips"></div>
+    </div>
+    <nav class="tab-nav" id="tab-nav"></nav>
+</header>
+
+<main id="main-content"></main>
+
+<footer>AnalyticsHtmlExporter · BenchmarkDotNet · FinanceTracker · {{RUN_DATE}}</footer>
+
+<script>
+    window.__benchData = {{DATA_JSON}};
+</script>
+<script>{{SCRIPTS}}</script>
+</body>
+</html>

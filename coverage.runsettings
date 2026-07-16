@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <CodeCoverage>
+            <ModulePaths>
+              <Exclude>
+                <!-- Тестовый проект не считаем сам в себе -->
+                <ModulePath>.*FinanceTracker\.Tests\.dll$</ModulePath>
+                <ModulePath>.*FinanceTracker\.Migrator\.dll$</ModulePath>
+                <ModulePath>.*FinanceTracker\.Benchmarks\.dll$</ModulePath>
+              </Exclude>
+            </ModulePaths>
+
+            <Functions>
+              <Exclude>
+                <!-- Точки входа воркеров: композиция DI -->
+                <Function>^FinanceTracker\.Worker\..*\.Program\..*</Function>
+              </Exclude>
+            </Functions>
+
+            <Attributes>
+              <Exclude>
+                <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+                <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+              </Exclude>
+            </Attributes>
+
+            <UseVerifiableInstrumentation>True</UseVerifiableInstrumentation>
+            <AllowLowIntegrityProcesses>True</AllowLowIntegrityProcesses>
+            <CollectFromChildProcesses>True</CollectFromChildProcesses>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

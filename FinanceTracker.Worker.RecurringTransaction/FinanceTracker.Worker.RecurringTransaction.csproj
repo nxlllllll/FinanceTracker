@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>dotnet-FinanceTracker.Worker.RecurringTransaction-9bec230f-178c-4d8b-bb11-67434b9d5f44</UserSecretsId>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Quartz.Extensions.Hosting" />
+        <PackageReference Include="Quartz.AspNetCore" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\FinanceTracker.Application\FinanceTracker.Application.csproj" />
+        <ProjectReference Include="..\FinanceTracker.Contracts\FinanceTracker.Contracts.csproj" />
+        <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
+        <ProjectReference Include="..\FinanceTracker.Worker.Shared\FinanceTracker.Worker.Shared.csproj" />
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
+    </ItemGroup>
+</Project>
