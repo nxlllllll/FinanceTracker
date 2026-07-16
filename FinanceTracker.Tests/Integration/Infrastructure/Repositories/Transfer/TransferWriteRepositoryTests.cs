@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
@@ -38,7 +39,7 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 			currencyFrom: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			currencyTo: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			exchangeRate: 0.9m,
-			isRatePending: false,
+			rateStatus: RateStatus.Exact,
 			description: "Test transfer",
 			occurredAt: DateTimeOffset.UtcNow
 		).Value!;
@@ -59,23 +60,19 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: entity!.AmountFrom).IsEqualTo(expected: 1000m);
 		await Assert.That(value: entity.AmountTo).IsEqualTo(expected: 900m);
 		await Assert.That(value: entity.ExchangeRate).IsEqualTo(expected: 0.9m);
-		await Assert.That(value: entity.IsRatePending).IsFalse();
+		await Assert.That(value: entity.RateStatus).IsEqualTo(expected: RateStatus.Exact);
 		await Assert.That(value: entity.Description).IsEqualTo(expected: "Test transfer");
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 0);
 		await Assert.That(value: entity.CreatedAt).IsEqualTo(expected: transfer.CreatedAt);
 	}
 
 	[Test]
-	public async Task UpdateStatusAsync_ShouldUpdateStatus()
+	public async Task SaveStatusAsync_ShouldUpdateStatus()
 	{
 		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
+		transfer.Complete();
 
-		await _writeRepository.UpdateStatusAsync(
-			transferId: transfer.Id,
-			userId: transfer.UserId,
-			status: TransferStatus.Completed,
-			expectedVersion: 0
-		);
+		await _writeRepository.SaveStatusAsync(transfer: transfer);
 
 		TransferEntity entity = await Context.Transfers.AsNoTracking().FirstAsync(predicate: t => t.Id == transfer.Id);
 
@@ -84,22 +81,65 @@ public sealed class TransferWriteRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task UpdateStatusAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
+	public async Task SaveStatusAsync_WhenCompensatingAPendingRate_ShouldPersistTheCancelledRateTogetherWithTheStatus()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid fromAccountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid toAccountId = await _accountBuilder.CreateAsync(userId: userId);
+
+		Core.Domains.Transfer.Transfer transfer = Core.Domains.Transfer.Transfer.Create(
+			createdAt: DateTimeOffset.UtcNow,
+			userId: userId,
+			fromAccountId: fromAccountId,
+			toAccountId: toAccountId,
+			amount: 1000m,
+			currencyFrom: Core.ValueObjects.Currency.Create(value: "USD").Value,
+			currencyTo: Core.ValueObjects.Currency.Create(value: "RUB").Value,
+			exchangeRate: 90m,
+			rateStatus: RateStatus.Pending,
+			description: null,
+			occurredAt: DateTimeOffset.UtcNow
+		).Value!;
+
+		await _writeRepository.CreateAsync(transfer: transfer);
+		await Context.SaveChangesAsync();
+
+		transfer.Compensate(occurredAt: DateTimeOffset.UtcNow);
+		await _writeRepository.SaveStatusAsync(transfer: transfer);
+
+		TransferEntity entity = await Context.Transfers.AsNoTracking().FirstAsync(predicate: t => t.Id == transfer.Id);
+
+		await Assert.That(value: entity.Status).IsEqualTo(expected: TransferStatus.Compensated);
+		await Assert.That(value: entity.RateStatus).IsEqualTo(expected: RateStatus.Cancelled);
+	}
+
+	[Test]
+	public async Task SaveStatusAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
 	{
 		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
 
-		await _writeRepository.UpdateStatusAsync(
-			transferId: transfer.Id,
+		Core.Domains.Transfer.Transfer staleCopy = Core.Domains.Transfer.Transfer.Reconstitute(
+			id: transfer.Id,
 			userId: transfer.UserId,
-			status: TransferStatus.Completed,
-			expectedVersion: 0
+			fromAccountId: transfer.FromAccountId,
+			toAccountId: transfer.ToAccountId,
+			amountFrom: transfer.AmountFrom,
+			amountTo: transfer.AmountTo,
+			exchangeRate: transfer.ExchangeRate,
+			rateStatus: transfer.RateStatus,
+			rateStatusChangedAt: transfer.RateStatusChangedAt,
+			status: transfer.Status,
+			description: transfer.Description,
+			rowVersion: transfer.RowVersion,
+			occurredAt: transfer.OccurredAt,
+			createdAt: transfer.CreatedAt
 		);
 
-		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.UpdateStatusAsync(
-			transferId: transfer.Id,
-			userId: transfer.UserId,
-			status: TransferStatus.Compensated,
-			expectedVersion: 0
-		));
+		transfer.Complete();
+		await _writeRepository.SaveStatusAsync(transfer: transfer);
+
+		staleCopy.Fail(occurredAt: DateTimeOffset.UtcNow);
+
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.SaveStatusAsync(transfer: staleCopy));
 	}
 }

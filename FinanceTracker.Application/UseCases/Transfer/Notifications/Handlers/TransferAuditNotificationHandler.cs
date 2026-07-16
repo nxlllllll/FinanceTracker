@@ -16,7 +16,7 @@ public sealed class TransferAuditNotificationHandler(ILogger<TransferAuditNotifi
 			[Audit] Transfer created. TransferId: {notification.TransferId}, UserId: {notification.UserId}, FromAccountId: {notification.FromAccountId},
 			ToAccountId: {notification.ToAccountId}, AmountFrom: {notification.AmountFrom} {notification.CurrencyFrom},
 			AmountTo: {notification.AmountTo} {notification.CurrencyTo}, ExchangeRate: {notification.ExchangeRate},
-			IsRatePending: {notification.IsRatePending}, OccurredAt: {notification.OccurredAt:O}.
+			RateStatus: {notification.RateStatus}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}

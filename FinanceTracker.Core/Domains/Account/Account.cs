@@ -403,6 +403,9 @@ public sealed class Account : AggregateRoot
 		if (IsArchived)
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The account has already been archived before."));
 
+		if (Balance.Amount < 0)
+			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "Cannot archive an account with a negative balance."));
+
 		RaiseEvent(@event: new AccountArchived(
 			Id: Guid.CreateVersion7(),
 			AccountId: Id,

@@ -49,7 +49,7 @@ public sealed class CreateTransferHandler(
 			currencyFrom: account.Currency,
 			currencyTo: user.ToAccountCurrency,
 			exchangeRate: conversion.Rate,
-			isRatePending: conversion.IsPending,
+			rateStatus: conversion.Status,
 			description: command.Description,
 			occurredAt: command.OccurredAt
 		);
@@ -87,7 +87,7 @@ public sealed class CreateTransferHandler(
 			AmountTo: transfer.AmountTo.Amount,
 			CurrencyTo: transfer.AmountTo.Currency,
 			ExchangeRate: transfer.ExchangeRate,
-			IsRatePending: transfer.IsRatePending,
+			RateStatus: transfer.RateStatus,
 			Description: transfer.Description,
 			OccurredAt: transfer.OccurredAt
 		));

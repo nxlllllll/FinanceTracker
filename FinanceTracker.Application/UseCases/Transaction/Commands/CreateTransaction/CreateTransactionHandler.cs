@@ -32,7 +32,7 @@ public sealed class CreateTransactionHandler(
 			Amount: transaction.Amount,
 			Direction: transaction.Direction,
 			ExchangeRate: transaction.ExchangeRate,
-			IsRatePending: transaction.IsRatePending,
+			RateStatus: transaction.RateStatus,
 			Description: transaction.Description,
 			OccurredAt: transaction.OccurredAt
 		));

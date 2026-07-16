@@ -1,26 +1,19 @@
-using FinanceTracker.Core.Domains.Transfer;
-
 namespace FinanceTracker.Core.Repositories.Transfer;
 
 public interface ITransferWriteRepository
 {
 	Task CreateAsync(
-		Domains.Transfer.Transfer transfer,
+		Core.Domains.Transfer.Transfer transfer,
 		CancellationToken ct = default
 	);
 
-	Task UpdateRateAsync(
-		Guid transferId,
-		decimal newRate,
-		int expectedVersion,
+	Task SaveRateResolutionAsync(
+		Core.Domains.Transfer.Transfer transfer,
 		CancellationToken ct = default
 	);
 
-	Task UpdateStatusAsync(
-		Guid transferId,
-		Guid userId,
-		TransferStatus status,
-		int expectedVersion,
+	Task SaveStatusAsync(
+		Core.Domains.Transfer.Transfer transfer,
 		CancellationToken ct = default
 	);
 }

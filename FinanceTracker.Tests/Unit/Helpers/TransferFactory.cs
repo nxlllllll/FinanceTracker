@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.ValueObjects;
 
@@ -13,7 +14,7 @@ public static class TransferFactory
 		string currencyFrom = "RUB",
 		string currencyTo = "RUB",
 		decimal exchangeRate = 1m,
-		bool isRatePending = false,
+		RateStatus rateStatus = RateStatus.Exact,
 		string? description = null,
 		DateTimeOffset? occurredAt = null,
 		DateTimeOffset? createdAt = null)
@@ -27,7 +28,7 @@ public static class TransferFactory
 			currencyFrom: Currency.Reconstitute(value: currencyFrom),
 			currencyTo: Currency.Reconstitute(value: currencyTo),
 			exchangeRate: exchangeRate,
-			isRatePending: isRatePending,
+			rateStatus: rateStatus,
 			description: description,
 			occurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow
 		).Value!;
@@ -42,7 +43,8 @@ public static class TransferFactory
 		string currencyFrom = "RUB",
 		string currencyTo = "RUB",
 		decimal exchangeRate = 1m,
-		bool isRatePending = false,
+		RateStatus rateStatus = RateStatus.Exact,
+		DateTimeOffset? rateStatusChangedAt = null,
 		TransferStatus status = TransferStatus.PendingCredit,
 		int rowVersion = 0,
 		string? description = null,
@@ -58,9 +60,10 @@ public static class TransferFactory
 			fromAccountId: fromAccountId ?? Guid.CreateVersion7(),
 			toAccountId: toAccountId ?? Guid.CreateVersion7(),
 			amountFrom: Money.Reconstitute(amount: amount, currency: from),
-			amountTo: Money.Reconstitute(amount: amount * exchangeRate, currency: to),
+			amountTo: Money.Reconstitute(amount: Money.ConvertedAmount(amount: amount, rate: exchangeRate), currency: to),
 			exchangeRate: exchangeRate,
-			isRatePending: isRatePending,
+			rateStatus: rateStatus,
+			rateStatusChangedAt: rateStatusChangedAt ?? FakeDateProvider.Default.UtcNow,
 			status: status,
 			description: description,
 			rowVersion: rowVersion,

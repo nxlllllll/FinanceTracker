@@ -1,7 +1,8 @@
+using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Rate;
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Transaction;
-using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
@@ -9,6 +10,7 @@ using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
+using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Utilities.Retry;
@@ -17,35 +19,37 @@ using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
 using Quartz;
 using ZLogger;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Worker.BalanceAdjustment.Job;
 
 [DisallowConcurrentExecution]
 public sealed class BalanceAdjustmentJob(
 	ITransactionReadRepository transactionReadRepository,
+	ITransactionRepository transactionRepository,
 	ITransactionWriteRepository transactionWriteRepository,
 	ITransferReadRepository transferReadRepository,
+	ITransferRepository transferRepository,
 	ITransferWriteRepository transferWriteRepository,
 	IAccountRepository accountRepository,
 	ICurrencyRateReadRepository currencyRateReadRepository,
+	IUnresolvableEventWriteRepository unresolvableEventWriteRepository,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
 	IOptionsMonitor<BalanceAdjustmentJobOptions> options,
 	ILogger<BalanceAdjustmentJob> logger
 ) : BaseJob<BalanceAdjustmentJobOptions>(options: options, logger: logger)
 {
-	/// <summary>
-	/// Bundles the per-entity-type callbacks that <see cref="ProcessPendingAsync{T}"/> needs,
-	/// so the shared loop takes one object instead of six loose Func parameters.
-	/// </summary>
-	private sealed record Strategy<T>(
-		Func<T, Guid> GetId,
-		Func<T, decimal> GetCurrentRate,
-		Func<T, CancellationToken, Task<decimal?>> GetNewRateAsync,
-		Func<T, string> BuildSkipMessage,
-		Func<T, decimal, CancellationToken, Task> OnRateUnchangedAsync,
-		Func<Dictionary<Guid, Account>, T, decimal, CancellationToken, Task<AdjustResult>> OnAdjustAsync
-	);
+	private sealed record Outcome(AdjustResult Result, string? Reason = null);
+
+	private sealed class Tally
+	{
+		public int Resolved { get; set; }
+		public int Approximated { get; set; }
+		public int Unresolvable { get; set; }
+		public int Waiting { get; set; }
+		public int Failed { get; set; }
+	}
 
 	protected override async Task ProcessAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
@@ -53,86 +57,13 @@ public sealed class BalanceAdjustmentJob(
 		await ProcessTransfersAsync(options: options, ct: ct);
 	}
 
-	private async Task ProcessPendingAsync<T>(
-		IReadOnlyList<T> pending,
-		BalanceAdjustmentJobOptions options,
-		string entityName,
-		Strategy<T> strategy,
-		CancellationToken ct)
-	{
-		if (pending.Count == 0)
-		{
-			logger.ZLogInformation(message: $"No pending rate {entityName}s found.");
-			return;
-		}
-
-		logger.ZLogInformation(message: $"Processing {pending.Count} pending rate {entityName}(s).");
-
-		string sourceTypeTag = entityName.ToLowerInvariant();
-		KeyValuePair<string, object?> sourceTag = new KeyValuePair<string, object?>(key: "source_type", value: sourceTypeTag);
-
-		Dictionary<Guid, Account> accountCache = new Dictionary<Guid, Account>();
-
-		int adjusted = 0;
-		int skipped = 0;
-		int failed = 0;
-
-		foreach (T item in pending)
-		{
-			if (ct.IsCancellationRequested)
-				break;
-
-			decimal? newRate = await strategy.GetNewRateAsync(item, ct);
-
-			if (newRate is null)
-			{
-				logger.ZLogWarning(message: $"{strategy.BuildSkipMessage(item)} Skipping.");
-				skipped++;
-				WorkerMetrics.BalanceAdjustmentSkipped.Add(delta: 1, sourceTag);
-				continue;
-			}
-
-			if (newRate == strategy.GetCurrentRate(item))
-			{
-				await strategy.OnRateUnchangedAsync(item, newRate.Value, ct);
-				adjusted++;
-				WorkerMetrics.BalanceAdjustmentAdjusted.Add(delta: 1, sourceTag);
-				continue;
-			}
-
-			AdjustResult result = await TryAdjustAsync(
-				itemId: strategy.GetId(item),
-				accountCache: accountCache,
-				options: options,
-				work: innerCt => strategy.OnAdjustAsync(accountCache, item, newRate.Value, innerCt),
-				ct: ct
-			);
-
-			switch (result)
-			{
-				case AdjustResult.Adjusted:
-					adjusted++;
-					WorkerMetrics.BalanceAdjustmentAdjusted.Add(delta: 1, sourceTag);
-					break;
-				case AdjustResult.Skipped:
-					skipped++;
-					WorkerMetrics.BalanceAdjustmentSkipped.Add(delta: 1, sourceTag);
-					break;
-				case AdjustResult.Failed:
-					failed++;
-					WorkerMetrics.BalanceAdjustmentFailed.Add(delta: 1, sourceTag);
-					break;
-			}
-		}
-
-		LogSummary(entityName: entityName, total: pending.Count, adjusted: adjusted, skipped: skipped, failed: failed);
-	}
-
 	private async Task ProcessTransactionsAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
+		Dictionary<Guid, Account> accountCache = new Dictionary<Guid, Account>();
+		Tally tally = new Tally();
+
 		DateTimeOffset? cursorOccurredAt = null;
 		Guid? cursorId = null;
-		bool anyPageProcessed = false;
 
 		while (!ct.IsCancellationRequested)
 		{
@@ -144,105 +75,142 @@ public sealed class BalanceAdjustmentJob(
 			);
 
 			if (page.Count == 0)
-			{
-				if (!anyPageProcessed)
-					logger.ZLogInformation(message: $"No pending rate {nameof(Transaction)}s found.");
 				break;
+
+			foreach (PendingRateTransaction item in page)
+			{
+				if (ct.IsCancellationRequested)
+					break;
+
+				Outcome outcome = await RunWithRetryAsync(
+					itemId: item.TransactionId,
+					accountCache: accountCache,
+					options: options,
+					work: innerCt => SettleTransactionAsync(item: item, accountCache: accountCache, options: options, ct: innerCt),
+					ct: ct
+				);
+
+				Record(tally: tally, outcome: outcome, sourceType: AggregateTypeNames.Transaction, itemId: item.TransactionId);
 			}
 
-			anyPageProcessed = true;
-
-			await ProcessPendingAsync(
-				pending: page,
-				options: options,
-				entityName: nameof(Transaction),
-				strategy: new Strategy<PendingRateTransaction>(
-					GetId: item => item.AccountId,
-					GetCurrentRate: item => item.CurrentRate,
-					GetNewRateAsync: GetTransactionRateAsync,
-					BuildSkipMessage: BuildTransactionSkipMessage,
-					OnRateUnchangedAsync: UpdateTransactionRateAsync,
-					OnAdjustAsync: AdjustTransactionAsync
-				),
-				ct: ct
-			);
-
-			PendingRateTransaction last = page[^1];
-			cursorOccurredAt = last.OccurredAt;
-			cursorId = last.TransactionId;
+			cursorOccurredAt = page[^1].OccurredAt;
+			cursorId = page[^1].TransactionId;
 
 			if (page.Count < options.BatchSize)
 				break;
 		}
+
+		LogSummary(entityName: AggregateTypeNames.Transaction, tally: tally);
 	}
 
-	private Task<decimal?> GetTransactionRateAsync(PendingRateTransaction item, CancellationToken ct) => currencyRateReadRepository.GetRateAsync(
-		baseCurrencyCode: item.TransactionCurrency,
-		targetCurrencyCode: item.BaseCurrency,
-		date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
-		ct: ct
-	);
-
-	private static string BuildTransactionSkipMessage(PendingRateTransaction item)
-		=> $"Rate not found for transaction {item.TransactionId} ({item.TransactionCurrency} > {item.BaseCurrency} on {item.OccurredAt:d}).";
-
-	private Task UpdateTransactionRateAsync(PendingRateTransaction item, decimal rate, CancellationToken ct) => transactionWriteRepository.UpdateRateAsync(
-		transactionId: item.TransactionId,
-		newRate: rate,
-		expectedVersion: item.RowVersion,
-		ct: ct
-	);
-
-	private async Task<AdjustResult> AdjustTransactionAsync(
-		Dictionary<Guid, Account> accountCache,
+	private async Task<Outcome> SettleTransactionAsync(
 		PendingRateTransaction item,
-		decimal newRate,
+		Dictionary<Guid, Account> accountCache,
+		BalanceAdjustmentJobOptions options,
 		CancellationToken ct)
 	{
-		Account? account = await GetOrLoadAccountAsync(cache: accountCache, accountId: item.AccountId, ct: ct);
-
-		if (account is null)
-		{
-			logger.ZLogWarning(message: $"Account {item.AccountId} not found for transaction {item.TransactionId}. Skipping.");
-			return AdjustResult.Skipped;
-		}
-
-		Result<Unit, DomainException> adjustResult = account.AdjustBalance(
-			occurredAt: dateProvider.UtcNow,
-			sourceId: item.TransactionId,
-			sourceType: AggregateTypeNames.Transaction,
-			direction: item.Direction,
-			oldRate: item.CurrentRate,
-			newRate: newRate,
-			amount: item.Amount
+		decimal? newRate = await currencyRateReadRepository.GetRateAsync(
+			baseCurrencyCode: item.TransactionCurrency,
+			targetCurrencyCode: item.BaseCurrency,
+			date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
+			ct: ct
 		);
 
-		if (adjustResult.IsFailure)
+		if (newRate is null && !HasOutlivedGrace(rateStatusChangedAt: item.RateStatusChangedAt, options: options))
+			return new Outcome(Result: AdjustResult.Waiting);
+
+		Core.Domains.Transaction.Transaction? transaction = await transactionRepository.GetByIdAsync(
+			transactionId: item.TransactionId,
+			userId: item.UserId,
+			ct: ct
+		);
+
+		if (transaction is null)
+			return new Outcome(Result: AdjustResult.Waiting, Reason: "Transaction disappeared between queue and settlement.");
+
+		if (!transaction.RateStatus.IsOpen())
+			return new Outcome(Result: AdjustResult.Waiting, Reason: $"Rate already settled as {transaction.RateStatus}.");
+
+		if (newRate is null)
 		{
-			logger.ZLogWarning(message: $"AdjustBalance failed for transaction {item.TransactionId}: {adjustResult.Error!.Message}. Skipping.");
-			return AdjustResult.Skipped;
+			return await CloseAsync(
+				apply: () => transaction.ApproximateRate(changedAt: dateProvider.UtcNow),
+				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
+				result: AdjustResult.Approximated,
+				reason: $"No rate for {item.TransactionCurrency} -> {item.BaseCurrency} on {item.OccurredAt:d} after {options.RateGracePeriodDays} day(s).",
+				ct: ct
+			);
+		}
+
+		Account? account = await GetOrLoadAccountAsync(cache: accountCache, accountId: transaction.AccountId, ct: ct);
+		if (account is null)
+		{
+			return await EscalateAsync(
+				apply: () => transaction.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
+				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
+				referenceId: item.TransactionId,
+				sourceType: AggregateTypeNames.Transaction,
+				reason: $"Account {transaction.AccountId} not found.",
+				payload: new { transactionId = item.TransactionId, accountId = transaction.AccountId },
+				ct: ct
+			);
+		}
+
+		Result<Unit, DomainException> adjusted = account.AdjustBalance(
+			occurredAt: dateProvider.UtcNow,
+			sourceId: transaction.Id,
+			sourceType: AggregateTypeNames.Transaction,
+			direction: transaction.Direction,
+			oldRate: transaction.ExchangeRate,
+			newRate: newRate.Value,
+			amount: transaction.Amount.Amount
+		);
+
+		if (adjusted.IsFailure)
+		{
+			return await EscalateAsync(
+				apply: () => transaction.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
+				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
+				referenceId: item.TransactionId,
+				sourceType: AggregateTypeNames.Transaction,
+				reason: adjusted.Error!.Message,
+				payload: new { transactionId = item.TransactionId, accountId = account.Id, oldRate = transaction.ExchangeRate, newRate = newRate.Value },
+				ct: ct
+			);
+		}
+
+		Result<Unit, DomainException> resolved = transaction.ResolveRate(newRate: newRate.Value, changedAt: dateProvider.UtcNow);
+		if (resolved.IsFailure)
+		{
+			accountCache.Remove(key: account.Id);
+
+			return await EscalateAsync(
+				apply: () => transaction.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
+				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
+				referenceId: item.TransactionId,
+				sourceType: AggregateTypeNames.Transaction,
+				reason: resolved.Error!.Message,
+				payload: new { transactionId = item.TransactionId, newRate = newRate.Value },
+				ct: ct
+			);
 		}
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await accountRepository.SaveAsync(account: account, ct: ct);
-			await transactionWriteRepository.UpdateRateAsync(
-				transactionId: item.TransactionId,
-				newRate: newRate,
-				expectedVersion: item.RowVersion,
-				ct: ct
-			);
+			await transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: ct);
 		}, ct: ct);
 
-		logger.ZLogInformation(message: $"Adjusted transaction {item.TransactionId}: rate {item.CurrentRate} > {newRate}.");
-		return AdjustResult.Adjusted;
+		return new Outcome(Result: AdjustResult.Resolved);
 	}
 
 	private async Task ProcessTransfersAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
+		Dictionary<Guid, Account> accountCache = new Dictionary<Guid, Account>();
+		Tally tally = new Tally();
+
 		DateTimeOffset? cursorOccurredAt = null;
 		Guid? cursorId = null;
-		bool anyPageProcessed = false;
 
 		while (!ct.IsCancellationRequested)
 		{
@@ -254,105 +222,190 @@ public sealed class BalanceAdjustmentJob(
 			);
 
 			if (page.Count == 0)
-			{
-				if (!anyPageProcessed)
-					logger.ZLogInformation(message: $"No pending rate {nameof(Transfer)}s found.");
 				break;
+
+			foreach (PendingRateTransfer item in page)
+			{
+				if (ct.IsCancellationRequested)
+					break;
+
+				Outcome outcome = await RunWithRetryAsync(
+					itemId: item.TransferId,
+					accountCache: accountCache,
+					options: options,
+					work: innerCt => SettleTransferAsync(item: item, accountCache: accountCache, options: options, ct: innerCt),
+					ct: ct
+				);
+
+				Record(tally: tally, outcome: outcome, sourceType: AggregateTypeNames.Transfer, itemId: item.TransferId);
 			}
 
-			anyPageProcessed = true;
-
-			await ProcessPendingAsync(
-				pending: page,
-				options: options,
-				entityName: nameof(Transfer),
-				strategy: new Strategy<PendingRateTransfer>(
-					GetId: item => item.ToAccountId,
-					GetCurrentRate: item => item.CurrentRate,
-					GetNewRateAsync: GetTransferRateAsync,
-					BuildSkipMessage: BuildTransferSkipMessage,
-					OnRateUnchangedAsync: UpdateTransferRateAsync,
-					OnAdjustAsync: AdjustTransferAsync
-				),
-				ct: ct
-			);
-
-			PendingRateTransfer last = page[^1];
-			cursorOccurredAt = last.OccurredAt;
-			cursorId = last.TransferId;
+			cursorOccurredAt = page[^1].OccurredAt;
+			cursorId = page[^1].TransferId;
 
 			if (page.Count < options.BatchSize)
 				break;
 		}
+
+		LogSummary(entityName: AggregateTypeNames.Transfer, tally: tally);
 	}
 
-	private Task<decimal?> GetTransferRateAsync(PendingRateTransfer item, CancellationToken ct) => currencyRateReadRepository.GetRateAsync(
-		baseCurrencyCode: item.CurrencyFrom,
-		targetCurrencyCode: item.CurrencyTo,
-		date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
-		ct: ct
-	);
-
-	private static string BuildTransferSkipMessage(PendingRateTransfer item)
-		=> $"Rate not found for transfer {item.TransferId} ({item.CurrencyFrom} > {item.CurrencyTo} on {item.OccurredAt:d}).";
-
-	private Task UpdateTransferRateAsync(PendingRateTransfer item, decimal rate, CancellationToken ct) => transferWriteRepository.UpdateRateAsync(
-		transferId: item.TransferId,
-		newRate: rate,
-		expectedVersion: item.RowVersion,
-		ct: ct
-	);
-
-	private async Task<AdjustResult> AdjustTransferAsync(
-		Dictionary<Guid, Account> accountCache,
+	private async Task<Outcome> SettleTransferAsync(
 		PendingRateTransfer item,
-		decimal newRate,
+		Dictionary<Guid, Account> accountCache,
+		BalanceAdjustmentJobOptions options,
 		CancellationToken ct)
 	{
-		Account? toAccount = await GetOrLoadAccountAsync(cache: accountCache, accountId: item.ToAccountId, ct: ct);
-
-		if (toAccount is null)
-		{
-			logger.ZLogWarning(message: $"toAccount {item.ToAccountId} not found for transfer {item.TransferId}. Skipping.");
-			return AdjustResult.Skipped;
-		}
-
-		Result<Unit, DomainException> toResult = toAccount.AdjustBalance(
-			occurredAt: dateProvider.UtcNow,
-			sourceId: item.TransferId,
-			sourceType: AggregateTypeNames.Transfer,
-			direction: DirectionType.Credit,
-			oldRate: item.CurrentRate,
-			newRate: newRate,
-			amount: item.AmountFrom
+		decimal? newRate = await currencyRateReadRepository.GetRateAsync(
+			baseCurrencyCode: item.CurrencyFrom,
+			targetCurrencyCode: item.CurrencyTo,
+			date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
+			ct: ct
 		);
 
-		if (toResult.IsFailure)
+		if (newRate is null && !HasOutlivedGrace(rateStatusChangedAt: item.RateStatusChangedAt, options: options))
+			return new Outcome(Result: AdjustResult.Waiting);
+
+		Core.Domains.Transfer.Transfer? transfer = await transferRepository.GetByIdAsync(transferId: item.TransferId, ct: ct);
+
+		if (transfer is null)
+			return new Outcome(Result: AdjustResult.Waiting, Reason: "Transfer disappeared between queue and settlement.");
+
+		if (!transfer.RateStatus.IsOpen())
+			return new Outcome(Result: AdjustResult.Waiting, Reason: $"Rate already settled as {transfer.RateStatus}.");
+
+		if (newRate is null)
 		{
-			logger.ZLogWarning(message: $"AdjustBalance failed for to-account on transfer {item.TransferId}: {toResult.Error!.Message}. Skipping.");
-			return AdjustResult.Skipped;
+			return await CloseAsync(
+				apply: () => transfer.ApproximateRate(changedAt: dateProvider.UtcNow),
+				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
+				result: AdjustResult.Approximated,
+				reason: $"No rate for {item.CurrencyFrom} > {item.CurrencyTo} on {item.OccurredAt:d} after {options.RateGracePeriodDays} day(s).",
+				ct: ct
+			);
+		}
+
+		Account? toAccount = await GetOrLoadAccountAsync(cache: accountCache, accountId: transfer.ToAccountId, ct: ct);
+		if (toAccount is null)
+		{
+			return await EscalateAsync(
+				apply: () => transfer.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
+				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
+				referenceId: item.TransferId,
+				sourceType: AggregateTypeNames.Transfer,
+				reason: $"toAccount {transfer.ToAccountId} not found.",
+				payload: new { transferId = item.TransferId, toAccountId = transfer.ToAccountId },
+				ct: ct
+			);
+		}
+
+		Result<Unit, DomainException> adjusted = toAccount.AdjustBalance(
+			occurredAt: dateProvider.UtcNow,
+			sourceId: transfer.Id,
+			sourceType: AggregateTypeNames.Transfer,
+			direction: DirectionType.Credit,
+			oldRate: transfer.ExchangeRate,
+			newRate: newRate.Value,
+			amount: transfer.AmountFrom.Amount
+		);
+
+		if (adjusted.IsFailure)
+		{
+			return await EscalateAsync(
+				apply: () => transfer.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
+				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
+				referenceId: item.TransferId,
+				sourceType: AggregateTypeNames.Transfer,
+				reason: adjusted.Error!.Message,
+				payload: new { transferId = item.TransferId, toAccountId = toAccount.Id, oldRate = transfer.ExchangeRate, newRate = newRate.Value },
+				ct: ct
+			);
+		}
+
+		Result<Unit, DomainException> resolved = transfer.ResolveRate(newRate: newRate.Value, changedAt: dateProvider.UtcNow);
+		if (resolved.IsFailure)
+		{
+			accountCache.Remove(key: toAccount.Id);
+
+			return await EscalateAsync(
+				apply: () => transfer.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
+				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
+				referenceId: item.TransferId,
+				sourceType: AggregateTypeNames.Transfer,
+				reason: resolved.Error!.Message,
+				payload: new { transferId = item.TransferId, amountFrom = transfer.AmountFrom.Amount, newRate = newRate.Value },
+				ct: ct
+			);
 		}
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await accountRepository.SaveAsync(account: toAccount, ct: ct);
-			await transferWriteRepository.UpdateRateAsync(
-				transferId: item.TransferId,
-				newRate: newRate,
-				expectedVersion: item.RowVersion,
-				ct: ct
-			);
+			await transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: ct);
 		}, ct: ct);
 
-		logger.ZLogInformation(message: $"Adjusted transfer {item.TransferId}: rate {item.CurrentRate} > {newRate}.");
-		return AdjustResult.Adjusted;
+		return new Outcome(Result: AdjustResult.Resolved);
 	}
 
-	private async Task<AdjustResult> TryAdjustAsync(
+	/// <summary>Closes a row without touching any balance — the placeholder rate stands as final.</summary>
+	private async Task<Outcome> CloseAsync(
+		Func<Result<Unit, DomainException>> apply,
+		Func<CancellationToken, Task> save,
+		AdjustResult result,
+		string reason,
+		CancellationToken ct)
+	{
+		Result<Unit, DomainException> applied = apply();
+		if (applied.IsFailure)
+			return new Outcome(Result: AdjustResult.Failed, Reason: applied.Error!.Message);
+
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await save(ct), ct: ct);
+
+		return new Outcome(Result: result, Reason: reason);
+	}
+
+	/// <summary>
+	/// Closes a row as <c>Unresolvable</c> and records why, in the same transaction. The two must land
+	/// together: a row closed without a trail is a balance that is knowingly wrong and nobody knows it.
+	/// </summary>
+	private async Task<Outcome> EscalateAsync(
+		Func<Result<Unit, DomainException>> apply,
+		Func<CancellationToken, Task> save,
+		Guid referenceId,
+		string sourceType,
+		string reason,
+		object payload,
+		CancellationToken ct)
+	{
+		Result<Unit, DomainException> applied = apply();
+		if (applied.IsFailure)
+			return new Outcome(Result: AdjustResult.Failed, Reason: applied.Error!.Message);
+
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			await unresolvableEventWriteRepository.CreateAsync(
+				type: UnresolvableEventType.RateAdjustmentFailed,
+				referenceId: referenceId,
+				reason: reason,
+				payload: JsonSerializer.Serialize(value: payload),
+				occurredAt: dateProvider.UtcNow,
+				ct: ct
+			);
+
+			await save(ct);
+		}, ct: ct);
+
+		return new Outcome(Result: AdjustResult.Unresolvable, Reason: reason);
+	}
+
+	private bool HasOutlivedGrace(DateTimeOffset rateStatusChangedAt, BalanceAdjustmentJobOptions options)
+		=> dateProvider.UtcNow - rateStatusChangedAt > TimeSpan.FromDays(value: options.RateGracePeriodDays);
+
+	private async Task<Outcome> RunWithRetryAsync(
 		Guid itemId,
 		Dictionary<Guid, Account> accountCache,
 		BalanceAdjustmentJobOptions options,
-		Func<CancellationToken, Task<AdjustResult>> work,
+		Func<CancellationToken, Task<Outcome>> work,
 		CancellationToken ct)
 	{
 		try
@@ -361,11 +414,9 @@ public sealed class BalanceAdjustmentJob(
 				operation: work,
 				logging: (exception, attempt, delay) =>
 				{
-					accountCache.Remove(key: itemId);
-					logger.ZLogWarning(exception: exception, message: $"""
-						[ConcurrencyRetry] Attempt {attempt + 1}/{options.MaxRetries} failed.
-						Retrying in {delay}ms.
-					""");
+					accountCache.Clear();
+
+					logger.ZLogWarning(exception: exception, message: $"[ConcurrencyRetry] {itemId}: attempt {attempt + 1}/{options.MaxRetries} failed. Retrying in {delay}ms.");
 				},
 				maxRetries: options.MaxRetries,
 				baseDelayMs: options.BaseDelayMs,
@@ -375,14 +426,11 @@ public sealed class BalanceAdjustmentJob(
 		}
 		catch (Exception ex)
 		{
-			accountCache.Remove(key: itemId);
-			logger.ZLogError(exception: ex, message: $"Failed to adjust item {itemId}.");
-			return AdjustResult.Failed;
+			accountCache.Clear();
+			logger.ZLogError(exception: ex, message: $"Failed to settle {itemId}. It stays pending and will be retried on the next run.");
+			return new Outcome(Result: AdjustResult.Failed, Reason: ex.Message);
 		}
 	}
-
-	private void LogSummary(string entityName, int total, int adjusted, int skipped, int failed)
-		=> logger.ZLogInformation(message: $"{entityName}s complete. Total: {total}, adjusted: {adjusted}, skipped: {skipped}, failed: {failed}.");
 
 	private async Task<Account?> GetOrLoadAccountAsync(
 		Dictionary<Guid, Account> cache,
@@ -393,11 +441,54 @@ public sealed class BalanceAdjustmentJob(
 			return cached;
 
 		Account? loaded = await accountRepository.GetByIdAsync(accountId: accountId, ct: ct);
+
 		if (loaded is not null)
 			cache[accountId] = loaded;
 		else
 			cache.Remove(key: accountId);
 
 		return loaded;
+	}
+
+	private void Record(Tally tally, Outcome outcome, string sourceType, Guid itemId)
+	{
+		KeyValuePair<string, object?> tag = new KeyValuePair<string, object?>(key: "source_type", value: sourceType.ToLowerInvariant());
+
+		switch (outcome.Result)
+		{
+			case AdjustResult.Resolved:
+				tally.Resolved++;
+				WorkerMetrics.BalanceAdjustmentResolved.Add(delta: 1, tag);
+				break;
+
+			case AdjustResult.Approximated:
+				tally.Approximated++;
+				WorkerMetrics.BalanceAdjustmentApproximated.Add(delta: 1, tag);
+				logger.ZLogWarning(message: $"[{sourceType}] {itemId}: rate written off as approximate. {outcome.Reason}");
+				break;
+
+			case AdjustResult.Unresolvable:
+				tally.Unresolvable++;
+				WorkerMetrics.BalanceAdjustmentUnresolvable.Add(delta: 1, tag);
+				logger.ZLogError(message: $"[{sourceType}] {itemId}: rate settled but correction rejected — escalated to unresolvable_events. {outcome.Reason}");
+				break;
+
+			case AdjustResult.Waiting:
+				tally.Waiting++;
+				break;
+
+			case AdjustResult.Failed:
+				tally.Failed++;
+				WorkerMetrics.BalanceAdjustmentFailed.Add(delta: 1, tag);
+				break;
+		}
+	}
+
+	private void LogSummary(string entityName, Tally tally)
+	{
+		logger.ZLogInformation(message: $"""
+			{entityName}s settled. Resolved: {tally.Resolved}, approximated: {tally.Approximated},
+			unresolvable: {tally.Unresolvable}, still waiting: {tally.Waiting}, failed: {tally.Failed}.
+		""");
 	}
 }

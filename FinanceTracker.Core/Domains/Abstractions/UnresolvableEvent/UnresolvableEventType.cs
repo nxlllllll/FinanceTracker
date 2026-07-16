@@ -36,5 +36,12 @@ public enum UnresolvableEventType
 	/// A mandatory publish could not be routed to any queue by the broker (misconfigured
 	/// routing key, unbound exchange) and was returned via RabbitMQ's basic.return.
 	/// </summary>
-	PublisherUnroutable
+	PublisherUnroutable,
+
+	/// <summary>
+	/// A pending exchange rate could not be settled automatically: the real rate arrived, but the
+	/// correction was rejected — typically because the account was archived while the rate was still
+	/// pending, and an archived account refuses balance adjustments.
+	/// </summary>
+	RateAdjustmentFailed
 }

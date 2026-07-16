@@ -113,4 +113,16 @@ public sealed class OperationWriteRepository(FinanceTrackerContext context) : IO
 			cancellationToken: ct
 		);
 	}
+
+	public async Task UpdateTransferAmountToAsync(
+		Guid transferId,
+		Guid userId,
+		decimal amountTo,
+		CancellationToken ct = default)
+	{
+		await context.Operations.Where(predicate: o => o.Id == transferId && o.UserId == userId && o.Type == Transfer).ExecuteUpdateAsync(
+			setPropertyCalls: b => b.SetProperty(propertyExpression: o => o.AmountTo, valueExpression: amountTo),
+			cancellationToken: ct
+		);
+	}
 }

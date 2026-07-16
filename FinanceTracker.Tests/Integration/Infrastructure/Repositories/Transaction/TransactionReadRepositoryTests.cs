@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
@@ -108,7 +109,8 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			direction: direction,
 			exchangeRate: 1m,
 			isExcluded: false,
-			isRatePending: false,
+			rateStatus: RateStatus.Exact,
+			rateStatusChangedAt: DateTimeOffset.UtcNow,
 			description: "тест",
 			rowVersion: 0,
 			occurredAt: occurredAt ?? DateTimeOffset.UtcNow

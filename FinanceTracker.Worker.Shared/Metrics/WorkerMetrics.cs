@@ -94,14 +94,19 @@ public static class WorkerMetrics
 
 	// Balance adjustment
 
-	public static readonly Counter<long> BalanceAdjustmentAdjusted = Meter.CreateCounter<long>(
-		name: "balance_adjustment.adjusted",
-		description: "Total items with balance adjusted after rate update. Tagged by source_type (transaction/transfer)."
+	public static readonly Counter<long> BalanceAdjustmentResolved = Meter.CreateCounter<long>(
+		name: "balance_adjustment_resolved",
+		description: "Operations whose pending rate was settled against the real rate."
 	);
 
-	public static readonly Counter<long> BalanceAdjustmentSkipped = Meter.CreateCounter<long>(
-		name: "balance_adjustment.skipped",
-		description: "Total items skipped during balance adjustment. Tagged by source_type."
+	public static readonly Counter<long> BalanceAdjustmentApproximated = Meter.CreateCounter<long>(
+		name: "balance_adjustment_approximated",
+		description: "Operations whose pending rate was written off as approximate after the grace period."
+	);
+
+	public static readonly Counter<long> BalanceAdjustmentUnresolvable = Meter.CreateCounter<long>(
+		name: "balance_adjustment_unresolvable",
+		description: "Operations whose rate correction was rejected and escalated for manual resolution."
 	);
 
 	public static readonly Counter<long> BalanceAdjustmentFailed = Meter.CreateCounter<long>(

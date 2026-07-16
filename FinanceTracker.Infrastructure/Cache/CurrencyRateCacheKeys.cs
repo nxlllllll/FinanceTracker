@@ -12,5 +12,5 @@ internal static class CurrencyRateCacheKeys
 		=> $"rate:{request.From.Value}:{request.To.Value}:{request.Date:yyyyMMdd}";
 
 	public static string StableRateKey(CurrencyStableRateRequest request)
-		=> $"rate:stable:{request.From.Value}:{request.To.Value}:{request.AsOf.UtcTicks}";
+		=> $"rate:stable:{request.From.Value}:{request.To.Value}:{request.AsOf.UtcDateTime:yyyyMMddHH}";
 }

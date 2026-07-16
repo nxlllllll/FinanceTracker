@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 
@@ -12,7 +13,7 @@ public sealed record TransactionReadModel(
 	DirectionType Direction,
 	decimal ExchangeRate,
 	bool IsExcluded,
-	bool IsRatePending,
+	RateStatus RateStatus,
 	string? Description,
 	DateTimeOffset OccurredAt
 ) : IReadModel;

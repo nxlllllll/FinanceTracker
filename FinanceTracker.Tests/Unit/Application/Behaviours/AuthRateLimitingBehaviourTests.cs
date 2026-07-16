@@ -167,7 +167,7 @@ public sealed class AuthRateLimitingBehaviourTests
 		);
 
 		await _rateLimiter.Received(requiredNumberOfCalls: 1).IsAllowedAsync(
-			key: $"ratelimit:ip:{nameof(TestCommandIpOnly)}:{_testIp}",
+			key: $"ratelimit:ip:{_testIp}",
 			requestsPerWindow: customOptions.IpRequestsPerWindow,
 			windowSeconds: customOptions.IpWindowSeconds,
 			ct: Arg.Any<CancellationToken>()
@@ -234,7 +234,7 @@ public sealed class AuthRateLimitingBehaviourTests
 		);
 
 		await _rateLimiter.Received(requiredNumberOfCalls: 1).IsAllowedAsync(
-			key: $"ratelimit:email:{nameof(TestCommandEmailOnly)}:{TestEmail.Value}",
+			key: $"ratelimit:email:{TestEmail.Value}",
 			requestsPerWindow: customOptions.EmailRequestsPerWindow,
 			windowSeconds: customOptions.EmailWindowSeconds,
 			ct: Arg.Any<CancellationToken>()
@@ -255,13 +255,13 @@ public sealed class AuthRateLimitingBehaviourTests
 		);
 
 		await _rateLimiter.Received(requiredNumberOfCalls: 1).IsAllowedAsync(
-			key: $"ratelimit:ip:{nameof(TestCommandBoth)}:{_testIp}",
+			key: $"ratelimit:ip:{_testIp}",
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _rateLimiter.Received(requiredNumberOfCalls: 1).IsAllowedAsync(
-			key: $"ratelimit:email:{nameof(TestCommandBoth)}:{TestEmail.Value}",
+			key: $"ratelimit:email:{TestEmail.Value}",
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -333,5 +333,59 @@ public sealed class AuthRateLimitingBehaviourTests
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<RateLimitExceededException>();
 		await next.DidNotReceive().Invoke(t: Arg.Any<CancellationToken>());
+	}
+
+	[Test]
+	public async Task Handle_WhenEmailScoped_ForDifferentCommandTypes_ShouldShareTheSameBucket()
+	{
+		AllowAllRateLimiterCalls();
+
+		AuthRateLimitingBehaviour<TestCommandEmailOnly, Result<FinanceTracker.Core.Results.Unit, DomainException>> emailOnlyBehaviour = CreateBehaviour<TestCommandEmailOnly>();
+		await emailOnlyBehaviour.Handle(
+			request: new TestCommandEmailOnly(Email: TestEmail),
+			next: AllowedNext(),
+			cancellationToken: CancellationToken.None
+		);
+
+		AuthRateLimitingBehaviour<TestCommandBoth, Result<FinanceTracker.Core.Results.Unit, DomainException>> bothBehaviour = CreateBehaviour<TestCommandBoth>();
+		await bothBehaviour.Handle(
+			request: new TestCommandBoth(IpAddress: _testIp, Email: TestEmail),
+			next: AllowedNext(),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _rateLimiter.Received(requiredNumberOfCalls: 2).IsAllowedAsync(
+			key: $"ratelimit:email:{TestEmail.Value}",
+			requestsPerWindow: Arg.Any<int>(),
+			windowSeconds: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenIpScoped_ForDifferentCommandTypes_ShouldShareTheSameBucket()
+	{
+		AllowAllRateLimiterCalls();
+
+		AuthRateLimitingBehaviour<TestCommandIpOnly, Result<FinanceTracker.Core.Results.Unit, DomainException>> ipOnlyBehaviour = CreateBehaviour<TestCommandIpOnly>();
+		await ipOnlyBehaviour.Handle(
+			request: new TestCommandIpOnly(IpAddress: _testIp),
+			next: AllowedNext(),
+			cancellationToken: CancellationToken.None
+		);
+
+		AuthRateLimitingBehaviour<TestCommandBoth, Result<FinanceTracker.Core.Results.Unit, DomainException>> bothBehaviour = CreateBehaviour<TestCommandBoth>();
+		await bothBehaviour.Handle(
+			request: new TestCommandBoth(IpAddress: _testIp, Email: TestEmail),
+			next: AllowedNext(),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _rateLimiter.Received(requiredNumberOfCalls: 2).IsAllowedAsync(
+			key: $"ratelimit:ip:{_testIp}",
+			requestsPerWindow: Arg.Any<int>(),
+			windowSeconds: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

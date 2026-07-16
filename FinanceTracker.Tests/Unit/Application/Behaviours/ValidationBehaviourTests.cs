@@ -191,4 +191,40 @@ public sealed class ValidationBehaviourTests
 		foreach (string error in expectedErrors)
 			await Assert.That(value: result.Error!.Errors).Contains(expected: error);
 	}
+
+	private sealed class EnumerateOnceOnly<T>(IReadOnlyList<T> items) : IEnumerable<T>
+	{
+		private int _enumerations;
+
+		public IEnumerator<T> GetEnumerator()
+		{
+			if (Interlocked.Increment(location: ref _enumerations) > 1)
+				throw new InvalidOperationException(message: "Enumerated more than once.");
+
+			return items.GetEnumerator();
+		}
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+	}
+
+	[Test]
+	public async Task Handle_WithALazyEnumerableOfValidators_ShouldEnumerateExactlyOnce()
+	{
+		IValidator<TestCommand>[] underlying = [FailingValidator("Boom.")];
+		IEnumerable<IValidator<TestCommand>> lazyValidators = new EnumerateOnceOnly<IValidator<TestCommand>>(items: underlying);
+
+		ValidationBehaviour<TestCommand, Result<Guid, ValidationException>> behaviour = new ValidationBehaviour<TestCommand, Result<Guid, ValidationException>>(
+			validators: lazyValidators,
+			logger: _logger
+		);
+
+		Result<Guid, ValidationException> result = await behaviour.Handle(
+			request: new TestCommand(),
+			next: _ => Task.FromResult(result: Result<Guid, ValidationException>.Success(value: Guid.NewGuid())),
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue()
+			.Because(message: "A second enumeration would have thrown before ever reaching this assertion.");
+	}
 }

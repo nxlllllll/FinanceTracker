@@ -28,6 +28,7 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
 		_userQueryRepository = new UserReadRepository(context: Context);
 		_currencyConversionService = new CurrencyConversionService(
 			currencyRateReadRepository: new CurrencyRateReadRepository(context: Context),
+			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CurrencyConversionService>>()
 		);
 		_readRepository = new CategoryTotalReadRepository(context: Context);

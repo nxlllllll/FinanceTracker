@@ -209,11 +209,8 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
-		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).UpdateStatusAsync(
-			transferId: TransferId,
-			userId: Arg.Any<Guid>(),
-			status: TransferStatus.Completed,
-			expectedVersion: Arg.Any<int>(),
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).SaveStatusAsync(
+			transfer: Arg.Is<Transfer>(t => t!.Id == TransferId && t.Status == TransferStatus.Completed),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -348,11 +345,8 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
-		await _transferWriteRepository.DidNotReceive().UpdateStatusAsync(
-			transferId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			status: Arg.Any<TransferStatus>(),
-			expectedVersion: Arg.Any<int>(),
+		await _transferWriteRepository.DidNotReceive().SaveStatusAsync(
+			transfer: Arg.Any<Transfer>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

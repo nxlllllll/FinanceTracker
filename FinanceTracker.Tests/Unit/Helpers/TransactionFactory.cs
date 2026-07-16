@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -18,11 +19,12 @@ public static class TransactionFactory
 		string baseCurrency = "RUB",
 		DirectionType direction = DirectionType.Debit,
 		decimal exchangeRate = 1m,
-		bool isRatePending = false,
+		RateStatus rateStatus = RateStatus.Pending,
 		bool isExcluded = false,
 		string? description = null)
 	{
 		Result<Transaction, DomainException> result = Transaction.Create(
+			createdAt: FakeDateProvider.Default.UtcNow,
 			occurredAt: FakeDateProvider.Default.UtcNow,
 			accountId: accountId ?? Guid.CreateVersion7(),
 			userId: userId ?? Guid.CreateVersion7(),
@@ -31,7 +33,7 @@ public static class TransactionFactory
 			baseCurrency: Currency.Create(value: baseCurrency).Value,
 			direction: direction,
 			exchangeRate: exchangeRate,
-			isRatePending: isRatePending,
+			rateStatus: rateStatus,
 			description: description
 		);
 
@@ -54,7 +56,7 @@ public static class TransactionFactory
 		string currency = "RUB",
 		DirectionType direction = DirectionType.Debit,
 		decimal exchangeRate = 1m,
-		bool isRatePending = false,
+		RateStatus rateStatus = RateStatus.Pending,
 		bool isExcluded = false,
 		string? description = null)
 	{
@@ -67,7 +69,7 @@ public static class TransactionFactory
 			Direction: direction,
 			ExchangeRate: exchangeRate,
 			IsExcluded: isExcluded,
-			IsRatePending: isRatePending,
+			RateStatus: rateStatus,
 			Description: description,
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		);

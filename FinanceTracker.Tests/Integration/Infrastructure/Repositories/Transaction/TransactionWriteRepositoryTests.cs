@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
@@ -85,7 +86,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		exchangeRate: 1m,
 		isExcluded: false,
 		description: description,
-		isRatePending: false,
+		rateStatus: RateStatus.Exact,
+		rateStatusChangedAt: DateTimeOffset.UtcNow,
 		rowVersion: 0,
 		occurredAt: DateTimeOffset.UtcNow
 	);
@@ -118,7 +120,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 			exchangeRate: 1m,
 			isExcluded: false,
 			description: "тест",
-			isRatePending: false,
+			rateStatus: RateStatus.Exact,
+			rateStatusChangedAt: DateTimeOffset.UtcNow,
 			rowVersion: 0,
 			occurredAt: DateTimeOffset.UtcNow
 		);

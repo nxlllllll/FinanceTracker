@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -21,11 +23,12 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		string currencyTo,
 		decimal amount = 1000m,
 		decimal exchangeRate = 1m,
-		bool isRatePending = false,
+		RateStatus rateStatus = RateStatus.Exact,
+		TransferStatus status = TransferStatus.PendingCredit,
 		DateTimeOffset? occurredAt = null,
 		DateTimeOffset? createdAt = null)
 	{
-		Result<Core.Domains.Transfer.Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
+		Result<Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
 			createdAt: createdAt ?? DateTimeOffset.UtcNow,
 			userId: userId,
 			fromAccountId: fromAccountId,
@@ -34,7 +37,7 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 			currencyFrom: Core.ValueObjects.Currency.Create(value: currencyFrom).Value,
 			currencyTo: Core.ValueObjects.Currency.Create(value: currencyTo).Value,
 			exchangeRate: exchangeRate,
-			isRatePending: isRatePending,
+			rateStatus: rateStatus,
 			description: null,
 			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
 		);
@@ -42,7 +45,10 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		if (transferResult.IsFailure)
 			throw new InvalidOperationException(message: $"TransferBuilder.CreateAsync failed: {transferResult.Error!.Message}");
 
-		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;
+		Transfer transfer = transferResult.Value!;
+
+		if (status == TransferStatus.Completed)
+			transfer.Complete();
 
 		await _writeRepository.CreateAsync(transfer: transfer);
 		await context.SaveChangesAsync();

@@ -28,7 +28,7 @@ public sealed class RateLimitingBehaviour<TRequest, TResponse>(
 
 		RateLimitOptions currentOptions = options.CurrentValue;
 
-		string key = $"ratelimit:{typeof(TRequest).Name}:{userScopedRequest.UserId}";
+		string key = $"ratelimit:user:{userScopedRequest.UserId}";
 
 		bool isAllowed = await rateLimiter.IsAllowedAsync(
 			key: key,

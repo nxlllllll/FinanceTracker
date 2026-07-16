@@ -32,4 +32,9 @@ public interface ITransactionReadRepository : IReadRepository<TransactionReadMod
 		Guid? cursorId = null,
 		CancellationToken ct = default
 	);
+
+	Task<bool> HasPendingRateAsync(
+		Guid accountId,
+		CancellationToken ct = default
+	);
 }

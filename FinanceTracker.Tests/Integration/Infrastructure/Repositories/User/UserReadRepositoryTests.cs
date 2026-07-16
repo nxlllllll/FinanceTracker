@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
@@ -41,6 +42,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 	{
 		ICurrencyConversionService currencyConversionService = new CurrencyConversionService(
 			currencyRateReadRepository: new CurrencyRateReadRepository(context: Context),
+			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CurrencyConversionService>>()
 		);
 
@@ -262,7 +264,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			direction: DirectionType.Credit, exchangeRate: 1m,
-			isExcluded: false, description: null, isRatePending: false,
+			isExcluded: false, description: null, rateStatus: RateStatus.Exact, rateStatusChangedAt: FakeDateProvider.Default.UtcNow,
 			rowVersion: 0,
 			occurredAt: FakeDateProvider.Default.UtcNow
 		);
@@ -293,7 +295,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			currencyFrom: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			currencyTo: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			exchangeRate: 1m,
-			isRatePending: false,
+			rateStatus: RateStatus.Exact,
 			description: null,
 			occurredAt: FakeDateProvider.Default.UtcNow
 		).Value!;
@@ -320,7 +322,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			amount: Money.Create(amount: 5000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			direction: DirectionType.Credit, exchangeRate: 1m,
-			isExcluded: false, description: null, isRatePending: false,
+			isExcluded: false, description: null, rateStatus: RateStatus.Exact, rateStatusChangedAt: FakeDateProvider.Default.UtcNow,
 			rowVersion: 0,
 			occurredAt: FakeDateProvider.Default.UtcNow
 		);
@@ -329,7 +331,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			amount: Money.Create(amount: 500m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			direction: DirectionType.Debit, exchangeRate: 1m,
-			isExcluded: false, description: null, isRatePending: false,
+			isExcluded: false, description: null, rateStatus: RateStatus.Exact, rateStatusChangedAt: FakeDateProvider.Default.UtcNow,
 			rowVersion: 0,
 			occurredAt: FakeDateProvider.Default.UtcNow
 		);
@@ -360,7 +362,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 				amount: Money.Create(amount: 100m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 				baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 				direction: DirectionType.Debit, exchangeRate: 1m,
-				isExcluded: false, description: null, isRatePending: false,
+				isExcluded: false, description: null, rateStatus: RateStatus.Exact, rateStatusChangedAt: FakeDateProvider.Default.UtcNow,
 				rowVersion: 0,
 				occurredAt: FakeDateProvider.Default.UtcNow.AddSeconds(i)
 			);
@@ -394,7 +396,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			amount: Money.Create(amount: 100m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			direction: DirectionType.Debit, exchangeRate: 1m,
-			isExcluded: false, description: "Earlier", isRatePending: false,
+			isExcluded: false, description: "Earlier", rateStatus: RateStatus.Exact, rateStatusChangedAt: FakeDateProvider.Default.UtcNow,
 			rowVersion: 0,
 			occurredAt: earlier
 		);
@@ -403,7 +405,7 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			amount: Money.Create(amount: 200m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			direction: DirectionType.Debit, exchangeRate: 1m,
-			isExcluded: false, description: "Later", isRatePending: false,
+			isExcluded: false, description: "Later", rateStatus: RateStatus.Exact, rateStatusChangedAt: FakeDateProvider.Default.UtcNow,
 			rowVersion: 0,
 			occurredAt: later
 		);

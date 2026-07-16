@@ -32,7 +32,7 @@ public sealed class AuthRateLimitingBehaviour<TRequest, TResponse>(
 		if (request is IIpScopedRequest ipScopedRequest)
 		{
 			bool ipAllowed = await rateLimiter.IsAllowedAsync(
-				key: $"ratelimit:ip:{typeof(TRequest).Name}:{ipScopedRequest.IpAddress}",
+				key: $"ratelimit:ip:{ipScopedRequest.IpAddress}",
 				requestsPerWindow: currentOptions.IpRequestsPerWindow,
 				windowSeconds: currentOptions.IpWindowSeconds,
 				ct: cancellationToken
@@ -45,7 +45,7 @@ public sealed class AuthRateLimitingBehaviour<TRequest, TResponse>(
 		if (request is IEmailScopedRequest emailScopedRequest)
 		{
 			bool emailAllowed = await rateLimiter.IsAllowedAsync(
-				key: $"ratelimit:email:{typeof(TRequest).Name}:{emailScopedRequest.Email.Value}",
+				key: $"ratelimit:email:{emailScopedRequest.Email.Value}",
 				requestsPerWindow: currentOptions.EmailRequestsPerWindow,
 				windowSeconds: currentOptions.EmailWindowSeconds,
 				ct: cancellationToken

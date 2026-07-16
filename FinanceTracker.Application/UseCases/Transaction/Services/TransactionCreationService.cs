@@ -10,6 +10,7 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
+using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -25,6 +26,7 @@ public sealed class TransactionCreationService(
 	IUnitOfWork unitOfWork,
 	ICategoryTotalWriteRepository categoryTotalWriteRepository,
 	IBudgetProgressWriteRepository budgetProgressWriteRepository,
+	IDateProvider dateProvider,
 	ILogger<TransactionCreationService> logger
 ) : ITransactionCreationService
 {
@@ -95,6 +97,7 @@ public sealed class TransactionCreationService(
 		);
 
 		Result<Core.Domains.Transaction.Transaction, DomainException> transactionResult = Core.Domains.Transaction.Transaction.Create(
+			createdAt: dateProvider.UtcNow,
 			occurredAt: command.OccurredAt,
 			accountId: command.AccountId,
 			userId: command.UserId,
@@ -103,7 +106,7 @@ public sealed class TransactionCreationService(
 			baseCurrency: account.Currency,
 			direction: command.Direction,
 			exchangeRate: conversion.Rate,
-			isRatePending: conversion.IsPending,
+			rateStatus: conversion.Status,
 			description: command.Description
 		);
 

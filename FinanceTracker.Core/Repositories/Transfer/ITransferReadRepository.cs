@@ -37,4 +37,9 @@ public interface ITransferReadRepository : IReadRepository<TransferReadModel>
 		TimeSpan compensationThreshold,
 		CancellationToken ct = default
 	);
+
+	Task<bool> HasOpenObligationAsync(
+		Guid accountId,
+		CancellationToken ct = default
+	);
 }

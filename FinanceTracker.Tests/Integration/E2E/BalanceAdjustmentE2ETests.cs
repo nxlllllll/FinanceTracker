@@ -1,5 +1,7 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -14,9 +16,9 @@ namespace FinanceTracker.Tests.Integration.E2E;
 /// <summary>
 /// E2E: BalanceAdjustmentJob — recalculation of balances based on the exchange rate.
 /// Courses are entered into the database directly (real container), transactions/transfers
-/// are created through the Builder with is_rate_pending = true.
+/// are created through the Builder with rate_status = 'pending'.
 /// </summary>
-/// <remarks> 
+/// <remarks>
 /// [NotInParallel]: <see cref="FinanceTracker.Infrastructure.Cache.CachedCurrencyRateReadRepository"/>
 /// caches the course in general for all Redis parallel E2E fixtures using the key
 /// "rate:{from}:{to}:{date}" without reference to the test run.
@@ -87,7 +89,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 		DateOnly txDate = DateOnly.FromDateTime(DateTime.UtcNow);
 		await InsertCurrencyRateAsync(baseCode: "USD", targetCode: "RUB", rate: 90m, date: txDate);
 
-		// is_rate_pending = true (rate = 1 — placeholder)
+		// rate_status = 'pending' (rate = 1 — placeholder)
 		await _transactionBuilder.CreateAsync(
 			userId: userId,
 			accountId: accountId,
@@ -96,7 +98,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 			currencyCode: "USD",
 			direction: DirectionType.Debit,
 			exchangeRate: 1m,
-			isRatePending: true,
+			rateStatus: RateStatus.Pending,
 			occurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -105,7 +107,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 		await using FinanceTrackerContext readCtx = CreateReadContext();
 
 		bool stillPending = await readCtx.Transactions.Where(predicate: t => t.AccountId == accountId)
-			.AnyAsync(predicate: t => t.IsRatePending);
+			.AnyAsync(predicate: t => t.RateStatus == RateStatus.Pending);
 
 		await Assert.That(value: stillPending).IsFalse();
 	}
@@ -127,7 +129,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 			currencyCode: "USD",
 			direction: DirectionType.Debit,
 			exchangeRate: 1m,
-			isRatePending: true,
+			rateStatus: RateStatus.Pending,
 			occurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -135,9 +137,9 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 
 		await using FinanceTrackerContext readCtx = CreateReadContext();
 
-		// is_rate_pending should remain true — the course was not found, the entry was skipped
+		// rate_status should remain 'pending' — the course was not found, the entry was skipped
 		bool stillPending = await readCtx.Transactions.Where(predicate: t => t.AccountId == accountId)
-			.AnyAsync(predicate: t => t.IsRatePending);
+			.AnyAsync(predicate: t => t.RateStatus == RateStatus.Pending);
 
 		await Assert.That(value: stillPending).IsTrue();
 	}
@@ -152,7 +154,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 		DateOnly txDate = DateOnly.FromDateTime(DateTime.UtcNow);
 		await InsertCurrencyRateAsync(baseCode: "USD", targetCode: "RUB", rate: 92m, date: txDate);
 
-		// is_rate_pending = true (rate = 1 — placeholder)
+		// rate_status = 'pending' (rate = 1 — placeholder)
 		await _transferBuilder.CreateAsync(
 			userId: userId,
 			fromAccountId: fromAccountId,
@@ -161,7 +163,8 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 			currencyTo: "RUB",
 			amount: 100m,
 			exchangeRate: 1m,
-			isRatePending: true,
+			rateStatus: RateStatus.Pending,
+			status: TransferStatus.Completed,
 			occurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -170,7 +173,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 		await using FinanceTrackerContext readCtx = CreateReadContext();
 
 		bool stillPending = await readCtx.Transfers.Where(predicate: t => t.FromAccountId == fromAccountId)
-			.AnyAsync(predicate: t => t.IsRatePending);
+			.AnyAsync(predicate: t => t.RateStatus == RateStatus.Pending);
 
 		await Assert.That(value: stillPending).IsFalse();
 	}
@@ -185,7 +188,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 		DateOnly txDate = DateOnly.FromDateTime(DateTime.UtcNow);
 		await InsertCurrencyRateAsync(baseCode: "USD", targetCode: "RUB", rate: 88m, date: txDate);
 
-		// is_rate_pending = true (rate = 1 — placeholder)
+		// rate_status = 'pending' (rate = 1 — placeholder)
 		await _transactionBuilder.CreateAsync(
 			userId: userId,
 			accountId: accountId,
@@ -194,11 +197,11 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 			currencyCode: "USD",
 			direction: DirectionType.Debit,
 			exchangeRate: 1m,
-			isRatePending: true,
+			rateStatus: RateStatus.Pending,
 			occurredAt: DateTimeOffset.UtcNow
 		);
 
-		// is_rate_pending = true (rate = 1 — placeholder)
+		// rate_status = 'exact' — should be untouched by the job
 		await _transactionBuilder.CreateAsync(
 			userId: userId,
 			accountId: accountId,
@@ -207,7 +210,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 			currencyCode: "RUB",
 			direction: DirectionType.Debit,
 			exchangeRate: 1m,
-			isRatePending: false,
+			rateStatus: RateStatus.Exact,
 			occurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -216,7 +219,7 @@ public sealed class BalanceAdjustmentE2ETests : E2EFixture
 		await using FinanceTrackerContext readCtx = CreateReadContext();
 
 		int pendingCount = await readCtx.Transactions.Where(predicate: t => t.AccountId == accountId)
-			.CountAsync(predicate: t => t.IsRatePending);
+			.CountAsync(predicate: t => t.RateStatus == RateStatus.Pending);
 
 		await Assert.That(value: pendingCount).IsEqualTo(expected: 0);
 	}

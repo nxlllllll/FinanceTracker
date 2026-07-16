@@ -86,6 +86,8 @@
         <EmbeddedResource Include="Migrations\V035__add_last_version_to_accounts.sql" />
         <None Remove="Migrations\V036__add_transfers_created_at.sql" />
         <EmbeddedResource Include="Migrations\V036__add_transfers_created_at.sql" />
+        <None Remove="Migrations\V037__rate_status.sql" />
+        <EmbeddedResource Include="Migrations\V037__rate_status.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">

@@ -24,8 +24,9 @@ public sealed class TransactionRepository(
 				baseCurrency: t.BaseCurrency,
 				direction: t.Direction,
 				exchangeRate: t.ExchangeRate,
+				rateStatus: t.RateStatus,
+				rateStatusChangedAt: t.RateStatusChangedAt,
 				isExcluded: t.IsExcluded,
-				isRatePending: t.IsRatePending,
 				description: t.Description,
 				rowVersion: t.RowVersion,
 				occurredAt: t.OccurredAt

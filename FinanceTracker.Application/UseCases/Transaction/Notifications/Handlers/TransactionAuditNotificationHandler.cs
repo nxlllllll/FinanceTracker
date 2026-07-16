@@ -21,7 +21,7 @@ public sealed class TransactionAuditNotificationHandler(ILogger<TransactionAudit
 			UserId: {notification.UserId}, AccountId: {notification.AccountId},
 			CategoryId: {notification.CategoryId}, Amount: {notification.Amount},
 			Direction: {notification.Direction}, ExchangeRate: {notification.ExchangeRate},
-			IsRatePending: {notification.IsRatePending}, OccurredAt: {notification.OccurredAt:O}.
+			RateStatus: {notification.RateStatus}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}

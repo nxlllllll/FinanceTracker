@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
@@ -25,7 +27,7 @@ public sealed class TransferReadRepository(
 			AmountFrom: Money.Reconstitute(amount: t.AmountFrom, currency: t.CurrencyFrom),
 			AmountTo: Money.Reconstitute(amount: t.AmountTo, currency: t.CurrencyTo),
 			ExchangeRate: t.ExchangeRate,
-			IsRatePending: t.IsRatePending,
+			RateStatus: t.RateStatus,
 			Status: t.Status,
 			Description: t.Description,
 			OccurredAt: t.OccurredAt
@@ -74,7 +76,7 @@ public sealed class TransferReadRepository(
 				AmountFrom: Money.Reconstitute(amount: t.AmountFrom, currency: t.CurrencyFrom),
 				AmountTo: Money.Reconstitute(amount: t.AmountTo, currency: t.CurrencyTo),
 				ExchangeRate: t.ExchangeRate,
-				IsRatePending: t.IsRatePending,
+				RateStatus: t.RateStatus,
 				Status: t.Status,
 				Description: t.Description,
 				OccurredAt: t.OccurredAt
@@ -100,7 +102,8 @@ public sealed class TransferReadRepository(
 		Guid? cursorId = null,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.Transfer.TransferEntity> query = context.Transfers.AsNoTracking().Where(predicate: t => t.IsRatePending);
+		IQueryable<Context.Transfer.TransferEntity> query = context.Transfers.AsNoTracking()
+			.Where(predicate: t => t.RateStatus == RateStatus.Pending && t.Status == TransferStatus.Completed);
 
 		if (cursorOccurredAt is not null && cursorId is not null)
 		{
@@ -115,14 +118,10 @@ public sealed class TransferReadRepository(
 			.Take(count: batchSize)
 			.Select(selector: t => new PendingRateTransfer(
 				TransferId: t.Id,
-				FromAccountId: t.FromAccountId,
-				ToAccountId: t.ToAccountId,
-				AmountFrom: t.AmountFrom,
 				CurrencyFrom: t.CurrencyFrom,
 				CurrencyTo: t.CurrencyTo,
-				CurrentRate: t.ExchangeRate,
-				RowVersion: t.RowVersion,
-				OccurredAt: t.OccurredAt
+				OccurredAt: t.OccurredAt,
+				RateStatusChangedAt: t.RateStatusChangedAt
 			)).ToListAsync(cancellationToken: ct);
 	}
 
@@ -131,7 +130,7 @@ public sealed class TransferReadRepository(
 	{
 		DateTimeOffset threshold = dateProvider.UtcNow - gracePeriod;
 		return await context.Transfers.AsNoTracking().CountAsync(
-			predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.CreatedAt < threshold,
+			predicate: t => t.Status == TransferStatus.PendingCredit && t.CreatedAt < threshold,
 			cancellationToken: ct
 		);
 	}
@@ -143,12 +142,22 @@ public sealed class TransferReadRepository(
 	{
 		DateTimeOffset threshold = dateProvider.UtcNow - compensationThreshold;
 		return await context.Transfers.AsNoTracking()
-			.Where(predicate: t => t.Status == Core.Domains.Transfer.TransferStatus.PendingCredit && t.CreatedAt < threshold)
+			.Where(predicate: t => t.Status == TransferStatus.PendingCredit && t.CreatedAt < threshold)
 			.Select(selector: t => new PendingCreditTransfer(
 				TransferId: t.Id,
 				FromAccountId: t.FromAccountId,
 				Amount: t.AmountFrom,
 				OccurredAt: t.OccurredAt
 			)).ToListAsync(cancellationToken: ct);
+	}
+
+	public async Task<bool> HasOpenObligationAsync(Guid accountId, CancellationToken ct = default)
+	{
+		return await context.Transfers.AsNoTracking().AnyAsync(
+			predicate: t =>
+				(t.FromAccountId == accountId || t.ToAccountId == accountId) &&
+				(t.Status == TransferStatus.PendingCredit || t.RateStatus == RateStatus.Pending),
+			cancellationToken: ct
+		);
 	}
 }

@@ -44,9 +44,12 @@ public readonly partial record struct Currency
 	public static Currency Reconstitute(string value)
 		=> new Currency(value: value);
 
-	/// <summary>Implicit conversion to <see cref="string"/> for convenience in comparisons and logging.</summary>
-	public static implicit operator string(Currency code)
-		=> code.Value;
+	/// <summary>
+	/// Implicit conversion to <see cref="string"/> for convenience in comparisons and logging.
+	/// </summary>
+	public static implicit operator string(Currency code) => code.Value ?? throw new InvalidOperationException(
+		message: "Cannot convert a default(Currency) to a string — this currency was never created via Currency.Create or Currency.Reconstitute."
+	);
 
 	/// <inheritdoc/>
 	/// <returns>Returns a string representation of the money, for example, <c>100 RUB</c></returns>

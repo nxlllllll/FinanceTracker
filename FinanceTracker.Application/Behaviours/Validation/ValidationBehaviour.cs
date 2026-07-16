@@ -24,13 +24,14 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
-		if (!validators.Any())
+		IValidator<TRequest>[] validatorsArray = validators as IValidator<TRequest>[] ?? [..validators];
+		if (validatorsArray.Length == 0)
 			return await next(t: cancellationToken);
 
 		ValidationContext<TRequest> context = new ValidationContext<TRequest>(instanceToValidate: request);
 
-		List<ValidationResult> results = new List<ValidationResult>(capacity: validators.Count());
-		foreach (IValidator<TRequest> validator in validators)
+		List<ValidationResult> results = new List<ValidationResult>(capacity: validatorsArray.Length);
+		foreach (IValidator<TRequest> validator in validatorsArray)
 			results.Add(item: await validator.ValidateAsync(context: context, cancellation: cancellationToken));
 
 		List<string> errors = results.SelectMany(selector: result => result.Errors)

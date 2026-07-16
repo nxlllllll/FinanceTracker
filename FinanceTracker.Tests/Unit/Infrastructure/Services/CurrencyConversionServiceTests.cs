@@ -1,8 +1,10 @@
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Domains.Abstractions.Rate;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Services.Currency;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -19,6 +21,7 @@ public sealed class CurrencyConversionServiceTests
 		_currencyRateReadRepository = Substitute.For<ICurrencyRateReadRepository>();
 		_service = new CurrencyConversionService(
 			currencyRateReadRepository: _currencyRateReadRepository,
+			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<CurrencyConversionService>>()
 		);
 	}
@@ -33,7 +36,7 @@ public sealed class CurrencyConversionServiceTests
 		);
 
 		await Assert.That(value: result.Rate).IsEqualTo(expected: 1m);
-		await Assert.That(value: result.IsPending).IsFalse();
+		await Assert.That(value: result.Status).IsEqualTo(expected: RateStatus.Exact);
 
 		await _currencyRateReadRepository.DidNotReceive().GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -62,7 +65,7 @@ public sealed class CurrencyConversionServiceTests
 		);
 
 		await Assert.That(value: result.Rate).IsEqualTo(expected: 90m);
-		await Assert.That(value: result.IsPending).IsFalse();
+		await Assert.That(value: result.Status).IsEqualTo(expected: RateStatus.Exact);
 	}
 
 	[Test]
@@ -90,11 +93,11 @@ public sealed class CurrencyConversionServiceTests
 		);
 
 		await Assert.That(value: result.Rate).IsEqualTo(expected: 85m);
-		await Assert.That(value: result.IsPending).IsTrue();
+		await Assert.That(value: result.Status).IsEqualTo(expected: RateStatus.Pending);
 	}
 
 	[Test]
-	public async Task GetConversionRateAsync_WhenNoRateExists_ShouldThrowCurrencyRateNotFoundException()
+	public async Task GetConversionRateAsync_WhenNoRateExists_ShouldThrowCurrencyRateMissingException()
 	{
 		DateOnly date = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
 
@@ -115,7 +118,7 @@ public sealed class CurrencyConversionServiceTests
 			fromCurrency: Currency.Create(value: "USD").Value,
 			toCurrency: Currency.Create(value: "RUB").Value,
 			date: date
-		)).Throws<CurrencyRateNotFoundException>();
+		)).Throws<CurrencyRateMissingException>();
 	}
 
 	[Test]
@@ -140,7 +143,7 @@ public sealed class CurrencyConversionServiceTests
 	}
 
 	[Test]
-	public async Task GetStableRateAsync_WhenRateNotKnown_ShouldThrowCurrencyRateNotFoundException()
+	public async Task GetStableRateAsync_WhenRateNotKnown_ShouldThrowCurrencyRateMissingException()
 	{
 		_currencyRateReadRepository.GetRateKnownAtOrBeforeAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
@@ -153,7 +156,7 @@ public sealed class CurrencyConversionServiceTests
 			fromCurrency: Currency.Create(value: "USD").Value,
 			toCurrency: Currency.Create(value: "RUB").Value,
 			asOf: DateTimeOffset.UtcNow
-		)).Throws<CurrencyRateNotFoundException>();
+		)).Throws<CurrencyRateMissingException>();
 	}
 
 	[Test]
@@ -184,7 +187,7 @@ public sealed class CurrencyConversionServiceTests
 	}
 
 	[Test]
-	public async Task GetStableRatesBatchAsync_WhenRequestMissingFromRepositoryResult_ShouldThrowCurrencyRateNotFoundException()
+	public async Task GetStableRatesBatchAsync_WhenRequestMissingFromRepositoryResult_ShouldThrowCurrencyRateMissingException()
 	{
 		CurrencyStableRateRequest request = new CurrencyStableRateRequest(
 			From: Currency.Create(value: "USD").Value,
@@ -199,6 +202,6 @@ public sealed class CurrencyConversionServiceTests
 
 		await Assert.That(
 			action: async () => await _service.GetStableRatesBatchAsync(requests: [request])
-		).Throws<CurrencyRateNotFoundException>();
+		).Throws<CurrencyRateMissingException>();
 	}
 }

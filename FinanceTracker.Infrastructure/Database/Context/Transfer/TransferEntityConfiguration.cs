@@ -1,6 +1,8 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.User;
+using FinanceTracker.Infrastructure.Database.Converters;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -55,6 +57,14 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 			.HasColumnName(name: "exchange_rate")
 			.HasColumnType(typeName: "numeric(18,6)");
 
+		builder.Property(propertyExpression: t => t.RateStatus)
+			.HasColumnName(name: "rate_status")
+			.HasMaxLength(maxLength: 16)
+			.HasConversion<SnakeCaseEnumConverter<RateStatus>>();
+
+		builder.Property(propertyExpression: t => t.RateStatusChangedAt)
+			.HasColumnName(name: "rate_status_changed_at");
+
 		builder.Property(propertyExpression: t => t.Description)
 			.HasColumnName(name: "description")
 			.HasMaxLength(maxLength: 255);
@@ -64,9 +74,6 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 
 		builder.Property(propertyExpression: t => t.CreatedAt)
 			.HasColumnName(name: "created_at");
-
-		builder.Property(propertyExpression: t => t.IsRatePending)
-			.HasColumnName(name: "is_rate_pending");
 
 		builder.Property(propertyExpression: t => t.RowVersion)
 			.HasColumnName(name: "row_version")

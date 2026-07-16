@@ -177,7 +177,7 @@ public sealed class RateLimitingBehaviourTests
 	public async Task Handle_ShouldCallRateLimiterWithCorrectKey()
 	{
 		Guid userId = Guid.CreateVersion7();
-		string expectedKey = $"ratelimit:{nameof(TestCommand)}:{userId}";
+		string expectedKey = $"ratelimit:user:{userId}";
 		string? capturedKey = null;
 
 		_rateLimiter.IsAllowedAsync(
@@ -194,6 +194,50 @@ public sealed class RateLimitingBehaviourTests
 		);
 
 		await Assert.That(value: capturedKey).IsEqualTo(expected: expectedKey);
+	}
+
+	[Test]
+	public async Task Handle_ForDifferentCommandTypes_SameUser_ShouldShareTheSameBucket()
+	{
+		Guid userId = Guid.CreateVersion7();
+
+		string? keyFromCommand = null;
+		string? keyFromQuery = null;
+
+		_rateLimiter.IsAllowedAsync(
+			key: Arg.Do<string>(useArgument: k => keyFromCommand = k),
+			requestsPerWindow: Arg.Any<int>(),
+			windowSeconds: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: true);
+
+		await _behaviour.Handle(
+			request: new TestCommand(UserId: userId),
+			next: AllowedNext(),
+			cancellationToken: CancellationToken.None
+		);
+
+		RateLimitingBehaviour<TestQuery, Result<FinanceTracker.Core.Results.Unit, DomainException>> queryBehaviour =
+			new RateLimitingBehaviour<TestQuery, Result<FinanceTracker.Core.Results.Unit, DomainException>>(
+				rateLimiter: _rateLimiter,
+				options: new FakeOptionsMonitor<RateLimitOptions>(value: DefaultOptions)
+			);
+
+		_rateLimiter.IsAllowedAsync(
+			key: Arg.Do<string>(useArgument: k => keyFromQuery = k),
+			requestsPerWindow: Arg.Any<int>(),
+			windowSeconds: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: true);
+
+		await queryBehaviour.Handle(
+			request: new TestQuery(UserId: userId),
+			next: AllowedNext(),
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: keyFromCommand).IsEqualTo(expected: keyFromQuery)
+			.Because(message: "TestCommand and TestQuery are different request types for the same user — they must consume the same budget, not two separate 60/window allowances.");
 	}
 
 	[Test]

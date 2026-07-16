@@ -27,9 +27,10 @@ public sealed class TransactionWriteRepository(
 			BaseCurrency = transaction.BaseCurrency,
 			Direction = transaction.Direction,
 			ExchangeRate = transaction.ExchangeRate,
+			RateStatus = transaction.RateStatus,
+			RateStatusChangedAt = transaction.RateStatusChangedAt,
 			Description = transaction.Description,
 			IsExcluded = false,
-			IsRatePending = transaction.IsRatePending,
 			RowVersion = 0,
 			OccurredAt = transaction.OccurredAt
 		}, cancellationToken: ct);
@@ -135,21 +136,21 @@ public sealed class TransactionWriteRepository(
 		);
 	}
 
-	public async Task UpdateRateAsync(
-		Guid transactionId,
-		decimal newRate,
-		int expectedVersion,
+	public async Task SaveRateResolutionAsync(
+		Core.Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default)
 	{
-		int affected = await context.Transactions.Where(predicate: t => t.Id == transactionId && t.RowVersion == expectedVersion).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: newRate)
-				.SetProperty(propertyExpression: t => t.IsRatePending, valueExpression: false)
-				.SetProperty(propertyExpression: t => t.RowVersion, valueExpression: expectedVersion + 1),
-			cancellationToken: ct
-		);
+		int affected = await context.Transactions.Where(predicate: t => t.Id == transaction.Id && t.RowVersion == transaction.RowVersion)
+			.ExecuteUpdateAsync(
+				setPropertyCalls: builder => builder
+					.SetProperty(propertyExpression: t => t.ExchangeRate, valueExpression: transaction.ExchangeRate)
+					.SetProperty(propertyExpression: t => t.RateStatus, valueExpression: transaction.RateStatus)
+					.SetProperty(propertyExpression: t => t.RateStatusChangedAt, valueExpression: transaction.RateStatusChangedAt)
+					.SetProperty(propertyExpression: t => t.RowVersion, valueExpression: transaction.RowVersion + 1),
+				cancellationToken: ct
+			);
 
 		if (affected == 0)
-			throw new ConcurrencyConflictException(message: $"Transaction {transactionId} was modified by another request.", id: transactionId);
+			throw new ConcurrencyConflictException(message: $"Transaction {transaction.Id} was modified by another request.", id: transaction.Id);
 	}
 }

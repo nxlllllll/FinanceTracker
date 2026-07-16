@@ -2,16 +2,21 @@ namespace FinanceTracker.Worker.BalanceAdjustment.Job;
 
 /// <summary>
 /// Outcome of a single item processed by <c>BalanceAdjustmentJob</c>.
-/// Used to aggregate metrics after each job run.
 /// </summary>
 public enum AdjustResult
 {
-	/// <summary>The exchange rate was found and the balance was recalculated successfully.</summary>
-	Adjusted,
+	/// <summary>The real rate arrived, the balance delta was posted, the rate lifecycle is closed.</summary>
+	Resolved,
 
-	/// <summary>No rate update was needed (rate unchanged or item already up to date).</summary>
-	Skipped,
+	/// <summary>The real rate never arrived within the grace period. The placeholder stands as final.</summary>
+	Approximated,
 
-	/// <summary>Processing failed — logged and counted but not retried in the same run.</summary>
+	/// <summary>The rate arrived but the correction was rejected. Escalated to <c>unresolvable_events</c>.</summary>
+	Unresolvable,
+
+	/// <summary>The rate hasn't arrived yet and still might. Left queued, untouched.</summary>
+	Waiting,
+
+	/// <summary>Processing threw. The row stays pending and is retried on the next run.</summary>
 	Failed
 }

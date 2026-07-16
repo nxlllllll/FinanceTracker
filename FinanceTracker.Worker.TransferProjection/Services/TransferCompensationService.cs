@@ -72,7 +72,7 @@ public sealed class TransferCompensationService(
 			return;
 		}
 
-		Result<Unit, DomainException> compensateResult = transfer.Compensate();
+		Result<Unit, DomainException> compensateResult = transfer.Compensate(occurredAt: dateProvider.UtcNow);
 		if (compensateResult.IsFailure)
 		{
 			logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} cannot be compensated: {compensateResult.Error!.Message}. Skipping.");
@@ -80,17 +80,11 @@ public sealed class TransferCompensationService(
 		}
 
 		await accountRepository.SaveAsync(account: fromAccount, ct: ct);
-		await transferWriteRepository.UpdateStatusAsync(
-			transferId: pendingTransfer.TransferId,
-			userId: transfer.UserId,
-			status: TransferStatus.Compensated,
-			expectedVersion: transfer.RowVersion,
-			ct: ct
-		);
+		await transferWriteRepository.SaveStatusAsync(transfer: transfer, ct: ct);
 
 		WorkerMetrics.TransfersCompensated.Add(delta: 1);
 
-		logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} compensated via lag job: refunded {pendingTransfer.Amount} to account {pendingTransfer.FromAccountId}.");
+		logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} compensated via lag job: refunded {pendingTransfer.Amount} to account {pendingTransfer.FromAccountId} (rate lifecycle: {transfer.RateStatus}).");
 	}
 
 	private async Task EscalateToUnresolvableAsync(
@@ -99,7 +93,7 @@ public sealed class TransferCompensationService(
 		string reason,
 		CancellationToken ct)
 	{
-		Result<Unit, DomainException> failResult = transfer.Fail();
+		Result<Unit, DomainException> failResult = transfer.Fail(occurredAt: dateProvider.UtcNow);
 		if (failResult.IsFailure)
 		{
 			logger.ZLogWarning(message: $"[Compensation] Transfer {pendingTransfer.TransferId} cannot be failed: {failResult.Error!.Message}.");
@@ -115,13 +109,7 @@ public sealed class TransferCompensationService(
 			ct: ct
 		);
 
-		await transferWriteRepository.UpdateStatusAsync(
-			transferId: pendingTransfer.TransferId,
-			userId: transfer.UserId,
-			status: TransferStatus.Failed,
-			expectedVersion: transfer.RowVersion,
-			ct: ct
-		);
+		await transferWriteRepository.SaveStatusAsync(transfer: transfer, ct: ct);
 
 		WorkerMetrics.TransfersFailed.Add(delta: 1);
 

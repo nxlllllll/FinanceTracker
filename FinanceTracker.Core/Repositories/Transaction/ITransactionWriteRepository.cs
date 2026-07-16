@@ -37,10 +37,8 @@ public interface ITransactionWriteRepository
 		CancellationToken ct = default
 	);
 
-	Task UpdateRateAsync(
-		Guid transactionId,
-		decimal newRate,
-		int expectedVersion,
+	Task SaveRateResolutionAsync(
+		Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default
 	);
 }

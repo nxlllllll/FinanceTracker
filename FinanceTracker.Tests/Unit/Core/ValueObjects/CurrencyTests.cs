@@ -115,6 +115,18 @@ public sealed class CurrencyTests
 	}
 
 	[Test]
+	public async Task ImplicitOperator_ToString_ForADefaultCurrency_ShouldThrow()
+	{
+		Currency defaulted = default;
+
+		await Assert.ThrowsAsync<InvalidOperationException>(action: () =>
+		{
+			string _ = defaulted;
+			return Task.CompletedTask;
+		});
+	}
+
+	[Test]
 	public async Task ToString_ShouldReturnCode()
 	{
 		Currency currency = Currency.Reconstitute(value: "EUR");

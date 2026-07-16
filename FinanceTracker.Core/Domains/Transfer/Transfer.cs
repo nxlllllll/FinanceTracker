@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -15,16 +16,11 @@ public sealed class Transfer
 	public Guid UserId { get; private set; }
 	public Guid FromAccountId { get; private set; }
 	public Guid ToAccountId { get; private set; }
-	/// <summary>Amount debited from the source account (in source currency).</summary>
 	public Money AmountFrom { get; private set; }
-	/// <summary>Amount to credit to the destination account (in destination currency).</summary>
 	public Money AmountTo { get; private set; }
 	public decimal ExchangeRate { get; private set; }
-	/// <summary>
-	/// <c>true</c> when the exchange rate was not available at creation time
-	/// and will be filled in by <c>BalanceAdjustmentJob</c>.
-	/// </summary>
-	public bool IsRatePending { get; private set; }
+	public RateStatus RateStatus { get; private set; }
+	public DateTimeOffset RateStatusChangedAt { get; private set; }
 	public TransferStatus Status { get; private set; }
 	public string? Description { get; private set; }
 	public int RowVersion { get; private set; }
@@ -42,7 +38,7 @@ public sealed class Transfer
 		Currency currencyFrom,
 		Currency currencyTo,
 		decimal exchangeRate,
-		bool isRatePending,
+		RateStatus rateStatus,
 		string? description,
 		DateTimeOffset occurredAt)
 	{
@@ -52,11 +48,23 @@ public sealed class Transfer
 		if (exchangeRate <= 0)
 			return Result<Transfer, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
 
-		Result<Money, DomainException> amountFromResult = Money.Create(amount: amount, currency: currencyFrom);
+		if (rateStatus is not (RateStatus.Exact or RateStatus.Pending or RateStatus.Approximated))
+		{
+			return Result<Transfer, DomainException>.Failure(error: new InvalidRateStatusTransitionException(
+				message: $"A transfer cannot be created directly in {rateStatus}. Valid initial states: {RateStatus.Exact}, {RateStatus.Pending}, {RateStatus.Approximated}.",
+				from: RateStatus.Exact,
+				to: rateStatus
+			));
+		}
+
+		Result<Money, DomainException> amountFromResult = Money.Positive(amount: amount, currency: currencyFrom);
 		if (amountFromResult.IsFailure)
 			return Result<Transfer, DomainException>.Failure(error: amountFromResult.Error!);
 
-		Result<Money, DomainException> amountToResult = Money.Create(amount: Money.ConvertedAmount(amount: amount, rate: exchangeRate), currency: currencyTo);
+		Result<Money, DomainException> amountToResult = Money.Positive(
+			amount: Money.ConvertedAmount(amount: amount, rate: exchangeRate),
+			currency: currencyTo
+		);
 		if (amountToResult.IsFailure)
 			return Result<Transfer, DomainException>.Failure(error: amountToResult.Error!);
 
@@ -69,7 +77,8 @@ public sealed class Transfer
 			AmountFrom = amountFromResult.Value,
 			AmountTo = amountToResult.Value,
 			ExchangeRate = exchangeRate,
-			IsRatePending = isRatePending,
+			RateStatus = rateStatus,
+			RateStatusChangedAt = createdAt,
 			Status = TransferStatus.PendingCredit,
 			Description = description,
 			RowVersion = 0,
@@ -86,7 +95,8 @@ public sealed class Transfer
 		Money amountFrom,
 		Money amountTo,
 		decimal exchangeRate,
-		bool isRatePending,
+		RateStatus rateStatus,
+		DateTimeOffset rateStatusChangedAt,
 		TransferStatus status,
 		string? description,
 		int rowVersion,
@@ -102,7 +112,8 @@ public sealed class Transfer
 			AmountFrom = amountFrom,
 			AmountTo = amountTo,
 			ExchangeRate = exchangeRate,
-			IsRatePending = isRatePending,
+			RateStatus = rateStatus,
+			RateStatusChangedAt = rateStatusChangedAt,
 			Status = status,
 			Description = description,
 			RowVersion = rowVersion,
@@ -122,28 +133,90 @@ public sealed class Transfer
 	}
 
 	/// <summary>
-	/// Marks the transfer as compensated — the debit was refunded to the source account
-	/// because the credit side failed.
+	/// Marks the transfer as compensated — the debit was refunded to the source account because the
+	/// credit side failed. Also cancels any pending rate: the credit never landed, so there is no
+	/// balance for a rate correction to correct.
 	/// </summary>
-	public Result<Unit, DomainException> Compensate()
+	public Result<Unit, DomainException> Compensate(DateTimeOffset occurredAt)
 	{
 		if (Status != TransferStatus.PendingCredit)
 			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer can only be compensated from PendingCredit state. Current state: {Status}."));
 
 		Status = TransferStatus.Compensated;
+		CancelPendingRate(occurredAt: occurredAt);
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
 	/// <summary>
-	/// Marks the transfer as permanently failed — compensation itself failed and
-	/// manual intervention is required.
+	/// Marks the transfer as permanently failed — compensation itself failed and manual intervention
+	/// is required. Cancels any pending rate for the same reason as <see cref="Compensate"/>.
 	/// </summary>
-	public Result<Unit, DomainException> Fail()
+	public Result<Unit, DomainException> Fail(DateTimeOffset occurredAt)
 	{
 		if (Status is TransferStatus.Completed or TransferStatus.Failed)
 			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer cannot be failed from {Status} state."));
 
 		Status = TransferStatus.Failed;
+		CancelPendingRate(occurredAt: occurredAt);
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> ResolveRate(decimal newRate, DateTimeOffset changedAt)
+	{
+		if (newRate <= 0)
+			return Result<Unit, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
+
+		Result<RateStatus, DomainException> transition = RateStatusTransitions.To(from: RateStatus, to: RateStatus.Resolved);
+		if (transition.IsFailure)
+			return Result<Unit, DomainException>.Failure(error: transition.Error!);
+
+		Result<Money, DomainException> recomputed = Money.Positive(
+			amount: Money.ConvertedAmount(amount: AmountFrom.Amount, rate: newRate),
+			currency: AmountTo.Currency
+		);
+		if (recomputed.IsFailure)
+			return Result<Unit, DomainException>.Failure(error: recomputed.Error!);
+
+		ExchangeRate = newRate;
+		AmountTo = recomputed.Value;
+		RateStatus = transition.Value;
+		RateStatusChangedAt = changedAt;
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> ApproximateRate(DateTimeOffset changedAt)
+	{
+		Result<RateStatus, DomainException> transition = RateStatusTransitions.To(from: RateStatus, to: RateStatus.Approximated);
+		if (transition.IsFailure)
+			return Result<Unit, DomainException>.Failure(error: transition.Error!);
+
+		RateStatus = transition.Value;
+		RateStatusChangedAt = changedAt;
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> MarkRateUnresolvable(DateTimeOffset changedAt)
+	{
+		Result<RateStatus, DomainException> transition = RateStatusTransitions.To(from: RateStatus, to: RateStatus.Unresolvable);
+		if (transition.IsFailure)
+			return Result<Unit, DomainException>.Failure(error: transition.Error!);
+
+		RateStatus = transition.Value;
+		RateStatusChangedAt = changedAt;
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	private void CancelPendingRate(DateTimeOffset occurredAt)
+	{
+		if (!RateStatus.IsOpen())
+			return;
+
+		RateStatus = RateStatus.Cancelled;
+		RateStatusChangedAt = occurredAt;
 	}
 }

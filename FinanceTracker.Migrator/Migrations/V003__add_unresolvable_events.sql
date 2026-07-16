@@ -8,7 +8,8 @@ insert into unresolvable_event_types (code, name) values
     ('transfer_compensation', 'Transfer Compensation Failure'),
     ('consumer_dead_letter', 'Consumer Dead Letter'),
     ('recurring_transaction_failed', 'Recurring Transaction Failed'),
-    ('publisher_unroutable', 'Publisher Unroutable');
+    ('publisher_unroutable', 'Publisher Unroutable'),
+    ('rate_adjustment_failed', 'Rate Adjustment Failed');
 
 create table unresolvable_events (
     id           uuid        primary key,

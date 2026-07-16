@@ -299,8 +299,14 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 		CurrencyLatestRateRequest pair2 = new CurrencyLatestRateRequest(From: Rub, To: Usd);
 
 		SetupBatchCacheValues(valuesByUnprefixedKey: []);
-		_inner.GetLatestRatesBatchAsync(pairs: Arg.Any<IReadOnlyCollection<CurrencyLatestRateRequest>>(), ct: Arg.Any<CancellationToken>())
-			.Returns(returnThis: new Dictionary<CurrencyLatestRateRequest, decimal> { [pair1] = 90m, [pair2] = 0.0111m });
+		_inner.GetLatestRatesBatchAsync(
+			pairs: Arg.Any<IReadOnlyCollection<CurrencyLatestRateRequest>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: new Dictionary<CurrencyLatestRateRequest, decimal>
+		{
+			[pair1] = 90m,
+			[pair2] = 0.0111m
+		});
 
 		await _repository.GetLatestRatesBatchAsync(pairs: [pair1, pair2]);
 
@@ -316,8 +322,8 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 
 		SetupBatchCacheValues(valuesByUnprefixedKey: new Dictionary<string, decimal?>
 		{
-			[$"rate:latest:{Usd.Value}:{Rub.Value}"] = 90m,
-			[$"rate:latest:{Rub.Value}:{Usd.Value}"] = 0.0111m
+			[CurrencyRateCacheKeys.LatestRateKey(from: Usd, to: Rub)] = 90m,
+			[CurrencyRateCacheKeys.LatestRateKey(from: Rub, to: Usd)] = 0.0111m
 		});
 
 		Dictionary<CurrencyLatestRateRequest, decimal> result = await _repository.GetLatestRatesBatchAsync(pairs: [pair1, pair2]);
@@ -386,8 +392,8 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 
 		SetupBatchCacheValues(valuesByUnprefixedKey: new Dictionary<string, decimal?>
 		{
-			[$"rate:stable:{Usd.Value}:{Rub.Value}:{AsOf.UtcTicks}"] = 90m,
-			[$"rate:stable:{Rub.Value}:{Usd.Value}:{AsOf.UtcTicks}"] = 0.0111m
+			[CurrencyRateCacheKeys.StableRateKey(request: request1)] = 90m,
+			[CurrencyRateCacheKeys.StableRateKey(request: request2)] = 0.0111m
 		});
 
 		Dictionary<CurrencyStableRateRequest, decimal> result = await _repository.GetRatesKnownAtOrBeforeBatchAsync(requests: [request1, request2]);

@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Transaction;
@@ -25,7 +26,7 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 				Direction: t.Direction,
 				ExchangeRate: t.ExchangeRate,
 				IsExcluded: t.IsExcluded,
-				IsRatePending: t.IsRatePending,
+				RateStatus: t.RateStatus,
 				Description: t.Description,
 				OccurredAt: t.OccurredAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
@@ -79,7 +80,7 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 				Direction: t.Direction,
 				ExchangeRate: t.ExchangeRate,
 				IsExcluded: t.IsExcluded,
-				IsRatePending: t.IsRatePending,
+				RateStatus: t.RateStatus,
 				Description: t.Description,
 				OccurredAt: t.OccurredAt
 			)).ToListAsync(cancellationToken: ct);
@@ -104,7 +105,8 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 		Guid? cursorId = null,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.Transaction.TransactionEntity> query = context.Transactions.AsNoTracking().Where(predicate: t => t.IsRatePending);
+		IQueryable<Context.Transaction.TransactionEntity> query = context.Transactions.AsNoTracking()
+			.Where(predicate: t => t.RateStatus == RateStatus.Pending);
 
 		if (cursorOccurredAt is not null && cursorId is not null)
 		{
@@ -119,14 +121,19 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 			.Take(count: batchSize)
 			.Select(selector: t => new PendingRateTransaction(
 				TransactionId: t.Id,
-				AccountId: t.AccountId,
-				Amount: t.Amount,
+				UserId: t.UserId,
 				TransactionCurrency: t.Currency,
 				BaseCurrency: t.BaseCurrency,
-				CurrentRate: t.ExchangeRate,
-				Direction: t.Direction,
-				RowVersion: t.RowVersion,
-				OccurredAt: t.OccurredAt
+				OccurredAt: t.OccurredAt,
+				RateStatusChangedAt: t.RateStatusChangedAt
 			)).ToListAsync(cancellationToken: ct);
+	}
+
+	public async Task<bool> HasPendingRateAsync(Guid accountId, CancellationToken ct = default)
+	{
+		return await context.Transactions.AsNoTracking().AnyAsync(
+			predicate: t => t.AccountId == accountId && t.RateStatus == RateStatus.Pending,
+			cancellationToken: ct
+		);
 	}
 }

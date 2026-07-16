@@ -35,10 +35,11 @@ public static class AccountFactory
 
 	public static Account CreateWithArchivation(
 		Guid? userId = null,
+		string currency = "RUB",
 		decimal balance = 1000,
 		bool archived = false)
 	{
-		Account account = Create(userId: userId, balance: balance).Value!;
+		Account account = Create(userId: userId, balance: balance, currency: currency).Value!;
 		account.ClearEvents();
 
 		if (archived)

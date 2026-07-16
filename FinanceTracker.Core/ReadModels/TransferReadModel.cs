@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.ValueObjects;
 
@@ -11,7 +12,7 @@ public sealed record TransferReadModel(
 	Money AmountFrom,
 	Money AmountTo,
 	decimal ExchangeRate,
-	bool IsRatePending,
+	RateStatus RateStatus,
 	TransferStatus Status,
 	string? Description,
 	DateTimeOffset OccurredAt

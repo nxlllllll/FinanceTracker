@@ -14,6 +14,8 @@ public static class DbContextExtensions
 	private sealed record CurrencyRateRow(string BaseCode, string TargetCode, decimal Rate);
 	private sealed record CurrencyStableRateRow(string BaseCode, string TargetCode, DateTime AsOfUtc, decimal Rate);
 
+	private sealed record TransactionRateRow(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate);
+
 	/// <summary>
 	/// Upserts a category total row — inserts or increments existing total and count atomically.
 	/// Uses <c>ON CONFLICT DO UPDATE</c> to avoid lost updates under concurrent writes.
@@ -126,6 +128,33 @@ public static class DbContextExtensions
 			elementSelector: row => row.Rate,
 			cancellationToken: ct
 		);
+	}
+
+	public static async Task<List<(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate)>> GetTransactionRatesForRecalculationAsync(
+		this FinanceTrackerContext context,
+		Guid userId,
+		string baseCurrencyCode,
+		CancellationToken ct = default)
+	{
+		List<TransactionRateRow> rows = await context.Database.SqlQuery<TransactionRateRow>($"""
+			SELECT
+				t.category_id AS CategoryId,
+				date_trunc('month', t.occurred_at)::date AS Period,
+				t.amount AS Amount,
+				t.currency_code AS CurrencyCode,
+				CASE WHEN t.currency_code = {baseCurrencyCode} THEN 1 ELSE r.rate END AS Rate
+			FROM rm_transactions t
+			LEFT JOIN LATERAL (
+				SELECT cr.rate
+				FROM currency_rates cr
+				WHERE cr.base_code = t.currency_code AND cr.target_code = {baseCurrencyCode} AND cr.created_at <= t.occurred_at
+				ORDER BY cr.created_at DESC
+				LIMIT 1
+			) r ON true
+			WHERE t.user_id = {userId} AND NOT t.is_excluded
+		""").ToListAsync(cancellationToken: ct);
+
+		return rows.Select(selector: r => (r.CategoryId, r.Period, r.Amount, r.CurrencyCode, r.Rate)).ToList();
 	}
 
 	public static Task InsertAccountAsync(

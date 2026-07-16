@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
@@ -12,7 +13,7 @@ public sealed record TransactionCreatedNotification(
 	Money Amount,
 	DirectionType Direction,
 	decimal ExchangeRate,
-	bool IsRatePending,
+	RateStatus RateStatus,
 	string? Description,
 	DateTimeOffset OccurredAt
 ) : INotification;

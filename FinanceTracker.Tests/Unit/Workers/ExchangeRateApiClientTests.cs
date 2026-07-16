@@ -136,4 +136,61 @@ public sealed class ExchangeRateApiClientTests
 
 		await Assert.That(value: result).IsNull();
 	}
+
+	private static (ExchangeRateApiClient Client, CapturingLogger<ExchangeRateApiClient> Logger) BuildClientWithStatus(HttpStatusCode statusCode)
+	{
+		CapturingHttpMessageHandler handler = new CapturingHttpMessageHandler(response: new HttpResponseMessage(statusCode: statusCode));
+		HttpClient httpClient = new HttpClient(handler: handler);
+
+		ExchangeRateApiOptions options = new ExchangeRateApiOptions
+		{
+			IsEnabled = true,
+			ApiKey = ApiKey,
+			BaseUrl = BaseUrl
+		};
+
+		CapturingLogger<ExchangeRateApiClient> logger = new CapturingLogger<ExchangeRateApiClient>();
+
+		ExchangeRateApiClient client = new ExchangeRateApiClient(
+			httpClient: httpClient,
+			options: new FakeOptionsMonitor<ExchangeRateApiOptions>(value: options),
+			logger: logger
+		);
+
+		return (client, logger);
+	}
+
+	[Test]
+	public async Task GetRatesAsync_WhenUnauthorized_ShouldLogCritical()
+	{
+		(ExchangeRateApiClient client, CapturingLogger<ExchangeRateApiClient> logger) = BuildClientWithStatus(statusCode: HttpStatusCode.Unauthorized);
+
+		ExchangeRateApiResponse? result = await client.GetRatesAsync(baseCurrency: "USD", ct: CancellationToken.None);
+
+		await Assert.That(value: result).IsNull();
+		await Assert.That(value: logger.CriticalLogged).IsTrue();
+		await Assert.That(value: logger.ErrorLogged).IsFalse()
+			.Because(message: "A 401 is a configuration problem, not the ordinary transient-failure path — it must not also count as a plain Error.");
+	}
+
+	[Test]
+	public async Task GetRatesAsync_WhenForbidden_ShouldLogCritical()
+	{
+		(ExchangeRateApiClient client, CapturingLogger<ExchangeRateApiClient> logger) = BuildClientWithStatus(statusCode: HttpStatusCode.Forbidden);
+
+		await client.GetRatesAsync(baseCurrency: "USD", ct: CancellationToken.None);
+
+		await Assert.That(value: logger.CriticalLogged).IsTrue();
+	}
+
+	[Test]
+	public async Task GetRatesAsync_WhenServiceUnavailable_ShouldLogErrorNotCritical()
+	{
+		(ExchangeRateApiClient client, CapturingLogger<ExchangeRateApiClient> logger) = BuildClientWithStatus(statusCode: HttpStatusCode.ServiceUnavailable);
+
+		await client.GetRatesAsync(baseCurrency: "USD", ct: CancellationToken.None);
+
+		await Assert.That(value: logger.ErrorLogged).IsTrue();
+		await Assert.That(value: logger.CriticalLogged).IsFalse();
+	}
 }

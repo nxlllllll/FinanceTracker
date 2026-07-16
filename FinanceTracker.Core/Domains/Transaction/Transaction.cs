@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -7,8 +8,13 @@ namespace FinanceTracker.Core.Domains.Transaction;
 
 /// <summary>
 /// Represents a financial transaction (debit or credit) on an account.
-/// When <see cref="IsRatePending"/> is <c>true</c>, the exchange rate was not available
-/// at creation time and will be updated by <c>BalanceAdjustmentJob</c>.
+/// <para>
+/// The exchange rate carries a lifecycle of its own — see <see cref="RateStatus"/>. While it sits
+/// in <see cref="Abstractions.Rate.RateStatus.Pending"/>, the stored <see cref="ExchangeRate"/> is a placeholder and
+/// <c>BalanceAdjustmentJob</c> will replace it with the real rate and post the difference to the
+/// account balance. Every other state is terminal: the rate question is settled and the row will
+/// never be picked up again.
+/// </para>
 /// </summary>
 public sealed class Transaction
 {
@@ -19,12 +25,12 @@ public sealed class Transaction
 	public Money Amount { get; private set; }
 	public Currency BaseCurrency { get; private set; }
 	public DirectionType Direction { get; private set; }
-	/// <summary>Exchange rate applied when the account currency differs from the transaction currency.</summary>
 	public decimal ExchangeRate { get; private set; }
+	public RateStatus RateStatus { get; private set; }
+	public DateTimeOffset RateStatusChangedAt { get; private set; }
+
 	/// <summary>When <c>true</c>, this transaction is excluded from budget and total calculations.</summary>
 	public bool IsExcluded { get; private set; }
-	/// <summary>When <c>true</c>, the exchange rate is a placeholder and will be updated by <c>BalanceAdjustmentJob</c>.</summary>
-	public bool IsRatePending { get; private set; }
 	public string? Description { get; private set; }
 	public int RowVersion { get; private set; }
 	public DateTimeOffset OccurredAt { get; private set; }
@@ -32,10 +38,12 @@ public sealed class Transaction
 	private Transaction() { }
 
 	/// <summary>
-	/// Creates a new transaction. Fails if <paramref name="exchangeRate"/> is not positive.
+	/// Creates a new transaction. Fails if <paramref name="exchangeRate"/> is not positive, or if
+	/// <paramref name="rateStatus"/> is not a state an operation can legitimately start in.
 	/// <paramref name="amount"/> must already be a validated <see cref="Money"/> value.
 	/// </summary>
 	public static Result<Transaction, DomainException> Create(
+		DateTimeOffset createdAt,
 		DateTimeOffset occurredAt,
 		Guid accountId,
 		Guid userId,
@@ -44,11 +52,20 @@ public sealed class Transaction
 		Currency baseCurrency,
 		DirectionType direction,
 		decimal exchangeRate,
-		bool isRatePending,
+		RateStatus rateStatus,
 		string? description)
 	{
 		if (exchangeRate <= 0)
 			return Result<Transaction, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
+
+		if (rateStatus is not (RateStatus.Exact or RateStatus.Pending or RateStatus.Approximated))
+		{
+			return Result<Transaction, DomainException>.Failure(error: new InvalidRateStatusTransitionException(
+				message: $"A transaction cannot be created directly in {rateStatus}. Valid initial states: {RateStatus.Exact}, {RateStatus.Pending}, {RateStatus.Approximated}.",
+				from: RateStatus.Exact,
+				to: rateStatus
+			));
+		}
 
 		return Result<Transaction, DomainException>.Success(value: new Transaction
 		{
@@ -60,8 +77,9 @@ public sealed class Transaction
 			BaseCurrency = baseCurrency,
 			Direction = direction,
 			ExchangeRate = exchangeRate,
+			RateStatus = rateStatus,
+			RateStatusChangedAt = createdAt,
 			IsExcluded = false,
-			IsRatePending = isRatePending,
 			Description = description,
 			RowVersion = 0,
 			OccurredAt = occurredAt
@@ -78,8 +96,9 @@ public sealed class Transaction
 		Currency baseCurrency,
 		DirectionType direction,
 		decimal exchangeRate,
+		RateStatus rateStatus,
+		DateTimeOffset rateStatusChangedAt,
 		bool isExcluded,
-		bool isRatePending,
 		string? description,
 		int rowVersion,
 		DateTimeOffset occurredAt)
@@ -94,12 +113,53 @@ public sealed class Transaction
 			BaseCurrency = baseCurrency,
 			Direction = direction,
 			ExchangeRate = exchangeRate,
+			RateStatus = rateStatus,
+			RateStatusChangedAt = rateStatusChangedAt,
 			IsExcluded = isExcluded,
-			IsRatePending = isRatePending,
 			Description = description,
 			RowVersion = rowVersion,
 			OccurredAt = occurredAt
 		};
+	}
+
+	public Result<Unit, DomainException> ResolveRate(decimal newRate, DateTimeOffset changedAt)
+	{
+		if (newRate <= 0)
+			return Result<Unit, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
+
+		Result<RateStatus, DomainException> transition = RateStatusTransitions.To(from: RateStatus, to: RateStatus.Resolved);
+		if (transition.IsFailure)
+			return Result<Unit, DomainException>.Failure(error: transition.Error!);
+
+		ExchangeRate = newRate;
+		RateStatus = transition.Value;
+		RateStatusChangedAt = changedAt;
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> ApproximateRate(DateTimeOffset changedAt)
+	{
+		Result<RateStatus, DomainException> transition = RateStatusTransitions.To(from: RateStatus, to: RateStatus.Approximated);
+		if (transition.IsFailure)
+			return Result<Unit, DomainException>.Failure(error: transition.Error!);
+
+		RateStatus = transition.Value;
+		RateStatusChangedAt = changedAt;
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> MarkRateUnresolvable(DateTimeOffset changedAt)
+	{
+		Result<RateStatus, DomainException> transition = RateStatusTransitions.To(from: RateStatus, to: RateStatus.Unresolvable);
+		if (transition.IsFailure)
+			return Result<Unit, DomainException>.Failure(error: transition.Error!);
+
+		RateStatus = transition.Value;
+		RateStatusChangedAt = changedAt;
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
 	public Result<Unit, DomainException> Exclude()

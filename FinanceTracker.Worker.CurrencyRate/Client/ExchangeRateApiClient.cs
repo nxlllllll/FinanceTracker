@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
@@ -36,7 +37,22 @@ public sealed class ExchangeRateApiClient(
 
 			HttpResponseMessage response = await httpClient.SendAsync(request: request, cancellationToken: ct);
 
-			response.EnsureSuccessStatusCode();
+			if (!response.IsSuccessStatusCode)
+			{
+				if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+				{
+					logger.ZLogCritical(message: $"""
+						[{nameof(ExchangeRateApiClient)}] Got {(int)response.StatusCode} {response.StatusCode} fetching rates for {baseCurrency}.
+						This looks like a dead or missing API key, not a transient failure — it will not resolve on its own. Check ExchangeRateApiOptions.ApiKey.
+					""");
+				}
+				else
+				{
+					logger.ZLogError(message: $"[{nameof(ExchangeRateApiClient)}] Got {(int)response.StatusCode} {response.StatusCode} fetching rates for {baseCurrency}.");
+				}
+
+				return null;
+			}
 
 			ExchangeRateApiResponse? result = await response.Content.ReadFromJsonAsync<ExchangeRateApiResponse>(cancellationToken: ct);
 

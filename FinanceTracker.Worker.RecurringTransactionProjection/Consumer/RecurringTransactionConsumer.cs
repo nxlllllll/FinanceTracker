@@ -115,7 +115,7 @@ public sealed class RecurringTransactionConsumer(
 			logger.ZLogInformation(message: $"""
 				[Audit] Transaction created. TransactionId: {transaction.Id}, UserId: {transaction.UserId}, AccountId: {transaction.AccountId},
 				CategoryId: {transaction.CategoryId}, Amount: {transaction.Amount}, Direction: {transaction.Direction},
-				ExchangeRate: {transaction.ExchangeRate}, IsRatePending: {transaction.IsRatePending}, OccurredAt: {transaction.OccurredAt:O}.
+				ExchangeRate: {transaction.ExchangeRate}, RateStatus: {transaction.RateStatus}, OccurredAt: {transaction.OccurredAt:O}.
 			""");
 
 			logger.ZLogInformation(message: $"[{message.CorrelationId}] Created transaction for recurring transaction {message.RecurringTransactionId}.");

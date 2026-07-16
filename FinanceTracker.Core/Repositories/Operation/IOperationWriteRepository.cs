@@ -41,5 +41,11 @@ public interface IOperationWriteRepository
 		TransferStatus status,
 		CancellationToken ct = default
 	);
-}
 
+	Task UpdateTransferAmountToAsync(
+		Guid transferId,
+		Guid userId,
+		decimal amountTo,
+		CancellationToken ct = default
+	);
+}

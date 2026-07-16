@@ -2,6 +2,7 @@ using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Application.UseCases.Transfer.Notifications;
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
@@ -63,7 +64,7 @@ public sealed class CreateTransferHandlerTests
 			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+		).Returns(returnThis: new ConversionResult(Rate: 1m, Status: RateStatus.Exact));
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
@@ -85,7 +86,7 @@ public sealed class CreateTransferHandlerTests
 			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+		).Returns(returnThis: new ConversionResult(Rate: 1m, Status: RateStatus.Exact));
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
@@ -109,7 +110,7 @@ public sealed class CreateTransferHandlerTests
 			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+		).Returns(returnThis: new ConversionResult(Rate: 1m, Status: RateStatus.Exact));
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 1000m),
@@ -131,7 +132,7 @@ public sealed class CreateTransferHandlerTests
 			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+		).Returns(returnThis: new ConversionResult(Rate: 1m, Status: RateStatus.Exact));
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccountId),
@@ -156,7 +157,7 @@ public sealed class CreateTransferHandlerTests
 			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+		).Returns(returnThis: new ConversionResult(Rate: 1m, Status: RateStatus.Exact));
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
@@ -177,7 +178,7 @@ public sealed class CreateTransferHandlerTests
 			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: 1m, IsPending: false));
+		).Returns(returnThis: new ConversionResult(Rate: 1m, Status: RateStatus.Exact));
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
@@ -200,7 +201,7 @@ public sealed class CreateTransferHandlerTests
 			toCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: 0.9m, IsPending: false));
+		).Returns(returnThis: new ConversionResult(Rate: 0.9m, Status: RateStatus.Exact));
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),

@@ -68,6 +68,17 @@ public sealed class EFUnitOfWork(
 		_callbackScopes.Push(item: []);
 	}
 
+	internal static Guid ExtractGuidId(IReadOnlyList<EntityEntry> entries, string propertyName)
+	{
+		if (entries.Count == 0)
+			return Guid.Empty;
+
+		EntityEntry entry = entries[0];
+		return entry.Metadata.FindProperty(name: propertyName) is not null && entry.Property(propertyName: propertyName).CurrentValue is Guid id
+			? id
+			: Guid.Empty;
+	}
+
 	public async Task CommitAsync(CancellationToken ct = default)
 	{
 		if (_transaction is null)
@@ -82,10 +93,10 @@ public sealed class EFUnitOfWork(
 		}
 		catch (DbUpdateConcurrencyException ex)
 		{
-			EntityEntry entry = ex.Entries[0];
-			Guid aggregateId = entry.Metadata.FindProperty(name: "Id") is not null && entry.Property(propertyName: "Id").CurrentValue is Guid id ? id : Guid.Empty;
+			Guid aggregateId = ExtractGuidId(entries: ex.Entries, propertyName: "Id");
+			string entityName = ex.Entries.Count > 0 ? ex.Entries[0].Metadata.Name : "unknown (Entries was empty)";
 
-			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on entity {entry.Metadata.Name} {aggregateId}.");
+			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on entity {entityName} {aggregateId}.");
 			throw new ConcurrencyConflictException(message: "Conflict: the record was modified by another request.", id: aggregateId);
 		}
 		catch (DbUpdateException ex) when (ex.InnerException is PostgresException
@@ -94,7 +105,7 @@ public sealed class EFUnitOfWork(
 			ConstraintName: EventEntityConfiguration.VersionConstraint
 		})
 		{
-			Guid aggregateId = ex.Entries[0].Property(propertyName: "AggregateId").CurrentValue is Guid id ? id : Guid.Empty;
+			Guid aggregateId = ExtractGuidId(entries: ex.Entries, propertyName: "AggregateId");
 			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on event store aggregate {aggregateId}.");
 			throw new ConcurrencyConflictException(message: "Conflict: the aggregate was modified by another request.", id: aggregateId);
 		}

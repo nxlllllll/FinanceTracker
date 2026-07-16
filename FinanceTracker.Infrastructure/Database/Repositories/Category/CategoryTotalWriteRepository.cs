@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
@@ -19,8 +20,6 @@ public sealed class CategoryTotalWriteRepository(
 	IDateProvider dateProvider
 ) : ICategoryTotalWriteRepository
 {
-	private sealed record TransactionConversionInput(Guid CategoryId, Core.ValueObjects.Currency Currency, decimal Amount, DateTimeOffset OccurredAt);
-
 	private async Task ApplyDeltaAsync(
 		Guid userId,
 		Guid categoryId,
@@ -127,42 +126,34 @@ public sealed class CategoryTotalWriteRepository(
 		Core.ValueObjects.Currency baseCurrency,
 		CancellationToken ct = default)
 	{
-		List<TransactionConversionInput> transactions = await context.Transactions.AsNoTracking()
-			.Where(predicate: t => t.UserId == userId && !t.IsExcluded)
-			.Select(selector: t => new TransactionConversionInput(t.CategoryId, t.Currency, t.Amount, t.OccurredAt))
-			.ToListAsync(cancellationToken: ct);
+		List<(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate)> rows =
+			await context.GetTransactionRatesForRecalculationAsync(userId: userId, baseCurrencyCode: baseCurrency.Value, ct: ct);
 
 		await context.CategoryTotals.Where(predicate: c => c.UserId == userId).ExecuteDeleteAsync(cancellationToken: ct);
 
-		if (transactions.Count == 0)
+		if (rows.Count == 0)
 			return;
 
-		List<CurrencyStableRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyStableRateRequest(
-			From: t.Currency,
-			To: baseCurrency,
-			AsOf: t.OccurredAt
-		)).Distinct().ToList();
-
-		Dictionary<CurrencyStableRateRequest, decimal> rates = await currencyConversionService.GetStableRatesBatchAsync(requests: rateRequests, ct: ct);
+		(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate) missing = rows.FirstOrDefault(predicate: r => r.Rate is null);
+		if (missing.CurrencyCode is not null)
+		{
+			throw new CurrencyRateMissingException(
+				message: $"The exchange rate for {missing.CurrencyCode} > {baseCurrency.Value} was not found.",
+				fromCurrency: Core.ValueObjects.Currency.Reconstitute(value: missing.CurrencyCode),
+				toCurrency: baseCurrency
+			);
+		}
 
 		DateTimeOffset now = dateProvider.UtcNow;
 
-		IEnumerable<CategoryTotalEntity> newTotals = transactions
-			.GroupBy(keySelector: t => new
-			{
-				t.CategoryId,
-				Period = new DateOnly(year: t.OccurredAt.Year, month: t.OccurredAt.Month, day: 1)
-			})
+		IEnumerable<CategoryTotalEntity> newTotals = rows.GroupBy(keySelector: r => new { r.CategoryId, r.Period })
 			.Select(selector: group => new CategoryTotalEntity
 			{
 				Id = Guid.CreateVersion7(),
 				UserId = userId,
 				CategoryId = group.Key.CategoryId,
 				Period = group.Key.Period,
-				Total = group.Sum(selector: t => Money.ConvertedAmount(
-					amount: t.Amount,
-					rate: rates[new CurrencyStableRateRequest(From: t.Currency, To: baseCurrency, AsOf: t.OccurredAt)]
-				)),
+				Total = group.Sum(selector: r => Money.ConvertedAmount(amount: r.Amount, rate: r.Rate!.Value)),
 				TransactionCount = group.Count(),
 				RowVersion = 0,
 				UpdatedAt = now

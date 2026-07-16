@@ -17,9 +17,16 @@ public sealed class BalanceAdjustmentJobOptions : IJobOptions
 	public string Group { get; init; } = "BalanceAdjustment";
 	public string TriggerName { get; init; } = "BalanceAdjustmentTrigger";
 
-	/// <summary>Quartz cron expression. Default: daily at 02:30.</summary>
+	/// <summary>Quartz cron expression. Default: daily at 02:30 — after CurrencyRateJob at 02:00.</summary>
 	[Required]
 	public string CronExpression { get; init; } = "0 30 2 * * ?";
+
+	/// <summary>
+	/// How long an operation may sit on a pending rate before the placeholder is accepted as final and
+	/// the row is closed as <c>Approximated</c>. Default: 7 days.
+	/// </summary>
+	[Range(minimum: 1, maximum: 365)]
+	public int RateGracePeriodDays { get; init; } = 7;
 
 	/// <summary>Maximum retries on concurrency conflict per item. Default: 3.</summary>
 	[Range(minimum: 1, maximum: 10)]

@@ -1,8 +1,10 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Services;
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
@@ -61,18 +63,19 @@ public sealed class TransactionCreationServiceTests
 			unitOfWork: _unitOfWork,
 			categoryTotalWriteRepository: _categoryTotalWriteRepository,
 			budgetProgressWriteRepository: _budgetProgressWriteRepository,
+			dateProvider: FakeDateProvider.Default,
 			logger: Substitute.For<ILogger<TransactionCreationService>>()
 		);
 	}
 
-	private void SetupConversionRate(decimal rate = 1m, bool isPending = false)
+	private void SetupConversionRate(decimal rate = 1m, RateStatus status = RateStatus.Exact)
 	{
 		_currencyConversionService.GetConversionRateAsync(
 			fromCurrency: Arg.Any<Currency>(),
 			toCurrency: Arg.Any<Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: new ConversionResult(Rate: rate, IsPending: isPending));
+		).Returns(returnThis: new ConversionResult(Rate: rate, Status: status));
 	}
 
 	private CategoryReadModel SetupCategory(
@@ -176,10 +179,10 @@ public sealed class TransactionCreationServiceTests
 	}
 
 	[Test]
-	public async Task CreateAsync_WithPendingRate_ShouldCreateTransactionWithIsRatePendingTrue()
+	public async Task CreateAsync_WithPendingRate_ShouldCreateTransactionWithRateStatusPending()
 	{
 		Account account = AccountFactory.CreateWithArchivation();
-		SetupConversionRate(rate: 0.85m, isPending: true);
+		SetupConversionRate(rate: 0.85m, status: RateStatus.Pending);
 
 		await _service.CreateAsync(
 			command: CreateTransactionCommandFactory.Create(userId: account.UserId),
@@ -188,7 +191,7 @@ public sealed class TransactionCreationServiceTests
 		);
 
 		await _transactionWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
-			transaction: Arg.Is<Transaction>(predicate: t => t!.ExchangeRate == 0.85m && t.IsRatePending),
+			transaction: Arg.Is<Transaction>(predicate: t => t!.ExchangeRate == 0.85m && t.RateStatus == RateStatus.Pending),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -219,7 +222,7 @@ public sealed class TransactionCreationServiceTests
 			toCurrency: Arg.Any<Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns<ConversionResult>(returnThis: _ => throw new CurrencyRateNotFoundException(
+		).Returns<ConversionResult>(returnThis: _ => throw new CurrencyRateMissingException(
 			message: "Rate not found.",
 			fromCurrency: Currency.Reconstitute(value: "USD"),
 			toCurrency: Currency.Reconstitute(value: "RUB")
@@ -229,7 +232,7 @@ public sealed class TransactionCreationServiceTests
 			command: CreateTransactionCommandFactory.Create(userId: account.UserId),
 			account: account,
 			ct: CancellationToken.None
-		)).Throws<CurrencyRateNotFoundException>();
+		)).Throws<CurrencyRateMissingException>();
 	}
 
 	[Test]

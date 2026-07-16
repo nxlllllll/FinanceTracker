@@ -1,8 +1,11 @@
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -638,5 +641,60 @@ public sealed class EFUnitOfWorkTests : DatabaseFixture
 			after the real commit, so it must never surface as a failure of the commit itself.
 		""");
 		await Assert.That(value: secondCalled).IsTrue();
+	}
+
+	[Test]
+	public async Task ExtractGuidId_WithNoEntries_ShouldReturnEmptyGuid()
+	{
+		Guid result = EFUnitOfWork.ExtractGuidId(entries: [], propertyName: "Id");
+
+		await Assert.That(value: result).IsEqualTo(expected: Guid.Empty);
+	}
+
+	[Test]
+	public async Task ExtractGuidId_WithATrackedEntryHavingTheProperty_ShouldReturnItsValue()
+	{
+		Guid accountId = Guid.CreateVersion7();
+
+		AccountEntity account = new AccountEntity
+		{
+			Id = accountId,
+			UserId = Guid.CreateVersion7(),
+			Name = Name.Create(value: "Тестовый счёт").Value!,
+			AccountType = AccountType.Checking,
+			Currency = Currency.Reconstitute(value: "RUB"),
+			IsArchived = false,
+			LastVersion = 0,
+			CreatedAt = DateTimeOffset.UtcNow
+		};
+
+		EntityEntry entry = Context.Attach(entity: account);
+
+		Guid result = EFUnitOfWork.ExtractGuidId(entries: [entry], propertyName: "Id");
+
+		await Assert.That(value: result).IsEqualTo(expected: accountId);
+	}
+
+	[Test]
+	public async Task ExtractGuidId_WhenThePropertyDoesNotExistOnTheEntity_ShouldReturnEmptyGuid()
+	{
+		AccountEntity account = new AccountEntity
+		{
+			Id = Guid.CreateVersion7(),
+			UserId = Guid.CreateVersion7(),
+			Name = Name.Create(value: "Тестовый счёт").Value!,
+			AccountType = AccountType.Checking,
+			Currency = Currency.Reconstitute(value: "RUB"),
+			IsArchived = false,
+			LastVersion = 0,
+			CreatedAt = DateTimeOffset.UtcNow
+		};
+
+		EntityEntry entry = Context.Attach(entity: account);
+
+		Guid result = EFUnitOfWork.ExtractGuidId(entries: [entry], propertyName: "AggregateId");
+
+		await Assert.That(value: result).IsEqualTo(expected: Guid.Empty)
+				.Because(message: "AccountEntity has no 'AggregateId' property — the guard must fall back, not throw.");
 	}
 }

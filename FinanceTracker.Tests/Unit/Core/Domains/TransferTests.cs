@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
@@ -8,6 +9,8 @@ namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class TransferTests
 {
+	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
+
 	[Test]
 	public async Task Create_WithValidData_ShouldSetCorrectState()
 	{
@@ -23,7 +26,7 @@ public sealed class TransferTests
 			currencyFrom: "RUB",
 			currencyTo: "RUB",
 			exchangeRate: 1m,
-			isRatePending: false
+			rateStatus: RateStatus.Exact
 		);
 
 		await Assert.That(value: transfer.Id).IsNotDefault();
@@ -33,7 +36,7 @@ public sealed class TransferTests
 		await Assert.That(value: transfer.AmountFrom.Amount).IsEqualTo(expected: 1000m);
 		await Assert.That(value: transfer.AmountTo.Amount).IsEqualTo(expected: 1000m);
 		await Assert.That(value: transfer.ExchangeRate).IsEqualTo(expected: 1m);
-		await Assert.That(value: transfer.IsRatePending).IsFalse();
+		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Exact);
 		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.PendingCredit);
 		await Assert.That(value: transfer.OccurredAt).IsNotDefault();
 		await Assert.That(value: transfer.CreatedAt).IsNotDefault();
@@ -42,7 +45,7 @@ public sealed class TransferTests
 	[Test]
 	public async Task Create_WhenBackdated_ShouldKeepOccurredAtAndCreatedAtIndependent()
 	{
-		DateTimeOffset createdAt = FakeDateProvider.Default.UtcNow;
+		DateTimeOffset createdAt = Now;
 		DateTimeOffset occurredAt = createdAt.AddDays(days: -3);
 
 		Transfer transfer = TransferFactory.Create(occurredAt: occurredAt, createdAt: createdAt);
@@ -72,7 +75,7 @@ public sealed class TransferTests
 	public async Task Create_WithZeroExchangeRate_ShouldReturnFailure()
 	{
 		Result<Transfer, DomainException> result = Transfer.Create(
-			createdAt: FakeDateProvider.Default.UtcNow,
+			createdAt: Now,
 			userId: Guid.CreateVersion7(),
 			fromAccountId: Guid.CreateVersion7(),
 			toAccountId: Guid.CreateVersion7(),
@@ -80,9 +83,9 @@ public sealed class TransferTests
 			currencyFrom: Currency.Create(value: "RUB").Value,
 			currencyTo: Currency.Create(value: "USD").Value,
 			exchangeRate: 0m,
-			isRatePending: false,
+			rateStatus: RateStatus.Exact,
 			description: null,
-			occurredAt: FakeDateProvider.Default.UtcNow
+			occurredAt: Now
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
@@ -95,7 +98,7 @@ public sealed class TransferTests
 		Guid accountId = Guid.CreateVersion7();
 
 		Result<Transfer, DomainException> result = Transfer.Create(
-			createdAt: FakeDateProvider.Default.UtcNow,
+			createdAt: Now,
 			userId: Guid.CreateVersion7(),
 			fromAccountId: accountId,
 			toAccountId: accountId,
@@ -103,9 +106,9 @@ public sealed class TransferTests
 			currencyFrom: Currency.Create(value: "RUB").Value,
 			currencyTo: Currency.Create(value: "RUB").Value,
 			exchangeRate: 1m,
-			isRatePending: false,
+			rateStatus: RateStatus.Exact,
 			description: null,
-			occurredAt: FakeDateProvider.Default.UtcNow
+			occurredAt: Now
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
@@ -113,10 +116,31 @@ public sealed class TransferTests
 	}
 
 	[Test]
-	public async Task Create_WithPendingRate_ShouldSetIsRatePendingTrue()
+	public async Task Create_InATerminalRateState_ShouldBeRejected()
 	{
-		Transfer transfer = TransferFactory.Create(isRatePending: true);
-		await Assert.That(value: transfer.IsRatePending).IsTrue();
+		Result<Transfer, DomainException> result = Transfer.Create(
+			createdAt: Now,
+			userId: Guid.CreateVersion7(),
+			fromAccountId: Guid.CreateVersion7(),
+			toAccountId: Guid.CreateVersion7(),
+			amount: 1000m,
+			currencyFrom: Currency.Create(value: "RUB").Value,
+			currencyTo: Currency.Create(value: "RUB").Value,
+			exchangeRate: 1m,
+			rateStatus: RateStatus.Resolved,
+			description: null,
+			occurredAt: Now
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidRateStatusTransitionException>();
+	}
+
+	[Test]
+	public async Task Create_WithPendingRate_ShouldSetRateStatusPending()
+	{
+		Transfer transfer = TransferFactory.Create(rateStatus: RateStatus.Pending);
+		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Pending);
 	}
 
 	[Test]
@@ -160,7 +184,7 @@ public sealed class TransferTests
 	public async Task Complete_FromCompensated_ShouldReturnFailure()
 	{
 		Transfer transfer = TransferFactory.Create();
-		transfer.Compensate();
+		transfer.Compensate(occurredAt: Now);
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Complete();
 
@@ -173,7 +197,7 @@ public sealed class TransferTests
 	{
 		Transfer transfer = TransferFactory.Create();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Compensate();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Compensate(occurredAt: Now);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Compensated);
@@ -185,7 +209,7 @@ public sealed class TransferTests
 		Transfer transfer = TransferFactory.Create();
 		transfer.Complete();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Compensate();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Compensate(occurredAt: Now);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
@@ -196,7 +220,7 @@ public sealed class TransferTests
 	{
 		Transfer transfer = TransferFactory.Create();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail(occurredAt: Now);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Failed);
@@ -208,7 +232,7 @@ public sealed class TransferTests
 		Transfer transfer = TransferFactory.Create();
 		transfer.Complete();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail(occurredAt: Now);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
@@ -218,9 +242,9 @@ public sealed class TransferTests
 	public async Task Fail_FromFailed_ShouldReturnFailure()
 	{
 		Transfer transfer = TransferFactory.Create();
-		transfer.Fail();
+		transfer.Fail(occurredAt: Now);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail(occurredAt: Now);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
@@ -230,9 +254,9 @@ public sealed class TransferTests
 	public async Task Fail_FromCompensated_ShouldSucceed()
 	{
 		Transfer transfer = TransferFactory.Create();
-		transfer.Compensate();
+		transfer.Compensate(occurredAt: Now);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail();
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail(occurredAt: Now);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Failed);

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 
 namespace FinanceTracker.Core.Domains.Abstractions.Aggregate;
@@ -18,6 +19,8 @@ public abstract class AggregateRoot
 {
 	private readonly List<IEvent> _events = [];
 
+	private ReadOnlyCollection<IEvent>? _eventsReadOnly;
+
 	/// <summary>Unique identifier of this aggregate.</summary>
 	public Guid Id { get; protected set; }
 
@@ -34,7 +37,7 @@ public abstract class AggregateRoot
 	public int PersistedVersion => Version - _events.Count;
 
 	/// <summary>Uncommitted events raised since the <c>Repository.SaveAsync</c> call.</summary>
-	public IReadOnlyList<IEvent> Events => _events.AsReadOnly();
+	public IReadOnlyList<IEvent> Events => _eventsReadOnly ??= _events.AsReadOnly();
 
 	private void Load(IEvent @event)
 	{

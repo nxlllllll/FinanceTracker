@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
@@ -16,10 +17,12 @@ public class TransactionBuilder(FinanceTrackerContext context)
 		DirectionType direction = DirectionType.Debit,
 		bool isExcluded = false,
 		decimal exchangeRate = 1m,
-		bool isRatePending = false,
-		DateTimeOffset? occurredAt = null)
+		RateStatus rateStatus = RateStatus.Exact,
+		DateTimeOffset? occurredAt = null,
+		DateTimeOffset? rateStatusChangedAt = null)
 	{
 		Guid transactionId = Guid.CreateVersion7();
+		DateTimeOffset now = occurredAt ?? DateTimeOffset.UtcNow;
 
 		await context.Transactions.AddAsync(new TransactionEntity
 		{
@@ -33,9 +36,10 @@ public class TransactionBuilder(FinanceTrackerContext context)
 			Direction = direction,
 			ExchangeRate = exchangeRate,
 			IsExcluded = isExcluded,
-			IsRatePending = isRatePending,
+			RateStatus = rateStatus,
+			RateStatusChangedAt = rateStatusChangedAt ?? now,
 			Description = null,
-			OccurredAt = occurredAt ?? DateTimeOffset.UtcNow
+			OccurredAt = now
 		});
 
 		await context.SaveChangesAsync();

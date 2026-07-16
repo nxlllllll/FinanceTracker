@@ -1,7 +1,9 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
+using FinanceTracker.Infrastructure.Database.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -50,14 +52,24 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 		builder.Property(propertyExpression: t => t.Direction)
 			.HasColumnName(name: "direction_type")
 			.HasMaxLength(maxLength: 10)
-			.HasConversion(
-				convertToProviderExpression: type => type.ToString().ToLowerInvariant(),
-				convertFromProviderExpression: value => Enum.Parse<DirectionType>(value: value, ignoreCase: true)
-			);
+			.HasConversion<SnakeCaseEnumConverter<DirectionType>>();
+
+			// .HasConversion(
+			// 	convertToProviderExpression: type => type.ToString().ToLowerInvariant(),
+			// 	convertFromProviderExpression: value => Enum.Parse<DirectionType>(value: value, ignoreCase: true)
+			// );
 
 		builder.Property(propertyExpression: t => t.ExchangeRate)
 			.HasColumnName(name: "exchange_rate")
 			.HasColumnType(typeName: "numeric(18,6)");
+
+		builder.Property(propertyExpression: t => t.RateStatus)
+			.HasColumnName(name: "rate_status")
+			.HasMaxLength(maxLength: 16)
+			.HasConversion<SnakeCaseEnumConverter<RateStatus>>();
+
+		builder.Property(propertyExpression: t => t.RateStatusChangedAt)
+			.HasColumnName(name: "rate_status_changed_at");
 
 		builder.Property(propertyExpression: t => t.IsExcluded)
 			.HasColumnName(name: "is_excluded");
@@ -65,9 +77,6 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 		builder.Property(propertyExpression: t => t.Description)
 			.HasColumnName(name: "description")
 			.HasMaxLength(maxLength: 255);
-
-		builder.Property(propertyExpression: t => t.IsRatePending)
-			.HasColumnName(name: "is_rate_pending");
 
 		builder.Property(propertyExpression: t => t.RowVersion)
 			.HasColumnName(name: "row_version")
