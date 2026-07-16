@@ -54,11 +54,6 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 			.HasMaxLength(maxLength: 10)
 			.HasConversion<SnakeCaseEnumConverter<DirectionType>>();
 
-			// .HasConversion(
-			// 	convertToProviderExpression: type => type.ToString().ToLowerInvariant(),
-			// 	convertFromProviderExpression: value => Enum.Parse<DirectionType>(value: value, ignoreCase: true)
-			// );
-
 		builder.Property(propertyExpression: t => t.ExchangeRate)
 			.HasColumnName(name: "exchange_rate")
 			.HasColumnType(typeName: "numeric(18,6)");

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.Metrics;
+using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Core.Services.RateLimit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

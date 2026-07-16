@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.Rate;
+using FinanceTracker.Core.Domains.Abstractions.Rate;
 
 namespace FinanceTracker.Core.Exceptions.DomainExceptions;
 

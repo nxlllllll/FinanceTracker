@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using RabbitMQ.Client;
 

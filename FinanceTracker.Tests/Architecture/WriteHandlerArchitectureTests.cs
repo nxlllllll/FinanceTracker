@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;

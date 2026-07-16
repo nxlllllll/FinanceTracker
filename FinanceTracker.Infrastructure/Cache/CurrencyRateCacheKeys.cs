@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.Currency;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Cache;
