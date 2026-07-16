@@ -17,7 +17,7 @@ public sealed class LayerArchitectureTests
 	public async Task Core_ShouldNotDependOn_Application()
 	{
 		TestResult result = Types.InAssembly(assembly: CoreAssembly)
-			.ShouldNot().HaveDependencyOnAny("FinanceTracker.Application", "FinanceTracker.Infrastructure", "FinanceTracker.Api")
+			.ShouldNot().HaveDependencyOnAny("FinanceTracker.Application", "FinanceTracker.Infrastructure")
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
@@ -28,7 +28,7 @@ public sealed class LayerArchitectureTests
 	public async Task Application_ShouldNotDependOn_Infrastructure()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.ShouldNot().HaveDependencyOnAny("FinanceTracker.Infrastructure", "FinanceTracker.Api")
+			.ShouldNot().HaveDependencyOn(dependency: "FinanceTracker.Infrastructure")
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()
@@ -39,7 +39,7 @@ public sealed class LayerArchitectureTests
 	public async Task Infrastructure_ShouldNotDependOn_Application()
 	{
 		TestResult result = Types.InAssembly(assembly: InfrastructureAssembly)
-			.ShouldNot().HaveDependencyOnAny("FinanceTracker.Application", "FinanceTracker.Api")
+			.ShouldNot().HaveDependencyOn(dependency: "FinanceTracker.Application")
 			.GetResult();
 
 		await Assert.That(value: result.IsSuccessful).IsTrue()

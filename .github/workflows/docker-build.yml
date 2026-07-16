@@ -36,7 +36,6 @@ jobs:
           - { name: worker-currency-rate, path: FinanceTracker.Worker.CurrencyRate }
           - { name: worker-cleanup, path: FinanceTracker.Worker.Cleanup }
           - { name: worker-dead-letter-monitor, path: FinanceTracker.Worker.DeadLetterMonitor }
-          - { name: api, path: FinanceTracker.Api }
 
     steps:
       - name: Checkout
