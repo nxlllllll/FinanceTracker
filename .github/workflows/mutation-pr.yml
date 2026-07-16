@@ -28,7 +28,7 @@ jobs:
           for proj in Core Application Infrastructure; do
             dotnet stryker \
               --project "FinanceTracker.$proj.csproj" \
-              --config-file-path stryker-config.pr-diff.json \
+              --config-file stryker-config.pr-diff.json \
               --since:origin/${{ github.base_ref }}
           done
 
