@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.RateLimit;
 using Microsoft.Extensions.Options;

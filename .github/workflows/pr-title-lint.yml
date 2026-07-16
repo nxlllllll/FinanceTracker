@@ -1,0 +1,29 @@
+﻿name: PR title lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [develop, main]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check title format
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Формат проекта: [+] added ..., [=] fixed ..., [-] removed ...
+          PATTERN='^\[(\+|=|-)\] [a-z].+$'
+
+          if ! echo "$TITLE" | grep -qP "$PATTERN"; then
+            echo "::error::PR title должен начинаться с [+] (added), [=] (fixed/changed) или [-] (removed), дальше — с маленькой буквы."
+            echo "Пример: [=] fixed transfer auto-compensation racing against backdated occurredAt"
+            echo "Текущий заголовок: $TITLE"
+            exit 1
+          fi
+
+          echo "OK: $TITLE"

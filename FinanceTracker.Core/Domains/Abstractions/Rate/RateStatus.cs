@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.Rate;
+namespace FinanceTracker.Core.Domains.Abstractions.Rate;
 
 /// <summary>
 /// Lifecycle of the exchange rate attached to a financial operation (transaction or transfer).

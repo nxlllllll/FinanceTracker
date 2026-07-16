@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Context.Account;
+namespace FinanceTracker.Infrastructure.Database.Context.Account;
 
 public sealed class AccountBalanceAppliedEventEntity
 {

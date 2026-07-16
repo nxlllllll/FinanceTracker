@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Abstractions;
+namespace FinanceTracker.Core.Repositories.Abstractions;
 
 public interface IEventProjectionSafetyAttribute;
 
