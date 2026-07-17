@@ -2,6 +2,7 @@ using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;
@@ -18,6 +19,7 @@ public sealed class LoginUserHandlerTests
 	private IPasswordHasher _passwordHasher = null!;
 	private ISessionIssuer _sessionIssuer = null!;
 	private LoginUserHandler _userHandler = null!;
+	private IUnitOfWork _unitOfWork = null!;
 
 	private static readonly Email TestEmail = Email.Create(value: "test@test.com").Value!;
 	private const string RawPassword = "password123";
@@ -45,11 +47,18 @@ public sealed class LoginUserHandlerTests
 		_userAuthRepository = Substitute.For<IUserAuthRepository>();
 		_passwordHasher = Substitute.For<IPasswordHasher>();
 		_sessionIssuer = Substitute.For<ISessionIssuer>();
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task<SessionToken>>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<SessionToken>>>()?.Invoke());
 
 		_userHandler = new LoginUserHandler(
 			userAuthRepository: _userAuthRepository,
 			passwordHasher: _passwordHasher,
-			sessionIssuer: _sessionIssuer
+			sessionIssuer: _sessionIssuer,
+			unitOfWork: _unitOfWork
 		);
 	}
 
