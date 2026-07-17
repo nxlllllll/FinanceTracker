@@ -19,6 +19,8 @@ public sealed class Program
 
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 
+		builder.Services.AddScoped<ITransactionCreationService, TransactionCreationService>();
+
 		builder.Services.AddRabbitMqCore()
 			.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
 
