@@ -7,8 +7,6 @@
     <File Path=".github/CODEOWNERS" />
     <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/docker-build.yml" />
-    <File Path=".github/workflows/mutation-nightly.yml" />
-    <File Path=".github/workflows/mutation-pr.yml" />
     <File Path=".github/workflows/pr-title-lint.yml" />
     <File Path=".gitignore" />
     <File Path="alertmanager/alertmanager.example.yml" />
