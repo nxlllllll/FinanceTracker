@@ -110,8 +110,6 @@ public abstract class MediatorFixture
 			services.AddPersistence(configuration: ctx.Configuration).AddAuth();
 			services.AddApplication();
 
-			services.AddScoped<ITransactionCreationService, TransactionCreationService>();
-
 			services.AddScoped<AccountEventApplier>();
 			services.AddScoped<AccountProjection>();
 			services.AddScoped<AccountEventsConsumer>();

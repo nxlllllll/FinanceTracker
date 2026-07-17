@@ -201,8 +201,6 @@ public abstract class E2EFixture
 					 .BindConfiguration(ProjectionRetryOptions.SectionName)
 					 .ValidateDataAnnotations();
 
-				services.AddScoped<ITransferCompensationService, TransferCompensationService>();
-
 				services.AddScoped<OutboxPublisherJob>();
 				services.AddScoped<BalanceAdjustmentJob>();
 				services.AddScoped<TransferCreditLagJob>();

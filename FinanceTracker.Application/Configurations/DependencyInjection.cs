@@ -8,6 +8,7 @@ using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
+using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Results;
 using FluentValidation;
 using MediatR;
@@ -48,6 +49,8 @@ public static class DependencyInjection
 		services.AddScoped<PostCommitNotificationCollector>();
 		services.AddScoped<IPostCommitNotifications>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
 		services.AddScoped<IPostCommitNotificationSink>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
+
+		services.AddScoped<ITransactionCreationService, TransactionCreationService>();
 
 		services.AddMediatR(configuration: cfg =>
 		{
