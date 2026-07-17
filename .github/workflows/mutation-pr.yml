@@ -4,9 +4,22 @@ on:
   pull_request:
     branches: [develop, main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-pr-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   mutation-diff:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [Core, Application, Infrastructure]
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -16,25 +29,33 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Install Stryker
-        run: dotnet tool install -g dotnet-stryker
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore tools
+        run: dotnet tool restore
 
       - name: Restore
         run: dotnet restore
 
       - name: Run mutation testing (diff only)
         working-directory: FinanceTracker.Tests
-        run: |
-          for proj in Core Application Infrastructure; do
-            dotnet stryker \
-              --project "FinanceTracker.$proj.csproj" \
-              --config-file stryker-config.pr-diff.json \
-              --since:origin/${{ github.base_ref }}
-          done
+        run: >
+          dotnet tool run dotnet-stryker
+          --project "FinanceTracker.${{ matrix.project }}.csproj"
+          --config-file stryker-config.pr-diff.json
+          --since:origin/${{ github.base_ref }}
+          --break-at 0
 
-      - name: Upload mutation reports
+      - name: Upload mutation report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mutation-reports-pr-${{ github.event.pull_request.number }}
-          path: FinanceTracker.Tests/StrykerOutput/**/reports/*.json
+          name: mutation-report-pr-${{ github.event.pull_request.number }}-${{ matrix.project }}
+          path: FinanceTracker.Tests/StrykerOutput/**/reports/*
+          retention-days: 14

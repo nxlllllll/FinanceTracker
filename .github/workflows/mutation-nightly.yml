@@ -5,11 +5,20 @@ on:
     - cron: "0 2 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-nightly
+  cancel-in-progress: true
+
 jobs:
   mutation-full:
     runs-on: ubuntu-latest
+    timeout-minutes: 240
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         config:
           - stryker-config.core.json
@@ -18,6 +27,7 @@ jobs:
           - stryker-config.infrastructure-eventstore.json
           - stryker-config.infrastructure-services.json
           - stryker-config.infrastructure-repositories.json
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,15 +35,26 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Install Stryker
-        run: dotnet tool install -g dotnet-stryker
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore tools
+        run: dotnet tool restore
 
       - name: Restore
         run: dotnet restore
 
       - name: Run full mutation testing
         working-directory: FinanceTracker.Tests
-        run: dotnet stryker -f ${{ matrix.config }}
+        run: >
+          dotnet tool run dotnet-stryker
+          -f ${{ matrix.config }}
+          --concurrency 4
 
       - name: Upload mutation report
         if: always()

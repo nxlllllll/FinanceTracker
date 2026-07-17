@@ -46,7 +46,7 @@ public sealed class Account : AggregateRoot
 		Currency currency,
 		decimal balance)
 	{
-		if (balance < 0)
+		if (balance < 0m)
 			return Result<Account, DomainException>.Failure(error: new InvalidInitialBalanceException(message: "The initial account balance cannot be negative."));
 
 		Account account = new Account();
