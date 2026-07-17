@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Api.Contracts.Auth;
+using FinanceTracker.Api.Contracts.Auth.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
