@@ -8,7 +8,7 @@ using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Account;
+namespace FinanceTracker.Api.Endpoints.Account.Post;
 
 public sealed class CreateAccountEndpoint : IEndpoint
 {

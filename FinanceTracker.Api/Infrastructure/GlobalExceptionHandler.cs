@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using ZLogger;
 
@@ -44,13 +45,18 @@ public sealed class GlobalExceptionHandler(
 
 		httpContext.Response.StatusCode = statusCode;
 
-		await httpContext.Response.WriteAsJsonAsync(value: new ProblemDetails()
-		{
-			Status = statusCode,
-			Title = title,
-			Detail = detail
-		}, cancellationToken: ct);
-
+		await httpContext.Response.WriteAsJsonAsync(
+			value: new ProblemDetails
+			{
+				Status = statusCode,
+				Title = title,
+				Detail = detail
+			},
+			options: null,
+			contentType: MediaTypeNames.Application.ProblemJson,
+			cancellationToken: ct
+		);
+		
 		return true;
 	}
 }
