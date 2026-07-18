@@ -31,6 +31,7 @@ public static class ResultExtensions
 			ConcurrencyConflictException or UniqueConstraintException => StatusCodes.Status409Conflict,
 			IdempotencyTimeoutException or IdempotencyAbandonedException => StatusCodes.Status409Conflict,
 			RateLimitExceededException => StatusCodes.Status429TooManyRequests,
+			SelfPermissionModificationException => StatusCodes.Status403Forbidden,
 			DomainException => StatusCodes.Status422UnprocessableEntity,
 			_ => StatusCodes.Status500InternalServerError
 		};

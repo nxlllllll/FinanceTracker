@@ -17,15 +17,17 @@ namespace FinanceTracker.Tests.Architecture;
 /// </summary>
 public sealed class AccountEventApplierArchitectureTests
 {
-	private static readonly Type[] AccountDomainEventTypes = typeof(IEvent).Assembly.GetTypes()
-		.Where(predicate: t => t is { IsClass: true, IsAbstract: false }
-			&& typeof(IEvent).IsAssignableFrom(c: t)
-			&& t.Namespace == "FinanceTracker.Core.Domains.Account.Events")
-		.ToArray();
+	private static readonly Type[] AccountDomainEventTypes = typeof(IEvent).Assembly.GetTypes().Where(predicate: t =>
+		t is { IsClass: true, IsAbstract: false } &&
+		typeof(IEvent).IsAssignableFrom(c: t) &&
+		t.Namespace == "FinanceTracker.Core.Domains.Account.Events"
+	).ToArray();
 
-	private static readonly Type[] AccountIntegrationEventTypes = typeof(IIntegrationEvent).Assembly.GetTypes()
-		.Where(predicate: t => t is { IsClass: true, IsAbstract: false } && typeof(IIntegrationEvent).IsAssignableFrom(c: t))
-		.ToArray();
+	private static readonly Type[] AccountIntegrationEventTypes = typeof(IIntegrationEvent).Assembly.GetTypes().Where(predicate: t =>
+		t is { IsClass: true, IsAbstract: false } &&
+		typeof(IIntegrationEvent).IsAssignableFrom(c: t) &&
+		t.Namespace == "FinanceTracker.Contracts.Events.Account"
+	).ToArray();
 
 	[Test]
 	public async Task AccountDomainEventApplier_ShouldHandleAllAccountDomainEvents()
