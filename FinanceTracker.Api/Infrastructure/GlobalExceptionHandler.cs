@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using ZLogger;
 
@@ -11,19 +12,51 @@ public sealed class GlobalExceptionHandler(
 	public async ValueTask<bool> TryHandleAsync(
 		HttpContext httpContext,
 		Exception exception,
-		CancellationToken cancellationToken)
+		CancellationToken cancellationToken
+	) => exception switch
 	{
-		logger.ZLogError(exception: exception, message: $"Unhandled exception for {httpContext.Request.Method} {httpContext.Request.Path}");
+		BadHttpRequestException badRequest => await WriteProblemAsync(
+			httpContext: httpContext,
+			statusCode: badRequest.StatusCode,
+			title: "Bad Request",
+			detail: "The request body could not be read. Check field types and enum values.",
+			logAction: () => logger.ZLogWarning(exception: badRequest, message: $"Malformed request for {httpContext.Request.Method} {httpContext.Request.Path}"),
+			ct: cancellationToken
+		),
+		_ => await WriteProblemAsync(
+			httpContext: httpContext,
+			statusCode: StatusCodes.Status500InternalServerError,
+			title: "Internal Server Error",
+			detail: "An unexpected error occurred. Use the correlation id to investigate.",
+			logAction: () => logger.ZLogError(exception: exception, message: $"Unhandled exception for {httpContext.Request.Method} {httpContext.Request.Path}"),
+			ct: cancellationToken
+		)
+	};
 
-		httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+	private static async ValueTask<bool> WriteProblemAsync(
+		HttpContext httpContext,
+		int statusCode,
+		string title,
+		string detail,
+		Action logAction,
+		CancellationToken ct)
+	{
+		logAction();
 
-		await httpContext.Response.WriteAsJsonAsync(value: new ProblemDetails
-		{
-			Status = StatusCodes.Status500InternalServerError,
-			Title = "Internal Server Error",
-			Detail = "An unexpected error occurred. Use the correlation id to investigate."
-		}, cancellationToken: cancellationToken);
+		httpContext.Response.StatusCode = statusCode;
 
+		await httpContext.Response.WriteAsJsonAsync(
+			value: new ProblemDetails
+			{
+				Status = statusCode,
+				Title = title,
+				Detail = detail
+			},
+			options: null,
+			contentType: MediaTypeNames.Application.ProblemJson,
+			cancellationToken: ct
+		);
+		
 		return true;
 	}
 }

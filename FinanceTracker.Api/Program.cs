@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FinanceTracker.Api.Endpoints;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.Configurations;
@@ -34,6 +36,12 @@ public sealed class Program
 		builder.Services.AddAuthorization();
 		builder.Services.AddHttpContextAccessor();
 		builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
+
+		builder.Services.ConfigureHttpJsonOptions(configureOptions: options =>
+		{
+			options.SerializerOptions.Converters.Add(item: new JsonStringEnumConverter(namingPolicy: JsonNamingPolicy.CamelCase));
+			options.SerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
+		});
 
 		WebApplication app = builder.Build();
 

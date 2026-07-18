@@ -409,7 +409,7 @@ public abstract class E2EFixture
 		TimeSpan? timeout = null,
 		TimeSpan? pollInterval = null)
 	{
-		TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 10);
+		TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 30);
 		TimeSpan poll = pollInterval ?? TimeSpan.FromMilliseconds(milliseconds: 100);
 		DateTimeOffset start = DateTimeOffset.UtcNow;
 

@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Api.Contracts.Auth;
+﻿using FinanceTracker.Api.Contracts.Auth.Request;
+using FinanceTracker.Api.Contracts.Auth.Response;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
 using FinanceTracker.Core.Exceptions;
@@ -11,7 +12,7 @@ using MediatR;
 using Microsoft.Extensions.Options;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth;
+namespace FinanceTracker.Api.Endpoints.Auth.Post;
 
 public sealed class LoginEndpoint : IEndpoint
 {
@@ -37,16 +38,10 @@ public sealed class LoginEndpoint : IEndpoint
 
 		Result<SessionToken, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 
-		if (result.IsFailure)
-			return result.Error!.ToProblem();
-
-		SessionToken session = result.Value!;
-
-		RefreshTokenCookie.Append(httpContext: httpContext, refreshToken: session.RefreshToken, jwtOptions: jwtOptions);
-
-		return Results.Ok(value: new SessionResponse(
-			AccessToken: session.AccessToken,
-			AccessTokenExpiresAt: session.AccessTokenExpiresAt
+		return result.ToHttpResult<SessionToken, SessionResponse>(onSuccess: session => RefreshTokenCookie.Append(
+			httpContext: httpContext,
+			refreshToken: session.RefreshToken,
+			jwtOptions: jwtOptions
 		));
 	}
 }

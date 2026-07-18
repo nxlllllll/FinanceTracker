@@ -1,6 +1,8 @@
 ﻿using System.Net;
+using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
@@ -40,8 +42,38 @@ public static class ResultExtensions
 		);
 	}
 
-	public static IHttpResult ToOkResult<TValue>(this Result<TValue, AppException> result)
-		=> result.IsSuccess ? Results.Ok(value: result.Value) : result.Error!.ToProblem();
+	public static IHttpResult ToHttpResult<TReadModel, TResponse>(
+		this Result<TReadModel, AppException> result,
+		Action<TReadModel>? onSuccess = null,
+		Action<AppException>? onError = null
+	) where TResponse : IResponseOf<TReadModel, TResponse>
+	{
+		if (result.IsFailure)
+		{
+			onError?.Invoke(obj: result.Error!);
+			return result.Error!.ToProblem();
+		}
+
+		onSuccess?.Invoke(obj: result.Value!);
+		return Results.Ok(value: TResponse.FromReadModel(readModel: result.Value!));
+	}
+
+	public static IHttpResult ToHttpResult<TReadModel, TResponse>(
+		this Result<IReadOnlyList<TReadModel>, AppException> result,
+		Action<IReadOnlyList<TReadModel>>? onSuccess = null,
+		Action<AppException>? onError = null
+	) where TResponse : IResponseOf<TReadModel, TResponse>
+	{
+		if (result.IsFailure)
+		{
+			onError?.Invoke(obj: result.Error!);
+			return result.Error!.ToProblem();
+		}
+
+		onSuccess?.Invoke(obj: result.Value!);
+		return Results.Ok(value: result.Value!.Select(selector: TResponse.FromReadModel).ToList());
+	}
+
 
 	public static IHttpResult ToCreatedResult(
 		this Result<Guid, AppException> result,

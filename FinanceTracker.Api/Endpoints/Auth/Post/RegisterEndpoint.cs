@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Contracts.Auth;
+﻿using FinanceTracker.Api.Contracts.Auth.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
@@ -8,7 +8,7 @@ using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth;
+namespace FinanceTracker.Api.Endpoints.Auth.Post;
 
 public sealed class RegisterEndpoint : IEndpoint
 {

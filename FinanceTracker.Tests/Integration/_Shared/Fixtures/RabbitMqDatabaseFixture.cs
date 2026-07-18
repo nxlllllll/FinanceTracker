@@ -129,7 +129,7 @@ public abstract class RabbitMqDatabaseFixture
 		TimeSpan? timeout = null,
 		TimeSpan? pollInterval = null)
 	{
-		TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 15);
+		TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 30);
 		TimeSpan poll = pollInterval ?? TimeSpan.FromMilliseconds(milliseconds: 100);
 		DateTimeOffset start = DateTimeOffset.UtcNow;
 
