@@ -47,7 +47,7 @@ public class EventStoreBenchmarks : BenchmarkBase
 	private static IEventStore CreateEventStore(FinanceTrackerContext context) => new PostgresEventStore(
 		context: context,
 		eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly, logger: NullLogger<EventTypeResolver>.Instance),
-		integrationEventMapper: new AccountIntegrationEventMapper(logger: NullLogger<AccountIntegrationEventMapper>.Instance),
+		integrationEventMapper: new AccountIntegrationEventMapper(),
 		integrationEventTypeResolver: new IntegrationEventTypeResolver(
 			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: NullLogger<IntegrationEventTypeResolver>.Instance

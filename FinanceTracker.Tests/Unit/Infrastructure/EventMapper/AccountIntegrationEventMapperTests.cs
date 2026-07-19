@@ -5,7 +5,6 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
-using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.EventMapper;
 
@@ -17,15 +16,11 @@ public sealed class AccountIntegrationEventMapperTests
 		public IEvent WithVersion(int version) => this with { };
 	}
 
-	private CapturingLogger<AccountIntegrationEventMapper> _logger = null!;
 	private AccountIntegrationEventMapper _mapper = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
-	{
-		_logger = new CapturingLogger<AccountIntegrationEventMapper>();
-		_mapper = new AccountIntegrationEventMapper(logger: _logger);
-	}
+		=> _mapper = new AccountIntegrationEventMapper();
 
 	[Test]
 	public async Task Map_AccountCreated_ReturnsAccountCreatedEvent()
@@ -98,30 +93,5 @@ public sealed class AccountIntegrationEventMapperTests
 		IIntegrationEvent? result = _mapper.Map(@event: @event);
 
 		await Assert.That(value: result).IsNull();
-	}
-
-	[Test]
-	public async Task Map_UnknownEvent_LogsWarning()
-	{
-		_mapper.Map(@event: new UnknownTestEvent(
-			Id: Guid.CreateVersion7(),
-			OccurredAt: DateTimeOffset.UtcNow
-		));
-
-		await Assert.That(value: _logger.WarningLogged).IsTrue();
-	}
-
-	[Test]
-	public async Task Map_KnownEvent_DoesNotLogWarning()
-	{
-		_mapper.Map(@event: new AccountRenamed(
-			Id: Guid.CreateVersion7(),
-			AccountId: Guid.CreateVersion7(),
-			NewName: Name.Reconstitute(value: "Новое имя"),
-			Version: 0,
-			OccurredAt: DateTimeOffset.UtcNow
-		));
-
-		await Assert.That(value: _logger.WarningLogged).IsFalse();
 	}
 }

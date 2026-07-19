@@ -7,7 +7,7 @@ using ZLogger;
 
 namespace FinanceTracker.Infrastructure.EventMapping.Integration;
 
-public sealed class AccountIntegrationEventMapper(ILogger<AccountIntegrationEventMapper> logger) : IIntegrationEventMapper
+public sealed class AccountIntegrationEventMapper : IAggregateIntegrationEventMapper
 {
 	public IIntegrationEvent? Map(IEvent @event) => @event switch
 	{
@@ -106,15 +106,6 @@ public sealed class AccountIntegrationEventMapper(ILogger<AccountIntegrationEven
 			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
-		_ => ExecuteDefaultCase(@event: @event)
+		_ => null
 	};
-
-	private IIntegrationEvent? ExecuteDefaultCase(IEvent @event)
-	{
-		logger.ZLogWarning(message:
-			$"[IntegrationEventMapper] No integration event mapping defined for domain event '{@event.GetType().Name}'. " +
-			$"The event will not be published to the outbox. Add a mapping if outbox propagation is required."
-		);
-		return null;
-	}
 }

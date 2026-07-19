@@ -49,7 +49,7 @@ public class EventStoreSaveBenchmarks : BenchmarkBase
 	private IEventStore CreateEventStore(int snapshotThreshold) => new PostgresEventStore(
 		context: Context,
 		eventTypeResolver: new EventTypeResolver(assembly: typeof(IEvent).Assembly, logger: NullLogger<EventTypeResolver>.Instance),
-		integrationEventMapper: new AccountIntegrationEventMapper(logger: NullLogger<AccountIntegrationEventMapper>.Instance),
+		integrationEventMapper: new AccountIntegrationEventMapper(),
 		integrationEventTypeResolver: new IntegrationEventTypeResolver(
 			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: NullLogger<IntegrationEventTypeResolver>.Instance

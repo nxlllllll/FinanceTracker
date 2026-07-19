@@ -19,6 +19,7 @@ using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
@@ -46,6 +47,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
+using FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Infrastructure.Services.Auth;
@@ -98,7 +100,9 @@ public static class DependencyInjection
 			options.InstanceName = redisOptions.InstanceName;
 		});
 
-		services.AddSingleton<IConnectionMultiplexer>(implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisOptions.ConnectionString));
+		services.AddSingleton<IConnectionMultiplexer>(
+			implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisOptions.ConnectionString)
+		);
 
 		services.AddOptions<RateLimiterFallbackOptions>()
 			.BindConfiguration(configSectionPath: RateLimiterFallbackOptions.SectionName)
@@ -119,23 +123,25 @@ public static class DependencyInjection
 			logger: s.GetService<ILogger<EventTypeResolver>>()!
 		));
 
-		services.AddSingleton<IIntegrationEventMapper, AccountIntegrationEventMapper>();
+		services.AddSingleton<IAggregateIntegrationEventMapper, AccountIntegrationEventMapper>();
+		services.AddSingleton<IAggregateIntegrationEventMapper, UserPermissionIntegrationEventMapper>();
+		services.AddSingleton<IIntegrationEventMapper, CompositeIntegrationEventMapper>();
 
 		services.AddSingleton<IIntegrationEventTypeResolver, IntegrationEventTypeResolver>(implementationFactory: s => new IntegrationEventTypeResolver(
 			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: s.GetRequiredService<ILogger<IntegrationEventTypeResolver>>()
 		));
 
-		services.Scan(scan => scan
+		services.Scan(action: scan => scan
 			.FromAssemblyOf<EventUpcasterRegistry>()
-			.AddClasses(classes => classes.AssignableTo(typeof(EventUpcaster<,>)))
+			.AddClasses(action: classes => classes.AssignableTo(typeof(EventUpcaster<,>)))
 			.AsSelf()
 			.WithSingletonLifetime()
 		);
 
-		services.Scan(scan => scan
+		services.Scan(action: scan => scan
 			.FromAssemblyOf<EventUpcasterRegistry>()
-			.AddClasses(classes => classes.AssignableTo<IEventUpcaster>())
+			.AddClasses(action: classes => classes.AssignableTo<IEventUpcaster>())
 			.AsImplementedInterfaces()
 			.WithSingletonLifetime()
 		);
@@ -213,6 +219,9 @@ public static class DependencyInjection
 
 		// Operation
 		services.AddScoped<IOperationWriteRepository, OperationWriteRepository>();
+
+		// UserPermission
+		services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
 
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();

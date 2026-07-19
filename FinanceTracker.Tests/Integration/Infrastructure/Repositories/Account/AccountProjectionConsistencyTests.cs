@@ -43,7 +43,7 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 			assembly: typeof(IEvent).Assembly,
 			logger: Substitute.For<ILogger<EventTypeResolver>>()
 		),
-		integrationEventMapper: new AccountIntegrationEventMapper(logger: Substitute.For<ILogger<AccountIntegrationEventMapper>>()),
+		integrationEventMapper: new AccountIntegrationEventMapper(),
 		integrationEventTypeResolver: new IntegrationEventTypeResolver(
 			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()

@@ -27,7 +27,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 			assembly: typeof(FinanceTracker.Core.Domains.Abstractions.EventStore.Event.IEvent).Assembly,
 			logger: Substitute.For<ILogger<EventTypeResolver>>()
 		),
-		integrationEventMapper: new AccountIntegrationEventMapper(logger: Substitute.For<ILogger<AccountIntegrationEventMapper>>()),
+		integrationEventMapper: new AccountIntegrationEventMapper(),
 		integrationEventTypeResolver: new IntegrationEventTypeResolver(
 			contractsAssembly: typeof(IIntegrationEvent).Assembly,
 			logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
