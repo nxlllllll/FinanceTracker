@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Api.Contracts.Account.Request;
+﻿using FinanceTracker.Api.Auth;
+using FinanceTracker.Api.Contracts.Account.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Core.Exceptions;
@@ -13,7 +14,10 @@ namespace FinanceTracker.Api.Endpoints.Account.Post;
 public sealed class CreateAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapPost(pattern: "/api/v1/accounts", handler: HandleAsync).RequireAuthorization();
+	{
+		app.MapPost(pattern: "/api/v1/accounts", handler: HandleAsync).RequireAuthorization()
+			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		CreateAccountRequest request,
