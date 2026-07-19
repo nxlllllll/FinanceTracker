@@ -1,16 +1,16 @@
-using FinanceTracker.Contracts.Events.Abstraction;
+﻿using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Messages;
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
-using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Domains.UserPermission.Events;
+using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.AccountProjection.Consumer;
-using FinanceTracker.Worker.AccountProjection.Projection;
+using FinanceTracker.Worker.PermissionProjection.Consumer;
+using FinanceTracker.Worker.PermissionProjection.Projection;
 using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.EntityFrameworkCore;
@@ -19,24 +19,24 @@ using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Workers;
 
-public sealed class AccountEventsConsumerTests : DatabaseFixture
+public sealed class PermissionEventsConsumerTests : DatabaseFixture
 {
-	private AccountEventsConsumer _consumer = null!;
-	private IAccountWriteRepository _accountWriteRepository = null!;
+	private PermissionEventsConsumer _consumer = null!;
+	private IUserPermissionWriteRepository _writeRepository = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_accountWriteRepository = Substitute.For<IAccountWriteRepository>();
+		_writeRepository = Substitute.For<IUserPermissionWriteRepository>();
 
-		AccountEventApplier applier = new AccountEventApplier(repository: _accountWriteRepository);
+		PermissionEventApplier applier = new PermissionEventApplier(repository: _writeRepository);
 
-		AccountProjection projection = new AccountProjection(
+		PermissionProjection projection = new PermissionProjection(
 			applier: applier,
-			logger: Substitute.For<ILogger<AccountProjection>>()
+			logger: Substitute.For<ILogger<PermissionProjection>>()
 		);
 
-		_consumer = new AccountEventsConsumer(
+		_consumer = new PermissionEventsConsumer(
 			projection: projection,
 			integrationEventTypeResolver: new IntegrationEventTypeResolver(
 				contractsAssembly: typeof(IIntegrationEvent).Assembly,
@@ -52,31 +52,36 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 				BaseDelayMs = 10,
 				UseJitter = false
 			}),
-			logger: Substitute.For<ILogger<AccountEventsConsumer>>()
+			logger: Substitute.For<ILogger<PermissionEventsConsumer>>()
 		);
 	}
 
-	private static AccountEventsMessage BuildMessage(Guid? messageId = null)
+	private static PermissionEventsMessage BuildMessage(Guid? messageId = null, Guid? aggregateId = null)
 	{
-		return new AccountEventsMessage(
+		return new PermissionEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
-			AggregateId: Guid.CreateVersion7(),
-			AggregateType: AggregateTypeNames.Account,
+			AggregateId: aggregateId ?? Guid.CreateVersion7(),
+			AggregateType: AggregateTypeNames.UserPermission,
 			CorrelationId: Guid.CreateVersion7(),
 			Events: []
 		);
 	}
 
 	[Test]
-	public async Task AccountEventsConsumer_ShouldImplement_IMessageHandler()
-		=> await Assert.That(value: _consumer is IMessageHandler<AccountEventsMessage> result).IsTrue();
+	public async Task PermissionEventsConsumer_ShouldImplement_IMessageHandler()
+		=> await Assert.That(value: _consumer is IMessageHandler<PermissionEventsMessage> result).IsTrue();
 
 	[Test]
-	public async Task HandleAsync_WhenAggregateTypeIsAccount_ShouldExecuteTransaction()
+	public async Task HandleAsync_WhenMessageNotProcessed_ShouldSaveProcessedMessage()
 	{
-		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
+		Guid messageId = Guid.CreateVersion7();
 
-		bool saved = await Context.ProcessedMessages.AnyAsync();
+		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
+
+		bool saved = await Context.ProcessedMessages.AnyAsync(
+			predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(PermissionEventsConsumer)
+		);
+
 		await Assert.That(value: saved).IsTrue();
 	}
 
@@ -88,15 +93,15 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
-			ConsumerType = nameof(AccountEventsConsumer),
+			ConsumerType = nameof(PermissionEventsConsumer),
 			ProcessedAt = FakeDateProvider.Default.UtcNow
 		});
 		await Context.SaveChangesAsync();
 
 		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
-		await _accountWriteRepository.DidNotReceive().CreateAsync(
-			@event: Arg.Any<AccountCreated>(),
+		await _writeRepository.DidNotReceive().GrantAsync(
+			@event: Arg.Any<PermissionGranted>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -109,17 +114,14 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		await Context.ProcessedMessages.AddAsync(entity: new ProcessedMessageEntity
 		{
 			MessageId = messageId,
-			ConsumerType = nameof(AccountEventsConsumer),
+			ConsumerType = nameof(PermissionEventsConsumer),
 			ProcessedAt = FakeDateProvider.Default.UtcNow
 		});
 		await Context.SaveChangesAsync();
 
 		int countBefore = await Context.ProcessedMessages.CountAsync();
 
-		await _consumer.HandleAsync(
-			message: BuildMessage(messageId: messageId),
-			ct: CancellationToken.None
-		);
+		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
 
 		int countAfter = await Context.ProcessedMessages.CountAsync();
 
@@ -127,29 +129,15 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenMessageNotProcessed_ShouldSaveProcessedMessage()
-	{
-		Guid messageId = Guid.CreateVersion7();
-
-		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
-
-		bool saved = await Context.ProcessedMessages.AnyAsync(
-			predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(AccountEventsConsumer)
-		);
-
-		await Assert.That(value: saved).IsTrue();
-	}
-
-	[Test]
 	public async Task HandleAsync_WhenCalledTwiceWithSameId_ShouldSaveProcessedMessageOnce()
 	{
-		AccountEventsMessage message = BuildMessage();
+		PermissionEventsMessage message = BuildMessage();
 
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 
 		int count = await Context.ProcessedMessages.CountAsync(
-			predicate: m => m.MessageId == message.MessageId && m.ConsumerType == nameof(AccountEventsConsumer)
+			predicate: m => m.MessageId == message.MessageId && m.ConsumerType == nameof(PermissionEventsConsumer)
 		);
 
 		await Assert.That(value: count).IsEqualTo(expected: 1);

@@ -1,12 +1,12 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace FinanceTracker.Worker.AccountProjection.Projection;
+namespace FinanceTracker.Worker.Shared.Projection;
 
 /// <summary>
-/// Configuration for projection retry behaviour in the account projection worker.
-/// Controls how many times a failed projection attempt is retried before the message
-/// is nacked and sent to the dead-letter exchange.
-/// Bind from <c>appsettings.json</c> under the <c>"ProjectionRetry"</c> section.
+/// Shared retry configuration for projection workers that retry transient
+/// <c>ConcurrencyConflictException</c>s in-process before giving up (as opposed to letting the
+/// exception bubble to the broker's native delayed-retry, which is what <c>Worker.TransferProjection</c>
+/// does instead). Bind from <c>appsettings.json</c> under the <c>"ProjectionRetry"</c> section.
 /// </summary>
 public sealed class ProjectionRetryOptions
 {

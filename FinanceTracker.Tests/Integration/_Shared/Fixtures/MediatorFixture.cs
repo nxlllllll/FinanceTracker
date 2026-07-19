@@ -12,6 +12,7 @@ using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;
+using FinanceTracker.Worker.Shared.Projection;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

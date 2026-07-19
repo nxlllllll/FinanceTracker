@@ -1,0 +1,14 @@
+﻿{
+  "stryker-config": {
+    "project": "FinanceTracker.Infrastructure.csproj",
+    "test-runner": "mtp",
+    "mutate": [
+      "**/Database/Repositories/UserPermission/**/*.cs",
+      "**/Database/Context/UserPermission/**/*.cs",
+      "**/EventMapping/Integration/UserPermissionIntegrationEventMapper.cs",
+      "**/EventMapping/Integration/CompositeIntegrationEventMapper.cs",
+      "**/EventMapping/Integration/AccountIntegrationEventMapper.cs"
+    ],
+    "additional-timeout": 60000
+  }
+}

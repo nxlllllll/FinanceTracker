@@ -34,6 +34,7 @@
   <Project Path="FinanceTracker.Worker.CurrencyRate/FinanceTracker.Worker.CurrencyRate.csproj" />
   <Project Path="FinanceTracker.Worker.DeadLetterMonitor/FinanceTracker.Worker.DeadLetterMonitor.csproj" />
   <Project Path="FinanceTracker.Worker.Outbox/FinanceTracker.Worker.Outbox.csproj" />
+  <Project Path="FinanceTracker.Worker.PermissionProjection/FinanceTracker.Worker.PermissionProjection.csproj" />
   <Project Path="FinanceTracker.Worker.RecurringTransaction/FinanceTracker.Worker.RecurringTransaction.csproj" />
   <Project Path="FinanceTracker.Worker.RecurringTransactionProjection/FinanceTracker.Worker.RecurringTransactionProjection.csproj" />
   <Project Path="FinanceTracker.Worker.Shared/FinanceTracker.Worker.Shared.csproj" />

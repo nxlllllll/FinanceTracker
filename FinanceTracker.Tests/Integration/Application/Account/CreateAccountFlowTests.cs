@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Outbox;
@@ -181,7 +182,7 @@ public sealed class CreateAccountFlowTests : MediatorFixture
 			options: Core.Converters.Json.FinanceTrackerJsonOptions.Payload
 		)!;
 
-		await consumer.HandleAsync(message: new AggregateEventsMessage(
+		await consumer.HandleAsync(message: new AccountEventsMessage(
 			MessageId: Guid.CreateVersion7(),
 			AggregateId: accountId,
 			AggregateType: "Account",
