@@ -1,0 +1,3 @@
+﻿namespace FinanceTracker.Infrastructure.EventMapping.Integration;
+
+public interface IAggregateIntegrationEventMapper : IIntegrationEventMapper;

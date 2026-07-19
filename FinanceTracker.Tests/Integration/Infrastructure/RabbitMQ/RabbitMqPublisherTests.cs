@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
@@ -87,7 +88,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	[Test]
 	public async Task PublishAsync_ShouldDeliverMessageToCorrectQueue()
 	{
-		AggregateEventsMessage message = BuildMessage();
+		AccountEventsMessage message = BuildMessage();
 
 		await _publisher.PublishAsync(message: message);
 
@@ -101,7 +102,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	[Test]
 	public async Task PublishAsync_ShouldDeliverMessageWithCorrelationId()
 	{
-		AggregateEventsMessage message = BuildMessage();
+		AccountEventsMessage message = BuildMessage();
 		Guid correlationId = Guid.CreateVersion7();
 		string? receivedCorrelationId = null;
 
@@ -125,14 +126,14 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	[Test]
 	public async Task PublishAsync_ShouldSerializeMessageCorrectly()
 	{
-		AggregateEventsMessage sent = BuildMessage();
-		AggregateEventsMessage? received = null;
+		AccountEventsMessage sent = BuildMessage();
+		AccountEventsMessage? received = null;
 
 		TaskCompletionSource tcs = new TaskCompletionSource();
 		AsyncEventingBasicConsumer consumer = new AsyncEventingBasicConsumer(channel: _channel);
 		consumer.ReceivedAsync += (_, ea) =>
 		{
-			received = JsonSerializer.Deserialize<AggregateEventsMessage>(
+			received = JsonSerializer.Deserialize<AccountEventsMessage>(
 				json: Encoding.UTF8.GetString(bytes: ea.Body.ToArray()),
 				options: FinanceTrackerJsonOptions.Payload
 			);
@@ -154,7 +155,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	[Test]
 	public async Task PublishAsync_WhenNoCorrelationId_ShouldNotSetCorrelationIdProperty()
 	{
-		AggregateEventsMessage message = BuildMessage();
+		AccountEventsMessage message = BuildMessage();
 		string? receivedCorrelationId = null;
 
 		TaskCompletionSource tcs = new TaskCompletionSource();
@@ -239,7 +240,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 		return field?.GetValue(obj: publisher) as IChannel;
 	}
 
-	private static AggregateEventsMessage BuildMessage() => new AggregateEventsMessage(
+	private static AccountEventsMessage BuildMessage() => new AccountEventsMessage(
 		MessageId: Guid.CreateVersion7(),
 		AggregateId: Guid.CreateVersion7(),
 		AggregateType: AggregateTypeNames.Account,

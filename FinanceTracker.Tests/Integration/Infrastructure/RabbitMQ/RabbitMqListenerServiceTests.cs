@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
@@ -32,7 +33,7 @@ public sealed class TestHandlerState
 	private int _expectedCount;
 
 	public int CallCount => _callCount;
-	public AggregateEventsMessage? LastMessage { get; private set; }
+	public AccountEventsMessage? LastMessage { get; private set; }
 
 	public Task<bool> WaitAsync(TimeSpan timeout)
 		=> _firstMessageTcs.Task.WaitAsync(timeout: timeout).ContinueWith(continuationFunction: t => t is { IsCompletedSuccessfully: true, Result: true });
@@ -44,7 +45,7 @@ public sealed class TestHandlerState
 		return _countTcs.Task.WaitAsync(timeout: timeout);
 	}
 
-	public void Record(AggregateEventsMessage message)
+	public void Record(AccountEventsMessage message)
 	{
 		LastMessage = message;
 		int count = Interlocked.Increment(location: ref _callCount);
@@ -55,18 +56,18 @@ public sealed class TestHandlerState
 	}
 }
 
-public sealed class TestMessageHandler(TestHandlerState state) : IMessageHandler<AggregateEventsMessage>
+public sealed class TestMessageHandler(TestHandlerState state) : IMessageHandler<AccountEventsMessage>
 {
-	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	public Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
 	{
 		state.Record(message: message);
 		return Task.CompletedTask;
 	}
 }
 
-public sealed class FailingMessageHandler(FailingMessageHandlerState state) : IMessageHandler<AggregateEventsMessage>
+public sealed class FailingMessageHandler(FailingMessageHandlerState state) : IMessageHandler<AccountEventsMessage>
 {
-	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	public Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
 	{
 		state.Increment();
 		throw new InvalidOperationException(message: "Simulated handler failure.");
@@ -109,9 +110,9 @@ public sealed class FlakyMessageHandlerState(int failuresBeforeSuccess)
 	}
 }
 
-public sealed class FlakyMessageHandler(FlakyMessageHandlerState state) : IMessageHandler<AggregateEventsMessage>
+public sealed class FlakyMessageHandler(FlakyMessageHandlerState state) : IMessageHandler<AccountEventsMessage>
 {
-	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	public Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
 	{
 		state.RecordCallAndMaybeThrow();
 		return Task.CompletedTask;
@@ -144,9 +145,9 @@ public sealed class BlockingMessageHandlerState
 	}
 }
 
-public sealed class BlockingMessageHandler(BlockingMessageHandlerState state) : IMessageHandler<AggregateEventsMessage>
+public sealed class BlockingMessageHandler(BlockingMessageHandlerState state) : IMessageHandler<AccountEventsMessage>
 {
-	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	public Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
 		=> state.HandleAsync(ct: ct);
 }
 
@@ -220,29 +221,29 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await _setupConnection.DisposeAsync();
 	}
 
-	private RabbitMqListenerService<AggregateEventsMessage, THandler> BuildListener<THandler>(
+	private RabbitMqListenerService<AccountEventsMessage, THandler> BuildListener<THandler>(
 		RabbitMqOptions options,
 		IServiceScopeFactory scopeFactory)
-		where THandler : class, IMessageHandler<AggregateEventsMessage>
+		where THandler : class, IMessageHandler<AccountEventsMessage>
 	{
-		return new RabbitMqListenerService<AggregateEventsMessage, THandler>(
+		return new RabbitMqListenerService<AccountEventsMessage, THandler>(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: scopeFactory,
-			logger: NullLogger<RabbitMqListenerService<AggregateEventsMessage, THandler>>.Instance
+			logger: NullLogger<RabbitMqListenerService<AccountEventsMessage, THandler>>.Instance
 		);
 	}
 
-	private DeadLetterAuditListener<AggregateEventsMessage, THandler> BuildDeadLetterListener<THandler>(
+	private DeadLetterAuditListener<AccountEventsMessage, THandler> BuildDeadLetterListener<THandler>(
 		RabbitMqOptions options,
 		IServiceScopeFactory scopeFactory)
-		where THandler : class, IMessageHandler<AggregateEventsMessage>
+		where THandler : class, IMessageHandler<AccountEventsMessage>
 	{
-		return new DeadLetterAuditListener<AggregateEventsMessage, THandler>(
+		return new DeadLetterAuditListener<AccountEventsMessage, THandler>(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: scopeFactory,
-			logger: NullLogger<DeadLetterAuditListener<AggregateEventsMessage, THandler>>.Instance
+			logger: NullLogger<DeadLetterAuditListener<AccountEventsMessage, THandler>>.Instance
 		);
 	}
 
@@ -302,7 +303,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		throw new TimeoutException(message: $"No consumer registered on '{_queueName}' within 10s.");
 	}
 
-	private static AggregateEventsMessage BuildMessage() => new AggregateEventsMessage(
+	private static AccountEventsMessage BuildMessage() => new AccountEventsMessage(
 		MessageId: Guid.CreateVersion7(),
 		AggregateId: Guid.CreateVersion7(),
 		AggregateType: AggregateTypeNames.Account,
@@ -334,7 +335,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	{
 		await using ServiceProvider sp = BuildSuccessServiceProvider();
 		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
-		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
 			options: _baseOptions,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -360,7 +361,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	{
 		await using ServiceProvider sp = BuildSuccessServiceProvider();
 		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
-		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
 			options: _baseOptions,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -386,7 +387,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	public async Task Listener_WhenHandlerSucceeds_ShouldAckMessage()
 	{
 		await using ServiceProvider sp = BuildSuccessServiceProvider();
-		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
 			options: _baseOptions,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -415,7 +416,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	{
 		await using ServiceProvider sp = BuildSuccessServiceProvider();
 		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
-		RabbitMqListenerService<AggregateEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, TestMessageHandler> listener = BuildListener<TestMessageHandler>(
 			options: _baseOptions,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -442,7 +443,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -486,7 +487,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		services.AddScoped<FlakyMessageHandler>();
 		await using ServiceProvider sp = services.BuildServiceProvider();
 
-		RabbitMqListenerService<AggregateEventsMessage, FlakyMessageHandler> listener = BuildListener<FlakyMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, FlakyMessageHandler> listener = BuildListener<FlakyMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -526,7 +527,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -564,11 +565,11 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
-		DeadLetterAuditListener<AggregateEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
+		DeadLetterAuditListener<AccountEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -604,11 +605,11 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
-		DeadLetterAuditListener<AggregateEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
+		DeadLetterAuditListener<AccountEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -645,11 +646,11 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
-		DeadLetterAuditListener<AggregateEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
+		DeadLetterAuditListener<AccountEventsMessage, FailingMessageHandler> auditListener = BuildDeadLetterListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -660,7 +661,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
-		AggregateEventsMessage sent = BuildMessage();
+		AccountEventsMessage sent = BuildMessage();
 
 		await listener.StartAsync(ct: CancellationToken.None);
 		await auditListener.StartAsync(ct: CancellationToken.None);
@@ -683,11 +684,11 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		using JsonDocument doc = JsonDocument.Parse(json: entity!.Payload);
 		JsonElement root = doc.RootElement;
 
-		await Assert.That(value: root.GetProperty(propertyName: "messageType").GetString()).IsEqualTo(expected: nameof(AggregateEventsMessage));
+		await Assert.That(value: root.GetProperty(propertyName: "messageType").GetString()).IsEqualTo(expected: nameof(AccountEventsMessage));
 		await Assert.That(value: root.GetProperty(propertyName: "deadLetterQueue").GetString()).IsEqualTo(expected: _deadLetterQueueName);
 
 		string fullBody = root.GetProperty(propertyName: "body").GetString()!;
-		AggregateEventsMessage? recovered = JsonSerializer.Deserialize<AggregateEventsMessage>(json: fullBody);
+		AccountEventsMessage? recovered = JsonSerializer.Deserialize<AccountEventsMessage>(json: fullBody);
 		await Assert.That(value: recovered).IsNotNull();
 		await Assert.That(value: recovered!.MessageId).IsEqualTo(expected: sent.MessageId);
 	}
@@ -698,7 +699,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		RabbitMqOptions options = _baseOptions with { MaxRetries = 2, DelayedRetryMinMs = 200, DelayedRetryMaxMs = 200 };
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
 		await using ServiceProvider sp = BuildFailingServiceProvider(handlerState: handlerState);
-		RabbitMqListenerService<AggregateEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, FailingMessageHandler> listener = BuildListener<FailingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);
@@ -709,7 +710,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
-		AggregateEventsMessage sent = BuildMessage();
+		AccountEventsMessage sent = BuildMessage();
 		BasicGetResult? deadLettered = null;
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -728,7 +729,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
 
-		AggregateEventsMessage? recovered = JsonSerializer.Deserialize<AggregateEventsMessage>(utf8Json: deadLettered!.Body.ToArray());
+		AccountEventsMessage? recovered = JsonSerializer.Deserialize<AccountEventsMessage>(utf8Json: deadLettered!.Body.ToArray());
 
 		await Assert.That(value: recovered).IsNotNull();
 		await Assert.That(value: recovered!.MessageId).IsEqualTo(expected: sent.MessageId);
@@ -742,7 +743,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 
 		await using ServiceProvider sp = BuildBlockingServiceProvider();
 		BlockingMessageHandlerState state = sp.GetRequiredService<BlockingMessageHandlerState>();
-		RabbitMqListenerService<AggregateEventsMessage, BlockingMessageHandler> listener = BuildListener<BlockingMessageHandler>(
+		RabbitMqListenerService<AccountEventsMessage, BlockingMessageHandler> listener = BuildListener<BlockingMessageHandler>(
 			options: options,
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
 		);

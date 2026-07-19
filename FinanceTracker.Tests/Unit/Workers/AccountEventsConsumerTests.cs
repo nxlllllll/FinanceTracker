@@ -1,5 +1,6 @@
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Repositories.Account;
@@ -10,6 +11,7 @@ using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;
+using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -54,9 +56,9 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		);
 	}
 
-	private static AggregateEventsMessage BuildMessage(Guid? messageId = null)
+	private static AccountEventsMessage BuildMessage(Guid? messageId = null)
 	{
-		return new AggregateEventsMessage(
+		return new AccountEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: Guid.CreateVersion7(),
 			AggregateType: AggregateTypeNames.Account,
@@ -67,7 +69,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
 	[Test]
 	public async Task AccountEventsConsumer_ShouldImplement_IMessageHandler()
-		=> await Assert.That(value: _consumer is IMessageHandler<AggregateEventsMessage> result).IsTrue();
+		=> await Assert.That(value: _consumer is IMessageHandler<AccountEventsMessage> result).IsTrue();
 
 	[Test]
 	public async Task HandleAsync_WhenAggregateTypeIsAccount_ShouldExecuteTransaction()
@@ -141,7 +143,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 	[Test]
 	public async Task HandleAsync_WhenCalledTwiceWithSameId_ShouldSaveProcessedMessageOnce()
 	{
-		AggregateEventsMessage message = BuildMessage();
+		AccountEventsMessage message = BuildMessage();
 
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);

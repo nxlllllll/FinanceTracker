@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Outbox;
@@ -61,7 +62,7 @@ public sealed class OutboxPublisherJob(
 				OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
 					?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
 
-				AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
+				AccountEventsMessage brokerMessage = new AccountEventsMessage(
 					MessageId: message.Id,
 					AggregateId: message.AggregateId,
 					AggregateType: message.AggregateType,

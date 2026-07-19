@@ -14,10 +14,6 @@ public interface IEventStore
 	/// Throws <c>ConcurrencyConflictException</c> if the current version in the store
 	/// does not match <paramref name="expectedVersion"/>.
 	/// </summary>
-	/// <param name="snapshotFactory">
-	/// Optional factory invoked when the snapshot threshold is reached.
-	/// Return the serialized aggregate state as a string.
-	/// </param>
 	Task SaveAsync(
 		Guid aggregateId,
 		string aggregateType,

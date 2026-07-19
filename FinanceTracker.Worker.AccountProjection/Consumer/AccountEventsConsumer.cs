@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
@@ -10,6 +11,7 @@ using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.AccountProjection.Projection.Notifications;
+using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.Extensions.Options;
 using ZLogger;
@@ -17,7 +19,7 @@ using ZLogger;
 namespace FinanceTracker.Worker.AccountProjection.Consumer;
 
 /// <summary>
-/// RabbitMQ message handler that receives <see cref="AggregateEventsMessage"/> from the account exchange,
+/// RabbitMQ message handler that receives <see cref="AccountEventsMessage"/> from the account exchange,
 /// deduplicates via <c>processed_messages</c>, then deserializes each integration event
 /// and dispatches to <see cref="AccountProjection"/> via MediatR notification.
 /// Deserialization is intentionally deferred until after the idempotency check to avoid
@@ -32,9 +34,9 @@ public sealed class AccountEventsConsumer(
 	IDateProvider dateProvider,
 	IOptionsMonitor<ProjectionRetryOptions> retryOptions,
 	ILogger<AccountEventsConsumer> logger
-) : IMessageHandler<AggregateEventsMessage>
+) : IMessageHandler<AccountEventsMessage>
 {
-	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	public async Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
 	{
 		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
 
@@ -51,7 +53,7 @@ public sealed class AccountEventsConsumer(
 						return;
 					}
 
-					List<IIntegrationEvent> events = [.. message.Events.Select(selector: MapEnvelopeToIntegration)];
+					List<IIntegrationEvent> events = [..message.Events.Select(selector: MapEnvelopeToIntegration)];
 
 					await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: innerCt);
 
@@ -67,7 +69,10 @@ public sealed class AccountEventsConsumer(
 			},
 			onError: (exception, attempt, delay) => logger.ZLogWarning(
 				exception: exception,
-				message: $"[{message.CorrelationId}] Concurrency conflict projecting Account {message.AggregateId}. Retry {attempt + 1}/{currentOptions.MaxRetries} in {delay}ms."
+				message: $"""
+					[{message.CorrelationId}] Concurrency conflict projecting Account {message.AggregateId}.
+					Retry {attempt + 1}/{currentOptions.MaxRetries} in {delay}ms.
+				"""
 			),
 			exceptionFilter: ex => ex is ConcurrencyConflictException,
 			maxRetries: currentOptions.MaxRetries,

@@ -1,10 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FinanceTracker.Api.Auth;
 using FinanceTracker.Api.Endpoints;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Infrastructure.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 
 namespace FinanceTracker.Api;
 
@@ -36,6 +38,10 @@ public sealed class Program
 		builder.Services.AddAuthorization();
 		builder.Services.AddHttpContextAccessor();
 		builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
+
+		builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+		builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+		builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenProblemDetailsAuthorizationMiddlewareResultHandler>();
 
 		builder.Services.ConfigureHttpJsonOptions(configureOptions: options =>
 		{
