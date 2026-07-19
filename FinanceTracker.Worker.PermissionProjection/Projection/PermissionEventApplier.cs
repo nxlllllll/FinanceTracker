@@ -3,6 +3,7 @@ using FinanceTracker.Contracts.Events.UserPermission;
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Infrastructure.Cache;
 
 namespace FinanceTracker.Worker.PermissionProjection.Projection;
 
@@ -12,7 +13,10 @@ namespace FinanceTracker.Worker.PermissionProjection.Projection;
 /// "header" row per user; a user with zero grants simply has zero rows in <c>user_permissions</c>.
 /// Used exclusively by <see cref="PermissionProjection"/>.
 /// </summary>
-public sealed class PermissionEventApplier(IUserPermissionWriteRepository repository)
+public sealed class PermissionEventApplier(
+	IUserPermissionWriteRepository repository,
+	RedisCache redisCache
+)
 {
 	public Task ApplyAsync(IIntegrationEvent @event, CancellationToken ct = default) => @event switch
 	{
@@ -22,28 +26,23 @@ public sealed class PermissionEventApplier(IUserPermissionWriteRepository reposi
 		_ => throw new UnknownEventException(message: $"Unhandled integration event: {@event.GetType().Name}", eventType: @event.GetType())
 	};
 
-	private Task ApplyAsync(PermissionGrantedEvent e, CancellationToken ct)
+	private async Task ApplyAsync(PermissionGrantedEvent e, CancellationToken ct)
 	{
-		return repository.GrantAsync(
-			@event: new PermissionGranted(
-				Id: e.EventId,
-				UserId: e.UserId,
-				GrantedBy: e.GrantedBy,
-				Permission: e.Permission,
-				Version: e.Version,
-				OccurredAt: e.OccurredAt
-			),
-			ct: ct
-		);
+		await repository.GrantAsync(new PermissionGranted(
+			Id: e.EventId,
+			UserId: e.UserId,
+			GrantedBy: e.GrantedBy,
+			Permission: e.Permission,
+			Version: e.Version,
+			OccurredAt: e.OccurredAt
+		), ct);
+
+		await redisCache.DeleteBatchAsync(keys: [CachedUserPermissionReadRepository.KeyFor(userId: e.UserId)]);
 	}
 
-	private Task ApplyAsync(PermissionRevokedEvent e, CancellationToken ct)
+	private async Task ApplyAsync(PermissionRevokedEvent e, CancellationToken ct)
 	{
-		return repository.RevokeAsync(
-			userId: e.UserId,
-			permission: e.Permission,
-			ct: ct
-		);
+		await repository.RevokeAsync(userId: e.UserId, permission: e.Permission, ct: ct);
+		await redisCache.DeleteBatchAsync(keys: [CachedUserPermissionReadRepository.KeyFor(userId: e.UserId)]);
 	}
 }
-

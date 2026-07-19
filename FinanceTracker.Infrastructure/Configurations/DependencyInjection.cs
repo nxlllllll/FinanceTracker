@@ -223,7 +223,11 @@ public static class DependencyInjection
 		// UserPermission
 		services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
 		services.AddScoped<IUserPermissionWriteRepository, UserPermissionWriteRepository>();
-		services.AddScoped<IUserPermissionReadRepository, UserPermissionReadRepository>();
+		services.AddScoped<UserPermissionReadRepository>();
+		services.AddScoped<IUserPermissionReadRepository>(implementationFactory: sp => new CachedUserPermissionReadRepository(
+			inner: sp.GetRequiredService<UserPermissionReadRepository>(),
+			redisCache: sp.GetRequiredService<RedisCache>()
+		));
 
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();

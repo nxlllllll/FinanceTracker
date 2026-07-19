@@ -4,6 +4,8 @@ using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Infrastructure.Cache;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
@@ -15,7 +17,10 @@ using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
+using StackExchange.Redis;
 
 namespace FinanceTracker.Tests.Unit.Workers;
 
@@ -29,7 +34,29 @@ public sealed class PermissionEventsConsumerTests : DatabaseFixture
 	{
 		_writeRepository = Substitute.For<IUserPermissionWriteRepository>();
 
-		PermissionEventApplier applier = new PermissionEventApplier(repository: _writeRepository);
+		IConnectionMultiplexer connectionMultiplexer = Substitute.For<IConnectionMultiplexer>();
+		IDatabase database = Substitute.For<IDatabase>();
+		connectionMultiplexer.GetDatabase(
+			db: Arg.Any<int>(),
+			asyncState: Arg.Any<object>()
+		).Returns(returnThis: database);
+		database.StringGetAsync(key: Arg.Any<RedisKey>()).Returns(returnThis: RedisValue.Null);
+		database.KeyDeleteAsync(keys: Arg.Any<RedisKey[]>()).Returns(returnThis: 1L);
+
+		IOptionsMonitor<RedisOptions> redisOptions = Substitute.For<IOptionsMonitor<RedisOptions>>();
+		redisOptions.CurrentValue.Returns(returnThis: new RedisOptions
+		{
+			InstanceName = "ft_test:"
+		});
+
+		RedisCache redisCache = new RedisCache(
+			connectionMultiplexer: connectionMultiplexer,
+			options: redisOptions,
+			dateProvider: FakeDateProvider.Default,
+			logger: NullLogger<RedisCache>.Instance
+		);
+
+		PermissionEventApplier applier = new PermissionEventApplier(repository: _writeRepository, redisCache: redisCache);
 
 		PermissionProjection projection = new PermissionProjection(
 			applier: applier,
