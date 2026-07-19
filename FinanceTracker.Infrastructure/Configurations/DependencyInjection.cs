@@ -222,6 +222,8 @@ public static class DependencyInjection
 
 		// UserPermission
 		services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
+		services.AddScoped<IUserPermissionWriteRepository, UserPermissionWriteRepository>();
+		services.AddScoped<IUserPermissionReadRepository, UserPermissionReadRepository>();
 
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();

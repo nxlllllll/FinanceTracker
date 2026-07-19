@@ -1,6 +1,6 @@
 ﻿namespace FinanceTracker.Core.Repositories.UserPermission;
 
-public interface IPermissionReadRepository
+public interface IUserPermissionReadRepository
 {
 	Task<IReadOnlySet<string>> GetPermissionsAsync(
 		Guid userId,

@@ -223,4 +223,18 @@ public static class DbContextExtensions
 			ON CONFLICT (base_code, target_code, actual_at) DO NOTHING
 		""", cancellationToken: ct);
 	}
+
+	public static Task InsertUserPermissionAsync(
+		this DbContext context,
+		Guid userId,
+		string permission,
+		DateTimeOffset grantedAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO user_permissions (user_id, permission, granted_at)
+			VALUES ({userId}, {permission}, {grantedAt})
+			ON CONFLICT (user_id, permission) DO NOTHING
+		""", cancellationToken: ct);
+	}
 }
