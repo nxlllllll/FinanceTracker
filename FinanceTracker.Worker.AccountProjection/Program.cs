@@ -1,9 +1,11 @@
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.Host;
+using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
@@ -21,14 +23,10 @@ public sealed class Program
 
 		builder.Services.AddScoped<Projection.AccountProjection>();
 		builder.Services.AddScoped<AccountEventApplier>();
-
-		builder.Services.AddOptions<ProjectionRetryOptions>()
-			.BindConfiguration(configSectionPath: ProjectionRetryOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
+		builder.Services.AddProjectionRetryOptions();
 
 		builder.Services.AddRabbitMqCore()
-			.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
+			.AddRabbitMqListener<AccountEventsMessage, AccountEventsConsumer>();
 
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;

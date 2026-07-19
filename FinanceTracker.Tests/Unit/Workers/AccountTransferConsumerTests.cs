@@ -2,6 +2,7 @@ using System.Text.Json;
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
@@ -69,7 +70,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 		);
 	}
 
-	private AggregateEventsMessage BuildMessage(
+	private AccountEventsMessage BuildMessage(
 		Guid? messageId = null,
 		bool includeDebitEvent = true)
 	{
@@ -98,7 +99,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			));
 		}
 
-		return new AggregateEventsMessage(
+		return new AccountEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: FromAccountId,
 			AggregateType: AggregateTypeNames.Account,

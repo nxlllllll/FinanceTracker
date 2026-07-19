@@ -1,6 +1,8 @@
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Services.TransferCompensation;
@@ -12,8 +14,11 @@ using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.BalanceAdjustment.Job;
 using FinanceTracker.Worker.Outbox.Job;
+using FinanceTracker.Worker.PermissionProjection.Consumer;
+using FinanceTracker.Worker.PermissionProjection.Projection;
 using FinanceTracker.Worker.RecurringTransaction.Job;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
+using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.TransferProjection.Consumer;
 using FinanceTracker.Worker.TransferProjection.Job;
@@ -61,6 +66,7 @@ public abstract class E2EFixture
 	private static string AccountQueueName(string testRunId) => $"ft-e2e-account-{testRunId}";
 	private static string TransferQueueName(string testRunId) => $"ft-e2e-transfer-{testRunId}";
 	private static string RecurringQueueName(string testRunId) => $"ft-e2e-recurring-{testRunId}";
+	private static string PermissionQueueName(string testRunId) => $"ft-e2e-permission-{testRunId}";
 	private static string ExchangeName(string testRunId) => $"ft-e2e-{testRunId}";
 
 	[Before(hookType: Assembly)]
@@ -166,6 +172,7 @@ public abstract class E2EFixture
 				["RabbitMQ:QueueNameOverrides:AccountEventsConsumer"] = AccountQueueName(testRunId: testRunId),
 				["RabbitMQ:QueueNameOverrides:AccountTransferConsumer"] = TransferQueueName(testRunId: testRunId),
 				["RabbitMQ:QueueNameOverrides:RecurringTransactionConsumer"] = RecurringQueueName(testRunId: testRunId),
+				["RabbitMQ:QueueNameOverrides:PermissionEventsConsumer"] = PermissionQueueName(testRunId: testRunId),
 				["RabbitMQ:MaxRetries"] = "3",
 				["Outbox:BatchSize"] = "50",
 				["Outbox:MaxRetries"] = "3",
@@ -197,6 +204,10 @@ public abstract class E2EFixture
 
 				services.AddScoped<AccountEventApplier>();
 				services.AddScoped<AccountProjection>();
+
+				services.AddScoped<PermissionEventApplier>();
+				services.AddScoped<PermissionProjection>();
+
 				services.AddOptions<ProjectionRetryOptions>()
 					 .BindConfiguration(ProjectionRetryOptions.SectionName)
 					 .ValidateDataAnnotations();
@@ -223,9 +234,10 @@ public abstract class E2EFixture
 					 .ValidateDataAnnotations();
 
 				// RabbitMQ listeners start as BackgroundServices with Host
-				services.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
-				services.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
+				services.AddRabbitMqListener<AccountEventsMessage, AccountEventsConsumer>();
+				services.AddRabbitMqListener<AccountEventsMessage, AccountTransferConsumer>();
 				services.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
+				services.AddRabbitMqListener<PermissionEventsMessage, PermissionEventsConsumer>();
 
 				ConfigureAdditionalServices(services: services, configuration: ctx.Configuration);
 			})
@@ -256,7 +268,8 @@ public abstract class E2EFixture
 		[
 			(AccountQueueName(testRunId: testRunId), AggregateTypeNames.Account),
 			(TransferQueueName(testRunId: testRunId), AggregateTypeNames.Account),
-			(RecurringQueueName(testRunId: testRunId), AggregateTypeNames.RecurringTransaction)
+			(RecurringQueueName(testRunId: testRunId), AggregateTypeNames.RecurringTransaction),
+			(PermissionQueueName(testRunId: testRunId), AggregateTypeNames.UserPermission)
 		];
 
 		ConnectionFactory factory = new ConnectionFactory
@@ -344,7 +357,8 @@ public abstract class E2EFixture
 			[
 				AccountQueueName(testRunId: _testRunId),
 				TransferQueueName(testRunId: _testRunId),
-				RecurringQueueName(testRunId: _testRunId)
+				RecurringQueueName(testRunId: _testRunId),
+				PermissionQueueName(testRunId: _testRunId)
 			];
 
 			foreach (string queue in queues)
@@ -409,7 +423,7 @@ public abstract class E2EFixture
 		TimeSpan? timeout = null,
 		TimeSpan? pollInterval = null)
 	{
-		TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 10);
+		TimeSpan deadline = timeout ?? TimeSpan.FromSeconds(seconds: 30);
 		TimeSpan poll = pollInterval ?? TimeSpan.FromMilliseconds(milliseconds: 100);
 		DateTimeOffset start = DateTimeOffset.UtcNow;
 

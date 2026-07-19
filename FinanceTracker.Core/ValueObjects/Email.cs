@@ -16,7 +16,6 @@ public readonly partial record struct Email
 {
 	[GeneratedRegex(pattern: @"^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$", options: RegexOptions.IgnoreCase | RegexOptions.Compiled)]
 	private static partial Regex EmailRegex();
-	private static readonly Regex FormatRegex = EmailRegex();
 
 	private const int MaskedVisibleLocalPartLength = 3;
 
@@ -56,7 +55,7 @@ public readonly partial record struct Email
 
 		string normalized = value.Trim().ToLowerInvariant();
 
-		if (!FormatRegex.IsMatch(input: normalized))
+		if (!EmailRegex().IsMatch(input: normalized))
 			return Result<Email, DomainException>.Failure(error: new EmailException(message: "The email is invalid.", email: value));
 
 		return Result<Email, DomainException>.Success(value: new Email(value: normalized));

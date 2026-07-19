@@ -1,0 +1,13 @@
+﻿{
+  "stryker-config": {
+    "project": "FinanceTracker.Core.csproj",
+    "test-runner": "mtp",
+    "mutate": [
+      "**/ValueObjects/Permission.cs",
+      "**/ValueObjects/Resource.cs",
+      "**/ValueObjects/PermissionAction.cs",
+      "**/Domains/UserPermission/**/*.cs"
+    ],
+    "additional-timeout": 60000
+  }
+}

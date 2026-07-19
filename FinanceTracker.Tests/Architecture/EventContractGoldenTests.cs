@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
+using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Architecture;
@@ -20,6 +21,8 @@ public sealed class EventContractGoldenTests
 
 	private static readonly Guid Id = Guid.Parse(input: "00000000-0000-0000-0000-000000000001");
 	private static readonly Guid AccountId = Guid.Parse(input: "00000000-0000-0000-0000-000000000002");
+	private static readonly Guid PermissionUserId = Guid.Parse(input: "00000000-0000-0000-0000-000000000009");
+	private static readonly Guid AdminId = Guid.Parse(input: "00000000-0000-0000-0000-000000000010");
 	private static readonly DateTimeOffset OccurredAt = new DateTimeOffset(year: 2026, month: 1, day: 15, hour: 12, minute: 30, second: 0, offset: TimeSpan.Zero);
 
 	private static string Serialize(IEvent @event) => System.Text.Json.JsonSerializer.Serialize(
@@ -256,6 +259,62 @@ public sealed class EventContractGoldenTests
 				"Amount": 100.00,
 				"Delta": 2.17,
 				"Version": 10,
+				"OccurredAt": "2026-01-15T12:30:00+00:00"
+			}
+			"""
+		),
+		[typeof(UserPermissionCreated)] = (
+			new UserPermissionCreated(
+				Id: Id,
+				UserId: PermissionUserId,
+				Version: 11,
+				OccurredAt: OccurredAt
+			),
+			"""
+			{
+				"Id": "00000000-0000-0000-0000-000000000001",
+				"UserId": "00000000-0000-0000-0000-000000000009",
+				"Version": 11,
+				"OccurredAt": "2026-01-15T12:30:00+00:00"
+			}
+			"""
+		),
+		[typeof(PermissionGranted)] = (
+			new PermissionGranted(
+				Id: Id,
+				UserId: PermissionUserId,
+				GrantedBy: AdminId,
+				Permission: "account:write",
+				Version: 12,
+				OccurredAt: OccurredAt
+			),
+			"""
+			{
+				"Id": "00000000-0000-0000-0000-000000000001",
+				"UserId": "00000000-0000-0000-0000-000000000009",
+				"GrantedBy": "00000000-0000-0000-0000-000000000010",
+				"Permission": "account:write",
+				"Version": 12,
+				"OccurredAt": "2026-01-15T12:30:00+00:00"
+			}
+			"""
+		),
+		[typeof(PermissionRevoked)] = (
+			new PermissionRevoked(
+				Id: Id,
+				UserId: PermissionUserId,
+				RevokedBy: AdminId,
+				Permission: "account:write",
+				Version: 13,
+				OccurredAt: OccurredAt
+			),
+			"""
+			{
+				"Id": "00000000-0000-0000-0000-000000000001",
+				"UserId": "00000000-0000-0000-0000-000000000009",
+				"RevokedBy": "00000000-0000-0000-0000-000000000010",
+				"Permission": "account:write",
+				"Version": 13,
 				"OccurredAt": "2026-01-15T12:30:00+00:00"
 			}
 			"""
