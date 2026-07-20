@@ -30,7 +30,7 @@ public sealed class RevokePermissionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
-		_rootAuthority.IsRoot(userId: Arg.Any<Guid>()).Returns(returnThis: false);
+		_rootAuthority.IsRootAsync(userId: Arg.Any<Guid>()).Returns(returnThis: false);
 
 		_handler = new RevokePermissionHandler(
 			userPermissionRepository: _userPermissionRepository,
@@ -111,7 +111,7 @@ public sealed class RevokePermissionHandlerTests
 	{
 		Guid rootUserId = Guid.CreateVersion7();
 		IRootAuthority rootAuthority = Substitute.For<IRootAuthority>();
-		rootAuthority.IsRoot(userId: rootUserId).Returns(returnThis: true);
+		rootAuthority.IsRootAsync(userId: rootUserId).Returns(returnThis: true);
 
 		RevokePermissionHandler handler = new RevokePermissionHandler(
 			userPermissionRepository: _userPermissionRepository,

@@ -30,7 +30,7 @@ public sealed class GrantPermissionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
-		_rootAuthority.IsRoot(userId: Arg.Any<Guid>()).Returns(returnThis: false);
+		_rootAuthority.IsRootAsync(userId: Arg.Any<Guid>()).Returns(returnThis: false);
 
 		_handler = new GrantPermissionHandler(
 			userPermissionRepository: _userPermissionRepository,
@@ -132,7 +132,7 @@ public sealed class GrantPermissionHandlerTests
 	{
 		Guid rootUserId = Guid.CreateVersion7();
 		IRootAuthority rootAuthority = Substitute.For<IRootAuthority>();
-		rootAuthority.IsRoot(userId: rootUserId).Returns(returnThis: true);
+		rootAuthority.IsRootAsync(userId: rootUserId).Returns(returnThis: true);
 
 		GrantPermissionHandler handler = new GrantPermissionHandler(
 			userPermissionRepository: _userPermissionRepository,

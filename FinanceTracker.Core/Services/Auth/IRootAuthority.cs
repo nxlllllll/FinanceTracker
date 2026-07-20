@@ -5,5 +5,8 @@
 /// </summary>
 public interface IRootAuthority
 {
-	bool IsRoot(Guid userId);
+	Task<bool> IsRootAsync(
+		Guid userId,
+		CancellationToken ct = default
+	);
 }

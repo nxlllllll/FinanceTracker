@@ -19,7 +19,7 @@ public sealed class PermissionAuthorizationHandler(
 		if (!Guid.TryParse(input: sub, result: out Guid userId))
 			return;
 
-		if (rootAuthority.IsRoot(userId: userId))
+		if (await rootAuthority.IsRootAsync(userId: userId))
 		{
 			context.Succeed(requirement: requirement);
 			return;

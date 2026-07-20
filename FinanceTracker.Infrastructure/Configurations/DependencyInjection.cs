@@ -14,6 +14,7 @@ using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.Snapshot;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -137,7 +138,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
-		services.AddSingleton<IRootAuthority, ConfiguredRootAuthority>();
+		services.AddScoped<IUserRoleReadRepository>(implementationFactory: sp => new CachedUserRoleReadRepository(
+			inner: new Infrastructure.Database.Repositories.Role.UserRoleReadRepository(context: sp.GetRequiredService<FinanceTrackerContext>()),
+			redisCache: sp.GetRequiredService<RedisCache>()
+		));
+		services.AddScoped<IRootAuthority, RoleBasedRootAuthority>();
 
 		services.Scan(action: scan => scan
 			.FromAssemblyOf<EventUpcasterRegistry>()

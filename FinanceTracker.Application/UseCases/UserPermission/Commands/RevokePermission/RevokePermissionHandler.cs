@@ -21,7 +21,7 @@ public sealed class RevokePermissionHandler(
 		RevokePermissionCommand command,
 		CancellationToken ct = default)
 	{
-		if (command.TargetUserId == command.RevokedBy && !rootAuthority.IsRoot(userId: command.RevokedBy))
+		if (command.TargetUserId == command.RevokedBy && !await rootAuthority.IsRootAsync(userId: command.RevokedBy, ct: ct))
 			return Result<Unit, AppException>.Failure(error: new SelfPermissionModificationException());
 
 		Core.Domains.UserPermission.UserPermission? userPermission = await userPermissionRepository.GetByUserIdAsync(userId: command.TargetUserId, ct: ct);

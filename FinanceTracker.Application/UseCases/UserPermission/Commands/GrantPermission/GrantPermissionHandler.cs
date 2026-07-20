@@ -21,7 +21,7 @@ public sealed class GrantPermissionHandler(
 		GrantPermissionCommand command,
 		CancellationToken ct = default)
 	{
-		if (command.TargetUserId == command.GrantedBy && !rootAuthority.IsRoot(userId: command.GrantedBy))
+		if (command.TargetUserId == command.GrantedBy && !await rootAuthority.IsRootAsync(userId: command.GrantedBy, ct: ct))
 			return Result<Unit, AppException>.Failure(error: new SelfPermissionModificationException());
 
 		Core.Domains.UserPermission.UserPermission? userPermission = await userPermissionRepository.GetByUserIdAsync(userId: command.TargetUserId, ct: ct);
