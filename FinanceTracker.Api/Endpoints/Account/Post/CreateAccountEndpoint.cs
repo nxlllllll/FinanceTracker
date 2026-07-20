@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Api.Auth;
+using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Api.Contracts.Account.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
@@ -15,8 +16,16 @@ public sealed class CreateAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/accounts", handler: HandleAsync).RequireAuthorization()
-			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write);
+		app.MapPost(pattern: "/api/v1/accounts", handler: HandleAsync)
+			.RequireAuthorization()
+			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
+			.WithTags(tags: "Accounts")
+			.WithSummary(summary: "Create an account")
+			.WithDescription(description: "Requires account:write permission and an Idempotency-Key header.")
+			.Produces<CreatedIdResponse>(statusCode: StatusCodes.Status201Created)
+			.ProducesValidationProblem()
+			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden)
+			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
 	}
 
 	private static async Task<IHttpResult> HandleAsync(

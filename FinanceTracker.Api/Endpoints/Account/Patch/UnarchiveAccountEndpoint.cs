@@ -10,7 +10,14 @@ namespace FinanceTracker.Api.Endpoints.Account.Patch;
 public sealed class UnarchiveAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/unarchive", handler: HandleAsync).RequireAuthorization();
+	{
+		app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/unarchive", handler: HandleAsync)
+			.RequireAuthorization()
+			.WithTags(tags: "Accounts")
+			.WithSummary(summary: "Unarchive an account")
+			.Produces(statusCode: StatusCodes.Status204NoContent)
+			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		Guid accountId,

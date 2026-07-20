@@ -16,7 +16,13 @@ public sealed class RevokePermissionEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
 		app.MapDelete(pattern: "/api/v1/users/{userId:guid}/permissions/{permission}", handler: HandleAsync)
-			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage);
+			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage)
+			.WithTags(tags: "Permissions")
+			.WithSummary(summary: "Revoke a permission from a user")
+			.WithDescription(description: "Requires permission:manage.")
+			.Produces(statusCode: StatusCodes.Status204NoContent)
+			.ProducesValidationProblem()
+			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden);
 	}
 
 	private static async Task<IHttpResult> HandleAsync(

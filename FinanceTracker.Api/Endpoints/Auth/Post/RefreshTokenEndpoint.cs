@@ -15,7 +15,14 @@ namespace FinanceTracker.Api.Endpoints.Auth.Post;
 public sealed class RefreshTokenEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapPost(pattern: "/api/v1/auth/refresh", handler: HandleAsync);
+	{
+		app.MapPost(pattern: "/api/v1/auth/refresh", handler: HandleAsync)
+			.WithTags(tags: "Auth")
+			.WithSummary(summary: "Refresh the access token")
+			.WithDescription(description: "Rotates the refresh token cookie and issues a new access token.")
+			.Produces<SessionResponse>(statusCode: StatusCodes.Status200OK)
+			.ProducesProblem(statusCode: StatusCodes.Status401Unauthorized);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		ISender sender,
