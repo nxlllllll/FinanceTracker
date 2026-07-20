@@ -69,9 +69,13 @@ public sealed class Program
 		if (app.Environment.IsDevelopment())
 		{
 			app.MapOpenApi();
-			app.MapScalarApiReference();
+			app.MapScalarApiReference(configureOptions: options =>
+			{
+				options.WithTitle(title: "FinanceTracker API").WithDefaultHttpClient(target: ScalarTarget.CSharp, client: ScalarClient.HttpClient);
+			});
 		}
 
+		app.MapGet(pattern: "/", handler: () => Results.Redirect(url: "/scalar/v1")).ExcludeFromDescription();
 		app.Run();
 	}
 }
