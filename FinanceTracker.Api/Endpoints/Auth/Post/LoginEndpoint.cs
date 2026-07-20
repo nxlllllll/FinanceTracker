@@ -17,7 +17,14 @@ namespace FinanceTracker.Api.Endpoints.Auth.Post;
 public sealed class LoginEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapPost(pattern: "/api/v1/auth/login", handler: HandleAsync);
+	{
+		app.MapPost(pattern: "/api/v1/auth/login", handler: HandleAsync)
+			.WithTags(tags: "Auth")
+			.WithSummary(summary: "Log in")
+			.WithDescription(description: "Returns an access token in the body and sets a refresh token as an HttpOnly cookie.")
+			.Produces<SessionResponse>(statusCode: StatusCodes.Status200OK)
+			.ProducesProblem(statusCode: StatusCodes.Status401Unauthorized);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		LoginUserRequest request,

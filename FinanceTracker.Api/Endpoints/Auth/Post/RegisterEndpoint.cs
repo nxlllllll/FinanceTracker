@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Api.Contracts.Auth.Request;
+﻿using FinanceTracker.Api.Contracts.Abstractions;
+using FinanceTracker.Api.Contracts.Auth.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
@@ -13,7 +14,15 @@ namespace FinanceTracker.Api.Endpoints.Auth.Post;
 public sealed class RegisterEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapPost(pattern: "/api/v1/auth/register", handler: HandleAsync);
+	{
+		app.MapPost(pattern: "/api/v1/auth/register", handler: HandleAsync)
+			.WithTags(tags: "Auth")
+			.WithSummary(summary: "Register a new user")
+			.WithDescription(description: "Creates a user account. Requires an Idempotency-Key header.")
+			.Produces<CreatedIdResponse>(statusCode: StatusCodes.Status201Created)
+			.ProducesValidationProblem()
+			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		RegisterUserRequest request,

@@ -7,6 +7,7 @@ using FinanceTracker.Application.Configurations;
 using FinanceTracker.Infrastructure.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Scalar.AspNetCore;
 
 namespace FinanceTracker.Api;
 
@@ -43,6 +44,11 @@ public sealed class Program
 		builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 		builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenProblemDetailsAuthorizationMiddlewareResultHandler>();
 
+		builder.Services.AddOpenApi(configureOptions: options =>
+		{
+			options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+		});
+
 		builder.Services.ConfigureHttpJsonOptions(configureOptions: options =>
 		{
 			options.SerializerOptions.Converters.Add(item: new JsonStringEnumConverter(namingPolicy: JsonNamingPolicy.CamelCase));
@@ -60,6 +66,16 @@ public sealed class Program
 
 		app.MapEndpoints();
 
+		if (app.Environment.IsDevelopment())
+		{
+			app.MapOpenApi();
+			app.MapScalarApiReference(configureOptions: options =>
+			{
+				options.WithTitle(title: "FinanceTracker API").WithDefaultHttpClient(target: ScalarTarget.CSharp, client: ScalarClient.HttpClient);
+			});
+		}
+
+		app.MapGet(pattern: "/", handler: () => Results.Redirect(url: "/scalar/v1")).ExcludeFromDescription();
 		app.Run();
 	}
 }

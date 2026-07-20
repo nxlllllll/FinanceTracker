@@ -12,7 +12,14 @@ namespace FinanceTracker.Api.Endpoints.Account.Get;
 public sealed class GetAccountsEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapGet(pattern: "/api/v1/accounts", handler: HandleAsync).RequireAuthorization();
+	{
+		app.MapGet(pattern: "/api/v1/accounts", handler: HandleAsync)
+			.RequireAuthorization()
+			.WithTags(tags: "Accounts")
+			.WithSummary(summary: "List my accounts")
+			.WithDescription(description: "Optional ?isArchived=true|false filter. Omit to return all.")
+			.Produces<List<AccountResponse>>(statusCode: StatusCodes.Status200OK);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		bool? isArchived,

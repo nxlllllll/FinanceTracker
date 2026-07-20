@@ -13,7 +13,15 @@ namespace FinanceTracker.Api.Endpoints.Account.Patch;
 public sealed class RenameAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/rename", handler: HandleAsync).RequireAuthorization();
+	{
+		app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/rename", handler: HandleAsync)
+			.RequireAuthorization()
+			.WithTags(tags: "Accounts")
+			.WithSummary(summary: "Rename an account")
+			.Produces(statusCode: StatusCodes.Status204NoContent)
+			.ProducesValidationProblem()
+			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		Guid accountId,
