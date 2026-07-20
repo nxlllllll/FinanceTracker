@@ -79,7 +79,7 @@ public static class ResultExtensions
 	public static IHttpResult ToCreatedResult(
 		this Result<Guid, AppException> result,
 		Func<Guid, string> locationFactory
-	) => result.IsSuccess ? Results.Created(uri: locationFactory(result.Value), value: new { id = result.Value }) : result.Error!.ToProblem();
+	) => result.IsSuccess ? Results.Created(uri: locationFactory(result.Value), value: new CreatedIdResponse(Id: result.Value)) : result.Error!.ToProblem();
 
 	public static IHttpResult ToNoContentResult<TValue>(this Result<TValue, AppException> result)
 		=> result.IsSuccess ? Results.NoContent() : result.Error!.ToProblem();

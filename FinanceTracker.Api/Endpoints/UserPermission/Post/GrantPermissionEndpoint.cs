@@ -17,7 +17,13 @@ public sealed class GrantPermissionEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
 		app.MapPost(pattern: "/api/v1/users/{userId:guid}/permissions", handler: HandleAsync)
-			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage);
+			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage)
+			.WithTags(tags: "Permissions")
+			.WithSummary(summary: "Grant a permission to a user")
+			.WithDescription(description: "Requires permission:manage. Format: \"resource:action\", e.g. \"account:write\".")
+			.Produces(statusCode: StatusCodes.Status204NoContent)
+			.ProducesValidationProblem()
+			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden);
 	}
 
 	private static async Task<IHttpResult> HandleAsync(

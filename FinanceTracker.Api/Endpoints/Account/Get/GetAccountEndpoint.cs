@@ -12,7 +12,14 @@ namespace FinanceTracker.Api.Endpoints.Account.Get;
 public sealed class GetAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapGet(pattern: "/api/v1/accounts/{accountId:guid}", handler: HandleAsync).RequireAuthorization();
+	{
+		app.MapGet(pattern: "/api/v1/accounts/{accountId:guid}", handler: HandleAsync)
+			.RequireAuthorization()
+			.WithTags(tags: "Accounts")
+			.WithSummary(summary: "Get an account by id")
+			.Produces<AccountResponse>(statusCode: StatusCodes.Status200OK)
+			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		Guid accountId,

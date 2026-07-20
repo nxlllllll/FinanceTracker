@@ -7,6 +7,7 @@ using FinanceTracker.Application.Configurations;
 using FinanceTracker.Infrastructure.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Scalar.AspNetCore;
 
 namespace FinanceTracker.Api;
 
@@ -43,6 +44,11 @@ public sealed class Program
 		builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 		builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenProblemDetailsAuthorizationMiddlewareResultHandler>();
 
+		builder.Services.AddOpenApi(configureOptions: options =>
+		{
+			options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+		});
+
 		builder.Services.ConfigureHttpJsonOptions(configureOptions: options =>
 		{
 			options.SerializerOptions.Converters.Add(item: new JsonStringEnumConverter(namingPolicy: JsonNamingPolicy.CamelCase));
@@ -59,6 +65,12 @@ public sealed class Program
 		app.MapHealthChecks(pattern: "/health/live");
 
 		app.MapEndpoints();
+
+		if (app.Environment.IsDevelopment())
+		{
+			app.MapOpenApi();
+			app.MapScalarApiReference();
+		}
 
 		app.Run();
 	}

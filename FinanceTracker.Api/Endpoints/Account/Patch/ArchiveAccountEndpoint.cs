@@ -10,7 +10,15 @@ namespace FinanceTracker.Api.Endpoints.Account.Patch;
 public sealed class ArchiveAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
-		=> app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/archive", handler: HandleAsync).RequireAuthorization();
+	{
+		app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/archive", handler: HandleAsync)
+			.RequireAuthorization()
+			.WithTags(tags: "Accounts")
+			.WithSummary(summary: "Archive an account")
+			.Produces(statusCode: StatusCodes.Status204NoContent)
+			.ProducesProblem(statusCode: StatusCodes.Status404NotFound)
+			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
+	}
 
 	private static async Task<IHttpResult> HandleAsync(
 		Guid accountId,
