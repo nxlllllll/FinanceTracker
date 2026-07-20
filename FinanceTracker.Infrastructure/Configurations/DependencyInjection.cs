@@ -132,6 +132,13 @@ public static class DependencyInjection
 			logger: s.GetRequiredService<ILogger<IntegrationEventTypeResolver>>()
 		));
 
+		services.AddOptions<AuthorizationOptions>()
+			.BindConfiguration(configSectionPath: AuthorizationOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddSingleton<IRootAuthority, ConfiguredRootAuthority>();
+
 		services.Scan(action: scan => scan
 			.FromAssemblyOf<EventUpcasterRegistry>()
 			.AddClasses(action: classes => classes.AssignableTo(typeof(EventUpcaster<,>)))

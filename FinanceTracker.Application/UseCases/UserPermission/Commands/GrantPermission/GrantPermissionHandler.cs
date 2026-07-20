@@ -3,6 +3,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.DateProvider;
 using MediatR;
 using Unit = FinanceTracker.Core.Results.Unit;
@@ -12,14 +13,15 @@ namespace FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermi
 public sealed class GrantPermissionHandler(
 	IUserPermissionRepository userPermissionRepository,
 	IUnitOfWork unitOfWork,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	IRootAuthority rootAuthority
 ) : IRequestHandler<GrantPermissionCommand, Result<Unit, AppException>>
 {
 	public async Task<Result<Unit, AppException>> Handle(
 		GrantPermissionCommand command,
 		CancellationToken ct = default)
 	{
-		if (command.TargetUserId == command.GrantedBy)
+		if (command.TargetUserId == command.GrantedBy && !rootAuthority.IsRoot(userId: command.GrantedBy))
 			return Result<Unit, AppException>.Failure(error: new SelfPermissionModificationException());
 
 		Core.Domains.UserPermission.UserPermission? userPermission = await userPermissionRepository.GetByUserIdAsync(userId: command.TargetUserId, ct: ct);
