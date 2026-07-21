@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +9,10 @@ public sealed class UserRoleReadRepository(
 	FinanceTrackerContext context
 ) : IUserRoleReadRepository
 {
-	public async Task<bool> HasSystemRoleAsync(Guid userId, string systemKey, CancellationToken ct = default)
+	public async Task<bool> HasSystemRoleAsync(
+		Guid userId,
+		SystemRole systemKey,
+		CancellationToken ct = default)
 	{
 		return await context.UserRoles.Join(
 			inner: context.Roles,

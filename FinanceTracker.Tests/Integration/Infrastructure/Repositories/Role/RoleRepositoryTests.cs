@@ -51,10 +51,10 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetBySystemKeyAsync_ForSeededRole_ShouldReturnIt()
 	{
-		RoleDto? role = await _repository.GetBySystemKeyAsync(systemKey: "user", ct: CancellationToken.None);
+		RoleDto? role = await _repository.GetBySystemKeyAsync(systemKey: SystemRole.User, ct: CancellationToken.None);
 
 		await Assert.That(value: role).IsNotNull();
-		await Assert.That(value: role!.SystemKey).IsEqualTo(expected: "user");
+		await Assert.That(value: role!.SystemKey).IsEqualTo(expected: SystemRole.User);
 	}
 
 	[Test]
@@ -134,7 +134,7 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task CountMembersWithSystemKeyAsync_ShouldCountOnlyMatchingSystemRole()
 	{
-		RoleDto? rootRole = await _repository.GetBySystemKeyAsync(systemKey: "root", ct: CancellationToken.None);
+		RoleDto? rootRole = await _repository.GetBySystemKeyAsync(systemKey: SystemRole.Root, ct: CancellationToken.None);
 		Guid userA = await _userBuilder.CreateAsync();
 		Guid userB = await _userBuilder.CreateAsync();
 
@@ -151,7 +151,7 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 			ct: CancellationToken.None
 		);
 
-		int count = await _repository.CountMembersWithSystemKeyAsync(systemKey: "root", ct: CancellationToken.None);
+		int count = await _repository.CountMembersWithSystemKeyAsync(systemKey: SystemRole.Root, ct: CancellationToken.None);
 
 		await Assert.That(value: count).IsEqualTo(expected: 2);
 	}

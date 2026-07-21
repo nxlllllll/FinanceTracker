@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Services.Auth;
 using NSubstitute;
 
@@ -17,7 +18,7 @@ public sealed class RoleBasedRootAuthorityTests
 		await Assert.That(value: result).IsFalse();
 		await userRoleReadRepository.DidNotReceive().HasSystemRoleAsync(
 			userId: Arg.Any<Guid>(),
-			systemKey: Arg.Any<string>(),
+			systemKey: Arg.Any<SystemRole>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -29,7 +30,7 @@ public sealed class RoleBasedRootAuthorityTests
 		IUserRoleReadRepository userRoleReadRepository = Substitute.For<IUserRoleReadRepository>();
 		userRoleReadRepository.HasSystemRoleAsync(
 			userId: userId,
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
@@ -47,7 +48,7 @@ public sealed class RoleBasedRootAuthorityTests
 		IUserRoleReadRepository userRoleReadRepository = Substitute.For<IUserRoleReadRepository>();
 		userRoleReadRepository.HasSystemRoleAsync(
 			userId: userId,
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: false);
 

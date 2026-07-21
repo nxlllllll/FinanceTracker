@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
@@ -18,9 +19,12 @@ public sealed class CachedUserRoleReadRepository(
 		AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(minutes: 3)
 	};
 
-	internal static string KeyFor(Guid userId, string systemKey) => $"roles:{userId}:{systemKey}";
+	internal static string KeyFor(Guid userId, SystemRole systemKey) => $"roles:{userId}:{systemKey}";
 
-	public async Task<bool> HasSystemRoleAsync(Guid userId, string systemKey, CancellationToken ct = default)
+	public async Task<bool> HasSystemRoleAsync(
+		Guid userId,
+		SystemRole systemKey,
+		CancellationToken ct = default)
 	{
 		string key = KeyFor(userId: userId, systemKey: systemKey);
 

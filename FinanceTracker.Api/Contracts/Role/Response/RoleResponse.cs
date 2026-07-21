@@ -12,7 +12,7 @@ public sealed record RoleResponse(
 {
 	public static RoleResponse FromReadModel(RoleDto readModel) => new RoleResponse(
 		Id: readModel.Id,
-		SystemKey: readModel.SystemKey,
+		SystemKey: readModel.SystemKey?.ToString().ToLowerInvariant(),
 		DisplayName: readModel.DisplayName.Value,
 		Permissions: readModel.Permissions.Select(selector: p => p.ToString()).ToHashSet()
 	);

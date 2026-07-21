@@ -1,4 +1,6 @@
-﻿namespace FinanceTracker.Core.Repositories.Role;
+﻿using FinanceTracker.Core.ValueObjects;
+
+namespace FinanceTracker.Core.Repositories.Role;
 
 /// <summary>
 /// Flat read model for the hot path of role checks (root bypass, future role-gated features)
@@ -7,7 +9,7 @@ public interface IUserRoleReadRepository
 {
 	Task<bool> HasSystemRoleAsync(
 		Guid userId,
-		string systemKey,
+		SystemRole systemKey,
 		CancellationToken ct = default
 	);
 }

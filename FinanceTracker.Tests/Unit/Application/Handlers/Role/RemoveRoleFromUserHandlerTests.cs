@@ -29,7 +29,7 @@ public sealed class RemoveRoleFromUserHandlerTests
 		_handler = new RemoveRoleFromUserHandler(roleRepository: _roleRepository, sender: _sender);
 	}
 
-	private static RoleDto BuildRole(Guid roleId, string? systemKey, params Permission[] permissions) => new RoleDto(
+	private static RoleDto BuildRole(Guid roleId, SystemRole? systemKey, params Permission[] permissions) => new RoleDto(
 		Id: roleId,
 		SystemKey: systemKey,
 		DisplayName: Name.Create(value: "Test Role").Value!,
@@ -95,9 +95,9 @@ public sealed class RemoveRoleFromUserHandlerTests
 		_roleRepository.GetByIdAsync(
 			roleId: roleId,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: BuildRole(roleId: roleId, systemKey: "root"));
+		).Returns(returnThis: BuildRole(roleId: roleId, systemKey: SystemRole.Root));
 		_roleRepository.CountMembersWithSystemKeyAsync(
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 2);
 
@@ -120,9 +120,9 @@ public sealed class RemoveRoleFromUserHandlerTests
 		_roleRepository.GetByIdAsync(
 			roleId: roleId,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: BuildRole(roleId: roleId, systemKey: "root"));
+		).Returns(returnThis: BuildRole(roleId: roleId, systemKey: SystemRole.Root));
 		_roleRepository.CountMembersWithSystemKeyAsync(
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 1);
 

@@ -31,13 +31,13 @@ public interface IRoleRepository
 	);
 
 	Task<RoleDto?> GetBySystemKeyAsync(
-		string systemKey,
+		SystemRole systemKey,
 		CancellationToken ct = default
 	);
 
 	/// <summary>Guards against removing the last remaining holder of a role with the given system key (e.g. the last root).</summary>
 	Task<int> CountMembersWithSystemKeyAsync(
-		string systemKey,
+		SystemRole systemKey,
 		CancellationToken ct = default
 	);
 

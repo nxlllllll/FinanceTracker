@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -46,16 +47,16 @@ public sealed class CachedUserRoleReadRepositoryTests
 		Guid userId = Guid.CreateVersion7();
 		_inner.HasSystemRoleAsync(
 			userId: userId,
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: true);
 
-		bool result = await _repository.HasSystemRoleAsync(userId: userId, systemKey: "root");
+		bool result = await _repository.HasSystemRoleAsync(userId: userId, systemKey: SystemRole.Root);
 
 		await Assert.That(value: result).IsTrue();
 		await _inner.Received(requiredNumberOfCalls: 1).HasSystemRoleAsync(
 			userId: userId,
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _database.Received(requiredNumberOfCalls: 1).StringSetAsync(
@@ -72,12 +73,12 @@ public sealed class CachedUserRoleReadRepositoryTests
 			key: Arg.Any<RedisKey>()
 		).Returns(returnThis: (RedisValue)System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value: true));
 
-		bool result = await _repository.HasSystemRoleAsync(userId: Guid.CreateVersion7(), systemKey: "root");
+		bool result = await _repository.HasSystemRoleAsync(userId: Guid.CreateVersion7(), systemKey: SystemRole.Root);
 
 		await Assert.That(value: result).IsTrue();
 		await _inner.DidNotReceive().HasSystemRoleAsync(
 			userId: Arg.Any<Guid>(),
-			systemKey: Arg.Any<string>(),
+			systemKey: Arg.Any<SystemRole>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -87,7 +88,7 @@ public sealed class CachedUserRoleReadRepositoryTests
 	{
 		Guid userId = Guid.CreateVersion7();
 
-		await Assert.That(value: CachedUserRoleReadRepository.KeyFor(userId: userId, systemKey: "admin"))
-			.IsEqualTo(expected: $"roles:{userId}:admin");
+		await Assert.That(value: CachedUserRoleReadRepository.KeyFor(userId: userId, systemKey: SystemRole.Admin))
+			.IsEqualTo(expected: $"roles:{userId}:Admin");
 	}
 }

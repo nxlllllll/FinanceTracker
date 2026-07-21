@@ -95,12 +95,12 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 	) => await context.UserRoles.AsNoTracking().Where(predicate: ur => ur.RoleId == roleId).Select(selector: ur => ur.UserId).ToListAsync(cancellationToken: ct);
 
 	public async Task<RoleDto?> GetBySystemKeyAsync(
-		string systemKey,
+		SystemRole systemKey,
 		CancellationToken ct = default
 	) => await LoadAsync(predicate: r => r.SystemKey == systemKey, ct: ct);
 
 	public async Task<int> CountMembersWithSystemKeyAsync(
-		string systemKey,
+		SystemRole systemKey,
 		CancellationToken ct = default)
 	{
 		return await context.UserRoles.Join(

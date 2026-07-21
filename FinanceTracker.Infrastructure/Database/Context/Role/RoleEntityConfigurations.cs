@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FinanceTracker.Core.ValueObjects;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FinanceTracker.Infrastructure.Database.Context.Role;
@@ -16,7 +17,11 @@ public sealed class RoleEntityConfiguration : IEntityTypeConfiguration<RoleEntit
 
 		builder.Property(propertyExpression: e => e.SystemKey)
 			.HasColumnName(name: "system_key")
-			.HasMaxLength(maxLength: 32);
+			.HasMaxLength(maxLength: 32)
+			.HasConversion(
+				convertToProviderExpression: role => role.ToString()!.ToLowerInvariant(),
+				convertFromProviderExpression: value => Enum.Parse<SystemRole>(value: value, ignoreCase: true)
+			);
 
 		builder.Property(propertyExpression: e => e.DisplayName)
 			.HasColumnName(name: "display_name")

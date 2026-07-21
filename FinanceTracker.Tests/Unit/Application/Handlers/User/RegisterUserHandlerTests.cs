@@ -4,6 +4,7 @@ using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Password;
@@ -21,6 +22,8 @@ public sealed class RegisterUserHandlerTests
 	private IPasswordHasher _passwordHasher = null!;
 	private IPostCommitNotifications _postCommitNotifications = null!;
 	private IUnitOfWork _unitOfWork = null!;
+	private IRoleRepository _roleRepository = null!;
+	private ISender _sender = null!;
 	private RegisterUserHandler _handler = null!;
 
 	private const string HashedPassword = "hashed_password_value";
@@ -33,6 +36,8 @@ public sealed class RegisterUserHandlerTests
 		_passwordHasher = Substitute.For<IPasswordHasher>();
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_roleRepository = Substitute.For<IRoleRepository>();
+		_sender = Substitute.For<ISender>();
 
 		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: HashedPassword);
 		_unitOfWork.ExecuteInTransactionAsync(
@@ -47,6 +52,8 @@ public sealed class RegisterUserHandlerTests
 			unitOfWork: _unitOfWork,
 			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default,
+			roleRepository: _roleRepository,
+			sender: _sender,
 			logger: Substitute.For<ILogger<RegisterUserHandler>>()
 		);
 	}

@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Role;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
@@ -23,7 +24,7 @@ public sealed class UserRoleReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task HasSystemRoleAsync_WhenUserHoldsRole_ShouldReturnTrue()
 	{
-		RoleDto? rootRole = await _roleRepository.GetBySystemKeyAsync(systemKey: "root", ct: CancellationToken.None);
+		RoleDto? rootRole = await _roleRepository.GetBySystemKeyAsync(systemKey: SystemRole.Root, ct: CancellationToken.None);
 		Guid userId = await _userBuilder.CreateAsync();;
 		await _roleRepository.AssignToUserAsync(
 			userId: userId,
@@ -34,7 +35,7 @@ public sealed class UserRoleReadRepositoryTests : DatabaseFixture
 
 		bool hasRole = await _readRepository.HasSystemRoleAsync(
 			userId: userId,
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: CancellationToken.None
 		);
 
@@ -46,7 +47,7 @@ public sealed class UserRoleReadRepositoryTests : DatabaseFixture
 	{
 		bool hasRole = await _readRepository.HasSystemRoleAsync(
 			userId: Guid.CreateVersion7(),
-			systemKey: "root",
+			systemKey: SystemRole.Root,
 			ct: CancellationToken.None
 		);
 

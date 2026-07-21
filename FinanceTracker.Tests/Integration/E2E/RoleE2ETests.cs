@@ -31,7 +31,7 @@ public sealed class RoleE2ETests : E2EFixture
 	private async Task<Guid> GetRootRoleIdAsync()
 	{
 		Result<IReadOnlyList<RoleDto>, AppException> roles = await Mediator.Send(request: new GetRolesQuery());
-		return roles.Value!.Single(predicate: r => r.SystemKey == "root").Id;
+		return roles.Value!.Single(predicate: r => r.SystemKey == SystemRole.Root).Id;
 	}
 
 	[Test]

@@ -22,10 +22,10 @@ public sealed class RemoveRoleFromUserHandler(
 		if (role is null)
 			return Result<Unit, AppException>.Failure(error: new NotFoundException(message: "Role not found.", id: command.RoleId));
 
-		if (role.SystemKey?.Equals(value: nameof(SystemRole.Root), comparisonType: StringComparison.InvariantCultureIgnoreCase) ?? false)
+		if (role.SystemKey == SystemRole.Root)
 		{
 			int rootHolders = await roleRepository.CountMembersWithSystemKeyAsync(
-				systemKey: nameof(SystemRole.Root).ToLowerInvariant(),
+				systemKey: SystemRole.Root,
 				ct: ct
 			);
 			if (rootHolders <= 1)

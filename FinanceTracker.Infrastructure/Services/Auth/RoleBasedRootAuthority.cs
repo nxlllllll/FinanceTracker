@@ -8,7 +8,7 @@ public sealed class RoleBasedRootAuthority(
 	IUserRoleReadRepository userRoleReadRepository
 ) : IRootAuthority
 {
-	private static readonly string RootSystemKey = nameof(SystemRole.Root).ToLowerInvariant();
+	private static readonly SystemRole RootSystemKey = SystemRole.Root;
 
 	public async Task<bool> IsRootAsync(
 		Guid userId,
