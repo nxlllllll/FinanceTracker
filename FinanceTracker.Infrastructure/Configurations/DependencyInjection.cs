@@ -43,6 +43,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
+using FinanceTracker.Infrastructure.Database.Repositories.Role;
 using FinanceTracker.Infrastructure.Database.Repositories.Snapshot;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
@@ -138,10 +139,6 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
-		services.AddScoped<IUserRoleReadRepository>(implementationFactory: sp => new CachedUserRoleReadRepository(
-			inner: new Infrastructure.Database.Repositories.Role.UserRoleReadRepository(context: sp.GetRequiredService<FinanceTrackerContext>()),
-			redisCache: sp.GetRequiredService<RedisCache>()
-		));
 		services.AddScoped<IRootAuthority, RoleBasedRootAuthority>();
 
 		services.Scan(action: scan => scan
@@ -226,6 +223,11 @@ public static class DependencyInjection
 		services.AddScoped<IOutboxReadRepository, OutboxReadRepository>();
 		services.AddScoped<IOutboxWriteRepository, OutboxWriteRepository>();
 
+		// Role
+		services.AddScoped<IRoleRepository, RoleRepository>();
+		services.AddScoped<IUserRoleReadRepository, UserRoleReadRepository>();
+		services.Decorate<IUserRoleReadRepository, CachedUserRoleReadRepository>();
+
 		// Snapshot
 		services.AddScoped<ISnapshotWriteRepository, SnapshotWriteRepository>();
 
@@ -235,11 +237,8 @@ public static class DependencyInjection
 		// UserPermission
 		services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
 		services.AddScoped<IUserPermissionWriteRepository, UserPermissionWriteRepository>();
-		services.AddScoped<UserPermissionReadRepository>();
-		services.AddScoped<IUserPermissionReadRepository>(implementationFactory: sp => new CachedUserPermissionReadRepository(
-			inner: sp.GetRequiredService<UserPermissionReadRepository>(),
-			redisCache: sp.GetRequiredService<RedisCache>()
-		));
+		services.AddScoped<IUserPermissionReadRepository, UserPermissionReadRepository>();
+		services.Decorate<IUserPermissionReadRepository, CachedUserPermissionReadRepository>();
 
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();

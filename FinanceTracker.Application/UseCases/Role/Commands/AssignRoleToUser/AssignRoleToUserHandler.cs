@@ -16,7 +16,9 @@ public sealed class AssignRoleToUserHandler(
 	IDateProvider dateProvider
 ) : IRequestHandler<AssignRoleToUserCommand, Result<Unit, AppException>>
 {
-	public async Task<Result<Unit, AppException>> Handle(AssignRoleToUserCommand command, CancellationToken ct = default)
+	public async Task<Result<Unit, AppException>> Handle(
+		AssignRoleToUserCommand command,
+		CancellationToken ct = default)
 	{
 		RoleDto? role = await roleRepository.GetByIdAsync(roleId: command.RoleId, ct: ct);
 		if (role is null)

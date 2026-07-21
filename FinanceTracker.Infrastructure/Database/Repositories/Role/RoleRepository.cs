@@ -41,6 +41,24 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 		CancellationToken ct = default
 	) => await LoadAsync(predicate: r => r.Id == roleId, ct: ct);
 
+	public async Task<IReadOnlyList<RoleDto>> GetAllAsync(CancellationToken ct = default)
+	{
+		List<RoleEntity> roles = await context.Roles.AsNoTracking().ToListAsync(cancellationToken: ct);
+
+		List<RolePermissionEntity> allPermissions = await context.RolePermissions.AsNoTracking().ToListAsync(cancellationToken: ct);
+		ILookup<Guid, string> permissionsByRole = allPermissions.ToLookup(
+			keySelector: p => p.RoleId,
+			elementSelector: p => p.Permission
+		);
+
+		return roles.Select(selector: role => new RoleDto(
+			Id: role.Id,
+			SystemKey: role.SystemKey,
+			DisplayName: Name.Reconstitute(value: role.DisplayName),
+			Permissions: permissionsByRole[role.Id].Select(selector: Permission.Reconstitute).ToHashSet()
+		)).ToList();
+	}
+
 	public async Task<RoleDto?> GetBySystemKeyAsync(
 		string systemKey,
 		CancellationToken ct = default

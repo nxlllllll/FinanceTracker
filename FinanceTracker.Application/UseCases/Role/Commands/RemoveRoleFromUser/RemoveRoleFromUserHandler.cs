@@ -14,7 +14,9 @@ public sealed class RemoveRoleFromUserHandler(
 	ISender sender
 ) : IRequestHandler<RemoveRoleFromUserCommand, Result<Unit, AppException>>
 {
-	public async Task<Result<Unit, AppException>> Handle(RemoveRoleFromUserCommand command, CancellationToken ct = default)
+	public async Task<Result<Unit, AppException>> Handle(
+		RemoveRoleFromUserCommand command,
+		CancellationToken ct = default)
 	{
 		RoleDto? role = await roleRepository.GetByIdAsync(roleId: command.RoleId, ct: ct);
 		if (role is null)

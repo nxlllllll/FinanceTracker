@@ -16,6 +16,10 @@ public interface IRoleRepository
 		CancellationToken ct = default
 	);
 
+	Task<IReadOnlyList<RoleDto>> GetAllAsync(
+		CancellationToken ct = default
+	);
+
 	Task<RoleDto?> GetBySystemKeyAsync(
 		string systemKey,
 		CancellationToken ct = default
