@@ -59,10 +59,57 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 		)).ToList();
 	}
 
+	public async Task<IReadOnlyList<RoleDto>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
+	{
+		List<Guid> roleIds = await context.UserRoles.AsNoTracking()
+			.Where(predicate: ur => ur.UserId == userId)
+			.Select(selector: ur => ur.RoleId)
+			.ToListAsync(cancellationToken: ct);
+
+		if (roleIds.Count == 0)
+			return [];
+
+		List<RoleEntity> roles = await context.Roles.AsNoTracking()
+			.Where(predicate: r => roleIds.Contains(r.Id))
+			.ToListAsync(cancellationToken: ct);
+
+		List<RolePermissionEntity> allPermissions = await context.RolePermissions.AsNoTracking()
+			.Where(predicate: p => roleIds.Contains(p.RoleId))
+			.ToListAsync(cancellationToken: ct);
+		ILookup<Guid, string> permissionsByRole = allPermissions.ToLookup(
+			keySelector: p => p.RoleId,
+			elementSelector: p => p.Permission
+		);
+
+		return roles.Select(selector: role => new RoleDto(
+			Id: role.Id,
+			SystemKey: role.SystemKey,
+			DisplayName: Name.Reconstitute(value: role.DisplayName),
+			Permissions: permissionsByRole[role.Id].Select(selector: Permission.Reconstitute).ToHashSet()
+		)).ToList();
+	}
+
+	public async Task<IReadOnlyList<Guid>> GetMemberUserIdsAsync(
+		Guid roleId,
+		CancellationToken ct = default
+	) => await context.UserRoles.AsNoTracking().Where(predicate: ur => ur.RoleId == roleId).Select(selector: ur => ur.UserId).ToListAsync(cancellationToken: ct);
+
 	public async Task<RoleDto?> GetBySystemKeyAsync(
 		string systemKey,
 		CancellationToken ct = default
 	) => await LoadAsync(predicate: r => r.SystemKey == systemKey, ct: ct);
+
+	public async Task<int> CountMembersWithSystemKeyAsync(
+		string systemKey,
+		CancellationToken ct = default)
+	{
+		return await context.UserRoles.Join(
+			inner: context.Roles,
+			outerKeySelector: ur => ur.RoleId,
+			innerKeySelector: r => r.Id,
+			resultSelector: (ur, r) => r.SystemKey
+		).CountAsync(predicate: key => key == systemKey, cancellationToken: ct);
+	}
 
 	private async Task<RoleDto?> LoadAsync(
 		System.Linq.Expressions.Expression<Func<RoleEntity, bool>> predicate,
@@ -133,20 +180,12 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 		CancellationToken ct = default
 	) => await context.UserRoles.Where(predicate: ur => ur.UserId == userId && ur.RoleId == roleId).ExecuteDeleteAsync(cancellationToken: ct);
 
-	public async Task<IReadOnlyList<Guid>> GetMemberUserIdsAsync(
+	public async Task DeleteAsync(
 		Guid roleId,
-		CancellationToken ct = default
-	) => await context.UserRoles.AsNoTracking().Where(predicate: ur => ur.RoleId == roleId).Select(selector: ur => ur.UserId).ToListAsync(cancellationToken: ct);
-
-	public async Task<int> CountMembersWithSystemKeyAsync(
-		string systemKey,
 		CancellationToken ct = default)
 	{
-		return await context.UserRoles.Join(
-			inner: context.Roles,
-			outerKeySelector: ur => ur.RoleId,
-			innerKeySelector: r => r.Id,
-			resultSelector: (ur, r) => r.SystemKey
-		).CountAsync(predicate: key => key == systemKey, cancellationToken: ct);
+		await context.UserRoles.Where(predicate: ur => ur.RoleId == roleId).ExecuteDeleteAsync(cancellationToken: ct);
+		await context.RolePermissions.Where(predicate: p => p.RoleId == roleId).ExecuteDeleteAsync(cancellationToken: ct);
+		await context.Roles.Where(predicate: r => r.Id == roleId).ExecuteDeleteAsync(cancellationToken: ct);
 	}
 }
