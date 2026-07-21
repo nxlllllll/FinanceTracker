@@ -15,7 +15,10 @@ public sealed class RolePermissionEntityConfiguration : IEntityTypeConfiguration
 			.HasColumnName(name: "role_id");
 
 		builder.Property(propertyExpression: e => e.Permission)
-			.HasColumnName(name: "permission")
-			.HasMaxLength(maxLength: 64);
+			.HasColumnName(name: "permission").HasMaxLength(maxLength: 64);
+
+		builder.HasOne<RoleEntity>().WithMany()
+			.HasForeignKey(foreignKeyExpression: e => e.RoleId)
+			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 	}
 }

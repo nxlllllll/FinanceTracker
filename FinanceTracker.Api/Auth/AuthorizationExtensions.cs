@@ -6,6 +6,8 @@ namespace FinanceTracker.Api.Auth;
 
 public static class AuthorizationExtensions
 {
+	public const string RootPolicyName = "root";
+
 	/// <summary>
 	/// Requires the caller to hold the given permission (e.g. "account:write"). Builds the
 	/// policy name that <see cref="PermissionPolicyProvider"/> parses dynamically — no manual
@@ -37,5 +39,12 @@ public static class AuthorizationExtensions
 			throw new InvalidOperationException(message: $"'{resource}:{action}' is not a valid permission — check {nameof(Permission)}.{nameof(Permission.Catalog)}.");
 
 		return builder.RequirePermission(permission: result.Value!.ToString());
+	}
+
+	public static TBuilder RequireRoot<TBuilder>(
+		this TBuilder builder
+	) where TBuilder : IEndpointConventionBuilder
+	{
+		return builder.RequireAuthorization(policyNames: RootPolicyName);
 	}
 }

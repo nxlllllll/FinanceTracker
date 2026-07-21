@@ -7,6 +7,7 @@ public interface IRoleRepository
 	Task<Guid> CreateAsync(
 		Name displayName,
 		IReadOnlySet<Permission> permissions,
+		DateTimeOffset createdAt,
 		CancellationToken ct = default
 	);
 

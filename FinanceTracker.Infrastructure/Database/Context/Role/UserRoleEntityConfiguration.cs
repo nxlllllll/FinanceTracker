@@ -19,5 +19,8 @@ public sealed class UserRoleEntityConfiguration : IEntityTypeConfiguration<UserR
 
 		builder.Property(propertyExpression: e => e.AssignedAt)
 			.HasColumnName(name: "assigned_at");
+
+		builder.HasOne<RoleEntity>().WithMany()
+			.HasForeignKey(foreignKeyExpression: e => e.RoleId);
 	}
 }

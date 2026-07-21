@@ -1,5 +1,4 @@
 ﻿using FinanceTracker.Core.Repositories.Role;
-using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Role;
@@ -7,14 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Role;
 
-public sealed class RoleRepository(
-	FinanceTrackerContext context,
-	IDateProvider dateProvider
-) : IRoleRepository
+public sealed class RoleRepository(FinanceTrackerContext context) : IRoleRepository
 {
 	public async Task<Guid> CreateAsync(
 		Name displayName,
 		IReadOnlySet<Permission> permissions,
+		DateTimeOffset createdAt,
 		CancellationToken ct = default)
 	{
 		RoleEntity role = new RoleEntity
@@ -22,7 +19,7 @@ public sealed class RoleRepository(
 			Id = Guid.CreateVersion7(),
 			SystemKey = null,
 			DisplayName = displayName.Value,
-			CreatedAt = dateProvider.UtcNow
+			CreatedAt = createdAt
 		};
 
 		await context.Roles.AddAsync(entity: role, cancellationToken: ct);
