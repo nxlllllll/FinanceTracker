@@ -62,7 +62,7 @@ public sealed class UnarchiveCategoryHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenCategoryNotArchived_ShouldReturnFailure()
+	public async Task HandleAsync_WhenCategoryNotArchived_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: false).Value!;
 
@@ -72,7 +72,7 @@ public sealed class UnarchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]

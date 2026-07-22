@@ -21,9 +21,12 @@ public sealed class ActivateRecurringTransactionHandler(
 		Core.Domains.RecurringTransaction.RecurringTransaction user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Activate();
+		Result<bool, DomainException> result = user.Activate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
+
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: user.Id);
 
 		await recurringTransactionWriteRepository.ActivateAsync(
 			recurringTransactionId: command.RecurringTransactionId,

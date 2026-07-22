@@ -105,14 +105,14 @@ public sealed class BudgetTests
 	}
 
 	[Test]
-	public async Task Activate_ActiveBudget_ShouldThrowActivatingException()
+	public async Task Activate_ActiveBudget_ShouldReturnSuccessWithFalse()
 	{
 		Budget budget = BudgetFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Activate();
+		Result<bool, DomainException> result = budget.Activate();
 
-		await Assert.That(result.IsFailure).IsTrue();
-		await Assert.That(result.Error).IsTypeOf<ActivatingException>();
+		await Assert.That(result.IsSuccess).IsTrue();
+		await Assert.That(result.Value).IsFalse();
 	}
 
 	[Test]
@@ -126,14 +126,14 @@ public sealed class BudgetTests
 	}
 
 	[Test]
-	public async Task Deactivate_InactiveBudget_ShouldThrowDeactivatingException()
+	public async Task Deactivate_InactiveBudget_ShouldReturnSuccessWithFalse()
 	{
 		Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.Deactivate();
+		Result<bool, DomainException> result = budget.Deactivate();
 
-		await Assert.That(result.IsFailure).IsTrue();
-		await Assert.That(result.Error).IsTypeOf<DeactivatingException>();
+		await Assert.That(result.IsSuccess).IsTrue();
+		await Assert.That(result.Value).IsFalse();
 	}
 }

@@ -33,6 +33,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userA,
+			reservationId: Guid.CreateVersion7(),
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -40,6 +41,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userB,
+			reservationId: Guid.CreateVersion7(),
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -58,6 +60,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
+			reservationId: Guid.CreateVersion7(),
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -65,6 +68,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateBudgetCommand),
 			userId: userId,
+			reservationId: Guid.CreateVersion7(),
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -83,6 +87,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
+			reservationId: Guid.CreateVersion7(),
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -90,6 +95,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
+			reservationId: Guid.CreateVersion7(),
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -104,11 +110,13 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 		Guid key = Guid.CreateVersion7();
 		Guid userA = Guid.CreateVersion7();
 		Guid userB = Guid.CreateVersion7();
+		Guid reservationId = Guid.CreateVersion7();
 
 		await _writeRepository.TryReserveAsync(
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userA,
+			reservationId: reservationId,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -116,6 +124,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userA,
+			reservationId: reservationId,
 			responseJson: """{"transactionId":"secret-belongs-to-user-a"}"""
 		);
 
@@ -138,16 +147,80 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
+	public async Task CompleteAsync_WithMatchingReservationId_ShouldUpdateAndReturnTrue()
+	{
+		Guid key = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+		Guid reservationId = Guid.CreateVersion7();
+
+		await _writeRepository.TryReserveAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId,
+			reservationId: reservationId,
+			reservedAt: Now,
+			expiresAt: Now.AddHours(hours: 1)
+		);
+
+		bool completed = await _writeRepository.CompleteAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId,
+			reservationId: reservationId,
+			responseJson: """{"ok":true}"""
+		);
+
+		await Assert.That(value: completed).IsTrue();
+	}
+
+	[Test]
+	public async Task CompleteAsync_WithMismatchedReservationId_ShouldReturnFalseAndNotUpdate()
+	{
+		Guid key = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+		Guid originalReservationId = Guid.CreateVersion7();
+		Guid staleReservationId = Guid.CreateVersion7();
+
+		await _writeRepository.TryReserveAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId,
+			reservationId: originalReservationId,
+			reservedAt: Now,
+			expiresAt: Now.AddHours(hours: 1)
+		);
+
+		bool completed = await _writeRepository.CompleteAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId,
+			reservationId: staleReservationId,
+			responseJson: """{"ok":true}"""
+		);
+
+		IdempotencyEntry? entry = await _readRepository.GetAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId
+		);
+
+		await Assert.That(value: completed).IsFalse();
+		await Assert.That(value: entry!.ResponseJson).IsNull();
+	}
+
+	[Test]
 	public async Task DeleteAsync_ShouldOnlyDeleteMatchingScope()
 	{
 		Guid key = Guid.CreateVersion7();
 		Guid userA = Guid.CreateVersion7();
 		Guid userB = Guid.CreateVersion7();
+		Guid reservationIdA = Guid.CreateVersion7();
 
 		await _writeRepository.TryReserveAsync(
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userA,
+			reservationId: reservationIdA,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -155,6 +228,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
 			userId: userB,
+			reservationId: Guid.CreateVersion7(),
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -162,7 +236,8 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 		await _writeRepository.DeleteAsync(
 			idempotencyKey: key,
 			commandType: nameof(CreateTransactionCommand),
-			userId: userA
+			userId: userA,
+			reservationId: reservationIdA
 		);
 
 		IdempotencyEntry? entryForUserA = await _readRepository.GetAsync(
@@ -178,5 +253,39 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: entryForUserA).IsNull();
 		await Assert.That(value: entryForUserB).IsNotNull();
+	}
+
+	[Test]
+	public async Task DeleteAsync_WithMismatchedReservationId_ShouldReturnFalseAndNotDelete()
+	{
+		Guid key = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+		Guid originalReservationId = Guid.CreateVersion7();
+		Guid staleReservationId = Guid.CreateVersion7();
+
+		await _writeRepository.TryReserveAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId,
+			reservationId: originalReservationId,
+			reservedAt: Now,
+			expiresAt: Now.AddHours(hours: 1)
+		);
+
+		bool deleted = await _writeRepository.DeleteAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId,
+			reservationId: staleReservationId
+		);
+
+		IdempotencyEntry? entry = await _readRepository.GetAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId
+		);
+
+		await Assert.That(value: deleted).IsFalse();
+		await Assert.That(value: entry).IsNotNull();
 	}
 }

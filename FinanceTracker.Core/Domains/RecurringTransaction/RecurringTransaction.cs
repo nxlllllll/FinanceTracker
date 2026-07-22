@@ -17,17 +17,10 @@ public sealed class RecurringTransaction
 	public Guid CategoryId { get; private set; }
 	public Money Amount { get; private set; }
 	public DirectionType Direction { get; private set; }
-	/// <summary>Day of month (1–31) on which this transaction is triggered. Days exceeding the month length execute on the last day.</summary>
 	public int DayOfMonth { get; private set; }
 	public string? Description { get; private set; }
 	public bool IsActive { get; private set; }
-	/// <summary>UTC timestamp of the last successful execution. <c>null</c> if never executed.</summary>
 	public DateTimeOffset? LastExecutedAt { get; private set; }
-	/// <summary>
-	/// UTC timestamp of the last time this month's occurrence was given up on after exhausting every
-	/// same-day retry — distinct from <see cref="LastExecutedAt"/>, which only ever reflects a real,
-	/// successful run. <c>null</c> if never missed.
-	/// </summary>
 	public DateTimeOffset? LastMissedAt { get; private set; }
 	public int RowVersion { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
@@ -98,22 +91,22 @@ public sealed class RecurringTransaction
 		};
 	}
 
-	public Result<Unit, DomainException> Activate()
+	public Result<bool, DomainException> Activate()
 	{
 		if (IsActive)
-			return Result<Unit, DomainException>.Failure(error: new ActivatingException(message: "Recurring transaction is already active."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsActive = true;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> Deactivate()
+	public Result<bool, DomainException> Deactivate()
 	{
 		if (!IsActive)
-			return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Recurring transaction is already inactive."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsActive = false;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
 	public Result<Unit, DomainException> ChangeAmount(decimal amount)

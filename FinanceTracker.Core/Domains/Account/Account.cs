@@ -401,7 +401,7 @@ public sealed class Account : AggregateRoot
 	public Result<Unit, DomainException> Archive(DateTimeOffset occurredAt)
 	{
 		if (IsArchived)
-			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The account has already been archived before."));
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		if (Balance.Amount < 0)
 			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "Cannot archive an account with a negative balance."));
@@ -420,7 +420,7 @@ public sealed class Account : AggregateRoot
 	public Result<Unit, DomainException> Unarchive(DateTimeOffset occurredAt)
 	{
 		if (!IsArchived)
-			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The account is already active."));
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		RaiseEvent(@event: new AccountUnarchived(
 			Id: Guid.CreateVersion7(),

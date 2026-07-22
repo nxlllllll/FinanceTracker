@@ -3,8 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FinanceTracker.Infrastructure.Database.Context.Idempotency;
 
-public sealed class IdempotentCommandEntityConfiguration
-	: IEntityTypeConfiguration<IdempotentCommandEntity>
+public sealed class IdempotentCommandEntityConfiguration : IEntityTypeConfiguration<IdempotentCommandEntity>
 {
 	public void Configure(EntityTypeBuilder<IdempotentCommandEntity> builder)
 	{
@@ -21,6 +20,9 @@ public sealed class IdempotentCommandEntityConfiguration
 
 		builder.Property(propertyExpression: e => e.UserId)
 			.HasColumnName(name: "user_id");
+
+		builder.Property(propertyExpression: e => e.ReservationId)
+			.HasColumnName(name: "reservation_id");
 
 		builder.Property(propertyExpression: e => e.ResponseJson)
 			.HasColumnName(name: "response_json")

@@ -21,9 +21,12 @@ public sealed class DeactivateRecurringTransactionHandler(
 		Core.Domains.RecurringTransaction.RecurringTransaction user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Deactivate();
+		Result<bool, DomainException> result = user.Deactivate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
+
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: user.Id);
 
 		await recurringTransactionWriteRepository.DeactivateAsync(
 			recurringTransactionId: command.RecurringTransactionId,

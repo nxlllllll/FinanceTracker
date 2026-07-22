@@ -23,6 +23,9 @@ public sealed class UnarchiveAccountHandler(
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
+		if (account.Events.Count == 0)
+			return Result<Guid, AppException>.Success(value: account.Id);
+
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await accountRepository.SaveAsync(account: account, ct: ct), ct: ct);
 
 		return Result<Guid, AppException>.Success(value: account.Id);

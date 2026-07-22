@@ -77,15 +77,15 @@ public sealed class CategoryTests
 	}
 
 	[Test]
-	public async Task Archive_AlreadyArchivedCategory_ShouldThrowArchivingException()
+	public async Task Archive_AlreadyArchivedCategory_ShouldReturnSuccessWithFalse()
 	{
 		Category category = CategoryFactory.Create().Value!;
 		category.Archive();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Archive();
+		Result<bool, DomainException> result = category.Archive();
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]
@@ -100,13 +100,13 @@ public sealed class CategoryTests
 	}
 
 	[Test]
-	public async Task Unarchive_ActiveCategory_ShouldThrowUnarchivingException()
+	public async Task Unarchive_ActiveCategory_ShouldReturnSuccessWithFalse()
 	{
 		Category category = CategoryFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Unarchive();
+		Result<bool, DomainException> result = category.Unarchive();
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<UnarchivingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 }
