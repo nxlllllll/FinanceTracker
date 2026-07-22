@@ -4,7 +4,7 @@ using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 using MediatR;
 
-namespace FinanceTracker.Application.UseCases.User.Queries.GetAccounts;
+namespace FinanceTracker.Application.UseCases.Account.Queries.GetAccounts;
 
 public sealed class GetAccountsHandler(
 	IAccountReadRepository accountReadRepository

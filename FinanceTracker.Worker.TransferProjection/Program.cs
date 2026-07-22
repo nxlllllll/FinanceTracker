@@ -1,4 +1,3 @@
-using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Configurations;

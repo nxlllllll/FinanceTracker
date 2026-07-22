@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using INotification = MediatR.INotification;
 
 namespace FinanceTracker.Worker.PermissionProjection.Projection.Notifications;

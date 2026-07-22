@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.ValueObjects;
+namespace FinanceTracker.Core.ValueObjects;
 
 public enum PermissionAction
 {

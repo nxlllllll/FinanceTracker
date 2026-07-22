@@ -1,16 +1,19 @@
 using System.Net;
 using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Repositories.Role;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -28,14 +31,22 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 		await _currencyBuilder.CreateAsync(code: "RUB");
 	}
 
-	private RegisterUserHandler BuildHandler(FinanceTracker.Infrastructure.Database.Context.FinanceTrackerContext context)
+	private RegisterUserHandler BuildHandler(
+		FinanceTracker.Infrastructure.Database.Context.FinanceTrackerContext context)
 	{
 		UserReadRepository readRepository = new UserReadRepository(context: context);
 		UserWriteRepository writeRepository = new UserWriteRepository(context: context);
 		EFUnitOfWork unitOfWork = new EFUnitOfWork(context: context, logger: NullLogger<EFUnitOfWork>.Instance);
+		RoleRepository roleRepository = new RoleRepository(context: context);
 
 		IPasswordHasher passwordHasher = Substitute.For<IPasswordHasher>();
 		passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: "hashed_password");
+
+		ISender sender = Substitute.For<ISender>();
+		sender.Send(
+			request: Arg.Any<AssignRoleToUserCommand>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<Core.Results.Unit, AppException>.Success(value: Core.Results.Unit.Default));
 
 		return new RegisterUserHandler(
 			userAuthRepository: readRepository,
@@ -44,6 +55,8 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 			unitOfWork: unitOfWork,
 			postCommitNotifications: Substitute.For<IPostCommitNotifications>(),
 			dateProvider: FakeDateProvider.Default,
+			roleRepository: roleRepository,
+			sender: sender,
 			logger: NullLogger<RegisterUserHandler>.Instance
 		);
 	}

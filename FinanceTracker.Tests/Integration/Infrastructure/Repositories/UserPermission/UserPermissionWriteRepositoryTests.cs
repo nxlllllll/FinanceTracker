@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.UserPermission.Events;
+using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;

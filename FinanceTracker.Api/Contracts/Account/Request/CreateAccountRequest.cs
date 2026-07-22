@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account;
 
 namespace FinanceTracker.Api.Contracts.Account.Request;
 

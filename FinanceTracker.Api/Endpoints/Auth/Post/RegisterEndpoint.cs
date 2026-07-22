@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Contracts.Abstractions;
+using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Api.Contracts.Auth.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
@@ -47,7 +47,8 @@ public sealed class RegisterEndpoint : IEndpoint
 			Password: request.Password,
 			BaseCurrencyCode: currency.Value!,
 			IpAddress: httpContext.GetClientIpAddress()
-		) { IdempotencyKey = idempotencyKey.Value };
+		)
+		{ IdempotencyKey = idempotencyKey.Value };
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 

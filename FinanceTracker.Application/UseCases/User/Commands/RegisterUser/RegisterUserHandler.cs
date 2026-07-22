@@ -1,15 +1,19 @@
 using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Password;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
+using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 
@@ -20,6 +24,8 @@ public sealed class RegisterUserHandler(
 	IUnitOfWork unitOfWork,
 	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider,
+	IRoleRepository roleRepository,
+	ISender sender,
 	ILogger<RegisterUserHandler> logger
 ) : IRequestHandler<RegisterUserCommand, Result<Guid, AppException>>
 {
@@ -70,6 +76,23 @@ public sealed class RegisterUserHandler(
 		));
 
 		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
+
+		RoleDto? defaultRole = await roleRepository.GetBySystemKeyAsync(systemKey: SystemRole.User, ct: ct);
+
+		if (defaultRole is null)
+		{
+			logger.ZLogWarning(message: $"System role 'user' not found — user {user.Id} was registered without a default role.");
+		}
+		else
+		{
+			Result<Unit, AppException> roleAssignResult = await sender.Send(
+				request: new AssignRoleToUserCommand(UserId: user.Id, RoleId: defaultRole.Id, AssignedBy: user.Id),
+				cancellationToken: ct
+			);
+
+			if (roleAssignResult.IsFailure)
+				logger.ZLogWarning(message: $"Failed to assign default 'user' role to {user.Id}: {roleAssignResult.Error!.Message}.");
+		}
 
 		return Result<Guid, AppException>.Success(value: user.Id);
 	}

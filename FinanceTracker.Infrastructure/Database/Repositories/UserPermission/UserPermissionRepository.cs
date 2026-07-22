@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;

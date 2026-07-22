@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.ValueObjects;

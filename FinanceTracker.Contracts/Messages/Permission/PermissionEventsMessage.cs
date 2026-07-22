@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 
 namespace FinanceTracker.Contracts.Messages.Permission;
 

@@ -2,8 +2,6 @@ using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
-using Microsoft.Extensions.Logging;
-using ZLogger;
 
 namespace FinanceTracker.Infrastructure.EventMapping.Integration;
 

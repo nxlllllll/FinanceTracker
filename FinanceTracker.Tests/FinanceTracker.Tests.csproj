@@ -20,6 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\FinanceTracker.Api\FinanceTracker.Api.csproj" />
         <ProjectReference Include="..\FinanceTracker.Application\FinanceTracker.Application.csproj" />
         <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
         <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 
 namespace FinanceTracker.Contracts.Events.UserPermission;
 

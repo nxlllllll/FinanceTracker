@@ -8,6 +8,7 @@ using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
+using FinanceTracker.Infrastructure.Database.Context.Role;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
 using FinanceTracker.Infrastructure.Database.Context.UnresolvableEvent;
@@ -49,6 +50,10 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 
 	public DbSet<RecurringTransactionEntity> RecurringTransactions => Set<RecurringTransactionEntity>();
 
+	public DbSet<RoleEntity> Roles => Set<RoleEntity>();
+
+	public DbSet<RolePermissionEntity> RolePermissions => Set<RolePermissionEntity>();
+
 	public DbSet<SnapshotEntity> Snapshots => Set<SnapshotEntity>();
 
 	public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
@@ -60,6 +65,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<UserEntity> Users => Set<UserEntity>();
 
 	public DbSet<UserPermissionEntity> UserPermissions => Set<UserPermissionEntity>();
+
+	public DbSet<UserRoleEntity> UserRoles => Set<UserRoleEntity>();
 
 	public DbSet<UserSessionEntity> UserSessions => Set<UserSessionEntity>();
 

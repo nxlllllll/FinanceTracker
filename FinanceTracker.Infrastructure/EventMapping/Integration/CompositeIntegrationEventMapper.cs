@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using Microsoft.Extensions.Logging;
 using ZLogger;

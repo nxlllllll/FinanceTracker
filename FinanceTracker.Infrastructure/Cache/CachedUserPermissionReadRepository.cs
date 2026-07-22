@@ -1,15 +1,12 @@
-﻿using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.Repositories.UserPermission;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;
 
 /// <summary>
-/// Decorator for <see cref="IUserPermissionReadRepository"/> that caches a user's permission set in
-/// Redis. Unlike currencies (24h TTL — rarely changes, safe to cache aggressively), authorization
-/// data needs a short TTL: a revoked permission must stop working promptly. Grant/revoke also
-/// invalidate this key directly (see <c>PermissionEventApplier</c>), so the TTL here is a safety
-/// net for the invalidation-miss case (e.g. Redis was down at revoke time), not the primary
-/// mechanism — hence short, not long.
+/// Decorator for <see cref="IUserPermissionReadRepository"/> that caches a user's
+/// permission set in Redis.Authorization data needs a short TTL: a revoked permission
+/// must stop working promptly. Grant/revoke also invalidate this key directly
 /// </summary>
 public sealed class CachedUserPermissionReadRepository(
 	IUserPermissionReadRepository inner,

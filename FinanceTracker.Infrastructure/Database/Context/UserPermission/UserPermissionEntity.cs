@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Context.UserPermission;
+namespace FinanceTracker.Infrastructure.Database.Context.UserPermission;
 
 public sealed class UserPermissionEntity
 {

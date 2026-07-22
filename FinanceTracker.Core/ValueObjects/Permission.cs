@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.ValueObjects;
@@ -56,6 +56,17 @@ public sealed record Permission
 	/// <summary>Reconstitutes without catalog validation — the value was already valid when the event was written.</summary>
 	public static Permission Reconstitute(Resource resource, PermissionAction action)
 		=> new Permission(resource: resource, action: action);
+
+	/// <summary>Reconstitutes without catalog validation — the value was already valid when the event was written.</summary>
+	public static Permission Reconstitute(string value)
+	{
+		string[] parts = value.Split(separator: ':', count: 2);
+
+		return new Permission(
+			resource: Enum.Parse<Resource>(value: parts[0], ignoreCase: true),
+			action: Enum.Parse<PermissionAction>(value: parts[1], ignoreCase: true)
+		);
+	}
 
 	public override string ToString() => $"{Resource}:{Action}".ToLowerInvariant();
 }
