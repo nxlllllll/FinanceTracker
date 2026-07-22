@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Auth;
+using FinanceTracker.Api.Auth;
 using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Api.Contracts.Account.Request;
 using FinanceTracker.Api.Infrastructure;
@@ -53,7 +53,8 @@ public sealed class CreateAccountEndpoint : IEndpoint
 			Type: request.Type,
 			Currency: currency.Value!,
 			InitialBalance: request.InitialBalance
-		) { IdempotencyKey = idempotencyKey.Value };
+		)
+		{ IdempotencyKey = idempotencyKey.Value };
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 

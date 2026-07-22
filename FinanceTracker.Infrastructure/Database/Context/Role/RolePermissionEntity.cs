@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Context.Role;
+namespace FinanceTracker.Infrastructure.Database.Context.Role;
 
 public sealed class RolePermissionEntity
 {

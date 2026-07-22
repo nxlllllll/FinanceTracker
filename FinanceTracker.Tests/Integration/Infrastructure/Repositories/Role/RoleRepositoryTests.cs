@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Role;
 using FinanceTracker.Tests.Integration._Shared.Builders;

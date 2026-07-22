@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Dtos;
+using FinanceTracker.Application.Dtos;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
@@ -34,7 +34,8 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 			Type: AccountType.Checking,
 			Currency: Currency.Create(value: "RUB").Value,
 			InitialBalance: balance
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 
 		Guid accountId = result.Value!;
 
@@ -77,7 +78,8 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 			Direction: direction,
 			Description: null,
 			OccurredAt: occurredAt
-		) { IdempotencyKey = Guid.CreateVersion7() };
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() };
 	}
 
 	[Test]

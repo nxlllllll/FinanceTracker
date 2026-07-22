@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Api.Infrastructure;
+namespace FinanceTracker.Api.Infrastructure;
 
 /// <summary>Identity of the authenticated caller, extracted from validated JWT claims.</summary>
 public interface ICurrentUserProvider

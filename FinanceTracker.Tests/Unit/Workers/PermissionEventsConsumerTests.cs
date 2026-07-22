@@ -1,5 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.Abstraction;
-using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.UserPermission.Events;

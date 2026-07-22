@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Role.Commands.RemoveRoleFromUser;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
 using FinanceTracker.Core.Exceptions;

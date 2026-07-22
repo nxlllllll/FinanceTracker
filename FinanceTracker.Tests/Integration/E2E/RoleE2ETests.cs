@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
+using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 using FinanceTracker.Application.UseCases.Role.Commands.CreateRole;
 using FinanceTracker.Application.UseCases.Role.Commands.RemoveRoleFromUser;
 using FinanceTracker.Application.UseCases.Role.Commands.UpdateRolePermissions;
@@ -12,7 +12,6 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;
-using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Tests.Integration.E2E;
 

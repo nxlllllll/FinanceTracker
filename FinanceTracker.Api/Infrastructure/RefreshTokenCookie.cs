@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Services.Token;
+using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Api.Infrastructure;

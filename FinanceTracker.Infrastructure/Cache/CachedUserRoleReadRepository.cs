@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Caching.Distributed;
 

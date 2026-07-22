@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Infrastructure;
+using FinanceTracker.Api.Infrastructure;
 
 namespace FinanceTracker.Api.Endpoints;
 

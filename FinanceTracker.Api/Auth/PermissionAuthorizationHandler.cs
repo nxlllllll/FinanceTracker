@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Services.Auth;
 using Microsoft.AspNetCore.Authorization;

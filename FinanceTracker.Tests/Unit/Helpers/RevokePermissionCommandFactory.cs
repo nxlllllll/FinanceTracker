@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
+using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;

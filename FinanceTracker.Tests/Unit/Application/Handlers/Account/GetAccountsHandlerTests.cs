@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.User.Queries.GetAccounts;
+using FinanceTracker.Application.UseCases.Account.Queries.GetAccounts;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;

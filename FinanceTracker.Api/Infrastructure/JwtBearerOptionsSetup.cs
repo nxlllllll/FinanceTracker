@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;

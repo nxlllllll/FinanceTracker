@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Contracts.Account.Request;
+using FinanceTracker.Api.Contracts.Account.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
 using FinanceTracker.Core.Exceptions;

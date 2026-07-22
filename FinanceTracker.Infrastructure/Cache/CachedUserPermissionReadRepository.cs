@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.Repositories.UserPermission;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace FinanceTracker.Infrastructure.Cache;

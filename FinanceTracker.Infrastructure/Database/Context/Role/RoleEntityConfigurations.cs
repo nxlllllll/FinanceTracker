@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

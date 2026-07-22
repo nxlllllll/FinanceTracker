@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Auth;
+namespace FinanceTracker.Core.Services.Auth;
 
 /// <summary>
 /// Identifies the omnipotent root user, who bypasses every permission check unconditionally

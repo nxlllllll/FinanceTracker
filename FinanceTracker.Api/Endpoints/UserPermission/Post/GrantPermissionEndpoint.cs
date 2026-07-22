@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Auth;
+using FinanceTracker.Api.Auth;
 using FinanceTracker.Api.Contracts.UserPermission.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;

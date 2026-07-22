@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Contracts.Abstractions;
+using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Core.Repositories.Role;
 
 namespace FinanceTracker.Api.Contracts.Role.Response;

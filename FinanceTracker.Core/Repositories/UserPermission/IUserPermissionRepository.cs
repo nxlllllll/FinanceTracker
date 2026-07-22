@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.UserPermission;
+namespace FinanceTracker.Core.Repositories.UserPermission;
 
 public interface IUserPermissionRepository
 {

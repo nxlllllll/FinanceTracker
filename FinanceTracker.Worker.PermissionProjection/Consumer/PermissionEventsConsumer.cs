@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Messages.Permission;
@@ -53,7 +53,7 @@ public sealed class PermissionEventsConsumer(
 						return;
 					}
 
-					List<IIntegrationEvent> events = [..message.Events.Select(selector: MapEnvelopeToIntegration)];
+					List<IIntegrationEvent> events = [.. message.Events.Select(selector: MapEnvelopeToIntegration)];
 
 					await projection.Handle(notification: new PermissionEventsNotification(UserId: message.AggregateId, Events: events), ct: innerCt);
 

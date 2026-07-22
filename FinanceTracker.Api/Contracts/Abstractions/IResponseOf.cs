@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Api.Contracts.Abstractions;
+namespace FinanceTracker.Api.Contracts.Abstractions;
 
 /// <summary>
 /// Declares that <typeparamref name="TResponse"/> is the HTTP

@@ -1,5 +1,4 @@
 using FinanceTracker.Application.Configurations;
-using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore;
