@@ -1,4 +1,6 @@
-﻿using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
+﻿using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.UseCases.Role.Notifications;
+using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Role;
@@ -13,6 +15,7 @@ namespace FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 public sealed class AssignRoleToUserHandler(
 	IRoleRepository roleRepository,
 	ISender sender,
+	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider
 ) : IRequestHandler<AssignRoleToUserCommand, Result<Unit, AppException>>
 {
@@ -39,6 +42,13 @@ public sealed class AssignRoleToUserHandler(
 				GrantedBy: command.AssignedBy
 			), cancellationToken: ct);
 		}
+
+		postCommitNotifications.Stage(notification: new RoleAssignedToUserNotification(
+			UserId: command.UserId,
+			RoleId: command.RoleId,
+			AssignedBy: command.AssignedBy,
+			OccurredAt: dateProvider.UtcNow
+		));
 
 		return Result<Unit, AppException>.Success(value: Unit.Default);
 	}

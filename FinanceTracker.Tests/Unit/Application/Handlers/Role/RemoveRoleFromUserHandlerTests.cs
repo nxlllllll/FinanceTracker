@@ -1,10 +1,12 @@
-﻿using FinanceTracker.Application.UseCases.Role.Commands.RemoveRoleFromUser;
+﻿using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.UseCases.Role.Commands.RemoveRoleFromUser;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using NSubstitute;
 
@@ -14,6 +16,7 @@ public sealed class RemoveRoleFromUserHandlerTests
 {
 	private IRoleRepository _roleRepository = null!;
 	private ISender _sender = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private RemoveRoleFromUserHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -25,8 +28,14 @@ public sealed class RemoveRoleFromUserHandlerTests
 			request: Arg.Any<RevokePermissionCommand>(),
 			cancellationToken: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
-		_handler = new RemoveRoleFromUserHandler(roleRepository: _roleRepository, sender: _sender);
+		_handler = new RemoveRoleFromUserHandler(
+			roleRepository: _roleRepository,
+			sender: _sender,
+			dateProvider: FakeDateProvider.Default,
+			postCommitNotifications: _postCommitNotifications
+		);
 	}
 
 	private static RoleDto BuildRole(Guid roleId, SystemRole? systemKey, params Permission[] permissions) => new RoleDto(
@@ -40,10 +49,7 @@ public sealed class RemoveRoleFromUserHandlerTests
 	public async Task Handle_WhenRoleNotFound_ShouldReturnFailure()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		_roleRepository.GetByIdAsync(
-			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (RoleDto?)null);
+		_roleRepository.GetByIdAsync(roleId: roleId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: (RoleDto?)null);
 
 		RemoveRoleFromUserCommand command = new RemoveRoleFromUserCommand(
 			UserId: Guid.CreateVersion7(),
@@ -88,7 +94,7 @@ public sealed class RemoveRoleFromUserHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_ForRootRole_WhenMultipleHoldersExist_ShouldSucceed()
+	public async Task Handle_WhenTargetEqualsRevokedBy_ShouldReturnFailureAndNotSave()
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid userId = Guid.CreateVersion7();
@@ -126,7 +132,11 @@ public sealed class RemoveRoleFromUserHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 1);
 
-		RemoveRoleFromUserCommand command = new RemoveRoleFromUserCommand(UserId: userId, RoleId: roleId, RemovedBy: Guid.CreateVersion7());
+		RemoveRoleFromUserCommand command = new RemoveRoleFromUserCommand(
+			UserId: userId,
+			RoleId: roleId,
+			RemovedBy: Guid.CreateVersion7()
+		);
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
@@ -136,6 +146,29 @@ public sealed class RemoveRoleFromUserHandlerTests
 			userId: Arg.Any<Guid>(),
 			roleId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_OnSuccess_ShouldStageRoleRemovedNotification()
+	{
+		Guid roleId = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+		_roleRepository.GetByIdAsync(
+			roleId: roleId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: BuildRole(roleId: roleId, systemKey: null));
+
+		RemoveRoleFromUserCommand command = new RemoveRoleFromUserCommand(
+			UserId: userId,
+			RoleId: roleId,
+			RemovedBy: Guid.CreateVersion7()
+		);
+
+		await _handler.Handle(command: command, ct: CancellationToken.None);
+
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Any<FinanceTracker.Application.UseCases.Role.Notifications.RoleRemovedFromUserNotification>()
 		);
 	}
 }

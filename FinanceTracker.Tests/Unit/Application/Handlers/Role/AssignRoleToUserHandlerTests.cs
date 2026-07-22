@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
+﻿using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Role;
@@ -14,6 +15,7 @@ public sealed class AssignRoleToUserHandlerTests
 {
 	private IRoleRepository _roleRepository = null!;
 	private ISender _sender = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private AssignRoleToUserHandler _handler = null!;
 
 	[Before(hookType: Test)]
@@ -25,11 +27,13 @@ public sealed class AssignRoleToUserHandlerTests
 			request: Arg.Any<GrantPermissionCommand>(),
 			cancellationToken: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_handler = new AssignRoleToUserHandler(
 			roleRepository: _roleRepository,
 			sender: _sender,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			postCommitNotifications: _postCommitNotifications
 		);
 	}
 
@@ -118,6 +122,29 @@ public sealed class AssignRoleToUserHandlerTests
 		await _sender.Received(requiredNumberOfCalls: 1).Send(
 			request: Arg.Is<GrantPermissionCommand>(predicate: c => c!.TargetUserId == userId && c.Permission == budgetWrite),
 			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_ShouldStageRoleAssignedNotification()
+	{
+		Guid roleId = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+		_roleRepository.GetByIdAsync(
+			roleId: roleId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: BuildRole(roleId: roleId));
+
+		AssignRoleToUserCommand command = new AssignRoleToUserCommand(
+			UserId: userId,
+			RoleId: roleId,
+			AssignedBy: Guid.CreateVersion7()
+		);
+
+		await _handler.Handle(command: command, ct: CancellationToken.None);
+
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Any<FinanceTracker.Application.UseCases.Role.Notifications.RoleAssignedToUserNotification>()
 		);
 	}
 }

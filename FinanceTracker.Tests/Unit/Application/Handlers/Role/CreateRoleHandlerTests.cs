@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Application.UseCases.Role.Commands.CreateRole;
+﻿using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.UseCases.Role.Commands.CreateRole;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
@@ -11,15 +12,18 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Role;
 public sealed class CreateRoleHandlerTests
 {
 	private IRoleRepository _roleRepository = null!;
+	private IPostCommitNotifications _postCommitNotifications = null!;
 	private CreateRoleHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_roleRepository = Substitute.For<IRoleRepository>();
+		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_handler = new CreateRoleHandler(
 			roleRepository: _roleRepository,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			postCommitNotifications: _postCommitNotifications
 		);
 	}
 
@@ -40,7 +44,10 @@ public sealed class CreateRoleHandlerTests
 			Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!
 		};
 
-		CreateRoleCommand command = new CreateRoleCommand(DisplayName: name, Permissions: permissions);
+		CreateRoleCommand command = new CreateRoleCommand(
+			DisplayName: name,
+			Permissions: permissions
+		);
 
 		Result<Guid, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
@@ -70,6 +77,29 @@ public sealed class CreateRoleHandlerTests
 			permissions: Arg.Any<IReadOnlySet<Permission>>(),
 			createdAt: FakeDateProvider.Default.UtcNow,
 			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_ShouldStageRoleCreatedNotification()
+	{
+		Guid expectedId = Guid.CreateVersion7();
+		_roleRepository.CreateAsync(
+			displayName: Arg.Any<Name>(),
+			permissions: Arg.Any<IReadOnlySet<Permission>>(),
+			createdAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: expectedId);
+
+		CreateRoleCommand command = new CreateRoleCommand(
+			DisplayName: Name.Create(value: "Support").Value!,
+			Permissions: new HashSet<Permission>()
+		);
+
+		await _handler.Handle(command: command, ct: CancellationToken.None);
+
+		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
+			notification: Arg.Any<FinanceTracker.Application.UseCases.Role.Notifications.RoleCreatedNotification>()
 		);
 	}
 }

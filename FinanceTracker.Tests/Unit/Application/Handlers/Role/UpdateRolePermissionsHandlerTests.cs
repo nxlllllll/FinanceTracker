@@ -151,6 +151,10 @@ public sealed class UpdateRolePermissionsHandlerTests
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _roleRepository.Received(requiredNumberOfCalls: 1).ReplacePermissionsAsync(roleId: roleId, permissions: newPermissions, ct: Arg.Any<CancellationToken>());
+		await _roleRepository.Received(requiredNumberOfCalls: 1).ReplacePermissionsAsync(
+			roleId: roleId,
+			permissions: newPermissions,
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }
