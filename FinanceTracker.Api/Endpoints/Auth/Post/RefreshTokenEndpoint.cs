@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Contracts.Auth.Response;
+using FinanceTracker.Api.Contracts.Auth.Response;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 using FinanceTracker.Core.Exceptions;

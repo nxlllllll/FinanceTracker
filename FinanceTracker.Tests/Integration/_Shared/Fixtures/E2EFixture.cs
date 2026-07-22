@@ -1,6 +1,5 @@
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Application.UseCases.Transaction.Services;
-using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;

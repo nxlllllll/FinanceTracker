@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 

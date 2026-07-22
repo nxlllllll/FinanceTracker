@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Contracts.Account.Response;
+using FinanceTracker.Api.Contracts.Account.Response;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.Account.Queries.GetAccount;
 using FinanceTracker.Core.Exceptions;

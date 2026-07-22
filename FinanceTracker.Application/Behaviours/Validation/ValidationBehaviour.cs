@@ -24,7 +24,7 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
-		IValidator<TRequest>[] validatorsArray = validators as IValidator<TRequest>[] ?? [..validators];
+		IValidator<TRequest>[] validatorsArray = validators as IValidator<TRequest>[] ?? [.. validators];
 		if (validatorsArray.Length == 0)
 			return await next(t: cancellationToken);
 

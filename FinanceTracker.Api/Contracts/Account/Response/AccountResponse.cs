@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Contracts.Abstractions;
+using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ValueObjects;

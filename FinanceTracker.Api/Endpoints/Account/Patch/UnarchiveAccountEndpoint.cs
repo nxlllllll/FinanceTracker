@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Infrastructure;
+using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.Account.Commands.UnarchiveAccount;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;

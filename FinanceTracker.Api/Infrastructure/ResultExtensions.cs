@@ -1,8 +1,6 @@
-﻿using System.Net;
 using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 

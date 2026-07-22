@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Auth;
+using FinanceTracker.Api.Auth;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
 using FinanceTracker.Core.Exceptions;

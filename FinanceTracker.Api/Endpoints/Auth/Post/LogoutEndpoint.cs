@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Infrastructure;
+using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.User.Commands.RevokeToken;
 using MediatR;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
@@ -13,7 +13,7 @@ public sealed class LogoutEndpoint : IEndpoint
 			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Log out")
 			.WithDescription(description: "Revokes the current session and clears the refresh token cookie. Idempotent.")
-			.Produces(statusCode: StatusCodes.Status204NoContent);;
+			.Produces(statusCode: StatusCodes.Status204NoContent); ;
 	}
 
 	private static async Task<IHttpResult> HandleAsync(

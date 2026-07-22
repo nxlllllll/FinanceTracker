@@ -88,7 +88,8 @@ public sealed class TransactionCreationServiceTests
 			userId: userId,
 			type: type,
 			archived: archived
-		) with { Id = categoryId ?? Guid.CreateVersion7() };
+		) with
+		{ Id = categoryId ?? Guid.CreateVersion7() };
 
 		_categoryReadRepository.GetByIdAsync(
 			categoryId: Arg.Any<Guid>(),

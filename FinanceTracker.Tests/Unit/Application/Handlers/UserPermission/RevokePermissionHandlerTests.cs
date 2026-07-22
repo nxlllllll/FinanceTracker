@@ -1,9 +1,10 @@
-﻿using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
+using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -15,21 +16,26 @@ public sealed class RevokePermissionHandlerTests
 	private IUserPermissionRepository _userPermissionRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private RevokePermissionHandler _handler = null!;
+	private IRootAuthority _rootAuthority = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_userPermissionRepository = Substitute.For<IUserPermissionRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_rootAuthority = Substitute.For<IRootAuthority>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
+		_rootAuthority.IsRootAsync(userId: Arg.Any<Guid>()).Returns(returnThis: false);
+
 		_handler = new RevokePermissionHandler(
 			userPermissionRepository: _userPermissionRepository,
 			unitOfWork: _unitOfWork,
+			rootAuthority: _rootAuthority,
 			dateProvider: FakeDateProvider.Default
 		);
 	}
@@ -98,5 +104,26 @@ public sealed class RevokePermissionHandlerTests
 			userPermission: Arg.Any<FinanceTracker.Core.Domains.UserPermission.UserPermission>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task Handle_WhenTargetEqualsGrantedByButUserIsRoot_ShouldSucceed()
+	{
+		Guid rootUserId = Guid.CreateVersion7();
+		IRootAuthority rootAuthority = Substitute.For<IRootAuthority>();
+		rootAuthority.IsRootAsync(userId: rootUserId).Returns(returnThis: true);
+
+		RevokePermissionHandler handler = new RevokePermissionHandler(
+			userPermissionRepository: _userPermissionRepository,
+			unitOfWork: _unitOfWork,
+			dateProvider: FakeDateProvider.Default,
+			rootAuthority: rootAuthority
+		);
+
+		RevokePermissionCommand command = RevokePermissionCommandFactory.Create(targetUserId: rootUserId, revokedBy: rootUserId);
+
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await handler.Handle(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 }

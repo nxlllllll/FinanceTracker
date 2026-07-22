@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.ValueObjects;
+namespace FinanceTracker.Core.ValueObjects;
 
 /// <summary>
 /// A permission-checkable resource. Adding a new value here is a code change on its own —

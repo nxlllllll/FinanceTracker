@@ -1,16 +1,14 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace FinanceTracker.Api.Auth;
 
-/// <summary>
-/// Checks the current user's permission set (via the cached <see cref="IUserPermissionReadRepository"/>)
-/// against a required <see cref="PermissionRequirement"/>
-/// </summary>
 public sealed class PermissionAuthorizationHandler(
-	IUserPermissionReadRepository permissionReadRepository
+	IUserPermissionReadRepository permissionReadRepository,
+	IRootAuthority rootAuthority
 ) : AuthorizationHandler<PermissionRequirement>
 {
 	protected override async Task HandleRequirementAsync(
@@ -21,7 +19,14 @@ public sealed class PermissionAuthorizationHandler(
 		if (!Guid.TryParse(input: sub, result: out Guid userId))
 			return;
 
+		if (await rootAuthority.IsRootAsync(userId: userId))
+		{
+			context.Succeed(requirement: requirement);
+			return;
+		}
+
 		IReadOnlySet<string> permissions = await permissionReadRepository.GetPermissionsAsync(userId: userId);
+
 		if (permissions.Contains(item: requirement.Permission))
 			context.Succeed(requirement: requirement);
 	}

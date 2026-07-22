@@ -36,7 +36,11 @@ public sealed class Program
 
 		builder.Services.AddAuthentication(defaultScheme: JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 		builder.Services.ConfigureOptions<JwtBearerOptionsSetup>();
-		builder.Services.AddAuthorization();
+		builder.Services.AddAuthorizationBuilder().AddPolicy(
+			name: AuthorizationExtensions.RootPolicyName,
+			configurePolicy: policy => policy.AddRequirements(requirements: new RootRequirement())
+		);
+		builder.Services.AddScoped<IAuthorizationHandler, RootAuthorizationHandler>();
 		builder.Services.AddHttpContextAccessor();
 		builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
 

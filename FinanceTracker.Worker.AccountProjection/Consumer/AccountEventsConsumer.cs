@@ -53,7 +53,7 @@ public sealed class AccountEventsConsumer(
 						return;
 					}
 
-					List<IIntegrationEvent> events = [..message.Events.Select(selector: MapEnvelopeToIntegration)];
+					List<IIntegrationEvent> events = [.. message.Events.Select(selector: MapEnvelopeToIntegration)];
 
 					await projection.Handle(notification: new AccountEventsNotification(AccountId: message.AggregateId, Events: events), ct: innerCt);
 

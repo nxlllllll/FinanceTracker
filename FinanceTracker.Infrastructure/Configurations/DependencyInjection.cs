@@ -14,6 +14,7 @@ using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.Snapshot;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -42,6 +43,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
+using FinanceTracker.Infrastructure.Database.Repositories.Role;
 using FinanceTracker.Infrastructure.Database.Repositories.Snapshot;
 using FinanceTracker.Infrastructure.Database.Repositories.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
@@ -132,6 +134,13 @@ public static class DependencyInjection
 			logger: s.GetRequiredService<ILogger<IntegrationEventTypeResolver>>()
 		));
 
+		services.AddOptions<AuthorizationOptions>()
+			.BindConfiguration(configSectionPath: AuthorizationOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddScoped<IRootAuthority, RoleBasedRootAuthority>();
+
 		services.Scan(action: scan => scan
 			.FromAssemblyOf<EventUpcasterRegistry>()
 			.AddClasses(action: classes => classes.AssignableTo(typeof(EventUpcaster<,>)))
@@ -214,6 +223,11 @@ public static class DependencyInjection
 		services.AddScoped<IOutboxReadRepository, OutboxReadRepository>();
 		services.AddScoped<IOutboxWriteRepository, OutboxWriteRepository>();
 
+		// Role
+		services.AddScoped<IRoleRepository, RoleRepository>();
+		services.AddScoped<IUserRoleReadRepository, UserRoleReadRepository>();
+		services.Decorate<IUserRoleReadRepository, CachedUserRoleReadRepository>();
+
 		// Snapshot
 		services.AddScoped<ISnapshotWriteRepository, SnapshotWriteRepository>();
 
@@ -223,11 +237,8 @@ public static class DependencyInjection
 		// UserPermission
 		services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
 		services.AddScoped<IUserPermissionWriteRepository, UserPermissionWriteRepository>();
-		services.AddScoped<UserPermissionReadRepository>();
-		services.AddScoped<IUserPermissionReadRepository>(implementationFactory: sp => new CachedUserPermissionReadRepository(
-			inner: sp.GetRequiredService<UserPermissionReadRepository>(),
-			redisCache: sp.GetRequiredService<RedisCache>()
-		));
+		services.AddScoped<IUserPermissionReadRepository, UserPermissionReadRepository>();
+		services.Decorate<IUserPermissionReadRepository, CachedUserPermissionReadRepository>();
 
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();

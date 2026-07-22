@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.UserPermission;
+using FinanceTracker.Core.Domains.UserPermission;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;

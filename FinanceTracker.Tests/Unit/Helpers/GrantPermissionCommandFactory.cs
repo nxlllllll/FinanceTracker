@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
+using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Tests.Unit.Helpers;

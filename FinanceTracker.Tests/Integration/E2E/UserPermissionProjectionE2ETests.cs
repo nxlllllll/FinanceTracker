@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
+using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
@@ -7,7 +7,6 @@ using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;
-using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Tests.Integration.E2E;
 
