@@ -1,4 +1,5 @@
 using System.Net.Mime;
+using FinanceTracker.Core.Services.Correlation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using ZLogger;
@@ -43,6 +44,10 @@ public sealed class GlobalExceptionHandler(
 	{
 		logAction();
 
+		ICorrelationContext correlationContext = httpContext.RequestServices.GetRequiredService<ICorrelationContext>();
+
+		string traceId = correlationContext.CorrelationId != Guid.Empty ? correlationContext.CorrelationId.ToString() : httpContext.TraceIdentifier;
+
 		httpContext.Response.StatusCode = statusCode;
 
 		await httpContext.Response.WriteAsJsonAsync(
@@ -50,7 +55,8 @@ public sealed class GlobalExceptionHandler(
 			{
 				Status = statusCode,
 				Title = title,
-				Detail = detail
+				Detail = detail,
+				Extensions = { ["traceId"] = traceId }
 			},
 			options: null,
 			contentType: MediaTypeNames.Application.ProblemJson,
