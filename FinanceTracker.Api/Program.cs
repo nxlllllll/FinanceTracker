@@ -48,6 +48,9 @@ public sealed class Program
 		builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 		builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenProblemDetailsAuthorizationMiddlewareResultHandler>();
 
+		builder.Services.Configure<ProxyOptions>(config: builder.Configuration.GetSection(key: "Proxy"));
+		builder.Services.ConfigureOptions<ForwardedHeadersOptionsSetup>();
+
 		builder.Services.AddOpenApi(configureOptions: options =>
 		{
 			options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
@@ -60,6 +63,8 @@ public sealed class Program
 		});
 
 		WebApplication app = builder.Build();
+
+		app.UseForwardedHeaders();
 
 		app.UseExceptionHandler();
 
