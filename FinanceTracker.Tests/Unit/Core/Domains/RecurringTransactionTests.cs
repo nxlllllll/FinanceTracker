@@ -62,14 +62,14 @@ public sealed class RecurringTransactionTests
 	}
 
 	[Test]
-	public async Task Activate_WhenAlreadyActive_ShouldThrowActivatingException()
+	public async Task Activate_WhenAlreadyActive_ShouldReturnSuccessWithFalse()
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.Activate();
+		Result<bool, DomainException> result = rt.Activate();
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]
@@ -83,14 +83,14 @@ public sealed class RecurringTransactionTests
 	}
 
 	[Test]
-	public async Task Deactivate_WhenAlreadyInactive_ShouldThrowDeactivatingException()
+	public async Task Deactivate_WhenAlreadyInactive_ShouldReturnSuccessWithFalse()
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.Deactivate();
+		Result<bool, DomainException> result = rt.Deactivate();
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<DeactivatingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]

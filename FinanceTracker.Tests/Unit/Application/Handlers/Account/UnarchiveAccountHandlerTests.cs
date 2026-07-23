@@ -51,7 +51,7 @@ public sealed class UnarchiveAccountHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAccountAlreadyActive_ShouldReturnUnarchivingException()
+	public async Task HandleAsync_WhenAccountAlreadyActive_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation();
 
@@ -61,7 +61,23 @@ public sealed class UnarchiveAccountHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<UnarchivingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenAccountAlreadyActive_ShouldNotSaveAccount()
+	{
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation();
+
+		await _handler.HandleAsync(
+			command: new UnarchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
+			account: account,
+			ct: CancellationToken.None
+		);
+
+		await _accountRepository.DidNotReceive().SaveAsync(
+			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

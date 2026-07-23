@@ -89,15 +89,17 @@ public sealed class AccountTests
 	}
 
 	[Test]
-	public async Task Archive_AlreadyArchivedAccount_ShouldThrowArchivingException()
+	public async Task Archive_AlreadyArchivedAccount_ShouldReturnSuccessWithoutRaisingEvent()
 	{
 		Account account = AccountFactory.Create().Value!;
-
 		account.Archive(occurredAt: Now);
+		account.ClearEvents();
+
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Archive(occurredAt: Now);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: account.IsArchived).IsTrue();
+		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
 	}
 
 	[Test]
@@ -112,14 +114,16 @@ public sealed class AccountTests
 	}
 
 	[Test]
-	public async Task Unarchive_ActiveAccount_ShouldThrowUnarchivingException()
+	public async Task Unarchive_ActiveAccount_ShouldReturnSuccessWithoutRaisingEvent()
 	{
 		Account account = AccountFactory.Create().Value!;
+		account.ClearEvents();
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Unarchive(occurredAt: Now);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<UnarchivingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: account.IsArchived).IsFalse();
+		await Assert.That(value: account.Events).Count().IsEqualTo(expected: 0);
 	}
 
 	[Test]

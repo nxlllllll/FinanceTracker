@@ -50,6 +50,8 @@ public static class DependencyInjection
 		services.AddScoped<IPostCommitNotifications>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
 		services.AddScoped<IPostCommitNotificationSink>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
 
+		services.AddScoped<IIdempotencyReservationCoordinator, IdempotencyReservationCoordinator>();
+
 		services.AddScoped<ITransactionCreationService, TransactionCreationService>();
 
 		services.AddMediatR(configuration: cfg =>

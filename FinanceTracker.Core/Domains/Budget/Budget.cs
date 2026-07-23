@@ -106,21 +106,21 @@ public sealed class Budget
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	public Result<Unit, DomainException> Activate()
+	public Result<bool, DomainException> Activate()
 	{
 		if (IsActive)
-			return Result<Unit, DomainException>.Failure(error: new ActivatingException(message: "Budget is already active."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsActive = true;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> Deactivate()
+	public Result<bool, DomainException> Deactivate()
 	{
 		if (!IsActive)
-			return Result<Unit, DomainException>.Failure(error: new DeactivatingException(message: "Budget is already inactive."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsActive = false;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 }

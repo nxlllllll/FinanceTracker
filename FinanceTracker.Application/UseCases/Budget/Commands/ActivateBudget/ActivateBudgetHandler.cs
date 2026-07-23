@@ -24,9 +24,12 @@ public sealed class ActivateBudgetHandler(
 		Core.Domains.Budget.Budget user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Activate();
+		Result<bool, DomainException> result = user.Activate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
+
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: user.Id);
 
 		bool hasOverlap;
 

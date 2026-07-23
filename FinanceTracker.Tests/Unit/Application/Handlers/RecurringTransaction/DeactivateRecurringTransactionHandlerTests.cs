@@ -63,7 +63,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyInactive_ShouldReturnFailure()
+	public async Task HandleAsync_WhenAlreadyInactive_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: false).Value!;
 
@@ -73,7 +73,7 @@ public sealed class DeactivateRecurringTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]

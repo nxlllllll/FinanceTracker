@@ -29,7 +29,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyActive_ShouldReturnFailure()
+	public async Task HandleAsync_WhenAlreadyActive_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create(isActive: true).Value!;
 
@@ -39,8 +39,7 @@ public sealed class ActivateRecurringTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]

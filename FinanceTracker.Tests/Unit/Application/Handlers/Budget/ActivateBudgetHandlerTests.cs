@@ -125,7 +125,7 @@ public sealed class ActivateBudgetHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenBudgetAlreadyActive_ShouldReturnFailure()
+	public async Task HandleAsync_WhenBudgetAlreadyActive_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 
@@ -135,8 +135,7 @@ public sealed class ActivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ActivatingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]

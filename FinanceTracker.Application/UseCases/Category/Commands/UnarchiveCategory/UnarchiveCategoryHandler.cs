@@ -21,9 +21,12 @@ public sealed class UnarchiveCategoryHandler(
 		Core.Domains.Category.Category user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Unarchive();
+		Result<bool, DomainException> result = user.Unarchive();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
+
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: user.Id);
 
 		await categoryWriteRepository.UnarchiveAsync(categoryId: command.CategoryId, expectedVersion: user.RowVersion, ct: ct);
 
