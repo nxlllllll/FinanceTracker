@@ -1,5 +1,5 @@
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Events.Abstraction;
-using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Repositories.UserPermission;
@@ -82,9 +82,9 @@ public sealed class PermissionEventsConsumerTests : DatabaseFixture
 		);
 	}
 
-	private static PermissionEventsMessage BuildMessage(Guid? messageId = null, Guid? aggregateId = null)
+	private static AggregateEventsMessage BuildMessage(Guid? messageId = null, Guid? aggregateId = null)
 	{
-		return new PermissionEventsMessage(
+		return new AggregateEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: aggregateId ?? Guid.CreateVersion7(),
 			AggregateType: AggregateTypeNames.UserPermission,
@@ -95,7 +95,7 @@ public sealed class PermissionEventsConsumerTests : DatabaseFixture
 
 	[Test]
 	public async Task PermissionEventsConsumer_ShouldImplement_IMessageHandler()
-		=> await Assert.That(value: _consumer is IMessageHandler<PermissionEventsMessage> result).IsTrue();
+		=> await Assert.That(value: _consumer is IMessageHandler<AggregateEventsMessage> result).IsTrue();
 
 	[Test]
 	public async Task HandleAsync_WhenMessageNotProcessed_ShouldSaveProcessedMessage()
@@ -157,7 +157,7 @@ public sealed class PermissionEventsConsumerTests : DatabaseFixture
 	[Test]
 	public async Task HandleAsync_WhenCalledTwiceWithSameId_ShouldSaveProcessedMessageOnce()
 	{
-		PermissionEventsMessage message = BuildMessage();
+		AggregateEventsMessage message = BuildMessage();
 
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);

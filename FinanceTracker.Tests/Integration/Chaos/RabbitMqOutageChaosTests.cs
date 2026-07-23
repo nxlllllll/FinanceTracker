@@ -113,12 +113,12 @@ public sealed class RabbitMqOutageChaosTests
 	}
 }
 
-[RoutingKey(routingKey: "chaos.test")]
 public sealed record ChaosTestMessage(Guid MessageId) : IRoutableMessage
 {
 	public string RoutingKey => "chaos.test";
 }
 
+[RoutingKey(routingKey: "chaos.test")]
 public sealed class ChaosTestMessageHandler : IMessageHandler<ChaosTestMessage>
 {
 	public static readonly ConcurrentBag<Guid> Received = [];
