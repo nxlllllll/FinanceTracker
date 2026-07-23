@@ -66,6 +66,8 @@ public sealed class Program
 
 		app.UseForwardedHeaders();
 
+		app.UseCorrelationIdMiddleware();
+
 		app.UseExceptionHandler();
 
 		app.UseAuthentication();
