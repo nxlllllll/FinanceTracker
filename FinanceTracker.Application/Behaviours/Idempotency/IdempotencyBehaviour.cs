@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Converters.Json;
@@ -6,21 +5,16 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Utilities.Retry;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ZLogger;
 
 namespace FinanceTracker.Application.Behaviours.Idempotency;
 
 public sealed class IdempotencyBehaviour<TRequest, TResponse>(
-	IIdempotencyReadRepository idempotencyReadRepository,
+	IIdempotencyReservationCoordinator coordinator,
 	IIdempotencyWriteRepository idempotencyWriteRepository,
 	IUnitOfWork unitOfWork,
-	IOptionsMonitor<IdempotencyOptions> options,
-	IDateProvider dateProvider,
 	ILogger<IdempotencyBehaviour<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : notnull
@@ -45,51 +39,43 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		string commandType = typeof(TRequest).Name;
 		Guid userId = request is IUserScopedRequest scoped ? scoped.UserId : Guid.Empty;
 
-		IdempotencyOptions currentOptions = options.CurrentValue;
-		DateTimeOffset now = dateProvider.UtcNow;
-
-		IdempotencyEntry? entry = await idempotencyReadRepository.GetAsync(
+		IdempotencyAcquisition acquisition = await coordinator.AcquireAsync(
 			idempotencyKey: idempotent.IdempotencyKey,
 			commandType: commandType,
 			userId: userId,
 			ct: cancellationToken
 		);
 
-		if (entry is not null)
+		if (acquisition.Kind == IdempotencyAcquisitionKind.CachedResponse)
 		{
-			return await HandleExistingEntryAsync(
-				entry: entry,
-				idempotent: idempotent,
-				commandType: commandType,
-				userId: userId,
-				options: currentOptions,
-				now: now,
-				cancellationToken: cancellationToken
-			);
+			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {typeof(TRequest).Name} (key: {idempotent.IdempotencyKey}).");
+			return JsonSerializer.Deserialize<TResponse>(
+				json: acquisition.CachedResponseJson!,
+				options: FinanceTrackerJsonOptions.Application
+			)!;
 		}
 
-		DateTimeOffset expiresAt = now.AddHours(hours: currentOptions.ExpiryHours);
-		bool reserved = await idempotencyWriteRepository.TryReserveAsync(
-			idempotencyKey: idempotent.IdempotencyKey,
+		if (acquisition.Kind == IdempotencyAcquisitionKind.Failed)
+			return TResponse.CreateFailure(error: acquisition.Error!);
+
+		return await ExecuteAndCompleteAsync(
+			idempotent: idempotent,
 			commandType: commandType,
 			userId: userId,
-			reservedAt: now,
-			expiresAt: expiresAt,
-			ct: cancellationToken
+			reservationId: acquisition.ReservationId,
+			next: next,
+			cancellationToken: cancellationToken
 		);
+	}
 
-		if (!reserved)
-		{
-			logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} is in-flight, waiting for result.");
-			return await PollForCompletionAsync(
-				idempotent: idempotent,
-				commandType: commandType,
-				userId: userId,
-				options: currentOptions,
-				cancellationToken: cancellationToken
-			);
-		}
-
+	private async Task<TResponse> ExecuteAndCompleteAsync(
+		IIdempotentCommand idempotent,
+		string commandType,
+		Guid userId,
+		Guid reservationId,
+		RequestHandlerDelegate<TResponse> next,
+		CancellationToken cancellationToken)
+	{
 		TResponse response;
 		try
 		{
@@ -99,24 +85,49 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
 				if (result is IResult { IsSuccess: true })
 				{
-					await idempotencyWriteRepository.CompleteAsync(
+					bool completed = await idempotencyWriteRepository.CompleteAsync(
 						idempotencyKey: idempotent.IdempotencyKey,
 						commandType: commandType,
 						userId: userId,
+						reservationId: reservationId,
 						responseJson: JsonSerializer.Serialize(value: result, options: FinanceTrackerJsonOptions.Application),
 						ct: cancellationToken
 					);
+
+					if (!completed)
+					{
+						throw new IdempotencyReservationLostException(
+							message: $"Idempotency key {idempotent.IdempotencyKey} was reclaimed by another request before this one could complete."
+						);
+					}
 				}
 
 				return result;
 			}, ct: cancellationToken);
 		}
-		catch
+		catch (IdempotencyReservationLostException ex)
 		{
-			await idempotencyWriteRepository.DeleteAsync(
-				idempotencyKey: idempotent.IdempotencyKey,
+			await ReleaseAsync(
+				idempotent: idempotent,
 				commandType: commandType,
 				userId: userId,
+				reservationId: reservationId,
+				ct: CancellationToken.None
+			);
+
+			logger.ZLogWarning(message: $"""
+				[Idempotency] Key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} was reclaimed mid-flight — the underlying change was rolled back.
+			""");
+
+			return TResponse.CreateFailure(error: ex);
+		}
+		catch
+		{
+			await ReleaseAsync(
+				idempotent: idempotent,
+				commandType: commandType,
+				userId: userId,
+				reservationId: reservationId,
 				ct: CancellationToken.None
 			);
 
@@ -127,131 +138,34 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
 		if (response is IResult { IsSuccess: true })
 		{
-			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} (expires: {expiresAt:O}).");
+			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {typeof(TRequest).Name}.");
+			return response;
 		}
-		else
-		{
-			await idempotencyWriteRepository.DeleteAsync(
-				idempotencyKey: idempotent.IdempotencyKey,
-				commandType: commandType,
-				userId: userId,
-				ct: cancellationToken
-			);
 
-			logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} — command failed, client may retry.");
-		}
+		await ReleaseAsync(
+			idempotent: idempotent,
+			commandType: commandType,
+			userId: userId,
+			reservationId: reservationId,
+			ct: cancellationToken
+		);
+
+		logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} — command failed, client may retry.");
 
 		return response;
 	}
 
-	private async Task<TResponse> HandleExistingEntryAsync(
-		IdempotencyEntry entry,
+	private Task ReleaseAsync(
 		IIdempotentCommand idempotent,
 		string commandType,
 		Guid userId,
-		IdempotencyOptions options,
-		DateTimeOffset now,
-		CancellationToken cancellationToken)
-	{
-		if (!String.IsNullOrWhiteSpace(value: entry.ResponseJson))
-		{
-			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {typeof(TRequest).Name} (key: {idempotent.IdempotencyKey}).");
-			return JsonSerializer.Deserialize<TResponse>(json: entry.ResponseJson, options: FinanceTrackerJsonOptions.Application)!;
-		}
-
-		TimeSpan age = now - entry.ReservedAt;
-		if (age.TotalSeconds >= options.AbandonedAfterSeconds)
-		{
-			logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} is abandoned (age: {age.TotalSeconds:F0}s). Deleting and retrying.");
-
-			await idempotencyWriteRepository.DeleteAsync(
-				idempotencyKey: idempotent.IdempotencyKey,
-				commandType: commandType,
-				userId: userId,
-				ct: cancellationToken
-			);
-
-			return TResponse.CreateFailure(error: new IdempotencyAbandonedException(
-				message: $"Idempotency key {idempotent.IdempotencyKey} was abandoned. The original request did not complete. Please retry.")
-			);
-		}
-
-		logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} is in-flight (age: {age.TotalSeconds:F0}s), waiting for result.");
-		return await PollForCompletionAsync(
-			idempotent: idempotent,
-			commandType: commandType,
-			userId: userId,
-			options: options,
-			cancellationToken: cancellationToken
-		);
-	}
-
-	private async Task<TResponse> PollForCompletionAsync(
-		IIdempotentCommand idempotent,
-		string commandType,
-		Guid userId,
-		IdempotencyOptions options,
-		CancellationToken cancellationToken)
-	{
-		int attempt = 0;
-
-		Stopwatch stopwatch = Stopwatch.StartNew();
-		while (stopwatch.ElapsedMilliseconds < options.InFlightMaxWaitMs)
-		{
-			int delay = Math.Min(
-				val1: RetryDelayCalculator.Calculate(
-					attempt: attempt,
-					baseDelayMs: options.InFlightInitialDelayMs,
-					useJitter: options.UseJitter
-				),
-				val2: options.InFlightMaxDelayMs
-			);
-
-			await Task.Delay(millisecondsDelay: delay, cancellationToken);
-			++attempt;
-
-			IdempotencyEntry? entry = await idempotencyReadRepository.GetAsync(
-				idempotencyKey: idempotent.IdempotencyKey,
-				commandType: commandType,
-				userId: userId,
-				ct: cancellationToken
-			);
-
-			if (entry is null)
-			{
-				logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} disappeared during poll — likely abandoned and deleted by another request.");
-				return TResponse.CreateFailure(error: new IdempotencyAbandonedException(
-					message: $"Idempotency key {idempotent.IdempotencyKey} was abandoned during processing. Please retry.")
-				);
-			}
-
-			if (!String.IsNullOrWhiteSpace(value: entry.ResponseJson))
-			{
-				logger.ZLogInformation(message: $"[Idempotency] Key {idempotent.IdempotencyKey} completed after {stopwatch.ElapsedMilliseconds}ms wait.");
-				return JsonSerializer.Deserialize<TResponse>(json: entry.ResponseJson, options: FinanceTrackerJsonOptions.Application)!;
-			}
-
-			TimeSpan age = dateProvider.UtcNow - entry.ReservedAt;
-			if (!(age.TotalSeconds >= options.AbandonedAfterSeconds))
-				continue;
-
-			logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} became abandoned during poll (age: {age.TotalSeconds:F0}s). Deleting.");
-
-			await idempotencyWriteRepository.DeleteAsync(
-				idempotencyKey: idempotent.IdempotencyKey,
-				commandType: commandType,
-				userId: userId,
-				ct: cancellationToken
-			);
-
-			return TResponse.CreateFailure(error: new IdempotencyAbandonedException(
-				message: $"Idempotency key {idempotent.IdempotencyKey} was abandoned. The original request did not complete. Please retry.")
-			);
-		}
-
-		logger.ZLogWarning(message: $"[Idempotency] Key {idempotent.IdempotencyKey} timed out waiting for in-flight result after {options.InFlightMaxWaitMs}ms.");
-		return TResponse.CreateFailure(error: new IdempotencyTimeoutException(
-			message: $"Idempotency key {idempotent.IdempotencyKey} timed out waiting for an in-flight request to complete.")
-		);
-	}
+		Guid reservationId,
+		CancellationToken ct
+	) => idempotencyWriteRepository.DeleteAsync(
+		idempotencyKey: idempotent.IdempotencyKey,
+		commandType: commandType,
+		userId: userId,
+		reservationId: reservationId,
+		ct: ct
+	);
 }

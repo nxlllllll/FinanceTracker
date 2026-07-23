@@ -63,7 +63,7 @@ public sealed class DeactivateBudgetHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenBudgetAlreadyInactive_ShouldReturnFailure()
+	public async Task HandleAsync_WhenBudgetAlreadyInactive_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();
@@ -74,8 +74,7 @@ public sealed class DeactivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<DeactivatingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]

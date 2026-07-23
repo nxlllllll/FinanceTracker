@@ -74,21 +74,21 @@ public sealed class Category
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	public Result<Unit, DomainException> Archive()
+	public Result<bool, DomainException> Archive()
 	{
 		if (IsArchived)
-			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "The category has already been archived before."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsArchived = true;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> Unarchive()
+	public Result<bool, DomainException> Unarchive()
 	{
 		if (!IsArchived)
-			return Result<Unit, DomainException>.Failure(error: new UnarchivingException(message: "The category is already active."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsArchived = false;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 }

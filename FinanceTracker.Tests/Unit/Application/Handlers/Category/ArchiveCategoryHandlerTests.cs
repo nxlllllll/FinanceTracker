@@ -120,7 +120,7 @@ public sealed class ArchiveCategoryHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenCategoryAlreadyArchived_ShouldReturnFailure()
+	public async Task HandleAsync_WhenCategoryAlreadyArchived_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create(archived: true).Value!;
 
@@ -130,8 +130,7 @@ public sealed class ArchiveCategoryHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]

@@ -27,6 +27,9 @@ public sealed class ArchiveAccountHandler(
 		if (archiveResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: archiveResult.Error!);
 
+		if (account.Events.Count == 0)
+			return Result<Guid, AppException>.Success(value: account.Id);
+
 		bool hasOpenTransferObligation = await transferReadRepository.HasOpenObligationAsync(accountId: account.Id, ct: ct);
 		if (hasOpenTransferObligation)
 			return Result<Guid, AppException>.Failure(error: new ArchivingException(message: "Cannot archive an account with an unsettled transfer."));

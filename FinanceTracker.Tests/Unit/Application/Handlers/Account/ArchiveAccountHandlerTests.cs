@@ -99,7 +99,7 @@ public sealed class ArchiveAccountHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAccountAlreadyArchived_ShouldReturnArchivingException()
+	public async Task HandleAsync_WhenAccountAlreadyArchived_ShouldReturnSuccess()
 	{
 		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation(archived: true);
 
@@ -109,8 +109,7 @@ public sealed class ArchiveAccountHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
 
 	[Test]

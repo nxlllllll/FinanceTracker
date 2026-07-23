@@ -14,7 +14,7 @@ public sealed class IdempotencyReadRepository(FinanceTrackerContext context) : I
 	{
 		return await context.IdempotentCommands.AsNoTracking()
 			.Where(predicate: e => e.IdempotencyKey == idempotencyKey && e.CommandType == commandType && e.UserId == userId)
-			.Select(selector: e => new IdempotencyEntry(ResponseJson: e.ResponseJson, ReservedAt: e.ReservedAt))
+			.Select(selector: e => new IdempotencyEntry(ReservationId: e.ReservationId, ResponseJson: e.ResponseJson, ReservedAt: e.ReservedAt))
 			.FirstOrDefaultAsync(cancellationToken: ct);
 	}
 }

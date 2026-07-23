@@ -30,9 +30,12 @@ public sealed class ArchiveCategoryHandler(
 		Core.Domains.Category.Category user,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.Archive();
+		Result<bool, DomainException> result = user.Archive();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
+
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: user.Id);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{

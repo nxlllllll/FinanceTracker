@@ -92,6 +92,8 @@
         <EmbeddedResource Include="Migrations\V038__add_user_permissions.sql" />
         <None Remove="Migrations\V039__add_roles.sql" />
         <EmbeddedResource Include="Migrations\V039__add_roles.sql" />
+        <None Remove="Migrations\V040__add_idempotency_reservation_id.sql" />
+        <EmbeddedResource Include="Migrations\V040__add_idempotency_reservation_id.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">
