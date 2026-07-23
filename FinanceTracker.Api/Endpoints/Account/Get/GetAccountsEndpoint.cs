@@ -1,9 +1,11 @@
+using FinanceTracker.Api.Auth;
 using FinanceTracker.Api.Contracts.Account.Response;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.Account.Queries.GetAccounts;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
@@ -13,8 +15,8 @@ public sealed class GetAccountsEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet(pattern: "/api/v1/accounts", handler: HandleAsync)
-			.RequireAuthorization()
+		app.MapGet(pattern: "/api/v1/accounts", handler: HandleAsync).RequireAuthorization()
+			.RequirePermission(resource: Resource.Account, action: PermissionAction.Read)
 			.WithTags(tags: "Accounts")
 			.WithSummary(summary: "List my accounts")
 			.WithDescription(description: "Optional ?isArchived=true|false filter. Omit to return all.")
