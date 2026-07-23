@@ -1,8 +1,8 @@
 using System.Text.Json;
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Messages;
-using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
@@ -19,12 +19,13 @@ using ZLogger;
 namespace FinanceTracker.Worker.PermissionProjection.Consumer;
 
 /// <summary>
-/// RabbitMQ message handler that receives <see cref="PermissionEventsMessage"/> from the
+/// RabbitMQ message handler that receives <see cref="AggregateEventsMessage"/> from the
 /// UserPermission exchange binding, deduplicates via <c>processed_messages</c>, then deserializes
 /// each integration event and dispatches to <see cref="PermissionProjection"/> via MediatR notification.
 /// Deserialization is intentionally deferred until after the idempotency check to avoid wasting
 /// CPU on duplicate messages (at-least-once delivery makes duplicates common).
 /// </summary>
+[RoutingKey(routingKey: AggregateTypeNames.UserPermission)]
 public sealed class PermissionEventsConsumer(
 	Projection.PermissionProjection projection,
 	IIntegrationEventTypeResolver integrationEventTypeResolver,
@@ -34,9 +35,9 @@ public sealed class PermissionEventsConsumer(
 	IDateProvider dateProvider,
 	IOptionsMonitor<ProjectionRetryOptions> retryOptions,
 	ILogger<PermissionEventsConsumer> logger
-) : IMessageHandler<PermissionEventsMessage>
+) : IMessageHandler<AggregateEventsMessage>
 {
-	public async Task HandleAsync(PermissionEventsMessage message, CancellationToken ct = default)
+	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
 		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
 

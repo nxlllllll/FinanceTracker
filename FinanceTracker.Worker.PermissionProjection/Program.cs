@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Messages.Permission;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.PermissionProjection.Consumer;
 using FinanceTracker.Worker.PermissionProjection.Projection;
@@ -26,7 +26,7 @@ public sealed class Program
 		builder.Services.AddProjectionRetryOptions();
 
 		builder.Services.AddRabbitMqCore()
-			.AddRabbitMqListener<PermissionEventsMessage, PermissionEventsConsumer>();
+			.AddRabbitMqListener<AggregateEventsMessage, PermissionEventsConsumer>();
 
 		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
 		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;

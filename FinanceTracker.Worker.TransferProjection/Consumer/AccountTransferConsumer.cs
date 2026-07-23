@@ -1,8 +1,8 @@
 using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Messages;
-using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Converters.Json;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -37,6 +37,7 @@ namespace FinanceTracker.Worker.TransferProjection.Consumer;
 ///         after the configured grace period, triggering an alert.</item>
 /// </list>
 /// </remarks>
+[RoutingKey(routingKey: AggregateTypeNames.Account)]
 public sealed class AccountTransferConsumer(
 	IAccountRepository accountRepository,
 	ITransferRepository transferRepository,
@@ -48,9 +49,9 @@ public sealed class AccountTransferConsumer(
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
 	ILogger<AccountTransferConsumer> logger
-) : IMessageHandler<AccountEventsMessage>
+) : IMessageHandler<AggregateEventsMessage>
 {
-	public async Task HandleAsync(AccountEventsMessage message, CancellationToken ct = default)
+	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
 		AccountTransferDebitedEvent? debitEvent = ExtractDebitEvent(message: message);
 		if (debitEvent is null)
@@ -147,7 +148,7 @@ public sealed class AccountTransferConsumer(
 		logger.ZLogInformation(message: $"[{correlationId}] Transfer {debitEvent.TransferId} completed: {debitEvent.AccountId} > {debitEvent.ToAccountId}.");
 	}
 
-	private AccountTransferDebitedEvent? ExtractDebitEvent(AccountEventsMessage message)
+	private AccountTransferDebitedEvent? ExtractDebitEvent(AggregateEventsMessage message)
 	{
 		foreach (EventEnvelope envelope in message.Events)
 		{
