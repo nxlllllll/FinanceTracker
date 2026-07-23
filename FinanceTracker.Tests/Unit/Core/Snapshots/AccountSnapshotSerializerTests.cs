@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 
 namespace FinanceTracker.Tests.Unit.Core.Snapshots;
@@ -24,8 +25,16 @@ public sealed class AccountSnapshotSerializerTests
 	public async Task Deserialize_ShouldRestoreAllFields()
 	{
 		Guid userId = Guid.CreateVersion7();
-		Account original = AccountFactory.Create(userId: userId, balance: 7500m).Value!;
-		original.Archive(occurredAt: Now);
+		Account original = Account.Reconstitute(
+			id: Guid.CreateVersion7(),
+			userId: userId,
+			name: Name.Reconstitute(value: "Карта Сбер"),
+			type: AccountType.Checking,
+			balance: Money.Reconstitute(amount: 7500m, currency: Currency.Reconstitute(value: "RUB")),
+			isArchived: true,
+			createdAt: Now,
+			version: 1
+		);
 
 		string json = _serializer.Serialize(aggregate: original);
 		SnapshotData snapshot = new SnapshotData(

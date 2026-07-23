@@ -12,8 +12,8 @@ namespace FinanceTracker.Tests.Unit.Core.Domains;
 
 public sealed class AccountTests
 {
-	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
 	private static readonly AccountSnapshotSerializer Serializer = new AccountSnapshotSerializer();
+	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
 
 	[Test]
 	public async Task Create_WithValidData_ShouldRaiseAccountCreatedEvent()
@@ -81,7 +81,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Archive_ActiveAccount_ShouldReturnTrueAndSetIsArchived()
 	{
-		Account account = AccountFactory.Create().Value!;
+		Account account = AccountFactory.Create(balance: 0).Value!;
 
 		account.Archive(occurredAt: Now);
 
@@ -89,9 +89,21 @@ public sealed class AccountTests
 	}
 
 	[Test]
+	public async Task Archive_WithPositiveBalance_ShouldReturnArchivingException()
+	{
+		Account account = AccountFactory.Create(balance: 500m).Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Archive(occurredAt: Now);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+		await Assert.That(value: account.IsArchived).IsFalse();
+	}
+
+	[Test]
 	public async Task Archive_AlreadyArchivedAccount_ShouldReturnSuccessWithoutRaisingEvent()
 	{
-		Account account = AccountFactory.Create().Value!;
+		Account account = AccountFactory.Create(balance: 0).Value!;
 		account.Archive(occurredAt: Now);
 		account.ClearEvents();
 
@@ -105,7 +117,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Unarchive_ArchivedAccount_ShouldReturnTrueAndClearIsArchived()
 	{
-		Account account = AccountFactory.Create().Value!;
+		Account account = AccountFactory.Create(balance: 0).Value!;
 
 		account.Archive(occurredAt: Now);
 		account.Unarchive(occurredAt: Now);
@@ -167,7 +179,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task Debit_OnArchivedAccount_ShouldThrowArchivingException()
 	{
-		Account account = AccountFactory.Create().Value!;
+		Account account = AccountFactory.Create(balance: 0).Value!;
 		account.Archive(occurredAt: Now);
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
@@ -450,7 +462,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task DebitTransfer_OnArchivedAccount_ShouldReturnArchivedAccountOperationException()
 	{
-		Account account = AccountFactory.Create(balance: 5000m).Value!;
+		Account account = AccountFactory.Create(balance: 0).Value!;
 		account.Archive(occurredAt: Now);
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.DebitTransfer(
@@ -591,8 +603,16 @@ public sealed class AccountTests
 	public async Task Reconstitute_FromSnapshotOnly_ShouldPreserveAllState()
 	{
 		Guid userId = Guid.CreateVersion7();
-		Account account = AccountFactory.Create(userId: userId, balance: 9999m).Value!;
-		account.Archive(occurredAt: Now);
+		Account account = Account.Reconstitute(
+			id: Guid.CreateVersion7(),
+			userId: userId,
+			name: Name.Create(value: "Карта Сбер").Value,
+			type: AccountType.Checking,
+			balance: Money.Reconstitute(amount: 9999m, currency: Currency.Reconstitute(value: "RUB")),
+			isArchived: true,
+			createdAt: Now,
+			version: 1
+		);
 
 		string snapshotJson = Serializer.Serialize(aggregate: account);
 		SnapshotData snapshot = new SnapshotData(
@@ -619,7 +639,7 @@ public sealed class AccountTests
 	[Test]
 	public async Task RefundTransfer_OnArchivedAccount_ShouldReturnArchivedAccountOperationException()
 	{
-		Account account = AccountFactory.Create(balance: 500m).Value!;
+		Account account = AccountFactory.Create(balance: 0).Value!;
 		account.Archive(occurredAt: Now);
 		account.ClearEvents();
 

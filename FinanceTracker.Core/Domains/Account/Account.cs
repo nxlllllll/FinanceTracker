@@ -378,7 +378,6 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	/// <summary>Renames the account. Raises <c>AccountRenamed</c>.</summary>
 	public Result<Unit, DomainException> Rename(
 		DateTimeOffset occurredAt,
 		Name newName)
@@ -397,14 +396,24 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	/// <summary>Archives the account, preventing further operations. Raises <c>AccountArchived</c>.</summary>
 	public Result<Unit, DomainException> Archive(DateTimeOffset occurredAt)
 	{
 		if (IsArchived)
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		if (Balance.Amount < 0)
-			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "Cannot archive an account with a negative balance."));
+		{
+			return Result<Unit, DomainException>.Failure(error: new ArchivingException(
+				message: "Cannot archive an account with an outstanding debt. Please settle the balance first."
+			));
+		}
+
+		if (Balance.Amount > 0)
+		{
+			return Result<Unit, DomainException>.Failure(error: new ArchivingException(
+				message: "Cannot archive an account with remaining funds. Please transfer the balance to another account first."
+			));
+		}
 
 		RaiseEvent(@event: new AccountArchived(
 			Id: Guid.CreateVersion7(),
@@ -416,7 +425,6 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	/// <summary>Restores a previously archived account. Raises <c>AccountUnarchived</c>.</summary>
 	public Result<Unit, DomainException> Unarchive(DateTimeOffset occurredAt)
 	{
 		if (!IsArchived)

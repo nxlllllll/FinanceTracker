@@ -145,7 +145,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_AfterArchive_ShouldReturnArchivedState()
 	{
-		Core.Domains.Account.Account account = AccountFactory.Create().Value!;
+		Core.Domains.Account.Account account = AccountFactory.Create(balance: 0).Value!;
 		await SaveAsync(account: account);
 
 		Core.Domains.Account.Account? loaded = await _repository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
