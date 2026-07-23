@@ -1,7 +1,6 @@
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Application.UseCases.Transaction.Services;
-using FinanceTracker.Contracts.Messages.Account;
-using FinanceTracker.Contracts.Messages.Permission;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Services.TransferCompensation;
@@ -233,10 +232,10 @@ public abstract class E2EFixture
 					 .ValidateDataAnnotations();
 
 				// RabbitMQ listeners start as BackgroundServices with Host
-				services.AddRabbitMqListener<AccountEventsMessage, AccountEventsConsumer>();
-				services.AddRabbitMqListener<AccountEventsMessage, AccountTransferConsumer>();
+				services.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
+				services.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
 				services.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
-				services.AddRabbitMqListener<PermissionEventsMessage, PermissionEventsConsumer>();
+				services.AddRabbitMqListener<AggregateEventsMessage, PermissionEventsConsumer>();
 
 				ConfigureAdditionalServices(services: services, configuration: ctx.Configuration);
 			})

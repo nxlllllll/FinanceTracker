@@ -1,5 +1,3 @@
-using FinanceTracker.Contracts.Messages.Account;
-
 namespace FinanceTracker.Contracts.Messages;
 
 /// <summary>

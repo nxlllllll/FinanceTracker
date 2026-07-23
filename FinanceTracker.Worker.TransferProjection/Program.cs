@@ -1,4 +1,4 @@
-using FinanceTracker.Contracts.Messages.Account;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.HealthCheck;
@@ -26,7 +26,7 @@ public sealed class Program
 		builder.Services.AddScoped<ITransferCompensationService, TransferCompensationService>();
 
 		builder.Services.AddRabbitMqCore()
-			.AddRabbitMqListener<AccountEventsMessage, AccountTransferConsumer>();
+			.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
 
 		builder.Services.AddOptions<TransferCreditLagOptions>()
 			.BindConfiguration(configSectionPath: TransferCreditLagOptions.SectionName)

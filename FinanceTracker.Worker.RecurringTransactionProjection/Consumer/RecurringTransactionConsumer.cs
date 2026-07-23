@@ -1,7 +1,9 @@
 using System.Text.Json;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Services;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
@@ -31,6 +33,7 @@ namespace FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
 /// message is still marked processed in every case: none of these causes are retryable, so
 /// retrying would just repeat the same outcome.
 /// </summary>
+[RoutingKey(routingKey: AggregateTypeNames.RecurringTransaction)]
 public sealed class RecurringTransactionConsumer(
 	IAccountRepository accountRepository,
 	ITransactionCreationService transactionCreationService,

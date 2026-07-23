@@ -11,7 +11,6 @@ namespace FinanceTracker.Contracts.Messages.RecurringTransaction;
 /// processing per calendar month even on retry.
 /// </para>
 /// </summary>
-[RoutingKey(routingKey: AggregateTypeNames.RecurringTransaction)]
 public sealed record RecurringTransactionTriggeredMessage(
 	Guid MessageId,
 	Guid RecurringTransactionId,

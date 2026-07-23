@@ -53,9 +53,9 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 	private static string GetRoutingKey()
 	{
-		RoutingKeyAttribute? attribute = typeof(TMessage).GetCustomAttribute<RoutingKeyAttribute>();
+		RoutingKeyAttribute? attribute = typeof(THandler).GetCustomAttribute<RoutingKeyAttribute>();
 		return attribute?.RoutingKey ?? throw new InvalidOperationException(
-			message: $"{typeof(TMessage).Name} is missing [RoutingKey]."
+			message: $"{typeof(THandler).Name} is missing [RoutingKey]."
 		);
 	}
 

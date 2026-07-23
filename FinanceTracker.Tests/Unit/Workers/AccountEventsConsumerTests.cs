@@ -1,5 +1,5 @@
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Events.Abstraction;
-using FinanceTracker.Contracts.Messages.Account;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Repositories.Account;
@@ -55,9 +55,9 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 		);
 	}
 
-	private static AccountEventsMessage BuildMessage(Guid? messageId = null)
+	private static AggregateEventsMessage BuildMessage(Guid? messageId = null)
 	{
-		return new AccountEventsMessage(
+		return new AggregateEventsMessage(
 			MessageId: messageId ?? Guid.CreateVersion7(),
 			AggregateId: Guid.CreateVersion7(),
 			AggregateType: AggregateTypeNames.Account,
@@ -68,7 +68,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 
 	[Test]
 	public async Task AccountEventsConsumer_ShouldImplement_IMessageHandler()
-		=> await Assert.That(value: _consumer is IMessageHandler<AccountEventsMessage> result).IsTrue();
+		=> await Assert.That(value: _consumer is IMessageHandler<AggregateEventsMessage> result).IsTrue();
 
 	[Test]
 	public async Task HandleAsync_WhenAggregateTypeIsAccount_ShouldExecuteTransaction()
@@ -142,7 +142,7 @@ public sealed class AccountEventsConsumerTests : DatabaseFixture
 	[Test]
 	public async Task HandleAsync_WhenCalledTwiceWithSameId_ShouldSaveProcessedMessageOnce()
 	{
-		AccountEventsMessage message = BuildMessage();
+		AggregateEventsMessage message = BuildMessage();
 
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
