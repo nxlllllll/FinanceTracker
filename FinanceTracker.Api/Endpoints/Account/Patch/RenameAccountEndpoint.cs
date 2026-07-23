@@ -1,3 +1,4 @@
+using FinanceTracker.Api.Auth;
 using FinanceTracker.Api.Contracts.Account.Request;
 using FinanceTracker.Api.Infrastructure;
 using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
@@ -14,8 +15,8 @@ public sealed class RenameAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/rename", handler: HandleAsync)
-			.RequireAuthorization()
+		app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/rename", handler: HandleAsync).RequireAuthorization()
+			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
 			.WithTags(tags: "Accounts")
 			.WithSummary(summary: "Rename an account")
 			.Produces(statusCode: StatusCodes.Status204NoContent)
