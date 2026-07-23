@@ -69,7 +69,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task HandleAsync_WithActiveAccount_ShouldSaveAccount()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation();
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation(balance: 0);
 
 		await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
@@ -86,7 +86,7 @@ public sealed class ArchiveAccountHandlerTests
 	[Test]
 	public async Task HandleAsync_WithActiveAccount_ShouldCheckBothObligationSources()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation();
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation(balance: 0);
 
 		await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
@@ -133,6 +133,21 @@ public sealed class ArchiveAccountHandlerTests
 	public async Task HandleAsync_WhenBalanceIsNegative_ShouldReturnArchivingException()
 	{
 		FinanceTracker.Core.Domains.Account.Account account = GivenAccountWithBalance(balance: -500m);
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(
+			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),
+			account: account,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenBalanceIsPositive_ShouldReturnArchivingException()
+	{
+		FinanceTracker.Core.Domains.Account.Account account = AccountFactory.CreateWithArchivation(balance: 500m);
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ArchiveAccountCommand(UserId: account.UserId, AccountId: account.Id),

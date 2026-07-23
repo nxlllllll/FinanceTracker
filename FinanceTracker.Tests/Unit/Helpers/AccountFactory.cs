@@ -39,16 +39,18 @@ public static class AccountFactory
 		decimal balance = 1000,
 		bool archived = false)
 	{
-		Account account = Create(userId: userId, balance: balance, currency: currency).Value!;
-		account.ClearEvents();
+		Currency currencyValue = Currency.Create(value: currency).Value!;
 
-		if (archived)
-		{
-			account.Archive(occurredAt: FakeDateProvider.Default.UtcNow);
-			account.ClearEvents();
-		}
-
-		return account;
+		return Account.Reconstitute(
+			id: Guid.CreateVersion7(),
+			userId: userId ?? Guid.CreateVersion7(),
+			name: Name.Create(value: "Карта Сбер").Value!,
+			type: AccountType.Checking,
+			balance: Money.Reconstitute(amount: balance, currency: currencyValue),
+			isArchived: archived,
+			createdAt: FakeDateProvider.Default.UtcNow,
+			version: 1
+		);
 	}
 
 	public static AccountReadModel CreateReadModel(
