@@ -21,6 +21,19 @@ public static class ResultExtensions
 			);
 		}
 
+		if (error is RateLimitExceededException rateLimitExceeded)
+		{
+			return new ResultWithHeader(
+				inner: Results.Problem(
+					detail: error.Message,
+					statusCode: StatusCodes.Status429TooManyRequests,
+					title: error.GetType().Name
+				),
+				headerName: "Retry-After",
+				headerValue: rateLimitExceeded.RetryAfterSeconds.ToString()
+			);
+		}
+
 		int statusCode = error switch
 		{
 			EmptyIdempotencyKeyException => StatusCodes.Status400BadRequest,
@@ -28,7 +41,6 @@ public static class ResultExtensions
 			NotFoundException => StatusCodes.Status404NotFound,
 			ConcurrencyConflictException or UniqueConstraintException => StatusCodes.Status409Conflict,
 			IdempotencyTimeoutException or IdempotencyAbandonedException => StatusCodes.Status409Conflict,
-			RateLimitExceededException => StatusCodes.Status429TooManyRequests,
 			SelfPermissionModificationException => StatusCodes.Status403Forbidden,
 			DomainException => StatusCodes.Status422UnprocessableEntity,
 			_ => StatusCodes.Status500InternalServerError

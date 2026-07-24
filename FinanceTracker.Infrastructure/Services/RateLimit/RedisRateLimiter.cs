@@ -22,12 +22,18 @@ public sealed class RedisRateLimiter(IConnectionMultiplexer connectionMultiplexe
 		if count < limit then
 		    redis.call('ZADD', key, now, unique)
 		    redis.call('PEXPIRE', key, windowMs + 1000)
-		    return 1
+		    return {1, 0}
 		end
-		return 0
+		local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+		local oldestScore = tonumber(oldest[2])
+		local retryAfterMs = oldestScore + windowMs - now
+		if retryAfterMs < 0 then
+		    retryAfterMs = 0
+		end
+		return {0, retryAfterMs}
 		""");
 
-	public async Task<bool> IsAllowedAsync(
+	public async Task<RateLimitResult> IsAllowedAsync(
 		string key,
 		int requestsPerWindow,
 		int windowSeconds,
@@ -47,6 +53,14 @@ public sealed class RedisRateLimiter(IConnectionMultiplexer connectionMultiplexe
 #pragma warning restore RS0030
 		});
 
-		return (long)result == 1;
+		RedisResult[] parts = (RedisResult[])result!;
+		bool isAllowed = (long)parts[0] == 1;
+
+		if (isAllowed)
+			return RateLimitResult.Allowed();
+
+		long retryAfterMs = (long)parts[1];
+		int retryAfterSeconds = (int)Math.Ceiling(a: retryAfterMs / 1000.0);
+		return RateLimitResult.Denied(retryAfterSeconds: retryAfterSeconds);
 	}
 }

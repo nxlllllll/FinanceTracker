@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Tests.Unit.Helpers;
 
@@ -30,9 +31,13 @@ public sealed class InMemoryRateLimiterTests
 	{
 		string key = $"test:{Guid.CreateVersion7():N}";
 
-		bool result = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 3, windowSeconds: 60);
+		RateLimitResult result = await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 3,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: result).IsTrue();
+		await Assert.That(value: result.IsAllowed).IsTrue();
 	}
 
 	[Test]
@@ -42,9 +47,34 @@ public sealed class InMemoryRateLimiterTests
 
 		await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 2, windowSeconds: 60);
 		await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 2, windowSeconds: 60);
-		bool thirdResult = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 2, windowSeconds: 60);
+		RateLimitResult thirdResult = await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 2,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: thirdResult).IsFalse();
+		await Assert.That(value: thirdResult.IsAllowed).IsFalse();
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_ExceedingLimit_ShouldReturnRetryAfterWithinTheConfiguredWindow()
+	{
+		string key = $"test:{Guid.CreateVersion7():N}";
+
+		await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
+		RateLimitResult result = await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
+
+		await Assert.That(value: result.IsAllowed).IsFalse();
+		await Assert.That(value: result.RetryAfterSeconds).IsGreaterThan(minimum: 0);
+		await Assert.That(value: result.RetryAfterSeconds).IsLessThanOrEqualTo(maximum: 60);
 	}
 
 	[Test]
@@ -53,13 +83,21 @@ public sealed class InMemoryRateLimiterTests
 		string key = $"test:{Guid.CreateVersion7():N}";
 
 		await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
-		bool deniedWithinWindow = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
+		RateLimitResult deniedWithinWindow = await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
 
 		_dateProvider.UtcNow = _dateProvider.UtcNow.AddSeconds(seconds: 61);
-		bool allowedAfterExpiry = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
+		RateLimitResult allowedAfterExpiry = await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: deniedWithinWindow).IsFalse();
-		await Assert.That(value: allowedAfterExpiry).IsTrue();
+		await Assert.That(value: deniedWithinWindow.IsAllowed).IsFalse();
+		await Assert.That(value: allowedAfterExpiry.IsAllowed).IsTrue();
 	}
 
 	[Test]
@@ -69,11 +107,19 @@ public sealed class InMemoryRateLimiterTests
 		string keyB = $"test:b:{Guid.CreateVersion7():N}";
 
 		await _limiter.IsAllowedAsync(key: keyA, requestsPerWindow: 1, windowSeconds: 60);
-		bool keyADenied = await _limiter.IsAllowedAsync(key: keyA, requestsPerWindow: 1, windowSeconds: 60);
-		bool keyBAllowed = await _limiter.IsAllowedAsync(key: keyB, requestsPerWindow: 1, windowSeconds: 60);
+		RateLimitResult keyADenied = await _limiter.IsAllowedAsync(
+			key: keyA,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
+		RateLimitResult keyBAllowed = await _limiter.IsAllowedAsync(
+			key: keyB,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: keyADenied).IsFalse();
-		await Assert.That(value: keyBAllowed).IsTrue();
+		await Assert.That(value: keyADenied.IsAllowed).IsFalse();
+		await Assert.That(value: keyBAllowed.IsAllowed).IsTrue();
 	}
 
 	[Test]
@@ -81,14 +127,26 @@ public sealed class InMemoryRateLimiterTests
 	{
 		string key = $"test:{Guid.CreateVersion7():N}";
 
-		await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
-		bool deniedBeforeClear = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
+		await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
+		RateLimitResult deniedBeforeClear = await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
 
 		_limiter.Clear();
-		bool allowedAfterClear = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
+		RateLimitResult allowedAfterClear = await _limiter.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: deniedBeforeClear).IsFalse();
-		await Assert.That(value: allowedAfterClear).IsTrue();
+		await Assert.That(value: deniedBeforeClear.IsAllowed).IsFalse();
+		await Assert.That(value: allowedAfterClear.IsAllowed).IsTrue();
 	}
 
 	[Test]
@@ -98,13 +156,19 @@ public sealed class InMemoryRateLimiterTests
 		const int limit = 20;
 		const int concurrentCalls = 50;
 
-		Task<bool>[] tasks = new Task<bool>[concurrentCalls];
+		Task<RateLimitResult>[] tasks = new Task<RateLimitResult>[concurrentCalls];
 		for (int i = 0; i < concurrentCalls; i++)
-			tasks[i] = _limiter.IsAllowedAsync(key: key, requestsPerWindow: limit, windowSeconds: 60);
+		{
+			tasks[i] = _limiter.IsAllowedAsync(
+				key: key,
+				requestsPerWindow: limit,
+				windowSeconds: 60
+			);
+		}
 
-		bool[] results = await Task.WhenAll(tasks: tasks);
+		RateLimitResult[] results = await Task.WhenAll(tasks: tasks);
 
-		await Assert.That(value: results.Count(predicate: allowed => allowed)).IsEqualTo(expected: limit);
+		await Assert.That(value: results.Count(predicate: r => r.IsAllowed)).IsEqualTo(expected: limit);
 	}
 
 	[Test]
@@ -119,11 +183,23 @@ public sealed class InMemoryRateLimiterTests
 			})
 		);
 
-		await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 10, windowSeconds: 60);
-		await limiter.IsAllowedAsync(key: "key-b", requestsPerWindow: 10, windowSeconds: 60);
-		bool thirdKeyAllowed = await limiter.IsAllowedAsync(key: "key-c", requestsPerWindow: 10, windowSeconds: 60);
+		await limiter.IsAllowedAsync(
+			key: "key-a",
+			requestsPerWindow: 10,
+			windowSeconds: 60
+		);
+		await limiter.IsAllowedAsync(
+			key: "key-b",
+			requestsPerWindow: 10,
+			windowSeconds: 60
+		);
+		RateLimitResult thirdKeyResult = await limiter.IsAllowedAsync(
+			key: "key-c",
+			requestsPerWindow: 10,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: thirdKeyAllowed).IsFalse().Because(message: """
+		await Assert.That(value: thirdKeyResult.IsAllowed).IsFalse().Because(message: """
 			Once the table is at MaxTrackedKeys, a key we've never tracked before must be denied rather
 			than growing the table further — this is the safety valve against unbounded key cardinality.
 		""");
@@ -141,10 +217,18 @@ public sealed class InMemoryRateLimiterTests
 			})
 		);
 
-		await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 10, windowSeconds: 60);
-		bool sameKeyAllowedAgain = await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 10, windowSeconds: 60);
+		await limiter.IsAllowedAsync(
+			key: "key-a",
+			requestsPerWindow: 10,
+			windowSeconds: 60
+		);
+		RateLimitResult sameKeyAllowedAgain = await limiter.IsAllowedAsync(
+			key: "key-a",
+			requestsPerWindow: 10,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: sameKeyAllowedAgain).IsTrue().Because(message: """
+		await Assert.That(value: sameKeyAllowedAgain.IsAllowed).IsTrue().Because(message: """
 			The cap only blocks growth from new keys — a key already in the table must keep working
 			normally even while at capacity.
 		""");
@@ -163,11 +247,19 @@ public sealed class InMemoryRateLimiterTests
 			})
 		);
 
-		await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 1, windowSeconds: 60);
+		await limiter.IsAllowedAsync(
+			key: "key-a",
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
 		_dateProvider.UtcNow = _dateProvider.UtcNow.AddMilliseconds(milliseconds: 2_000);
-		bool newKeyAllowed = await limiter.IsAllowedAsync(key: "key-b", requestsPerWindow: 1, windowSeconds: 60);
+		RateLimitResult newKeyResult = await limiter.IsAllowedAsync(
+			key: "key-b",
+			requestsPerWindow: 1,
+			windowSeconds: 60
+		);
 
-		await Assert.That(value: newKeyAllowed).IsTrue().Because(message: """
+		await Assert.That(value: newKeyResult.IsAllowed).IsTrue().Because(message: """
 			key-a went idle past KeyIdleTimeoutMs without ever being queried again, so the periodic
 			sweep — not a lazy per-key trim — must be what reclaims its slot for a new key.
 		""");
