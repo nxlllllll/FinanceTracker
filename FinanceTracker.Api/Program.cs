@@ -7,6 +7,7 @@ using FinanceTracker.Application.Configurations;
 using FinanceTracker.Infrastructure.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 
 namespace FinanceTracker.Api;
@@ -27,7 +28,10 @@ public sealed class Program
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 		builder.Services.AddAuth();
 
-		builder.Services.AddHealthChecks();
+		builder.Services.AddInfrastructureHealthChecks(
+			connectionString: builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!,
+			redisConnectionString: builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!
+		);
 
 		builder.Services.AddEndpoints();
 
@@ -73,7 +77,15 @@ public sealed class Program
 		app.UseAuthentication();
 		app.UseAuthorization();
 
-		app.MapHealthChecks(pattern: "/health/live");
+		app.MapHealthChecks(pattern: "/health/live", options: new HealthCheckOptions
+		{
+			Predicate = _ => false
+		});
+
+		app.MapHealthChecks(pattern: "/health/ready", options: new HealthCheckOptions
+		{
+			Predicate = check => check.Tags.Contains(item: "ready")
+		});
 
 		app.MapEndpoints();
 
