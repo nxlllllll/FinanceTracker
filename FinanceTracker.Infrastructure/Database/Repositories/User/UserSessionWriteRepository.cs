@@ -1,7 +1,7 @@
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.User;
-using Microsoft.EntityFrameworkCore;
+using FinanceTracker.Infrastructure.Database.Extensions;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
@@ -22,37 +22,41 @@ public sealed class UserSessionWriteRepository(FinanceTrackerContext context) : 
 		}, cancellationToken: ct);
 	}
 
-	public async Task RevokeAsync(
+	public async Task<IReadOnlyList<Guid>> RevokeAsync(
 		Guid sessionId,
 		DateTimeOffset revokedAt,
 		CancellationToken ct = default)
 	{
-		await context.UserSessions.Where(predicate: s => s.Id == sessionId && s.RevokedAt == null).ExecuteUpdateAsync(
-			setPropertyCalls: s => s.SetProperty(propertyExpression: x => x.RevokedAt, valueExpression: revokedAt),
-			cancellationToken: ct
+		return await context.RevokeUserSessionAsync(
+			sessionId: sessionId,
+			revokedAt: revokedAt,
+			ct: ct
 		);
 	}
 
-	public async Task RevokeAllExceptAsync(
+	public async Task<IReadOnlyList<Guid>> RevokeAllExceptAsync(
 		Guid userId,
 		Guid exceptSessionId,
 		DateTimeOffset revokedAt,
 		CancellationToken ct = default)
 	{
-		await context.UserSessions.Where(predicate: s => s.UserId == userId && s.Id != exceptSessionId && s.RevokedAt == null).ExecuteUpdateAsync(
-			setPropertyCalls: s => s.SetProperty(propertyExpression: x => x.RevokedAt, valueExpression: revokedAt),
-			cancellationToken: ct
+		return await context.RevokeAllUserSessionsExceptAsync(
+			userId: userId,
+			exceptSessionId: exceptSessionId,
+			revokedAt: revokedAt,
+			ct: ct
 		);
 	}
 
-	public async Task RevokeAllAsync(
+	public async Task<IReadOnlyList<Guid>> RevokeAllAsync(
 		Guid userId,
 		DateTimeOffset revokedAt,
 		CancellationToken ct = default)
 	{
-		await context.UserSessions.Where(predicate: s => s.UserId == userId && s.RevokedAt == null).ExecuteUpdateAsync(
-			setPropertyCalls: s => s.SetProperty(propertyExpression: x => x.RevokedAt, valueExpression: revokedAt),
-			cancellationToken: ct
+		return await context.RevokeAllUserSessionsAsync(
+			userId: userId,
+			revokedAt: revokedAt,
+			ct: ct
 		);
 	}
 }

@@ -206,6 +206,7 @@ public static class DependencyInjection
 		services.AddScoped<IUserWriteRepository, UserWriteRepository>();
 		services.AddScoped<IUserSessionReadRepository, UserSessionReadRepository>();
 		services.AddScoped<IUserSessionWriteRepository, UserSessionWriteRepository>();
+		services.Decorate<IUserSessionWriteRepository, CachedUserSessionWriteRepository>();
 
 		// UnresolvableEvent
 		services.AddScoped<IUnresolvableEventReadRepository, UnresolvableEventReadRepository>();
