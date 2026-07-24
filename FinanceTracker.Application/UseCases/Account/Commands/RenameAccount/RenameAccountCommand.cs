@@ -11,4 +11,7 @@ public sealed record RenameAccountCommand(
 	Guid UserId,
 	Guid AccountId,
 	Name NewName
-) : IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest;
+) : IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest, IHasExpectedVersion
+{
+	public int? ExpectedVersion { get; init; }
+}

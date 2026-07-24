@@ -12,6 +12,7 @@ public sealed record AccountResponse(
 	AccountType Type,
 	Money Balance,
 	bool IsArchived,
+	int Version,
 	DateTimeOffset CreatedAt
 ) : IResponseOf<AccountReadModel, AccountResponse>
 {
@@ -21,6 +22,7 @@ public sealed record AccountResponse(
 		Type: readModel.Type,
 		Balance: readModel.Balance,
 		IsArchived: readModel.IsArchived,
+		Version: readModel.Version,
 		CreatedAt: readModel.CreatedAt
 	);
 }

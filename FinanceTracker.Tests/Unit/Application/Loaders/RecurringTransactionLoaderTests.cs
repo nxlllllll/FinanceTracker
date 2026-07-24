@@ -113,6 +113,7 @@ public sealed class RecurringTransactionLoaderTests
 			Type: AccountType.Checking,
 			Balance: Money.Reconstitute(amount: 1000m, currency: Currency.Reconstitute(value: "RUB")),
 			IsArchived: false,
+			Version: 1,
 			CreatedAt: DateTimeOffset.UtcNow
 		);
 
@@ -139,6 +140,7 @@ public sealed class RecurringTransactionLoaderTests
 			Type: AccountType.Checking,
 			Balance: Money.Reconstitute(amount: 1000m, currency: Currency.Reconstitute(value: "RUB")),
 			IsArchived: false,
+			Version: 1,
 			CreatedAt: DateTimeOffset.UtcNow
 		);
 
