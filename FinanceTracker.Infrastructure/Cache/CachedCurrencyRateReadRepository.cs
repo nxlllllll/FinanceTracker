@@ -129,19 +129,16 @@ public sealed class CachedCurrencyRateReadRepository(
 		if (cacheMisses.Count == 0)
 			return;
 
-		List<(string Key, decimal? Value, DistributedCacheEntryOptions Options)> writes =
-			new List<(string Key, decimal? Value, DistributedCacheEntryOptions Options)>(capacity: cacheMisses.Count);
+		List<BatchItem<decimal?>> writes = new List<BatchItem<decimal?>>();
 
 		foreach (TRequest request in cacheMisses)
 		{
 			string key = keyFor(request);
+			decimal? value = null;
 			if (dbResults.TryGetValue(key: request, out decimal rate))
-			{
-				result[request] = rate;
-				writes.Add(item: (key, rate, foundOptions));
-			}
-			else
-				writes.Add(item: (key, null, notFoundOptions));
+				value = result[request] = rate;
+
+			writes.Add(item: new BatchItem<decimal?>(Key: key, Value: value, Options: foundOptions));
 		}
 
 		await redisCache.SetBatchAsync(items: writes);

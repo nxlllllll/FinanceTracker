@@ -238,4 +238,44 @@ public static class DbContextExtensions
 			ON CONFLICT (user_id, permission) DO NOTHING
 		""", cancellationToken: ct);
 	}
+
+	public static Task<List<Guid>> RevokeUserSessionAsync(
+		this DbContext context,
+		Guid sessionId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.SqlQuery<Guid>($"""
+			UPDATE user_sessions SET revoked_at = {revokedAt}
+			WHERE id = {sessionId} AND revoked_at IS NULL
+			RETURNING id
+		""").ToListAsync(cancellationToken: ct);
+	}
+
+	public static Task<List<Guid>> RevokeAllUserSessionsExceptAsync(
+		this DbContext context,
+		Guid userId,
+		Guid exceptSessionId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.SqlQuery<Guid>($"""
+			UPDATE user_sessions SET revoked_at = {revokedAt}
+			WHERE user_id = {userId} AND id != {exceptSessionId} AND revoked_at IS NULL
+			RETURNING id
+		""").ToListAsync(cancellationToken: ct);
+	}
+
+	public static Task<List<Guid>> RevokeAllUserSessionsAsync(
+		this DbContext context,
+		Guid userId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.SqlQuery<Guid>($"""
+			UPDATE user_sessions SET revoked_at = {revokedAt}
+			WHERE user_id = {userId} AND revoked_at IS NULL
+			RETURNING id
+		""").ToListAsync(cancellationToken: ct);
+	}
 }
