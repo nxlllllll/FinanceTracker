@@ -30,15 +30,15 @@ public sealed class RateLimitingBehaviour<TRequest, TResponse>(
 
 		string key = $"ratelimit:user:{userScopedRequest.UserId}";
 
-		bool isAllowed = await rateLimiter.IsAllowedAsync(
+		RateLimitResult result = await rateLimiter.IsAllowedAsync(
 			key: key,
 			requestsPerWindow: currentOptions.RequestsPerWindow,
 			windowSeconds: currentOptions.WindowSeconds,
 			ct: cancellationToken
 		);
 
-		if (!isAllowed)
-			return TResponse.CreateFailure(error: new RateLimitExceededException(commandName: typeof(TRequest).Name));
+		if (!result.IsAllowed)
+			return TResponse.CreateFailure(error: new RateLimitExceededException(commandName: typeof(TRequest).Name, retryAfterSeconds: result.RetryAfterSeconds));
 
 		return await next(t: cancellationToken);
 	}

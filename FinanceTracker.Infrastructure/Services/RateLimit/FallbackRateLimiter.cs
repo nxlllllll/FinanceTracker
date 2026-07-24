@@ -21,13 +21,18 @@ public sealed class FallbackRateLimiter(
 {
 	private int _isDegraded;
 
-	public async Task<bool> IsAllowedAsync(
+	public async Task<RateLimitResult> IsAllowedAsync(
 		string key,
 		int requestsPerWindow,
 		int windowSeconds,
 		CancellationToken ct = default)
 	{
-		Task<bool> primaryTask = inner.IsAllowedAsync(key: key, requestsPerWindow: requestsPerWindow, windowSeconds: windowSeconds, ct: ct);
+		Task<RateLimitResult> primaryTask = inner.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: requestsPerWindow,
+			windowSeconds: windowSeconds,
+			ct: ct
+		);
 
 		using CancellationTokenSource timeoutCts = new CancellationTokenSource();
 		Task delayTask = Task.Delay(delay: TimeSpan.FromMilliseconds(value: options.CurrentValue.ProbeTimeoutMs), cancellationToken: timeoutCts.Token);
@@ -38,7 +43,7 @@ public sealed class FallbackRateLimiter(
 
 			if (completed == primaryTask)
 			{
-				bool result = await primaryTask;
+				RateLimitResult result = await primaryTask;
 				await timeoutCts.CancelAsync();
 				MarkRedisReachable();
 				return result;
@@ -47,7 +52,7 @@ public sealed class FallbackRateLimiter(
 			MarkDegraded(reason: $"Redis probe exceeded {options.CurrentValue.ProbeTimeoutMs}ms.");
 			ObserveDelayedFailure(task: primaryTask);
 		}
-		catch (RedisException ex)
+		catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
 		{
 			MarkDegraded(reason: ex.Message);
 		}
@@ -77,10 +82,13 @@ public sealed class FallbackRateLimiter(
 	/// observes its eventual outcome so a late failure is logged instead of becoming an
 	/// unobserved task exception, without making the caller wait for it.
 	/// </summary>
-	private void ObserveDelayedFailure(Task<bool> task)
+	private void ObserveDelayedFailure(Task<RateLimitResult> task)
 	{
 		_ = task.ContinueWith(
-			continuationAction: t => logger.ZLogWarning(exception: t.Exception!.GetBaseException(), message: $"[RateLimiter] Delayed Redis probe failed after timeout."),
+			continuationAction: t => logger.ZLogWarning(
+				exception: t.Exception!.GetBaseException(),
+				message: $"[RateLimiter] Delayed Redis probe failed after timeout."
+			),
 			continuationOptions: TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously
 		);
 	}
