@@ -14,7 +14,6 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
-        <PackageReference Include="StackExchange.Redis" />
         <PackageReference Include="ZLogger" />
     </ItemGroup>
 
@@ -27,5 +26,5 @@
             <_Parameter1>FinanceTracker.Tests</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>
-    
+
 </Project>
