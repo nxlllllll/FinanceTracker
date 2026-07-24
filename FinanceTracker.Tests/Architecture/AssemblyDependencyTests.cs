@@ -35,7 +35,8 @@ public sealed class AssemblyDependencyTests
 		"Microsoft.IdentityModel.Tokens",
 		"Blake3",
 		"StackExchange.Redis",
-		"Microsoft.IdentityModel.JsonWebTokens"
+		"Microsoft.IdentityModel.JsonWebTokens",
+		"HealthChecks"
 	];
 
 	[Test]
