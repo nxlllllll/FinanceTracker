@@ -15,7 +15,7 @@ public sealed class UpdateRolePermissionsEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPatch(pattern: "/api/v1/roles/{roleId:guid}/permissions", handler: HandleAsync).RequireRoot()
+		app.MapPatch(pattern: "/roles/{roleId:guid}/permissions", handler: HandleAsync).RequireRoot()
 			.WithTags(tags: "Roles")
 			.WithSummary(summary: "Replace a role's permission set")
 			.WithDescription(description: "Fans out Grant/Revoke to every current member of the role, so membership stays live.")

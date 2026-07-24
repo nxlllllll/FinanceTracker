@@ -9,7 +9,7 @@ public sealed class LogoutEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/auth/logout", handler: HandleAsync)
+		app.MapPost(pattern: "/auth/logout", handler: HandleAsync).AllowAnonymous()
 			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Log out")
 			.WithDescription(description: "Revokes the current session and clears the refresh token cookie. Idempotent.")

@@ -15,7 +15,7 @@ public sealed class RegisterEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/auth/register", handler: HandleAsync)
+		app.MapPost(pattern: "/auth/register", handler: HandleAsync).AllowAnonymous()
 			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Register a new user")
 			.WithDescription(description: "Creates a user account. Requires an Idempotency-Key header.")

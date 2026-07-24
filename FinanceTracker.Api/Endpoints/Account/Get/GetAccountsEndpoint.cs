@@ -15,7 +15,7 @@ public sealed class GetAccountsEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet(pattern: "/api/v1/accounts", handler: HandleAsync).RequireAuthorization()
+		app.MapGet(pattern: "/accounts", handler: HandleAsync).RequireAuthorization()
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Read)
 			.WithTags(tags: "Accounts")
 			.WithSummary(summary: "List my accounts")

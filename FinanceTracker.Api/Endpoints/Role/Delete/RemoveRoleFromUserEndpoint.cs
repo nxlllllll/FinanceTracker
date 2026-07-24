@@ -13,7 +13,7 @@ public sealed class RemoveRoleFromUserEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapDelete(pattern: "/api/v1/users/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
+		app.MapDelete(pattern: "/users/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
 			.WithTags(tags: "Roles")
 			.WithSummary(summary: "Remove a role from a user")
 			.WithDescription(description: "Fails if this would remove the last remaining root user.")
