@@ -96,6 +96,57 @@ public sealed class FallbackRateLimiterTests
 	}
 
 	[Test]
+	public async Task IsAllowedAsync_WhenInnerThrowsAnUnrelatedException_ShouldStillFallBackToInMemory()
+	{
+		_inner.IsAllowedAsync(
+			key: Arg.Any<string>(),
+			requestsPerWindow: Arg.Any<int>(),
+			windowSeconds: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).ThrowsAsync(new InvalidOperationException(message: "Something unrelated to Redis broke."));
+
+		RateLimitResult result = await _limiter.IsAllowedAsync(
+			key: $"k:{Guid.CreateVersion7():N}",
+			requestsPerWindow: 5,
+			windowSeconds: 60
+		);
+
+		await Assert.That(value: result.IsAllowed).IsTrue().Because(message: """
+			The fallback must degrade gracefully for ANY unexpected failure from the primary
+			limiter, not just RedisException — a narrower catch would let an unrelated bug in the
+			Redis path take down rate limiting entirely instead of degrading.
+		""");
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_WhenCallerCancelsTheRequest_ShouldPropagateTheCancellation_NotFallBack()
+	{
+		using CancellationTokenSource cts = new CancellationTokenSource();
+
+		_inner.IsAllowedAsync(
+			key: Arg.Any<string>(),
+			requestsPerWindow: Arg.Any<int>(),
+			windowSeconds: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ =>
+		{
+			cts.Cancel();
+			return Task.FromException<RateLimitResult>(exception: new OperationCanceledException(token: cts.Token));
+		});
+
+		await Assert.That(async () => await _limiter.IsAllowedAsync(
+			key: $"k:{Guid.CreateVersion7():N}",
+			requestsPerWindow: 5,
+			windowSeconds: 60,
+			ct: cts.Token
+		)).Throws<OperationCanceledException>().Because(message: """
+			A cancellation genuinely triggered by the caller's own token must propagate as-is —
+			reinterpreting it as "Redis failed, fall back" would mask the real reason the
+			request ended and could do unnecessary extra work on a request that's already gone.
+		""");
+	}
+
+	[Test]
 	public async Task IsAllowedAsync_WhenInnerThrowsRedisException_ShouldEnforceLimitViaFallback()
 	{
 		_inner.IsAllowedAsync(

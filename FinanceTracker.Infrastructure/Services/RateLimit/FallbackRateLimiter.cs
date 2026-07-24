@@ -50,9 +50,9 @@ public sealed class FallbackRateLimiter(
 			}
 
 			MarkDegraded(reason: $"Redis probe exceeded {options.CurrentValue.ProbeTimeoutMs}ms.");
-			ObserveDelayedFailure(primaryTask);
+			ObserveDelayedFailure(task: primaryTask);
 		}
-		catch (RedisException ex)
+		catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
 		{
 			MarkDegraded(reason: ex.Message);
 		}
