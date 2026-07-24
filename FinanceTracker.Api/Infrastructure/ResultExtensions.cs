@@ -42,6 +42,7 @@ public static class ResultExtensions
 			ConcurrencyConflictException or UniqueConstraintException => StatusCodes.Status409Conflict,
 			IdempotencyTimeoutException or IdempotencyAbandonedException => StatusCodes.Status409Conflict,
 			SelfPermissionModificationException => StatusCodes.Status403Forbidden,
+			PreconditionFailedException => StatusCodes.Status412PreconditionFailed,
 			DomainException => StatusCodes.Status422UnprocessableEntity,
 			_ => StatusCodes.Status500InternalServerError
 		};
@@ -55,6 +56,7 @@ public static class ResultExtensions
 
 	public static IHttpResult ToHttpResult<TReadModel, TResponse>(
 		this Result<TReadModel, AppException> result,
+		Func<TReadModel, string>? etag = null,
 		Action<TReadModel>? onSuccess = null,
 		Action<AppException>? onError = null
 	) where TResponse : IResponseOf<TReadModel, TResponse>
@@ -66,7 +68,16 @@ public static class ResultExtensions
 		}
 
 		onSuccess?.Invoke(obj: result.Value!);
-		return Results.Ok(value: TResponse.FromReadModel(readModel: result.Value!));
+		IHttpResult ok = Results.Ok(value: TResponse.FromReadModel(readModel: result.Value!));
+
+		if (etag is null)
+			return ok;
+
+		return new ResultWithHeader(
+			inner: ok,
+			headerName: "ETag",
+			headerValue: etag(arg: result.Value!)
+		);
 	}
 
 	public static IHttpResult ToHttpResult<TReadModel, TResponse>(

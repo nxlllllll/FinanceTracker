@@ -15,11 +15,13 @@ public sealed class GetAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet(pattern: "/accounts/{accountId:guid}", handler: HandleAsync).RequireAuthorization()
+		app.MapGet(pattern: "/accounts/{accountId:guid}", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Read)
 			.WithTags(tags: "Accounts")
 			.WithSummary(summary: "Get an account by id")
+			.WithDescription(description: "Returns an ETag header — send it back as If-Match on a PATCH to detect concurrent edits.")
 			.Produces<AccountResponse>(statusCode: StatusCodes.Status200OK)
+			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden)
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 
@@ -36,6 +38,8 @@ public sealed class GetAccountEndpoint : IEndpoint
 
 		Result<AccountReadModel, AppException> result = await sender.Send(request: query, cancellationToken: ct);
 
-		return result.ToHttpResult<AccountReadModel, AccountResponse>();
+		return result.ToHttpResult<AccountReadModel, AccountResponse>(
+			etag: model => ETag.FromVersion(version: model.Version)
+		);
 	}
 }

@@ -9,4 +9,7 @@ namespace FinanceTracker.Application.UseCases.Account.Commands.ArchiveAccount;
 public sealed record ArchiveAccountCommand(
 	Guid UserId,
 	Guid AccountId
-) : IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest;
+) : IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest, IHasExpectedVersion
+{
+	public int? ExpectedVersion { get; init; }
+}
