@@ -7,22 +7,20 @@ public interface IUserSessionWriteRepository
 		CancellationToken ct = default
 	);
 
-	Task RevokeAsync(
+	Task<IReadOnlyList<Guid>> RevokeAsync(
 		Guid sessionId,
 		DateTimeOffset revokedAt,
 		CancellationToken ct = default
 	);
 
-	/// <summary>Revokes every currently-active session belonging to <paramref name="userId"/> except <paramref name="exceptSessionId"/>.</summary>
-	Task RevokeAllExceptAsync(
+	Task<IReadOnlyList<Guid>> RevokeAllExceptAsync(
 		Guid userId,
 		Guid exceptSessionId,
 		DateTimeOffset revokedAt,
 		CancellationToken ct = default
 	);
 
-	/// <summary>Revokes every currently-active session belonging to <paramref name="userId"/>.</summary>
-	Task RevokeAllAsync(
+	Task<IReadOnlyList<Guid>> RevokeAllAsync(
 		Guid userId,
 		DateTimeOffset revokedAt,
 		CancellationToken ct = default

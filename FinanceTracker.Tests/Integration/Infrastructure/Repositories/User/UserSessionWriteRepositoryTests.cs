@@ -164,4 +164,103 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: untouched!.RevokedAt).IsNull();
 	}
+
+	[Test]
+	public async Task RevokeAsync_ShouldReturnTheRevokedSessionId()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Core.Domains.User.UserSession session = await CreateAndPersistSessionAsync(userId: userId, hash: "return-value-hash");
+
+		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAsync(
+			sessionId: session.Id,
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		await Assert.That(value: revokedIds).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: revokedIds[0]).IsEqualTo(expected: session.Id);
+	}
+
+	[Test]
+	public async Task RevokeAsync_WhenSessionAlreadyRevoked_ShouldReturnEmptyList()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Core.Domains.User.UserSession session = await CreateAndPersistSessionAsync(
+			userId: userId,
+			hash: "already-revoked-hash",
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAsync(
+			sessionId: session.Id,
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		await Assert.That(value: revokedIds).IsEmpty();
+	}
+
+	[Test]
+	public async Task RevokeAsync_WhenSessionDoesNotExist_ShouldReturnEmptyList()
+	{
+		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAsync(
+			sessionId: Guid.CreateVersion7(),
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		await Assert.That(value: revokedIds).IsEmpty();
+	}
+
+	[Test]
+	public async Task RevokeAllExceptAsync_ShouldReturnOnlyTheActuallyRevokedIds()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Core.Domains.User.UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "return-keep-hash");
+		Core.Domains.User.UserSession other1 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-other-hash-1");
+		Core.Domains.User.UserSession other2 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-other-hash-2");
+
+		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAllExceptAsync(
+			userId: userId,
+			exceptSessionId: keep.Id,
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		await Assert.That(value: revokedIds).Count().IsEqualTo(expected: 2);
+		await Assert.That(value: revokedIds).Contains(expected: other1.Id);
+		await Assert.That(value: revokedIds).Contains(expected: other2.Id);
+		await Assert.That(value: revokedIds).DoesNotContain(expected: keep.Id);
+	}
+
+	[Test]
+	public async Task RevokeAllAsync_ShouldReturnAllRevokedIds()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Core.Domains.User.UserSession s1 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-all-hash-1");
+		Core.Domains.User.UserSession s2 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-all-hash-2");
+
+		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAllAsync(
+			userId: userId,
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		await Assert.That(value: revokedIds).Count().IsEqualTo(expected: 2);
+		await Assert.That(value: revokedIds).Contains(expected: s1.Id);
+		await Assert.That(value: revokedIds).Contains(expected: s2.Id);
+	}
+
+	[Test]
+	public async Task RevokeAllAsync_WhenNoActiveSessions_ShouldReturnEmptyList()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		_ = await CreateAndPersistSessionAsync(
+			userId: userId,
+			hash: "already-revoked-all",
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAllAsync(
+			userId: userId,
+			revokedAt: FakeDateProvider.Default.UtcNow
+		);
+
+		await Assert.That(value: revokedIds).IsEmpty();
+	}
 }
