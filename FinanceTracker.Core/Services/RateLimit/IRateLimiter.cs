@@ -7,13 +7,12 @@ namespace FinanceTracker.Core.Services.RateLimit;
 public interface IRateLimiter
 {
 	/// <summary>
-	/// Returns <c>true</c> if the request is within the allowed rate,
-	/// or <c>false</c> if the limit has been exceeded.
+	/// Checks whether the request is within the allowed rate, admitting it if so.
 	/// </summary>
 	/// <param name="key">Unique key identifying the subject being rate-limited (e.g. user ID + endpoint).</param>
 	/// <param name="requestsPerWindow">Maximum number of requests allowed within the window.</param>
 	/// <param name="windowSeconds">Duration of the sliding window in seconds.</param>
-	Task<bool> IsAllowedAsync(
+	Task<RateLimitResult> IsAllowedAsync(
 		string key,
 		int requestsPerWindow,
 		int windowSeconds,

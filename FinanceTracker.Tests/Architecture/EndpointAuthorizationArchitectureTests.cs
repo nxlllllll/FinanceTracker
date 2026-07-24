@@ -27,8 +27,6 @@ public sealed class EndpointAuthorizationArchitectureTests
 		"POST /api/v1/auth/register", // the registration of a new user cannot be authenticated
 		"POST /api/v1/auth/refresh",  // identifies the caller via the refresh-token cookie
 		"POST /api/v1/auth/logout",   // identifies the caller via the refresh-token cookie
-		"GET /ping",                  // debug/test endpoint
-		"GET /ping/me"                // debug/test endpoint
 	};
 
 	[Test]

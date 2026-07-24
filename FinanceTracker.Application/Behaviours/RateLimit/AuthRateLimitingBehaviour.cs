@@ -31,28 +31,28 @@ public sealed class AuthRateLimitingBehaviour<TRequest, TResponse>(
 
 		if (request is IIpScopedRequest ipScopedRequest)
 		{
-			bool ipAllowed = await rateLimiter.IsAllowedAsync(
+			RateLimitResult ipResult = await rateLimiter.IsAllowedAsync(
 				key: $"ratelimit:ip:{ipScopedRequest.IpAddress}",
 				requestsPerWindow: currentOptions.IpRequestsPerWindow,
 				windowSeconds: currentOptions.IpWindowSeconds,
 				ct: cancellationToken
 			);
 
-			if (!ipAllowed)
-				return TResponse.CreateFailure(error: new RateLimitExceededException(commandName: typeof(TRequest).Name));
+			if (!ipResult.IsAllowed)
+				return TResponse.CreateFailure(error: new RateLimitExceededException(commandName: typeof(TRequest).Name, retryAfterSeconds: ipResult.RetryAfterSeconds));
 		}
 
 		if (request is IEmailScopedRequest emailScopedRequest)
 		{
-			bool emailAllowed = await rateLimiter.IsAllowedAsync(
+			RateLimitResult emailResult = await rateLimiter.IsAllowedAsync(
 				key: $"ratelimit:email:{emailScopedRequest.Email.Value}",
 				requestsPerWindow: currentOptions.EmailRequestsPerWindow,
 				windowSeconds: currentOptions.EmailWindowSeconds,
 				ct: cancellationToken
 			);
 
-			if (!emailAllowed)
-				return TResponse.CreateFailure(error: new RateLimitExceededException(commandName: typeof(TRequest).Name));
+			if (!emailResult.IsAllowed)
+				return TResponse.CreateFailure(error: new RateLimitExceededException(commandName: typeof(TRequest).Name, retryAfterSeconds: emailResult.RetryAfterSeconds));
 		}
 
 		return await next(t: cancellationToken);

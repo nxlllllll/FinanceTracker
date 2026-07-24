@@ -66,11 +66,21 @@ public sealed class Program
 			options.SerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
 		});
 
+		if (!builder.Environment.IsDevelopment())
+		{
+			builder.Services.AddHsts(configureOptions: options => options.MaxAge = TimeSpan.FromDays(value: 365));
+		}
+
 		WebApplication app = builder.Build();
 
 		app.UseForwardedHeaders();
 
 		app.UseCorrelationIdMiddleware();
+
+		if (!app.Environment.IsDevelopment())
+			app.UseHsts();
+
+		app.UseSecurityHeaders();
 
 		app.UseExceptionHandler();
 

@@ -23,7 +23,7 @@ public sealed class InMemoryRateLimiter(
 	private readonly ConcurrentDictionary<string, TrackedWindow> _windows = new ConcurrentDictionary<string, TrackedWindow>();
 	private long _callCounter;
 
-	public Task<bool> IsAllowedAsync(
+	public Task<RateLimitResult> IsAllowedAsync(
 		string key,
 		int requestsPerWindow,
 		int windowSeconds,
@@ -36,7 +36,7 @@ public sealed class InMemoryRateLimiter(
 		if (!_windows.TryGetValue(key: key, value: out TrackedWindow? window))
 		{
 			if (_windows.Count >= options.CurrentValue.MaxTrackedKeys)
-				return Task.FromResult(result: false);
+				return Task.FromResult(result: RateLimitResult.Denied(retryAfterSeconds: windowSeconds));
 
 			window = _windows.GetOrAdd(key: key, valueFactory: _ => new TrackedWindow());
 		}
@@ -53,10 +53,14 @@ public sealed class InMemoryRateLimiter(
 				window.Timestamps.Dequeue();
 
 			if (window.Timestamps.Count >= requestsPerWindow)
-				return Task.FromResult(result: false);
+			{
+				long retryAfterMs = window.Timestamps.Peek() + windowSeconds * 1000L - now;
+				int retryAfterSeconds = (int)Math.Ceiling(a: Math.Max(val1: retryAfterMs, val2: 0) / 1000.0);
+				return Task.FromResult(result: RateLimitResult.Denied(retryAfterSeconds: retryAfterSeconds));
+			}
 
 			window.Timestamps.Enqueue(item: now);
-			return Task.FromResult(result: true);
+			return Task.FromResult(result: RateLimitResult.Allowed());
 		}
 	}
 

@@ -70,7 +70,7 @@ public sealed class AuthRateLimitingBehaviourTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: RateLimitResult.Allowed());
 	}
 
 	[Test]
@@ -131,7 +131,7 @@ public sealed class AuthRateLimitingBehaviourTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: false);
+		).Returns(returnThis: RateLimitResult.Denied(retryAfterSeconds: 60));
 
 		AuthRateLimitingBehaviour<TestCommandIpOnly, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour = CreateBehaviour<TestCommandIpOnly>();
 		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
@@ -198,7 +198,7 @@ public sealed class AuthRateLimitingBehaviourTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: false);
+		).Returns(returnThis: RateLimitResult.Denied(retryAfterSeconds: 60));
 
 		AuthRateLimitingBehaviour<TestCommandEmailOnly, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour = CreateBehaviour<TestCommandEmailOnly>();
 		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
@@ -277,13 +277,13 @@ public sealed class AuthRateLimitingBehaviourTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: false);
+		).Returns(returnThis: RateLimitResult.Denied(retryAfterSeconds: 60));
 		_rateLimiter.IsAllowedAsync(
 			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:email:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: RateLimitResult.Allowed());
 
 		AuthRateLimitingBehaviour<TestCommandBoth, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour = CreateBehaviour<TestCommandBoth>();
 		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
@@ -313,13 +313,13 @@ public sealed class AuthRateLimitingBehaviourTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: RateLimitResult.Allowed());
 		_rateLimiter.IsAllowedAsync(
 			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:email:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: false);
+		).Returns(returnThis: RateLimitResult.Denied(retryAfterSeconds: 60));
 
 		AuthRateLimitingBehaviour<TestCommandBoth, Result<FinanceTracker.Core.Results.Unit, DomainException>> behaviour = CreateBehaviour<TestCommandBoth>();
 		RequestHandlerDelegate<Result<FinanceTracker.Core.Results.Unit, DomainException>> next = AllowedNext();
