@@ -13,7 +13,7 @@ public sealed class ArchiveAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPatch(pattern: "/api/v1/accounts/{accountId:guid}/archive", handler: HandleAsync).RequireAuthorization()
+		app.MapPatch(pattern: "/accounts/{accountId:guid}/archive", handler: HandleAsync).RequireAuthorization()
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
 			.WithTags(tags: "Accounts")
 			.WithSummary(summary: "Archive an account")

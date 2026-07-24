@@ -16,7 +16,7 @@ public sealed class RefreshTokenEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/auth/refresh", handler: HandleAsync)
+		app.MapPost(pattern: "/auth/refresh", handler: HandleAsync).AllowAnonymous()
 			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Refresh the access token")
 			.WithDescription(description: "Rotates the refresh token cookie and issues a new access token.")
