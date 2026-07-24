@@ -17,8 +17,7 @@ public sealed class RedisCache(
 	IConnectionMultiplexer connectionMultiplexer,
 	IOptionsMonitor<RedisOptions> options,
 	IDateProvider dateProvider,
-	ILogger<RedisCache> logger
-)
+	ILogger<RedisCache> logger)
 {
 	private string Prefixed(string key)
 		=> $"{options.CurrentValue.InstanceName}{key}";
@@ -133,7 +132,7 @@ public sealed class RedisCache(
 	/// Writes multiple keys in a single pipelined batch — one network flush, all commands
 	/// awaited together, instead of one round-trip per key.
 	/// </summary>
-	public async Task SetBatchAsync<T>(IReadOnlyList<(string Key, T Value, DistributedCacheEntryOptions Options)> items)
+	public async Task SetBatchAsync<T>(IReadOnlyList<BatchItem<T>> items)
 	{
 		if (items.Count == 0)
 			return;
@@ -144,11 +143,11 @@ public sealed class RedisCache(
 		Task[] tasks = new Task[items.Count];
 		for (int i = 0; i < items.Count; i++)
 		{
-			(string key, T value, DistributedCacheEntryOptions itemOptions) = items[i];
+			BatchItem<T> item = items[i];
 			tasks[i] = batch.StringSetAsync(
-				key: Prefixed(key: key),
-				value: JsonSerializer.SerializeToUtf8Bytes(value: value),
-				expiry: ToExpiry(cacheOptions: itemOptions)
+				key: Prefixed(key: item.Key),
+				value: JsonSerializer.SerializeToUtf8Bytes(value: item.Value),
+				expiry: ToExpiry(cacheOptions: item.Options)
 			);
 		}
 
