@@ -1,5 +1,6 @@
 namespace FinanceTracker.Core.Exceptions.DomainExceptions;
 
+[ErrorCode(code: "rate_limit.exceeded")]
 public sealed class RateLimitExceededException(
 	string commandName,
 	int retryAfterSeconds

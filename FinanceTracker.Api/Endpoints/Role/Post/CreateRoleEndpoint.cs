@@ -31,7 +31,7 @@ public sealed class CreateRoleEndpoint : IEndpoint
 	{
 		Result<Name, DomainException> displayName = Name.Create(value: request.DisplayName);
 		if (displayName.IsFailure)
-			return displayName.Error!.ToValidationProblem();
+			return displayName.Error!.ToValidationProblem(fieldName: nameof(request.DisplayName));
 
 		Result<IReadOnlySet<Permission>, ValidationException> permissions = PermissionSetParser.Parse(raw: request.Permissions);
 		if (permissions.IsFailure)

@@ -35,7 +35,7 @@ public sealed class LoginEndpoint : IEndpoint
 	{
 		Result<Email, DomainException> email = Email.Create(value: request.Email);
 		if (email.IsFailure)
-			return email.Error!.ToValidationProblem();
+			return email.Error!.ToValidationProblem(fieldName: nameof(request.Email));
 
 		LoginUserCommand command = new LoginUserCommand(
 			Email: email.Value!,

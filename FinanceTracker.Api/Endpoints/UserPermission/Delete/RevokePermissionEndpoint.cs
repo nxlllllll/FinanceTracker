@@ -34,7 +34,7 @@ public sealed class RevokePermissionEndpoint : IEndpoint
 	{
 		Result<Permission, DomainException> parsedPermission = Permission.Create(value: permission);
 		if (parsedPermission.IsFailure)
-			return parsedPermission.Error!.ToValidationProblem();
+			return parsedPermission.Error!.ToValidationProblem(fieldName: nameof(permission));
 
 		RevokePermissionCommand command = new RevokePermissionCommand(
 			TargetUserId: userId,

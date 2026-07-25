@@ -36,11 +36,11 @@ public sealed class RegisterEndpoint : IEndpoint
 
 		Result<Email, DomainException> email = Email.Create(value: request.Email);
 		if (email.IsFailure)
-			return email.Error!.ToValidationProblem();
+			return email.Error!.ToValidationProblem(fieldName: nameof(request.Email));
 
 		Result<Currency, DomainException> currency = Currency.Create(value: request.BaseCurrency);
 		if (currency.IsFailure)
-			return currency.Error!.ToValidationProblem();
+			return currency.Error!.ToValidationProblem(fieldName: nameof(request.BaseCurrency));
 
 		RegisterUserCommand command = new RegisterUserCommand(
 			Email: email.Value!,

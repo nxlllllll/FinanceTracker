@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text.Json;
 using FinanceTracker.Api.Contracts.Abstractions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -9,15 +11,17 @@ namespace FinanceTracker.Api.Infrastructure;
 /// <summary>Maps <see cref="Result{TValue,TError}"/> failures onto HTTP responses.</summary>
 public static class ResultExtensions
 {
+	private static string ResolveErrorCode(AppException error)
+		=> error.GetType().GetCustomAttribute<ErrorCodeAttribute>()?.Code ?? error.GetType().Name;
+
 	public static IHttpResult ToProblem(this AppException error)
 	{
 		if (error is ValidationException validation)
 		{
-			return Results.Problem(
+			return Results.ValidationProblem(
+				errors: validation.Errors.ToDictionary(keySelector: kv => kv.Key, elementSelector: kv => kv.Value),
 				detail: validation.Message,
-				statusCode: StatusCodes.Status400BadRequest,
-				title: nameof(ValidationException),
-				extensions: new Dictionary<string, object?> { ["errors"] = validation.Errors }
+				extensions: new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) }
 			);
 		}
 
@@ -27,7 +31,8 @@ public static class ResultExtensions
 				inner: Results.Problem(
 					detail: error.Message,
 					statusCode: StatusCodes.Status429TooManyRequests,
-					title: error.GetType().Name
+					title: error.GetType().Name,
+					extensions: new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) }
 				),
 				headerName: "Retry-After",
 				headerValue: rateLimitExceeded.RetryAfterSeconds.ToString()
@@ -50,7 +55,8 @@ public static class ResultExtensions
 		return Results.Problem(
 			detail: error.Message,
 			statusCode: statusCode,
-			title: error.GetType().Name
+			title: error.GetType().Name,
+			extensions: new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) }
 		);
 	}
 
@@ -105,6 +111,12 @@ public static class ResultExtensions
 	public static IHttpResult ToNoContentResult<TValue>(this Result<TValue, AppException> result)
 		=> result.IsSuccess ? Results.NoContent() : result.Error!.ToProblem();
 
-	public static IHttpResult ToValidationProblem(this DomainException error)
-		=> new ValidationException(errors: [error.Message]).ToProblem();
+	public static IHttpResult ToValidationProblem(this DomainException error, string fieldName)
+	{
+		string camelCaseField = JsonNamingPolicy.CamelCase.ConvertName(name: fieldName);
+		return new ValidationException(errors: new Dictionary<string, string[]>
+		{
+			[camelCaseField] = [error.Message]
+		}).ToProblem();
+	}
 }

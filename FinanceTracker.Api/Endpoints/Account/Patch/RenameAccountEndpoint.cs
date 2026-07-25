@@ -37,7 +37,7 @@ public sealed class RenameAccountEndpoint : IEndpoint
 	{
 		Result<Name, DomainException> newName = Name.Create(value: request.NewName);
 		if (newName.IsFailure)
-			return newName.Error!.ToValidationProblem();
+			return newName.Error!.ToValidationProblem(fieldName: nameof(request.NewName));
 
 		RenameAccountCommand command = new RenameAccountCommand(
 			UserId: currentUser.UserId,

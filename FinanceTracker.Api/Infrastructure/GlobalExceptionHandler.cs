@@ -21,6 +21,7 @@ public sealed class GlobalExceptionHandler(
 			statusCode: badRequest.StatusCode,
 			title: "Bad Request",
 			detail: "The request body could not be read. Check field types and enum values.",
+			code: "request.malformed",
 			logAction: () => logger.ZLogWarning(exception: badRequest, message: $"Malformed request for {httpContext.Request.Method} {httpContext.Request.Path}"),
 			ct: cancellationToken
 		),
@@ -29,6 +30,7 @@ public sealed class GlobalExceptionHandler(
 			statusCode: StatusCodes.Status500InternalServerError,
 			title: "Internal Server Error",
 			detail: "An unexpected error occurred. Use the correlation id to investigate.",
+			code: "internal.unexpected_error",
 			logAction: () => logger.ZLogError(exception: exception, message: $"Unhandled exception for {httpContext.Request.Method} {httpContext.Request.Path}"),
 			ct: cancellationToken
 		)
@@ -39,6 +41,7 @@ public sealed class GlobalExceptionHandler(
 		int statusCode,
 		string title,
 		string detail,
+		string code,
 		Action logAction,
 		CancellationToken ct)
 	{
@@ -46,7 +49,9 @@ public sealed class GlobalExceptionHandler(
 
 		ICorrelationContext correlationContext = httpContext.RequestServices.GetRequiredService<ICorrelationContext>();
 
-		string traceId = correlationContext.CorrelationId != Guid.Empty ? correlationContext.CorrelationId.ToString() : httpContext.TraceIdentifier;
+		string traceId = correlationContext.CorrelationId != Guid.Empty
+			? correlationContext.CorrelationId.ToString()
+			: httpContext.TraceIdentifier;
 
 		httpContext.Response.StatusCode = statusCode;
 
@@ -56,7 +61,11 @@ public sealed class GlobalExceptionHandler(
 				Status = statusCode,
 				Title = title,
 				Detail = detail,
-				Extensions = { ["traceId"] = traceId }
+				Extensions =
+				{
+					["code"] = code,
+					["traceId"] = traceId
+				}
 			},
 			options: null,
 			contentType: MediaTypeNames.Application.ProblemJson,

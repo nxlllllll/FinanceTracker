@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-
-namespace FinanceTracker.Api.Infrastructure;
+﻿namespace FinanceTracker.Api.Infrastructure;
 
 public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 {

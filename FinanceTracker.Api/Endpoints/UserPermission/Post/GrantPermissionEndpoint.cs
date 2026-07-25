@@ -35,7 +35,7 @@ public sealed class GrantPermissionEndpoint : IEndpoint
 	{
 		Result<Permission, DomainException> permission = Permission.Create(value: request.Permission);
 		if (permission.IsFailure)
-			return permission.Error!.ToValidationProblem();
+			return permission.Error!.ToValidationProblem(fieldName: nameof(request.Permission));
 
 		GrantPermissionCommand command = new GrantPermissionCommand(
 			TargetUserId: userId,

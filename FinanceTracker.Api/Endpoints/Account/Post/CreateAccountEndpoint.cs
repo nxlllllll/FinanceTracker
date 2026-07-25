@@ -39,11 +39,11 @@ public sealed class CreateAccountEndpoint : IEndpoint
 
 		Result<Name, DomainException> name = Name.Create(value: request.Name);
 		if (name.IsFailure)
-			return name.Error!.ToValidationProblem();
+			return name.Error!.ToValidationProblem(fieldName: nameof(request.Name));
 
 		Result<Currency, DomainException> currency = Currency.Create(value: request.Currency);
 		if (currency.IsFailure)
-			return currency.Error!.ToValidationProblem();
+			return currency.Error!.ToValidationProblem(fieldName: nameof(request.Currency));
 
 		CreateAccountCommand command = new CreateAccountCommand(
 			UserId: currentUser.UserId,

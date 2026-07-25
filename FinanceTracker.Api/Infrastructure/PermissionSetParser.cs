@@ -13,14 +13,14 @@ public static class PermissionSetParser
 {
 	public static Result<IReadOnlySet<Permission>, ValidationException> Parse(IReadOnlySet<string> raw)
 	{
-		List<string> errors = [];
+		Dictionary<string, string[]> errors = [];
 		HashSet<Permission> parsed = [];
 
 		foreach (string value in raw)
 		{
 			Result<Permission, DomainException> result = Permission.Create(value: value);
 			if (result.IsFailure)
-				errors.Add(item: result.Error!.Message);
+				errors[value] = [result.Error!.Message];
 			else
 				parsed.Add(item: result.Value!);
 		}

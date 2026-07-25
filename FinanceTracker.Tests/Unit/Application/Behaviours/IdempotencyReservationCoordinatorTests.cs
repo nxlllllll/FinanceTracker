@@ -1,7 +1,6 @@
 ﻿using FinanceTracker.Application.Behaviours.Idempotency;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Idempotency;
-using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Logging;
 using NSubstitute;

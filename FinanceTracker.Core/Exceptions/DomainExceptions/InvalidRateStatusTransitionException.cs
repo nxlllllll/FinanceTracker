@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.Abstractions.Rate;
 
 namespace FinanceTracker.Core.Exceptions.DomainExceptions;
 
+[ErrorCode(code: "transaction.invalid_rate_status_transition")]
 public sealed class InvalidRateStatusTransitionException(
 	string message,
 	RateStatus from,

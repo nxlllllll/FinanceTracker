@@ -1,5 +1,5 @@
-using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Outbox;
