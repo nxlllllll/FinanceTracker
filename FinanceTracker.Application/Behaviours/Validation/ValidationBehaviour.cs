@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FinanceTracker.Core.Results;
 using FluentValidation;
 using FluentValidation.Results;
@@ -30,19 +31,23 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 
 		ValidationContext<TRequest> context = new ValidationContext<TRequest>(instanceToValidate: request);
 
-		List<ValidationResult> results = new List<ValidationResult>(capacity: validatorsArray.Length);
+		List<ValidationFailure> failures = new List<ValidationFailure>(capacity: validatorsArray.Length);
 		foreach (IValidator<TRequest> validator in validatorsArray)
-			results.Add(item: await validator.ValidateAsync(context: context, cancellation: cancellationToken));
+		{
+			ValidationResult result = await validator.ValidateAsync(context: context, cancellation: cancellationToken);
+			if (result.Errors.Count > 0)
+				failures.AddRange(collection: result.Errors.Where(predicate: e => e is not null));
+		}
 
-		List<string> errors = results.SelectMany(selector: result => result.Errors)
-			.Where(predicate: error => error is not null)
-			.Select(selector: error => error.ErrorMessage)
-			.ToList();
-
-		if (errors.Count == 0)
+		if (failures.Count == 0)
 			return await next(t: cancellationToken);
 
-		logger.ZLogWarning(message: $"Validation failed for {request.GetType().Name}: {errors.Count} error(s).");
+		Dictionary<string, string[]> errors = failures.GroupBy(keySelector: failure => JsonNamingPolicy.CamelCase.ConvertName(name: failure.PropertyName)).ToDictionary(
+			keySelector: group => group.Key,
+			elementSelector: group => group.Select(selector: failure => failure.ErrorMessage).ToArray()
+		);
+
+		logger.ZLogWarning(message: $"Validation failed for {request.GetType().Name}: {failures.Count} error(s) across {errors.Count} field(s).");
 		return TResponse.CreateFailure(error: new FinanceTracker.Core.Exceptions.ValidationException(errors: errors));
 	}
 }

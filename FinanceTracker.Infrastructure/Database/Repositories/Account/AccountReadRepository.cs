@@ -27,6 +27,7 @@ public sealed class AccountReadRepository(
 				Type: a.AccountType,
 				Balance: Money.Reconstitute(amount: b.Balance, currency: a.Currency),
 				IsArchived: a.IsArchived,
+				Version: a.LastVersion,
 				CreatedAt: a.CreatedAt
 			)
 		).FirstOrDefaultAsync(cancellationToken: ct);
@@ -53,6 +54,7 @@ public sealed class AccountReadRepository(
 				Type: a.AccountType,
 				Balance: Money.Reconstitute(amount: b.Balance, currency: a.Currency),
 				IsArchived: a.IsArchived,
+				Version: a.LastVersion,
 				CreatedAt: a.CreatedAt
 		)).ToListAsync(cancellationToken: ct);
 	}

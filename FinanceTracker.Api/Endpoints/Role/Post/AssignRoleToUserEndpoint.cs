@@ -13,7 +13,7 @@ public sealed class AssignRoleToUserEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/users/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
+		app.MapPost(pattern: "/users/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
 			.WithTags(tags: "Roles")
 			.WithSummary(summary: "Assign a role to a user")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

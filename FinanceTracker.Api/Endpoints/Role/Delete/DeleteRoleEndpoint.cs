@@ -13,7 +13,7 @@ public sealed class DeleteRoleEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapDelete(pattern: "/api/v1/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
+		app.MapDelete(pattern: "/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
 			.WithTags(tags: "Roles")
 			.WithSummary(summary: "Delete a custom role")
 			.WithDescription(description: "System roles (user/admin/root) cannot be deleted. Revokes the role's permissions from every current member first.")

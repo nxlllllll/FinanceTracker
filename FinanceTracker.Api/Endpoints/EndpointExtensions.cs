@@ -23,12 +23,16 @@ public static class EndpointExtensions
 		return services;
 	}
 
-	/// <summary>Resolves all registered endpoints and maps their routes.</summary>
+	/// <summary>Resolves all registered endpoints and maps their routes</summary>
 	public static WebApplication MapEndpoints(this WebApplication app)
 	{
+		RouteGroupBuilder apiGroup = app.MapGroup(prefix: "/api/v1").RequireAuthorization()
+			.ProducesProblem(statusCode: StatusCodes.Status401Unauthorized)
+			.ProducesProblem(statusCode: StatusCodes.Status429TooManyRequests);
+
 		IEnumerable<IEndpoint> endpoints = app.Services.GetRequiredService<IEnumerable<IEndpoint>>();
 		foreach (IEndpoint endpoint in endpoints)
-			endpoint.MapEndpoint(app: app);
+			endpoint.MapEndpoint(app: apiGroup);
 
 		return app;
 	}

@@ -15,7 +15,7 @@ public sealed class RevokePermissionEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapDelete(pattern: "/api/v1/users/{userId:guid}/permissions/{permission}", handler: HandleAsync)
+		app.MapDelete(pattern: "/users/{userId:guid}/permissions/{permission}", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage)
 			.WithTags(tags: "Permissions")
 			.WithSummary(summary: "Revoke a permission from a user")
@@ -34,7 +34,7 @@ public sealed class RevokePermissionEndpoint : IEndpoint
 	{
 		Result<Permission, DomainException> parsedPermission = Permission.Create(value: permission);
 		if (parsedPermission.IsFailure)
-			return parsedPermission.Error!.ToValidationProblem();
+			return parsedPermission.Error!.ToValidationProblem(fieldName: nameof(permission));
 
 		RevokePermissionCommand command = new RevokePermissionCommand(
 			TargetUserId: userId,

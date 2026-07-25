@@ -1,7 +1,7 @@
-using FinanceTracker.Contracts.Messages;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;

@@ -18,7 +18,7 @@ public sealed class LoginEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/auth/login", handler: HandleAsync)
+		app.MapPost(pattern: "/auth/login", handler: HandleAsync).AllowAnonymous()
 			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Log in")
 			.WithDescription(description: "Returns an access token in the body and sets a refresh token as an HttpOnly cookie.")
@@ -35,7 +35,7 @@ public sealed class LoginEndpoint : IEndpoint
 	{
 		Result<Email, DomainException> email = Email.Create(value: request.Email);
 		if (email.IsFailure)
-			return email.Error!.ToValidationProblem();
+			return email.Error!.ToValidationProblem(fieldName: nameof(request.Email));
 
 		LoginUserCommand command = new LoginUserCommand(
 			Email: email.Value!,

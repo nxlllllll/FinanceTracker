@@ -1,6 +1,6 @@
-using FinanceTracker.Contracts.Messages;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;

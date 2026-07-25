@@ -14,7 +14,7 @@ public sealed class GetRoleEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet(pattern: "/api/v1/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
+		app.MapGet(pattern: "/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
 			.WithTags(tags: "Roles")
 			.WithSummary(summary: "Get a role by id")
 			.Produces<RoleResponse>(statusCode: StatusCodes.Status200OK)

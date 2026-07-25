@@ -60,7 +60,8 @@ public static class AccountFactory
 		AccountType type = AccountType.Checking,
 		string currency = "RUB",
 		decimal balance = 1000m,
-		bool isArchived = false)
+		bool isArchived = false,
+		int version = 1)
 	{
 		Currency curr = Currency.Reconstitute(value: currency);
 
@@ -71,6 +72,7 @@ public static class AccountFactory
 			Type: type,
 			Balance: Money.Reconstitute(amount: balance, currency: curr),
 			IsArchived: isArchived,
+			Version: version,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		);
 	}

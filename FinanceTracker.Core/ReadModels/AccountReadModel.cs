@@ -10,5 +10,6 @@ public sealed record AccountReadModel(
 	AccountType Type,
 	Money Balance,
 	bool IsArchived,
+	int Version,
 	DateTimeOffset CreatedAt
 ) : IReadModel;

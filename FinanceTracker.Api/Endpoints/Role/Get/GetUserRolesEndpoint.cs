@@ -14,7 +14,7 @@ public sealed class GetUserRolesEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapGet(pattern: "/api/v1/users/{userId:guid}/roles", handler: HandleAsync).RequireRoot()
+		app.MapGet(pattern: "/users/{userId:guid}/roles", handler: HandleAsync).RequireRoot()
 			.WithTags(tags: "Roles")
 			.WithSummary(summary: "List roles held by a user")
 			.Produces<List<RoleResponse>>(statusCode: StatusCodes.Status200OK);

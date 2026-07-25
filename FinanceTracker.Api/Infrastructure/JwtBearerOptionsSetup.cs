@@ -3,7 +3,6 @@ using System.Text;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;

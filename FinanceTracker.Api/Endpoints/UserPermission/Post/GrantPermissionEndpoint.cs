@@ -16,7 +16,7 @@ public sealed class GrantPermissionEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/users/{userId:guid}/permissions", handler: HandleAsync)
+		app.MapPost(pattern: "/users/{userId:guid}/permissions", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage)
 			.WithTags(tags: "Permissions")
 			.WithSummary(summary: "Grant a permission to a user")
@@ -35,7 +35,7 @@ public sealed class GrantPermissionEndpoint : IEndpoint
 	{
 		Result<Permission, DomainException> permission = Permission.Create(value: request.Permission);
 		if (permission.IsFailure)
-			return permission.Error!.ToValidationProblem();
+			return permission.Error!.ToValidationProblem(fieldName: nameof(request.Permission));
 
 		GrantPermissionCommand command = new GrantPermissionCommand(
 			TargetUserId: userId,

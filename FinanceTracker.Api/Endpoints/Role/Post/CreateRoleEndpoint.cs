@@ -16,7 +16,7 @@ public sealed class CreateRoleEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/roles", handler: HandleAsync).RequireRoot()
+		app.MapPost(pattern: "/roles", handler: HandleAsync).RequireRoot()
 			.WithTags(tags: "Roles")
 			.WithSummary(summary: "Create a custom role")
 			.Produces<CreatedIdResponse>(statusCode: StatusCodes.Status201Created)
@@ -31,7 +31,7 @@ public sealed class CreateRoleEndpoint : IEndpoint
 	{
 		Result<Name, DomainException> displayName = Name.Create(value: request.DisplayName);
 		if (displayName.IsFailure)
-			return displayName.Error!.ToValidationProblem();
+			return displayName.Error!.ToValidationProblem(fieldName: nameof(request.DisplayName));
 
 		Result<IReadOnlySet<Permission>, ValidationException> permissions = PermissionSetParser.Parse(raw: request.Permissions);
 		if (permissions.IsFailure)

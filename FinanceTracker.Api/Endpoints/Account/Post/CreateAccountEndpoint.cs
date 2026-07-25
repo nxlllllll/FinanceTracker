@@ -16,7 +16,7 @@ public sealed class CreateAccountEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/accounts", handler: HandleAsync)
+		app.MapPost(pattern: "/accounts", handler: HandleAsync)
 			.RequireAuthorization()
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
 			.WithTags(tags: "Accounts")
@@ -35,17 +35,15 @@ public sealed class CreateAccountEndpoint : IEndpoint
 		HttpContext httpContext,
 		CancellationToken ct)
 	{
-		Guid? idempotencyKey = httpContext.GetIdempotencyKey();
-		if (idempotencyKey is null)
-			return new EmptyIdempotencyKeyException(message: "A valid 'Idempotency-Key' header is required.").ToProblem();
+		Guid idempotencyKey = httpContext.GetIdempotencyKey() ?? Guid.Empty;
 
 		Result<Name, DomainException> name = Name.Create(value: request.Name);
 		if (name.IsFailure)
-			return name.Error!.ToValidationProblem();
+			return name.Error!.ToValidationProblem(fieldName: nameof(request.Name));
 
 		Result<Currency, DomainException> currency = Currency.Create(value: request.Currency);
 		if (currency.IsFailure)
-			return currency.Error!.ToValidationProblem();
+			return currency.Error!.ToValidationProblem(fieldName: nameof(request.Currency));
 
 		CreateAccountCommand command = new CreateAccountCommand(
 			UserId: currentUser.UserId,
@@ -53,8 +51,7 @@ public sealed class CreateAccountEndpoint : IEndpoint
 			Type: request.Type,
 			Currency: currency.Value!,
 			InitialBalance: request.InitialBalance
-		)
-		{ IdempotencyKey = idempotencyKey.Value };
+		) { IdempotencyKey = idempotencyKey };
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 

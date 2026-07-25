@@ -5,7 +5,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -23,10 +22,10 @@ public sealed class EndpointAuthorizationArchitectureTests
 	// permission/root policy.
 	private static readonly HashSet<string> ExemptRoutes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 	{
-		"POST /api/v1/auth/login",    // account login cannot be authenticated
-		"POST /api/v1/auth/register", // the registration of a new user cannot be authenticated
-		"POST /api/v1/auth/refresh",  // identifies the caller via the refresh-token cookie
-		"POST /api/v1/auth/logout",   // identifies the caller via the refresh-token cookie
+		"POST /auth/login",    // account login cannot be authenticated
+		"POST /auth/register", // the registration of a new user cannot be authenticated
+		"POST /auth/refresh",  // identifies the caller via the refresh-token cookie
+		"POST /auth/logout",   // identifies the caller via the refresh-token cookie
 	};
 
 	[Test]

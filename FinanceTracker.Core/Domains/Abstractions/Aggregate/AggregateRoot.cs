@@ -15,7 +15,7 @@ namespace FinanceTracker.Core.Domains.Abstractions.Aggregate;
 ///   <item>Pass <see cref="Events"/> to <c>IEventStore.SaveAsync</c>.</item>
 /// </list>
 /// </remarks>
-public abstract class AggregateRoot
+public abstract class AggregateRoot : IHasVersion
 {
 	private readonly List<IEvent> _events = [];
 

@@ -15,7 +15,7 @@ public sealed class RegisterEndpoint : IEndpoint
 {
 	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		app.MapPost(pattern: "/api/v1/auth/register", handler: HandleAsync)
+		app.MapPost(pattern: "/auth/register", handler: HandleAsync).AllowAnonymous()
 			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Register a new user")
 			.WithDescription(description: "Creates a user account. Requires an Idempotency-Key header.")
@@ -36,11 +36,11 @@ public sealed class RegisterEndpoint : IEndpoint
 
 		Result<Email, DomainException> email = Email.Create(value: request.Email);
 		if (email.IsFailure)
-			return email.Error!.ToValidationProblem();
+			return email.Error!.ToValidationProblem(fieldName: nameof(request.Email));
 
 		Result<Currency, DomainException> currency = Currency.Create(value: request.BaseCurrency);
 		if (currency.IsFailure)
-			return currency.Error!.ToValidationProblem();
+			return currency.Error!.ToValidationProblem(fieldName: nameof(request.BaseCurrency));
 
 		RegisterUserCommand command = new RegisterUserCommand(
 			Email: email.Value!,
