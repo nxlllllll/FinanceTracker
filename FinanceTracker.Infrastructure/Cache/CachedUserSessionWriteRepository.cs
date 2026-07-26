@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Repositories.User;
+﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
@@ -8,6 +9,7 @@ namespace FinanceTracker.Infrastructure.Cache;
 public sealed class CachedUserSessionWriteRepository(
 	IUserSessionWriteRepository inner,
 	RedisCache redisCache,
+	IUnitOfWork unitOfWork,
 	IOptionsMonitor<JwtOptions> jwtOptions
 ) : IUserSessionWriteRepository
 {
@@ -26,7 +28,7 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		await MarkRevokedInCacheAsync(sessionIds: revokedIds);
+		ScheduleCacheMarking(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
@@ -42,7 +44,7 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		await MarkRevokedInCacheAsync(sessionIds: revokedIds);
+		ScheduleCacheMarking(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
@@ -56,15 +58,20 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		await MarkRevokedInCacheAsync(sessionIds: revokedIds);
+		ScheduleCacheMarking(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
-	private async Task MarkRevokedInCacheAsync(IReadOnlyList<Guid> sessionIds)
+	private void ScheduleCacheMarking(IReadOnlyList<Guid> sessionIds)
 	{
 		if (sessionIds.Count == 0)
 			return;
 
+		unitOfWork.OnCommitted(callback: () => MarkRevokedInCacheAsync(sessionIds: sessionIds));
+	}
+
+	private async Task MarkRevokedInCacheAsync(IReadOnlyList<Guid> sessionIds)
+	{
 		DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions
 		{
 			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(value: jwtOptions.CurrentValue.AccessTokenTtlMinutes)
