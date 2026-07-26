@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Infrastructure;
+﻿using FinanceTracker.Api.Http.Middleware;
 using FinanceTracker.Core.Services.Correlation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;

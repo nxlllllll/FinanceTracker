@@ -1,5 +1,5 @@
-﻿using FinanceTracker.Api.Endpoints;
-using FinanceTracker.Api.Infrastructure;
+﻿using FinanceTracker.Api.Http;
+using FinanceTracker.Api.Routing;
 using FinanceTracker.Infrastructure.Services.Token;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using FinanceTracker.Api.Infrastructure;
+using FinanceTracker.Api.Configurations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;

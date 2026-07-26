@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Infrastructure;
+﻿using FinanceTracker.Api.Http;
 
 namespace FinanceTracker.Tests.Unit.Api.Infrastructure;
 

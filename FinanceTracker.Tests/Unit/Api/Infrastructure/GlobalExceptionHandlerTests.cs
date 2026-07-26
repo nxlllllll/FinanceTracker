@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using FinanceTracker.Api.Infrastructure;
+using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Core.Services.Correlation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
