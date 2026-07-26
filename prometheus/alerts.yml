@@ -21,23 +21,23 @@
           summary: "An outbox message was moved to dead letter"
           description: "outbox_failed_total increased in the last 15 minutes — a message the system was supposed to publish at-least-once did not make it out. Investigate OutboxPublisherJob and the affected AggregateId in outbox_messages."
 
-      - alert: DeadLetterBacklogNotDraining
-        expr: dead_letter_count > 0
+      - alert: UnresolvableEventBacklogNotDraining
+        expr: unresolvable_events_pending > 0
         for: 30m
         labels:
           severity: warning
         annotations:
-          summary: "Dead letter queue has had messages for 30+ minutes"
-          description: "dead_letter_count has been above zero for at least 30 minutes. Check DeadLetterMonitoringJob and the {queue}.dlq queues for messages that need manual replay or resolution."
+          summary: "Escalated events have been awaiting resolution for 30+ minutes"
+          description: "unresolvable_events_pending has been above zero for at least 30 minutes — rows in unresolvable_events with resolved_at IS NULL. This is a Postgres backlog, not a RabbitMQ queue: the .dlq queues may well be empty. DeadLetterMonitoringJob logs each event once and marks it acknowledged, but acknowledgement is not resolution — the count only drops when someone fixes the underlying problem and sets resolved_at."
 
-      - alert: DeadLetterBacklogStale
-        expr: dead_letter_count > 0
+      - alert: UnresolvableEventBacklogStale
+        expr: unresolvable_events_pending > 0
         for: 2h
         labels:
           severity: critical
         annotations:
-          summary: "Dead letter queue has been non-empty for 2+ hours"
-          description: "Messages have been sitting in a dead letter queue for over 2 hours without resolution. This needs manual attention now, not just monitoring."
+          summary: "Escalated events have been awaiting resolution for 2+ hours"
+          description: "Events escalated for manual resolution have gone untouched for over two hours. Each one is a transfer, recurring occurrence or rate correction the system could neither complete nor compensate on its own, so nothing here fixes itself. This needs manual attention now, not just monitoring. Start with DeadLetterBacklogSummaryJob's daily digest for the oldest entries."
 
   - name: finance-tracker-transfers
     rules:
@@ -90,7 +90,7 @@
           severity: critical
         annotations:
           summary: "A rate correction was rejected — a recorded balance is knowingly wrong"
-          description: "BalanceAdjustmentJob got the real rate but could not apply the correction ({{ $labels.source_type }}). The usual cause is an account archived while its rate was still pending: an archived account refuses balance adjustments. The affected balance is still computed from the placeholder rate and will not fix itself — the operation is now terminal (Unresolvable) and will never be retried. Investigate unresolvable_events, type RateAdjustmentFailed."
+          description: "BalanceAdjustmentJob got the real rate but could not apply the correction ({{ $labels.source_type }}). ArchiveAccountHandler refuses to archive an account that still has a pending rate or an open transfer obligation, so the obvious cause is covered — treat this as an unexpected domain rejection and read the Reason in unresolvable_events rather than assuming archival. The affected balance is still computed from the placeholder rate and will not fix itself: the operation is terminal (Unresolvable) and will never be retried. Investigate unresolvable_events, type RateAdjustmentFailed."
 
       - alert: RateApproximationSpike
         expr: increase(balance_adjustment_approximated_total[24h]) > 10

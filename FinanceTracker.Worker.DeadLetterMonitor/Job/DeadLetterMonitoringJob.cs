@@ -34,8 +34,6 @@ public sealed class DeadLetterMonitoringJob(
 			if (page.Items.Count == 0)
 				break;
 
-			WorkerMetrics.DeadLetterCount.Record(value: page.Items.Count);
-
 			logger.ZLogWarning(message: $"Found {page.Items.Count} new unresolvable event(s) requiring manual intervention.");
 
 			foreach (UnresolvableEvent @event in page.Items)
@@ -55,10 +53,13 @@ public sealed class DeadLetterMonitoringJob(
 			totalLogged += page.Items.Count;
 		} while (page.HasNextPage);
 
+		int unresolvedBacklog = await unresolvableEventReadRepository.CountUnresolvedAsync(ct: ct);
+		WorkerMetrics.UnresolvableEventsPending.Record(value: unresolvedBacklog);
+
 		if (totalLogged > 0)
 		{
 			logger.ZLogWarning(message: $"""
-				Dead letter scan complete. New unresolvable events acknowledged: {totalLogged}.
+				Dead letter scan complete. New unresolvable events acknowledged: {totalLogged}. Unresolved backlog: {unresolvedBacklog}.
 				See DeadLetterBacklogSummaryJob for a periodic reminder of anything still unresolved.
 			""");
 		}
