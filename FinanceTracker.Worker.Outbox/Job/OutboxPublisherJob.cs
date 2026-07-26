@@ -42,11 +42,21 @@ public sealed class OutboxPublisherJob(
 			ct: ct
 		);
 
-		WorkerMetrics.OutboxPending.Record(value: messages.Count);
+		if (messages.Count > 0)
+			await PublishBatchAsync(messages: messages, options: options, ct: ct);
 
-		if (messages.Count == 0)
+		if (ct.IsCancellationRequested)
 			return;
 
+		int stillPending = await outboxReadRepository.CountPendingAsync(ct: ct);
+		WorkerMetrics.OutboxPending.Record(value: stillPending);
+	}
+
+	private async Task PublishBatchAsync(
+		IReadOnlyList<PendingOutboxMessage> messages,
+		OutboxOptions options,
+		CancellationToken ct)
+	{
 		logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
 
 		int published = 0;

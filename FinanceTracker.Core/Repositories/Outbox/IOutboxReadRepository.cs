@@ -8,4 +8,6 @@ public interface IOutboxReadRepository
 		TimeSpan leaseDuration,
 		CancellationToken ct = default
 	);
+
+	Task<int> CountPendingAsync(CancellationToken ct = default);
 }

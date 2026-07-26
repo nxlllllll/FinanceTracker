@@ -53,13 +53,14 @@ public sealed class DeadLetterMonitoringJob(
 			totalLogged += page.Items.Count;
 		} while (page.HasNextPage);
 
-		int unresolvedBacklog = await unresolvableEventReadRepository.CountUnresolvedAsync(ct: ct);
-		WorkerMetrics.UnresolvableEventsPending.Record(value: unresolvedBacklog);
+		int stillUnresolved = await unresolvableEventReadRepository.CountUnresolvedAsync(ct: ct);
+		WorkerMetrics.UnresolvableEventsPending.Record(value: stillUnresolved);
 
 		if (totalLogged > 0)
 		{
 			logger.ZLogWarning(message: $"""
-				Dead letter scan complete. New unresolvable events acknowledged: {totalLogged}. Unresolved backlog: {unresolvedBacklog}.
+				Dead letter scan complete. New unresolvable events acknowledged: {totalLogged}.
+				Total still awaiting resolution: {stillUnresolved}.
 				See DeadLetterBacklogSummaryJob for a periodic reminder of anything still unresolved.
 			""");
 		}

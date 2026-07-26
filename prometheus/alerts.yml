@@ -27,8 +27,8 @@
         labels:
           severity: warning
         annotations:
-          summary: "Escalated events have been awaiting resolution for 30+ minutes"
-          description: "unresolvable_events_pending has been above zero for at least 30 minutes — rows in unresolvable_events with resolved_at IS NULL. This is a Postgres backlog, not a RabbitMQ queue: the .dlq queues may well be empty. DeadLetterMonitoringJob logs each event once and marks it acknowledged, but acknowledgement is not resolution — the count only drops when someone fixes the underlying problem and sets resolved_at."
+          summary: "Escalated events have been awaiting manual resolution for 30+ minutes"
+          description: "unresolvable_events_pending has been above zero for at least 30 minutes. These are rows in the unresolvable_events table with resolved_at IS NULL — not RabbitMQ dead letter queues. Something was escalated for a human and no human has closed it. DeadLetterMonitoringJob logs each one as it appears; find them there or query the table directly."
 
       - alert: UnresolvableEventBacklogStale
         expr: unresolvable_events_pending > 0
@@ -36,8 +36,8 @@
         labels:
           severity: critical
         annotations:
-          summary: "Escalated events have been awaiting resolution for 2+ hours"
-          description: "Events escalated for manual resolution have gone untouched for over two hours. Each one is a transfer, recurring occurrence or rate correction the system could neither complete nor compensate on its own, so nothing here fixes itself. This needs manual attention now, not just monitoring. Start with DeadLetterBacklogSummaryJob's daily digest for the oldest entries."
+          summary: "Escalated events have been unresolved for 2+ hours"
+          description: "Events escalated for manual resolution have gone untouched for over two hours. Every row here is something the system could not fix on its own — a failed transfer compensation, a rejected rate correction, a recurring occurrence that never became a transaction. This needs someone acting now, not just watching. Resolve by fixing the underlying record and setting resolved_at."
 
   - name: finance-tracker-transfers
     rules:
@@ -90,7 +90,7 @@
           severity: critical
         annotations:
           summary: "A rate correction was rejected — a recorded balance is knowingly wrong"
-          description: "BalanceAdjustmentJob got the real rate but could not apply the correction ({{ $labels.source_type }}). ArchiveAccountHandler refuses to archive an account that still has a pending rate or an open transfer obligation, so the obvious cause is covered — treat this as an unexpected domain rejection and read the Reason in unresolvable_events rather than assuming archival. The affected balance is still computed from the placeholder rate and will not fix itself: the operation is terminal (Unresolvable) and will never be retried. Investigate unresolvable_events, type RateAdjustmentFailed."
+          description: "BalanceAdjustmentJob got the real rate but could not apply the correction ({{ $labels.source_type }}). Archiving is no longer a likely cause: ArchiveAccountHandler refuses to archive an account that still has a pending rate or an open transfer obligation, so look for a domain rule that rejected the adjustment for another reason. The affected balance is still computed from the placeholder rate and will not fix itself — the operation is now terminal (Unresolvable) and will never be retried. Investigate unresolvable_events, type RateAdjustmentFailed."
 
       - alert: RateApproximationSpike
         expr: increase(balance_adjustment_approximated_total[24h]) > 10
