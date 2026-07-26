@@ -1,8 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using FinanceTracker.Api.Auth;
-using FinanceTracker.Api.Endpoints;
-using FinanceTracker.Api.Infrastructure;
+using FinanceTracker.Api.Configurations;
+using FinanceTracker.Api.Http;
+using FinanceTracker.Api.Http.Middleware;
+using FinanceTracker.Api.Http.Results;
+using FinanceTracker.Api.Routing;
+using FinanceTracker.Api.Security;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Infrastructure.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
