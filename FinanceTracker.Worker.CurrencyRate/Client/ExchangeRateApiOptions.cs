@@ -6,7 +6,7 @@ namespace FinanceTracker.Worker.CurrencyRate.Client;
 /// Configuration for the ExchangeRate-API HTTP client and its Polly resilience policies.
 /// Bind from <c>appsettings.json</c> under the <c>"ExchangeRateApi"</c> section.
 /// </summary>
-public sealed class ExchangeRateApiOptions
+public sealed class ExchangeRateApiOptions : IValidatableObject
 {
 	public const string SectionName = "ExchangeRateApi";
 
@@ -39,6 +39,41 @@ public sealed class ExchangeRateApiOptions
 	/// <summary>Duration in seconds the circuit stays open before transitioning to half-open. Default: 30.</summary>
 	public int CircuitBreakerBreakSeconds { get; init; } = 30;
 
-	/// <summary>HTTP request timeout in seconds. Default: 10.</summary>
+	/// <summary>
+	/// Timeout in seconds for a single attempt. Default: 10.
+	/// </summary>
+	[Range(minimum: 1, maximum: 300)]
 	public int TimeoutSeconds { get; init; } = 10;
+
+	/// <summary>
+	/// Timeout in seconds for the whole call. Default: 90.
+	/// </summary>
+	[Range(minimum: 1, maximum: 600)]
+	public int TotalTimeoutSeconds { get; init; } = 90;
+
+	public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+	{
+		if (TimeoutSeconds >= TotalTimeoutSeconds)
+		{
+			yield return new ValidationResult(
+				errorMessage: $"{nameof(TimeoutSeconds)} ({TimeoutSeconds}s) must be less than {nameof(TotalTimeoutSeconds)} ({TotalTimeoutSeconds}s) — "
+				            + "the per-attempt budget cannot exceed the total budget.",
+				memberNames: [nameof(TimeoutSeconds), nameof(TotalTimeoutSeconds)]
+			);
+		}
+
+		double retryDelayBudget = RetryDelaySeconds * (Math.Pow(x: 2, y: RetryCount) - 1);
+		double minimumTotal = retryDelayBudget + TimeoutSeconds;
+
+		if (TotalTimeoutSeconds < minimumTotal)
+		{
+			yield return new ValidationResult(
+				errorMessage: $"{nameof(TotalTimeoutSeconds)} ({TotalTimeoutSeconds}s) is too small for {nameof(RetryCount)}={RetryCount} "
+				            + $"with {nameof(RetryDelaySeconds)}={RetryDelaySeconds}s exponential backoff: the retry delays alone need "
+				            + $"{retryDelayBudget:F0}s, plus {TimeoutSeconds}s for one attempt. Raise it to at least {minimumTotal:F0}s "
+				            + "or the later retries will never run.",
+				memberNames: [nameof(TotalTimeoutSeconds), nameof(RetryCount), nameof(RetryDelaySeconds)]
+			);
+		}
+	}
 }
