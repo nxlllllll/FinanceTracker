@@ -20,6 +20,12 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class RefreshTokenHandlerTests
 {
+	private static readonly Guid UserId = Guid.CreateVersion7();
+	private static readonly DateTimeOffset Now = FakeDateProvider.Default.UtcNow;
+	private const string RawRefreshToken = "raw-refresh-token";
+	private const string TokenHash = "hashed-token";
+	private readonly IPAddress _testIp = IPAddress.Parse(ipString: "203.0.113.10");
+
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IUserSessionReadRepository _userSessionReadRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
@@ -30,24 +36,19 @@ public sealed class RefreshTokenHandlerTests
 	private IDateProvider _dateProvider = null!;
 	private RefreshTokenHandler _handler = null!;
 
-	private static readonly Guid UserId = Guid.CreateVersion7();
-	private const string RawRefreshToken = "raw-refresh-token";
-	private const string TokenHash = "hashed-token";
-	private readonly IPAddress _testIp = IPAddress.Parse(ipString: "203.0.113.10");
-
 	private static readonly FinanceTracker.Core.Domains.User.User TestUser = FinanceTracker.Core.Domains.User.User.Reconstitute(
 		id: UserId,
 		email: Email.Create(value: "test@test.com").Value!,
 		passwordHash: "hash",
 		baseCurrencyCode: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 		rowVersion: 0,
-		createdAt: FakeDateProvider.Default.UtcNow
+		createdAt: Now
 	);
 
 	private static readonly SessionToken NewSessionToken = new SessionToken(
 		AccessToken: "new.access.token",
 		RefreshToken: "new-refresh-token",
-		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15),
+		AccessTokenExpiresAt: Now.AddMinutes(minutes: 15),
 		SessionId: Guid.CreateVersion7()
 	);
 
@@ -55,8 +56,8 @@ public sealed class RefreshTokenHandlerTests
 		id: Guid.CreateVersion7(),
 		userId: UserId,
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-		createdAt: DateTimeOffset.UtcNow,
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now,
 		revokedAt: null,
 		supersededBySessionId: null
 	);
@@ -65,9 +66,9 @@ public sealed class RefreshTokenHandlerTests
 		id: Guid.CreateVersion7(),
 		userId: UserId,
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-		createdAt: DateTimeOffset.UtcNow,
-		revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5),
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now,
+		revokedAt: Now.AddMinutes(minutes: -5),
 		supersededBySessionId: null
 	);
 
@@ -75,8 +76,8 @@ public sealed class RefreshTokenHandlerTests
 		id: Guid.CreateVersion7(),
 		userId: UserId,
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: -1),
-		createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
+		expiresAt: Now.AddHours(hours: -1),
+		createdAt: Now.AddHours(hours: -2),
 		revokedAt: null,
 		supersededBySessionId: null
 	);
@@ -88,9 +89,9 @@ public sealed class RefreshTokenHandlerTests
 		id: Guid.CreateVersion7(),
 		userId: UserId,
 		refreshTokenHash: TokenHash,
-		expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: 1),
-		createdAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: -10),
-		revokedAt: FakeDateProvider.Default.UtcNow - revokedAgo,
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now.AddMinutes(minutes: -10),
+		revokedAt: Now - revokedAgo,
 		supersededBySessionId: successorId
 	);
 
@@ -102,8 +103,8 @@ public sealed class RefreshTokenHandlerTests
 		id: id,
 		userId: UserId,
 		refreshTokenHash: "successor-token-hash",
-		expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: 1),
-		createdAt: FakeDateProvider.Default.UtcNow,
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now,
 		revokedAt: revokedAt,
 		supersededBySessionId: ownSuccessorId
 	);
@@ -145,7 +146,7 @@ public sealed class RefreshTokenHandlerTests
 		_publisher = Substitute.For<IPublisher>();
 		_dateProvider = Substitute.For<IDateProvider>();
 
-		_dateProvider.UtcNow.Returns(returnThis: FakeDateProvider.Default.UtcNow);
+		_dateProvider.UtcNow.Returns(returnThis: Now);
 		_tokenService.HashRefreshToken(refreshToken: Arg.Any<string>()).Returns(returnThis: TokenHash);
 
 		_sessionIssuer.IssueAsync(
@@ -539,7 +540,7 @@ public sealed class RefreshTokenHandlerTests
 		);
 		ArrangeReplay(
 			replayed: replayed,
-			successor: Successor(id: successorId, revokedAt: FakeDateProvider.Default.UtcNow),
+			successor: Successor(id: successorId, revokedAt: Now),
 			graceWindow: TimeSpan.FromSeconds(value: 30)
 		);
 
