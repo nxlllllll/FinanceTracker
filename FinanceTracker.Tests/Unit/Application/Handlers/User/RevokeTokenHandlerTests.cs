@@ -14,6 +14,11 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class RevokeTokenHandlerTests
 {
+	private static readonly DateTimeOffset Now = FakeDateProvider.Default.UtcNow;
+	private const string RawRefreshToken = "raw-refresh-token";
+	private const string TokenHash = "hashed-token";
+	private readonly IPAddress _testIp = IPAddress.Parse(ipString: "203.0.113.10");
+
 	private IUserSessionReadRepository _userSessionReadRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
@@ -21,16 +26,12 @@ public sealed class RevokeTokenHandlerTests
 	private IDateProvider _dateProvider = null!;
 	private RevokeTokenHandler _handler = null!;
 
-	private const string RawRefreshToken = "raw-refresh-token";
-	private const string TokenHash = "hashed-token";
-	private readonly IPAddress _testIp = IPAddress.Parse(ipString: "203.0.113.10");
-
 	private static UserSession ActiveSession() => UserSession.Reconstitute(
 		id: Guid.CreateVersion7(),
 		userId: Guid.CreateVersion7(),
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-		createdAt: DateTimeOffset.UtcNow,
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now,
 		revokedAt: null,
 		supersededBySessionId: null
 	);
@@ -89,9 +90,9 @@ public sealed class RevokeTokenHandlerTests
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
 			refreshTokenHash: TokenHash,
-			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-			createdAt: DateTimeOffset.UtcNow,
-			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5),
+			expiresAt: Now.AddHours(hours: 1),
+			createdAt: Now,
+			revokedAt: Now.AddMinutes(minutes: -5),
 			supersededBySessionId: null
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
