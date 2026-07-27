@@ -31,7 +31,8 @@ public sealed class UserSessionReadRepositoryTests : DatabaseFixture
 			refreshTokenHash: hash,
 			expiresAt: expiresAt ?? FakeDateProvider.Default.UtcNow.AddDays(days: 7),
 			createdAt: FakeDateProvider.Default.UtcNow,
-			revokedAt: revokedAt
+			revokedAt: revokedAt,
+			supersededBySessionId: null
 		);
 
 		await _userSessionWriteRepository.CreateAsync(session: session);

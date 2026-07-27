@@ -68,7 +68,7 @@ public sealed class RefreshTokenHandler(
 		if (!session.IsActive(now: dateProvider.UtcNow))
 			return await HandleInactiveSessionAsync(session: session, ct: ct);
 
-		return await IssueNewSessionAsync(session: session, ct: ct);
+		return await IssueSuccessorAsync(session: session, ct: ct);
 	}
 
 	private async Task<RotateResult> HandleInactiveSessionAsync(
@@ -82,6 +82,9 @@ public sealed class RefreshTokenHandler(
 				CompromisedUserId: null
 			);
 		}
+
+		if (await TryHandleLostResponseReplayAsync(session: session, ct: ct) is { } replayResult)
+			return replayResult;
 
 		logger.ZLogWarning(message: $"""
 			[Security] Reuse of an already-revoked refresh token detected for session {session.Id} (user {session.UserId}).
@@ -100,7 +103,35 @@ public sealed class RefreshTokenHandler(
 		);
 	}
 
-	private async Task<RotateResult> IssueNewSessionAsync(
+	private async Task<RotateResult?> TryHandleLostResponseReplayAsync(
+		UserSession session,
+		CancellationToken ct)
+	{
+		TimeSpan graceWindow = tokenService.GetRefreshReplayGraceWindow();
+		if (graceWindow <= TimeSpan.Zero || session.SupersededBySessionId is not { } successorId)
+			return null;
+
+		UserSession? successor = await userSessionReadRepository.GetByIdForUpdateAsync(
+			sessionId: successorId,
+			ct: ct
+		);
+
+		if (successor is null)
+			return null;
+
+		if (!session.WasSupersededByUnusedSession(successor: successor, now: dateProvider.UtcNow, graceWindow: graceWindow))
+			return null;
+
+		logger.ZLogInformation(message: $"""
+			Refresh token for session {session.Id} (user {session.UserId}) was replayed within the grace window
+			while its successor {successor.Id} was still unused — treating it as a retry of a lost response
+			and issuing a replacement session.
+		""");
+
+		return await IssueSuccessorAsync(session: successor, ct: ct);
+	}
+
+	private async Task<RotateResult> IssueSuccessorAsync(
 		UserSession session,
 		CancellationToken ct)
 	{
@@ -117,13 +148,15 @@ public sealed class RefreshTokenHandler(
 			);
 		}
 
-		await userSessionWriteRepository.RevokeAsync(
+		SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
+
+		await userSessionWriteRepository.SupersedeAsync(
 			sessionId: session.Id,
+			successorSessionId: sessionToken.SessionId,
 			revokedAt: dateProvider.UtcNow,
 			ct: ct
 		);
 
-		SessionToken sessionToken = await sessionIssuer.IssueAsync(user: user, ct: ct);
 		return new RotateResult(
 			Result: Result<SessionToken, AppException>.Success(value: sessionToken),
 			CompromisedUserId: null

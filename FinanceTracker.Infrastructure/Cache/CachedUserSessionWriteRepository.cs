@@ -32,6 +32,22 @@ public sealed class CachedUserSessionWriteRepository(
 		return revokedIds;
 	}
 
+	public async Task<IReadOnlyList<Guid>> SupersedeAsync(
+		Guid sessionId,
+		Guid successorSessionId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default)
+	{
+		IReadOnlyList<Guid> revokedIds = await inner.SupersedeAsync(
+			sessionId: sessionId,
+			successorSessionId: successorSessionId,
+			revokedAt: revokedAt,
+			ct: ct
+		);
+		ScheduleCacheMarking(sessionIds: revokedIds);
+		return revokedIds;
+	}
+
 	public async Task<IReadOnlyList<Guid>> RevokeAllExceptAsync(
 		Guid userId,
 		Guid exceptSessionId,

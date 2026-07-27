@@ -12,6 +12,7 @@ public sealed class UserSessionTests
 		return UserSession.Reconstitute(
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
+			supersededBySessionId: null,
 			refreshTokenHash: "hash",
 			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: 1),
 			createdAt: FakeDateProvider.Default.UtcNow,
@@ -24,6 +25,7 @@ public sealed class UserSessionTests
 		return UserSession.Reconstitute(
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
+			supersededBySessionId: null,
 			refreshTokenHash: "hash",
 			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: -1),
 			createdAt: FakeDateProvider.Default.UtcNow.AddHours(hours: -2),
@@ -36,6 +38,7 @@ public sealed class UserSessionTests
 		return UserSession.Reconstitute(
 			id: Guid.CreateVersion7(),
 			userId: Guid.CreateVersion7(),
+			supersededBySessionId: null,
 			refreshTokenHash: "hash",
 			expiresAt: FakeDateProvider.Default.UtcNow.AddHours(hours: 1),
 			createdAt: FakeDateProvider.Default.UtcNow,

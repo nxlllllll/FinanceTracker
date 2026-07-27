@@ -31,7 +31,8 @@ public sealed class RevokeTokenHandlerTests
 		refreshTokenHash: TokenHash,
 		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
 		createdAt: DateTimeOffset.UtcNow,
-		revokedAt: null
+		revokedAt: null,
+		supersededBySessionId: null
 	);
 
 	[Before(hookType: Test)]
@@ -90,7 +91,8 @@ public sealed class RevokeTokenHandlerTests
 			refreshTokenHash: TokenHash,
 			expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
 			createdAt: DateTimeOffset.UtcNow,
-			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
+			revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5),
+			supersededBySessionId: null
 		);
 		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
 			tokenHash: Arg.Any<string>(),
