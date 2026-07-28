@@ -109,3 +109,43 @@
         annotations:
           summary: "BalanceAdjustmentJob has settled nothing in 24 hours"
           description: "The job is not throwing, yet nothing has left the pending-rate queue in a day. Either there is genuinely nothing to settle (fine — but verify against a count of rows where rate_status = 'pending'), or the queue is silently not being drained: a broken query filter, a cron that never fires, or a worker that is up but idle. This is the failure mode the old boolean flag hid for months, so it now has its own alert rather than relying on someone noticing an absence."
+
+  - name: finance-tracker-platform
+    rules:
+      - alert: RateLimiterRunningWithoutRedis
+        expr: increase(ratelimiter_fallback_activated_total[10m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rate limiting has been running on the in-memory fallback for 15+ minutes"
+          description: "FallbackRateLimiter could not reach Redis and has been limiting per-instance instead of globally for at least 15 minutes. Limits are effectively multiplied by the number of API instances, so the configured ceiling is not the one being enforced — brute-force protection on the auth endpoints is the part that matters. A brief blip during a Redis restart is expected and clears itself; a sustained rate means Redis is unreachable, so check its health endpoint first. Note this counter only moves when requests arrive, so silence here does not prove Redis is up."
+
+      - alert: PostCommitCallbackFailing
+        expr: increase(unitofwork_oncommitted_callback_failures_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A post-commit callback threw after its transaction had already committed"
+          description: "The database write succeeded and something that was supposed to follow it did not, with no way to roll back. These callbacks carry side effects that the transaction deliberately does not cover: marking revoked sessions in Redis, clearing applied events off an aggregate. A failed session marking is the one to worry about — the session is revoked in the database while its access token keeps working until it expires on its own. The exception is logged where it was swallowed; start there."
+
+  - name: finance-tracker-auth
+    rules:
+      - alert: RefreshTokenReplayAllowanceSpiking
+        expr: increase(refresh_token_replay_total{outcome="allowed"}[1h]) > 20
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusual number of refresh tokens replayed inside the grace window"
+          description: "{{ $value }} replayed refresh tokens were answered with a replacement session in the last hour instead of triggering reuse detection. A trickle is normal: a client whose response was lost holds only the token it already sent, and retrying it is all it can do. A spike means either a client retrying when it should not, or someone timing replays to land inside the window. Lower Jwt__RefreshReplayGraceSeconds to narrow it, or set it to 0 to close the allowance entirely — the setting is a kill switch by design. Threshold is a guess until there is real traffic to calibrate against."
+
+      - alert: RefreshTokenReuseDetected
+        expr: increase(refresh_token_replay_total{outcome="reuse_detected"}[1h]) > 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Refresh tokens are being replayed outside the grace window"
+          description: "A revoked refresh token was presented and did not qualify as a retry, so every session for that user was revoked. One of these is unremarkable — a phone offline long enough for its token to go stale, an app restored from a backup. Several in an hour is a pattern worth reading. The alert cannot say whose tokens these are; the [Security] log entries carry the session and user ids. Repeated hits on one user point at a stolen token, spread across many at a leaked token store."
