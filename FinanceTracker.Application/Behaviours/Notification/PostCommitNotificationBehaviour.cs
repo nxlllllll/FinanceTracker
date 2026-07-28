@@ -26,8 +26,10 @@ public sealed class PostCommitNotificationBehaviour<TRequest, TResponse>(
 		TResponse response = await next(t: cancellationToken);
 
 		if (response is IResult { IsFailure: true })
+		{
+			notifications.TakeFrom(mark: mark);
 			return response;
-
+		}
 		IReadOnlyList<INotification> staged = notifications.TakeFrom(mark: mark);
 
 		foreach (INotification notification in staged)

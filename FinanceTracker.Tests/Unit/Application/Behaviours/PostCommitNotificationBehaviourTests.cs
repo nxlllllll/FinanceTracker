@@ -292,4 +292,42 @@ public sealed class PostCommitNotificationBehaviourTests
 		await Assert.That(value: attempted).Count().IsEqualTo(expected: 2);
 		await Assert.That(value: attempted[1]).IsEqualTo(expected: following);
 	}
+
+	[Test]
+	public async Task Handle_WhenANestedDispatchFails_ShouldNotLeaveItsNotificationForTheOuterOne()
+	{
+		ProbeNotification outer = new ProbeNotification(Marker: 50);
+		ProbeNotification abandoned = new ProbeNotification(Marker: 60);
+
+		await _behaviour.Handle(
+			request: new object(),
+			next: async ct =>
+			{
+				_collector.Stage(notification: outer);
+
+				await _behaviour.Handle(
+					request: new object(),
+					next: _ =>
+					{
+						_collector.Stage(notification: abandoned);
+						return Task.FromResult(Result<Guid, DomainException>.Failure(error: new InvalidAmountException(message: "nope")));
+					},
+					cancellationToken: ct
+				);
+
+				return Result<Guid, DomainException>.Success(value: Guid.NewGuid());
+			},
+			cancellationToken: CancellationToken.None
+		);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
+			notification: Arg.Any<INotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: abandoned,
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
 }
