@@ -175,7 +175,9 @@ public sealed class PostgresEventStore(
 			string payload = JsonSerializer.Serialize(value: new OutboxPayload(
 				AggregateId: aggregateId,
 				CorrelationId: correlationContext.CorrelationId,
-				Events: envelopes
+				Events: envelopes,
+				TraceParent: FinanceTrackerActivitySource.CaptureTraceParent(),
+				TraceState: Activity.Current?.TraceStateString
 			), options: FinanceTrackerJsonOptions.Payload);
 
 			await context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity()

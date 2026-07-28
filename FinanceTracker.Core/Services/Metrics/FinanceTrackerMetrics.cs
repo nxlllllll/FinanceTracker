@@ -31,4 +31,28 @@ public static class FinanceTrackerMetrics
 		name: "unitofwork.oncommitted_callback.failures",
 		description: "Total number of OnCommitted callbacks that threw after their transaction already committed successfully."
 	);
+
+	/// <summary>
+	/// Refresh tokens presented after their session had already been revoked, tagged by outcome.
+	/// </summary>
+	public static readonly Counter<long> RefreshTokenReplay = Meter.CreateCounter<long>(
+		name: "refresh_token.replay",
+		description: "Refresh tokens presented after their session was revoked. Tagged by outcome (allowed/reuse_detected)."
+	);
+
+	/// <summary>Standard metric tag keys.</summary>
+	public static class Tags
+	{
+		public const string Outcome = "outcome";
+	}
+
+	/// <summary>Values for the <see cref="Tags.Outcome"/> tag on <see cref="RefreshTokenReplay"/>.</summary>
+	public static class ReplayOutcomes
+	{
+		/// <summary>Treated as a retry of a rotation whose response never arrived; a replacement was issued.</summary>
+		public const string Allowed = "allowed";
+
+		/// <summary>Treated as reuse of a stolen token; every session for the user was revoked.</summary>
+		public const string ReuseDetected = "reuse_detected";
+	}
 }

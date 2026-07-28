@@ -7,6 +7,7 @@ using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Core.Services.Token;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -86,6 +87,14 @@ public sealed class RefreshTokenHandler(
 		if (await TryHandleLostResponseReplayAsync(session: session, ct: ct) is { } replayResult)
 			return replayResult;
 
+		FinanceTrackerMetrics.RefreshTokenReplay.Add(
+			delta: 1,
+			tag: new KeyValuePair<string, object?>(
+				key: FinanceTrackerMetrics.Tags.Outcome,
+				value: FinanceTrackerMetrics.ReplayOutcomes.ReuseDetected
+			)
+		);
+
 		logger.ZLogWarning(message: $"""
 			[Security] Reuse of an already-revoked refresh token detected for session {session.Id} (user {session.UserId}).
 			Revoking all active sessions for this user as a precaution.
@@ -121,6 +130,14 @@ public sealed class RefreshTokenHandler(
 
 		if (!session.WasSupersededByUnusedSession(successor: successor, now: dateProvider.UtcNow, graceWindow: graceWindow))
 			return null;
+
+		FinanceTrackerMetrics.RefreshTokenReplay.Add(
+			delta: 1,
+			tag: new KeyValuePair<string, object?>(
+				key: FinanceTrackerMetrics.Tags.Outcome,
+				value: FinanceTrackerMetrics.ReplayOutcomes.Allowed
+			)
+		);
 
 		logger.ZLogInformation(message: $"""
 			Refresh token for session {session.Id} (user {session.UserId}) was replayed within the grace window

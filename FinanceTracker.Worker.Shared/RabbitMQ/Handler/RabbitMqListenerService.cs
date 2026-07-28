@@ -377,35 +377,24 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 	private static ActivityContext ExtractParentContext(IDictionary<string, object?>? headers)
 	{
-		if (headers is null || !headers.TryGetValue(key: FinanceTrackerActivitySource.TraceContextHeaders.TraceParent, out object? value))
+		if (headers is null)
 			return default;
 
-		string? traceparent = value is byte[] bytes ? Encoding.UTF8.GetString(bytes: bytes) : value as string;
+		return FinanceTrackerActivitySource.ParseTraceParent(
+			traceParent: ReadHeader(headers: headers, key: FinanceTrackerActivitySource.TraceContextHeaders.TraceParent),
+			traceState: ReadHeader(headers: headers, key: FinanceTrackerActivitySource.TraceContextHeaders.TraceState)
+		);
+	}
 
-		if (traceparent is null)
-			return default;
+	private static string? ReadHeader(IDictionary<string, object?> headers, string key)
+	{
+		if (!headers.TryGetValue(key: key, out object? value))
+			return null;
 
-		string[] parts = traceparent.Split(separator: '-');
-		if (parts.Length != 4)
-			return default;
+		if (value is byte[] bytes)
+			return Encoding.UTF8.GetString(bytes: bytes);
 
-		try
-		{
-			ActivityTraceId traceId = ActivityTraceId.CreateFromString(idData: parts[1]);
-			ActivitySpanId spanId = ActivitySpanId.CreateFromString(idData: parts[2]);
-			ActivityTraceFlags flags = parts[3] == "01" ? ActivityTraceFlags.Recorded : ActivityTraceFlags.None;
-
-			return new ActivityContext(
-				traceId: traceId,
-				spanId: spanId,
-				traceFlags: flags,
-				isRemote: true
-			);
-		}
-		catch (Exception)
-		{
-			return default;
-		}
+		return value as string;
 	}
 
 	public override async Task StopAsync(CancellationToken ct)
