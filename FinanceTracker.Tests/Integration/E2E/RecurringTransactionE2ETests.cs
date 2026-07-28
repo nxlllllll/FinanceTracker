@@ -262,7 +262,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
 			accountId: accountId,
 			categoryId: categoryId,
 			amount: 1_500m,
-			dayOfMonth: 28
+			dayOfMonth: now.Day == 28 ? 27 : 28
 		);
 
 		await BackdateCreatedAtAsync(recurringTransactionId: recurringId, createdAt: now.AddMonths(months: -3));

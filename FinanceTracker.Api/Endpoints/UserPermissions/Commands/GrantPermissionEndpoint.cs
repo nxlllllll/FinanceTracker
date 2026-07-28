@@ -12,7 +12,7 @@ using MediatR;
 using Unit = FinanceTracker.Core.Results.Unit;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.UserPermissions;
+namespace FinanceTracker.Api.Endpoints.UserPermissions.Commands;
 
 public sealed class GrantPermissionEndpoint : IEndpoint
 {

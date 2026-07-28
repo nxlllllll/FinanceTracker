@@ -11,7 +11,7 @@ using FinanceTracker.Core.ValueObjects;
 using MediatR;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth;
+namespace FinanceTracker.Api.Endpoints.Auth.Commands;
 
 public sealed class RegisterEndpoint : IEndpoint
 {

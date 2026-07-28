@@ -9,7 +9,7 @@ using FinanceTracker.Core.Results;
 using MediatR;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Roles;
+namespace FinanceTracker.Api.Endpoints.Roles.Queries;
 
 public sealed class GetRoleEndpoint : IEndpoint
 {

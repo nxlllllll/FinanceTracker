@@ -13,7 +13,7 @@ using MediatR;
 using Microsoft.Extensions.Options;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth;
+namespace FinanceTracker.Api.Endpoints.Auth.Commands;
 
 public sealed class LoginEndpoint : IEndpoint
 {

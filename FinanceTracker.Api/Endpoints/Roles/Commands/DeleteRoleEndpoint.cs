@@ -9,7 +9,7 @@ using MediatR;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 using Unit = FinanceTracker.Core.Results.Unit;
 
-namespace FinanceTracker.Api.Endpoints.Roles;
+namespace FinanceTracker.Api.Endpoints.Roles.Commands;
 
 public sealed class DeleteRoleEndpoint : IEndpoint
 {

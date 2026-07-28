@@ -11,7 +11,7 @@ using MediatR;
 using Unit = FinanceTracker.Core.Results.Unit;
 using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Roles;
+namespace FinanceTracker.Api.Endpoints.Roles.Commands;
 
 public sealed class UpdateRolePermissionsEndpoint : IEndpoint
 {
