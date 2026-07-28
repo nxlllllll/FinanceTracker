@@ -4,15 +4,21 @@ namespace FinanceTracker.Application.Behaviours.Notification;
 
 internal sealed class PostCommitNotificationCollector : IPostCommitNotifications, IPostCommitNotificationSink
 {
-	private INotification? _staged;
+	private readonly List<INotification> _staged = [];
 
 	public void Stage(INotification notification)
-		=> _staged = notification;
+		=> _staged.Add(item: notification);
 
-	public INotification? TakeStaged()
+	public int Mark() => _staged.Count;
+
+	public IReadOnlyList<INotification> TakeFrom(int mark)
 	{
-		INotification? notification = _staged;
-		_staged = null;
-		return notification;
+		if (mark >= _staged.Count)
+			return [];
+
+		List<INotification> taken = _staged.GetRange(index: mark, count: _staged.Count - mark);
+		_staged.RemoveRange(index: mark, count: _staged.Count - mark);
+
+		return taken;
 	}
 }
