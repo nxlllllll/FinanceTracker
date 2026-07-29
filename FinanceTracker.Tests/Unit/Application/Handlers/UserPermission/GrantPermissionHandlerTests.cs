@@ -49,7 +49,7 @@ public sealed class GrantPermissionHandlerTests
 		await _userPermissionService.Received(requiredNumberOfCalls: 1).GrantAsync(
 			targetUserId: targetUserId,
 			grantedBy: command.GrantedBy,
-			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p.Count == 1 && p.Contains(command.Permission)),
+			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p!.Count == 1 && p.Contains(command.Permission)),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

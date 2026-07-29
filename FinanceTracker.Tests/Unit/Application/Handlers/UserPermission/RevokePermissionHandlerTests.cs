@@ -49,7 +49,7 @@ public sealed class RevokePermissionHandlerTests
 		await _userPermissionService.Received(requiredNumberOfCalls: 1).RevokeAsync(
 			targetUserId: targetUserId,
 			revokedBy: command.RevokedBy,
-			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p.Count == 1 && p.Contains(command.Permission)),
+			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p!.Count == 1 && p.Contains(command.Permission)),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

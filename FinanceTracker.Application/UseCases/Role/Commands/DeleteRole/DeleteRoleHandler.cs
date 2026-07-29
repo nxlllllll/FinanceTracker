@@ -1,6 +1,7 @@
-using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -15,7 +16,8 @@ namespace FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 /// </summary>
 public sealed class DeleteRoleHandler(
 	IRoleRepository roleRepository,
-	ISender sender
+	IUserPermissionService userPermissionService,
+	IUnitOfWork unitOfWork
 ) : IRequestHandler<DeleteRoleCommand, Result<Unit, AppException>>
 {
 	public async Task<Result<Unit, AppException>> Handle(DeleteRoleCommand command, CancellationToken ct = default)
@@ -27,22 +29,27 @@ public sealed class DeleteRoleHandler(
 		if (role.SystemKey is not null)
 			return Result<Unit, AppException>.Failure(error: new CannotDeleteSystemRoleException());
 
-		IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: command.RoleId, ct: ct);
+		IReadOnlyCollection<Permission> permissions = [.. role.Permissions];
 
-		foreach (Guid userId in memberUserIds)
+		return await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			foreach (Permission permission in role.Permissions)
+			IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: command.RoleId, ct: ct);
+
+			foreach (Guid userId in memberUserIds)
 			{
-				await sender.Send(request: new RevokePermissionCommand(
-					TargetUserId: userId,
-					Permission: permission,
-					RevokedBy: command.DeletedBy
-				), cancellationToken: ct);
+				Result<Unit, AppException> revoked = await userPermissionService.RevokeAsync(
+					targetUserId: userId,
+					revokedBy: command.DeletedBy,
+					permissions: permissions,
+					ct: ct
+				);
+				if (revoked.IsFailure)
+					return revoked;
 			}
-		}
 
-		await roleRepository.DeleteAsync(roleId: command.RoleId, ct: ct);
+			await roleRepository.DeleteAsync(roleId: command.RoleId, ct: ct);
 
-		return Result<Unit, AppException>.Success(value: Unit.Default);
+			return Result<Unit, AppException>.Success(value: Unit.Default);
+		}, ct: ct);
 	}
 }

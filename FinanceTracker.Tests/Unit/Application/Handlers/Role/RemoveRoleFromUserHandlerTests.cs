@@ -116,7 +116,7 @@ public sealed class RemoveRoleFromUserHandlerTests
 		await _userPermissionService.Received(requiredNumberOfCalls: 1).RevokeAsync(
 			targetUserId: userId,
 			revokedBy: command.RemovedBy,
-			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p.Count == 1 && p.Contains(budgetRead)),
+			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p!.Count == 1 && p.Contains(budgetRead)),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
