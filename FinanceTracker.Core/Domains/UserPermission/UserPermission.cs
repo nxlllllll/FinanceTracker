@@ -23,7 +23,9 @@ public sealed class UserPermission : AggregateRoot
 
 	private UserPermission() { }
 
-	public static Result<UserPermission, DomainException> Create(DateTimeOffset occurredAt, Guid userId)
+	public static Result<UserPermission, DomainException> Create(
+		DateTimeOffset occurredAt,
+		Guid userId)
 	{
 		UserPermission userPermission = new UserPermission();
 
@@ -65,7 +67,10 @@ public sealed class UserPermission : AggregateRoot
 		}
 	}
 
-	public Result<Unit, DomainException> Grant(DateTimeOffset occurredAt, Guid grantedBy, Permission permission)
+	public Result<Unit, DomainException> Grant(
+		DateTimeOffset occurredAt,
+		Guid grantedBy,
+		Permission permission)
 	{
 		if (_permissions.Contains(item: permission.ToString()))
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
@@ -82,7 +87,10 @@ public sealed class UserPermission : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	public Result<Unit, DomainException> Revoke(DateTimeOffset occurredAt, Guid revokedBy, Permission permission)
+	public Result<Unit, DomainException> Revoke(
+		DateTimeOffset occurredAt,
+		Guid revokedBy,
+		Permission permission)
 	{
 		if (!_permissions.Contains(item: permission.ToString()))
 			return Result<Unit, DomainException>.Success(value: Unit.Default);

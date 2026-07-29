@@ -8,6 +8,7 @@ using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Results;
 using FluentValidation;
@@ -53,6 +54,7 @@ public static class DependencyInjection
 		services.AddScoped<IIdempotencyReservationCoordinator, IdempotencyReservationCoordinator>();
 
 		services.AddScoped<ITransactionCreationService, TransactionCreationService>();
+		services.AddScoped<IUserPermissionService, UserPermissionService>();
 
 		services.AddMediatR(configuration: cfg =>
 		{

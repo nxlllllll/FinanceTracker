@@ -1,8 +1,7 @@
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.ValueObjects;
@@ -13,80 +12,50 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.UserPermission;
 
 public sealed class GrantPermissionHandlerTests
 {
-	private IUserPermissionRepository _userPermissionRepository = null!;
-	private IUnitOfWork _unitOfWork = null!;
-	private GrantPermissionHandler _handler = null!;
+	private IUserPermissionService _userPermissionService = null!;
 	private IRootAuthority _rootAuthority = null!;
+	private GrantPermissionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userPermissionRepository = Substitute.For<IUserPermissionRepository>();
-		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_userPermissionService = Substitute.For<IUserPermissionService>();
 		_rootAuthority = Substitute.For<IRootAuthority>();
 
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
+		_userPermissionService.GrantAsync(
+			targetUserId: Arg.Any<Guid>(),
+			grantedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
 
 		_rootAuthority.IsRootAsync(userId: Arg.Any<Guid>()).Returns(returnThis: false);
 
 		_handler = new GrantPermissionHandler(
-			userPermissionRepository: _userPermissionRepository,
-			unitOfWork: _unitOfWork,
-			rootAuthority: _rootAuthority,
-			dateProvider: FakeDateProvider.Default
+			userPermissionService: _userPermissionService,
+			rootAuthority: _rootAuthority
 		);
 	}
 
 	[Test]
-	public async Task Handle_WithNoExistingAggregate_ShouldCreateAndGrant()
+	public async Task Handle_ShouldPassTheCommandsPermissionToTheService()
 	{
 		Guid targetUserId = Guid.CreateVersion7();
-		_userPermissionRepository.GetByUserIdAsync(
-			userId: targetUserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.UserPermission.UserPermission?)null);
-
 		GrantPermissionCommand command = GrantPermissionCommandFactory.Create(targetUserId: targetUserId);
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await _userPermissionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			userPermission: Arg.Is<FinanceTracker.Core.Domains.UserPermission.UserPermission>(
-				predicate: up => up!.UserId == targetUserId && up.Permissions.Contains("account:write")
-			),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task Handle_WithExistingAggregate_ShouldGrantOnIt()
-	{
-		Guid targetUserId = Guid.CreateVersion7();
-		FinanceTracker.Core.Domains.UserPermission.UserPermission existing = UserPermissionFactory.Create(userId: targetUserId);
-		existing.ClearEvents();
-		_userPermissionRepository.GetByUserIdAsync(
-			userId: targetUserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: existing);
-
-		GrantPermissionCommand command = GrantPermissionCommandFactory.Create(
+		await _userPermissionService.Received(requiredNumberOfCalls: 1).GrantAsync(
 			targetUserId: targetUserId,
-			resource: Resource.Balance,
-			action: PermissionAction.Read
+			grantedBy: command.GrantedBy,
+			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p.Count == 1 && p.Contains(command.Permission)),
+			ct: Arg.Any<CancellationToken>()
 		);
-
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
-
-		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: existing.Permissions).Contains(expected: "balance:read");
 	}
 
 	[Test]
-	public async Task Handle_WhenTargetEqualsGrantedBy_ShouldReturnFailureAndNotSave()
+	public async Task Handle_WhenTargetEqualsGrantedBy_ShouldReturnFailureAndNotTouchTheService()
 	{
 		Guid userId = Guid.CreateVersion7();
 		GrantPermissionCommand command = GrantPermissionCommandFactory.Create(targetUserId: userId, grantedBy: userId);
@@ -95,56 +64,48 @@ public sealed class GrantPermissionHandlerTests
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<SelfPermissionModificationException>();
-		await _userPermissionRepository.DidNotReceive().SaveAsync(
-			userPermission: Arg.Any<FinanceTracker.Core.Domains.UserPermission.UserPermission>(),
+		await _userPermissionService.DidNotReceive().GrantAsync(
+			targetUserId: Arg.Any<Guid>(),
+			grantedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task Handle_GrantingAlreadyHeldPermission_ShouldStillSucceedButRaiseNoEvent()
+	public async Task Handle_WhenTargetEqualsGrantedByButUserIsRoot_ShouldDelegate()
 	{
-		Guid targetUserId = Guid.CreateVersion7();
-		FinanceTracker.Core.Domains.UserPermission.UserPermission existing = UserPermissionFactory.CreateWithGrant(
-			userId: targetUserId,
-			resource: Resource.Account,
-			action: PermissionAction.Write
-		);
-		_userPermissionRepository.GetByUserIdAsync(
-			userId: targetUserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: existing);
+		Guid rootUserId = Guid.CreateVersion7();
+		_rootAuthority.IsRootAsync(userId: rootUserId).Returns(returnThis: true);
 
-		GrantPermissionCommand command = GrantPermissionCommandFactory.Create(
-			targetUserId: targetUserId,
-			resource: Resource.Account,
-			action: PermissionAction.Write
-		);
+		GrantPermissionCommand command = GrantPermissionCommandFactory.Create(targetUserId: rootUserId, grantedBy: rootUserId);
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: existing.Events).IsEmpty();
+		await _userPermissionService.Received(requiredNumberOfCalls: 1).GrantAsync(
+			targetUserId: rootUserId,
+			grantedBy: rootUserId,
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
-	public async Task Handle_WhenTargetEqualsGrantedByButUserIsRoot_ShouldSucceed()
+	public async Task Handle_WhenTheServiceFails_ShouldReturnItsError()
 	{
-		Guid rootUserId = Guid.CreateVersion7();
-		IRootAuthority rootAuthority = Substitute.For<IRootAuthority>();
-		rootAuthority.IsRootAsync(userId: rootUserId).Returns(returnThis: true);
+		_userPermissionService.GrantAsync(
+			targetUserId: Arg.Any<Guid>(),
+			grantedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(error: new NotFoundException(message: "gone", id: Guid.Empty)));
 
-		GrantPermissionHandler handler = new GrantPermissionHandler(
-			userPermissionRepository: _userPermissionRepository,
-			unitOfWork: _unitOfWork,
-			dateProvider: FakeDateProvider.Default,
-			rootAuthority: rootAuthority
-		);
+		GrantPermissionCommand command = GrantPermissionCommandFactory.Create(targetUserId: Guid.CreateVersion7());
 
-		GrantPermissionCommand command = GrantPermissionCommandFactory.Create(targetUserId: rootUserId, grantedBy: rootUserId);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await handler.Handle(command: command, ct: CancellationToken.None);
-
-		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

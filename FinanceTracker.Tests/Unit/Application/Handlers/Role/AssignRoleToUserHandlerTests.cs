@@ -1,12 +1,14 @@
 using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
-using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
+using FinanceTracker.Application.UseCases.Role.Notifications;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
-using MediatR;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Handlers.Role;
@@ -14,7 +16,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Role;
 public sealed class AssignRoleToUserHandlerTests
 {
 	private IRoleRepository _roleRepository = null!;
-	private ISender _sender = null!;
+	private IUserPermissionService _userPermissionService = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private IPostCommitNotifications _postCommitNotifications = null!;
 	private AssignRoleToUserHandler _handler = null!;
 
@@ -22,18 +25,28 @@ public sealed class AssignRoleToUserHandlerTests
 	public void Setup()
 	{
 		_roleRepository = Substitute.For<IRoleRepository>();
-		_sender = Substitute.For<ISender>();
-		_sender.Send(
-			request: Arg.Any<GrantPermissionCommand>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
+		_userPermissionService = Substitute.For<IUserPermissionService>();
+		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
+
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task<Result<FinanceTracker.Core.Results.Unit, AppException>>>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<Result<FinanceTracker.Core.Results.Unit, AppException>>>>()?.Invoke());
+
+		_userPermissionService.GrantAsync(
+			targetUserId: Arg.Any<Guid>(),
+			grantedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
 
 		_handler = new AssignRoleToUserHandler(
 			roleRepository: _roleRepository,
-			sender: _sender,
-			dateProvider: FakeDateProvider.Default,
-			postCommitNotifications: _postCommitNotifications
+			userPermissionService: _userPermissionService,
+			unitOfWork: _unitOfWork,
+			postCommitNotifications: _postCommitNotifications,
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -44,14 +57,14 @@ public sealed class AssignRoleToUserHandlerTests
 		Permissions: permissions.ToHashSet()
 	);
 
+	private void ReturnsRole(Guid roleId, RoleDto? role)
+		=> _roleRepository.GetByIdAsync(roleId: roleId, ct: Arg.Any<CancellationToken>()).Returns(returnThis: role);
+
 	[Test]
 	public async Task Handle_WhenRoleNotFound_ShouldReturnFailure()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		_roleRepository.GetByIdAsync(
-			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (RoleDto?)null);
+		ReturnsRole(roleId: roleId, role: null);
 
 		AssignRoleToUserCommand command = new AssignRoleToUserCommand(
 			UserId: Guid.CreateVersion7(),
@@ -69,10 +82,10 @@ public sealed class AssignRoleToUserHandlerTests
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid userId = Guid.CreateVersion7();
-		_roleRepository.GetByIdAsync(
+		ReturnsRole(
 			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: BuildRole(roleId: roleId, Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!));
+			role: BuildRole(roleId: roleId, Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!)
+		);
 
 		AssignRoleToUserCommand command = new AssignRoleToUserCommand(
 			UserId: userId,
@@ -92,36 +105,34 @@ public sealed class AssignRoleToUserHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_ShouldGrantEveryPermissionOfTheRoleToTheUser()
+	public async Task Handle_ShouldGrantTheRolesPermissionsInOneCall()
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid userId = Guid.CreateVersion7();
+		Guid assignedBy = Guid.CreateVersion7();
 		Permission accountRead = Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!;
 		Permission budgetWrite = Permission.Create(resource: Resource.Budget, action: PermissionAction.Write).Value!;
-		_roleRepository.GetByIdAsync(
+
+		ReturnsRole(
 			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: BuildRole(roleId: roleId, accountRead, budgetWrite));
+			role: BuildRole(roleId: roleId, accountRead, budgetWrite)
+		);
 
 		AssignRoleToUserCommand command = new AssignRoleToUserCommand(
 			UserId: userId,
 			RoleId: roleId,
-			AssignedBy: Guid.CreateVersion7()
+			AssignedBy: assignedBy
 		);
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
-		await _sender.Received(requiredNumberOfCalls: 2).Send(
-			request: Arg.Any<GrantPermissionCommand>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
-		await _sender.Received(requiredNumberOfCalls: 1).Send(
-			request: Arg.Is<GrantPermissionCommand>(predicate: c => c!.TargetUserId == userId && c.Permission == accountRead),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
-		await _sender.Received(requiredNumberOfCalls: 1).Send(
-			request: Arg.Is<GrantPermissionCommand>(predicate: c => c!.TargetUserId == userId && c.Permission == budgetWrite),
-			cancellationToken: Arg.Any<CancellationToken>()
+		await _userPermissionService.Received(requiredNumberOfCalls: 1).GrantAsync(
+			targetUserId: userId,
+			grantedBy: assignedBy,
+			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p =>
+				p!.Count == 2 && p.Contains(accountRead) && p.Contains(budgetWrite)
+			),
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
@@ -129,14 +140,10 @@ public sealed class AssignRoleToUserHandlerTests
 	public async Task Handle_ShouldStageRoleAssignedNotification()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		Guid userId = Guid.CreateVersion7();
-		_roleRepository.GetByIdAsync(
-			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: BuildRole(roleId: roleId));
+		ReturnsRole(roleId: roleId, role: BuildRole(roleId: roleId));
 
 		AssignRoleToUserCommand command = new AssignRoleToUserCommand(
-			UserId: userId,
+			UserId: Guid.CreateVersion7(),
 			RoleId: roleId,
 			AssignedBy: Guid.CreateVersion7()
 		);
@@ -144,7 +151,35 @@ public sealed class AssignRoleToUserHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
-			notification: Arg.Any<FinanceTracker.Application.UseCases.Role.Notifications.RoleAssignedToUserNotification>()
+			notification: Arg.Any<RoleAssignedToUserNotification>()
 		);
+	}
+
+	[Test]
+	public async Task Handle_WhenGrantingFails_ShouldReturnFailureAndStageNothing()
+	{
+		Guid roleId = Guid.CreateVersion7();
+		ReturnsRole(
+			roleId: roleId,
+			role: BuildRole(roleId: roleId, Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!)
+		);
+
+		_userPermissionService.GrantAsync(
+			targetUserId: Arg.Any<Guid>(),
+			grantedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(error: new SelfPermissionModificationException()));
+
+		AssignRoleToUserCommand command = new AssignRoleToUserCommand(
+			UserId: Guid.CreateVersion7(),
+			RoleId: roleId,
+			AssignedBy: Guid.CreateVersion7()
+		);
+
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<RoleAssignedToUserNotification>());
 	}
 }
