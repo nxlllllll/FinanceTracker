@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+namespace FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 
 public sealed class DuplicateEventTypeException(
 	string message,

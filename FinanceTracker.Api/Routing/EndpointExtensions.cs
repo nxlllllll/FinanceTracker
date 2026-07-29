@@ -53,7 +53,7 @@ public static class EndpointExtensions
 		IEnumerable<IEndpoint> endpoints,
 		ApiRoutingOptions options)
 	{
-		List<IEndpoint> all = [..endpoints];
+		List<IEndpoint> all = [.. endpoints];
 		Dictionary<string, IEndpointGroup> byName = IndexGroups(groups: groups, endpoints: all);
 		RouteGroupBuilder api = MapApiRoot(root: root, options: options);
 

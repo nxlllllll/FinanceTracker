@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Routing;
+using FinanceTracker.Api.Routing;
 
 namespace FinanceTracker.Api.Endpoints.Roles;
 

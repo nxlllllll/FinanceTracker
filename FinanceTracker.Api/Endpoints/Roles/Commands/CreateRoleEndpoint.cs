@@ -47,7 +47,8 @@ public sealed class CreateRoleEndpoint : IEndpoint
 		CreateRoleCommand command = new CreateRoleCommand(
 			DisplayName: displayName.Value!,
 			Permissions: permissions.Value!
-		) { IdempotencyKey = idempotencyKey };
+		)
+		{ IdempotencyKey = idempotencyKey };
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 

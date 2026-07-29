@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.Metrics;
+using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Core.Services.Tracing;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;

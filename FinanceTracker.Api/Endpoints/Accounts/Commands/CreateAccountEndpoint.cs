@@ -51,7 +51,8 @@ public sealed class CreateAccountEndpoint : IEndpoint
 			Type: request.Type,
 			Currency: currency.Value!,
 			InitialBalance: request.InitialBalance
-		) { IdempotencyKey = idempotencyKey };
+		)
+		{ IdempotencyKey = idempotencyKey };
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 

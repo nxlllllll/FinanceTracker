@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Configurations;
+using FinanceTracker.Api.Configurations;
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Infrastructure.Services.Token;

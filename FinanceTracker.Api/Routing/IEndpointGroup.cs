@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Api.Routing;
+namespace FinanceTracker.Api.Routing;
 
 public interface IEndpointGroup
 {

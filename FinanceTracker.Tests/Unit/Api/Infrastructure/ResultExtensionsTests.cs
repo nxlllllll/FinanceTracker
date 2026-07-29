@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Http.Results;
+using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using Microsoft.AspNetCore.Http;
