@@ -6,17 +6,16 @@ using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
-using Unit = FinanceTracker.Core.Results.Unit;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Roles.Commands;
+namespace FinanceTracker.Api.Endpoints.Users.Commands;
 
 public sealed class AssignRoleToUserEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => UsersEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapPost(pattern: "/users/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
-			.WithTags(tags: "Roles")
+		group.MapPost(pattern: "/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
 			.WithSummary(summary: "Assign a role to a user")
 			.Produces(statusCode: StatusCodes.Status204NoContent)
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);

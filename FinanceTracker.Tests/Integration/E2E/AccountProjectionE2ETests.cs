@@ -38,7 +38,8 @@ public sealed class AccountProjectionE2ETests : E2EFixture
 			Type: AccountType.Checking,
 			Currency: Currency.Create(value: "RUB").Value,
 			InitialBalance: balance
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		return result.Value!;
 	}
 
@@ -197,7 +198,7 @@ public sealed class AccountProjectionE2ETests : E2EFixture
 		await Assert.That(value: projectedName).IsEqualTo(expected: "Переименованный счёт");
 	}
 
-[Test]
+	[Test]
 	public async Task ArchiveAccount_AfterOutbox_ShouldProjectIsArchivedTrue()
 	{
 		Guid userId = await _userBuilder.CreateAsync();

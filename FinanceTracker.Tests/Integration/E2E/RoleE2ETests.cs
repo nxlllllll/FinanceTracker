@@ -46,7 +46,8 @@ public sealed class RoleE2ETests : E2EFixture
 				Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!,
 				Permission.Create(resource: Resource.Budget, action: PermissionAction.Read).Value!
 			}
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		await Assert.That(value: roleResult.IsSuccess).IsTrue();
 		Guid roleId = roleResult.Value;
 
@@ -89,7 +90,8 @@ public sealed class RoleE2ETests : E2EFixture
 				Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!,
 				Permission.Create(resource: Resource.Budget, action: PermissionAction.Read).Value!
 			}
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		Guid roleId = roleResult.Value;
 
 		await Mediator.Send(request: new AssignRoleToUserCommand(
@@ -142,7 +144,8 @@ public sealed class RoleE2ETests : E2EFixture
 				Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!,
 				Permission.Create(resource: Resource.Budget, action: PermissionAction.Read).Value!
 			}
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		Guid roleId = roleResult.Value;
 
 		await Mediator.Send(request: new AssignRoleToUserCommand(

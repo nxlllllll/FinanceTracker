@@ -8,17 +8,16 @@ using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using Unit = FinanceTracker.Core.Results.Unit;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace FinanceTracker.Api.Endpoints.Roles.Commands;
 
 public sealed class UpdateRolePermissionsEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => RolesEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapPatch(pattern: "/roles/{roleId:guid}/permissions", handler: HandleAsync).RequireRoot()
-			.WithTags(tags: "Roles")
+		group.MapPatch(pattern: "/{roleId:guid}/permissions", handler: HandleAsync).RequireRoot()
 			.WithSummary(summary: "Replace a role's permission set")
 			.WithDescription(description: "Fans out Grant/Revoke to every current member of the role, so membership stays live.")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

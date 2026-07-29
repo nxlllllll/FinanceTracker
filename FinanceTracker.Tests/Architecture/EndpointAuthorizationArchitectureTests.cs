@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Api.Http;
+using FinanceTracker.Api.Configurations;
+using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Infrastructure.Services.Token;
 using MediatR;
@@ -13,23 +14,27 @@ using NSubstitute;
 namespace FinanceTracker.Tests.Architecture;
 
 /// <summary>
-/// Every mapped endpoint must declare a specific authorization
-/// policy: either a permission or the root policy.
+/// Every mapped endpoint must declare a specific authorization policy: either a permission or the root policy.
 /// </summary>
 public sealed class EndpointAuthorizationArchitectureTests
 {
-	// method + route pattern (exactly as passed to Map*), with the reason it doesn't need a
-	// permission/root policy.
+	// Full route as served, with the reason it needs no permission or root policy.
 	private static readonly HashSet<string> ExemptRoutes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 	{
-		"POST /auth/login",    // account login cannot be authenticated
-		"POST /auth/register", // the registration of a new user cannot be authenticated
-		"POST /auth/refresh",  // identifies the caller via the refresh-token cookie
-		"POST /auth/logout",   // identifies the caller via the refresh-token cookie
+		"POST /api/v1/auth/login",    // account login cannot be authenticated
+		"POST /api/v1/auth/register", // the registration of a new user cannot be authenticated
+		"POST /api/v1/auth/refresh",  // identifies the caller via the refresh-token cookie
+		"POST /api/v1/auth/logout",   // identifies the caller via the refresh-token cookie
 	};
 
-	[Test]
-	public async Task EveryEndpoint_ShouldRequireAPermissionOrRootPolicy_UnlessExplicitlyExempt()
+	private static IEnumerable<T> InstancesOf<T>()
+	{
+		return typeof(Api.Program).Assembly.GetTypes()
+			.Where(predicate: type => type is { IsAbstract: false, IsInterface: false } && type.IsAssignableTo(targetType: typeof(T)))
+			.Select(selector: type => (T)Activator.CreateInstance(type: type)!);
+	}
+
+	private static IEndpointRouteBuilder MapEverything()
 	{
 		WebApplicationBuilder builder = WebApplication.CreateSlimBuilder();
 
@@ -40,15 +45,17 @@ public sealed class EndpointAuthorizationArchitectureTests
 		WebApplication app = builder.Build();
 		IEndpointRouteBuilder routeBuilder = app;
 
-		IEnumerable<IEndpoint> endpoints = typeof(Api.Program).Assembly.GetTypes()
-			.Where(predicate: type => type is { IsAbstract: false, IsInterface: false } && type.IsAssignableTo(targetType: typeof(IEndpoint)))
-			.Select(selector: type => (IEndpoint)Activator.CreateInstance(type: type)!);
+		routeBuilder.MapEndpoints(
+			groups: InstancesOf<IEndpointGroup>(),
+			endpoints: InstancesOf<IEndpoint>(),
+			options: new ApiRoutingOptions()
+		);
 
-		foreach (IEndpoint endpoint in endpoints)
-			endpoint.MapEndpoint(app: routeBuilder);
+		return routeBuilder;
+	}
 
-		List<string> violations = new List<string>();
-
+	private static IEnumerable<(string Route, RouteEndpoint Endpoint)> MappedRoutes(IEndpointRouteBuilder routeBuilder)
+	{
 		foreach (Endpoint mapped in routeBuilder.DataSources.SelectMany(selector: ds => ds.Endpoints))
 		{
 			if (mapped is not RouteEndpoint routeEndpoint)
@@ -56,12 +63,22 @@ public sealed class EndpointAuthorizationArchitectureTests
 
 			IReadOnlyList<string>? httpMethods = routeEndpoint.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods;
 			string httpMethod = httpMethods is { Count: > 0 } ? httpMethods[0] : "?";
-			string route = $"{httpMethod} {routeEndpoint.RoutePattern.RawText}";
 
+			yield return ($"{httpMethod} /{routeEndpoint.RoutePattern.RawText?.TrimStart('/')}", routeEndpoint);
+		}
+	}
+
+	[Test]
+	public async Task EveryEndpoint_ShouldRequireAPermissionOrRootPolicy_UnlessExplicitlyExempt()
+	{
+		List<string> violations = [];
+
+		foreach ((string route, RouteEndpoint endpoint) in MappedRoutes(routeBuilder: MapEverything()))
+		{
 			if (ExemptRoutes.Contains(item: route))
 				continue;
 
-			IReadOnlyList<IAuthorizeData> authData = routeEndpoint.Metadata.GetOrderedMetadata<IAuthorizeData>();
+			IReadOnlyList<IAuthorizeData> authData = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>();
 			bool hasSpecificPolicy = authData.Any(predicate: a =>
 				a.Policy is not null &&
 				(a.Policy.StartsWith(value: "permission:", comparisonType: StringComparison.OrdinalIgnoreCase) || a.Policy == "root")
@@ -74,6 +91,21 @@ public sealed class EndpointAuthorizationArchitectureTests
 		await Assert.That(value: violations).IsEmpty().Because(message:
 			$"These endpoints have no permission/root policy — add RequirePermission(...)/RequireRoot(), or list in " +
 			$"{nameof(ExemptRoutes)} with a reason: {String.Join(separator: ", ", values: violations)}"
+		);
+	}
+
+	[Test]
+	public async Task ExemptRoutes_ShouldAllStillExist()
+	{
+		HashSet<string> mapped = MappedRoutes(routeBuilder: MapEverything())
+			.Select(selector: x => x.Route)
+			.ToHashSet(comparer: StringComparer.OrdinalIgnoreCase);
+
+		List<string> stale = ExemptRoutes.Where(predicate: route => !mapped.Contains(item: route)).ToList();
+
+		await Assert.That(value: stale).IsEmpty().Because(message:
+			$"{nameof(ExemptRoutes)} lists routes that are not mapped anymore — remove them or fix the path: " +
+			$"{String.Join(separator: ", ", values: stale)}"
 		);
 	}
 }

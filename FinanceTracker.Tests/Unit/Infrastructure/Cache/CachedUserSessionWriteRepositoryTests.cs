@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Cache;

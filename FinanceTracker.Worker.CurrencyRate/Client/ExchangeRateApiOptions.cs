@@ -57,7 +57,7 @@ public sealed class ExchangeRateApiOptions : IValidatableObject
 		{
 			yield return new ValidationResult(
 				errorMessage: $"{nameof(TimeoutSeconds)} ({TimeoutSeconds}s) must be less than {nameof(TotalTimeoutSeconds)} ({TotalTimeoutSeconds}s) — "
-				            + "the per-attempt budget cannot exceed the total budget.",
+							+ "the per-attempt budget cannot exceed the total budget.",
 				memberNames: [nameof(TimeoutSeconds), nameof(TotalTimeoutSeconds)]
 			);
 		}
@@ -69,9 +69,9 @@ public sealed class ExchangeRateApiOptions : IValidatableObject
 		{
 			yield return new ValidationResult(
 				errorMessage: $"{nameof(TotalTimeoutSeconds)} ({TotalTimeoutSeconds}s) is too small for {nameof(RetryCount)}={RetryCount} "
-				            + $"with {nameof(RetryDelaySeconds)}={RetryDelaySeconds}s exponential backoff: the retry delays alone need "
-				            + $"{retryDelayBudget:F0}s, plus {TimeoutSeconds}s for one attempt. Raise it to at least {minimumTotal:F0}s "
-				            + "or the later retries will never run.",
+							+ $"with {nameof(RetryDelaySeconds)}={RetryDelaySeconds}s exponential backoff: the retry delays alone need "
+							+ $"{retryDelayBudget:F0}s, plus {TimeoutSeconds}s for one attempt. Raise it to at least {minimumTotal:F0}s "
+							+ "or the later retries will never run.",
 				memberNames: [nameof(TotalTimeoutSeconds), nameof(RetryCount), nameof(RetryDelaySeconds)]
 			);
 		}

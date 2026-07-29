@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.Extensions.Caching.Distributed;

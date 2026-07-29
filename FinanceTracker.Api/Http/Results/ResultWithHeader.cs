@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Api.Http.Results;
+namespace FinanceTracker.Api.Http.Results;
 
 public sealed class ResultWithHeader(
 	IResult inner,

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 
 namespace FinanceTracker.Tests.Architecture;

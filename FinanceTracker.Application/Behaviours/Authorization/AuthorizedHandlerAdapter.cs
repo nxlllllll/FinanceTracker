@@ -70,8 +70,8 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 		{
 			throw new InvalidOperationException(message:
 				$"{typeof(TRequest).Name} carries an expected version, but {typeof(TEntity).Name} " +
-		       	$"does not implement {nameof(IHasVersion)}, so the precondition cannot be checked. " +
-		       	$"Either load a versioned entity or drop {nameof(IHasExpectedVersion)} from the request."
+				   $"does not implement {nameof(IHasVersion)}, so the precondition cannot be checked. " +
+				   $"Either load a versioned entity or drop {nameof(IHasExpectedVersion)} from the request."
 			);
 		}
 

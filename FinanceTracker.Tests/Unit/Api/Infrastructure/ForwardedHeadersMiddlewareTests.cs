@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using FinanceTracker.Api.Configurations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;

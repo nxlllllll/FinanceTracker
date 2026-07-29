@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Cache;
+namespace FinanceTracker.Infrastructure.Cache;
 
 public static class SessionRevocationCacheKeys
 {
