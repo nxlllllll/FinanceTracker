@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 using System.Text.Json;
 using FinanceTracker.Contracts.Events.Account;
 using FinanceTracker.Contracts.Messages;
@@ -33,6 +34,9 @@ namespace FinanceTracker.Worker.TransferProjection.Consumer;
 /// <list type="bullet">
 ///   <item>If <c>toAccount</c> is not found — <see cref="ITransferCompensationService"/> refunds <c>fromAccount</c>.</item>
 ///   <item>If both accounts are missing — the event is escalated to <c>unresolvable_events</c> for manual resolution.</item>
+///   <item>If an event this consumer owns cannot be deserialized — the exception propagates so the
+///         listener rejects the delivery and RabbitMQ eventually routes it to the dead letter queue.
+///         Swallowing it would ack the message, destroying it silently.</item>
 ///   <item>If this consumer is stuck or dead — <c>transfer.credit.pending</c> metric will rise above 0
 ///         after the configured grace period, triggering an alert.</item>
 /// </list>
@@ -53,8 +57,8 @@ public sealed class AccountTransferConsumer(
 {
 	public async Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
-		AccountTransferDebitedEvent? debitEvent = ExtractDebitEvent(message: message);
-		if (debitEvent is null)
+		IReadOnlyList<AccountTransferDebitedEvent> debitEvents = ExtractDebitEvents(message: message);
+		if (debitEvents.Count == 0)
 			return;
 
 		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
@@ -67,7 +71,8 @@ public sealed class AccountTransferConsumer(
 				return;
 			}
 
-			await ExecuteCreditAsync(debitEvent: debitEvent, correlationId: message.CorrelationId, ct: ct);
+			foreach (AccountTransferDebitedEvent debitEvent in debitEvents)
+				await ExecuteCreditAsync(debitEvent: debitEvent, correlationId: message.CorrelationId, ct: ct);
 
 			await processedMessageWriteRepository.MarkAsProcessedAsync(
 				messageId: message.MessageId,
@@ -148,28 +153,35 @@ public sealed class AccountTransferConsumer(
 		logger.ZLogInformation(message: $"[{correlationId}] Transfer {debitEvent.TransferId} completed: {debitEvent.AccountId} > {debitEvent.ToAccountId}.");
 	}
 
-	private AccountTransferDebitedEvent? ExtractDebitEvent(AggregateEventsMessage message)
+	private IReadOnlyList<AccountTransferDebitedEvent> ExtractDebitEvents(AggregateEventsMessage message)
 	{
+		List<AccountTransferDebitedEvent> debitEvents = [];
+
 		foreach (EventEnvelope envelope in message.Events)
 		{
+			Type type;
 			try
 			{
-				Type type = integrationEventTypeResolver.ResolveType(eventType: envelope.EventType);
-				if (type != typeof(AccountTransferDebitedEvent))
-					continue;
-
-				return (AccountTransferDebitedEvent)JsonSerializer.Deserialize(
-					json: envelope.EventPayload,
-					returnType: type,
-					options: FinanceTrackerJsonOptions.Payload
-				)!;
+				type = integrationEventTypeResolver.ResolveType(eventType: envelope.EventType);
 			}
-			catch (Exception exception)
+			catch (InvalidOperationException)
 			{
-				logger.ZLogWarning(exception: exception, message: $"Failed to deserialize envelope with event type '{envelope.EventType}'.");
+				logger.ZLogDebug(message: $"Skipping unrecognised event type '{envelope.EventType}'.");
+				continue;
 			}
+
+			if (type != typeof(AccountTransferDebitedEvent))
+				continue;
+
+			AccountTransferDebitedEvent debitEvent = (AccountTransferDebitedEvent?)JsonSerializer.Deserialize(
+				json: envelope.EventPayload,
+				returnType: type,
+				options: FinanceTrackerJsonOptions.Payload
+			) ?? throw new SerializationException(message: $"Payload of '{envelope.EventType}' deserialized to null.");
+
+			debitEvents.Add(item: debitEvent);
 		}
 
-		return null;
+		return debitEvents;
 	}
 }

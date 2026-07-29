@@ -8,18 +8,17 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using Unit = FinanceTracker.Core.Results.Unit;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.UserPermissions;
+namespace FinanceTracker.Api.Endpoints.Users.Commands;
 
 public sealed class RevokePermissionEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => UsersEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapDelete(pattern: "/users/{userId:guid}/permissions/{permission}", handler: HandleAsync)
+		group.MapDelete(pattern: "/{userId:guid}/permissions/{permission}", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage)
-			.WithTags(tags: "Permissions")
 			.WithSummary(summary: "Revoke a permission from a user")
 			.WithDescription(description: "Requires permission:manage.")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

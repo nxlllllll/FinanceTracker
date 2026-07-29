@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Http.Middleware;
+using FinanceTracker.Api.Http.Middleware;
 using Microsoft.AspNetCore.Http;
 
 namespace FinanceTracker.Tests.Unit.Api.Infrastructure;

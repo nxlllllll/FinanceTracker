@@ -13,6 +13,13 @@ public interface IUserSessionWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task<IReadOnlyList<Guid>> SupersedeAsync(
+		Guid sessionId,
+		Guid successorSessionId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default
+	);
+
 	Task<IReadOnlyList<Guid>> RevokeAllExceptAsync(
 		Guid userId,
 		Guid exceptSessionId,

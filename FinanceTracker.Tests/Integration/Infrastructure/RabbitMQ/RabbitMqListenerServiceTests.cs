@@ -761,21 +761,28 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await WaitForConsumerAsync();
 
 		const int publishedCount = 5;
+		const int expectedReady = publishedCount - 1;
+
 		for (int i = 0; i < publishedCount; i++)
 			await publisher.PublishAsync(message: BuildMessage());
 
-		bool firstReceived = await state.WaitForFirstMessageAsync(timeout: TimeSpan.FromSeconds(value: 5));
+		bool firstReceived = await state.WaitForFirstMessageAsync(timeout: TimeSpan.FromSeconds(seconds: 5));
 
-		await Task.Delay(millisecondsDelay: 300);
+		QueueDeclareOk result = null!;
+		await WaitForConditionAsync(condition: async () =>
+		{
+			result = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
+			return (int)result.MessageCount == expectedReady;
+		});
 
-		QueueDeclareOk result = await _setupChannel.QueueDeclarePassiveAsync(queue: _queueName);
+		int callCountWhileBlocked = state.CallCount;
 
 		state.Release();
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
 
 		await Assert.That(value: firstReceived).IsTrue();
-		await Assert.That(value: state.CallCount).IsEqualTo(expected: 1);
-		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: publishedCount - 1);
+		await Assert.That(value: callCountWhileBlocked).IsEqualTo(expected: 1);
+		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: expectedReady);
 	}
 }

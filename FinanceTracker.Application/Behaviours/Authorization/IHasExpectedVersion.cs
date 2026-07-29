@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Application.Behaviours.Authorization;
+namespace FinanceTracker.Application.Behaviours.Authorization;
 
 /// <summary>
 /// A command that optionally carries the version the client last saw

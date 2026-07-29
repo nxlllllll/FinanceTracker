@@ -37,7 +37,8 @@ public sealed class SessionIssuer(
 		return new SessionToken(
 			AccessToken: accessToken.Token,
 			RefreshToken: refreshToken,
-			AccessTokenExpiresAt: accessToken.ExpiresAt
+			AccessTokenExpiresAt: accessToken.ExpiresAt,
+			SessionId: session.Id
 		);
 	}
 }

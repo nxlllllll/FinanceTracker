@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.PermissionProjection.Consumer;

@@ -21,23 +21,23 @@
           summary: "An outbox message was moved to dead letter"
           description: "outbox_failed_total increased in the last 15 minutes — a message the system was supposed to publish at-least-once did not make it out. Investigate OutboxPublisherJob and the affected AggregateId in outbox_messages."
 
-      - alert: DeadLetterBacklogNotDraining
-        expr: dead_letter_count > 0
+      - alert: UnresolvableEventBacklogNotDraining
+        expr: unresolvable_events_pending > 0
         for: 30m
         labels:
           severity: warning
         annotations:
-          summary: "Dead letter queue has had messages for 30+ minutes"
-          description: "dead_letter_count has been above zero for at least 30 minutes. Check DeadLetterMonitoringJob and the {queue}.dlq queues for messages that need manual replay or resolution."
+          summary: "Escalated events have been awaiting manual resolution for 30+ minutes"
+          description: "unresolvable_events_pending has been above zero for at least 30 minutes. These are rows in the unresolvable_events table with resolved_at IS NULL — not RabbitMQ dead letter queues. Something was escalated for a human and no human has closed it. DeadLetterMonitoringJob logs each one as it appears; find them there or query the table directly."
 
-      - alert: DeadLetterBacklogStale
-        expr: dead_letter_count > 0
+      - alert: UnresolvableEventBacklogStale
+        expr: unresolvable_events_pending > 0
         for: 2h
         labels:
           severity: critical
         annotations:
-          summary: "Dead letter queue has been non-empty for 2+ hours"
-          description: "Messages have been sitting in a dead letter queue for over 2 hours without resolution. This needs manual attention now, not just monitoring."
+          summary: "Escalated events have been unresolved for 2+ hours"
+          description: "Events escalated for manual resolution have gone untouched for over two hours. Every row here is something the system could not fix on its own — a failed transfer compensation, a rejected rate correction, a recurring occurrence that never became a transaction. This needs someone acting now, not just watching. Resolve by fixing the underlying record and setting resolved_at."
 
   - name: finance-tracker-transfers
     rules:
@@ -90,7 +90,7 @@
           severity: critical
         annotations:
           summary: "A rate correction was rejected — a recorded balance is knowingly wrong"
-          description: "BalanceAdjustmentJob got the real rate but could not apply the correction ({{ $labels.source_type }}). The usual cause is an account archived while its rate was still pending: an archived account refuses balance adjustments. The affected balance is still computed from the placeholder rate and will not fix itself — the operation is now terminal (Unresolvable) and will never be retried. Investigate unresolvable_events, type RateAdjustmentFailed."
+          description: "BalanceAdjustmentJob got the real rate but could not apply the correction ({{ $labels.source_type }}). Archiving is no longer a likely cause: ArchiveAccountHandler refuses to archive an account that still has a pending rate or an open transfer obligation, so look for a domain rule that rejected the adjustment for another reason. The affected balance is still computed from the placeholder rate and will not fix itself — the operation is now terminal (Unresolvable) and will never be retried. Investigate unresolvable_events, type RateAdjustmentFailed."
 
       - alert: RateApproximationSpike
         expr: increase(balance_adjustment_approximated_total[24h]) > 10
@@ -109,3 +109,43 @@
         annotations:
           summary: "BalanceAdjustmentJob has settled nothing in 24 hours"
           description: "The job is not throwing, yet nothing has left the pending-rate queue in a day. Either there is genuinely nothing to settle (fine — but verify against a count of rows where rate_status = 'pending'), or the queue is silently not being drained: a broken query filter, a cron that never fires, or a worker that is up but idle. This is the failure mode the old boolean flag hid for months, so it now has its own alert rather than relying on someone noticing an absence."
+
+  - name: finance-tracker-platform
+    rules:
+      - alert: RateLimiterRunningWithoutRedis
+        expr: increase(ratelimiter_fallback_activated_total[10m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rate limiting has been running on the in-memory fallback for 15+ minutes"
+          description: "FallbackRateLimiter could not reach Redis and has been limiting per-instance instead of globally for at least 15 minutes. Limits are effectively multiplied by the number of API instances, so the configured ceiling is not the one being enforced — brute-force protection on the auth endpoints is the part that matters. A brief blip during a Redis restart is expected and clears itself; a sustained rate means Redis is unreachable, so check its health endpoint first. Note this counter only moves when requests arrive, so silence here does not prove Redis is up."
+
+      - alert: PostCommitCallbackFailing
+        expr: increase(unitofwork_oncommitted_callback_failures_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A post-commit callback threw after its transaction had already committed"
+          description: "The database write succeeded and something that was supposed to follow it did not, with no way to roll back. These callbacks carry side effects that the transaction deliberately does not cover: marking revoked sessions in Redis, clearing applied events off an aggregate. A failed session marking is the one to worry about — the session is revoked in the database while its access token keeps working until it expires on its own. The exception is logged where it was swallowed; start there."
+
+  - name: finance-tracker-auth
+    rules:
+      - alert: RefreshTokenReplayAllowanceSpiking
+        expr: increase(refresh_token_replay_total{outcome="allowed"}[1h]) > 20
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusual number of refresh tokens replayed inside the grace window"
+          description: "{{ $value }} replayed refresh tokens were answered with a replacement session in the last hour instead of triggering reuse detection. A trickle is normal: a client whose response was lost holds only the token it already sent, and retrying it is all it can do. A spike means either a client retrying when it should not, or someone timing replays to land inside the window. Lower Jwt__RefreshReplayGraceSeconds to narrow it, or set it to 0 to close the allowance entirely — the setting is a kill switch by design. Threshold is a guess until there is real traffic to calibrate against."
+
+      - alert: RefreshTokenReuseDetected
+        expr: increase(refresh_token_replay_total{outcome="reuse_detected"}[1h]) > 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Refresh tokens are being replayed outside the grace window"
+          description: "A revoked refresh token was presented and did not qualify as a retry, so every session for that user was revoked. One of these is unremarkable — a phone offline long enough for its token to go stale, an app restored from a backup. Several in an hour is a pattern worth reading. The alert cannot say whose tokens these are; the [Security] log entries carry the session and user ids. Repeated hits on one user point at a stolen token, spread across many at a leaked token store."

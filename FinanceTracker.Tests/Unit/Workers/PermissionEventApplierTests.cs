@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.UserPermission;
+using FinanceTracker.Contracts.Events.UserPermission;
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.UserPermission;

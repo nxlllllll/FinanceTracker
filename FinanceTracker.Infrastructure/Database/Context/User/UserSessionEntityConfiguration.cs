@@ -30,8 +30,8 @@ public sealed class UserSessionEntityConfiguration : IEntityTypeConfiguration<Us
 		builder.Property(propertyExpression: s => s.RevokedAt)
 			.HasColumnName(name: "revoked_at");
 
-		// builder.HasIndex(indexExpression: s => s.RefreshTokenHash)
-		// 	.IsUnique();
+		builder.Property(propertyExpression: s => s.SupersededBySessionId)
+			.HasColumnName(name: "superseded_by_session_id");
 
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: s => s.UserId)
