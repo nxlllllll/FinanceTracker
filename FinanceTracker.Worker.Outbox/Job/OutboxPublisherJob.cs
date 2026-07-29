@@ -7,7 +7,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.Tracing;
 using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -43,21 +42,11 @@ public sealed class OutboxPublisherJob(
 			ct: ct
 		);
 
-		if (messages.Count > 0)
-			await PublishBatchAsync(messages: messages, options: options, ct: ct);
+		WorkerMetrics.OutboxPending.Record(value: messages.Count);
 
-		if (ct.IsCancellationRequested)
+		if (messages.Count == 0)
 			return;
 
-		int stillPending = await outboxReadRepository.CountPendingAsync(ct: ct);
-		WorkerMetrics.OutboxPending.Record(value: stillPending);
-	}
-
-	private async Task PublishBatchAsync(
-		IReadOnlyList<PendingOutboxMessage> messages,
-		OutboxOptions options,
-		CancellationToken ct)
-	{
 		logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
 
 		int published = 0;
@@ -67,14 +56,10 @@ public sealed class OutboxPublisherJob(
 				break;
 
 			Stopwatch sw = Stopwatch.StartNew();
-			Activity? activity = null;
-
 			try
 			{
 				OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
 					?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
-
-				activity = StartPublishActivity(message: message, payload: payload);
 
 				AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
 					MessageId: message.Id,
@@ -95,15 +80,11 @@ public sealed class OutboxPublisherJob(
 					ct: ct
 				);
 
-				activity?.SetStatus(code: ActivityStatusCode.Ok);
-
 				WorkerMetrics.OutboxPublished.Add(delta: 1);
 				logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
 			}
 			catch (Exception exception)
 			{
-				activity?.SetStatus(code: ActivityStatusCode.Error, description: exception.Message);
-
 				if (ct.IsCancellationRequested)
 					return;
 
@@ -112,32 +93,9 @@ public sealed class OutboxPublisherJob(
 			}
 			finally
 			{
-				activity?.Dispose();
 				WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
 			}
 		}
-	}
-
-	/// <summary>
-	/// Opens a producer span attributed to the request that wrote the row, when that context survived.
-	/// </summary>
-	private static Activity? StartPublishActivity(PendingOutboxMessage message, OutboxPayload payload)
-	{
-		Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(
-			name: FinanceTrackerActivitySource.Operations.OutboxPublish,
-			kind: ActivityKind.Producer,
-			FinanceTrackerActivitySource.ParseTraceParent(
-				traceParent: payload.TraceParent,
-				traceState: payload.TraceState
-			)
-		);
-
-		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateId, value: message.AggregateId);
-		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateType, value: message.AggregateType);
-		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsCount, value: payload.Events.Count);
-		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.CorrelationId, value: payload.CorrelationId);
-
-		return activity;
 	}
 
 	private async Task UpdateRetryStateAsync(PendingOutboxMessage message, OutboxOptions options, CancellationToken ct)

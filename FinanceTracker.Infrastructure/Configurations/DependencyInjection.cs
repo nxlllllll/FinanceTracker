@@ -226,7 +226,6 @@ public static class DependencyInjection
 
 		// Role
 		services.AddScoped<IRoleRepository, RoleRepository>();
-		services.Decorate<IRoleRepository, CachedRoleRepository>();
 		services.AddScoped<IUserRoleReadRepository, UserRoleReadRepository>();
 		services.Decorate<IUserRoleReadRepository, CachedUserRoleReadRepository>();
 

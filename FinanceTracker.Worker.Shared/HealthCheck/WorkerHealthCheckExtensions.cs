@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -35,7 +34,6 @@ public static class WorkerHealthCheckExtensions
 		{
 			builder.SetResourceBuilder(resourceBuilder: ResourceBuilder.CreateDefault().AddService(serviceName: workerName))
 				.AddMeter(names: WorkerMetrics.MeterName)
-				.AddMeter(names: FinanceTrackerMetrics.MeterName)
 				.AddRuntimeInstrumentation()
 				.AddPrometheusExporter();
 		});

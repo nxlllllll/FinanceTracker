@@ -5,9 +5,7 @@ using FinanceTracker.Infrastructure.Database.Extensions;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
-public sealed class UserSessionWriteRepository(
-	FinanceTrackerContext context
-) : IUserSessionWriteRepository
+public sealed class UserSessionWriteRepository(FinanceTrackerContext context) : IUserSessionWriteRepository
 {
 	public async Task CreateAsync(
 		Core.Domains.User.UserSession session,
@@ -20,8 +18,7 @@ public sealed class UserSessionWriteRepository(
 			RefreshTokenHash = session.RefreshTokenHash,
 			ExpiresAt = session.ExpiresAt,
 			CreatedAt = session.CreatedAt,
-			RevokedAt = session.RevokedAt,
-			SupersededBySessionId = session.SupersededBySessionId
+			RevokedAt = session.RevokedAt
 		}, cancellationToken: ct);
 	}
 
@@ -32,20 +29,6 @@ public sealed class UserSessionWriteRepository(
 	{
 		return await context.RevokeUserSessionAsync(
 			sessionId: sessionId,
-			revokedAt: revokedAt,
-			ct: ct
-		);
-	}
-
-	public async Task<IReadOnlyList<Guid>> SupersedeAsync(
-		Guid sessionId,
-		Guid successorSessionId,
-		DateTimeOffset revokedAt,
-		CancellationToken ct = default)
-	{
-		return await context.SupersedeUserSessionAsync(
-			sessionId: sessionId,
-			successorSessionId: successorSessionId,
 			revokedAt: revokedAt,
 			ct: ct
 		);

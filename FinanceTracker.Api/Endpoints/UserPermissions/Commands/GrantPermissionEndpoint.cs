@@ -1,4 +1,4 @@
-using FinanceTracker.Api.Endpoints.Users.Contracts;
+using FinanceTracker.Api.Endpoints.UserPermissions.Contracts;
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
@@ -9,17 +9,18 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using Unit = FinanceTracker.Core.Results.Unit;
+using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Users.Commands;
+namespace FinanceTracker.Api.Endpoints.UserPermissions;
 
 public sealed class GrantPermissionEndpoint : IEndpoint
 {
-	public string GroupName => UsersEndpointGroup.GroupName;
-
-	public void MapEndpoint(IEndpointRouteBuilder group)
+	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		group.MapPost(pattern: "/{userId:guid}/permissions", handler: HandleAsync)
+		app.MapPost(pattern: "/users/{userId:guid}/permissions", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Permission, action: PermissionAction.Manage)
+			.WithTags(tags: "Permissions")
 			.WithSummary(summary: "Grant a permission to a user")
 			.WithDescription(description: "Requires permission:manage. Format: \"resource:action\", e.g. \"account:write\".")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

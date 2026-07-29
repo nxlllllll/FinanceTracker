@@ -42,5 +42,5 @@ public sealed class CleanupOptions : IJobOptions
 	/// before deletion. Default: 30 days.
 	/// </summary>
 	[Range(minimum: 1, maximum: 365)]
-	public int AccountBalanceLedgerRetentionDays { get; init; } = 180;
+	public int AccountBalanceLedgerRetentionDays { get; init; } = 30;
 }

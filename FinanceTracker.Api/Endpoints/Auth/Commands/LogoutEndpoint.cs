@@ -2,16 +2,16 @@ using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Application.UseCases.User.Commands.RevokeToken;
 using MediatR;
+using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth.Commands;
+namespace FinanceTracker.Api.Endpoints.Auth;
 
 public sealed class LogoutEndpoint : IEndpoint
 {
-	public string GroupName => AuthEndpointGroup.GroupName;
-
-	public void MapEndpoint(IEndpointRouteBuilder group)
+	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		group.MapPost(pattern: "/logout", handler: HandleAsync).AllowAnonymous()
+		app.MapPost(pattern: "/auth/logout", handler: HandleAsync).AllowAnonymous()
+			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Log out")
 			.WithDescription(description: "Revokes the current session and clears the refresh token cookie. Idempotent.")
 			.Produces(statusCode: StatusCodes.Status204NoContent); ;

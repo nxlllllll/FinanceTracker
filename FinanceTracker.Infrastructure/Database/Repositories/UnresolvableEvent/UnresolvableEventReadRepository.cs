@@ -9,8 +9,8 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 public sealed class UnresolvableEventReadRepository(FinanceTrackerContext context) : IUnresolvableEventReadRepository
 {
 	public async Task<PagedResult<Core.ReadModels.UnresolvableEvent>> GetUnacknowledgedBatchAsync(
-		int batchSize,
-		CancellationToken ct = default)
+			int batchSize,
+			CancellationToken ct = default)
 	{
 		List<Core.ReadModels.UnresolvableEvent> items = await context.UnresolvableEvents.AsNoTracking()
 			.Where(predicate: e => e.AcknowledgedAt == null && e.ResolvedAt == null)
@@ -30,13 +30,11 @@ public sealed class UnresolvableEventReadRepository(FinanceTrackerContext contex
 		if (hasNextPage)
 			items.RemoveAt(index: items.Count - 1);
 
-		Core.ReadModels.UnresolvableEvent? last = items.Count > 0 ? items[^1] : null;
-
 		return new PagedResult<Core.ReadModels.UnresolvableEvent>(
 			Items: items.AsReadOnly(),
 			HasNextPage: hasNextPage,
-			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
-			NextCursorId: hasNextPage ? last?.Id : null
+			NextCursorDate: null,
+			NextCursorId: null
 		);
 	}
 
@@ -69,14 +67,6 @@ public sealed class UnresolvableEventReadRepository(FinanceTrackerContext contex
 			TotalCount: totalCount,
 			OldestOccurredAt: sample[0].OccurredAt,
 			Sample: sample
-		);
-	}
-
-	public Task<int> CountUnresolvedAsync(CancellationToken ct = default)
-	{
-		return context.UnresolvableEvents.AsNoTracking().CountAsync(
-			predicate: e => e.ResolvedAt == null,
-			cancellationToken: ct
 		);
 	}
 }

@@ -18,7 +18,6 @@ public sealed class UserSession
 	public DateTimeOffset CreatedAt { get; private set; }
 	/// <summary>UTC timestamp of explicit revocation. <c>null</c> if still active.</summary>
 	public DateTimeOffset? RevokedAt { get; private set; }
-	public Guid? SupersededBySessionId { get; private set; }
 
 	private UserSession() { }
 
@@ -44,8 +43,7 @@ public sealed class UserSession
 		string refreshTokenHash,
 		DateTimeOffset expiresAt,
 		DateTimeOffset createdAt,
-		DateTimeOffset? revokedAt,
-		Guid? supersededBySessionId)
+		DateTimeOffset? revokedAt)
 	{
 		return new UserSession
 		{
@@ -54,8 +52,7 @@ public sealed class UserSession
 			RefreshTokenHash = refreshTokenHash,
 			ExpiresAt = expiresAt,
 			CreatedAt = createdAt,
-			RevokedAt = revokedAt,
-			SupersededBySessionId = supersededBySessionId
+			RevokedAt = revokedAt
 		};
 	}
 
@@ -69,39 +66,8 @@ public sealed class UserSession
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	/// <summary>
-	/// Revokes the session and records the one that replaced it.
-	/// Fails if already revoked or expired.
-	/// </summary>
-	public Result<Unit, DomainException> SupersedeBy(Guid successorSessionId, DateTimeOffset revokedAt)
-	{
-		if (successorSessionId == Id)
-			return Result<Unit, DomainException>.Failure(error: new InvalidTokenException(message: "A session cannot supersede itself."));
-
-		Result<Unit, DomainException> revokeResult = Revoke(revokedAt: revokedAt);
-		if (revokeResult.IsFailure)
-			return revokeResult;
-
-		SupersededBySessionId = successorSessionId;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
-	}
-
 	/// <summary>Returns <c>true</c> if the session has not been revoked and has not yet expired.</summary>
 	public bool IsActive(DateTimeOffset now)
 		=> RevokedAt is null && now < ExpiresAt;
 
-	/// <summary>
-	/// Returns <c>true</c> if this session was replaced by a rotation and the replacement has not
-	/// itself been rotated — meaning the client never presented the token it was given.
-	/// </summary>
-	public bool WasSupersededByUnusedSession(UserSession successor, DateTimeOffset now, TimeSpan graceWindow)
-	{
-		if (SupersededBySessionId != successor.Id)
-			return false;
-
-		if (RevokedAt is not { } revokedAt || now - revokedAt > graceWindow)
-			return false;
-
-		return successor.IsActive(now: now) && successor.SupersededBySessionId is null;
-	}
 }

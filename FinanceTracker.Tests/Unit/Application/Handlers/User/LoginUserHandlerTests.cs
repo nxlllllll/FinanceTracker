@@ -38,8 +38,7 @@ public sealed class LoginUserHandlerTests
 	private static readonly SessionToken TestSessionToken = new SessionToken(
 		AccessToken: "access.token",
 		RefreshToken: "refresh-token",
-		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15),
-		SessionId: Guid.CreateVersion7()
+		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
 	);
 
 	[Before(hookType: Test)]

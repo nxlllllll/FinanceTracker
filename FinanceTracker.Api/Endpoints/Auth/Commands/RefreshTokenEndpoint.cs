@@ -10,16 +10,16 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Token;
 using MediatR;
 using Microsoft.Extensions.Options;
+using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth.Commands;
+namespace FinanceTracker.Api.Endpoints.Auth;
 
 public sealed class RefreshTokenEndpoint : IEndpoint
 {
-	public string GroupName => AuthEndpointGroup.GroupName;
-
-	public void MapEndpoint(IEndpointRouteBuilder group)
+	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		group.MapPost(pattern: "/refresh", handler: HandleAsync).AllowAnonymous()
+		app.MapPost(pattern: "/auth/refresh", handler: HandleAsync).AllowAnonymous()
+			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Refresh the access token")
 			.WithDescription(description: "Rotates the refresh token cookie and issues a new access token.")
 			.Produces<SessionResponse>(statusCode: StatusCodes.Status200OK)

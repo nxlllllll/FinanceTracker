@@ -1,4 +1,4 @@
-namespace FinanceTracker.Api.Http;
+﻿namespace FinanceTracker.Api.Http;
 
 public static class ETag
 {

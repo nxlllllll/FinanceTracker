@@ -12,9 +12,4 @@ public sealed class UserSessionReadRepository(
 		string tokenHash,
 		CancellationToken ct = default
 	) => await context.GetSessionByRefreshTokenForUpdateAsync(tokenHash: tokenHash, ct: ct);
-
-	public async Task<Core.Domains.User.UserSession?> GetByIdForUpdateAsync(
-		Guid sessionId,
-		CancellationToken ct = default
-	) => await context.GetSessionByIdForUpdateAsync(sessionId: sessionId, ct: ct);
 }

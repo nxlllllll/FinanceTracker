@@ -20,53 +20,12 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 	{
 		_chains = upcasters.GroupBy(keySelector: u => u.EventType).ToFrozenDictionary(
 			keySelector: g => g.Key,
-			elementSelector: g => BuildChains(eventType: g.Key, sorted: [.. g.OrderBy(keySelector: u => u.FromVersion)])
+			elementSelector: g => BuildChains(sorted: [.. g.OrderBy(keySelector: u => u.FromVersion)])
 		);
 	}
 
-	private static IReadOnlyDictionary<int, Chain> BuildChains(string eventType, List<IEventUpcaster> sorted)
+	private static IReadOnlyDictionary<int, Chain> BuildChains(List<IEventUpcaster> sorted)
 	{
-		for (int i = 0; i < sorted.Count; i++)
-		{
-			IEventUpcaster current = sorted[i];
-
-			if (current.FromVersion >= current.ToVersion)
-			{
-				throw new InvalidOperationException(message:
-					$"[Upcasting] '{eventType}': {current.GetType().Name} declares [UpcasterVersion(from:" +
-					$"{current.FromVersion}, to: {current.ToVersion})], which does not move forward."
-				);
-			}
-
-			if (i == sorted.Count - 1)
-				continue;
-
-			IEventUpcaster next = sorted[i + 1];
-
-			if (current.FromVersion == next.FromVersion)
-			{
-				throw new InvalidOperationException(
-					message: $"[Upcasting] '{eventType}': {current.GetType().Name} and {next.GetType().Name} both upcast from version {current.FromVersion}."
-				);
-			}
-
-			if (current.ToVersion != next.FromVersion)
-			{
-				throw new InvalidOperationException(message:
-					$"[Upcasting] '{eventType}': nothing upcasts from version {current.ToVersion} to {next.FromVersion}." +
-					$"{current.GetType().Name} ends at {current.ToVersion} and the next step starts at {next.FromVersion}," +
-					$"so a payload stored before the gap cannot reach the current shape."
-				);
-			}
-
-			if (current.ToType != next.FromType)
-			{
-				throw new InvalidOperationException(
-					message: $"[Upcasting] '{eventType}': {current.GetType().Name} produces {current.ToType.Name} but {next.GetType().Name} consumes {next.FromType.Name}."
-				);
-			}
-		}
-
 		return sorted.Select(selector: (u, i) => (upcaster: u, index: i)).ToDictionary(
 			keySelector: x => x.upcaster.FromVersion,
 			elementSelector: x => new Chain(
@@ -94,8 +53,8 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 
 		foreach (IEventUpcaster upcaster in chain.Upcasters)
 		{
-			if (upcaster.FromVersion >= currentVersion)
-				break;
+			if (upcaster.FromVersion < storedVersion || upcaster.FromVersion >= currentVersion)
+				continue;
 
 			current = upcaster.Upcast(source: current);
 		}

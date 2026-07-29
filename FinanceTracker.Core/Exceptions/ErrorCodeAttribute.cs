@@ -1,4 +1,4 @@
-namespace FinanceTracker.Core.Exceptions;
+﻿namespace FinanceTracker.Core.Exceptions;
 
 /// <summary>
 /// Declares code for an <see cref="AppException"/> subclass (e.g. "account.insufficient_funds")
