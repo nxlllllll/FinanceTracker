@@ -1,4 +1,4 @@
-namespace FinanceTracker.Api.Configurations;
+﻿namespace FinanceTracker.Api.Configurations;
 
 /// <summary>
 /// Configures which reverse proxies/load balancers this API trusts. By default, both lists

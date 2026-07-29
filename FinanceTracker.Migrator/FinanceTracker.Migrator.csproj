@@ -94,10 +94,6 @@
         <EmbeddedResource Include="Migrations\V039__add_roles.sql" />
         <None Remove="Migrations\V040__add_idempotency_reservation_id.sql" />
         <EmbeddedResource Include="Migrations\V040__add_idempotency_reservation_id.sql" />
-        <None Remove="Migrations\V041__add_user_session_supersession.sql" />
-        <EmbeddedResource Include="Migrations\V041__add_user_session_supersession.sql" />
-        <None Remove="Migrations\V030__add_currency_rates_created_at_index.sql" />
-        <EmbeddedResource Include="Migrations\V030__add_currency_rates_created_at_index.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">

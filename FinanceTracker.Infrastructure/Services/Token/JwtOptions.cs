@@ -13,15 +13,15 @@ public sealed class JwtOptions
 	/// <summary>HMAC-SHA256 signing secret. Must be at least 32 characters.</summary>
 	[Required]
 	[MinLength(32)]
-	public string Secret { get; init; } = String.Empty;
+	public string Secret { get; init; } = string.Empty;
 
 	/// <summary>JWT <c>iss</c> claim value.</summary>
 	[Required]
-	public string Issuer { get; init; } = String.Empty;
+	public string Issuer { get; init; } = string.Empty;
 
 	/// <summary>JWT <c>aud</c> claim value.</summary>
 	[Required]
-	public string Audience { get; init; } = String.Empty;
+	public string Audience { get; init; } = string.Empty;
 
 	/// <summary>Access token validity in minutes. Default: 15.</summary>
 	[Range(1, 1440)]
@@ -30,11 +30,4 @@ public sealed class JwtOptions
 	/// <summary>Refresh token validity in days. Default: 7.</summary>
 	[Range(1, 365)]
 	public int RefreshTokenTtlDays { get; init; } = 7;
-
-	/// <summary>
-	/// How long after a rotation a replay of the old refresh token is still treated
-	/// as a retry rather than reuse of a stolen token. Default: 30 seconds.
-	/// </summary>
-	[Range(0, 300)]
-	public int RefreshReplayGraceSeconds { get; init; } = 30;
 }

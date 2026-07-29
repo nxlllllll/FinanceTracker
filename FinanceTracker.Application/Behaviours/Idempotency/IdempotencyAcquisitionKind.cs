@@ -1,4 +1,4 @@
-namespace FinanceTracker.Application.Behaviours.Idempotency;
+﻿namespace FinanceTracker.Application.Behaviours.Idempotency;
 
 public enum IdempotencyAcquisitionKind
 {

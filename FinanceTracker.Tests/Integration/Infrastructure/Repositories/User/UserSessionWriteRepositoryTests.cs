@@ -29,10 +29,9 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 			id: Guid.CreateVersion7(),
 			userId: userId,
 			refreshTokenHash: hash,
-			expiresAt: expiresAt ?? FakeDateProvider.Default.UtcNow.AddDays(days: 7),
+			expiresAt: expiresAt ?? DateTimeOffset.UtcNow.AddDays(days: 7),
 			createdAt: FakeDateProvider.Default.UtcNow,
-			revokedAt: revokedAt,
-			supersededBySessionId: null
+			revokedAt: revokedAt
 		);
 
 		await _userSessionWriteRepository.CreateAsync(session: session);
@@ -47,7 +46,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		Core.Domains.User.UserSession session = Core.Domains.User.UserSession.Create(
 			userId: userId,
 			refreshTokenHash: "testhash",
-			expiresAt: FakeDateProvider.Default.UtcNow.AddDays(days: 7),
+			expiresAt: DateTimeOffset.UtcNow.AddDays(days: 7),
 			createdAt: FakeDateProvider.Default.UtcNow
 		);
 

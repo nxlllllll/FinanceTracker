@@ -22,12 +22,9 @@ public static class WorkerMetrics
 
 	// Outbox
 
-	/// <remarks>
-	/// Must be the full pending backlog, not the size of the batch the publisher just claimed
-	/// </remarks>
 	public static readonly Gauge<int> OutboxPending = Meter.CreateGauge<int>(
 		name: "outbox.pending",
-		description: "Number of outbox messages waiting to be published, across the whole table."
+		description: "Number of outbox messages waiting to be published."
 	);
 
 	public static readonly Counter<int> OutboxPublished = Meter.CreateCounter<int>(
@@ -40,12 +37,9 @@ public static class WorkerMetrics
 		description: "Total number of outbox messages moved to dead letter."
 	);
 
-	/// <summary>
-	/// Events escalated for manual resolution and still unresolved
-	/// </summary>
-	public static readonly Gauge<int> UnresolvableEventsPending = Meter.CreateGauge<int>(
-		name: "unresolvable_events.pending",
-		description: "Number of escalated events still awaiting manual resolution."
+	public static readonly Gauge<int> DeadLetterCount = Meter.CreateGauge<int>(
+		name: "dead_letter.count",
+		description: "Current number of messages in dead letter queue."
 	);
 
 	public static readonly Histogram<double> MessageProcessingDuration = Meter.CreateHistogram<double>(

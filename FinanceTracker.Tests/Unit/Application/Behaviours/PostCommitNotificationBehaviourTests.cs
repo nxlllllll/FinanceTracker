@@ -126,35 +126,24 @@ public sealed class PostCommitNotificationBehaviourTests
 	}
 
 	[Test]
-	public async Task Handle_WhenStagedTwice_ShouldPublishBothInStagingOrder()
+	public async Task Handle_WhenStagedTwiceBeforeNextReturns_ShouldPublishOnlyTheLastOne()
 	{
-		ProbeNotification first = new ProbeNotification(Marker: 100);
-		ProbeNotification second = new ProbeNotification(Marker: 200);
-		List<INotification> published = [];
-
-		_publisher.Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo =>
-		{
-			published.Add(item: callInfo.ArgAt<INotification>(position: 0));
-			return Task.CompletedTask;
-		});
+		ProbeNotification stale = new ProbeNotification(Marker: 100);
+		ProbeNotification fresh = new ProbeNotification(Marker: 200);
 
 		await _behaviour.Handle(
 			request: new object(),
 			next: _ =>
 			{
-				_collector.Stage(notification: first);
-				_collector.Stage(notification: second);
+				_collector.Stage(notification: stale);
+				_collector.Stage(notification: fresh);
 				return Task.FromResult(Result<Guid, DomainException>.Success(value: Guid.NewGuid()));
 			},
 			cancellationToken: CancellationToken.None
 		);
 
-		await Assert.That(value: published).Count().IsEqualTo(expected: 2);
-		await Assert.That(value: published[0]).IsEqualTo(expected: first);
-		await Assert.That(value: published[1]).IsEqualTo(expected: second);
+		await _publisher.Received(requiredNumberOfCalls: 1).Publish(notification: fresh, cancellationToken: Arg.Any<CancellationToken>());
+		await _publisher.DidNotReceive().Publish(notification: stale, cancellationToken: Arg.Any<CancellationToken>());
 	}
 
 	[Test]
@@ -185,149 +174,5 @@ public sealed class PostCommitNotificationBehaviourTests
 		);
 
 		await Assert.That(value: capturedToken).IsEqualTo(expected: CancellationToken.None);
-	}
-
-	[Test]
-	public async Task Handle_WhenANestedDispatchRuns_ShouldLeaveTheOuterNotificationForTheOuterDispatch()
-	{
-		ProbeNotification outer = new ProbeNotification(Marker: 10);
-		ProbeNotification inner = new ProbeNotification(Marker: 20);
-		List<INotification> published = [];
-
-		_publisher.Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo =>
-		{
-			published.Add(item: callInfo.ArgAt<INotification>(position: 0));
-			return Task.CompletedTask;
-		});
-
-		await _behaviour.Handle(
-			request: new object(),
-			next: async ct =>
-			{
-				_collector.Stage(notification: outer);
-
-				await _behaviour.Handle(
-					request: new object(),
-					next: _ =>
-					{
-						_collector.Stage(notification: inner);
-						return Task.FromResult(Result<Guid, DomainException>.Success(value: Guid.NewGuid()));
-					},
-					cancellationToken: ct
-				);
-
-				return Result<Guid, DomainException>.Success(value: Guid.NewGuid());
-			},
-			cancellationToken: CancellationToken.None
-		);
-
-		await Assert.That(value: published).Count().IsEqualTo(expected: 2);
-		await Assert.That(value: published[0]).IsEqualTo(expected: inner);
-		await Assert.That(value: published[1]).IsEqualTo(expected: outer);
-	}
-
-	[Test]
-	public async Task Handle_WhenANestedDispatchStagesNothing_ShouldStillLeaveTheOuterNotificationAlone()
-	{
-		ProbeNotification outer = new ProbeNotification(Marker: 11);
-
-		await _behaviour.Handle(
-			request: new object(),
-			next: async ct =>
-			{
-				_collector.Stage(notification: outer);
-
-				await _behaviour.Handle(
-					request: new object(),
-					next: _ => Task.FromResult(Result<Guid, DomainException>.Success(value: Guid.NewGuid())),
-					cancellationToken: ct
-				);
-
-				return Result<Guid, DomainException>.Success(value: Guid.NewGuid());
-			},
-			cancellationToken: CancellationToken.None
-		);
-
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task Handle_WhenOnePublishThrows_ShouldStillPublishTheRest()
-	{
-		ProbeNotification failing = new ProbeNotification(Marker: 30);
-		ProbeNotification following = new ProbeNotification(Marker: 40);
-		List<INotification> attempted = [];
-
-		_publisher.Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo =>
-		{
-			INotification notification = callInfo.ArgAt<INotification>(position: 0);
-			attempted.Add(item: notification);
-
-			if (ReferenceEquals(objA: notification, objB: failing))
-				throw new InvalidOperationException(message: "subscriber blew up");
-
-			return Task.CompletedTask;
-		});
-
-		await _behaviour.Handle(
-			request: new object(),
-			next: _ =>
-			{
-				_collector.Stage(notification: failing);
-				_collector.Stage(notification: following);
-				return Task.FromResult(Result<Guid, DomainException>.Success(value: Guid.NewGuid()));
-			},
-			cancellationToken: CancellationToken.None
-		);
-
-		await Assert.That(value: attempted).Count().IsEqualTo(expected: 2);
-		await Assert.That(value: attempted[1]).IsEqualTo(expected: following);
-	}
-
-	[Test]
-	public async Task Handle_WhenANestedDispatchFails_ShouldNotLeaveItsNotificationForTheOuterOne()
-	{
-		ProbeNotification outer = new ProbeNotification(Marker: 50);
-		ProbeNotification abandoned = new ProbeNotification(Marker: 60);
-
-		await _behaviour.Handle(
-			request: new object(),
-			next: async ct =>
-			{
-				_collector.Stage(notification: outer);
-
-				await _behaviour.Handle(
-					request: new object(),
-					next: _ =>
-					{
-						_collector.Stage(notification: abandoned);
-						return Task.FromResult(Result<Guid, DomainException>.Failure(error: new InvalidAmountException(message: "nope")));
-					},
-					cancellationToken: ct
-				);
-
-				return Result<Guid, DomainException>.Success(value: Guid.NewGuid());
-			},
-			cancellationToken: CancellationToken.None
-		);
-
-		await _publisher.Received(requiredNumberOfCalls: 1).Publish(
-			notification: Arg.Any<INotification>(),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
-
-		await _publisher.DidNotReceive().Publish(
-			notification: abandoned,
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
 	}
 }

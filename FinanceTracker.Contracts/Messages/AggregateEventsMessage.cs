@@ -1,4 +1,4 @@
-namespace FinanceTracker.Contracts.Messages;
+﻿namespace FinanceTracker.Contracts.Messages;
 
 /// <summary>
 /// Integration message published to RabbitMQ after each successful <c>IEventStore.SaveAsync</c>,

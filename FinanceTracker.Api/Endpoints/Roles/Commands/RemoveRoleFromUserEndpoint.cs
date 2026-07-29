@@ -6,16 +6,17 @@ using FinanceTracker.Application.UseCases.Role.Commands.RemoveRoleFromUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
+using Unit = FinanceTracker.Core.Results.Unit;
+using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Users.Commands;
+namespace FinanceTracker.Api.Endpoints.Roles;
 
 public sealed class RemoveRoleFromUserEndpoint : IEndpoint
 {
-	public string GroupName => UsersEndpointGroup.GroupName;
-
-	public void MapEndpoint(IEndpointRouteBuilder group)
+	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		group.MapDelete(pattern: "/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
+		app.MapDelete(pattern: "/users/{userId:guid}/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
+			.WithTags(tags: "Roles")
 			.WithSummary(summary: "Remove a role from a user")
 			.WithDescription(description: "Fails if this would remove the last remaining root user.")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

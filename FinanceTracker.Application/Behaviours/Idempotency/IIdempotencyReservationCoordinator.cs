@@ -1,4 +1,4 @@
-namespace FinanceTracker.Application.Behaviours.Idempotency;
+﻿namespace FinanceTracker.Application.Behaviours.Idempotency;
 
 /// <summary>
 /// Owns the idempotency acquisition protocol: look up an existing reservation, return a cached

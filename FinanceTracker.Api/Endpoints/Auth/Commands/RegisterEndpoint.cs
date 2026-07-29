@@ -9,16 +9,16 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth.Commands;
+namespace FinanceTracker.Api.Endpoints.Auth;
 
 public sealed class RegisterEndpoint : IEndpoint
 {
-	public string GroupName => AuthEndpointGroup.GroupName;
-
-	public void MapEndpoint(IEndpointRouteBuilder group)
+	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		group.MapPost(pattern: "/register", handler: HandleAsync).AllowAnonymous()
+		app.MapPost(pattern: "/auth/register", handler: HandleAsync).AllowAnonymous()
+			.WithTags(tags: "Auth")
 			.WithSummary(summary: "Register a new user")
 			.WithDescription(description: "Creates a user account. Requires an Idempotency-Key header.")
 			.Produces<CreatedIdResponse>(statusCode: StatusCodes.Status201Created)

@@ -61,7 +61,4 @@ public sealed class JwtTokenService(
 
 	public DateTimeOffset GetRefreshTokenExpiry()
 		=> dateProvider.UtcNow.AddDays(days: _options.RefreshTokenTtlDays);
-
-	public TimeSpan GetRefreshReplayGraceWindow()
-		=> TimeSpan.FromSeconds(value: _options.RefreshReplayGraceSeconds);
 }

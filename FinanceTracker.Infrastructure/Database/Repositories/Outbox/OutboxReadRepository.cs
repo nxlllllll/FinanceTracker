@@ -44,12 +44,4 @@ public sealed class OutboxReadRepository(FinanceTrackerContext context) : IOutbo
 			RETURNING o.id AS "Id", o.aggregate_id AS "AggregateId", o.aggregate_type AS "AggregateType", o.payload AS "Payload", o.retry_count AS "RetryCount"
 		""").ToListAsync(cancellationToken: ct);
 	}
-
-	public async Task<int> CountPendingAsync(CancellationToken ct = default)
-	{
-		return await context.OutboxMessages.CountAsync(
-			predicate: m => m.ProcessedAt == null && m.FailedAt == null,
-			cancellationToken: ct
-		);
-	}
 }

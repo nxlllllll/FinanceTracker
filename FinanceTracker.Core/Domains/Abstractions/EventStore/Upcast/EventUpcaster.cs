@@ -20,30 +20,24 @@ namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 /// </remarks>
 /// <example>
 /// <code>
-/// // 1. Freeze the old shape. The attribute is what keys the upcaster chain.
+/// // 1. Freeze the old event version:
 /// [EventType(name: "account.created")]
-/// public sealed record AccountCreatedV1(Guid Id, Guid AccountId, string Currency, ...);
+/// public sealed record AccountCreatedV1(Guid Id, Guid AccountId, string Currency, ...) : IEvent { ... }
 ///
-/// // 2. Add the new field to the current event, which keeps the same [EventType] name and
-/// //    stays the only IEvent carrying it. Bump its version:
+/// // 2. Add the new field to the current event:
 /// [EventType(name: "account.created")]
-/// [EventVersion(version: 2)]
 /// public sealed record AccountCreated(Guid Id, Guid AccountId, string Currency, AccountType Type, ...) : IEvent { ... }
 ///
 /// // 3. Write the upcaster:
 /// [UpcasterVersion(from: 1, to: 2)]
 /// public sealed class AccountCreatedV1ToV2 : EventUpcaster&lt;AccountCreatedV1, AccountCreated&gt;
 /// {
-///     public override AccountCreated Upcast(AccountCreatedV1 source) =&gt;
+///     public override AccountCreated Upcast(AccountCreatedV1 source) =>
 ///         new AccountCreated(source.Id, source.AccountId, source.Currency, AccountType.Checking, ...);
 /// }
 /// </code>
 /// </example>
-/// <typeparam name="TFrom">
-/// Old event shape, annotated with <see cref="EventTypeAttribute"/>. A plain record — it is
-/// deserialized as an object and never resolved as an event, so it must not implement
-/// <see cref="Event.IEvent"/>.
-/// </typeparam>
+/// <typeparam name="TFrom">Old event record, annotated with <see cref="EventTypeAttribute"/>.</typeparam>
 /// <typeparam name="TTo">Current event record returned after migration.</typeparam>
 public abstract class EventUpcaster<TFrom, TTo> : IEventUpcaster
 	where TFrom : class

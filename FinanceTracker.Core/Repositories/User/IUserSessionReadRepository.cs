@@ -6,9 +6,4 @@ public interface IUserSessionReadRepository
 		string tokenHash,
 		CancellationToken ct = default
 	);
-
-	Task<Domains.User.UserSession?> GetByIdForUpdateAsync(
-		Guid sessionId,
-		CancellationToken ct = default
-	);
 }

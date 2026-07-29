@@ -1,4 +1,4 @@
-namespace FinanceTracker.Api.Http.Middleware;
+﻿namespace FinanceTracker.Api.Http.Middleware;
 
 public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 {

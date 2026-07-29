@@ -4,9 +4,6 @@
 x-rabbitmq-env: &rabbitmq-env
   RabbitMQ__Port: "5672"
 
-x-otel-env: &otel-env
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -59,33 +56,6 @@ services:
       retries: 10
       start_period: 30s
 
-  api:
-    build:
-      context: .
-      dockerfile: FinanceTracker.Api/Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      <<: [*redis-env, *rabbitmq-env, *otel-env]
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
-      RabbitMQ__Host: rabbitmq
-      RabbitMQ__Username: ${RABBITMQ_USER}
-      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
-      Redis__ConnectionString: redis:6379
-      Jwt__Secret: ${JWT_SECRET}
-      OpenApi__Expose: "true"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
-
   worker-outbox:
     build:
       context: .
@@ -93,7 +63,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      <<: [*redis-env, *rabbitmq-env]
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -118,7 +88,7 @@ services:
     ports:
       - "5001:5001"
     environment:
-      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      <<: [*redis-env, *rabbitmq-env]
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5001
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -143,7 +113,7 @@ services:
     ports:
       - "5002:5002"
     environment:
-      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      <<: [*redis-env, *rabbitmq-env]
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5002
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -168,7 +138,7 @@ services:
     ports:
       - "5003:5003"
     environment:
-      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      <<: [*redis-env, *rabbitmq-env]
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5003
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -193,7 +163,7 @@ services:
     ports:
       - "5004:5004"
     environment:
-      <<: [*redis-env, *otel-env]
+      <<: *redis-env
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5004
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -213,7 +183,7 @@ services:
     ports:
       - "5005:5005"
     environment:
-      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      <<: [*redis-env, *rabbitmq-env]
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5005
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -238,7 +208,7 @@ services:
     ports:
       - "5006:5006"
     environment:
-      <<: [*redis-env, *otel-env]
+      <<: *redis-env
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5006
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -259,7 +229,7 @@ services:
     ports:
       - "5007:5007"
     environment:
-      <<: [*redis-env, *otel-env]
+      <<: *redis-env
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5007
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -279,7 +249,7 @@ services:
     ports:
       - "5008:5008"
     environment:
-      <<: [*redis-env, *otel-env]
+      <<: *redis-env
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5008
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -299,7 +269,7 @@ services:
     ports:
       - "5009:5009"
     environment:
-      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      <<: [*redis-env, *rabbitmq-env]
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5009
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
@@ -327,14 +297,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16686:16686"
-      - "4317:4317"
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
 
   alertmanager:
     image: prom/alertmanager:latest

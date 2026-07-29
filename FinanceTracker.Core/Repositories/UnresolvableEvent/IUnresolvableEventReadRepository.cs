@@ -23,9 +23,5 @@ public interface IUnresolvableEventReadRepository : IReadRepository<ReadModels.U
 		int sampleSize,
 		CancellationToken ct = default
 	);
-
-	/// <summary>
-	/// Counts every event still awaiting human resolution, whether it has been acknowledged.
-	/// </summary>
-	Task<int> CountUnresolvedAsync(CancellationToken ct = default);
 }
+

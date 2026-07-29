@@ -1,4 +1,4 @@
-namespace FinanceTracker.Core.Exceptions.DomainExceptions;
+﻿namespace FinanceTracker.Core.Exceptions.DomainExceptions;
 
 /// <summary>
 /// The client supplied an expected version that no longer matches the entity's

@@ -10,21 +10,23 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
+using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Accounts.Commands;
+namespace FinanceTracker.Api.Endpoints.Accounts;
 
 public sealed class CreateAccountEndpoint : IEndpoint
 {
-	public string GroupName => AccountsEndpointGroup.GroupName;
-
-	public void MapEndpoint(IEndpointRouteBuilder group)
+	public void MapEndpoint(IEndpointRouteBuilder app)
 	{
-		group.MapPost(pattern: String.Empty, handler: HandleAsync)
+		app.MapPost(pattern: "/accounts", handler: HandleAsync)
+			.RequireAuthorization()
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
-			.WithSummary(summary: "Create a new account")
-			.WithDescription(description: "Creates an account for the authenticated user. Requires an Idempotency-Key header.")
+			.WithTags(tags: "Accounts")
+			.WithSummary(summary: "Create an account")
+			.WithDescription(description: "Requires account:write permission and an Idempotency-Key header.")
 			.Produces<CreatedIdResponse>(statusCode: StatusCodes.Status201Created)
 			.ProducesValidationProblem()
+			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden)
 			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
 	}
 
@@ -51,8 +53,7 @@ public sealed class CreateAccountEndpoint : IEndpoint
 			Type: request.Type,
 			Currency: currency.Value!,
 			InitialBalance: request.InitialBalance
-		)
-		{ IdempotencyKey = idempotencyKey };
+		) { IdempotencyKey = idempotencyKey };
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 

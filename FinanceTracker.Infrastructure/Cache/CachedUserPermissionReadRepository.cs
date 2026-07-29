@@ -4,7 +4,9 @@ using Microsoft.Extensions.Caching.Distributed;
 namespace FinanceTracker.Infrastructure.Cache;
 
 /// <summary>
-/// Decorator for <see cref="IUserPermissionReadRepository"/> that caches a user's permission set in Redis.
+/// Decorator for <see cref="IUserPermissionReadRepository"/> that caches a user's
+/// permission set in Redis.Authorization data needs a short TTL: a revoked permission
+/// must stop working promptly. Grant/revoke also invalidate this key directly
 /// </summary>
 public sealed class CachedUserPermissionReadRepository(
 	IUserPermissionReadRepository inner,
@@ -27,8 +29,7 @@ public sealed class CachedUserPermissionReadRepository(
 			return entry.Value ?? [];
 
 		IReadOnlySet<string> result = await inner.GetPermissionsAsync(userId: userId, ct: ct);
-		await redisCache.SetAsync(key: key, value: result.ToHashSet(), options: Ttl);
-
+		await redisCache.SetAsync(key: key, value: (HashSet<string>)result, options: Ttl);
 		return result;
 	}
 }

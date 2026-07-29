@@ -1,4 +1,4 @@
-namespace FinanceTracker.Core.Services.RateLimit;
+﻿namespace FinanceTracker.Core.Services.RateLimit;
 
 public readonly record struct RateLimitResult(bool IsAllowed, int RetryAfterSeconds)
 {

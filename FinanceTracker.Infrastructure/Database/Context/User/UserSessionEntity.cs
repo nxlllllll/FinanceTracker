@@ -8,5 +8,4 @@ public sealed class UserSessionEntity
 	public DateTimeOffset ExpiresAt { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 	public DateTimeOffset? RevokedAt { get; init; }
-	public Guid? SupersededBySessionId { get; init; }
 }

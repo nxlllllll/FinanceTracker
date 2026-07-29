@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
 
 namespace FinanceTracker.Application.Behaviours.Idempotency;
 

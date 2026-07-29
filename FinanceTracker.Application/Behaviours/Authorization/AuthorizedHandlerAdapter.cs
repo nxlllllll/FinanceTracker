@@ -32,6 +32,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 	where TError : AppException
 {
 	/// <inheritdoc/>
+	/// <inheritdoc/>
 	public async Task<Result<TValue, TError>> Handle(
 		TRequest request,
 		CancellationToken ct)
@@ -44,21 +45,13 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 		}
 
 		PreconditionFailedException? mismatch = CheckExpectedVersion(request: request, entity: entity.Value!);
-		if (mismatch is null)
-			return await handler.HandleAsync(request: request, user: entity.Value!, ct: ct);
-
-		if (mismatch is not TError typedMismatch)
+		if (mismatch is not null)
 		{
-			throw new InvalidOperationException(message:
-				$"{typeof(TRequest).Name} carries an expected version, but its error type " +
-				$"{typeof(TError).Name} cannot hold a {nameof(PreconditionFailedException)}. " +
-				$"Widen the handler's TError to {nameof(AppException)} or drop {nameof(IHasExpectedVersion)} from the request."
-			);
+			logger.ZLogInformation(message: $"Precondition failed for {request.GetType().Name}: {mismatch.Message}");
+			return Result<TValue, TError>.Failure(error: (TError)(object)mismatch);
 		}
 
-		logger.ZLogInformation(message: $"Precondition failed for {request.GetType().Name}: {mismatch.Message}");
-		return Result<TValue, TError>.Failure(error: typedMismatch);
-
+		return await handler.HandleAsync(request: request, user: entity.Value!, ct: ct);
 	}
 
 	private static PreconditionFailedException? CheckExpectedVersion(TRequest request, TEntity entity)
@@ -67,13 +60,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 			return null;
 
 		if (entity is not IHasVersion versionedEntity)
-		{
-			throw new InvalidOperationException(message:
-				$"{typeof(TRequest).Name} carries an expected version, but {typeof(TEntity).Name} " +
-				   $"does not implement {nameof(IHasVersion)}, so the precondition cannot be checked. " +
-				   $"Either load a versioned entity or drop {nameof(IHasExpectedVersion)} from the request."
-			);
-		}
+			return null;
 
 		int actualVersion = versionedEntity.Version;
 		if (actualVersion == expectedVersion)

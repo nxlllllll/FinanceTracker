@@ -1,5 +1,4 @@
-using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.User;
+﻿using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
@@ -9,7 +8,6 @@ namespace FinanceTracker.Infrastructure.Cache;
 public sealed class CachedUserSessionWriteRepository(
 	IUserSessionWriteRepository inner,
 	RedisCache redisCache,
-	IUnitOfWork unitOfWork,
 	IOptionsMonitor<JwtOptions> jwtOptions
 ) : IUserSessionWriteRepository
 {
@@ -28,23 +26,7 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
-		return revokedIds;
-	}
-
-	public async Task<IReadOnlyList<Guid>> SupersedeAsync(
-		Guid sessionId,
-		Guid successorSessionId,
-		DateTimeOffset revokedAt,
-		CancellationToken ct = default)
-	{
-		IReadOnlyList<Guid> revokedIds = await inner.SupersedeAsync(
-			sessionId: sessionId,
-			successorSessionId: successorSessionId,
-			revokedAt: revokedAt,
-			ct: ct
-		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
+		await MarkRevokedInCacheAsync(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
@@ -60,7 +42,7 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
+		await MarkRevokedInCacheAsync(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
@@ -74,20 +56,15 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
+		await MarkRevokedInCacheAsync(sessionIds: revokedIds);
 		return revokedIds;
-	}
-
-	private void ScheduleCacheMarking(IReadOnlyList<Guid> sessionIds)
-	{
-		if (sessionIds.Count == 0)
-			return;
-
-		unitOfWork.OnCommitted(callback: () => MarkRevokedInCacheAsync(sessionIds: sessionIds));
 	}
 
 	private async Task MarkRevokedInCacheAsync(IReadOnlyList<Guid> sessionIds)
 	{
+		if (sessionIds.Count == 0)
+			return;
+
 		DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions
 		{
 			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(value: jwtOptions.CurrentValue.AccessTokenTtlMinutes)
