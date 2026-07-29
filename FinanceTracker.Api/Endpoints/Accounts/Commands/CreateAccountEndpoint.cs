@@ -10,23 +10,21 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace FinanceTracker.Api.Endpoints.Accounts.Commands;
 
 public sealed class CreateAccountEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => AccountsEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapPost(pattern: "/accounts", handler: HandleAsync)
-			.RequireAuthorization()
+		group.MapPost(pattern: String.Empty, handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
-			.WithTags(tags: "Accounts")
-			.WithSummary(summary: "Create an account")
-			.WithDescription(description: "Requires account:write permission and an Idempotency-Key header.")
+			.WithSummary(summary: "Create a new account")
+			.WithDescription(description: "Creates an account for the authenticated user. Requires an Idempotency-Key header.")
 			.Produces<CreatedIdResponse>(statusCode: StatusCodes.Status201Created)
 			.ProducesValidationProblem()
-			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden)
 			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
 	}
 

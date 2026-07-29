@@ -4,7 +4,6 @@ using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace FinanceTracker.Api.Http.Results;
 

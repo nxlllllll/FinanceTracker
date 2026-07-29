@@ -11,16 +11,16 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Services.Token;
 using MediatR;
 using Microsoft.Extensions.Options;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace FinanceTracker.Api.Endpoints.Auth.Commands;
 
 public sealed class LoginEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => AuthEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapPost(pattern: "/auth/login", handler: HandleAsync).AllowAnonymous()
-			.WithTags(tags: "Auth")
+		group.MapPost(pattern: "/login", handler: HandleAsync).AllowAnonymous()
 			.WithSummary(summary: "Log in")
 			.WithDescription(description: "Returns an access token in the body and sets a refresh token as an HttpOnly cookie.")
 			.Produces<SessionResponse>(statusCode: StatusCodes.Status200OK)

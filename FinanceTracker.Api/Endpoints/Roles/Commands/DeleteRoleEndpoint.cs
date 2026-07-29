@@ -6,17 +6,16 @@ using FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
-using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Api.Endpoints.Roles.Commands;
 
 public sealed class DeleteRoleEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => RolesEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapDelete(pattern: "/roles/{roleId:guid}", handler: HandleAsync).RequireRoot()
-			.WithTags(tags: "Roles")
+		group.MapDelete(pattern: "/{roleId:guid}", handler: HandleAsync).RequireRoot()
 			.WithSummary(summary: "Delete a custom role")
 			.WithDescription(description: "System roles (user/admin/root) cannot be deleted. Revokes the role's permissions from every current member first.")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

@@ -7,17 +7,17 @@ using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace FinanceTracker.Api.Endpoints.Accounts.Commands;
 
 public sealed class ArchiveAccountEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => AccountsEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapPatch(pattern: "/accounts/{accountId:guid}/archive", handler: HandleAsync)
+		group.MapPatch(pattern: "/{accountId:guid}/archive", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
-			.WithTags(tags: "Accounts")
 			.WithSummary(summary: "Archive an account")
 			.WithDescription(description: "Send an If-Match header (from a prior GET's ETag) to reject the request with 412 if the account changed since you fetched it.")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

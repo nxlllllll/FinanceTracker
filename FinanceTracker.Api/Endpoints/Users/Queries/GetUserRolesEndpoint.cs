@@ -7,16 +7,16 @@ using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using MediatR;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Roles.Queries;
+namespace FinanceTracker.Api.Endpoints.Users.Queries;
 
 public sealed class GetUserRolesEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => UsersEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapGet(pattern: "/users/{userId:guid}/roles", handler: HandleAsync).RequireRoot()
-			.WithTags(tags: "Roles")
+		group.MapGet(pattern: "/{userId:guid}/roles", handler: HandleAsync).RequireRoot()
 			.WithSummary(summary: "List roles held by a user")
 			.Produces<List<RoleResponse>>(statusCode: StatusCodes.Status200OK);
 	}
