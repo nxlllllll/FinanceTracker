@@ -1,10 +1,9 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-EXPOSE 5104
-
+EXPOSE 5004
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["Directory.Packages.props", "Directory.Packages.props"]
+COPY ["Directory.Packages.props", "Directory.Build.props", "BannedSymbols.txt", "./"]
 COPY ["FinanceTracker.Worker.DeadLetterMonitor/FinanceTracker.Worker.DeadLetterMonitor.csproj", "FinanceTracker.Worker.DeadLetterMonitor/"]
 COPY ["FinanceTracker.Infrastructure/FinanceTracker.Infrastructure.csproj", "FinanceTracker.Infrastructure/"]
 COPY ["FinanceTracker.Core/FinanceTracker.Core.csproj", "FinanceTracker.Core/"]
@@ -17,4 +16,5 @@ RUN dotnet publish "FinanceTracker.Worker.DeadLetterMonitor/FinanceTracker.Worke
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+USER app
 ENTRYPOINT ["dotnet", "FinanceTracker.Worker.DeadLetterMonitor.dll"]

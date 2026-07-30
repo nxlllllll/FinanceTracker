@@ -1,10 +1,10 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["Directory.Packages.props", "Directory.Packages.props"]
+COPY ["Directory.Packages.props", "Directory.Build.props", "BannedSymbols.txt", "./"]
 COPY ["FinanceTracker.Api/FinanceTracker.Api.csproj", "FinanceTracker.Api/"]
 COPY ["FinanceTracker.Application/FinanceTracker.Application.csproj", "FinanceTracker.Application/"]
 COPY ["FinanceTracker.Core/FinanceTracker.Core.csproj", "FinanceTracker.Core/"]
@@ -17,4 +17,5 @@ RUN dotnet publish "FinanceTracker.Api/FinanceTracker.Api.csproj" -c Release -o 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+USER app
 ENTRYPOINT ["dotnet", "FinanceTracker.Api.dll"]
