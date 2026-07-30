@@ -30,6 +30,7 @@ public sealed class CreateAccountEndpoint : IEndpoint
 
 	private static async Task<IHttpResult> HandleAsync(
 		CreateAccountRequest request,
+		LinkGenerator linkGenerator,
 		ICurrentUserProvider currentUser,
 		ISender sender,
 		HttpContext httpContext,
@@ -56,6 +57,11 @@ public sealed class CreateAccountEndpoint : IEndpoint
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 
-		return result.ToCreatedResult(locationFactory: id => $"/api/v1/accounts/{id}");
+		return result.ToCreatedAtRoute(
+			linkGenerator: linkGenerator,
+			httpContext: httpContext,
+			routeName: "GetAccount",
+			routeValues: id => new { accountId = id }
+		);
 	}
 }

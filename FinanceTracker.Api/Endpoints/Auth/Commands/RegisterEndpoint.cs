@@ -1,5 +1,5 @@
-using FinanceTracker.Api.Endpoints.Auth.Contracts;
 using FinanceTracker.Api.Endpoints.Shared;
+using FinanceTracker.Api.Endpoints.Auth.Contracts;
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
@@ -54,6 +54,9 @@ public sealed class RegisterEndpoint : IEndpoint
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 
-		return result.ToCreatedResult(locationFactory: id => $"/api/v1/users/{id}");
+		if (result.IsSuccess)
+			return Results.Created(uri: (string?)null, value: new CreatedIdResponse(Id: result.Value));
+
+		return result.Error!.ToProblem();
 	}
 }

@@ -30,6 +30,7 @@ public sealed class CreateRoleEndpoint : IEndpoint
 
 	private static async Task<IHttpResult> HandleAsync(
 		CreateRoleRequest request,
+		LinkGenerator linkGenerator,
 		ISender sender,
 		HttpContext httpContext,
 		CancellationToken ct)
@@ -45,13 +46,17 @@ public sealed class CreateRoleEndpoint : IEndpoint
 			return permissions.Error!.ToProblem();
 
 		CreateRoleCommand command = new CreateRoleCommand(
-			DisplayName: displayName.Value!,
+			DisplayName: displayName.Value,
 			Permissions: permissions.Value!
-		)
-		{ IdempotencyKey = idempotencyKey };
+		) { IdempotencyKey = idempotencyKey };
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 
-		return result.ToCreatedResult(locationFactory: id => $"/api/v1/roles/{id}");
+		return result.ToCreatedAtRoute(
+			linkGenerator: linkGenerator,
+			httpContext: httpContext,
+			routeName: "GetRole",
+			routeValues: id => new { roleId  = id }
+		);
 	}
 }

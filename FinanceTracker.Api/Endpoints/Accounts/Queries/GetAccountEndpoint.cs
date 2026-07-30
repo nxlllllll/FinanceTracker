@@ -20,10 +20,10 @@ public sealed class GetAccountEndpoint : IEndpoint
 	{
 		group.MapGet(pattern: "/{accountId:guid}", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Read)
+			.WithName(endpointName: "GetAccount")
 			.WithSummary(summary: "Get an account by id")
 			.WithDescription(description: "Returns an ETag header — send it back as If-Match on a PATCH to detect concurrent edits.")
 			.Produces<AccountResponse>(statusCode: StatusCodes.Status200OK)
-			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden)
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 
