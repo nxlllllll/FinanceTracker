@@ -154,7 +154,7 @@ public sealed class Transfer
 	/// </summary>
 	public Result<Unit, DomainException> Fail(DateTimeOffset occurredAt)
 	{
-		if (Status is TransferStatus.Completed or TransferStatus.Failed)
+		if (Status is not TransferStatus.PendingCredit)
 			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"Transfer cannot be failed from {Status} state."));
 
 		Status = TransferStatus.Failed;

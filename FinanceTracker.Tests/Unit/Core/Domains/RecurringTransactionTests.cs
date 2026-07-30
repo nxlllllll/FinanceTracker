@@ -94,6 +94,17 @@ public sealed class RecurringTransactionTests
 	}
 
 	[Test]
+	public async Task ChangeAmount_WithTheSameAmount_ShouldReportNoChange()
+	{
+		RecurringTransaction recurring = RecurringTransactionFactory.Create().Value!;
+
+		Result<bool, DomainException> result = recurring.ChangeAmount(amount: recurring.Amount.Amount);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
 	public async Task ChangeAmount_WithValidAmount_ShouldUpdateAmount()
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
@@ -133,6 +144,28 @@ public sealed class RecurringTransactionTests
 
 		await Assert.That(value: rt.Amount.Currency.Value).IsEqualTo(expected: "USD");
 		await Assert.That(value: rt.Amount.Amount).IsEqualTo(expected: 5000m);
+	}
+
+	[Test]
+	public async Task ChangeCurrency_WithTheSameCurrency_ShouldReportNoChange()
+	{
+		RecurringTransaction recurring = RecurringTransactionFactory.Create().Value!;
+
+		Result<bool, DomainException> result = recurring.ChangeCurrency(currency: recurring.Amount.Currency);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
+	public async Task ChangeDayOfMonth_WithTheSameDay_ShouldReportNoChange()
+	{
+		RecurringTransaction recurring = RecurringTransactionFactory.Create().Value!;
+
+		Result<bool, DomainException> result = recurring.ChangeDayOfMonth(dayOfMonth: recurring.DayOfMonth);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]

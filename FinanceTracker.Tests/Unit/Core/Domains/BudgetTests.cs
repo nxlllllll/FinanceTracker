@@ -43,7 +43,7 @@ public sealed class BudgetTests
 	}
 
 	[Test]
-	public async Task Create_WhenEndDateEqualsStartDate_ShouldThrowInvalidBudgetPeriodException()
+	public async Task Create_WhenEndDateEqualsStartDate_ShouldCreateBudget()
 	{
 		DateOnly sameDate = new DateOnly(year: 2025, month: 1, day: 1);
 
@@ -56,8 +56,32 @@ public sealed class BudgetTests
 			to: sameDate
 		);
 
-		await Assert.That(result.IsFailure).IsTrue();
-		await Assert.That(result.Error).IsTypeOf<InvalidBudgetPeriodException>();
+		await Assert.That(result.IsSuccess).IsTrue();
+	}
+
+	[Test]
+	public async Task ChangePeriod_WhenEndDateEqualsStartDate_ShouldReportChange()
+	{
+		Budget budget = BudgetFactory.Create().Value!;
+		DateOnly sameDate = new DateOnly(year: 2025, month: 6, day: 1);
+
+		Result<bool, DomainException> result = budget.ChangePeriod(from: sameDate, to: sameDate);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsTrue();
+		await Assert.That(value: budget.From).IsEqualTo(expected: sameDate);
+		await Assert.That(value: budget.To).IsEqualTo(expected: sameDate);
+	}
+
+	[Test]
+	public async Task ChangeAmount_WithTheSameAmount_ShouldReportNoChange()
+	{
+		Budget budget = BudgetFactory.Create().Value!;
+
+		Result<bool, DomainException> result = budget.ChangeAmount(amount: budget.Amount.Amount);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]

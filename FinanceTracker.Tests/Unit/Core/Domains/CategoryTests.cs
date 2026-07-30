@@ -43,6 +43,17 @@ public sealed class CategoryTests
 	}
 
 	[Test]
+	public async Task Rename_WithTheSameName_ShouldReportNoChange()
+	{
+		Category category = CategoryFactory.Create().Value!;
+
+		Result<bool, DomainException> result = category.Rename(newName: category.Name);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
 	public async Task Rename_WithSameName_ShouldNotChangeName()
 	{
 		Category category = CategoryFactory.Create().Value!;

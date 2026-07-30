@@ -91,6 +91,17 @@ public sealed class TransactionTests
 	}
 
 	[Test]
+	public async Task ChangeCategory_WithTheSameCategory_ShouldReportNoChange()
+	{
+		Transaction transaction = TransactionFactory.Create();
+
+		Result<bool, DomainException> result = transaction.ChangeCategory(categoryId: transaction.CategoryId);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
 	public async Task ChangeCategory_WhenExcluded_ShouldReturnExcludedOperationException()
 	{
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
@@ -109,6 +120,17 @@ public sealed class TransactionTests
 		transaction.ChangeDescription(description: "Тест");
 
 		await Assert.That(value: transaction.Description).IsEqualTo(expected: "Тест");
+	}
+
+	[Test]
+	public async Task ChangeDescription_WithTheSameDescription_ShouldReportNoChange()
+	{
+		Transaction transaction = TransactionFactory.Create();
+
+		Result<bool, DomainException> result = transaction.ChangeDescription(description: transaction.Description);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]
