@@ -65,13 +65,16 @@ public sealed class Category
 		};
 	}
 
-	public Result<Unit, DomainException> Rename(Name newName)
+	public Result<bool, DomainException> Rename(Name newName)
 	{
 		if (IsArchived)
-			return Result<Unit, DomainException>.Failure(error: new ArchivingException(message: "It is forbidden to change the name of an archived category."));
+			return Result<bool, DomainException>.Failure(error: new ArchivingException(message: "It is forbidden to change the name of an archived category."));
+
+		if (Name == newName)
+			return Result<bool, DomainException>.Success(value: false);
 
 		Name = newName;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
 	public Result<bool, DomainException> Archive()

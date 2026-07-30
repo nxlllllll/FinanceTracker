@@ -17,24 +17,24 @@ public sealed class DeactivateBudgetHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		DeactivateBudgetCommand command,
-		Core.Domains.Budget.Budget user,
+		Core.Domains.Budget.Budget budget,
 		CancellationToken ct = default)
 	{
-		Result<bool, DomainException> result = user.Deactivate();
+		Result<bool, DomainException> result = budget.Deactivate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		if (!result.Value)
-			return Result<Guid, AppException>.Success(value: user.Id);
+			return Result<Guid, AppException>.Success(value: budget.Id);
 
-		await budgetWriteRepository.DeactivateAsync(budgetId: user.Id, expectedVersion: user.RowVersion, ct: ct);
+		await budgetWriteRepository.DeactivateAsync(budgetId: budget.Id, expectedVersion: budget.RowVersion, ct: ct);
 
 		postCommitNotifications.Stage(notification: new BudgetDeactivatedNotification(
-			BudgetId: user.Id,
-			UserId: user.UserId,
+			BudgetId: budget.Id,
+			UserId: budget.UserId,
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: budget.Id);
 	}
 }

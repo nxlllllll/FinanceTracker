@@ -10,17 +10,15 @@ using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 
-/// <summary>
-/// Deletes a custom (non-system) role: revokes its permissions from every current member first
-/// (raising the usual audit events), then removes the role and its remaining relational rows.
-/// </summary>
 public sealed class DeleteRoleHandler(
 	IRoleRepository roleRepository,
 	IUserPermissionService userPermissionService,
 	IUnitOfWork unitOfWork
 ) : IRequestHandler<DeleteRoleCommand, Result<Unit, AppException>>
 {
-	public async Task<Result<Unit, AppException>> Handle(DeleteRoleCommand command, CancellationToken ct = default)
+	public async Task<Result<Unit, AppException>> Handle(
+		DeleteRoleCommand command,
+		CancellationToken ct = default)
 	{
 		RoleDto? role = await roleRepository.GetByIdAsync(roleId: command.RoleId, ct: ct);
 		if (role is null)

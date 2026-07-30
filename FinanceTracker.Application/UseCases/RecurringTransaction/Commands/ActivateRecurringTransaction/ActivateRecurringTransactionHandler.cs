@@ -17,28 +17,28 @@ public sealed class ActivateRecurringTransactionHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ActivateRecurringTransactionCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction user,
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
 		CancellationToken ct = default)
 	{
-		Result<bool, DomainException> result = user.Activate();
+		Result<bool, DomainException> result = recurringTransaction.Activate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		if (!result.Value)
-			return Result<Guid, AppException>.Success(value: user.Id);
+			return Result<Guid, AppException>.Success(value: recurringTransaction.Id);
 
 		await recurringTransactionWriteRepository.ActivateAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: user.RowVersion,
+			expectedVersion: recurringTransaction.RowVersion,
 			ct: ct
 		);
 
 		postCommitNotifications.Stage(notification: new RecurringTransactionActivatedNotification(
-			RecurringTransactionId: user.Id,
-			UserId: user.UserId,
+			RecurringTransactionId: recurringTransaction.Id,
+			UserId: recurringTransaction.UserId,
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: recurringTransaction.Id);
 	}
 }

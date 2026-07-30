@@ -46,7 +46,7 @@ public sealed class CreateTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
-			account: account,
+			recurringTransaction: account,
 			ct: CancellationToken.None
 		);
 
@@ -77,7 +77,7 @@ public sealed class CreateTransactionHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: command,
-			account: account,
+			recurringTransaction: account,
 			ct: CancellationToken.None
 		);
 
@@ -101,7 +101,7 @@ public sealed class CreateTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Domains.Transaction.Transaction, DomainException>.Success(value: transaction));
 
-		await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		await _handler.HandleAsync(command: command, recurringTransaction: account, ct: CancellationToken.None);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<TransactionCreatedNotification>(n =>
 			n!.TransactionId == transaction.Id &&
@@ -127,7 +127,7 @@ public sealed class CreateTransactionHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Domains.Transaction.Transaction, DomainException>.Failure(error: new InvalidAmountException(message: "Invalid amount.")));
 
-		await _handler.HandleAsync(command: command, account: account, ct: CancellationToken.None);
+		await _handler.HandleAsync(command: command, recurringTransaction: account, ct: CancellationToken.None);
 
 		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<TransactionCreatedNotification>());
 	}

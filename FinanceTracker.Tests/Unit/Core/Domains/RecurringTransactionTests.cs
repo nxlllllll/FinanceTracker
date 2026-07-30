@@ -109,7 +109,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeAmount(amount: -100m);
+		Result<bool, DomainException> result = rt.ChangeAmount(amount: -100m);
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
 	}
@@ -119,7 +119,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeAmount(amount: 0m);
+		Result<bool, DomainException> result = rt.ChangeAmount(amount: 0m);
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
 	}
@@ -150,7 +150,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 0);
+		Result<bool, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 0);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
@@ -161,7 +161,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 32);
+		Result<bool, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 32);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();

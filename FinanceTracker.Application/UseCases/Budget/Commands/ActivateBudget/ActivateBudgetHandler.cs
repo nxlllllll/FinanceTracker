@@ -20,15 +20,15 @@ public sealed class ActivateBudgetHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ActivateBudgetCommand command,
-		Core.Domains.Budget.Budget user,
+		Core.Domains.Budget.Budget budget,
 		CancellationToken ct = default)
 	{
-		Result<bool, DomainException> result = user.Activate();
+		Result<bool, DomainException> result = budget.Activate();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		if (!result.Value)
-			return Result<Guid, AppException>.Success(value: user.Id);
+			return Result<Guid, AppException>.Success(value: budget.Id);
 
 		bool hasOverlap;
 
@@ -38,17 +38,21 @@ public sealed class ActivateBudgetHandler(
 			{
 				bool overlap = await budgetReadRepository.HasOverlappingAsync(
 					userId: command.UserId,
-					categoryId: user.CategoryId,
-					from: user.From,
-					to: user.To,
-					excludeBudgetId: user.Id,
+					categoryId: budget.CategoryId,
+					from: budget.From,
+					to: budget.To,
+					excludeBudgetId: budget.Id,
 					ct: ct
 				);
 
 				if (overlap)
 					return true;
 
-				await budgetWriteRepository.ActivateAsync(budgetId: user.Id, expectedVersion: user.RowVersion, ct: ct);
+				await budgetWriteRepository.ActivateAsync(
+					budgetId: budget.Id,
+					expectedVersion: budget.RowVersion,
+					ct: ct
+				);
 
 				return false;
 			}, ct: ct);
@@ -66,11 +70,11 @@ public sealed class ActivateBudgetHandler(
 		}
 
 		postCommitNotifications.Stage(notification: new BudgetActivatedNotification(
-			BudgetId: user.Id,
-			UserId: user.UserId,
+			BudgetId: budget.Id,
+			UserId: budget.UserId,
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: budget.Id);
 	}
 }

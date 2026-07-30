@@ -34,7 +34,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -52,7 +52,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -68,7 +68,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -82,7 +82,7 @@ public sealed class UnarchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new UnarchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 

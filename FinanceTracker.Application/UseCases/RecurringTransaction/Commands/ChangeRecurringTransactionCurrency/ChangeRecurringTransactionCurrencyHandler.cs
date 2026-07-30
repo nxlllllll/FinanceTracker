@@ -18,27 +18,30 @@ public sealed class ChangeRecurringTransactionCurrencyHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeRecurringTransactionCurrencyCommand command,
-		Core.Domains.RecurringTransaction.RecurringTransaction user,
+		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.ChangeCurrency(currency: command.Currency);
+		Result<bool, DomainException> result = recurringTransaction.ChangeCurrency(currency: command.Currency);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: recurringTransaction.Id);
+
 		await recurringTransactionWriteRepository.ChangeCurrencyAsync(
 			recurringTransactionId: command.RecurringTransactionId,
-			expectedVersion: user.RowVersion,
+			expectedVersion: recurringTransaction.RowVersion,
 			currency: command.Currency,
 			ct: ct
 		);
 
 		postCommitNotifications.Stage(notification: new RecurringTransactionCurrencyChangedNotification(
-			RecurringTransactionId: user.Id,
-			UserId: user.UserId,
+			RecurringTransactionId: recurringTransaction.Id,
+			UserId: recurringTransaction.UserId,
 			NewCurrency: command.Currency,
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: recurringTransaction.Id);
 	}
 }

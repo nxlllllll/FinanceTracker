@@ -75,7 +75,7 @@ public sealed class BudgetTests
 	{
 		Budget budget = BudgetFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.ChangeAmount(amount: 0m);
+		Result<bool, DomainException> result = budget.ChangeAmount(amount: 0m);
 
 		await Assert.That(result.IsFailure).IsTrue();
 		await Assert.That(result.Error).IsTypeOf<InvalidAmountException>();
@@ -87,7 +87,7 @@ public sealed class BudgetTests
 		Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = budget.ChangeAmount(amount: 5000m);
+		Result<bool, DomainException> result = budget.ChangeAmount(amount: 5000m);
 
 		await Assert.That(result.IsFailure).IsTrue();
 		await Assert.That(result.Error).IsTypeOf<InactiveBudgetException>();

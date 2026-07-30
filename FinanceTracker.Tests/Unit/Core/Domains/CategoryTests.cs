@@ -58,7 +58,7 @@ public sealed class CategoryTests
 		Category category = CategoryFactory.Create().Value!;
 		category.Archive();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(
+		Result<bool, DomainException> result = category.Rename(
 			newName: Name.Create(value: "Транспорт").Value
 		);
 

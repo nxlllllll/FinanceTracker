@@ -57,7 +57,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		await Assert.That(value: result.Error).IsSameReferenceAs(expected: notFound);
 		await handler.DidNotReceive().HandleAsync(
 			request: Arg.Any<TestCommandWithoutExpectedVersion>(),
-			user: Arg.Any<TestEntityWithVersion>(),
+			entity: Arg.Any<TestEntityWithVersion>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -76,7 +76,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		Guid expectedId = Guid.CreateVersion7();
 		handler.HandleAsync(
 			request: Arg.Any<TestCommandWithoutExpectedVersion>(),
-			user: entity,
+			entity: entity,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Guid, AppException>.Success(value: expectedId));
 
@@ -104,7 +104,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		var handler = Substitute.For<IAuthorizedHandler<TestCommandWithExpectedVersion, TestEntityWithVersion, Guid, AppException>>();
 		handler.HandleAsync(
 			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: entity,
+			entity: entity,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Guid, AppException>.Success(value: Guid.CreateVersion7()));
 
@@ -118,7 +118,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await handler.Received(requiredNumberOfCalls: 1).HandleAsync(
 			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: entity,
+			entity: entity,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -151,7 +151,7 @@ public sealed class AuthorizedHandlerAdapterTests
 
 		await handler.DidNotReceive().HandleAsync(
 			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: Arg.Any<TestEntityWithVersion>(),
+			entity: Arg.Any<TestEntityWithVersion>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -179,7 +179,7 @@ public sealed class AuthorizedHandlerAdapterTests
 
 		await handler.DidNotReceive().HandleAsync(
 			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: Arg.Any<TestEntityWithoutVersion>(),
+			entity: Arg.Any<TestEntityWithoutVersion>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

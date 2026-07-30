@@ -58,7 +58,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -77,7 +77,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -99,7 +99,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -115,7 +115,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -131,7 +131,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -145,7 +145,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -163,7 +163,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -187,7 +187,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -212,7 +212,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -240,7 +240,7 @@ public sealed class ActivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 

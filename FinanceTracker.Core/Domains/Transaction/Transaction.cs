@@ -162,39 +162,45 @@ public sealed class Transaction
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
-	public Result<Unit, DomainException> Exclude()
+	public Result<bool, DomainException> Exclude()
 	{
 		if (IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new ExcludingException(message: "Transaction is already excluded."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsExcluded = true;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> Include()
+	public Result<bool, DomainException> Include()
 	{
 		if (!IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new IncludingException(message: "Transaction is not excluded."));
+			return Result<bool, DomainException>.Success(value: false);
 
 		IsExcluded = false;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> ChangeCategory(Guid categoryId)
+	public Result<bool, DomainException> ChangeCategory(Guid categoryId)
 	{
 		if (IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
+			return Result<bool, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
+
+		if (CategoryId == categoryId)
+			return Result<bool, DomainException>.Success(value: false);
 
 		CategoryId = categoryId;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> ChangeDescription(string? description)
+	public Result<bool, DomainException> ChangeDescription(string? description)
 	{
 		if (IsExcluded)
-			return Result<Unit, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
+			return Result<bool, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
+
+		if (Description == description)
+			return Result<bool, DomainException>.Success(value: false);
 
 		Description = description;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 }

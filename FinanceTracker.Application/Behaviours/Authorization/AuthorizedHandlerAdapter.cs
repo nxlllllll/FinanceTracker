@@ -45,7 +45,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 
 		PreconditionFailedException? mismatch = CheckExpectedVersion(request: request, entity: entity.Value!);
 		if (mismatch is null)
-			return await handler.HandleAsync(request: request, user: entity.Value!, ct: ct);
+			return await handler.HandleAsync(request: request, entity: entity.Value!, ct: ct);
 
 		if (mismatch is not TError typedMismatch)
 		{
