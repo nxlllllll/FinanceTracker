@@ -58,60 +58,46 @@ public sealed class UpdateRolePermissionsHandlerTests
 		);
 	}
 
-	private static RoleDto BuildRole(Guid roleId, params Permission[] permissions) => new RoleDto(
+	private static RoleDto BuildRole(
+		Guid roleId,
+		params Permission[] permissions
+	) => new RoleDto(
 		Id: roleId,
 		SystemKey: null,
 		DisplayName: Name.Create(value: "Test Role").Value!,
 		Permissions: permissions.ToHashSet()
 	);
 
-	private void Arrange(Guid roleId, RoleDto? role, params Guid[] memberUserIds)
-	{
-		_roleRepository.GetByIdAsync(
-			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: role);
-		_roleRepository.GetMemberUserIdsAsync(
-			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: memberUserIds.ToList());
-	}
+	private void ReturnsMembers(
+		Guid roleId,
+		params Guid[] memberUserIds
+	) => _roleRepository.GetMemberUserIdsAsync(
+		roleId: roleId,
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: [..memberUserIds]);
+
+	private static UpdateRolePermissionsCommand Command(
+		Guid roleId,
+		params Permission[] newPermissions
+	) => new UpdateRolePermissionsCommand(
+		RoleId: roleId,
+		NewPermissions: newPermissions.ToHashSet(),
+		UpdatedBy: Guid.CreateVersion7()
+	);
 
 	[Test]
-	public async Task Handle_WhenRoleNotFound_ShouldReturnFailure()
-	{
-		Guid roleId = Guid.CreateVersion7();
-		Arrange(roleId: roleId, role: null);
-
-		UpdateRolePermissionsCommand command = new UpdateRolePermissionsCommand(
-			RoleId: roleId,
-			NewPermissions: new HashSet<Permission>(),
-			UpdatedBy: Guid.CreateVersion7()
-		);
-
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
-
-		await Assert.That(value: result.IsFailure).IsTrue();
-	}
-
-	[Test]
-	public async Task Handle_ShouldGrantOnlyNewlyAddedPermissionsToExistingMembers()
+	public async Task HandleAsync_ShouldGrantOnlyNewlyAddedPermissionsToExistingMembers()
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid memberUserId = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
+		ReturnsMembers(roleId: roleId, memberUserId);
+
+		UpdateRolePermissionsCommand command = Command(roleId, AccountRead, BudgetWrite);
+		await _handler.HandleAsync(
+			request: command,
 			role: BuildRole(roleId: roleId, AccountRead),
-			memberUserIds: memberUserId
+			ct: CancellationToken.None
 		);
-
-		UpdateRolePermissionsCommand command = new UpdateRolePermissionsCommand(
-			RoleId: roleId,
-			NewPermissions: new HashSet<Permission> { AccountRead, BudgetWrite },
-			UpdatedBy: Guid.CreateVersion7()
-		);
-
-		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _userPermissionService.Received(requiredNumberOfCalls: 1).GrantAsync(
 			targetUserId: memberUserId,
@@ -122,23 +108,18 @@ public sealed class UpdateRolePermissionsHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_ShouldRevokeOnlyRemovedPermissionsFromExistingMembers()
+	public async Task HandleAsync_ShouldRevokeOnlyRemovedPermissionsFromExistingMembers()
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid memberUserId = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
+		ReturnsMembers(roleId: roleId, memberUserId);
+
+		UpdateRolePermissionsCommand command = Command(roleId, AccountRead);
+		await _handler.HandleAsync(
+			request: command,
 			role: BuildRole(roleId: roleId, AccountRead, BudgetWrite),
-			memberUserIds: memberUserId
+			ct: CancellationToken.None
 		);
-
-		UpdateRolePermissionsCommand command = new UpdateRolePermissionsCommand(
-			RoleId: roleId,
-			NewPermissions: new HashSet<Permission> { AccountRead },
-			UpdatedBy: Guid.CreateVersion7()
-		);
-
-		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _userPermissionService.Received(requiredNumberOfCalls: 1).RevokeAsync(
 			targetUserId: memberUserId,
@@ -149,24 +130,16 @@ public sealed class UpdateRolePermissionsHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WithSeveralMembers_ShouldCallTheServiceTwicePerMember()
+	public async Task HandleAsync_WithSeveralMembers_ShouldCallTheServiceTwicePerMember()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		Guid firstMember = Guid.CreateVersion7();
-		Guid secondMember = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
+		ReturnsMembers(roleId: roleId, Guid.CreateVersion7(), Guid.CreateVersion7());
+
+		await _handler.HandleAsync(
+			request: Command(roleId, BudgetWrite),
 			role: BuildRole(roleId: roleId, AccountRead),
-			memberUserIds: [firstMember, secondMember]
+			ct: CancellationToken.None
 		);
-
-		UpdateRolePermissionsCommand command = new UpdateRolePermissionsCommand(
-			RoleId: roleId,
-			NewPermissions: new HashSet<Permission> { BudgetWrite },
-			UpdatedBy: Guid.CreateVersion7()
-		);
-
-		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _userPermissionService.Received(requiredNumberOfCalls: 2).GrantAsync(
 			targetUserId: Arg.Any<Guid>(),
@@ -183,47 +156,36 @@ public sealed class UpdateRolePermissionsHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_ShouldReplacePermissionsInRepository()
+	public async Task HandleAsync_ShouldReplacePermissionsInRepository()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		Arrange(roleId: roleId, role: BuildRole(roleId: roleId));
+		ReturnsMembers(roleId: roleId);
 
-		IReadOnlySet<Permission> newPermissions = new HashSet<Permission>
-		{
-			Permission.Create(resource: Resource.Category, action: PermissionAction.Delete).Value!
-		};
-		UpdateRolePermissionsCommand command = new UpdateRolePermissionsCommand(
-			RoleId: roleId,
-			NewPermissions: newPermissions,
-			UpdatedBy: Guid.CreateVersion7()
+		UpdateRolePermissionsCommand command = Command(roleId, BudgetWrite);
+		await _handler.HandleAsync(
+			request: command,
+			role: BuildRole(roleId: roleId),
+			ct: CancellationToken.None
 		);
-
-		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await _roleRepository.Received(requiredNumberOfCalls: 1).ReplacePermissionsAsync(
 			roleId: roleId,
-			permissions: newPermissions,
+			permissions: command.NewPermissions,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task Handle_WhenNothingChanges_ShouldNotTouchTheRepositoryOrMembers()
+	public async Task HandleAsync_WhenNothingChanges_ShouldNotTouchTheRepositoryOrMembers()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
+		ReturnsMembers(roleId: roleId, Guid.CreateVersion7());
+
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.HandleAsync(
+			request: Command(roleId, AccountRead),
 			role: BuildRole(roleId: roleId, AccountRead),
-			memberUserIds: Guid.CreateVersion7()
+			ct: CancellationToken.None
 		);
-
-		UpdateRolePermissionsCommand command = new UpdateRolePermissionsCommand(
-			RoleId: roleId,
-			NewPermissions: new HashSet<Permission> { AccountRead },
-			UpdatedBy: Guid.CreateVersion7()
-		);
-
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _roleRepository.DidNotReceive().ReplacePermissionsAsync(

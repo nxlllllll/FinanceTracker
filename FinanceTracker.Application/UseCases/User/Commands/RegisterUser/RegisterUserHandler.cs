@@ -34,7 +34,9 @@ public sealed class RegisterUserHandler(
 		CancellationToken ct = default)
 	{
 		Core.Domains.User.User? existing = await userAuthRepository.GetByEmailAsync(
-			email: command.Email.Value, ct: ct);
+			email: command.Email.Value,
+			ct: ct
+		);
 
 		if (existing is not null)
 			return Result<Guid, AppException>.Failure(error: new EmailException(message: "The user with this email address already exists.", email: command.Email));

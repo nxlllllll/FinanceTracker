@@ -22,13 +22,9 @@ public sealed class RenameCategoryHandler(
 		Core.Domains.Category.Category category,
 		CancellationToken ct = default)
 	{
-		Result<Name, DomainException> nameResult = Name.Create(value: command.NewName);
-		if (nameResult.IsFailure)
-			return Result<Guid, AppException>.Failure(error: nameResult.Error!);
-
 		string oldName = category.Name;
 
-		Result<bool, DomainException> result = category.Rename(newName: nameResult.Value);
+		Result<bool, DomainException> result = category.Rename(newName: command.NewName);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
@@ -37,7 +33,7 @@ public sealed class RenameCategoryHandler(
 
 		await categoryWriteRepository.RenameAsync(
 			categoryId: command.CategoryId,
-			newName: nameResult.Value,
+			newName: command.NewName,
 			expectedVersion: category.RowVersion,
 			ct: ct
 		);
@@ -46,7 +42,7 @@ public sealed class RenameCategoryHandler(
 			CategoryId: category.Id,
 			UserId: category.UserId,
 			OldName: oldName,
-			NewName: nameResult.Value,
+			NewName: command.NewName,
 			OccurredAt: dateProvider.UtcNow
 		));
 

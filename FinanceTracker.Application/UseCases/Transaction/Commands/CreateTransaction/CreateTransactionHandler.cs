@@ -15,10 +15,14 @@ public sealed class CreateTransactionHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		CreateTransactionCommand command,
-		Core.Domains.Account.Account recurringTransaction,
+		Core.Domains.Account.Account account,
 		CancellationToken ct = default)
 	{
-		Result<Core.Domains.Transaction.Transaction, DomainException> result = await transactionCreationService.CreateAsync(command: command, account: recurringTransaction, ct: ct);
+		Result<Core.Domains.Transaction.Transaction, DomainException> result = await transactionCreationService.CreateAsync(
+			command: command,
+			account: account,
+			ct: ct
+		);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 

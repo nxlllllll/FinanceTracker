@@ -55,26 +55,21 @@ public sealed class DeleteRoleHandlerTests
 
 	private static RoleDto BuildRole(
 		Guid roleId,
-		SystemRole? systemKey,
 		params Permission[] permissions
 	) => new RoleDto(
 		Id: roleId,
-		SystemKey: systemKey,
+		SystemKey: null,
 		DisplayName: Name.Create(value: "Test Role").Value!,
 		Permissions: permissions.ToHashSet()
 	);
 
-	private void Arrange(Guid roleId, RoleDto? role, params Guid[] memberUserIds)
-	{
-		_roleRepository.GetByIdAsync(
-			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: role);
-		_roleRepository.GetMemberUserIdsAsync(
-			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: [..memberUserIds]);
-	}
+	private void ReturnsMembers(
+		Guid roleId,
+		params Guid[] memberUserIds
+	) => _roleRepository.GetMemberUserIdsAsync(
+		roleId: roleId,
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: memberUserIds.ToList());
 
 	private static DeleteRoleCommand Command(Guid roleId) => new DeleteRoleCommand(
 		RoleId: roleId,
@@ -82,58 +77,20 @@ public sealed class DeleteRoleHandlerTests
 	);
 
 	[Test]
-	public async Task Handle_WhenRoleNotFound_ShouldReturnFailure()
-	{
-		Guid roleId = Guid.CreateVersion7();
-		Arrange(roleId: roleId, role: null);
-
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: Command(roleId: roleId), ct: CancellationToken.None);
-
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
-	}
-
-	[Test]
-	public async Task Handle_ForSystemRole_ShouldFailAndDeleteNothing()
-	{
-		Guid roleId = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
-			role: BuildRole(roleId: roleId, systemKey: SystemRole.User, AccountRead),
-			memberUserIds: Guid.CreateVersion7()
-		);
-
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: Command(roleId: roleId), ct: CancellationToken.None);
-
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<CannotDeleteSystemRoleException>();
-
-		await _roleRepository.DidNotReceive().DeleteAsync(
-			roleId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-		await _userPermissionService.DidNotReceive().RevokeAsync(
-			targetUserId: Arg.Any<Guid>(),
-			revokedBy: Arg.Any<Guid>(),
-			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task Handle_ShouldRevokeTheRolesPermissionsOncePerMemberThenDelete()
+	public async Task HandleAsync_ShouldRevokeTheRolesPermissionsOncePerMemberThenDelete()
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid firstMember = Guid.CreateVersion7();
 		Guid secondMember = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
-			role: BuildRole(roleId: roleId, systemKey: null, AccountRead, BudgetWrite),
-			memberUserIds: [firstMember, secondMember]
-		);
+		RoleDto role = BuildRole(roleId: roleId, AccountRead, BudgetWrite);
+		ReturnsMembers(roleId: roleId, firstMember, secondMember);
 
 		DeleteRoleCommand command = Command(roleId: roleId);
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.HandleAsync(
+			request: command,
+			role: role,
+			ct: CancellationToken.None
+		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 
@@ -156,15 +113,16 @@ public sealed class DeleteRoleHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WithNoMembers_ShouldStillDeleteTheRole()
+	public async Task HandleAsync_WithNoMembers_ShouldStillDeleteTheRole()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
-			role: BuildRole(roleId: roleId, systemKey: null, AccountRead)
-		);
+		ReturnsMembers(roleId: roleId);
 
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: Command(roleId: roleId), ct: CancellationToken.None);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.HandleAsync(
+			request: Command(roleId: roleId),
+			role: BuildRole(roleId: roleId, AccountRead),
+			ct: CancellationToken.None
+		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _roleRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(
@@ -174,14 +132,10 @@ public sealed class DeleteRoleHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenRevokingFails_ShouldReturnFailureAndNotDeleteTheRole()
+	public async Task HandleAsync_WhenRevokingFails_ShouldReturnFailureAndNotDeleteTheRole()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		Arrange(
-			roleId: roleId,
-			role: BuildRole(roleId: roleId, systemKey: null, AccountRead),
-			memberUserIds: Guid.CreateVersion7()
-		);
+		ReturnsMembers(roleId: roleId, Guid.CreateVersion7());
 
 		_userPermissionService.RevokeAsync(
 			targetUserId: Arg.Any<Guid>(),
@@ -190,7 +144,11 @@ public sealed class DeleteRoleHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(error: new NotFoundException(message: "gone", id: Guid.Empty)));
 
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: Command(roleId: roleId), ct: CancellationToken.None);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.HandleAsync(
+			request: Command(roleId: roleId),
+			role: BuildRole(roleId: roleId, AccountRead),
+			ct: CancellationToken.None
+		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await _roleRepository.DidNotReceive().DeleteAsync(

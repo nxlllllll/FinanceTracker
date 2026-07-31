@@ -22,14 +22,10 @@ public sealed class CreateCategoryHandler(
 		CreateCategoryCommand command,
 		CancellationToken ct = default)
 	{
-		Result<Name, DomainException> nameResult = Name.Create(value: command.Name);
-		if (nameResult.IsFailure)
-			return Result<Guid, AppException>.Failure(error: nameResult.Error!);
-
 		Core.Domains.Category.Category category = Core.Domains.Category.Category.Create(
 			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
-			name: nameResult.Value,
+			name: command.Name,
 			parentId: command.ParentId,
 			type: command.Type
 		);

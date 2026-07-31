@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -8,4 +9,7 @@ namespace FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 public sealed record DeleteRoleCommand(
 	Guid RoleId,
 	Guid DeletedBy
-) : IRequest<Result<Unit, AppException>>;
+) : IRequest<Result<Unit, AppException>>, IAuthorizable
+{
+	public Guid UserId => DeletedBy;
+}
