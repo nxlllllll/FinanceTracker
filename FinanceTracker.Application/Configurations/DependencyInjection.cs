@@ -9,6 +9,7 @@ using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.Services.Permissions;
+using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Results;
 using FluentValidation;
@@ -55,6 +56,7 @@ public static class DependencyInjection
 
 		services.AddScoped<ITransactionCreationService, TransactionCreationService>();
 		services.AddScoped<IUserPermissionService, UserPermissionService>();
+		services.AddScoped<IUserRoleService, UserRoleService>();
 
 		services.AddMediatR(configuration: cfg =>
 		{

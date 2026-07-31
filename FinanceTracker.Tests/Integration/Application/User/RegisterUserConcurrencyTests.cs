@@ -1,5 +1,6 @@
 using System.Net;
 using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Core.Exceptions;
@@ -42,10 +43,13 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 		IPasswordHasher passwordHasher = Substitute.For<IPasswordHasher>();
 		passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: "hashed_password");
 
-		ISender sender = Substitute.For<ISender>();
-		sender.Send(
-			request: Arg.Any<AssignRoleToUserCommand>(),
-			cancellationToken: Arg.Any<CancellationToken>()
+		IUserRoleService userRoleService = Substitute.For<IUserRoleService>();
+
+		userRoleService.AssignAsync(
+			userId: Arg.Any<Guid>(),
+			roleId: Arg.Any<Guid>(),
+			assignedBy: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Core.Results.Unit, AppException>.Success(value: Core.Results.Unit.Default));
 
 		return new RegisterUserHandler(
@@ -56,7 +60,7 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 			postCommitNotifications: Substitute.For<IPostCommitNotifications>(),
 			dateProvider: FakeDateProvider.Default,
 			roleRepository: roleRepository,
-			sender: sender,
+			userRoleService: userRoleService,
 			logger: NullLogger<RegisterUserHandler>.Instance
 		);
 	}

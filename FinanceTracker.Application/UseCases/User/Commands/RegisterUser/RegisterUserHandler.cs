@@ -1,5 +1,5 @@
 using FinanceTracker.Application.Behaviours.Notification;
-using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
+using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -25,7 +25,7 @@ public sealed class RegisterUserHandler(
 	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider,
 	IRoleRepository roleRepository,
-	ISender sender,
+	IUserRoleService userRoleService,
 	ILogger<RegisterUserHandler> logger
 ) : IRequestHandler<RegisterUserCommand, Result<Guid, AppException>>
 {
@@ -80,14 +80,14 @@ public sealed class RegisterUserHandler(
 		RoleDto? defaultRole = await roleRepository.GetBySystemKeyAsync(systemKey: SystemRole.User, ct: ct);
 
 		if (defaultRole is null)
-		{
 			logger.ZLogWarning(message: $"System role 'user' not found — user {user.Id} was registered without a default role.");
-		}
 		else
 		{
-			Result<Unit, AppException> roleAssignResult = await sender.Send(
-				request: new AssignRoleToUserCommand(UserId: user.Id, RoleId: defaultRole.Id, AssignedBy: user.Id),
-				cancellationToken: ct
+			Result<Unit, AppException> roleAssignResult = await userRoleService.AssignAsync(
+				userId: user.Id,
+				roleId: defaultRole.Id,
+				assignedBy: user.Id,
+				ct: ct
 			);
 
 			if (roleAssignResult.IsFailure)
