@@ -251,14 +251,14 @@ public sealed class TransferTests
 	}
 
 	[Test]
-	public async Task Fail_FromCompensated_ShouldSucceed()
+	public async Task Fail_FromCompensated_ShouldReturnInvalidTransferStatusException()
 	{
 		Transfer transfer = TransferFactory.Create();
 		transfer.Compensate(occurredAt: Now);
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transfer.Fail(occurredAt: Now);
 
-		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: transfer.Status).IsEqualTo(expected: TransferStatus.Failed);
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransferStatusException>();
 	}
 }

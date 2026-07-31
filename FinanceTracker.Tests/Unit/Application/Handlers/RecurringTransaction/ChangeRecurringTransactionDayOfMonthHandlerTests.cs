@@ -34,14 +34,14 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
 		await _handler.HandleAsync(
-			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 15),
-			user: rt,
+			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 20),
+			recurringTransaction: rt,
 			ct: CancellationToken.None
 		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).ChangeDayOfMonthAsync(
 			recurringTransactionId: rt.Id,
-			dayOfMonth: 15,
+			dayOfMonth: 20,
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -53,15 +53,15 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 		FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
 		await _handler.HandleAsync(
-			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 15),
-			user: rt,
+			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 20),
+			recurringTransaction: rt,
 			ct: CancellationToken.None
 		);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(notification: Arg.Is<RecurringTransactionDayOfMonthChangedNotification>(n =>
 			n!.RecurringTransactionId == rt.Id &&
 			n.UserId == rt.UserId &&
-			n.NewDayOfMonth == 15
+			n.NewDayOfMonth == 20
 		));
 	}
 
@@ -72,7 +72,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 0),
-			user: rt,
+			recurringTransaction: rt,
 			ct: CancellationToken.None
 		);
 
@@ -87,7 +87,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ChangeRecurringTransactionDayOfMonthCommand(UserId: rt.UserId, RecurringTransactionId: rt.Id, DayOfMonth: 0),
-			user: rt,
+			recurringTransaction: rt,
 			ct: CancellationToken.None
 		);
 

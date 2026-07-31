@@ -24,18 +24,18 @@ public sealed class CreateTransferHandler(
 	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider,
 	ILogger<CreateTransferHandler> logger
-) : IAuthorizedHandler<CreateTransferCommand, TransferAccounts, Guid, AppException>
+) : IAuthorizedHandler<CreateTransferCommand, TransferAccount, Guid, AppException>
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		CreateTransferCommand command,
-		TransferAccounts user,
+		TransferAccount transferAccount,
 		CancellationToken ct = default)
 	{
-		Core.Domains.Account.Account account = user.FromAccount;
+		Core.Domains.Account.Account account = transferAccount.FromAccount;
 
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: account.Currency,
-			toCurrency: user.ToAccountCurrency,
+			toCurrency: transferAccount.ToAccountCurrency,
 			date: DateOnly.FromDateTime(dateTime: command.OccurredAt.UtcDateTime),
 			ct: ct
 		);
@@ -47,7 +47,7 @@ public sealed class CreateTransferHandler(
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,
 			currencyFrom: account.Currency,
-			currencyTo: user.ToAccountCurrency,
+			currencyTo: transferAccount.ToAccountCurrency,
 			exchangeRate: conversion.Rate,
 			rateStatus: conversion.Status,
 			description: command.Description,

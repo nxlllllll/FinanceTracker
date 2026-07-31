@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -10,4 +11,7 @@ public sealed record UpdateRolePermissionsCommand(
 	Guid RoleId,
 	IReadOnlySet<Permission> NewPermissions,
 	Guid UpdatedBy
-) : IRequest<Result<Unit, AppException>>;
+) : IRequest<Result<Unit, AppException>>, IAuthorizable
+{
+	public Guid UserId => UpdatedBy;
+}

@@ -9,21 +9,21 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Accounts;
+namespace FinanceTracker.Api.Endpoints.Accounts.Queries;
 
 public sealed class GetAccountEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => AccountsEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapGet(pattern: "/accounts/{accountId:guid}", handler: HandleAsync)
+		group.MapGet(pattern: "/{accountId:guid}", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Read)
-			.WithTags(tags: "Accounts")
+			.WithName(endpointName: "GetAccount")
 			.WithSummary(summary: "Get an account by id")
 			.WithDescription(description: "Returns an ETag header — send it back as If-Match on a PATCH to detect concurrent edits.")
 			.Produces<AccountResponse>(statusCode: StatusCodes.Status200OK)
-			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden)
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 

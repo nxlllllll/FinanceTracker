@@ -55,7 +55,7 @@ public sealed class ExcludeTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyExcluded_ShouldReturnExcludingException()
+	public async Task HandleAsync_WhenAlreadyExcluded_ShouldSucceedWithoutWriting()
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
@@ -65,8 +65,14 @@ public sealed class ExcludeTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ExcludingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+
+		await _transactionWriteRepository.DidNotReceive().ExcludeAsync(
+			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]

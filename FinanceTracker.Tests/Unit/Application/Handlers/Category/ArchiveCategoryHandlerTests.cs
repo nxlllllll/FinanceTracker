@@ -57,7 +57,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -75,7 +75,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -92,7 +92,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -109,7 +109,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -125,7 +125,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -139,7 +139,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -165,7 +165,7 @@ public sealed class ArchiveCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new ArchiveCategoryCommand(UserId: category.UserId, CategoryId: category.Id),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 

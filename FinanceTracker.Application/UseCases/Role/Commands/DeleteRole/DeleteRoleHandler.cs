@@ -1,48 +1,46 @@
-using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
+using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
-using MediatR;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 
-/// <summary>
-/// Deletes a custom (non-system) role: revokes its permissions from every current member first
-/// (raising the usual audit events), then removes the role and its remaining relational rows.
-/// </summary>
 public sealed class DeleteRoleHandler(
 	IRoleRepository roleRepository,
-	ISender sender
-) : IRequestHandler<DeleteRoleCommand, Result<Unit, AppException>>
+	IUserPermissionService userPermissionService,
+	IUnitOfWork unitOfWork
+) : IAuthorizedHandler<DeleteRoleCommand, RoleDto, Unit, AppException>
 {
-	public async Task<Result<Unit, AppException>> Handle(DeleteRoleCommand command, CancellationToken ct = default)
+	public async Task<Result<Unit, AppException>> HandleAsync(
+		DeleteRoleCommand request,
+		RoleDto role,
+		CancellationToken ct = default)
 	{
-		RoleDto? role = await roleRepository.GetByIdAsync(roleId: command.RoleId, ct: ct);
-		if (role is null)
-			return Result<Unit, AppException>.Failure(error: new NotFoundException(message: "Role not found.", id: command.RoleId));
+		IReadOnlyCollection<Permission> permissions = [..role.Permissions];
 
-		if (role.SystemKey is not null)
-			return Result<Unit, AppException>.Failure(error: new CannotDeleteSystemRoleException());
-
-		IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: command.RoleId, ct: ct);
-
-		foreach (Guid userId in memberUserIds)
+		return await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			foreach (Permission permission in role.Permissions)
+			IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: request.RoleId, ct: ct);
+
+			foreach (Guid userId in memberUserIds)
 			{
-				await sender.Send(request: new RevokePermissionCommand(
-					TargetUserId: userId,
-					Permission: permission,
-					RevokedBy: command.DeletedBy
-				), cancellationToken: ct);
+				Result<Unit, AppException> revoked = await userPermissionService.RevokeAsync(
+					targetUserId: userId,
+					revokedBy: request.DeletedBy,
+					permissions: permissions,
+					ct: ct
+				);
+				if (revoked.IsFailure)
+					return revoked;
 			}
-		}
 
-		await roleRepository.DeleteAsync(roleId: command.RoleId, ct: ct);
+			await roleRepository.DeleteAsync(roleId: request.RoleId, ct: ct);
 
-		return Result<Unit, AppException>.Success(value: Unit.Default);
+			return Result<Unit, AppException>.Success(value: Unit.Default);
+		}, ct: ct);
 	}
 }

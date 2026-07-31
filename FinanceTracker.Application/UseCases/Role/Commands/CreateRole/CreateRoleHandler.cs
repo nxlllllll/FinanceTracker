@@ -14,7 +14,9 @@ public sealed class CreateRoleHandler(
 	IPostCommitNotifications postCommitNotifications
 ) : IRequestHandler<CreateRoleCommand, Result<Guid, AppException>>
 {
-	public async Task<Result<Guid, AppException>> Handle(CreateRoleCommand command, CancellationToken ct = default)
+	public async Task<Result<Guid, AppException>> Handle(
+		CreateRoleCommand command,
+		CancellationToken ct = default)
 	{
 		DateTimeOffset now = dateProvider.UtcNow;
 

@@ -9,17 +9,17 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Accounts;
+namespace FinanceTracker.Api.Endpoints.Accounts.Queries;
 
 public sealed class GetAccountsEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => AccountsEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapGet(pattern: "/accounts", handler: HandleAsync).RequireAuthorization()
+		group.MapGet(pattern: String.Empty, handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Read)
-			.WithTags(tags: "Accounts")
 			.WithSummary(summary: "List my accounts")
 			.WithDescription(description: "Optional ?isArchived=true|false filter. Omit to return all.")
 			.Produces<List<AccountResponse>>(statusCode: StatusCodes.Status200OK);

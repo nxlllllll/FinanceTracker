@@ -4,7 +4,6 @@ using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace FinanceTracker.Api.Http.Results;
 
@@ -105,8 +104,41 @@ public static class ResultExtensions
 
 	public static IHttpResult ToCreatedResult(
 		this Result<Guid, AppException> result,
-		Func<Guid, string> locationFactory
-	) => result.IsSuccess ? Microsoft.AspNetCore.Http.Results.Created(uri: locationFactory(result.Value), value: new CreatedIdResponse(Id: result.Value)) : result.Error!.ToProblem();
+		Func<Guid, string> locationFactory)
+	{
+		if (!result.IsSuccess)
+			result.Error!.ToProblem();
+
+		return Microsoft.AspNetCore.Http.Results.Created(
+			uri: locationFactory(result.Value),
+			value: new CreatedIdResponse(Id: result.Value)
+		);
+	}
+
+	public static IHttpResult ToCreatedAtRoute(
+		this Result<Guid, AppException> result,
+		LinkGenerator linkGenerator,
+		HttpContext httpContext,
+		string routeName,
+		Func<Guid, object> routeValues)
+	{
+		if (result.IsFailure)
+			return result.Error!.ToProblem();
+
+		string? location = linkGenerator.GetPathByName(
+			httpContext: httpContext,
+			endpointName: routeName,
+			values: routeValues(result.Value)
+		);
+
+		if (location is null)
+			throw new InvalidOperationException(message: $"No route named '{routeName}' is mapped, so the Location header for a newly created resource cannot be built.");
+
+		return Microsoft.AspNetCore.Http.Results.Created(
+			uri: location,
+			value: new CreatedIdResponse(Id: result.Value)
+		);
+	}
 
 	public static IHttpResult ToNoContentResult<TValue>(this Result<TValue, AppException> result)
 		=> result.IsSuccess ? Microsoft.AspNetCore.Http.Results.NoContent() : result.Error!.ToProblem();

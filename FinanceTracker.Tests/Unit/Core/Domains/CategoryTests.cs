@@ -43,6 +43,17 @@ public sealed class CategoryTests
 	}
 
 	[Test]
+	public async Task Rename_WithTheSameName_ShouldReportNoChange()
+	{
+		Category category = CategoryFactory.Create().Value!;
+
+		Result<bool, DomainException> result = category.Rename(newName: category.Name);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
 	public async Task Rename_WithSameName_ShouldNotChangeName()
 	{
 		Category category = CategoryFactory.Create().Value!;
@@ -58,7 +69,7 @@ public sealed class CategoryTests
 		Category category = CategoryFactory.Create().Value!;
 		category.Archive();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = category.Rename(
+		Result<bool, DomainException> result = category.Rename(
 			newName: Name.Create(value: "Транспорт").Value
 		);
 

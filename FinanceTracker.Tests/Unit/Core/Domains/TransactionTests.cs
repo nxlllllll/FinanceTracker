@@ -44,35 +44,39 @@ public sealed class TransactionTests
 	}
 
 	[Test]
-	public async Task Exclude_AlreadyExcludedTransaction_ShouldReturnExcludingException()
+	public async Task Exclude_AlreadyExcludedTransaction_ShouldReportNoChange()
 	{
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.Exclude();
+		Result<bool, DomainException> result = transaction.Exclude();
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ExcludingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+		await Assert.That(value: transaction.IsExcluded).IsTrue();
 	}
 
 	[Test]
-	public async Task Include_ExcludedTransaction_ShouldClearIsExcluded()
+	public async Task Include_ExcludedTransaction_ShouldClearIsExcludedAndReportChange()
 	{
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
-		transaction.Include();
+		Result<bool, DomainException> result = transaction.Include();
 
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsTrue();
 		await Assert.That(value: transaction.IsExcluded).IsFalse();
 	}
 
 	[Test]
-	public async Task Include_ActiveTransaction_ShouldReturnIncludingException()
+	public async Task Include_ActiveTransaction_ShouldReportNoChange()
 	{
 		Transaction transaction = TransactionFactory.Create();
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.Include();
+		Result<bool, DomainException> result = transaction.Include();
 
-		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<IncludingException>();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+		await Assert.That(value: transaction.IsExcluded).IsFalse();
 	}
 
 	[Test]
@@ -87,13 +91,22 @@ public sealed class TransactionTests
 	}
 
 	[Test]
+	public async Task ChangeCategory_WithTheSameCategory_ShouldReportNoChange()
+	{
+		Transaction transaction = TransactionFactory.Create();
+
+		Result<bool, DomainException> result = transaction.ChangeCategory(categoryId: transaction.CategoryId);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
 	public async Task ChangeCategory_WhenExcluded_ShouldReturnExcludedOperationException()
 	{
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.ChangeCategory(
-			categoryId: Guid.CreateVersion7()
-		);
+		Result<bool, DomainException> result = transaction.ChangeCategory(categoryId: Guid.CreateVersion7());
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ExcludedOperationException>();
@@ -107,6 +120,17 @@ public sealed class TransactionTests
 		transaction.ChangeDescription(description: "Тест");
 
 		await Assert.That(value: transaction.Description).IsEqualTo(expected: "Тест");
+	}
+
+	[Test]
+	public async Task ChangeDescription_WithTheSameDescription_ShouldReportNoChange()
+	{
+		Transaction transaction = TransactionFactory.Create();
+
+		Result<bool, DomainException> result = transaction.ChangeDescription(description: transaction.Description);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]
@@ -124,9 +148,7 @@ public sealed class TransactionTests
 	{
 		Transaction transaction = TransactionFactory.Create(isExcluded: true);
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = transaction.ChangeDescription(
-			description: "попытка изменить"
-		);
+		Result<bool, DomainException> result = transaction.ChangeDescription(description: "попытка изменить");
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<ExcludedOperationException>();

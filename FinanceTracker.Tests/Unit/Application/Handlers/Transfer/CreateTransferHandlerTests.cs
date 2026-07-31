@@ -68,7 +68,7 @@ public sealed class CreateTransferHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
-			user: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
+			transferAccount: new TransferAccount(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -90,7 +90,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
-			user: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
+			transferAccount: new TransferAccount(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -114,7 +114,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 1000m),
-			user: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
+			transferAccount: new TransferAccount(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -136,7 +136,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: toAccountId),
-			user: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
+			transferAccount: new TransferAccount(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -161,7 +161,7 @@ public sealed class CreateTransferHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
-			user: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
+			transferAccount: new TransferAccount(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -182,7 +182,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7(), amount: 9999m),
-			user: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
+			transferAccount: new TransferAccount(FromAccount: fromAccount, ToAccountCurrency: fromAccount.Currency),
 			ct: CancellationToken.None
 		);
 
@@ -205,7 +205,7 @@ public sealed class CreateTransferHandlerTests
 
 		await _handler.HandleAsync(
 			command: CreateTransferCommandFactory.Create(userId: fromAccount.UserId, fromAccountId: fromAccount.Id, toAccountId: Guid.CreateVersion7()),
-			user: new TransferAccounts(FromAccount: fromAccount, ToAccountCurrency: toAccountCurrency),
+			transferAccount: new TransferAccount(FromAccount: fromAccount, ToAccountCurrency: toAccountCurrency),
 			ct: CancellationToken.None
 		);
 

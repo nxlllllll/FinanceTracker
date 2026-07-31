@@ -1,63 +1,66 @@
-using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
-using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
+using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
-using MediatR;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Role.Commands.UpdateRolePermissions;
 
 /// <summary>
-/// Replaces a role's permission set and fans out the diff to every current member
+/// Replaces a role's permission set and fans out the diff to every current member.
 /// </summary>
 public sealed class UpdateRolePermissionsHandler(
 	IRoleRepository roleRepository,
-	ISender sender
-) : IRequestHandler<UpdateRolePermissionsCommand, Result<Unit, AppException>>
+	IUserPermissionService userPermissionService,
+	IUnitOfWork unitOfWork
+) : IAuthorizedHandler<UpdateRolePermissionsCommand, RoleDto, Unit, AppException>
 {
-	public async Task<Result<Unit, AppException>> Handle(
-		UpdateRolePermissionsCommand command,
+	public async Task<Result<Unit, AppException>> HandleAsync(
+		UpdateRolePermissionsCommand request,
+		RoleDto role,
 		CancellationToken ct = default)
 	{
-		RoleDto? role = await roleRepository.GetByIdAsync(roleId: command.RoleId, ct: ct);
-		if (role is null)
-			return Result<Unit, AppException>.Failure(error: new NotFoundException(message: "Role not found.", id: command.RoleId));
+		IReadOnlyCollection<Permission> toGrant = [..request.NewPermissions.Except(second: role.Permissions)];
+		IReadOnlyCollection<Permission> toRevoke = [..role.Permissions.Except(second: request.NewPermissions)];
 
-		IReadOnlySet<Permission> toGrant = command.NewPermissions.Except(second: role.Permissions).ToHashSet();
-		IReadOnlySet<Permission> toRevoke = role.Permissions.Except(second: command.NewPermissions).ToHashSet();
+		if (toGrant.Count == 0 && toRevoke.Count == 0)
+			return Result<Unit, AppException>.Success(value: Unit.Default);
 
-		await roleRepository.ReplacePermissionsAsync(
-			roleId: command.RoleId,
-			permissions: command.NewPermissions,
-			ct: ct
-		);
-
-		IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: command.RoleId, ct: ct);
-
-		foreach (Guid userId in memberUserIds)
+		return await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			foreach (Permission permission in toGrant)
+			await roleRepository.ReplacePermissionsAsync(
+				roleId: request.RoleId,
+				permissions: request.NewPermissions,
+				ct: ct
+			);
+
+			IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: request.RoleId, ct: ct);
+
+			foreach (Guid userId in memberUserIds)
 			{
-				await sender.Send(request: new GrantPermissionCommand(
-					TargetUserId: userId,
-					Permission: permission,
-					GrantedBy: command.UpdatedBy
-				), cancellationToken: ct);
+				Result<Unit, AppException> granted = await userPermissionService.GrantAsync(
+					targetUserId: userId,
+					grantedBy: request.UpdatedBy,
+					permissions: toGrant,
+					ct: ct
+				);
+				if (granted.IsFailure)
+					return granted;
+
+				Result<Unit, AppException> revoked = await userPermissionService.RevokeAsync(
+					targetUserId: userId,
+					revokedBy: request.UpdatedBy,
+					permissions: toRevoke,
+					ct: ct
+				);
+				if (revoked.IsFailure)
+					return revoked;
 			}
 
-			foreach (Permission permission in toRevoke)
-			{
-				await sender.Send(request: new RevokePermissionCommand(
-					TargetUserId: userId,
-					Permission: permission,
-					RevokedBy: command.UpdatedBy
-				), cancellationToken: ct);
-			}
-		}
-
-		return Result<Unit, AppException>.Success(value: Unit.Default);
+			return Result<Unit, AppException>.Success(value: Unit.Default);
+		}, ct: ct);
 	}
 }

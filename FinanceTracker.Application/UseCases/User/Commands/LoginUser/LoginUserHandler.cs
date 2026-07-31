@@ -20,9 +20,15 @@ public sealed class LoginUserHandler(
 		LoginUserCommand userCommand,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User? user = await userAuthRepository.GetByEmailAsync(email: userCommand.Email.Value, ct: ct);
+		Core.Domains.User.User? user = await userAuthRepository.GetByEmailAsync(
+			email: userCommand.Email.Value,
+			ct: ct
+		);
 
-		bool passwordMatches = await passwordHasher.Verify(password: userCommand.Password, storedHash: user?.PasswordHash);
+		bool passwordMatches = await passwordHasher.Verify(
+			password: userCommand.Password,
+			storedHash: user?.PasswordHash
+		);
 
 		if (user is null || !passwordMatches)
 			return Result<SessionToken, AppException>.Failure(error: new InvalidCredentialsException());

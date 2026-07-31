@@ -94,6 +94,17 @@ public sealed class RecurringTransactionTests
 	}
 
 	[Test]
+	public async Task ChangeAmount_WithTheSameAmount_ShouldReportNoChange()
+	{
+		RecurringTransaction recurring = RecurringTransactionFactory.Create().Value!;
+
+		Result<bool, DomainException> result = recurring.ChangeAmount(amount: recurring.Amount.Amount);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
 	public async Task ChangeAmount_WithValidAmount_ShouldUpdateAmount()
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
@@ -109,7 +120,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeAmount(amount: -100m);
+		Result<bool, DomainException> result = rt.ChangeAmount(amount: -100m);
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
 	}
@@ -119,7 +130,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeAmount(amount: 0m);
+		Result<bool, DomainException> result = rt.ChangeAmount(amount: 0m);
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidAmountException>();
 	}
@@ -133,6 +144,28 @@ public sealed class RecurringTransactionTests
 
 		await Assert.That(value: rt.Amount.Currency.Value).IsEqualTo(expected: "USD");
 		await Assert.That(value: rt.Amount.Amount).IsEqualTo(expected: 5000m);
+	}
+
+	[Test]
+	public async Task ChangeCurrency_WithTheSameCurrency_ShouldReportNoChange()
+	{
+		RecurringTransaction recurring = RecurringTransactionFactory.Create().Value!;
+
+		Result<bool, DomainException> result = recurring.ChangeCurrency(currency: recurring.Amount.Currency);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
+	}
+
+	[Test]
+	public async Task ChangeDayOfMonth_WithTheSameDay_ShouldReportNoChange()
+	{
+		RecurringTransaction recurring = RecurringTransactionFactory.Create().Value!;
+
+		Result<bool, DomainException> result = recurring.ChangeDayOfMonth(dayOfMonth: recurring.DayOfMonth);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]
@@ -150,7 +183,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 0);
+		Result<bool, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 0);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
@@ -161,7 +194,7 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<FinanceTracker.Core.Results.Unit, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 32);
+		Result<bool, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 32);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();

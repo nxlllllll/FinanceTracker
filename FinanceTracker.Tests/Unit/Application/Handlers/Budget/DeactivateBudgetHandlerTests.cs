@@ -34,7 +34,7 @@ public sealed class DeactivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new DeactivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -52,7 +52,7 @@ public sealed class DeactivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new DeactivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -69,7 +69,7 @@ public sealed class DeactivateBudgetHandlerTests
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new DeactivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 
@@ -84,7 +84,7 @@ public sealed class DeactivateBudgetHandlerTests
 
 		await _handler.HandleAsync(
 			command: new DeactivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
-			user: budget,
+			budget: budget,
 			ct: CancellationToken.None
 		);
 

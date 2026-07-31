@@ -26,31 +26,31 @@ public sealed class ArchiveCategoryHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ArchiveCategoryCommand command,
-		Core.Domains.Category.Category user,
+		Core.Domains.Category.Category category,
 		CancellationToken ct = default)
 	{
-		Result<bool, DomainException> result = user.Archive();
+		Result<bool, DomainException> result = category.Archive();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
 		if (!result.Value)
-			return Result<Guid, AppException>.Success(value: user.Id);
+			return Result<Guid, AppException>.Success(value: category.Id);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
-			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: user.RowVersion, ct: ct);
+			await categoryWriteRepository.ArchiveAsync(categoryId: command.CategoryId, expectedVersion: category.RowVersion, ct: ct);
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 			await budgetWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {user.Id}."),
+		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {category.Id}."),
 		ct: ct);
 
 		postCommitNotifications.Stage(notification: new CategoryArchivedNotification(
-			CategoryId: user.Id,
-			UserId: user.UserId,
+			CategoryId: category.Id,
+			UserId: category.UserId,
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: category.Id);
 	}
 }

@@ -46,7 +46,8 @@ public sealed class RoleE2ETests : E2EFixture
 				Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!,
 				Permission.Create(resource: Resource.Budget, action: PermissionAction.Read).Value!
 			}
-		));
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		await Assert.That(value: roleResult.IsSuccess).IsTrue();
 		Guid roleId = roleResult.Value;
 
@@ -83,9 +84,14 @@ public sealed class RoleE2ETests : E2EFixture
 		Permission categoryRead = Permission.Create(resource: Resource.Category, action: PermissionAction.Read).Value!;
 
 		Result<Guid, AppException> roleResult = await Mediator.Send(request: new CreateRoleCommand(
-			DisplayName: Name.Create(value: "E2E Updatable").Value!,
-			Permissions: new HashSet<Permission> { accountRead }
-		));
+			DisplayName: Name.Create(value: "E2E Viewer").Value!,
+			Permissions: new HashSet<Permission>
+			{
+				Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!,
+				Permission.Create(resource: Resource.Budget, action: PermissionAction.Read).Value!
+			}
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		Guid roleId = roleResult.Value;
 
 		await Mediator.Send(request: new AssignRoleToUserCommand(
@@ -132,9 +138,14 @@ public sealed class RoleE2ETests : E2EFixture
 		Guid adminId = Guid.CreateVersion7();
 
 		Result<Guid, AppException> roleResult = await Mediator.Send(request: new CreateRoleCommand(
-			DisplayName: Name.Create(value: "E2E Removable").Value!,
-			Permissions: new HashSet<Permission> { Permission.Create(resource: Resource.Transaction, action: PermissionAction.Read).Value! }
-		));
+			DisplayName: Name.Create(value: "E2E Viewer").Value!,
+			Permissions: new HashSet<Permission>
+			{
+				Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!,
+				Permission.Create(resource: Resource.Budget, action: PermissionAction.Read).Value!
+			}
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		Guid roleId = roleResult.Value;
 
 		await Mediator.Send(request: new AssignRoleToUserCommand(

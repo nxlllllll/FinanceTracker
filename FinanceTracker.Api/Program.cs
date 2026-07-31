@@ -30,6 +30,7 @@ public sealed class Program
 		builder.Services.AddApplication();
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 		builder.Services.AddAuth();
+		builder.Services.AddApiTelemetry();
 
 		builder.Services.AddInfrastructureHealthChecks(
 			connectionString: builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!,
@@ -100,19 +101,24 @@ public sealed class Program
 			Predicate = check => check.Tags.Contains(item: "ready")
 		});
 
+		app.MapPrometheusScrapingEndpoint();
+
 		app.MapEndpoints();
 
-		if (app.Environment.IsDevelopment())
+		if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>(key: "OpenApi:Expose"))
 		{
 			app.MapOpenApi();
 			app.MapScalarApiReference(configureOptions: options =>
 			{
 				options.WithTitle(title: "FinanceTracker API").WithDefaultHttpClient(target: ScalarTarget.CSharp, client: ScalarClient.HttpClient);
 			});
+
+			// Only meaningful when the reference is actually mapped. Previously this sat outside the
+			// check, so the root of a Production deployment redirected to a 404.
+			app.MapGet(pattern: "/", handler: () => Results.Redirect(url: "/scalar/v1")).ExcludeFromDescription();
 		}
 
-		app.MapGet(pattern: "/", handler: () => Results.Redirect(url: "/scalar/v1")).ExcludeFromDescription();
+		app.Run();
 		app.Run();
 	}
 }
-

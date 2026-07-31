@@ -35,7 +35,7 @@ public sealed class RenameCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: "Транспорт")),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -55,7 +55,7 @@ public sealed class RenameCategoryHandlerTests
 
 		await _handler.HandleAsync(
 			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: "Транспорт")),
-			user: category,
+			category: category,
 			ct: CancellationToken.None
 		);
 
@@ -65,33 +65,5 @@ public sealed class RenameCategoryHandlerTests
 			n.OldName == oldName &&
 			n.NewName == "Транспорт"
 		));
-	}
-
-	[Test]
-	public async Task HandleAsync_WithInvalidName_ShouldReturnFailure()
-	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
-
-		Result<Guid, AppException> result = await _handler.HandleAsync(
-			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: String.Empty)),
-			user: category,
-			ct: CancellationToken.None
-		);
-
-		await Assert.That(value: result.IsFailure).IsTrue();
-	}
-
-	[Test]
-	public async Task HandleAsync_WithInvalidName_ShouldNotPublishNotification()
-	{
-		FinanceTracker.Core.Domains.Category.Category category = CategoryFactory.Create().Value!;
-
-		await _handler.HandleAsync(
-			command: new RenameCategoryCommand(UserId: category.UserId, CategoryId: category.Id, NewName: Name.Reconstitute(value: String.Empty)),
-			user: category,
-			ct: CancellationToken.None
-		);
-
-		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<CategoryRenamedNotification>());
 	}
 }

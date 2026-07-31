@@ -5,7 +5,7 @@ namespace FinanceTracker.Application.UseCases.Transfer.Authorization;
 /// authorized them, so the currency for both accounts always comes from the persisted
 /// entities — never from client-supplied command fields.
 /// </summary>
-public sealed record TransferAccounts(
+public sealed record TransferAccount(
 	Core.Domains.Account.Account FromAccount,
 	Core.ValueObjects.Currency ToAccountCurrency
 );

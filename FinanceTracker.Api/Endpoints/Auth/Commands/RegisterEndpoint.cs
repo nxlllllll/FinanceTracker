@@ -1,5 +1,5 @@
-using FinanceTracker.Api.Endpoints.Auth.Contracts;
 using FinanceTracker.Api.Endpoints.Shared;
+using FinanceTracker.Api.Endpoints.Auth.Contracts;
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
@@ -9,16 +9,16 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;
-using IHttpResult = Microsoft.AspNetCore.Http.IResult;
 
-namespace FinanceTracker.Api.Endpoints.Auth;
+namespace FinanceTracker.Api.Endpoints.Auth.Commands;
 
 public sealed class RegisterEndpoint : IEndpoint
 {
-	public void MapEndpoint(IEndpointRouteBuilder app)
+	public string GroupName => AuthEndpointGroup.GroupName;
+
+	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
-		app.MapPost(pattern: "/auth/register", handler: HandleAsync).AllowAnonymous()
-			.WithTags(tags: "Auth")
+		group.MapPost(pattern: "/register", handler: HandleAsync).AllowAnonymous()
 			.WithSummary(summary: "Register a new user")
 			.WithDescription(description: "Creates a user account. Requires an Idempotency-Key header.")
 			.Produces<CreatedIdResponse>(statusCode: StatusCodes.Status201Created)
@@ -54,6 +54,9 @@ public sealed class RegisterEndpoint : IEndpoint
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 
-		return result.ToCreatedResult(locationFactory: id => $"/api/v1/users/{id}");
+		if (result.IsSuccess)
+			return Results.Created(uri: (string?)null, value: new CreatedIdResponse(Id: result.Value));
+
+		return result.Error!.ToProblem();
 	}
 }

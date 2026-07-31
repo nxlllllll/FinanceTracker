@@ -18,22 +18,30 @@ public sealed class ChangeBudgetAmountHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		ChangeBudgetAmountCommand command,
-		Core.Domains.Budget.Budget user,
+		Core.Domains.Budget.Budget budget,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = user.ChangeAmount(amount: command.Amount);
+		Result<bool, DomainException> result = budget.ChangeAmount(amount: command.Amount);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
-		await budgetWriteRepository.ChangeAmountAsync(budgetId: user.Id, expectedVersion: user.RowVersion, amount: command.Amount, ct: ct);
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: budget.Id);
+
+		await budgetWriteRepository.ChangeAmountAsync(
+			budgetId: budget.Id,
+			expectedVersion: budget.RowVersion,
+			amount: command.Amount,
+			ct: ct
+		);
 
 		postCommitNotifications.Stage(notification: new BudgetAmountChangedNotification(
-			BudgetId: user.Id,
-			UserId: user.UserId,
+			BudgetId: budget.Id,
+			UserId: budget.UserId,
 			NewAmount: command.Amount,
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: budget.Id);
 	}
 }

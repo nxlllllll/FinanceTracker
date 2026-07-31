@@ -19,34 +19,33 @@ public sealed class RenameCategoryHandler(
 {
 	public async Task<Result<Guid, AppException>> HandleAsync(
 		RenameCategoryCommand command,
-		Core.Domains.Category.Category user,
+		Core.Domains.Category.Category category,
 		CancellationToken ct = default)
 	{
-		Result<Name, DomainException> nameResult = Name.Create(value: command.NewName);
-		if (nameResult.IsFailure)
-			return Result<Guid, AppException>.Failure(error: nameResult.Error!);
+		string oldName = category.Name;
 
-		string oldName = user.Name;
-
-		Result<Unit, DomainException> result = user.Rename(newName: nameResult.Value);
+		Result<bool, DomainException> result = category.Rename(newName: command.NewName);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: category.Id);
+
 		await categoryWriteRepository.RenameAsync(
 			categoryId: command.CategoryId,
-			newName: nameResult.Value,
-			expectedVersion: user.RowVersion,
+			newName: command.NewName,
+			expectedVersion: category.RowVersion,
 			ct: ct
 		);
 
 		postCommitNotifications.Stage(notification: new CategoryRenamedNotification(
-			CategoryId: user.Id,
-			UserId: user.UserId,
+			CategoryId: category.Id,
+			UserId: category.UserId,
 			OldName: oldName,
-			NewName: nameResult.Value,
+			NewName: command.NewName,
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		return Result<Guid, AppException>.Success(value: user.Id);
+		return Result<Guid, AppException>.Success(value: category.Id);
 	}
 }

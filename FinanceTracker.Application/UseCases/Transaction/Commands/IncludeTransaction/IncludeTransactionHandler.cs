@@ -31,9 +31,12 @@ public sealed class IncludeTransactionHandler(
 		Core.Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default)
 	{
-		Result<Unit, DomainException> result = transaction.Include();
+		Result<bool, DomainException> result = transaction.Include();
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
+
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: transaction.Id);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{

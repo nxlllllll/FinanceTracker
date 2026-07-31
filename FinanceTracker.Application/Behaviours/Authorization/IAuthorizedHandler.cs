@@ -19,11 +19,11 @@ public interface IAuthorizedHandler<in TRequest, in TEntity, TValue, TError>
 	where TError : AppException
 {
 	/// <summary>
-	/// Executes the use case with the pre-loaded, access-verified <paramref name="user"/>.
+	/// Executes the use case with the pre-loaded, access-verified <paramref name="entity"/>.
 	/// </summary>
 	Task<Result<TValue, TError>> HandleAsync(
 		TRequest request,
-		TEntity user,
+		TEntity entity,
 		CancellationToken ct
 	);
 }

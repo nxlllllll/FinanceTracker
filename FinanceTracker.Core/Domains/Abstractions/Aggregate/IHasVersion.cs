@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.Aggregate;
+namespace FinanceTracker.Core.Domains.Abstractions.Aggregate;
 
 /// <summary>
 /// Exposes an entity's current version for optimistic-concurrency

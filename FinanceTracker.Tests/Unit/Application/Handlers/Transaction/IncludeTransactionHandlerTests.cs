@@ -90,7 +90,7 @@ public sealed class IncludeTransactionHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenAlreadyIncluded_ShouldReturnFailure()
+	public async Task HandleAsync_WhenAlreadyIncluded_ShouldSucceedWithoutWriting()
 	{
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
 
@@ -100,7 +100,14 @@ public sealed class IncludeTransactionHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+
+		await _transactionWriteRepository.DidNotReceive().IncludeAsync(
+			transactionId: Arg.Any<Guid>(),
+			userId: Arg.Any<Guid>(),
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]

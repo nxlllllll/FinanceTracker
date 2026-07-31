@@ -1,8 +1,7 @@
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.RevokePermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.ValueObjects;
@@ -13,85 +12,50 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.UserPermission;
 
 public sealed class RevokePermissionHandlerTests
 {
-	private IUserPermissionRepository _userPermissionRepository = null!;
-	private IUnitOfWork _unitOfWork = null!;
-	private RevokePermissionHandler _handler = null!;
+	private IUserPermissionService _userPermissionService = null!;
 	private IRootAuthority _rootAuthority = null!;
+	private RevokePermissionHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
-		_userPermissionRepository = Substitute.For<IUserPermissionRepository>();
-		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_userPermissionService = Substitute.For<IUserPermissionService>();
 		_rootAuthority = Substitute.For<IRootAuthority>();
 
-		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
+		_userPermissionService.RevokeAsync(
+			targetUserId: Arg.Any<Guid>(),
+			revokedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
 
 		_rootAuthority.IsRootAsync(userId: Arg.Any<Guid>()).Returns(returnThis: false);
 
 		_handler = new RevokePermissionHandler(
-			userPermissionRepository: _userPermissionRepository,
-			unitOfWork: _unitOfWork,
-			rootAuthority: _rootAuthority,
-			dateProvider: FakeDateProvider.Default
+			userPermissionService: _userPermissionService,
+			rootAuthority: _rootAuthority
 		);
 	}
 
 	[Test]
-	public async Task Handle_WithNoExistingAggregate_ShouldBeNoOpSuccess()
+	public async Task Handle_ShouldPassTheCommandsPermissionToTheService()
 	{
 		Guid targetUserId = Guid.CreateVersion7();
-		_userPermissionRepository.GetByUserIdAsync(
-			userId: targetUserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.UserPermission.UserPermission?)null);
-
 		RevokePermissionCommand command = RevokePermissionCommandFactory.Create(targetUserId: targetUserId);
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await _userPermissionRepository.DidNotReceive().SaveAsync(
-			userPermission: Arg.Any<FinanceTracker.Core.Domains.UserPermission.UserPermission>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task Handle_WithHeldPermission_ShouldRevokeAndSave()
-	{
-		Guid targetUserId = Guid.CreateVersion7();
-		FinanceTracker.Core.Domains.UserPermission.UserPermission existing = UserPermissionFactory.CreateWithGrant(
-			userId: targetUserId,
-			resource: Resource.Transaction,
-			action: PermissionAction.Delete
-		);
-		_userPermissionRepository.GetByUserIdAsync(
-			userId: targetUserId,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: existing);
-
-		RevokePermissionCommand command = RevokePermissionCommandFactory.Create(
+		await _userPermissionService.Received(requiredNumberOfCalls: 1).RevokeAsync(
 			targetUserId: targetUserId,
-			resource: Resource.Transaction,
-			action: PermissionAction.Delete
-		);
-
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
-
-		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: existing.Permissions).DoesNotContain(expected: "transaction:delete");
-		await _userPermissionRepository.Received(requiredNumberOfCalls: 1).SaveAsync(
-			userPermission: Arg.Any<FinanceTracker.Core.Domains.UserPermission.UserPermission>(),
+			revokedBy: command.RevokedBy,
+			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p!.Count == 1 && p.Contains(command.Permission)),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task Handle_WhenTargetEqualsRevokedBy_ShouldReturnFailureAndNotSave()
+	public async Task Handle_WhenTargetEqualsRevokedBy_ShouldReturnFailureAndNotTouchTheService()
 	{
 		Guid userId = Guid.CreateVersion7();
 		RevokePermissionCommand command = RevokePermissionCommandFactory.Create(targetUserId: userId, revokedBy: userId);
@@ -100,30 +64,48 @@ public sealed class RevokePermissionHandlerTests
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<SelfPermissionModificationException>();
-		await _userPermissionRepository.DidNotReceive().SaveAsync(
-			userPermission: Arg.Any<FinanceTracker.Core.Domains.UserPermission.UserPermission>(),
+		await _userPermissionService.DidNotReceive().RevokeAsync(
+			targetUserId: Arg.Any<Guid>(),
+			revokedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task Handle_WhenTargetEqualsGrantedByButUserIsRoot_ShouldSucceed()
+	public async Task Handle_WhenTargetEqualsRevokedByButUserIsRoot_ShouldDelegate()
 	{
 		Guid rootUserId = Guid.CreateVersion7();
-		IRootAuthority rootAuthority = Substitute.For<IRootAuthority>();
-		rootAuthority.IsRootAsync(userId: rootUserId).Returns(returnThis: true);
-
-		RevokePermissionHandler handler = new RevokePermissionHandler(
-			userPermissionRepository: _userPermissionRepository,
-			unitOfWork: _unitOfWork,
-			dateProvider: FakeDateProvider.Default,
-			rootAuthority: rootAuthority
-		);
+		_rootAuthority.IsRootAsync(userId: rootUserId).Returns(returnThis: true);
 
 		RevokePermissionCommand command = RevokePermissionCommandFactory.Create(targetUserId: rootUserId, revokedBy: rootUserId);
 
-		Result<FinanceTracker.Core.Results.Unit, AppException> result = await handler.Handle(command: command, ct: CancellationToken.None);
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
+		await _userPermissionService.Received(requiredNumberOfCalls: 1).RevokeAsync(
+			targetUserId: rootUserId,
+			revokedBy: rootUserId,
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenTheServiceFails_ShouldReturnItsError()
+	{
+		_userPermissionService.RevokeAsync(
+			targetUserId: Arg.Any<Guid>(),
+			revokedBy: Arg.Any<Guid>(),
+			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(error: new NotFoundException(message: "gone", id: Guid.Empty)));
+
+		RevokePermissionCommand command = RevokePermissionCommandFactory.Create(targetUserId: Guid.CreateVersion7());
+
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
 	}
 }

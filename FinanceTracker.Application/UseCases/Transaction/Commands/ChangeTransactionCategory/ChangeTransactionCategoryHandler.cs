@@ -12,7 +12,6 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
-using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
 
@@ -43,9 +42,12 @@ public sealed class ChangeTransactionCategoryHandler(
 			return Result<Guid, AppException>.Failure(error: validationResult);
 
 		Guid oldCategoryId = transaction.CategoryId;
-		Result<Unit, DomainException> result = transaction.ChangeCategory(categoryId: command.CategoryId);
+		Result<bool, DomainException> result = transaction.ChangeCategory(categoryId: command.CategoryId);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
+
+		if (!result.Value)
+			return Result<Guid, AppException>.Success(value: transaction.Id);
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{

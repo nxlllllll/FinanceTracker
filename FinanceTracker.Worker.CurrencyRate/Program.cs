@@ -41,7 +41,7 @@ public sealed class Program
 			CircuitBreakerStateProvider stateProvider = context.ServiceProvider.GetRequiredService<CircuitBreakerStateProvider>();
 			ILogger<ExchangeRateApiClient> resilienceLogger = context.ServiceProvider.GetRequiredService<ILogger<ExchangeRateApiClient>>();
 
-			pipeline.AddTimeout(timeout: TimeSpan.FromSeconds(value: apiOptions.TimeoutSeconds));
+			pipeline.AddTimeout(timeout: TimeSpan.FromSeconds(value: apiOptions.TotalTimeoutSeconds));
 
 			pipeline.AddRetry(options: new HttpRetryStrategyOptions
 			{
@@ -49,10 +49,15 @@ public sealed class Program
 				Delay = TimeSpan.FromSeconds(value: apiOptions.RetryDelaySeconds),
 				BackoffType = DelayBackoffType.Exponential,
 				UseJitter = true,
-				OnRetry = async onRetryArguments => resilienceLogger.ZLogWarning(message: $"""
-					[ExchangeRateApi] Retry {onRetryArguments.AttemptNumber + 1}/{apiOptions.RetryCount} after {onRetryArguments.RetryDelay.TotalMilliseconds}ms.
-					Reason: {onRetryArguments.Outcome.Exception?.Message ?? "non-success status"}.
-				""")
+				OnRetry = onRetryArguments =>
+				{
+					resilienceLogger.ZLogWarning(message: $"""
+						[ExchangeRateApi] Retry {onRetryArguments.AttemptNumber + 1}/{apiOptions.RetryCount} after {onRetryArguments.RetryDelay.TotalMilliseconds}ms.
+						Reason: {onRetryArguments.Outcome.Exception?.Message ?? "non-success status"}.
+					""");
+
+					return ValueTask.CompletedTask;
+				}
 			});
 
 			pipeline.AddCircuitBreaker(options: new HttpCircuitBreakerStrategyOptions
@@ -62,13 +67,30 @@ public sealed class Program
 				SamplingDuration = TimeSpan.FromSeconds(value: apiOptions.CircuitBreakerSamplingSeconds),
 				BreakDuration = TimeSpan.FromSeconds(value: apiOptions.CircuitBreakerBreakSeconds),
 				StateProvider = stateProvider,
-				OnOpened = async onCircuitOpenedArguments => resilienceLogger.ZLogError(message: $"""
-					[ExchangeRateApi] Circuit OPENED for {apiOptions.CircuitBreakerBreakSeconds}s. 
-					Reason: {onCircuitOpenedArguments.Outcome.Exception?.Message ?? "failure ratio exceeded"}.
-				"""),
-				OnClosed = async _ => resilienceLogger.ZLogInformation(message: $"[ExchangeRateApi] Circuit CLOSED — service recovered."),
-				OnHalfOpened = async _ => resilienceLogger.ZLogInformation(message: $"[ExchangeRateApi] Circuit HALF-OPEN — probing service.")
+				OnOpened = onCircuitOpenedArguments =>
+				{
+					resilienceLogger.ZLogError(message: $"""
+						[ExchangeRateApi] Circuit OPENED for {apiOptions.CircuitBreakerBreakSeconds}s.
+						Reason: {onCircuitOpenedArguments.Outcome.Exception?.Message ?? "failure ratio exceeded"}.
+					""");
+
+					return ValueTask.CompletedTask;
+				},
+				OnClosed = _ =>
+				{
+					resilienceLogger.ZLogInformation(message: $"[ExchangeRateApi] Circuit CLOSED — service recovered.");
+
+					return ValueTask.CompletedTask;
+				},
+				OnHalfOpened = _ =>
+				{
+					resilienceLogger.ZLogInformation(message: $"[ExchangeRateApi] Circuit HALF-OPEN — probing service.");
+
+					return ValueTask.CompletedTask;
+				}
 			});
+
+			pipeline.AddTimeout(timeout: TimeSpan.FromSeconds(value: apiOptions.TimeoutSeconds));
 		});
 
 		CurrencyRateJobOptions jobOptions = builder.Configuration

@@ -20,6 +20,12 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class RefreshTokenHandlerTests
 {
+	private static readonly Guid UserId = Guid.CreateVersion7();
+	private static readonly DateTimeOffset Now = FakeDateProvider.Default.UtcNow;
+	private const string RawRefreshToken = "raw-refresh-token";
+	private const string TokenHash = "hashed-token";
+	private readonly IPAddress _testIp = IPAddress.Parse(ipString: "203.0.113.10");
+
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IUserSessionReadRepository _userSessionReadRepository = null!;
 	private IUserSessionWriteRepository _userSessionWriteRepository = null!;
@@ -30,51 +36,102 @@ public sealed class RefreshTokenHandlerTests
 	private IDateProvider _dateProvider = null!;
 	private RefreshTokenHandler _handler = null!;
 
-	private static readonly Guid UserId = Guid.CreateVersion7();
-	private const string RawRefreshToken = "raw-refresh-token";
-	private const string TokenHash = "hashed-token";
-	private readonly IPAddress _testIp = IPAddress.Parse(ipString: "203.0.113.10");
-
 	private static readonly FinanceTracker.Core.Domains.User.User TestUser = FinanceTracker.Core.Domains.User.User.Reconstitute(
 		id: UserId,
 		email: Email.Create(value: "test@test.com").Value!,
 		passwordHash: "hash",
 		baseCurrencyCode: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 		rowVersion: 0,
-		createdAt: FakeDateProvider.Default.UtcNow
+		createdAt: Now
 	);
 
 	private static readonly SessionToken NewSessionToken = new SessionToken(
 		AccessToken: "new.access.token",
 		RefreshToken: "new-refresh-token",
-		AccessTokenExpiresAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: 15)
+		AccessTokenExpiresAt: Now.AddMinutes(minutes: 15),
+		SessionId: Guid.CreateVersion7()
 	);
 
 	private static UserSession ActiveSession() => UserSession.Reconstitute(
 		id: Guid.CreateVersion7(),
 		userId: UserId,
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-		createdAt: DateTimeOffset.UtcNow,
-		revokedAt: null
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now,
+		revokedAt: null,
+		supersededBySessionId: null
 	);
 
 	private static UserSession RevokedSession() => UserSession.Reconstitute(
 		id: Guid.CreateVersion7(),
 		userId: UserId,
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: 1),
-		createdAt: DateTimeOffset.UtcNow,
-		revokedAt: DateTimeOffset.UtcNow.AddMinutes(minutes: -5)
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now,
+		revokedAt: Now.AddMinutes(minutes: -5),
+		supersededBySessionId: null
 	);
 
 	private static UserSession ExpiredButNotRevokedSession() => UserSession.Reconstitute(
 		id: Guid.CreateVersion7(),
 		userId: UserId,
 		refreshTokenHash: TokenHash,
-		expiresAt: DateTimeOffset.UtcNow.AddHours(hours: -1),
-		createdAt: DateTimeOffset.UtcNow.AddHours(hours: -2),
-		revokedAt: null
+		expiresAt: Now.AddHours(hours: -1),
+		createdAt: Now.AddHours(hours: -2),
+		revokedAt: null,
+		supersededBySessionId: null
+	);
+
+	private static UserSession SupersededSession(
+		Guid successorId,
+		TimeSpan revokedAgo
+	) => UserSession.Reconstitute(
+		id: Guid.CreateVersion7(),
+		userId: UserId,
+		refreshTokenHash: TokenHash,
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now.AddMinutes(minutes: -10),
+		revokedAt: Now - revokedAgo,
+		supersededBySessionId: successorId
+	);
+
+	private static UserSession Successor(
+		Guid id,
+		DateTimeOffset? revokedAt = null,
+		Guid? ownSuccessorId = null
+	) => UserSession.Reconstitute(
+		id: id,
+		userId: UserId,
+		refreshTokenHash: "successor-token-hash",
+		expiresAt: Now.AddHours(hours: 1),
+		createdAt: Now,
+		revokedAt: revokedAt,
+		supersededBySessionId: ownSuccessorId
+	);
+
+	private void ArrangeReplay(UserSession replayed, UserSession? successor, TimeSpan graceWindow)
+	{
+		_tokenService.GetRefreshReplayGraceWindow().Returns(returnThis: graceWindow);
+
+		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
+			tokenHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: replayed);
+
+		_userSessionReadRepository.GetByIdForUpdateAsync(
+			sessionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: successor);
+
+		_userAuthRepository.GetByIdAsync(
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: TestUser);
+	}
+
+	private Task<Result<SessionToken, AppException>> ReplayAsync() => _handler.Handle(
+		command: new RefreshTokenCommand(RefreshToken: RawRefreshToken, IpAddress: _testIp),
+		ct: CancellationToken.None
 	);
 
 	[Before(hookType: Test)]
@@ -89,7 +146,7 @@ public sealed class RefreshTokenHandlerTests
 		_publisher = Substitute.For<IPublisher>();
 		_dateProvider = Substitute.For<IDateProvider>();
 
-		_dateProvider.UtcNow.Returns(returnThis: FakeDateProvider.Default.UtcNow);
+		_dateProvider.UtcNow.Returns(returnThis: Now);
 		_tokenService.HashRefreshToken(refreshToken: Arg.Any<string>()).Returns(returnThis: TokenHash);
 
 		_sessionIssuer.IssueAsync(
@@ -288,7 +345,7 @@ public sealed class RefreshTokenHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenValidToken_ShouldRevokeOldSession()
+	public async Task Handle_WhenValidToken_ShouldSupersedeOldSessionWithTheIssuedOne()
 	{
 		UserSession session = ActiveSession();
 		_userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(
@@ -305,8 +362,15 @@ public sealed class RefreshTokenHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAsync(
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).SupersedeAsync(
 			sessionId: session.Id,
+			successorSessionId: NewSessionToken.SessionId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAsync(
+			sessionId: Arg.Any<Guid>(),
 			revokedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -379,5 +443,138 @@ public sealed class RefreshTokenHandlerTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value!.AccessToken).IsEqualTo(expected: NewSessionToken.AccessToken);
 		await Assert.That(value: result.Value.RefreshToken).IsEqualTo(expected: NewSessionToken.RefreshToken);
+	}
+
+	[Test]
+	public async Task Handle_WhenTokenReplayedInsideGraceWindowAndSuccessorUnused_ShouldIssueAReplacementInstead()
+	{
+		Guid successorId = Guid.CreateVersion7();
+		UserSession replayed = SupersededSession(
+			successorId: successorId,
+			revokedAgo: TimeSpan.FromSeconds(value: 5)
+		);
+		ArrangeReplay(
+			replayed: replayed,
+			successor: Successor(id: successorId),
+			graceWindow: TimeSpan.FromSeconds(value: 30)
+		);
+
+		Result<SessionToken, AppException> result = await ReplayAsync();
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).SupersedeAsync(
+			sessionId: successorId,
+			successorSessionId: NewSessionToken.SessionId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await _userSessionWriteRepository.DidNotReceive().RevokeAllAsync(
+			userId: Arg.Any<Guid>(),
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<RefreshTokenReuseDetectedNotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenTokenReplayedAfterGraceWindow_ShouldTreatItAsReuse()
+	{
+		Guid successorId = Guid.CreateVersion7();
+		UserSession replayed = SupersededSession(
+			successorId: successorId,
+			revokedAgo: TimeSpan.FromMinutes(value: 5)
+		);
+		ArrangeReplay(
+			replayed: replayed,
+			successor: Successor(id: successorId),
+			graceWindow: TimeSpan.FromSeconds(value: 30)
+		);
+
+		Result<SessionToken, AppException> result = await ReplayAsync();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAllAsync(
+			userId: UserId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenSuccessorWasItselfRotated_ShouldTreatReplayAsReuse()
+	{
+		Guid successorId = Guid.CreateVersion7();
+		UserSession replayed = SupersededSession(
+			successorId: successorId,
+			revokedAgo: TimeSpan.FromSeconds(value: 5)
+		);
+		ArrangeReplay(
+			replayed: replayed,
+			successor: Successor(id: successorId, ownSuccessorId: Guid.CreateVersion7()),
+			graceWindow: TimeSpan.FromSeconds(value: 30)
+		);
+
+		Result<SessionToken, AppException> result = await ReplayAsync();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAllAsync(
+			userId: UserId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenSuccessorWasRevoked_ShouldTreatReplayAsReuse()
+	{
+		Guid successorId = Guid.CreateVersion7();
+		UserSession replayed = SupersededSession(
+			successorId: successorId,
+			revokedAgo: TimeSpan.FromSeconds(value: 5)
+		);
+		ArrangeReplay(
+			replayed: replayed,
+			successor: Successor(id: successorId, revokedAt: Now),
+			graceWindow: TimeSpan.FromSeconds(value: 30)
+		);
+
+		Result<SessionToken, AppException> result = await ReplayAsync();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await _userSessionWriteRepository.Received(requiredNumberOfCalls: 1).RevokeAllAsync(
+			userId: UserId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenGraceWindowIsDisabled_ShouldTreatReplayAsReuseWithoutLoadingTheSuccessor()
+	{
+		Guid successorId = Guid.CreateVersion7();
+		UserSession replayed = SupersededSession(
+			successorId: successorId,
+			revokedAgo: TimeSpan.FromSeconds(value: 1)
+		);
+		ArrangeReplay(
+			replayed: replayed,
+			successor: Successor(id: successorId),
+			graceWindow: TimeSpan.Zero
+		);
+
+		Result<SessionToken, AppException> result = await ReplayAsync();
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+
+		await _userSessionReadRepository.DidNotReceive().GetByIdForUpdateAsync(
+			sessionId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

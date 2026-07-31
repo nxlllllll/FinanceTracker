@@ -28,6 +28,21 @@ public sealed class EventTypeResolver : IEventTypeResolver
 			throw new UnknownEventTypeException(message: "The following IEvent classes are missing [EventType] attribute.", eventTypes: missingAttribute);
 		}
 
+		List<string> duplicates = eventTypes.GroupBy(keySelector: type => type.GetCustomAttribute<EventTypeAttribute>()!.Name)
+			.Where(predicate: group => group.Count() > 1)
+			.Select(selector: group => $"'{group.Key}' declared by {String.Join(separator: ", ", group.Select(selector: type => type.Name))}")
+			.ToList();
+
+		if (duplicates.Count > 0)
+		{
+			logger.ZLogError(message: $"Configuration error: duplicate [EventType] names. {String.Join(separator: "; ", duplicates)}.");
+			throw new DuplicateEventTypeException(
+				message: "The following [EventType] names are declared more than once. A frozen event version kept for upcasting" +
+						 "must not implement IEvent — its [EventType] attribute is enough to key the upcaster chain.",
+				eventTypes: duplicates
+			);
+		}
+
 		_eventTypes = eventTypes.ToFrozenDictionary(keySelector: type => type.GetCustomAttribute<EventTypeAttribute>()!.Name);
 
 		_eventVersions = eventTypes.ToFrozenDictionary(

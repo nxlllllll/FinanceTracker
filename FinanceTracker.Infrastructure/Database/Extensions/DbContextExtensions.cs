@@ -61,10 +61,6 @@ public static class DbContextExtensions
 		return rows == 1;
 	}
 
-	/// <summary>
-	/// Loads a user session by refresh token hash using <c>SELECT … FOR UPDATE</c>
-	/// to prevent concurrent refresh races.
-	/// </summary>
 	public static Task<UserSession?> GetSessionByRefreshTokenForUpdateAsync(
 		this FinanceTrackerContext context,
 		string tokenHash,
@@ -81,7 +77,29 @@ public static class DbContextExtensions
 			refreshTokenHash: u.RefreshTokenHash,
 			expiresAt: u.ExpiresAt,
 			createdAt: u.CreatedAt,
-			revokedAt: u.RevokedAt
+			revokedAt: u.RevokedAt,
+			supersededBySessionId: u.SupersededBySessionId
+		)).FirstOrDefaultAsync(cancellationToken: ct);
+	}
+
+	public static Task<UserSession?> GetSessionByIdForUpdateAsync(
+		this FinanceTrackerContext context,
+		Guid sessionId,
+		CancellationToken ct = default)
+	{
+		return context.UserSessions.FromSqlRaw(sql: """
+			SELECT * FROM user_sessions
+			WHERE id = {0}
+			LIMIT 1
+			FOR UPDATE
+		""", sessionId).Select(selector: u => UserSession.Reconstitute(
+			id: u.Id,
+			userId: u.UserId,
+			refreshTokenHash: u.RefreshTokenHash,
+			expiresAt: u.ExpiresAt,
+			createdAt: u.CreatedAt,
+			revokedAt: u.RevokedAt,
+			supersededBySessionId: u.SupersededBySessionId
 		)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
@@ -275,6 +293,21 @@ public static class DbContextExtensions
 		return context.Database.SqlQuery<Guid>($"""
 			UPDATE user_sessions SET revoked_at = {revokedAt}
 			WHERE user_id = {userId} AND revoked_at IS NULL
+			RETURNING id
+		""").ToListAsync(cancellationToken: ct);
+	}
+
+	public static Task<List<Guid>> SupersedeUserSessionAsync(
+		this DbContext context,
+		Guid sessionId,
+		Guid successorSessionId,
+		DateTimeOffset revokedAt,
+		CancellationToken ct = default)
+	{
+		return context.Database.SqlQuery<Guid>($"""
+			UPDATE user_sessions
+			SET revoked_at = {revokedAt}, superseded_by_session_id = {successorSessionId}
+			WHERE id = {sessionId} AND revoked_at IS NULL
 			RETURNING id
 		""").ToListAsync(cancellationToken: ct);
 	}

@@ -84,6 +84,43 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 		await _serviceProvider.DisposeAsync();
 	}
 
+
+	private static IChannel? GetInternalChannel(RabbitMqPublisher publisher)
+	{
+		FieldInfo? field = typeof(RabbitMqPublisher).GetField(
+			name: "_channel",
+			bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance
+		);
+
+		return field?.GetValue(obj: publisher) as IChannel;
+	}
+
+	private static AggregateEventsMessage BuildMessage() => new AggregateEventsMessage(
+		MessageId: Guid.CreateVersion7(),
+		AggregateId: Guid.CreateVersion7(),
+		AggregateType: AggregateTypeNames.Account,
+		CorrelationId: Guid.CreateVersion7(),
+		Events: []
+	);
+
+	private async Task WaitForMessageCountAsync(int expected)
+	{
+		TimeSpan deadline = TimeSpan.FromSeconds(seconds: 10);
+		TimeSpan poll = TimeSpan.FromMilliseconds(milliseconds: 100);
+		DateTimeOffset start = DateTimeOffset.UtcNow;
+
+		while (DateTimeOffset.UtcNow - start < deadline)
+		{
+			QueueDeclareOk queue = await _channel.QueueDeclarePassiveAsync(queue: _queueName);
+			if ((int)queue.MessageCount == expected)
+				return;
+
+			await Task.Delay(delay: poll);
+		}
+
+		throw new TimeoutException(message: $"Queue held a different number of messages than {expected} within {deadline.TotalSeconds}s.");
+	}
+
 	[Test]
 	public async Task PublishAsync_ShouldDeliverMessageToCorrectQueue()
 	{
@@ -91,10 +128,9 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 
 		await _publisher.PublishAsync(message: message);
 
-		await Task.Delay(millisecondsDelay: 200);
+		await WaitForMessageCountAsync(expected: 1);
 
 		QueueDeclareOk result = await _channel.QueueDeclarePassiveAsync(queue: _queueName);
-
 		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: 1);
 	}
 
@@ -204,10 +240,9 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 		await Assert.That(value: freshChannel!.IsOpen).IsTrue();
 		await Assert.That(value: ReferenceEquals(objA: staleChannel, objB: freshChannel)).IsFalse();
 
-		await Task.Delay(millisecondsDelay: 200);
+		await WaitForMessageCountAsync(expected: 2);
 
 		QueueDeclareOk result = await _channel.QueueDeclarePassiveAsync(queue: _queueName);
-
 		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: 2);
 	}
 
@@ -222,28 +257,9 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 
 		await Task.WhenAll(tasks: publishTasks);
 
-		await Task.Delay(millisecondsDelay: 300);
+		await WaitForMessageCountAsync(expected: concurrentPublishCount);
 
 		QueueDeclareOk result = await _channel.QueueDeclarePassiveAsync(queue: _queueName);
-
 		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: concurrentPublishCount);
 	}
-
-	private static IChannel? GetInternalChannel(RabbitMqPublisher publisher)
-	{
-		FieldInfo? field = typeof(RabbitMqPublisher).GetField(
-			name: "_channel",
-			bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance
-		);
-
-		return field?.GetValue(obj: publisher) as IChannel;
-	}
-
-	private static AggregateEventsMessage BuildMessage() => new AggregateEventsMessage(
-		MessageId: Guid.CreateVersion7(),
-		AggregateId: Guid.CreateVersion7(),
-		AggregateType: AggregateTypeNames.Account,
-		CorrelationId: Guid.CreateVersion7(),
-		Events: []
-	);
 }

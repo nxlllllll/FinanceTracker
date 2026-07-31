@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -57,7 +57,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		await Assert.That(value: result.Error).IsSameReferenceAs(expected: notFound);
 		await handler.DidNotReceive().HandleAsync(
 			request: Arg.Any<TestCommandWithoutExpectedVersion>(),
-			user: Arg.Any<TestEntityWithVersion>(),
+			entity: Arg.Any<TestEntityWithVersion>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -76,7 +76,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		Guid expectedId = Guid.CreateVersion7();
 		handler.HandleAsync(
 			request: Arg.Any<TestCommandWithoutExpectedVersion>(),
-			user: entity,
+			entity: entity,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Guid, AppException>.Success(value: expectedId));
 
@@ -104,7 +104,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		var handler = Substitute.For<IAuthorizedHandler<TestCommandWithExpectedVersion, TestEntityWithVersion, Guid, AppException>>();
 		handler.HandleAsync(
 			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: entity,
+			entity: entity,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Guid, AppException>.Success(value: Guid.CreateVersion7()));
 
@@ -118,7 +118,7 @@ public sealed class AuthorizedHandlerAdapterTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await handler.Received(requiredNumberOfCalls: 1).HandleAsync(
 			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: entity,
+			entity: entity,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -151,13 +151,13 @@ public sealed class AuthorizedHandlerAdapterTests
 
 		await handler.DidNotReceive().HandleAsync(
 			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: Arg.Any<TestEntityWithVersion>(),
+			entity: Arg.Any<TestEntityWithVersion>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task Handle_WhenEntityDoesNotImplementIHasVersion_ShouldSkipTheCheckEvenIfCommandHasExpectedVersion()
+	public async Task Handle_WhenEntityDoesNotImplementIHasVersion_ShouldThrowRatherThanIgnoreTheExpectedVersion()
 	{
 		var loader = Substitute.For<IEntityLoader<TestCommandWithExpectedVersion, TestEntityWithoutVersion, AppException>>();
 		TestEntityWithoutVersion entity = new TestEntityWithoutVersion();
@@ -167,19 +167,20 @@ public sealed class AuthorizedHandlerAdapterTests
 		).Returns(returnThis: Result<TestEntityWithoutVersion, AppException>.Success(value: entity));
 
 		var handler = Substitute.For<IAuthorizedHandler<TestCommandWithExpectedVersion, TestEntityWithoutVersion, Guid, AppException>>();
-		handler.HandleAsync(
-			request: Arg.Any<TestCommandWithExpectedVersion>(),
-			user: entity,
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<Guid, AppException>.Success(value: Guid.CreateVersion7()));
 
 		var adapter = BuildAdapter(loader: loader, handler: handler);
 
-		Result<Guid, AppException> result = await adapter.Handle(
+		InvalidOperationException? caught = await Assert.ThrowsAsync<InvalidOperationException>(action: async () => await adapter.Handle(
 			request: new TestCommandWithExpectedVersion(UserId: Guid.CreateVersion7(), ExpectedVersion: 999),
 			ct: CancellationToken.None
-		);
+		));
 
-		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: caught!.Message).Contains(expected: nameof(IHasVersion));
+
+		await handler.DidNotReceive().HandleAsync(
+			request: Arg.Any<TestCommandWithExpectedVersion>(),
+			entity: Arg.Any<TestEntityWithoutVersion>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

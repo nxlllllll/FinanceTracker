@@ -6,9 +6,9 @@ using ZLogger;
 namespace FinanceTracker.Application.Behaviours.Notification;
 
 /// <summary>
-/// MediatR pipeline behaviour that publishes whatever notification the handler staged via
+/// MediatR pipeline behaviour that publishes whatever notifications the handler staged via
 /// <see cref="IPostCommitNotifications"/> — but only after <paramref name="next"/> returns
-/// successfully, and only once.
+/// successfully, and only the ones this dispatch staged.
 /// </summary>
 public sealed class PostCommitNotificationBehaviour<TRequest, TResponse>(
 	IPostCommitNotificationSink notifications,
@@ -21,22 +21,27 @@ public sealed class PostCommitNotificationBehaviour<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken = default)
 	{
+		int mark = notifications.Mark();
+
 		TResponse response = await next(t: cancellationToken);
 
 		if (response is IResult { IsFailure: true })
-			return response;
-
-		INotification? notification = notifications.TakeStaged();
-		if (notification is null)
-			return response;
-
-		try
 		{
-			await publisher.Publish(notification: notification, cancellationToken: CancellationToken.None);
+			notifications.TakeFrom(mark: mark);
+			return response;
 		}
-		catch (Exception ex)
+		IReadOnlyList<INotification> staged = notifications.TakeFrom(mark: mark);
+
+		foreach (INotification notification in staged)
 		{
-			logger.ZLogError(exception: ex, message: $"Failed to publish {notification.GetType().Name}.");
+			try
+			{
+				await publisher.Publish(notification: notification, cancellationToken: CancellationToken.None);
+			}
+			catch (Exception ex)
+			{
+				logger.ZLogError(exception: ex, message: $"Failed to publish {notification.GetType().Name}.");
+			}
 		}
 
 		return response;

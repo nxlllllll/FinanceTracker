@@ -18,7 +18,11 @@ public sealed class CreateTransactionHandler(
 		Core.Domains.Account.Account account,
 		CancellationToken ct = default)
 	{
-		Result<Core.Domains.Transaction.Transaction, DomainException> result = await transactionCreationService.CreateAsync(command: command, account: account, ct: ct);
+		Result<Core.Domains.Transaction.Transaction, DomainException> result = await transactionCreationService.CreateAsync(
+			command: command,
+			account: account,
+			ct: ct
+		);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 

@@ -37,8 +37,8 @@ public sealed class Budget
 		DateOnly from,
 		DateOnly to)
 	{
-		if (to <= from)
-			return Result<Budget, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must be after start date."));
+		if (to < from)
+			return Result<Budget, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must not be before start date."));
 
 		return Result<Budget, DomainException>.Success(value: new Budget
 		{
@@ -80,30 +80,36 @@ public sealed class Budget
 		};
 	}
 
-	public Result<Unit, DomainException> ChangeAmount(decimal amount)
+	public Result<bool, DomainException> ChangeAmount(decimal amount)
 	{
 		if (!IsActive)
-			return Result<Unit, DomainException>.Failure(error: new InactiveBudgetException(message: "Cannot change amount of an inactive budget."));
+			return Result<bool, DomainException>.Failure(error: new InactiveBudgetException(message: "Cannot change amount of an inactive budget."));
 
 		Result<Money, DomainException> money = Money.Positive(amount: amount, currency: Amount.Currency);
 		if (money.IsFailure)
-			return Result<Unit, DomainException>.Failure(error: money.Error!);
+			return Result<bool, DomainException>.Failure(error: money.Error!);
+
+		if (Amount == money.Value!)
+			return Result<bool, DomainException>.Success(value: false);
 
 		Amount = money.Value!;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> ChangePeriod(DateOnly from, DateOnly to)
+	public Result<bool, DomainException> ChangePeriod(DateOnly from, DateOnly to)
 	{
 		if (!IsActive)
-			return Result<Unit, DomainException>.Failure(error: new InactiveBudgetException(message: "Cannot change period of an inactive budget."));
+			return Result<bool, DomainException>.Failure(error: new InactiveBudgetException(message: "Cannot change period of an inactive budget."));
 
-		if (to <= from)
-			return Result<Unit, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must be after start date."));
+		if (to < from)
+			return Result<bool, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must not be before start date."));
+
+		if (From == from && To == to)
+			return Result<bool, DomainException>.Success(value: false);
 
 		From = from;
 		To = to;
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return Result<bool, DomainException>.Success(value: true);
 	}
 
 	public Result<bool, DomainException> Activate()

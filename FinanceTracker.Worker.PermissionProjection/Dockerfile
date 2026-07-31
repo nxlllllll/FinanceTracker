@@ -1,10 +1,9 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-EXPOSE 5109
-
+EXPOSE 5009
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["Directory.Packages.props", "Directory.Packages.props"]
+COPY ["Directory.Packages.props", "Directory.Build.props", "BannedSymbols.txt", "./"]
 COPY ["FinanceTracker.Worker.PermissionProjection/FinanceTracker.Worker.PermissionProjection.csproj", "FinanceTracker.Worker.PermissionProjection/"]
 COPY ["FinanceTracker.Application/FinanceTracker.Application.csproj", "FinanceTracker.Application/"]
 COPY ["FinanceTracker.Contracts/FinanceTracker.Contracts.csproj", "FinanceTracker.Contracts/"]
@@ -18,4 +17,5 @@ RUN dotnet publish "FinanceTracker.Worker.PermissionProjection/FinanceTracker.Wo
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+USER app
 ENTRYPOINT ["dotnet", "FinanceTracker.Worker.PermissionProjection.dll"]

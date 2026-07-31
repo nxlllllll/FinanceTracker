@@ -39,14 +39,37 @@ public sealed class EFUnitOfWork(
 		}
 	}
 
-	public void OnCommitted(Action callback) => CurrentCallbackScope.Add(item: () =>
+	public void OnCommitted(Action callback)
 	{
-		callback();
-		return Task.CompletedTask;
-	});
+		EnsureTransactionForCallback();
+
+		CurrentCallbackScope.Add(item: () =>
+		{
+			callback();
+			return Task.CompletedTask;
+		});
+	}
 
 	public void OnCommitted(Func<Task> callback)
-		=> CurrentCallbackScope.Add(item: callback);
+	{
+		EnsureTransactionForCallback();
+
+		CurrentCallbackScope.Add(item: callback);
+	}
+
+	/// <summary>Rejects a callback that could never run.</summary>
+	private void EnsureTransactionForCallback()
+	{
+		if (_transaction is not null)
+			return;
+
+		throw new InvalidOperationException(message:
+			"OnCommitted requires an active transaction: callbacks only run when the outermost " +
+			"transaction commits, so one registered now would be discarded without a trace. " +
+			"If the surrounding repository call is not wrapped in ExecuteInTransactionAsync, " +
+			"its writes are most likely not being persisted either."
+		);
+	}
 
 	public async Task BeginTransactionAsync(CancellationToken ct = default)
 	{
