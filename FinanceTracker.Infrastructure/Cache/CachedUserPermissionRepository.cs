@@ -7,6 +7,7 @@ namespace FinanceTracker.Infrastructure.Cache;
 
 public sealed class CachedUserPermissionRepository(
 	IUserPermissionRepository inner,
+	IPermissionSourceReadRepository permissionSources,
 	RedisCache redisCache,
 	IUnitOfWork unitOfWork
 ) : IUserPermissionRepository
@@ -27,12 +28,14 @@ public sealed class CachedUserPermissionRepository(
 	{
 		await inner.SaveAsync(userPermission: userPermission, ct: ct);
 
-		HashSet<string> permissions = [..userPermission.Permissions];
 		Guid userId = userPermission.UserId;
+		IReadOnlySet<string> roleGrants = await permissionSources.GetRoleGrantsAsync(userId: userId, ct: ct);
+
+		HashSet<string> effective = [..userPermission.Permissions, ..roleGrants];
 
 		unitOfWork.OnCommitted(callback: () => redisCache.SetAsync(
 			key: CachedUserPermissionReadRepository.KeyFor(userId: userId),
-			value: permissions,
+			value: effective,
 			options: Ttl
 		));
 	}
