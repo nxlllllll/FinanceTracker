@@ -88,9 +88,9 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			return b == 7_000m;
 		});
 
-		await RunOutboxAsync();
 		await WaitForConditionAsync(condition: async () =>
 		{
+			await RunOutboxAsync();
 			await using FinanceTrackerContext ctx = CreateReadContext();
 			decimal? b = await ctx.AccountBalances.Where(predicate: x => x.AccountId == toAccountId)
 				.Select(selector: x => x.Balance)
@@ -157,10 +157,10 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			return await ctx.Transfers.AnyAsync(predicate: t => t.FromAccountId == fromAccountId && t.Status == TransferStatus.Compensated);
 		});
 
-		await RunOutboxAsync();
 
 		await WaitForConditionAsync(condition: async () =>
 		{
+			await RunOutboxAsync();
 			await using FinanceTrackerContext ctx = CreateReadContext();
 			decimal? balance = await ctx.AccountBalances.Where(predicate: b => b.AccountId == fromAccountId)
 				.Select(selector: b => b.Balance)
@@ -289,9 +289,9 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 
 		// Credit toAccount generates a new entry in the outbox AFTER we have published
 		// the stack is higher — one more pass is needed for AccountEventsConsumer to project the balance.
-		await RunOutboxAsync();
 		await WaitForConditionAsync(condition: async () =>
 		{
+			await RunOutboxAsync();
 			await using FinanceTrackerContext ctx = CreateReadContext();
 			decimal? b = await ctx.AccountBalances.Where(predicate: x => x.AccountId == toAccountId)
 				.Select(selector: x => x.Balance)

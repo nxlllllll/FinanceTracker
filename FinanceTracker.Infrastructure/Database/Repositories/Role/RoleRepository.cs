@@ -62,7 +62,7 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 	public async Task<IReadOnlyList<RoleDto>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
 	{
 		List<Guid> roleIds = await context.UserRoles.AsNoTracking()
-			.Where(predicate: ur => ur.UserId == userId)
+			.Where(predicate: ur => ur.UserId == userId && ur.IsActive)
 			.Select(selector: ur => ur.RoleId)
 			.ToListAsync(cancellationToken: ct);
 
@@ -92,7 +92,10 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 	public async Task<IReadOnlyList<Guid>> GetMemberUserIdsAsync(
 		Guid roleId,
 		CancellationToken ct = default
-	) => await context.UserRoles.AsNoTracking().Where(predicate: ur => ur.RoleId == roleId).Select(selector: ur => ur.UserId).ToListAsync(cancellationToken: ct);
+	) => await context.UserRoles.AsNoTracking()
+		.Where(predicate: ur => ur.RoleId == roleId && ur.IsActive)
+		.Select(selector: ur => ur.UserId)
+		.ToListAsync(cancellationToken: ct);
 
 	public async Task<RoleDto?> GetBySystemKeyAsync(
 		SystemRole systemKey,
@@ -103,7 +106,7 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 		SystemRole systemKey,
 		CancellationToken ct = default)
 	{
-		return await context.UserRoles.Join(
+		return await context.UserRoles.Where(predicate: ur => ur.IsActive).Join(
 			inner: context.Roles,
 			outerKeySelector: ur => ur.RoleId,
 			innerKeySelector: r => r.Id,
