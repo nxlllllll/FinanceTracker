@@ -2,6 +2,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.UserPermission;
+using FinanceTracker.Core.Domains.UserRole;
 using FinanceTracker.Tests.Architecture.Helpers;
 using NetArchTest.Rules;
 using TestResult = NetArchTest.Rules.TestResult;
@@ -17,6 +19,20 @@ public sealed class DomainArchitectureTests
 		IsClass: true,
 		IsAbstract: false,
 		Namespace: "FinanceTracker.Core.Domains.Account.Events"
+	}).ToArray();
+
+	private static readonly Type[] UserPermissionEventTypes = CoreAssembly.GetTypes().Where(predicate: t => typeof(IEvent).IsAssignableFrom(c: t) && t is
+	{
+		IsClass: true,
+		IsAbstract: false,
+		Namespace: "FinanceTracker.Core.Domains.UserPermission.Events"
+	}).ToArray();
+
+	private static readonly Type[] UserRoleEventTypes = CoreAssembly.GetTypes().Where(predicate: t => typeof(IEvent).IsAssignableFrom(c: t) && t is
+	{
+		IsClass: true,
+		IsAbstract: false,
+		Namespace: "FinanceTracker.Core.Domains.UserRole.Events"
 	}).ToArray();
 
 	private static bool IsRecord(Type t)
@@ -75,17 +91,42 @@ public sealed class DomainArchitectureTests
 	[Test]
 	public async Task Account_ApplyDispatch_ShouldRouteEveryAccountEvent()
 	{
-		IReadOnlyList<string> unhandled = await SwitchExhaustivenessChecker.FindUnhandledAsync(
-			candidateTypes: AccountEventTypes,
-			invoke: instance =>
-			{
-				Account account = (Account)RuntimeHelpers.GetUninitializedObject(type: typeof(Account));
-				account.LoadEventsFromHistory(history: [(IEvent)instance]);
-				return Task.CompletedTask;
-			}
-		);
+		IReadOnlyList<string> unhandled = await SwitchExhaustivenessChecker.FindUnhandledAsync(candidateTypes: AccountEventTypes, invoke: instance =>
+		{
+			Account account = (Account)RuntimeHelpers.GetUninitializedObject(type: typeof(Account));
+			account.LoadEventsFromHistory(history: [(IEvent)instance]);
+			return Task.CompletedTask;
+		});
 
 		await Assert.That(value: unhandled).IsEmpty()
 			.Because(message: $"Account.Apply()'s switch has no case for: {String.Join(separator: ", ", values: unhandled)}");
+	}
+
+	[Test]
+	public async Task UserPermission_ApplyDispatch_ShouldRouteEveryUserPermissionEvent()
+	{
+		IReadOnlyList<string> unhandled = await SwitchExhaustivenessChecker.FindUnhandledAsync(candidateTypes: UserPermissionEventTypes, invoke: instance =>
+		{
+			UserPermission userPermission = (UserPermission)RuntimeHelpers.GetUninitializedObject(type: typeof(UserPermission));
+			userPermission.LoadEventsFromHistory(history: [(IEvent)instance]);
+			return Task.CompletedTask;
+		});
+
+		await Assert.That(value: unhandled).IsEmpty()
+			.Because(message: $"UserPermission.Apply()'s switch has no case for: {String.Join(separator: ", ", values: unhandled)}");
+	}
+
+	[Test]
+	public async Task UserRole_ApplyDispatch_ShouldRouteEveryUserRoleEvent()
+	{
+		IReadOnlyList<string> unhandled = await SwitchExhaustivenessChecker.FindUnhandledAsync(candidateTypes: UserRoleEventTypes, invoke: instance =>
+		{
+			UserRole userRole = (UserRole)RuntimeHelpers.GetUninitializedObject(type: typeof(UserRole));
+			userRole.LoadEventsFromHistory(history: [(IEvent)instance]);
+			return Task.CompletedTask;
+		});
+
+		await Assert.That(value: unhandled).IsEmpty()
+			.Because(message: $"UserRole.Apply()'s switch has no case for: {String.Join(separator: ", ", values: unhandled)}");
 	}
 }
