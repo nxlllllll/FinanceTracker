@@ -280,6 +280,50 @@ public static class DbContextExtensions
 		""", cancellationToken: ct);
 	}
 
+	public static Task AssignUserRoleAsync(
+		this DbContext context,
+		Guid userId,
+		Guid roleId,
+		Guid assignedBy,
+		DateTimeOffset assignedAt,
+		int version,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO user_roles (user_id, role_id, assigned_at, assigned_by, last_version, is_active)
+			VALUES ({userId}, {roleId}, {assignedAt}, {assignedBy}, {version}, TRUE)
+			ON CONFLICT (user_id, role_id) DO UPDATE
+			SET assigned_at = EXCLUDED.assigned_at,
+			    assigned_by = EXCLUDED.assigned_by,
+			    last_version = EXCLUDED.last_version,
+			    is_active = TRUE,
+			    removed_at = NULL,
+			    removed_by = NULL
+			WHERE user_roles.last_version < EXCLUDED.last_version
+		""", cancellationToken: ct);
+	}
+
+	public static Task RemoveUserRoleAsync(
+		this DbContext context,
+		Guid userId,
+		Guid roleId,
+		Guid removedBy,
+		DateTimeOffset removedAt,
+		int version,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO user_roles (user_id, role_id, assigned_at, last_version, is_active, removed_at, removed_by)
+			VALUES ({userId}, {roleId}, {removedAt}, {version}, FALSE, {removedAt}, {removedBy})
+			ON CONFLICT (user_id, role_id) DO UPDATE
+			SET last_version = EXCLUDED.last_version,
+			    is_active = FALSE,
+			    removed_at = EXCLUDED.removed_at,
+			    removed_by = EXCLUDED.removed_by
+			WHERE user_roles.last_version < EXCLUDED.last_version
+		""", cancellationToken: ct);
+	}
+
 	public static Task<List<Guid>> RevokeUserSessionAsync(
 		this DbContext context,
 		Guid sessionId,

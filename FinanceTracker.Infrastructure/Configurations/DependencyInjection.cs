@@ -248,6 +248,7 @@ public static class DependencyInjection
 
 		// UserRole
 		services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+		services.AddScoped<IUserRoleWriteRepository, UserRoleWriteRepository>();
 
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();

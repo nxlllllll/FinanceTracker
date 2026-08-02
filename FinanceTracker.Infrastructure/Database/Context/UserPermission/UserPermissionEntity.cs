@@ -6,5 +6,5 @@ public sealed class UserPermissionEntity
 	public string Permission { get; init; } = String.Empty;
 	public DateTimeOffset GrantedAt { get; init; }
 	public int LastVersion { get; init; }
-	public bool IsActive { get; init; }
+	public bool IsActive { get; init; } = true;
 }
