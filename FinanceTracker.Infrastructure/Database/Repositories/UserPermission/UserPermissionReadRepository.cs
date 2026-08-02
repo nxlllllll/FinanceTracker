@@ -9,7 +9,7 @@ public sealed class UserPermissionReadRepository(FinanceTrackerContext context) 
 	public async Task<IReadOnlySet<string>> GetPermissionsAsync(Guid userId, CancellationToken ct = default)
 	{
 		return await context.UserPermissions.AsNoTracking()
-			.Where(predicate: e => e.UserId == userId)
+			.Where(predicate: e => e.UserId == userId && e.IsActive)
 			.Select(selector: e => e.Permission)
 			.ToHashSetAsync(cancellationToken: ct);
 	}

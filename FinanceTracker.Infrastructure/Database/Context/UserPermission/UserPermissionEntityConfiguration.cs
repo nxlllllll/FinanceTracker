@@ -20,5 +20,11 @@ public sealed class UserPermissionEntityConfiguration : IEntityTypeConfiguration
 
 		builder.Property(propertyExpression: e => e.GrantedAt)
 			.HasColumnName(name: "granted_at");
+
+		builder.Property(propertyExpression: e => e.LastVersion)
+			.HasColumnName(name: "last_version");
+
+		builder.Property(propertyExpression: e => e.IsActive)
+			.HasColumnName(name: "is_active");
 	}
 }

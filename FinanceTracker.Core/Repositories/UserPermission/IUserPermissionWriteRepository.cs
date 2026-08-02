@@ -5,15 +5,15 @@ namespace FinanceTracker.Core.Repositories.UserPermission;
 
 public interface IUserPermissionWriteRepository
 {
-	[EventuallyConsistentCreate]
+	[EventuallyConsistentAssignment(versionColumn: "last_version")]
 	Task GrantAsync(
 		PermissionGranted @event,
 		CancellationToken ct = default
 	);
 
+	[EventuallyConsistentAssignment(versionColumn: "last_version")]
 	Task RevokeAsync(
-		Guid userId,
-		string permission,
+		PermissionRevoked @event,
 		CancellationToken ct = default
 	);
 }

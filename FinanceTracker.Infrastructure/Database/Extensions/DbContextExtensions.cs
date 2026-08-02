@@ -243,17 +243,40 @@ public static class DbContextExtensions
 		""", cancellationToken: ct);
 	}
 
-	public static Task InsertUserPermissionAsync(
+	public static Task GrantUserPermissionAsync(
 		this DbContext context,
 		Guid userId,
 		string permission,
 		DateTimeOffset grantedAt,
+		int version,
 		CancellationToken ct = default)
 	{
 		return context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO user_permissions (user_id, permission, granted_at)
-			VALUES ({userId}, {permission}, {grantedAt})
-			ON CONFLICT (user_id, permission) DO NOTHING
+			INSERT INTO user_permissions (user_id, permission, granted_at, last_version, is_active)
+			VALUES ({userId}, {permission}, {grantedAt}, {version}, TRUE)
+			ON CONFLICT (user_id, permission) DO UPDATE
+			SET granted_at = EXCLUDED.granted_at,
+			    last_version = EXCLUDED.last_version,
+			    is_active = TRUE
+			WHERE user_permissions.last_version < EXCLUDED.last_version
+		""", cancellationToken: ct);
+	}
+
+	public static Task RevokeUserPermissionAsync(
+		this DbContext context,
+		Guid userId,
+		string permission,
+		DateTimeOffset revokedAt,
+		int version,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO user_permissions (user_id, permission, granted_at, last_version, is_active)
+			VALUES ({userId}, {permission}, {revokedAt}, {version}, FALSE)
+			ON CONFLICT (user_id, permission) DO UPDATE
+			SET last_version = EXCLUDED.last_version,
+			    is_active = FALSE
+			WHERE user_permissions.last_version < EXCLUDED.last_version
 		""", cancellationToken: ct);
 	}
 

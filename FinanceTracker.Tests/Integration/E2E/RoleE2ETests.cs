@@ -118,13 +118,13 @@ public sealed class RoleE2ETests : E2EFixture
 		{
 			await RunOutboxAsync();
 			await using FinanceTrackerContext ctx = CreateReadContext();
-			bool hasNew = await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId && p.Permission == "category:read");
-			bool lacksOld = !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId && p.Permission == "account:read");
+			bool hasNew = await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId && p.Permission == "category:read" && p.IsActive);
+			bool lacksOld = !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId && p.Permission == "account:read" && p.IsActive);
 			return hasNew && lacksOld;
 		});
 
 		await using FinanceTrackerContext readCtx = CreateReadContext();
-		List<string> permissions = await readCtx.UserPermissions.Where(predicate: p => p.UserId == memberUserId)
+		List<string> permissions = await readCtx.UserPermissions.Where(predicate: p => p.UserId == memberUserId && p.IsActive)
 			.Select(selector: p => p.Permission).ToListAsync();
 
 		await Assert.That(value: permissions).Contains(expected: "category:read");
@@ -171,11 +171,11 @@ public sealed class RoleE2ETests : E2EFixture
 		{
 			await RunOutboxAsync();
 			await using FinanceTrackerContext ctx = CreateReadContext();
-			return !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId);
+			return !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId && p.IsActive);
 		});
 
 		await using FinanceTrackerContext readCtx = CreateReadContext();
-		bool stillHasAny = await readCtx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId);
+		bool stillHasAny = await readCtx.UserPermissions.AnyAsync(predicate: p => p.UserId == memberUserId && p.IsActive);
 		await Assert.That(value: stillHasAny).IsFalse();
 	}
 

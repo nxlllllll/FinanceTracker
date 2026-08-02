@@ -2,7 +2,6 @@ using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Extensions;
-using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
 
@@ -11,16 +10,22 @@ public sealed class UserPermissionWriteRepository(FinanceTrackerContext context)
 	public Task GrantAsync(
 		PermissionGranted @event,
 		CancellationToken ct = default
-	) => context.InsertUserPermissionAsync(
+	) => context.GrantUserPermissionAsync(
 		userId: @event.UserId,
 		permission: @event.Permission,
 		grantedAt: @event.OccurredAt,
+		version: @event.Version,
 		ct: ct
 	);
 
 	public Task RevokeAsync(
-		Guid userId,
-		string permission,
+		PermissionRevoked @event,
 		CancellationToken ct = default
-	) => context.UserPermissions.Where(predicate: e => e.UserId == userId && e.Permission == permission).ExecuteDeleteAsync(cancellationToken: ct);
+	) => context.RevokeUserPermissionAsync(
+		userId: @event.UserId,
+		permission: @event.Permission,
+		revokedAt: @event.OccurredAt,
+		version: @event.Version,
+		ct: ct
+	);
 }
