@@ -100,6 +100,8 @@
         <EmbeddedResource Include="Migrations\V030__add_currency_rates_created_at_index.sql" />
         <None Remove="Migrations\V042__seed_role_permissions.sql" />
         <EmbeddedResource Include="Migrations\V042__seed_role_permissions.sql" />
+        <None Remove="Migrations\V043__add_projection_version_guards.sql" />
+        <EmbeddedResource Include="Migrations\V043__add_projection_version_guards.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">
