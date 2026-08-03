@@ -1,6 +1,8 @@
+using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Role;
+using FinanceTracker.Infrastructure.Database.Repositories.UserRole;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -11,16 +13,33 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 {
 	private RoleRepository _repository = null!;
 	private UserBuilder _userBuilder = null!;
+	private UserRoleWriteRepository _membershipWriter = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_repository = new RoleRepository(context: Context);
 		_userBuilder = new UserBuilder(context: Context);
+		_membershipWriter = new UserRoleWriteRepository(context: Context);
 	}
 
 	private static IReadOnlySet<Permission> Perms(params (Resource, PermissionAction)[] pairs)
 		=> pairs.Select(selector: p => Permission.Create(resource: p.Item1, action: p.Item2).Value!).ToHashSet();
+
+	private Task AssignMembershipAsync(
+		Guid userId,
+		Guid roleId
+	) => _membershipWriter.AssignAsync(
+		@event: new RoleAssigned(
+			Id: Guid.CreateVersion7(),
+			UserId: userId,
+			RoleId: roleId,
+			AssignedBy: Guid.CreateVersion7(),
+			Version: 2,
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		),
+		ct: CancellationToken.None
+	);
 
 	[Test]
 	public async Task CreateAsync_ThenGetByIdAsync_ShouldReturnRoleWithPermissions()
@@ -80,76 +99,14 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task AssignToUserAsync_CalledTwice_ShouldNotDuplicate()
-	{
-		Guid roleId = await _repository.CreateAsync(
-			displayName: Name.Create(value: "Auditor").Value!,
-			permissions: Perms((Resource.Transaction, PermissionAction.Read)),
-			createdAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
-		Guid userId = await _userBuilder.CreateAsync();
-
-		await _repository.AssignToUserAsync(
-			userId: userId,
-			roleId: roleId,
-			assignedAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
-		await _repository.AssignToUserAsync(
-			userId: userId,
-			roleId: roleId,
-			assignedAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
-
-		IReadOnlyList<Guid> members = await _repository.GetMemberUserIdsAsync(roleId: roleId, ct: CancellationToken.None);
-
-		await Assert.That(value: members).Count().IsEqualTo(expected: 1);
-	}
-
-	[Test]
-	public async Task RemoveFromUserAsync_ShouldRemoveMembership()
-	{
-		Guid roleId = await _repository.CreateAsync(
-			displayName: Name.Create(value: "Temp").Value!,
-			permissions: new HashSet<Permission>(),
-			createdAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
-		Guid userId = await _userBuilder.CreateAsync();
-		await _repository.AssignToUserAsync(
-			userId: userId,
-			roleId: roleId,
-			assignedAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
-
-		await _repository.RemoveFromUserAsync(userId: userId, roleId: roleId, ct: CancellationToken.None);
-
-		IReadOnlyList<Guid> members = await _repository.GetMemberUserIdsAsync(roleId: roleId, ct: CancellationToken.None);
-		await Assert.That(value: members).IsEmpty();
-	}
-
-	[Test]
 	public async Task CountMembersWithSystemKeyAsync_ShouldCountOnlyMatchingSystemRole()
 	{
 		RoleDto? rootRole = await _repository.GetBySystemKeyAsync(systemKey: SystemRole.Root, ct: CancellationToken.None);
 		Guid userA = await _userBuilder.CreateAsync();
 		Guid userB = await _userBuilder.CreateAsync();
 
-		await _repository.AssignToUserAsync(
-			userId: userA,
-			roleId: rootRole!.Id,
-			assignedAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
-		await _repository.AssignToUserAsync(
-			userId: userB,
-			roleId: rootRole.Id,
-			assignedAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
+		await AssignMembershipAsync(userId: userA, roleId: rootRole!.Id);
+		await AssignMembershipAsync(userId: userB, roleId: rootRole.Id);
 
 		int count = await _repository.CountMembersWithSystemKeyAsync(systemKey: SystemRole.Root, ct: CancellationToken.None);
 

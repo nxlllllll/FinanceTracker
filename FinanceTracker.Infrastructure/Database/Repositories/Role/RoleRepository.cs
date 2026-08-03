@@ -155,34 +155,6 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
-	public async Task AssignToUserAsync(
-		Guid userId,
-		Guid roleId,
-		DateTimeOffset assignedAt,
-		CancellationToken ct = default)
-	{
-		bool exists = await context.UserRoles.AnyAsync(predicate: ur => ur.UserId == userId && ur.RoleId == roleId, cancellationToken: ct);
-		if (exists)
-			return;
-
-		await context.UserRoles.AddAsync(
-			entity: new UserRoleEntity
-			{
-				UserId = userId,
-				RoleId = roleId,
-				AssignedAt = assignedAt
-			},
-			cancellationToken: ct
-		);
-		await context.SaveChangesAsync(cancellationToken: ct);
-	}
-
-	public async Task RemoveFromUserAsync(
-		Guid userId,
-		Guid roleId,
-		CancellationToken ct = default
-	) => await context.UserRoles.Where(predicate: ur => ur.UserId == userId && ur.RoleId == roleId).ExecuteDeleteAsync(cancellationToken: ct);
-
 	public async Task DeleteAsync(
 		Guid roleId,
 		CancellationToken ct = default)
