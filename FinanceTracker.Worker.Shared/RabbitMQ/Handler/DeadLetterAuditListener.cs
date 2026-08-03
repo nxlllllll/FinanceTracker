@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,6 +31,7 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 	where TMessage : class
 	where THandler : IMessageHandler<TMessage>
 {
+	private const int MaxReconnectDelaySeconds = 30;
 	private readonly string _queueName = RabbitMqQueueNaming.Resolve<THandler>(options: options.Value);
 
 	private IConnection? _connection;
@@ -66,7 +68,7 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 			catch (Exception exception)
 			{
 				attempt++;
-				int delaySeconds = Math.Min(val1: 30, val2: 1 << attempt);
+				int delaySeconds = RetryDelayCalculator.CalculateSeconds(attempt: attempt, maxSeconds: MaxReconnectDelaySeconds);
 
 				logger.ZLogError(exception: exception, message: $"""
 					[{typeof(TMessage).Name}] Dead-letter audit listener connection failed (attempt {attempt}). Retrying in {delaySeconds}s.

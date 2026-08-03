@@ -231,7 +231,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	{
 		return new RabbitMqListenerService<AggregateEventsMessage, THandler>(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options),
+			options: new FakeOptionsMonitor<RabbitMqOptions>(value: options),
 			scopeFactory: scopeFactory,
 			logger: NullLogger<RabbitMqListenerService<AggregateEventsMessage, THandler>>.Instance
 		);

@@ -11,6 +11,13 @@ namespace FinanceTracker.Core.Utilities.Retry;
 public static class RetryDelayCalculator
 {
 	private static readonly Random Jitter = Random.Shared;
+	private const int MaxShift = 16;
+
+	/// <summary>
+	/// <c>2^attempt</c>, saturating at <see cref="MaxShift"/>. Safe for any attempt count.
+	/// </summary>
+	private static int Exponential(int attempt)
+		=> 1 << Math.Clamp(value: attempt, min: 0, max: MaxShift);
 
 	/// <summary>
 	/// Calculates a delay for the given retry <paramref name="attempt"/>.
@@ -21,13 +28,23 @@ public static class RetryDelayCalculator
 	/// <param name="useJitter">When <c>true</c>, randomises the delay to spread concurrent retries.</param>
 	public static int Calculate(int attempt, int baseDelayMs, bool useJitter)
 	{
-		int exponential = baseDelayMs * (1 << attempt);
+		int exponential = (int)Math.Min(
+			val1: (long)baseDelayMs * Exponential(attempt: attempt),
+			val2: Int32.MaxValue - 1
+		);
 
 		if (!useJitter)
 			return exponential;
 
 		return Jitter.Next(minValue: 0, maxValue: exponential + 1);
 	}
+
+	/// <summary>
+	/// Exponential backoff in whole seconds, capped at <paramref name="maxSeconds"/>. For reconnect
+	/// loops, where the attempt counter is unbounded by design.
+	/// </summary>
+	public static int CalculateSeconds(int attempt, int maxSeconds)
+		=> Math.Min(val1: maxSeconds, val2: Exponential(attempt: attempt));
 
 	/// <summary>
 	/// Executes <paramref name="operation"/> with automatic retry on <see cref="ConcurrencyConflictException"/>.

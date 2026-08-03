@@ -6,6 +6,7 @@ using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Tracing;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,7 +28,7 @@ namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 /// </summary>
 public sealed class RabbitMqListenerService<TMessage, THandler>(
 	RabbitMqConnectionFactory connectionFactory,
-	IOptions<RabbitMqOptions> options,
+	IOptionsMonitor<RabbitMqOptions> options,
 	IServiceScopeFactory scopeFactory,
 	ILogger<RabbitMqListenerService<TMessage, THandler>> logger
 ) : BackgroundService
@@ -41,9 +42,8 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	public const string DelayedRetryMaxArgument = "x-delayed-retry-max";
 	public const string DeadLetterExchangeArgument = "x-dead-letter-exchange";
 
-	private readonly RabbitMqOptions _options = options.Value;
 	private readonly string _routingKey = GetRoutingKey();
-	private readonly string _queueName = RabbitMqQueueNaming.Resolve<THandler>(options: options.Value);
+	private readonly string _queueName = RabbitMqQueueNaming.Resolve<THandler>(options: options.CurrentValue);
 
 	private IConnection? _connection;
 	private IChannel? _channel;
@@ -61,9 +61,10 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 	public override async Task StartAsync(CancellationToken ct)
 	{
+		RabbitMqOptions currentOptions = options.CurrentValue;
 		logger.ZLogInformation(message: $"""
 			[{typeof(TMessage).Name}] Listener starting. Queue: '{_queueName}',
-			Exchange: '{_options.ExchangeName}', RoutingKey: '{_routingKey}', MaxRetries: {_options.MaxRetries}.
+			Exchange: '{currentOptions.ExchangeName}', RoutingKey: '{_routingKey}', MaxRetries: {currentOptions.MaxRetries}.
 		""");
 		await base.StartAsync(cancellationToken: ct);
 	}
@@ -90,7 +91,10 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			catch (Exception exception)
 			{
 				attempt++;
-				int delaySeconds = Math.Min(val1: 30, val2: 1 << attempt);
+				int delaySeconds = RetryDelayCalculator.CalculateSeconds(
+					attempt: attempt,
+					maxSeconds: options.CurrentValue.MaxReconnectDelaySeconds
+				);
 
 				logger.ZLogError(exception: exception, message: $"[{typeof(TMessage).Name}] Connection failed (attempt {attempt}). Retrying in {delaySeconds}s.");
 
@@ -103,6 +107,8 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 	private async Task ConnectAsync(CancellationToken ct)
 	{
+		RabbitMqOptions currentOptions = options.CurrentValue;
+
 		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
 		RabbitMqVersionGuard.EnsureSupportedVersion(connection: _connection);
 
@@ -110,13 +116,13 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 		await _channel.BasicQosAsync(
 			prefetchSize: 0,
-			prefetchCount: (ushort)_options.PrefetchCount,
+			prefetchCount: (ushort)currentOptions.PrefetchCount,
 			global: false,
 			cancellationToken: ct
 		);
 
 		await _channel.ExchangeDeclareAsync(
-			exchange: _options.ExchangeName,
+			exchange: currentOptions.ExchangeName,
 			type: ExchangeType.Topic,
 			durable: true,
 			cancellationToken: ct
@@ -133,17 +139,17 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			{
 				[QueueTypeArgument] = "quorum",
 				[DeadLetterExchangeArgument] = DeadLetterExchangeName,
-				[DeliveryLimitArgument] = _options.MaxRetries,
+				[DeliveryLimitArgument] = currentOptions.MaxRetries,
 				[DelayedRetryTypeArgument] = "failed",
-				[DelayedRetryMinArgument] = _options.DelayedRetryMinMs,
-				[DelayedRetryMaxArgument] = _options.DelayedRetryMaxMs
+				[DelayedRetryMinArgument] = currentOptions.DelayedRetryMinMs,
+				[DelayedRetryMaxArgument] = currentOptions.DelayedRetryMaxMs
 			},
 			cancellationToken: ct
 		);
 
 		await _channel.QueueBindAsync(
 			queue: _queueName,
-			exchange: _options.ExchangeName,
+			exchange: currentOptions.ExchangeName,
 			routingKey: _routingKey,
 			cancellationToken: ct
 		);
@@ -290,6 +296,8 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		Activity? activity,
 		CancellationToken ct)
 	{
+		RabbitMqOptions currentOptions = options.CurrentValue;
+
 		try
 		{
 			await handler.HandleAsync(message: message, ct: ct);
@@ -309,8 +317,8 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			activity?.AddException(exception: ex);
 
 			logger.ZLogWarning(exception: ex, message: $"""
-				[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag}. Rejecting for native
-				delayed retry (delivery-limit {_options.MaxRetries}, {_options.DelayedRetryMinMs}-{_options.DelayedRetryMaxMs}ms linear backoff).
+				[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag}. Rejecting for native delayed retry
+				(delivery-limit {currentOptions.MaxRetries}, {currentOptions.DelayedRetryMinMs}-{currentOptions.DelayedRetryMaxMs}ms linear backoff).
 			""");
 
 			await SafeRejectAsync(deliveryTag: ea.DeliveryTag, requeue: true);
