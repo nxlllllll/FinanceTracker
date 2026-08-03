@@ -106,8 +106,8 @@ public static class ResultExtensions
 		this Result<Guid, AppException> result,
 		Func<Guid, string> locationFactory)
 	{
-		if (!result.IsSuccess)
-			result.Error!.ToProblem();
+		if (result.IsFailure)
+			return result.Error!.ToProblem();
 
 		return Microsoft.AspNetCore.Http.Results.Created(
 			uri: locationFactory(result.Value),

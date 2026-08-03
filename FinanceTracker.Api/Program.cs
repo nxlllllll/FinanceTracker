@@ -119,6 +119,5 @@ public sealed class Program
 		}
 
 		app.Run();
-		app.Run();
 	}
 }
