@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
 
@@ -28,4 +29,15 @@ public sealed class UserPermissionWriteRepository(FinanceTrackerContext context)
 		version: @event.Version,
 		ct: ct
 	);
+
+	public async Task<int> DeleteOldTombstonesAsync(
+		DateTimeOffset before,
+		int batchSize,
+		CancellationToken ct = default)
+	{
+		return await context.UserPermissions.Where(predicate: e => !e.IsActive && e.RevokedAt < before)
+			.OrderBy(keySelector: e => e.RevokedAt)
+			.Take(count: batchSize)
+			.ExecuteDeleteAsync(cancellationToken: ct);
+	}
 }

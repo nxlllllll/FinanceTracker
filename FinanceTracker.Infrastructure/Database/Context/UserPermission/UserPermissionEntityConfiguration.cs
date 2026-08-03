@@ -26,5 +26,8 @@ public sealed class UserPermissionEntityConfiguration : IEntityTypeConfiguration
 
 		builder.Property(propertyExpression: e => e.IsActive)
 			.HasColumnName(name: "is_active");
+
+		builder.Property(propertyExpression: e => e.RevokedAt)
+			.HasColumnName(name: "revoked_at");
 	}
 }

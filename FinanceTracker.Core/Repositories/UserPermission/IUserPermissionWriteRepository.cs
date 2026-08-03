@@ -16,4 +16,10 @@ public interface IUserPermissionWriteRepository
 		PermissionRevoked @event,
 		CancellationToken ct = default
 	);
+
+	Task<int> DeleteOldTombstonesAsync(
+		DateTimeOffset before,
+		int batchSize,
+		CancellationToken ct = default
+	);
 }

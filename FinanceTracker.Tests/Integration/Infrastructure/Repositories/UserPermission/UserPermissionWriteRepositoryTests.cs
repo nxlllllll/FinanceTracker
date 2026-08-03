@@ -167,4 +167,56 @@ public sealed class UserPermissionWriteRepositoryTests : DatabaseFixture
 		""");
 		await Assert.That(value: row.LastVersion).IsEqualTo(expected: 5);
 	}
+
+	[Test]
+	public async Task DeleteOldTombstonesAsync_ShouldRemoveOnlyExpiredOnes()
+	{
+		Guid userId = Guid.CreateVersion7();
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: "account:read"), ct: CancellationToken.None);
+		await _repository.RevokeAsync(@event: BuildRevokedEvent(userId: userId, permission: "account:read"), ct: CancellationToken.None);
+
+		int deleted = await _repository.DeleteOldTombstonesAsync(
+			before: FakeDateProvider.Default.UtcNow.AddDays(days: 1),
+			batchSize: 100,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: deleted).IsEqualTo(expected: 1);
+		await Assert.That(value: await FindAsync(userId: userId, permission: "account:read")).IsNull();
+	}
+
+	[Test]
+	public async Task DeleteOldTombstonesAsync_ShouldKeepRecentOnes()
+	{
+		Guid userId = Guid.CreateVersion7();
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: "budget:read"), ct: CancellationToken.None);
+		await _repository.RevokeAsync(@event: BuildRevokedEvent(userId: userId, permission: "budget:read"), ct: CancellationToken.None);
+
+		int deleted = await _repository.DeleteOldTombstonesAsync(
+			before: FakeDateProvider.Default.UtcNow.AddDays(days: -1),
+			batchSize: 100,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: deleted).IsEqualTo(expected: 0);
+		await Assert.That(value: await FindAsync(userId: userId, permission: "budget:read")).IsNotNull().Because(message: """
+			Deleting a tombstone before the broker has forgotten the message means a replayed revoke or
+			grant lands on an empty table and gets applied as if it were new.
+		""");
+	}
+
+	[Test]
+	public async Task DeleteOldTombstonesAsync_ShouldNotTouchLiveRows()
+	{
+		Guid userId = Guid.CreateVersion7();
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: "category:read"), ct: CancellationToken.None);
+
+		int deleted = await _repository.DeleteOldTombstonesAsync(
+			before: FakeDateProvider.Default.UtcNow.AddDays(days: 1),
+			batchSize: 100,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: deleted).IsEqualTo(expected: 0);
+	}
 }

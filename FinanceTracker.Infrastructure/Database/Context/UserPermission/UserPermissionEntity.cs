@@ -7,4 +7,5 @@ public sealed class UserPermissionEntity
 	public DateTimeOffset GrantedAt { get; init; }
 	public int LastVersion { get; init; }
 	public bool IsActive { get; init; } = true;
+	public DateTimeOffset? RevokedAt { get; init; }
 }

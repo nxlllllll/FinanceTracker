@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Domains.UserRole.Events;
+﻿using FinanceTracker.Contracts.Events.UserRole;
+using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Role;
 using FinanceTracker.Infrastructure.Database.Repositories.Role;
@@ -198,5 +199,60 @@ public sealed class UserRoleWriteRepositoryTests : DatabaseFixture
 			The root role skips ownership checks entirely, so a tombstone that still reads as membership
 			is not a stale row — it is a user who cannot be stripped of admin access.
 		""");
+	}
+[Test]
+	public async Task DeleteOldTombstonesAsync_ShouldRemoveOnlyExpiredOnes()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid roleId = await SeededRoleIdAsync(systemKey: SystemRole.User);
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: roleId), ct: CancellationToken.None);
+		await _repository.RemoveAsync(@event: BuildRemovedEvent(userId: userId, roleId: roleId), ct: CancellationToken.None);
+
+		int deleted = await _repository.DeleteOldTombstonesAsync(
+			before: FakeDateProvider.Default.UtcNow.AddDays(days: 1),
+			batchSize: 100,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: deleted).IsEqualTo(expected: 1);
+		await Assert.That(value: await FindAsync(userId: userId, roleId: roleId)).IsNull();
+	}
+
+	[Test]
+	public async Task DeleteOldTombstonesAsync_ShouldKeepRecentOnes()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid roleId = await SeededRoleIdAsync(systemKey: SystemRole.Admin);
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: roleId), ct: CancellationToken.None);
+		await _repository.RemoveAsync(@event: BuildRemovedEvent(userId: userId, roleId: roleId), ct: CancellationToken.None);
+
+		int deleted = await _repository.DeleteOldTombstonesAsync(
+			before: FakeDateProvider.Default.UtcNow.AddDays(days: -1),
+			batchSize: 100,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: deleted).IsEqualTo(expected: 0);
+		await Assert.That(value: await FindAsync(userId: userId, roleId: roleId)).IsNotNull().Because(message: """
+			Deleting a tombstone while the broker can still redeliver the assignment it superseded means
+			that assignment lands on an empty table and restores membership that was taken away.
+		""");
+	}
+
+	[Test]
+	public async Task DeleteOldTombstonesAsync_ShouldNotTouchLiveMembership()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid roleId = await SeededRoleIdAsync(systemKey: SystemRole.User);
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: roleId), ct: CancellationToken.None);
+
+		int deleted = await _repository.DeleteOldTombstonesAsync(
+			before: FakeDateProvider.Default.UtcNow.AddDays(days: 1),
+			batchSize: 100,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: deleted).IsEqualTo(expected: 0);
+		await Assert.That(value: (await FindAsync(userId: userId, roleId: roleId))!.IsActive).IsTrue();
 	}
 }

@@ -3,6 +3,8 @@ using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.Snapshot;
+using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Cleanup.Job;
@@ -17,6 +19,8 @@ public sealed class CleanupJobTests
 	private IIdempotencyWriteRepository _idempotencyWriteRepository = null!;
 	private IOutboxWriteRepository _outboxWriteRepository = null!;
 	private IProcessedMessageWriteRepository _processedMessageWriteRepository = null!;
+	private IUserPermissionWriteRepository _userPermissionWriteRepository = null!;
+	private IUserRoleWriteRepository _userRoleWriteRepository = null!;
 	private ISnapshotWriteRepository _snapshotWriteRepository = null!;
 	private IDateProvider _dateProvider = null!;
 	private CapturingLogger<CleanupJob> _logger = null!;
@@ -40,6 +44,8 @@ public sealed class CleanupJobTests
 		_idempotencyWriteRepository = Substitute.For<IIdempotencyWriteRepository>();
 		_outboxWriteRepository = Substitute.For<IOutboxWriteRepository>();
 		_processedMessageWriteRepository = Substitute.For<IProcessedMessageWriteRepository>();
+		_userPermissionWriteRepository = Substitute.For<IUserPermissionWriteRepository>();
+		_userRoleWriteRepository = Substitute.For<IUserRoleWriteRepository>();
 		_snapshotWriteRepository = Substitute.For<ISnapshotWriteRepository>();
 		_dateProvider = Substitute.For<IDateProvider>();
 		_logger = new CapturingLogger<CleanupJob>();
@@ -78,6 +84,8 @@ public sealed class CleanupJobTests
 			accountWriteRepository: _accountWriteRepository,
 			outboxRepository: _outboxWriteRepository,
 			processedMessageRepository: _processedMessageWriteRepository,
+			userPermissionWriteRepository: _userPermissionWriteRepository,
+			userRoleWriteRepository: _userRoleWriteRepository,
 			snapshotRepository: _snapshotWriteRepository,
 			dateProvider: _dateProvider,
 			options: new FakeOptionsMonitor<CleanupOptions>(value: DefaultOptions),

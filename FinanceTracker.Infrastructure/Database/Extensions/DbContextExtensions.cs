@@ -257,7 +257,8 @@ public static class DbContextExtensions
 			ON CONFLICT (user_id, permission) DO UPDATE
 			SET granted_at = EXCLUDED.granted_at,
 			    last_version = EXCLUDED.last_version,
-			    is_active = TRUE
+			    is_active = TRUE,
+			    revoked_at = NULL
 			WHERE user_permissions.last_version < EXCLUDED.last_version
 		""", cancellationToken: ct);
 	}
@@ -271,14 +272,55 @@ public static class DbContextExtensions
 		CancellationToken ct = default)
 	{
 		return context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO user_permissions (user_id, permission, granted_at, last_version, is_active)
-			VALUES ({userId}, {permission}, {revokedAt}, {version}, FALSE)
+			INSERT INTO user_permissions (user_id, permission, granted_at, last_version, is_active, revoked_at)
+			VALUES ({userId}, {permission}, {revokedAt}, {version}, FALSE, {revokedAt})
 			ON CONFLICT (user_id, permission) DO UPDATE
 			SET last_version = EXCLUDED.last_version,
-			    is_active = FALSE
+			    is_active = FALSE,
+			    revoked_at = EXCLUDED.revoked_at
 			WHERE user_permissions.last_version < EXCLUDED.last_version
 		""", cancellationToken: ct);
 	}
+//
+// 	public static Task<int> DeleteOldPermissionTombstonesAsync(
+// 		this DbContext context,
+// 		DateTimeOffset before,
+// 		int batchSize,
+// 		CancellationToken ct = default)
+// 	{
+// 		return context.Database.ExecuteSqlAsync(sql: $"""
+// 			DELETE FROM user_permissions
+// 			USING (
+// 				SELECT user_id, permission
+// 				FROM user_permissions
+// 				WHERE NOT is_active AND revoked_at < {before}
+// 				ORDER BY revoked_at
+// 				LIMIT {batchSize}
+// 			) old
+// 			WHERE user_permissions.user_id    = old.user_id
+// 			  AND user_permissions.permission = old.permission
+// 		""", cancellationToken: ct);
+// 	}
+//
+// 	public static Task<int> DeleteOldMembershipTombstonesAsync(
+// 		this DbContext context,
+// 		DateTimeOffset before,
+// 		int batchSize,
+// 		CancellationToken ct = default)
+// 	{
+// 		return context.Database.ExecuteSqlAsync(sql: $"""
+// 			DELETE FROM user_roles
+// 			USING (
+// 				SELECT user_id, role_id
+// 				FROM user_roles
+// 				WHERE NOT is_active AND removed_at < {before}
+// 				ORDER BY removed_at
+// 				LIMIT {batchSize}
+// 			) old
+// 			WHERE user_roles.user_id = old.user_id
+// 			  AND user_roles.role_id = old.role_id
+// 		""", cancellationToken: ct);
+// 	}
 
 	public static Task AssignUserRoleAsync(
 		this DbContext context,

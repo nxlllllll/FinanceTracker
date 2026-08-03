@@ -2,6 +2,7 @@
 using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.UserRole;
 
@@ -30,4 +31,15 @@ public sealed class UserRoleWriteRepository(FinanceTrackerContext context) : IUs
 		version: @event.Version,
 		ct: ct
 	);
+
+	public async Task<int> DeleteOldTombstonesAsync(
+		DateTimeOffset before,
+		int batchSize,
+		CancellationToken ct = default)
+	{
+		return await context.UserRoles.Where(predicate: e => !e.IsActive && e.RemovedAt < before)
+			.OrderBy(keySelector: e => e.RemovedAt)
+			.Take(count: batchSize)
+			.ExecuteDeleteAsync(cancellationToken: ct);
+	}
 }

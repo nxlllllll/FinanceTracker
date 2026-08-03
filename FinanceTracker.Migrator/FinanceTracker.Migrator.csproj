@@ -102,6 +102,8 @@
         <EmbeddedResource Include="Migrations\V042__seed_role_permissions.sql" />
         <None Remove="Migrations\V043__add_projection_version_guards.sql" />
         <EmbeddedResource Include="Migrations\V043__add_projection_version_guards.sql" />
+        <None Remove="Migrations\V044__add_permission_revoked_at.sql" />
+        <EmbeddedResource Include="Migrations\V044__add_permission_revoked_at.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">
