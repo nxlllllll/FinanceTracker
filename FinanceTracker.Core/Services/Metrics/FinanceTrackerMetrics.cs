@@ -40,10 +40,20 @@ public static class FinanceTrackerMetrics
 		description: "Refresh tokens presented after their session was revoked. Tagged by outcome (allowed/reuse_detected)."
 	);
 
+	/// <summary>
+	/// Cache writes and deletes that never reached Redis because it was
+	/// unavailable at that moment, tagged by operation.
+	/// </summary>
+	public static readonly Counter<long> CacheOperationFailures = Meter.CreateCounter<long>(
+		name: "cache.operation.failures",
+		description: "Cache operations that failed because Redis was unavailable. Tagged by operation (read/write/delete)."
+	);
+
 	/// <summary>Standard metric tag keys.</summary>
 	public static class Tags
 	{
 		public const string Outcome = "outcome";
+		public const string Operation = "operation";
 	}
 
 	/// <summary>Values for the <see cref="Tags.Outcome"/> tag on <see cref="RefreshTokenReplay"/>.</summary>
@@ -54,5 +64,13 @@ public static class FinanceTrackerMetrics
 
 		/// <summary>Treated as reuse of a stolen token; every session for the user was revoked.</summary>
 		public const string ReuseDetected = "reuse_detected";
+	}
+
+	/// <summary>Values for the <see cref="Tags.Operation"/> tag on <see cref="CacheOperationFailures"/>.</summary>
+	public static class CacheOperations
+	{
+		public const string Read = "read";
+		public const string Write = "write";
+		public const string Delete = "delete";
 	}
 }

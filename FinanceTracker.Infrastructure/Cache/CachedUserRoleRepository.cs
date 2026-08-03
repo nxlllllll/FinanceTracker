@@ -2,6 +2,8 @@
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Repositories.UserRole;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 using UserRoleAggregate = FinanceTracker.Core.Domains.UserRole.UserRole;
 
 namespace FinanceTracker.Infrastructure.Cache;
@@ -10,7 +12,8 @@ public sealed class CachedUserRoleRepository(
 	IUserRoleRepository inner,
 	IPermissionSourceReadRepository permissionSources,
 	RedisCache redisCache,
-	IUnitOfWork unitOfWork
+	IUnitOfWork unitOfWork,
+	ILogger<CachedUserRoleRepository> logger
 ) : IUserRoleRepository
 {
 	private static readonly DistributedCacheEntryOptions Ttl = new DistributedCacheEntryOptions
@@ -39,10 +42,16 @@ public sealed class CachedUserRoleRepository(
 
 		HashSet<string> effective = [..directGrants, ..rolePermissions];
 
-		unitOfWork.OnCommitted(callback: () => redisCache.SetAsync(
-			key: CachedUserPermissionReadRepository.KeyFor(userId: userId),
-			value: effective,
-			options: Ttl
-		));
+		unitOfWork.OnCommitted(callback: async () =>
+		{
+			bool refreshed = await redisCache.SetAsync(
+				key: CachedUserPermissionReadRepository.KeyFor(userId: userId),
+				value: effective,
+				options: Ttl
+			);
+
+			if (!refreshed)
+				logger.ZLogWarning(message: $"Permission cache for {userId} was not refreshed; the previous set stays in effect until its TTL expires.");
+		});
 	}
 }
