@@ -128,7 +128,25 @@
           severity: warning
         annotations:
           summary: "A post-commit callback threw after its transaction had already committed"
-          description: "The database write succeeded and something that was supposed to follow it did not, with no way to roll back. These callbacks carry side effects that the transaction deliberately does not cover: marking revoked sessions in Redis, clearing applied events off an aggregate. A failed session marking is the one to worry about — the session is revoked in the database while its access token keeps working until it expires on its own. The exception is logged where it was swallowed; start there."
+          description: "The database write succeeded and something that was supposed to follow it did not, with no way to roll back. These callbacks carry side effects that the transaction deliberately does not cover: marking revoked sessions in Redis, refreshing a user's cached permission set, clearing applied events off an aggregate. Two of them matter. A failed session marking leaves the session revoked in the database while its access token keeps working until it expires on its own; a failed permission refresh leaves the previous set in the cache, so a change to someone's access silently does nothing until the entry expires. The exception is logged where it was swallowed; start there."
+
+      - alert: CacheWritesNotLanding
+        expr: increase(cache_operation_failures_total{operation="write"}[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache writes have been failing — stale values are being served"
+          description: "A write that cannot reach Redis leaves whatever was already under the key, so this is not a cold cache: once Redis recovers it goes on serving the value the write was meant to replace, until the TTL expires. The permission set is the one that matters — a revoked permission keeps working for up to three minutes with nothing in the response to show for it. Reads failing at the same time are harmless by comparison and are tagged separately: those fall through to the database."
+
+      - alert: CacheDeletesNotLanding
+        expr: increase(cache_operation_failures_total{operation="delete"}[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache invalidation has been failing — stale entries remain until their TTL"
+          description: "Entries that should have been dropped are still readable. Same consequence as a failed write, arriving from the projection side: the applier could not clear a permission set after a grant or a membership change. Correlate with cache_operation_failures_total{operation=\"write\"} — if both are moving, Redis is the problem rather than any one call site."
 
   - name: finance-tracker-auth
     rules:

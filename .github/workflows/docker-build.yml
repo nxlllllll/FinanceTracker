@@ -37,6 +37,7 @@ jobs:
           - { name: worker-cleanup, path: FinanceTracker.Worker.Cleanup }
           - { name: worker-dead-letter-monitor, path: FinanceTracker.Worker.DeadLetterMonitor }
           - { name: worker-permission-projection, path: FinanceTracker.Worker.PermissionProjection }
+          - { name: worker-user-role-projection, path: FinanceTracker.Worker.UserRoleProjection }
           - { name: api, path: FinanceTracker.Api }
 
     steps:
