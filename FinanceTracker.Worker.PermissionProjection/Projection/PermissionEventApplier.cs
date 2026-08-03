@@ -15,10 +15,12 @@ namespace FinanceTracker.Worker.PermissionProjection.Projection;
 /// </summary>
 public sealed class PermissionEventApplier(
 	IUserPermissionWriteRepository repository,
-	RedisCache redisCache
-)
+	RedisCache redisCache)
 {
-	public Task ApplyAsync(IIntegrationEvent @event, CancellationToken ct = default) => @event switch
+	public Task ApplyAsync(
+		IIntegrationEvent @event,
+		CancellationToken ct = default
+	) => @event switch
 	{
 		UserPermissionCreatedEvent => Task.CompletedTask,
 		PermissionGrantedEvent e => ApplyAsync(e: e, ct: ct),
@@ -26,7 +28,9 @@ public sealed class PermissionEventApplier(
 		_ => throw new UnknownEventException(message: $"Unhandled integration event: {@event.GetType().Name}", eventType: @event.GetType())
 	};
 
-	private async Task ApplyAsync(PermissionGrantedEvent e, CancellationToken ct)
+	private async Task ApplyAsync(
+		PermissionGrantedEvent e,
+		CancellationToken ct)
 	{
 		await repository.GrantAsync(new PermissionGranted(
 			Id: e.EventId,
@@ -40,9 +44,19 @@ public sealed class PermissionEventApplier(
 		await redisCache.DeleteBatchAsync(keys: [CachedUserPermissionReadRepository.KeyFor(userId: e.UserId)]);
 	}
 
-	private async Task ApplyAsync(PermissionRevokedEvent e, CancellationToken ct)
+	private async Task ApplyAsync(
+		PermissionRevokedEvent e,
+		CancellationToken ct)
 	{
-		await repository.RevokeAsync(userId: e.UserId, permission: e.Permission, ct: ct);
+		await repository.RevokeAsync(new PermissionRevoked(
+			Id: e.EventId,
+			UserId: e.UserId,
+			RevokedBy: e.RevokedBy,
+			Permission: e.Permission,
+			Version: e.Version,
+			OccurredAt: e.OccurredAt
+		), ct);
+
 		await redisCache.DeleteBatchAsync(keys: [CachedUserPermissionReadRepository.KeyFor(userId: e.UserId)]);
 	}
 }

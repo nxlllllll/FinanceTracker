@@ -1,6 +1,8 @@
+using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Role;
+using FinanceTracker.Infrastructure.Database.Repositories.UserRole;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -11,6 +13,7 @@ public sealed class UserRoleReadRepositoryTests : DatabaseFixture
 {
 	private UserRoleReadRepository _readRepository = null!;
 	private RoleRepository _roleRepository = null!;
+	private UserRoleWriteRepository _membershipWriter = null!;
 	private UserBuilder _userBuilder = null!;
 
 	[Before(hookType: Test)]
@@ -18,6 +21,7 @@ public sealed class UserRoleReadRepositoryTests : DatabaseFixture
 	{
 		_readRepository = new UserRoleReadRepository(context: Context);
 		_roleRepository = new RoleRepository(context: Context);
+		_membershipWriter = new UserRoleWriteRepository(context: Context);
 		_userBuilder = new UserBuilder(context: Context);
 	}
 
@@ -25,13 +29,15 @@ public sealed class UserRoleReadRepositoryTests : DatabaseFixture
 	public async Task HasSystemRoleAsync_WhenUserHoldsRole_ShouldReturnTrue()
 	{
 		RoleDto? rootRole = await _roleRepository.GetBySystemKeyAsync(systemKey: SystemRole.Root, ct: CancellationToken.None);
-		Guid userId = await _userBuilder.CreateAsync(); ;
-		await _roleRepository.AssignToUserAsync(
-			userId: userId,
-			roleId: rootRole!.Id,
-			assignedAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
-		);
+		Guid userId = await _userBuilder.CreateAsync();
+		await _membershipWriter.AssignAsync(@event: new RoleAssigned(
+			Id: Guid.CreateVersion7(),
+			UserId: userId,
+			RoleId: rootRole!.Id,
+			AssignedBy: Guid.CreateVersion7(),
+			Version: 2,
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		), ct: CancellationToken.None);
 
 		bool hasRole = await _readRepository.HasSystemRoleAsync(
 			userId: userId,

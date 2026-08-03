@@ -38,9 +38,15 @@ public sealed class CleanupOptions : IJobOptions
 	public int OutboxFailedRetentionDays { get; init; } = 30;
 
 	/// <summary>
-	/// How long rows in the account-balance-applied-events idempotency ledger are retained
-	/// before deletion. Default: 30 days.
+	/// How long rows in the account-balance-applied-events idempotency ledger are retained before
+	/// deletion. Default: 180 days.
 	/// </summary>
 	[Range(minimum: 1, maximum: 365)]
 	public int AccountBalanceLedgerRetentionDays { get; init; } = 180;
+
+	/// <summary>
+	/// How long revoked permissions and removed memberships are kept as tombstones. Default: 180 days.
+	/// </summary>
+	[Range(minimum: 1, maximum: 365)]
+	public int TombstoneRetentionDays { get; init; } = 180;
 }

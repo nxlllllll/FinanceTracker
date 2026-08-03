@@ -243,17 +243,126 @@ public static class DbContextExtensions
 		""", cancellationToken: ct);
 	}
 
-	public static Task InsertUserPermissionAsync(
+	public static Task GrantUserPermissionAsync(
 		this DbContext context,
 		Guid userId,
 		string permission,
 		DateTimeOffset grantedAt,
+		int version,
 		CancellationToken ct = default)
 	{
 		return context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO user_permissions (user_id, permission, granted_at)
-			VALUES ({userId}, {permission}, {grantedAt})
-			ON CONFLICT (user_id, permission) DO NOTHING
+			INSERT INTO user_permissions (user_id, permission, granted_at, last_version, is_active)
+			VALUES ({userId}, {permission}, {grantedAt}, {version}, TRUE)
+			ON CONFLICT (user_id, permission) DO UPDATE
+			SET granted_at = EXCLUDED.granted_at,
+			    last_version = EXCLUDED.last_version,
+			    is_active = TRUE,
+			    revoked_at = NULL
+			WHERE user_permissions.last_version < EXCLUDED.last_version
+		""", cancellationToken: ct);
+	}
+
+	public static Task RevokeUserPermissionAsync(
+		this DbContext context,
+		Guid userId,
+		string permission,
+		DateTimeOffset revokedAt,
+		int version,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO user_permissions (user_id, permission, granted_at, last_version, is_active, revoked_at)
+			VALUES ({userId}, {permission}, {revokedAt}, {version}, FALSE, {revokedAt})
+			ON CONFLICT (user_id, permission) DO UPDATE
+			SET last_version = EXCLUDED.last_version,
+			    is_active = FALSE,
+			    revoked_at = EXCLUDED.revoked_at
+			WHERE user_permissions.last_version < EXCLUDED.last_version
+		""", cancellationToken: ct);
+	}
+//
+// 	public static Task<int> DeleteOldPermissionTombstonesAsync(
+// 		this DbContext context,
+// 		DateTimeOffset before,
+// 		int batchSize,
+// 		CancellationToken ct = default)
+// 	{
+// 		return context.Database.ExecuteSqlAsync(sql: $"""
+// 			DELETE FROM user_permissions
+// 			USING (
+// 				SELECT user_id, permission
+// 				FROM user_permissions
+// 				WHERE NOT is_active AND revoked_at < {before}
+// 				ORDER BY revoked_at
+// 				LIMIT {batchSize}
+// 			) old
+// 			WHERE user_permissions.user_id    = old.user_id
+// 			  AND user_permissions.permission = old.permission
+// 		""", cancellationToken: ct);
+// 	}
+//
+// 	public static Task<int> DeleteOldMembershipTombstonesAsync(
+// 		this DbContext context,
+// 		DateTimeOffset before,
+// 		int batchSize,
+// 		CancellationToken ct = default)
+// 	{
+// 		return context.Database.ExecuteSqlAsync(sql: $"""
+// 			DELETE FROM user_roles
+// 			USING (
+// 				SELECT user_id, role_id
+// 				FROM user_roles
+// 				WHERE NOT is_active AND removed_at < {before}
+// 				ORDER BY removed_at
+// 				LIMIT {batchSize}
+// 			) old
+// 			WHERE user_roles.user_id = old.user_id
+// 			  AND user_roles.role_id = old.role_id
+// 		""", cancellationToken: ct);
+// 	}
+
+	public static Task AssignUserRoleAsync(
+		this DbContext context,
+		Guid userId,
+		Guid roleId,
+		Guid assignedBy,
+		DateTimeOffset assignedAt,
+		int version,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO user_roles (user_id, role_id, assigned_at, assigned_by, last_version, is_active)
+			VALUES ({userId}, {roleId}, {assignedAt}, {assignedBy}, {version}, TRUE)
+			ON CONFLICT (user_id, role_id) DO UPDATE
+			SET assigned_at = EXCLUDED.assigned_at,
+			    assigned_by = EXCLUDED.assigned_by,
+			    last_version = EXCLUDED.last_version,
+			    is_active = TRUE,
+			    removed_at = NULL,
+			    removed_by = NULL
+			WHERE user_roles.last_version < EXCLUDED.last_version
+		""", cancellationToken: ct);
+	}
+
+	public static Task RemoveUserRoleAsync(
+		this DbContext context,
+		Guid userId,
+		Guid roleId,
+		Guid removedBy,
+		DateTimeOffset removedAt,
+		int version,
+		CancellationToken ct = default)
+	{
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			INSERT INTO user_roles (user_id, role_id, assigned_at, last_version, is_active, removed_at, removed_by)
+			VALUES ({userId}, {roleId}, {removedAt}, {version}, FALSE, {removedAt}, {removedBy})
+			ON CONFLICT (user_id, role_id) DO UPDATE
+			SET last_version = EXCLUDED.last_version,
+			    is_active = FALSE,
+			    removed_at = EXCLUDED.removed_at,
+			    removed_by = EXCLUDED.removed_by
+			WHERE user_roles.last_version < EXCLUDED.last_version
 		""", cancellationToken: ct);
 	}
 

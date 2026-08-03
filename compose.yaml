@@ -317,6 +317,31 @@ services:
       migrator:
         condition: service_completed_successfully
 
+  worker-user-role-projection:
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.UserRoleProjection/Dockerfile
+    ports:
+      - "5010:5010"
+    environment:
+      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5010
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
   migrator:
     build:
       context: .

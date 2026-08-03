@@ -131,8 +131,7 @@ public sealed class PermissionEventApplierTests
 		));
 
 		await _repository.Received(requiredNumberOfCalls: 1).RevokeAsync(
-			userId: userId,
-			permission: "account:write",
+			@event: Arg.Is<PermissionRevoked>(predicate: e => e!.UserId == userId && e.Permission == "account:write" && e.Version == 2),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

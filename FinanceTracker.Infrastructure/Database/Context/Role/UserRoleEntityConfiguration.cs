@@ -20,6 +20,21 @@ public sealed class UserRoleEntityConfiguration : IEntityTypeConfiguration<UserR
 		builder.Property(propertyExpression: e => e.AssignedAt)
 			.HasColumnName(name: "assigned_at");
 
+		builder.Property(propertyExpression: e => e.AssignedBy)
+			.HasColumnName(name: "assigned_by");
+
+		builder.Property(propertyExpression: e => e.LastVersion)
+			.HasColumnName(name: "last_version");
+
+		builder.Property(propertyExpression: e => e.IsActive)
+			.HasColumnName(name: "is_active");
+
+		builder.Property(propertyExpression: e => e.RemovedAt)
+			.HasColumnName(name: "removed_at");
+
+		builder.Property(propertyExpression: e => e.RemovedBy)
+			.HasColumnName(name: "removed_by");
+
 		builder.HasOne<RoleEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: e => e.RoleId);
 	}

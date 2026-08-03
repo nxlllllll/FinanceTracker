@@ -35,6 +35,7 @@
         <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransactionProjection\FinanceTracker.Worker.RecurringTransactionProjection.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransaction\FinanceTracker.Worker.RecurringTransaction.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.TransferProjection\FinanceTracker.Worker.TransferProjection.csproj" />
+        <ProjectReference Include="..\FinanceTracker.Worker.UserRoleProjection\FinanceTracker.Worker.UserRoleProjection.csproj" />
     </ItemGroup>
 
 </Project>

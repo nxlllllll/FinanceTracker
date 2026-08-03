@@ -39,4 +39,5 @@
   <Project Path="FinanceTracker.Worker.RecurringTransactionProjection/FinanceTracker.Worker.RecurringTransactionProjection.csproj" />
   <Project Path="FinanceTracker.Worker.Shared/FinanceTracker.Worker.Shared.csproj" />
   <Project Path="FinanceTracker.Worker.TransferProjection/FinanceTracker.Worker.TransferProjection.csproj" />
+  <Project Path="FinanceTracker.Worker.UserRoleProjection/FinanceTracker.Worker.UserRoleProjection.csproj" />
 </Solution>

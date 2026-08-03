@@ -3,6 +3,8 @@ using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.Snapshot;
+using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Worker.Shared.Job;
 using Microsoft.Extensions.Options;
@@ -18,6 +20,8 @@ public sealed class CleanupJob(
 	IProcessedMessageWriteRepository processedMessageRepository,
 	ISnapshotWriteRepository snapshotRepository,
 	IAccountWriteRepository accountWriteRepository,
+	IUserPermissionWriteRepository userPermissionWriteRepository,
+	IUserRoleWriteRepository userRoleWriteRepository,
 	IDateProvider dateProvider,
 	IOptionsMonitor<CleanupOptions> options,
 	ILogger<CleanupJob> logger
@@ -33,6 +37,8 @@ public sealed class CleanupJob(
 		await CleanupOutboxFailedAsync(options: options, now: now, ct: ct);
 		await CleanupSnapshotsAsync(options: options, ct: ct);
 		await CleanupAccountBalanceLedgerAsync(options: options, now: now, ct: ct);
+		await CleanupPermissionTombstonesAsync(options: options, now: now, ct: ct);
+		await CleanupMembershipTombstonesAsync(options: options, now: now, ct: ct);
 	}
 
 	private async Task CleanupIdempotentCommandsAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
@@ -113,6 +119,34 @@ public sealed class CleanupJob(
 
 		if (total > 0)
 			logger.ZLogInformation(message: $"[Cleanup] rm_account_balance_applied_events: deleted {total} row(s) older than {options.AccountBalanceLedgerRetentionDays} day(s).");
+	}
+
+	private async Task CleanupPermissionTombstonesAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
+	{
+		DateTimeOffset before = now.AddDays(days: -options.TombstoneRetentionDays);
+
+		int total = await DeleteInBatchesAsync(
+			batchSize: options.BatchSize,
+			deleteFunc: batchSize => userPermissionWriteRepository.DeleteOldTombstonesAsync(before: before, batchSize: batchSize, ct: ct),
+			ct: ct
+		);
+
+		if (total > 0)
+			logger.ZLogInformation(message: $"[Cleanup] user_permissions: deleted {total} tombstone(s) older than {options.TombstoneRetentionDays} day(s).");
+	}
+
+	private async Task CleanupMembershipTombstonesAsync(CleanupOptions options, DateTimeOffset now, CancellationToken ct)
+	{
+		DateTimeOffset before = now.AddDays(days: -options.TombstoneRetentionDays);
+
+		int total = await DeleteInBatchesAsync(
+			batchSize: options.BatchSize,
+			deleteFunc: batchSize => userRoleWriteRepository.DeleteOldTombstonesAsync(before: before, batchSize: batchSize, ct: ct),
+			ct: ct
+		);
+
+		if (total > 0)
+			logger.ZLogInformation(message: $"[Cleanup] user_roles: deleted {total} tombstone(s) older than {options.TombstoneRetentionDays} day(s).");
 	}
 
 	private async Task<int> DeleteInBatchesAsync(

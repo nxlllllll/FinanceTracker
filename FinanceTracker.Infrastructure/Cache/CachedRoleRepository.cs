@@ -44,29 +44,15 @@ public sealed class CachedRoleRepository(
 		CancellationToken ct = default
 	) => inner.CountMembersWithSystemKeyAsync(systemKey: systemKey, ct: ct);
 
-	public Task ReplacePermissionsAsync(
+	public async Task ReplacePermissionsAsync(
 		Guid roleId,
 		IReadOnlySet<Permission> permissions,
-		CancellationToken ct = default
-	) => inner.ReplacePermissionsAsync(roleId: roleId, permissions: permissions, ct: ct);
-
-	public async Task AssignToUserAsync(
-		Guid userId,
-		Guid roleId,
-		DateTimeOffset assignedAt,
 		CancellationToken ct = default)
 	{
-		await inner.AssignToUserAsync(userId: userId, roleId: roleId, assignedAt: assignedAt, ct: ct);
-		await InvalidateAsync(userIds: [userId]);
-	}
+		IReadOnlyList<Guid> memberUserIds = await inner.GetMemberUserIdsAsync(roleId: roleId, ct: ct);
 
-	public async Task RemoveFromUserAsync(
-		Guid userId,
-		Guid roleId,
-		CancellationToken ct = default)
-	{
-		await inner.RemoveFromUserAsync(userId: userId, roleId: roleId, ct: ct);
-		await InvalidateAsync(userIds: [userId]);
+		await inner.ReplacePermissionsAsync(roleId: roleId, permissions: permissions, ct: ct);
+		await InvalidateAsync(userIds: memberUserIds);
 	}
 
 	public async Task DeleteAsync(
@@ -85,10 +71,13 @@ public sealed class CachedRoleRepository(
 			return;
 
 		SystemRole[] systemRoles = Enum.GetValues<SystemRole>();
-		List<string> keys = new List<string>(capacity: userIds.Count * systemRoles.Length);
+		List<string> keys = new List<string>(capacity: userIds.Count * (systemRoles.Length + 1));
 
 		foreach (Guid userId in userIds)
+		{
 			keys.AddRange(collection: systemRoles.Select(systemRole => CachedUserRoleReadRepository.KeyFor(userId: userId, systemKey: systemRole)));
+			keys.Add(item: CachedUserPermissionReadRepository.KeyFor(userId: userId));
+		}
 
 		await redisCache.DeleteBatchAsync(keys: keys);
 	}

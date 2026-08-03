@@ -1,20 +1,22 @@
-﻿using FinanceTracker.Application.Services.Permissions;
-using FinanceTracker.Application.Services.Roles;
+﻿using FinanceTracker.Application.Services.Roles;
+using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
+using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
+using UserRoleAggregate = FinanceTracker.Core.Domains.UserRole.UserRole;
 
 namespace FinanceTracker.Tests.Unit.Application.Services;
 
 public sealed class UserRoleServiceTests
 {
 	private IRoleRepository _roleRepository = null!;
-	private IUserPermissionService _userPermissionService = null!;
+	private IUserRoleRepository _userRoleRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private UserRoleService _service = null!;
 
@@ -22,40 +24,22 @@ public sealed class UserRoleServiceTests
 		resource: Resource.Account,
 		action: PermissionAction.Read
 	).Value!;
-	private static readonly Permission BudgetWrite = Permission.Create(
-		resource: Resource.Budget,
-		action: PermissionAction.Write
-	).Value!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_roleRepository = Substitute.For<IRoleRepository>();
-		_userPermissionService = Substitute.For<IUserPermissionService>();
+		_userRoleRepository = Substitute.For<IUserRoleRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task<Result<FinanceTracker.Core.Results.Unit, AppException>>>>(),
+			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<Result<FinanceTracker.Core.Results.Unit, AppException>>>>()?.Invoke());
-
-		_userPermissionService.GrantAsync(
-			targetUserId: Arg.Any<Guid>(),
-			grantedBy: Arg.Any<Guid>(),
-			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
-
-		_userPermissionService.RevokeAsync(
-			targetUserId: Arg.Any<Guid>(),
-			revokedBy: Arg.Any<Guid>(),
-			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
 		_service = new UserRoleService(
 			roleRepository: _roleRepository,
-			userPermissionService: _userPermissionService,
+			userRoleRepository: _userRoleRepository,
 			unitOfWork: _unitOfWork,
 			dateProvider: FakeDateProvider.Default
 		);
@@ -79,6 +63,14 @@ public sealed class UserRoleServiceTests
 		roleId: roleId,
 		ct: Arg.Any<CancellationToken>()
 	).Returns(returnThis: role);
+
+	private void ReturnsMembership(
+		Guid userId,
+		UserRoleAggregate? aggregate
+	) => _userRoleRepository.GetByUserIdAsync(
+		userId: userId,
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: aggregate);
 
 	private void ReturnsRootHolders(
 		int count
@@ -104,59 +96,70 @@ public sealed class UserRoleServiceTests
 	}
 
 	[Test]
-	public async Task AssignAsync_ShouldAddTheMembershipAndGrantItsPermissionsInOneCall()
+	public async Task AssignAsync_ForAUserWithNoMembershipYet_ShouldCreateTheAggregateAndRecordTheRole()
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid userId = Guid.CreateVersion7();
 		Guid assignedBy = Guid.CreateVersion7();
-		ReturnsRole(
-			roleId: roleId,
-			role: BuildRole(roleId: roleId, systemKey: null, AccountRead, BudgetWrite)
+		ReturnsRole(roleId: roleId, role: BuildRole(roleId: roleId, systemKey: null, AccountRead));
+		ReturnsMembership(userId: userId, aggregate: null);
+
+		UserRoleAggregate? saved = null;
+		await _userRoleRepository.SaveAsync(
+			userRole: Arg.Do<UserRoleAggregate>(useArgument: a => saved = a),
+			ct: Arg.Any<CancellationToken>()
 		);
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _service.AssignAsync(userId: userId, roleId: roleId, assignedBy: assignedBy);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await _roleRepository.Received(requiredNumberOfCalls: 1).AssignToUserAsync(
-			userId: userId,
-			roleId: roleId,
-			assignedAt: Arg.Any<DateTimeOffset>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-
-		await _userPermissionService.Received(requiredNumberOfCalls: 1).GrantAsync(
-			targetUserId: userId,
-			grantedBy: assignedBy,
-			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p =>
-				p!.Count == 2 && p.Contains(AccountRead) && p.Contains(BudgetWrite)
-			),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await Assert.That(value: saved).IsNotNull();
+		await Assert.That(value: saved!.RoleIds).Contains(expected: roleId);
+		await Assert.That(value: saved.Events.OfType<RoleAssigned>().Single().AssignedBy).IsEqualTo(expected: assignedBy);
 	}
 
 	[Test]
-	public async Task AssignAsync_WhenGrantingFails_ShouldReturnItsError()
+	public async Task AssignAsync_ShouldRaiseOnlyMembershipEvents()
 	{
 		Guid roleId = Guid.CreateVersion7();
-		ReturnsRole(
-			roleId: roleId,
-			role: BuildRole(roleId: roleId, systemKey: null, AccountRead)
+		Guid userId = Guid.CreateVersion7();
+		ReturnsRole(roleId: roleId, role: BuildRole(roleId: roleId, systemKey: null, AccountRead));
+		ReturnsMembership(userId: userId, aggregate: null);
+
+		UserRoleAggregate? saved = null;
+		await _userRoleRepository.SaveAsync(
+			userRole: Arg.Do<UserRoleAggregate>(useArgument: a => saved = a),
+			ct: Arg.Any<CancellationToken>()
 		);
 
-		_userPermissionService.GrantAsync(
-			targetUserId: Arg.Any<Guid>(),
-			grantedBy: Arg.Any<Guid>(),
-			permissions: Arg.Any<IReadOnlyCollection<Permission>>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(error: new SelfPermissionModificationException()));
+		await _service.AssignAsync(userId: userId, roleId: roleId, assignedBy: Guid.CreateVersion7());
+
+		await Assert.That(value: saved!.Events.Count).IsEqualTo(expected: 2).Because(message: """
+			Creation and the assignment itself, and nothing else. What the role grants must not be copied
+			onto the user — the moment it is, the two sources become indistinguishable again and removing
+			a role starts taking away access it never provided.
+		""");
+	}
+
+	[Test]
+	public async Task AssignAsync_ForARoleTheUserAlreadyHolds_ShouldSucceedWithoutSaving()
+	{
+		Guid roleId = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+		ReturnsRole(roleId: roleId, role: BuildRole(roleId: roleId, systemKey: null, AccountRead));
+		ReturnsMembership(userId: userId, aggregate: UserRoleFactory.CreateWithRole(userId: userId, roleId: roleId));
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _service.AssignAsync(
-			userId: Guid.CreateVersion7(),
+			userId: userId,
 			roleId: roleId,
 			assignedBy: Guid.CreateVersion7()
 		);
 
-		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await _userRoleRepository.DidNotReceive().SaveAsync(
+			userRole: Arg.Any<UserRoleAggregate>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -191,9 +194,8 @@ public sealed class UserRoleServiceTests
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<LastRootRoleException>();
 
-		await _roleRepository.DidNotReceive().RemoveFromUserAsync(
-			userId: Arg.Any<Guid>(),
-			roleId: Arg.Any<Guid>(),
+		await _userRoleRepository.DidNotReceive().SaveAsync(
+			userRole: Arg.Any<UserRoleAggregate>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -202,11 +204,13 @@ public sealed class UserRoleServiceTests
 	public async Task RemoveAsync_ForRootWhenOtherHoldersExist_ShouldSucceed()
 	{
 		Guid roleId = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
 		ReturnsRole(roleId: roleId, role: BuildRole(roleId: roleId, systemKey: SystemRole.Root));
 		ReturnsRootHolders(count: 2);
+		ReturnsMembership(userId: userId, aggregate: UserRoleFactory.CreateWithRole(userId: userId, roleId: roleId));
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _service.RemoveAsync(
-			userId: Guid.CreateVersion7(),
+			userId: userId,
 			roleId: roleId,
 			removedBy: Guid.CreateVersion7()
 		);
@@ -215,28 +219,44 @@ public sealed class UserRoleServiceTests
 	}
 
 	[Test]
-	public async Task RemoveAsync_ShouldDropTheMembershipAndRevokeItsPermissionsInOneCall()
+	public async Task RemoveAsync_ShouldRecordTheRemovalWithItsAuthor()
 	{
 		Guid roleId = Guid.CreateVersion7();
 		Guid userId = Guid.CreateVersion7();
 		Guid removedBy = Guid.CreateVersion7();
-		ReturnsRole(
-			roleId: roleId,
-			role: BuildRole(roleId: roleId, systemKey: null, AccountRead)
+		ReturnsRole(roleId: roleId, role: BuildRole(roleId: roleId, systemKey: null, AccountRead));
+		ReturnsMembership(userId: userId, aggregate: UserRoleFactory.CreateWithRole(userId: userId, roleId: roleId));
+
+		UserRoleAggregate? saved = null;
+		await _userRoleRepository.SaveAsync(
+			userRole: Arg.Do<UserRoleAggregate>(useArgument: a => saved = a),
+			ct: Arg.Any<CancellationToken>()
 		);
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _service.RemoveAsync(userId: userId, roleId: roleId, removedBy: removedBy);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await _roleRepository.Received(requiredNumberOfCalls: 1).RemoveFromUserAsync(
+		await Assert.That(value: saved!.RoleIds).IsEmpty();
+		await Assert.That(value: saved.Events.OfType<RoleRemoved>().Single().RemovedBy).IsEqualTo(expected: removedBy);
+	}
+
+	[Test]
+	public async Task RemoveAsync_ForAUserWithNoMembershipAtAll_ShouldSucceedWithoutSaving()
+	{
+		Guid roleId = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+		ReturnsRole(roleId: roleId, role: BuildRole(roleId: roleId, systemKey: null, AccountRead));
+		ReturnsMembership(userId: userId, aggregate: null);
+
+		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _service.RemoveAsync(
 			userId: userId,
 			roleId: roleId,
-			ct: Arg.Any<CancellationToken>()
+			removedBy: Guid.CreateVersion7()
 		);
-		await _userPermissionService.Received(requiredNumberOfCalls: 1).RevokeAsync(
-			targetUserId: userId,
-			revokedBy: removedBy,
-			permissions: Arg.Is<IReadOnlyCollection<Permission>>(predicate: p => p!.Count == 1 && p.Contains(AccountRead)),
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await _userRoleRepository.DidNotReceive().SaveAsync(
+			userRole: Arg.Any<UserRoleAggregate>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

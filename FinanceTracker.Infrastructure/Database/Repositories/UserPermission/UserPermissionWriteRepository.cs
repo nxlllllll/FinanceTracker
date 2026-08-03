@@ -11,16 +11,33 @@ public sealed class UserPermissionWriteRepository(FinanceTrackerContext context)
 	public Task GrantAsync(
 		PermissionGranted @event,
 		CancellationToken ct = default
-	) => context.InsertUserPermissionAsync(
+	) => context.GrantUserPermissionAsync(
 		userId: @event.UserId,
 		permission: @event.Permission,
 		grantedAt: @event.OccurredAt,
+		version: @event.Version,
 		ct: ct
 	);
 
 	public Task RevokeAsync(
-		Guid userId,
-		string permission,
+		PermissionRevoked @event,
 		CancellationToken ct = default
-	) => context.UserPermissions.Where(predicate: e => e.UserId == userId && e.Permission == permission).ExecuteDeleteAsync(cancellationToken: ct);
+	) => context.RevokeUserPermissionAsync(
+		userId: @event.UserId,
+		permission: @event.Permission,
+		revokedAt: @event.OccurredAt,
+		version: @event.Version,
+		ct: ct
+	);
+
+	public async Task<int> DeleteOldTombstonesAsync(
+		DateTimeOffset before,
+		int batchSize,
+		CancellationToken ct = default)
+	{
+		return await context.UserPermissions.Where(predicate: e => !e.IsActive && e.RevokedAt < before)
+			.OrderBy(keySelector: e => e.RevokedAt)
+			.Take(count: batchSize)
+			.ExecuteDeleteAsync(cancellationToken: ct);
+	}
 }

@@ -47,19 +47,6 @@ public interface IRoleRepository
 		CancellationToken ct = default
 	);
 
-	Task AssignToUserAsync(
-		Guid userId,
-		Guid roleId,
-		DateTimeOffset assignedAt,
-		CancellationToken ct = default
-	);
-
-	Task RemoveFromUserAsync(
-		Guid userId,
-		Guid roleId,
-		CancellationToken ct = default
-	);
-
 	Task DeleteAsync(
 		Guid roleId,
 		CancellationToken ct = default
