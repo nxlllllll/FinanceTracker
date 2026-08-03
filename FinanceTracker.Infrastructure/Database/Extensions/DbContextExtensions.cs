@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ public static class DbContextExtensions
 	private sealed record CurrencyRateRow(string BaseCode, string TargetCode, decimal Rate);
 	private sealed record CurrencyStableRateRow(string BaseCode, string TargetCode, DateTime AsOfUtc, decimal Rate);
 
-	private sealed record TransactionRateRow(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate);
+	private sealed record TransactionRateRow(Guid Id, Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate);
 
 	/// <summary>
 	/// Upserts a category total row — inserts or increments existing total and count atomically.
@@ -149,14 +150,17 @@ public static class DbContextExtensions
 		);
 	}
 
-	public static async Task<List<(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate)>> GetTransactionRatesForRecalculationAsync(
+	public static async Task<List<TransactionRateDto>> GetTransactionRatesForRecalculationPageAsync(
 		this FinanceTrackerContext context,
 		Guid userId,
 		string baseCurrencyCode,
+		Guid afterId,
+		int batchSize,
 		CancellationToken ct = default)
 	{
-		List<TransactionRateRow> rows = await context.Database.SqlQuery<TransactionRateRow>($"""
+		return await context.Database.SqlQuery<TransactionRateDto>($"""
 			SELECT
+				t.id AS Id,
 				t.category_id AS CategoryId,
 				date_trunc('month', t.occurred_at)::date AS Period,
 				t.amount AS Amount,
@@ -170,10 +174,10 @@ public static class DbContextExtensions
 				ORDER BY cr.created_at DESC
 				LIMIT 1
 			) r ON true
-			WHERE t.user_id = {userId} AND NOT t.is_excluded
+			WHERE t.user_id = {userId} AND NOT t.is_excluded AND t.id > {afterId}
+			ORDER BY t.id
+			LIMIT {batchSize}
 		""").ToListAsync(cancellationToken: ct);
-
-		return rows.Select(selector: r => (r.CategoryId, r.Period, r.Amount, r.CurrencyCode, r.Rate)).ToList();
 	}
 
 	public static Task InsertAccountAsync(

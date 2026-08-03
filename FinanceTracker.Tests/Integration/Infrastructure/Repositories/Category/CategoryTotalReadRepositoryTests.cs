@@ -1,6 +1,7 @@
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
@@ -36,6 +37,10 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
 			context: Context,
 			userQueryRepository: _userQueryRepository,
 			currencyConversionService: _currencyConversionService,
+			options: new FakeOptionsMonitor<CategoryTotalOptions>(value: new CategoryTotalOptions
+			{
+				RecalculationBatchSize = 100
+			}),
 			dateProvider: FakeDateProvider.Default
 		);
 		_userBuilder = new UserBuilder(context: Context);

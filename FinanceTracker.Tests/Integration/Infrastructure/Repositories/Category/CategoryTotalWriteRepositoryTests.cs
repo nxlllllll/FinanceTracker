@@ -1,8 +1,12 @@
+using FinanceTracker.Core.Domains.Abstractions.Rate;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
+using FinanceTracker.Infrastructure.Database.Context.Transaction;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
@@ -41,8 +45,13 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 			context: Context,
 			userQueryRepository: _userQueryRepository,
 			currencyConversionService: _currencyConversionService,
+			options: new FakeOptionsMonitor<CategoryTotalOptions>(value: new CategoryTotalOptions
+			{
+				RecalculationBatchSize = 100
+			}),
 			dateProvider: FakeDateProvider.Default
 		);
+
 		_userBuilder = new UserBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
@@ -64,6 +73,61 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 			Rate = rate,
 			ActualAt = date,
 			CreatedAt = createdAt
+		});
+		await Context.SaveChangesAsync();
+	}
+
+	private async Task SeedTransactionsAsync(
+		Guid userId,
+		Guid accountId,
+		Guid categoryId,
+		int count,
+		decimal amount,
+		string currency)
+	{
+		DateTimeOffset occurredAt = FakeDateProvider.Default.UtcNow;
+
+		List<TransactionEntity> transactions = Enumerable.Range(start: 0, count: count).Select(selector: _ => new TransactionEntity
+		{
+			Id = Guid.CreateVersion7(),
+			AccountId = accountId,
+			UserId = userId,
+			CategoryId = categoryId,
+			Amount = amount,
+			Currency = Core.ValueObjects.Currency.Create(value: currency).Value,
+			BaseCurrency = Core.ValueObjects.Currency.Create(value: "RUB").Value,
+			Direction = DirectionType.Debit,
+			ExchangeRate = 1m,
+			IsExcluded = false,
+			RateStatus = RateStatus.Exact,
+			RateStatusChangedAt = occurredAt,
+			Description = null,
+			OccurredAt = occurredAt
+		}).ToList();
+
+		await Context.Transactions.AddRangeAsync(entities: transactions);
+		await Context.SaveChangesAsync();
+	}
+
+	private async Task SeedCategoryTotalAsync(
+		Guid userId,
+		Guid categoryId,
+		decimal total)
+	{
+		await Context.CategoryTotals.AddAsync(entity: new CategoryTotalEntity
+		{
+			Id = Guid.CreateVersion7(),
+			UserId = userId,
+			CategoryId = categoryId,
+			Period = new DateOnly(
+				year: FakeDateProvider.Default.UtcNow.Year,
+				month: FakeDateProvider.Default.UtcNow.Month,
+				day: 1
+			),
+			Total = total,
+			TransactionCount = 1,
+			RowVersion = 0,
+			UpdatedAt = FakeDateProvider.Default.UtcNow
 		});
 		await Context.SaveChangesAsync();
 	}
@@ -561,5 +625,91 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: entity.Total).IsEqualTo(expected: 0.00m)
 			.Because(message: "Each transaction must round to 0.00 before summing — summing the raw amounts first would wrongly produce 0.01.");
+	}
+
+[Test]
+	public async Task RecalculateAllForUserAsync_WithMoreTransactionsThanOnePage_ShouldTotalThemAll()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		const int transactionCount = 250;
+		await SeedTransactionsAsync(
+			userId: userId,
+			accountId: accountId,
+			categoryId: categoryId,
+			count: transactionCount,
+			amount: 10m,
+			currency: "RUB"
+		);
+
+		await _writeRepository.RecalculateAllForUserAsync(
+			userId: userId,
+			baseCurrency: Core.ValueObjects.Currency.Reconstitute(value: "RUB"),
+			ct: CancellationToken.None
+		);
+		await Context.SaveChangesAsync();
+
+		CategoryTotalEntity total = await Context.CategoryTotals.AsNoTracking().SingleAsync(predicate: t => t.UserId == userId);
+
+		await Assert.That(value: total.TransactionCount).IsEqualTo(expected: transactionCount).Because(message: """
+			With a page size of 100 this history spans three pages, so a cursor that does not advance
+			correctly shows up as a count stopping at a page boundary.
+		""");
+		await Assert.That(value: total.Total).IsEqualTo(expected: transactionCount * 10m);
+	}
+
+	[Test]
+	public async Task RecalculateAllForUserAsync_WithNoTransactions_ShouldClearExistingTotals()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		await SeedCategoryTotalAsync(userId: userId, categoryId: categoryId, total: 500m);
+
+		await _writeRepository.RecalculateAllForUserAsync(
+			userId: userId,
+			baseCurrency: Core.ValueObjects.Currency.Reconstitute(value: "RUB"),
+			ct: CancellationToken.None
+		);
+		await Context.SaveChangesAsync();
+
+		int remaining = await Context.CategoryTotals.AsNoTracking().CountAsync(predicate: t => t.UserId == userId);
+
+		await Assert.That(value: remaining).IsEqualTo(expected: 0).Because(message: """
+			Nothing to accumulate still means the stored totals are wrong and have to go. Skipping the
+			delete when there is nothing to insert would leave them behind for good.
+		""");
+	}
+
+	[Test]
+	public async Task RecalculateAllForUserAsync_WithAMissingRate_ShouldLeaveExistingTotalsIntact()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId, currencyCode: "USD");
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		await SeedTransactionsAsync(
+			userId: userId,
+			accountId: accountId,
+			categoryId: categoryId,
+			count: 1,
+			amount: 100m,
+			currency: "USD"
+		);
+		await SeedCategoryTotalAsync(userId: userId, categoryId: categoryId, total: 500m);
+
+		await Assert.That(action: async () => await _writeRepository.RecalculateAllForUserAsync(
+			userId: userId,
+			baseCurrency: Core.ValueObjects.Currency.Reconstitute(value: "RUB"),
+			ct: CancellationToken.None
+		)).Throws<CurrencyRateMissingException>();
+
+		int remaining = await Context.CategoryTotals.AsNoTracking().CountAsync(predicate: t => t.UserId == userId);
+
+		await Assert.That(value: remaining).IsEqualTo(expected: 1).Because(message: """
+			The rate is checked before the old totals are cleared. Wiping them first and discovering the
+			problem afterwards leaves the user with nothing, and only an enclosing transaction to save it.
+		""");
 	}
 }

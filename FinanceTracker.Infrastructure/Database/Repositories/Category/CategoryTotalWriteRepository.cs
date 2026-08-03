@@ -6,10 +6,12 @@ using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
 
@@ -17,9 +19,17 @@ public sealed class CategoryTotalWriteRepository(
 	FinanceTrackerContext context,
 	IUserQueryRepository userQueryRepository,
 	ICurrencyConversionService currencyConversionService,
+	IOptionsMonitor<CategoryTotalOptions> options,
 	IDateProvider dateProvider
 ) : ICategoryTotalWriteRepository
 {
+	/// <summary>Total accumulated for one category within one month while a rebuild is in progress.</summary>
+	private sealed record RunningTotal
+	{
+		public decimal Total { get; set; }
+		public int TransactionCount { get; set; }
+	}
+
 	private async Task ApplyDeltaAsync(
 		Guid userId,
 		Guid categoryId,
@@ -126,38 +136,96 @@ public sealed class CategoryTotalWriteRepository(
 		Core.ValueObjects.Currency baseCurrency,
 		CancellationToken ct = default)
 	{
-		List<(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate)> rows =
-			await context.GetTransactionRatesForRecalculationAsync(userId: userId, baseCurrencyCode: baseCurrency.Value, ct: ct);
+		Dictionary<(Guid CategoryId, DateOnly Period), RunningTotal> totals = await AccumulateTotalsAsync(
+			userId: userId,
+			baseCurrency: baseCurrency,
+			ct: ct
+		);
 
-		await context.CategoryTotals.Where(predicate: c => c.UserId == userId).ExecuteDeleteAsync(cancellationToken: ct);
+		await ReplaceTotalsAsync(userId: userId, totals: totals, ct: ct);
+	}
 
-		if (rows.Count == 0)
-			return;
+	private async Task<Dictionary<(Guid CategoryId, DateOnly Period), RunningTotal>> AccumulateTotalsAsync(
+		Guid userId,
+		Core.ValueObjects.Currency baseCurrency,
+		CancellationToken ct)
+	{
+		int batchSize = options.CurrentValue.RecalculationBatchSize;
 
-		(Guid CategoryId, DateOnly Period, decimal Amount, string CurrencyCode, decimal? Rate) missing = rows.FirstOrDefault(predicate: r => r.Rate is null);
-		if (missing.CurrencyCode is not null)
+		Dictionary<(Guid CategoryId, DateOnly Period), RunningTotal> totals = [];
+		Guid cursor = Guid.Empty;
+		List<TransactionRateDto> page;
+
+		do
+		{
+			page = await context.GetTransactionRatesForRecalculationPageAsync(
+				userId: userId,
+				baseCurrencyCode: baseCurrency.Value,
+				afterId: cursor,
+				batchSize: batchSize,
+				ct: ct
+			);
+
+			foreach (TransactionRateDto row in page)
+			{
+				Accumulate(totals: totals, row: row, baseCurrency: baseCurrency);
+				cursor = row.Id;
+			}
+		}
+		while (page.Count == batchSize);
+
+		return totals;
+	}
+
+	private static void Accumulate(
+		Dictionary<(Guid CategoryId, DateOnly Period), RunningTotal> totals,
+		TransactionRateDto row,
+		Core.ValueObjects.Currency baseCurrency)
+	{
+		if (row.Rate is null)
 		{
 			throw new CurrencyRateMissingException(
-				message: $"The exchange rate for {missing.CurrencyCode} > {baseCurrency.Value} was not found.",
-				fromCurrency: Core.ValueObjects.Currency.Reconstitute(value: missing.CurrencyCode),
+				message: $"The exchange rate for {row.CurrencyCode} > {baseCurrency.Value} was not found.",
+				fromCurrency: Core.ValueObjects.Currency.Reconstitute(value: row.CurrencyCode),
 				toCurrency: baseCurrency
 			);
 		}
 
+		(Guid CategoryId, DateOnly Period) key = (row.CategoryId, row.Period);
+
+		if (!totals.TryGetValue(key: key, value: out RunningTotal? running))
+		{
+			running = new RunningTotal();
+			totals[key] = running;
+		}
+
+		running.Total += Money.ConvertedAmount(amount: row.Amount, rate: row.Rate.Value);
+		running.TransactionCount++;
+	}
+
+	private async Task ReplaceTotalsAsync(
+		Guid userId,
+		Dictionary<(Guid CategoryId, DateOnly Period), RunningTotal> totals,
+		CancellationToken ct)
+	{
+		await context.CategoryTotals.Where(predicate: c => c.UserId == userId).ExecuteDeleteAsync(cancellationToken: ct);
+
+		if (totals.Count == 0)
+			return;
+
 		DateTimeOffset now = dateProvider.UtcNow;
 
-		IEnumerable<CategoryTotalEntity> newTotals = rows.GroupBy(keySelector: r => new { r.CategoryId, r.Period })
-			.Select(selector: group => new CategoryTotalEntity
-			{
-				Id = Guid.CreateVersion7(),
-				UserId = userId,
-				CategoryId = group.Key.CategoryId,
-				Period = group.Key.Period,
-				Total = group.Sum(selector: r => Money.ConvertedAmount(amount: r.Amount, rate: r.Rate!.Value)),
-				TransactionCount = group.Count(),
-				RowVersion = 0,
-				UpdatedAt = now
-			});
+		IEnumerable<CategoryTotalEntity> newTotals = totals.Select(selector: entry => new CategoryTotalEntity
+		{
+			Id = Guid.CreateVersion7(),
+			UserId = userId,
+			CategoryId = entry.Key.CategoryId,
+			Period = entry.Key.Period,
+			Total = entry.Value.Total,
+			TransactionCount = entry.Value.TransactionCount,
+			RowVersion = 0,
+			UpdatedAt = now
+		});
 
 		await context.CategoryTotals.AddRangeAsync(entities: newTotals, cancellationToken: ct);
 	}

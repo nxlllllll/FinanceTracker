@@ -91,6 +91,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<CategoryTotalOptions>()
+			.BindConfiguration(configSectionPath: CategoryTotalOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
