@@ -18,6 +18,7 @@ public sealed class UnarchiveAccountEndpoint : IEndpoint
 	{
 		group.MapPatch(pattern: "/{accountId:guid}/unarchive", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
+			.AcceptsIfMatch()
 			.WithSummary(summary: "Unarchive an account")
 			.WithDescription(description: "Send an If-Match header (from a prior GET's ETag) to reject the request with 412 if the account changed since you fetched it.")
 			.Produces(statusCode: StatusCodes.Status204NoContent)

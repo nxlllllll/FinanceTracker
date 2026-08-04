@@ -1,5 +1,6 @@
 using FinanceTracker.Api.Endpoints.Accounts.Contracts;
 using FinanceTracker.Api.Http;
+using FinanceTracker.Api.Http.Filters;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;
@@ -20,6 +21,7 @@ public sealed class RenameAccountEndpoint : IEndpoint
 	{
 		group.MapPatch(pattern: "/{accountId:guid}/rename", handler: HandleAsync)
 			.RequirePermission(resource: Resource.Account, action: PermissionAction.Write)
+			.AcceptsIfMatch()
 			.WithSummary(summary: "Rename an account")
 			.WithDescription(description: "Send an If-Match header (from a prior GET's ETag) to reject the request with 412 if the account changed since you fetched it.")
 			.Produces(statusCode: StatusCodes.Status204NoContent)
