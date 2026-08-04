@@ -103,14 +103,11 @@ public static class DependencyInjection
 		RedisOptions redisOptions = configuration.GetSection(key: RedisOptions.SectionName).Get<RedisOptions>()
 			?? throw new ConfigurationException(message: "Redis configuration is missing.");
 
-		services.AddStackExchangeRedisCache(setupAction: options =>
-		{
-			options.Configuration = redisOptions.ConnectionString;
-			options.InstanceName = redisOptions.InstanceName;
-		});
+		ConfigurationOptions redisConfiguration = ConfigurationOptions.Parse(configuration: redisOptions.ConnectionString);
+		redisConfiguration.AbortOnConnectFail = false;
 
 		services.AddSingleton<IConnectionMultiplexer>(
-			implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisOptions.ConnectionString)
+			implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisConfiguration)
 		);
 
 		services.AddOptions<RateLimiterFallbackOptions>()
