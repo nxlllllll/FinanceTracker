@@ -35,10 +35,9 @@ public sealed class InMemoryRateLimiter(
 
 		if (!_windows.TryGetValue(key: key, value: out TrackedWindow? window))
 		{
-			if (_windows.Count >= options.CurrentValue.MaxTrackedKeys)
-				return Task.FromResult(result: RateLimitResult.Denied(retryAfterSeconds: windowSeconds));
+			EvictLeastRecentlyUsedIfFull(maxTrackedKeys: options.CurrentValue.MaxTrackedKeys);
 
-			window = _windows.GetOrAdd(key: key, valueFactory: _ => new TrackedWindow());
+			window = _windows.GetOrAdd(key: key, valueFactory: _ => new TrackedWindow { LastTouchedMs = now });
 		}
 
 		long windowStart = now - windowSeconds * 1000L;
@@ -62,6 +61,26 @@ public sealed class InMemoryRateLimiter(
 			window.Timestamps.Enqueue(item: now);
 			return Task.FromResult(result: RateLimitResult.Allowed());
 		}
+	}
+
+	/// <summary>
+	/// Trims the table back under the cap by dropping the least recently used windows,
+	/// rather than refusing the key that did not fit.
+	/// </summary>
+	private void EvictLeastRecentlyUsedIfFull(int maxTrackedKeys)
+	{
+		if (_windows.Count < maxTrackedKeys)
+			return;
+
+		int excess = _windows.Count - maxTrackedKeys + 1;
+
+		List<KeyValuePair<string, TrackedWindow>> oldest =
+		[
+			.._windows.OrderBy(keySelector: entry => entry.Value.LastTouchedMs).Take(count: excess)
+		];
+
+		foreach (KeyValuePair<string, TrackedWindow> entry in oldest)
+			(_windows as ICollection<KeyValuePair<string, TrackedWindow>>).Remove(item: entry);
 	}
 
 	/// <summary>Periodically drops keys nobody has touched in a while</summary>
