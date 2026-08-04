@@ -68,7 +68,6 @@ services:
     environment:
       <<: [*redis-env, *rabbitmq-env, *otel-env]
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: ${RABBITMQ_USER}
