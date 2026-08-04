@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,11 @@ public sealed class RedisCache(
 		);
 	}
 
+	private static void RecordFailure(string operation) => FinanceTrackerMetrics.CacheOperationFailures.Add(
+		delta: 1,
+		tag: new KeyValuePair<string, object?>(key: FinanceTrackerMetrics.Tags.Operation, value: operation)
+	);
+
 	public async Task<CacheEntry<T>> TryGetAsync<T>(string key)
 	{
 		IDatabase database = connectionMultiplexer.GetDatabase();
@@ -53,6 +59,7 @@ public sealed class RedisCache(
 		}
 		catch (RedisException ex)
 		{
+			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Read);
 			logger.LogWarning(exception: ex, message: "Redis unavailable reading key {Key} — reporting a cache miss.", Prefixed(key: key));
 			return new CacheEntry<T>(Found: false, Value: default!);
 		}
@@ -66,7 +73,7 @@ public sealed class RedisCache(
 		);
 	}
 
-	public async Task SetAsync<T>(
+	public async Task<bool> SetAsync<T>(
 		string key,
 		T value,
 		DistributedCacheEntryOptions options)
@@ -79,10 +86,13 @@ public sealed class RedisCache(
 				value: JsonSerializer.SerializeToUtf8Bytes(value: value),
 				expiry: ToExpiry(cacheOptions: options)
 			);
+			return true;
 		}
 		catch (RedisException ex)
 		{
-			logger.LogWarning(exception: ex, message: "Redis unavailable writing key {Key} — leaving the cache cold for this entry.", Prefixed(key: key));
+			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Write);
+			logger.LogWarning(exception: ex, message: "Redis unavailable writing key {Key} — the previous value stays until its TTL expires.", Prefixed(key: key));
+			return false;
 		}
 	}
 
@@ -109,6 +119,7 @@ public sealed class RedisCache(
 		}
 		catch (RedisException ex)
 		{
+			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Read);
 			logger.LogWarning(exception: ex, message: "Redis unavailable reading a batch of {Count} keys — reporting all as cache misses.", keys.Count);
 			Dictionary<string, CacheEntry<T>> allMissed = new Dictionary<string, CacheEntry<T>>(capacity: keys.Count);
 			foreach (string k in keys)
@@ -132,10 +143,10 @@ public sealed class RedisCache(
 	/// Writes multiple keys in a single pipelined batch — one network flush, all commands
 	/// awaited together, instead of one round-trip per key.
 	/// </summary>
-	public async Task SetBatchAsync<T>(IReadOnlyList<BatchItem<T>> items)
+	public async Task<bool> SetBatchAsync<T>(IReadOnlyList<BatchItem<T>> items)
 	{
 		if (items.Count == 0)
-			return;
+			return true;
 
 		IDatabase database = connectionMultiplexer.GetDatabase();
 		IBatch batch = database.CreateBatch();
@@ -156,17 +167,20 @@ public sealed class RedisCache(
 		try
 		{
 			await Task.WhenAll(tasks);
+			return true;
 		}
 		catch (RedisException ex)
 		{
-			logger.LogWarning(exception: ex, message: "Redis unavailable writing a batch of {Count} keys — leaving the cache cold for these entries.", items.Count);
+			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Write);
+			logger.LogWarning(exception: ex, message: "Redis unavailable writing a batch of {Count} keys — previous values stay until their TTL expires.", items.Count);
+			return false;
 		}
 	}
 
-	public async Task DeleteBatchAsync(IReadOnlyList<string> keys)
+	public async Task<bool> DeleteBatchAsync(IReadOnlyList<string> keys)
 	{
 		if (keys.Count == 0)
-			return;
+			return true;
 
 		RedisKey[] redisKeys = new RedisKey[keys.Count];
 		for (int i = 0; i < keys.Count; i++)
@@ -176,10 +190,13 @@ public sealed class RedisCache(
 		try
 		{
 			await database.KeyDeleteAsync(keys: redisKeys);
+			return true;
 		}
 		catch (RedisException ex)
 		{
+			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Delete);
 			logger.LogWarning(exception: ex, message: "Redis unavailable deleting a batch of {Count} keys — stale entries may remain until their TTL expires.", keys.Count);
+			return false;
 		}
 	}
 }

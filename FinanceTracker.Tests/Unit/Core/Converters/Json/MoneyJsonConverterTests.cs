@@ -51,11 +51,15 @@ public sealed class MoneyJsonConverterTests
 	}
 
 	[Test]
-	public async Task Read_WithoutAmountOrCurrency_ShouldDefaultToZeroAndDefaultCurrency()
+	public async Task Read_WithoutCurrency_ShouldThrow()
 	{
-		Money money = JsonSerializer.Deserialize<Money>(json: "{}", options: Options);
-
-		await Assert.That(value: money.Amount).IsEqualTo(expected: 0m);
+		await Assert.That(
+			action: () => JsonSerializer.Deserialize<Money>(json: "{}", options: FinanceTrackerJsonOptions.Payload)
+		).Throws<JsonException>().Because(message: """
+			An amount with no currency is not a value this type can represent. Defaulting it puts a
+			zero-currency Money into an aggregate, and that falls over later — far from the payload that
+			was actually incomplete.
+		""");
 	}
 
 	[Test]

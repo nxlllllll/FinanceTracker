@@ -14,4 +14,5 @@ public static class AggregateTypeNames
 	public const string Category = nameof(Category);
 	public const string User = nameof(User);
 	public const string UserPermission = nameof(UserPermission);
+	public const string UserRole = nameof(UserRole);
 }

@@ -21,6 +21,7 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
@@ -50,6 +51,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
+using FinanceTracker.Infrastructure.Database.Repositories.UserRole;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Infrastructure.Services.Auth;
@@ -89,6 +91,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<CategoryTotalOptions>()
+			.BindConfiguration(configSectionPath: CategoryTotalOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
 		);
@@ -96,14 +103,11 @@ public static class DependencyInjection
 		RedisOptions redisOptions = configuration.GetSection(key: RedisOptions.SectionName).Get<RedisOptions>()
 			?? throw new ConfigurationException(message: "Redis configuration is missing.");
 
-		services.AddStackExchangeRedisCache(setupAction: options =>
-		{
-			options.Configuration = redisOptions.ConnectionString;
-			options.InstanceName = redisOptions.InstanceName;
-		});
+		ConfigurationOptions redisConfiguration = ConfigurationOptions.Parse(configuration: redisOptions.ConnectionString);
+		redisConfiguration.AbortOnConnectFail = false;
 
 		services.AddSingleton<IConnectionMultiplexer>(
-			implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisOptions.ConnectionString)
+			implementationFactory: _ => ConnectionMultiplexer.Connect(configuration: redisConfiguration)
 		);
 
 		services.AddOptions<RateLimiterFallbackOptions>()
@@ -127,6 +131,7 @@ public static class DependencyInjection
 
 		services.AddSingleton<IAggregateIntegrationEventMapper, AccountIntegrationEventMapper>();
 		services.AddSingleton<IAggregateIntegrationEventMapper, UserPermissionIntegrationEventMapper>();
+		services.AddSingleton<IAggregateIntegrationEventMapper, UserRoleIntegrationEventMapper>();
 		services.AddSingleton<IIntegrationEventMapper, CompositeIntegrationEventMapper>();
 
 		services.AddSingleton<IIntegrationEventTypeResolver, IntegrationEventTypeResolver>(implementationFactory: s => new IntegrationEventTypeResolver(
@@ -242,6 +247,12 @@ public static class DependencyInjection
 		services.AddScoped<IUserPermissionWriteRepository, UserPermissionWriteRepository>();
 		services.AddScoped<IUserPermissionReadRepository, UserPermissionReadRepository>();
 		services.Decorate<IUserPermissionReadRepository, CachedUserPermissionReadRepository>();
+		services.AddScoped<IPermissionSourceReadRepository, PermissionSourceReadRepository>();
+
+		// UserRole
+		services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+		services.AddScoped<IUserRoleWriteRepository, UserRoleWriteRepository>();
+		services.Decorate<IUserRoleRepository, CachedUserRoleRepository>();
 
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();

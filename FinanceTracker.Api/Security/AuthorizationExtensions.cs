@@ -1,3 +1,4 @@
+using FinanceTracker.Api.Http.Filters;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -7,6 +8,22 @@ namespace FinanceTracker.Api.Security;
 public static class AuthorizationExtensions
 {
 	public const string RootPolicyName = "root";
+
+	/// <summary>
+	/// Declares that this endpoint honours <c>If-Match</c>, and refuses values it cannot evaluate.
+	/// </summary>
+	public static RouteHandlerBuilder AcceptsIfMatch(this RouteHandlerBuilder builder)
+	{
+		builder.AddEndpointFilter<IfMatchFilter>().WithMetadata(items: new AcceptsIfMatchMetadata());
+		return builder.ProducesValidationProblem();
+	}
+
+	/// <inheritdoc cref="AcceptsIfMatch(RouteHandlerBuilder)"/>
+	public static RouteGroupBuilder AcceptsIfMatch(this RouteGroupBuilder builder)
+	{
+		builder.AddEndpointFilter<IfMatchFilter>().WithMetadata(items: new AcceptsIfMatchMetadata());
+		return builder;
+	}
 
 	/// <summary>
 	/// Requires the caller to hold the given permission (e.g. "account:write"). Builds the

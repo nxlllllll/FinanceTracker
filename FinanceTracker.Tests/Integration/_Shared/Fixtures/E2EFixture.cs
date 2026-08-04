@@ -21,6 +21,8 @@ using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.TransferProjection.Consumer;
 using FinanceTracker.Worker.TransferProjection.Job;
 using FinanceTracker.Worker.TransferProjection.Services;
+using FinanceTracker.Worker.UserRoleProjection.Consumer;
+using FinanceTracker.Worker.UserRoleProjection.Projection;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -39,8 +41,7 @@ namespace FinanceTracker.Tests.Integration._Shared.Fixtures;
 
 /// <summary>
 /// Full E2E fixture: real Postgres + Redis + RabbitMQ.
-/// RabbitMQ listeners (AccountEventsConsumer, AccountTransferConsumer,
-/// RecurringTransactionConsumer) start as BackgroundServices with the Host.
+/// RabbitMQ listeners start as BackgroundServices with the Host.
 /// Jobs are called directly via a NSubstitute IJobExecutionContext mock.
 /// Use WaitForConditionAsync to await eventual consumer processing.
 /// </summary>
@@ -66,6 +67,7 @@ public abstract class E2EFixture
 	private static string RecurringQueueName(string testRunId) => $"ft-e2e-recurring-{testRunId}";
 	private static string PermissionQueueName(string testRunId) => $"ft-e2e-permission-{testRunId}";
 	private static string ExchangeName(string testRunId) => $"ft-e2e-{testRunId}";
+	private static string UserRoleQueueName(string testRunId) => $"ft-e2e-user-role-{testRunId}";
 
 	[Before(hookType: Assembly)]
 	public static async Task StartContainersAsync()
@@ -171,6 +173,7 @@ public abstract class E2EFixture
 				["RabbitMQ:QueueNameOverrides:AccountTransferConsumer"] = TransferQueueName(testRunId: testRunId),
 				["RabbitMQ:QueueNameOverrides:RecurringTransactionConsumer"] = RecurringQueueName(testRunId: testRunId),
 				["RabbitMQ:QueueNameOverrides:PermissionEventsConsumer"] = PermissionQueueName(testRunId: testRunId),
+				["RabbitMQ:QueueNameOverrides:UserRoleEventsConsumer"] = UserRoleQueueName(testRunId: testRunId),
 				["RabbitMQ:MaxRetries"] = "3",
 				["Outbox:BatchSize"] = "50",
 				["Outbox:MaxRetries"] = "3",
@@ -206,6 +209,9 @@ public abstract class E2EFixture
 				services.AddScoped<PermissionEventApplier>();
 				services.AddScoped<PermissionProjection>();
 
+				services.AddScoped<UserRoleEventApplier>();
+				services.AddScoped<UserRoleProjection>();
+
 				services.AddOptions<ProjectionRetryOptions>()
 					 .BindConfiguration(ProjectionRetryOptions.SectionName)
 					 .ValidateDataAnnotations();
@@ -236,6 +242,7 @@ public abstract class E2EFixture
 				services.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
 				services.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
 				services.AddRabbitMqListener<AggregateEventsMessage, PermissionEventsConsumer>();
+				services.AddRabbitMqListener<AggregateEventsMessage, UserRoleEventsConsumer>();
 
 				ConfigureAdditionalServices(services: services, configuration: ctx.Configuration);
 			})
@@ -267,7 +274,8 @@ public abstract class E2EFixture
 			(AccountQueueName(testRunId: testRunId), AggregateTypeNames.Account),
 			(TransferQueueName(testRunId: testRunId), AggregateTypeNames.Account),
 			(RecurringQueueName(testRunId: testRunId), AggregateTypeNames.RecurringTransaction),
-			(PermissionQueueName(testRunId: testRunId), AggregateTypeNames.UserPermission)
+			(PermissionQueueName(testRunId: testRunId), AggregateTypeNames.UserPermission),
+			(UserRoleQueueName(testRunId: testRunId), AggregateTypeNames.UserRole)
 		];
 
 		ConnectionFactory factory = new ConnectionFactory
@@ -356,7 +364,8 @@ public abstract class E2EFixture
 				AccountQueueName(testRunId: _testRunId),
 				TransferQueueName(testRunId: _testRunId),
 				RecurringQueueName(testRunId: _testRunId),
-				PermissionQueueName(testRunId: _testRunId)
+				PermissionQueueName(testRunId: _testRunId),
+				UserRoleQueueName(testRunId: _testRunId)
 			];
 
 			foreach (string queue in queues)

@@ -63,6 +63,13 @@ public sealed record RabbitMqOptions
 	public int DelayedRetryMaxMs { get; init; } = 30000;
 
 	/// <summary>
+	/// Upper bound (s) for the delay between reconnect attempts after the connection to the broker
+	/// drops. Default: 30.
+	/// </summary>
+	[Range(minimum: 1, maximum: 300)]
+	public int MaxReconnectDelaySeconds { get; init; } = 30;
+
+	/// <summary>
 	/// Maximum number of unacknowledged messages the broker will deliver to this consumer at once
 	/// (<c>basic.qos</c> prefetch count). Bounds how much work piles up client-side, keeps delivery
 	/// fair across horizontally scaled replicas of the same worker, and limits how many messages get

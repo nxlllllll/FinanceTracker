@@ -8,6 +8,7 @@ using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
@@ -52,6 +53,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			context: Context,
 			userQueryRepository: _readRepository,
 			currencyConversionService: currencyConversionService,
+			options: new FakeOptionsMonitor<CategoryTotalOptions>(value: new CategoryTotalOptions
+			{
+				RecalculationBatchSize = 100
+			}),
 			dateProvider: FakeDateProvider.Default
 		);
 		_transactionWriteRepository = new TransactionWriteRepository(context: Context, operationRepository: new OperationWriteRepository(context: Context));

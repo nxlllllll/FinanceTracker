@@ -14,7 +14,7 @@ public sealed class UserRoleReadRepository(
 		SystemRole systemKey,
 		CancellationToken ct = default)
 	{
-		return await context.UserRoles.Join(
+		return await context.UserRoles.Where(predicate: ur => ur.IsActive).Join(
 			inner: context.Roles,
 			outerKeySelector: ur => ur.RoleId,
 			innerKeySelector: r => r.Id,

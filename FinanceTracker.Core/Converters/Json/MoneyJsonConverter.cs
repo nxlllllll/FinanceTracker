@@ -33,6 +33,14 @@ public sealed class MoneyJsonConverter : JsonConverter<Money>
 			}
 		}
 
+		if (currency == default)
+		{
+			throw new JsonException(message:
+				$"'{nameof(Money.Currency)}' is missing. A stored amount without its currency is not a value this " +
+				$"type can represent, and defaulting it would put a zero-currency Money into an aggregate."
+			);
+		}
+
 		return Money.Reconstitute(amount: amount, currency: currency);
 	}
 

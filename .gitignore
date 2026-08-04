@@ -10,3 +10,4 @@ appsettings.Staging.json
 .idea/
 /.config
 /alertmanager/alertmanager.yml
+*.sln.DotSettings.user

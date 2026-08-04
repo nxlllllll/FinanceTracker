@@ -33,8 +33,8 @@ public sealed class Program
 		builder.Services.AddApiTelemetry();
 
 		builder.Services.AddInfrastructureHealthChecks(
-			connectionString: builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!,
-			redisConnectionString: builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!
+			connectionString: builder.Configuration.RequireValue(path: "ConnectionStrings:FinanceTrackerContext"),
+			redisConnectionString: builder.Configuration.RequireValue(path: "Redis:ConnectionString")
 		);
 
 		builder.Services.AddEndpoints();
@@ -75,6 +75,12 @@ public sealed class Program
 			builder.Services.AddHsts(configureOptions: options => options.MaxAge = TimeSpan.FromDays(value: 365));
 		}
 
+		builder.WebHost.ConfigureKestrel(options: kestrel =>
+		{
+			kestrel.ListenAnyIP(port: 8080);
+			kestrel.ListenAnyIP(port: 9100);
+		});
+
 		WebApplication app = builder.Build();
 
 		app.UseForwardedHeaders();
@@ -94,14 +100,14 @@ public sealed class Program
 		app.MapHealthChecks(pattern: "/health/live", options: new HealthCheckOptions
 		{
 			Predicate = _ => false
-		});
+		}).RequireHost(hosts: "*:9100");
 
 		app.MapHealthChecks(pattern: "/health/ready", options: new HealthCheckOptions
 		{
 			Predicate = check => check.Tags.Contains(item: "ready")
-		});
+		}).RequireHost(hosts: "*:9100");
 
-		app.MapPrometheusScrapingEndpoint();
+		app.MapPrometheusScrapingEndpoint().RequireHost(hosts: "*:9100");
 
 		app.MapEndpoints();
 
@@ -118,7 +124,6 @@ public sealed class Program
 			app.MapGet(pattern: "/", handler: () => Results.Redirect(url: "/scalar/v1")).ExcludeFromDescription();
 		}
 
-		app.Run();
 		app.Run();
 	}
 }

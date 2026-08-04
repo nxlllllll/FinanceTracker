@@ -2,6 +2,7 @@ using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
@@ -54,12 +55,35 @@ public sealed class RegisterUserHandler(
 
 		Core.Domains.User.User user = userResult.Value!;
 
+		RoleDto? defaultRole = await roleRepository.GetBySystemKeyAsync(systemKey: SystemRole.User, ct: ct);
+
+		if (defaultRole is null)
+		{
+			logger.ZLogCritical(message: $"""
+				System role 'user' is missing, so a new account cannot be granted anything.
+				Refusing to register {command.Email.Masked} rather than create an account that gets 403 on every request.
+				Check that the role seed migration has been applied.
+			""");
+
+			throw new ConfigurationException(message: "The 'user' system role is not present in the database.");
+		}
+
 		try
 		{
-			await unitOfWork.ExecuteInTransactionAsync(
-				operation: async () => await userWriteRepository.CreateAsync(user: user, ct: ct),
-				ct: ct
-			);
+			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			{
+				await userWriteRepository.CreateAsync(user: user, ct: ct);
+
+				Result<Unit, AppException> roleAssignResult = await userRoleService.AssignAsync(
+					userId: user.Id,
+					roleId: defaultRole.Id,
+					assignedBy: user.Id,
+					ct: ct
+				);
+
+				if (roleAssignResult.IsFailure)
+					throw new ConfigurationException(message: $"The default 'user' role could not be assigned: {roleAssignResult.Error!.Message}");
+			}, ct: ct);
 		}
 		catch (UniqueConstraintException ex)
 		{
@@ -77,24 +101,7 @@ public sealed class RegisterUserHandler(
 			OccurredAt: dateProvider.UtcNow
 		));
 
-		logger.ZLogInformation(message: $"User {user.Id} registered successfully.");
-
-		RoleDto? defaultRole = await roleRepository.GetBySystemKeyAsync(systemKey: SystemRole.User, ct: ct);
-
-		if (defaultRole is null)
-			logger.ZLogWarning(message: $"System role 'user' not found — user {user.Id} was registered without a default role.");
-		else
-		{
-			Result<Unit, AppException> roleAssignResult = await userRoleService.AssignAsync(
-				userId: user.Id,
-				roleId: defaultRole.Id,
-				assignedBy: user.Id,
-				ct: ct
-			);
-
-			if (roleAssignResult.IsFailure)
-				logger.ZLogWarning(message: $"Failed to assign default 'user' role to {user.Id}: {roleAssignResult.Error!.Message}.");
-		}
+		logger.ZLogInformation(message: $"User {user.Id} registered successfully with the default 'user' role.");
 
 		return Result<Guid, AppException>.Success(value: user.Id);
 	}

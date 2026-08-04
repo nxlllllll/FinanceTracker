@@ -1,18 +1,15 @@
 using FinanceTracker.Application.Behaviours.Authorization;
-using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.ValueObjects;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 
+/// <summary>Deletes a role that nobody belongs to.</summary>
 public sealed class DeleteRoleHandler(
-	IRoleRepository roleRepository,
-	IUserPermissionService userPermissionService,
-	IUnitOfWork unitOfWork
+	IRoleRepository roleRepository
 ) : IAuthorizedHandler<DeleteRoleCommand, RoleDto, Unit, AppException>
 {
 	public async Task<Result<Unit, AppException>> HandleAsync(
@@ -20,27 +17,18 @@ public sealed class DeleteRoleHandler(
 		RoleDto role,
 		CancellationToken ct = default)
 	{
-		IReadOnlyCollection<Permission> permissions = [..role.Permissions];
+		IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: request.RoleId, ct: ct);
 
-		return await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		if (memberUserIds.Any())
 		{
-			IReadOnlyList<Guid> memberUserIds = await roleRepository.GetMemberUserIdsAsync(roleId: request.RoleId, ct: ct);
+			return Result<Unit, AppException>.Failure(error: new RoleHasMembersException(
+				roleId: request.RoleId,
+				memberCount: memberUserIds.Count
+			));
+		}
 
-			foreach (Guid userId in memberUserIds)
-			{
-				Result<Unit, AppException> revoked = await userPermissionService.RevokeAsync(
-					targetUserId: userId,
-					revokedBy: request.DeletedBy,
-					permissions: permissions,
-					ct: ct
-				);
-				if (revoked.IsFailure)
-					return revoked;
-			}
+		await roleRepository.DeleteAsync(roleId: request.RoleId, ct: ct);
 
-			await roleRepository.DeleteAsync(roleId: request.RoleId, ct: ct);
-
-			return Result<Unit, AppException>.Success(value: Unit.Default);
-		}, ct: ct);
+		return Result<Unit, AppException>.Success(value: Unit.Default);
 	}
 }

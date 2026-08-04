@@ -22,6 +22,7 @@
     <ItemGroup>
         <ProjectReference Include="..\FinanceTracker.Api\FinanceTracker.Api.csproj" />
         <ProjectReference Include="..\FinanceTracker.Application\FinanceTracker.Application.csproj" />
+        <ProjectReference Include="..\FinanceTracker.Cli\FinanceTracker.Cli.csproj" />
         <ProjectReference Include="..\FinanceTracker.Core\FinanceTracker.Core.csproj" />
         <ProjectReference Include="..\FinanceTracker.Infrastructure\FinanceTracker.Infrastructure.csproj" />
         <ProjectReference Include="..\FinanceTracker.Migrator\FinanceTracker.Migrator.csproj" />
@@ -35,6 +36,7 @@
         <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransactionProjection\FinanceTracker.Worker.RecurringTransactionProjection.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.RecurringTransaction\FinanceTracker.Worker.RecurringTransaction.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.TransferProjection\FinanceTracker.Worker.TransferProjection.csproj" />
+        <ProjectReference Include="..\FinanceTracker.Worker.UserRoleProjection\FinanceTracker.Worker.UserRoleProjection.csproj" />
     </ItemGroup>
 
 </Project>

@@ -99,13 +99,21 @@ public sealed class UserPermissionProjectionE2ETests : E2EFixture
 		await WaitForConditionAsync(condition: async () =>
 		{
 			await using FinanceTrackerContext ctx = CreateReadContext();
-			return !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete");
+			return !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete" && p.IsActive);
 		});
 
 		await using FinanceTrackerContext readCtx = CreateReadContext();
-		bool stillExists = await readCtx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete");
+		bool stillActive = await readCtx.UserPermissions.AnyAsync(
+			predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete" && p.IsActive
+		);
 
-		await Assert.That(value: stillExists).IsFalse();
+		await Assert.That(value: stillActive).IsFalse();
+
+		bool tombstoneKept = await readCtx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete");
+		await Assert.That(value: tombstoneKept).IsTrue().Because(message: """
+			The row stays behind on purpose: it records which version revoked the permission, which is
+			what stops a grant delivered out of order from putting it back.
+		""");
 	}
 
 	[Test]

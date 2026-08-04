@@ -3,12 +3,14 @@ using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Application.UseCases.User.Commands.RegisterUser;
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Password;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -18,6 +20,13 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 
 public sealed class RegisterUserHandlerTests
 {
+	private static readonly RoleDto DefaultUserRole = new RoleDto(
+		Id: Guid.CreateVersion7(),
+		SystemKey: SystemRole.User,
+		DisplayName: Name.Reconstitute(value: "user"),
+		Permissions: new HashSet<Permission>()
+	);
+
 	private IUserWriteRepository _userWriteRepository = null!;
 	private IUserAuthRepository _userAuthRepository = null!;
 	private IPasswordHasher _passwordHasher = null!;
@@ -46,6 +55,11 @@ public sealed class RegisterUserHandlerTests
 			assignedBy: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
+
+		_roleRepository.GetBySystemKeyAsync(
+			systemKey: SystemRole.User,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: DefaultUserRole);
 
 		_passwordHasher.Hash(password: Arg.Any<string>()).Returns(returnThis: HashedPassword);
 		_unitOfWork.ExecuteInTransactionAsync(
@@ -168,5 +182,50 @@ public sealed class RegisterUserHandlerTests
 		);
 
 		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
+	}
+
+	[Test]
+	public async Task Handle_WhenTheDefaultRoleIsMissing_ShouldNotCreateAUserAtAll()
+	{
+		_userAuthRepository.GetByEmailAsync(
+			email: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
+
+		_roleRepository.GetBySystemKeyAsync(
+			systemKey: SystemRole.User,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<RoleDto?>(result: null));
+
+		await Assert.That(
+			action: async () => await _handler.Handle(command: RegisterUserCommandFactory.Create(), ct: CancellationToken.None)
+		).Throws<ConfigurationException>();
+
+		await _userWriteRepository.DidNotReceive().CreateAsync(
+			user: Arg.Any<FinanceTracker.Core.Domains.User.User>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenTheRoleAssignmentFails_ShouldFailTheWholeRegistration()
+	{
+		_userAuthRepository.GetByEmailAsync(
+			email: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
+
+		_userRoleService.AssignAsync(
+			userId: Arg.Any<Guid>(),
+			roleId: Arg.Any<Guid>(),
+			assignedBy: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(
+			error: new NotFoundException(message: "Role not found.", id: DefaultUserRole.Id)
+		));
+
+		await Assert.That(
+			action: async () => await _handler.Handle(command: RegisterUserCommandFactory.Create(), ct: CancellationToken.None)
+		).Throws<ConfigurationException>();
 	}
 }

@@ -172,7 +172,7 @@ public sealed class InMemoryRateLimiterTests
 	}
 
 	[Test]
-	public async Task IsAllowedAsync_WhenAtMaxTrackedKeys_ShouldDenyNeverSeenKey()
+	public async Task IsAllowedAsync_WhenAtMaxTrackedKeys_ShouldAdmitNewKeyByEvictingTheLeastRecentlyUsed()
 	{
 		InMemoryRateLimiter limiter = new InMemoryRateLimiter(
 			dateProvider: _dateProvider,
@@ -183,25 +183,26 @@ public sealed class InMemoryRateLimiterTests
 			})
 		);
 
-		await limiter.IsAllowedAsync(
-			key: "key-a",
-			requestsPerWindow: 10,
-			windowSeconds: 60
-		);
-		await limiter.IsAllowedAsync(
-			key: "key-b",
-			requestsPerWindow: 10,
-			windowSeconds: 60
-		);
-		RateLimitResult thirdKeyResult = await limiter.IsAllowedAsync(
-			key: "key-c",
-			requestsPerWindow: 10,
-			windowSeconds: 60
-		);
+		await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 1, windowSeconds: 60);
+		_dateProvider.UtcNow = _dateProvider.UtcNow.AddSeconds(seconds: 1);
+		await limiter.IsAllowedAsync(key: "key-b", requestsPerWindow: 1, windowSeconds: 60);
 
-		await Assert.That(value: thirdKeyResult.IsAllowed).IsFalse().Because(message: """
-			Once the table is at MaxTrackedKeys, a key we've never tracked before must be denied rather
-			than growing the table further — this is the safety valve against unbounded key cardinality.
+		_dateProvider.UtcNow = _dateProvider.UtcNow.AddSeconds(seconds: 1);
+		RateLimitResult newKeyResult = await limiter.IsAllowedAsync(key: "key-c", requestsPerWindow: 1, windowSeconds: 60);
+
+		await Assert.That(value: newKeyResult.IsAllowed).IsTrue().Because(message: """
+			A caller we have never seen must not be denied because the table is full. This limiter only
+			runs while Redis is down, and denying every new key would escalate a cache outage into a full
+			one — plus hand anyone generating unique keys a trivial way to cause it.
+		""");
+
+		_dateProvider.UtcNow = _dateProvider.UtcNow.AddSeconds(seconds: 1);
+		RateLimitResult evictedKeyResult = await limiter.IsAllowedAsync(key: "key-a", requestsPerWindow: 1, windowSeconds: 60);
+
+		await Assert.That(value: evictedKeyResult.IsAllowed).IsTrue().Because(message: """
+			key-a was the least recently used window, so admitting key-c must have dropped it — that is
+			what keeps the table bounded. Its allowance starts over, and that under-count is the price of
+			not denying anyone.
 		""");
 	}
 
