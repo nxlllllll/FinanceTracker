@@ -342,6 +342,24 @@ services:
       migrator:
         condition: service_completed_successfully
 
+  cli:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: FinanceTracker.Cli/Dockerfile
+    environment:
+      <<: [*redis-env]
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      Redis__ConnectionString: redis:6379
+      PGGSSENCMODE: disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
   migrator:
     build:
       context: .

@@ -19,7 +19,27 @@ env:
   IMAGE_NAMESPACE: ${{ github.repository_owner }}/financetracker
 
 jobs:
+  matrix-completeness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every Dockerfile is covered by the build matrix
+        run: |
+          # The matrix duplicates the list of projects, and a missing entry is not a build error —
+          # it is an image that silently never gets built or published.
+          missing=0
+          for dockerfile in $(find . -name Dockerfile -not -path './.git/*'); do
+            project=$(dirname "$dockerfile" | sed 's|^\./||')
+            if ! grep -q "path: $project *}" .github/workflows/docker-build.yml; then
+              echo "::error::$project has a Dockerfile but no entry in the build matrix"
+              missing=1
+            fi
+          done
+          exit $missing
+
   build:
+    needs: matrix-completeness
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -38,6 +58,7 @@ jobs:
           - { name: worker-dead-letter-monitor, path: FinanceTracker.Worker.DeadLetterMonitor }
           - { name: worker-permission-projection, path: FinanceTracker.Worker.PermissionProjection }
           - { name: worker-user-role-projection, path: FinanceTracker.Worker.UserRoleProjection }
+          - { name: cli, path: FinanceTracker.Cli }
           - { name: api, path: FinanceTracker.Api }
 
     steps:
@@ -79,9 +100,9 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
 
   docker-build-status:
-    needs: build
+    needs: [matrix-completeness, build]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any matrix build failed
-        run: ${{ needs.build.result == 'success' && 'true' || 'false' }}
+        run: ${{ (needs.matrix-completeness.result == 'success' && needs.build.result == 'success') && 'true' || 'false' }}

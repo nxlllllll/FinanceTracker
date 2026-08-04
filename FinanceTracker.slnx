@@ -23,6 +23,7 @@
   <Project Path="FinanceTracker.Api/FinanceTracker.Api.csproj" />
   <Project Path="FinanceTracker.Application/FinanceTracker.Application.csproj" />
   <Project Path="FinanceTracker.Benchmarks/FinanceTracker.Benchmarks.csproj" />
+  <Project Path="FinanceTracker.Cli/FinanceTracker.Cli.csproj" />
   <Project Path="FinanceTracker.Contracts/FinanceTracker.Contracts.csproj" />
   <Project Path="FinanceTracker.Core/FinanceTracker.Core.csproj" />
   <Project Path="FinanceTracker.Infrastructure/FinanceTracker.Infrastructure.csproj" />
