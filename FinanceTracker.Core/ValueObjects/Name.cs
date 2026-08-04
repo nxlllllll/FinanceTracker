@@ -43,9 +43,9 @@ public readonly record struct Name
 		=> new Name(value: value);
 
 	/// <summary>Implicit conversion to <see cref="string"/> for convenience in comparisons and logging.</summary>
-	public static implicit operator string(Name name)
-		=> name.Value;
-
+	public static implicit operator string(Name name) => name.Value ?? throw new InvalidOperationException(
+		message: "Cannot convert a default(Name) to a string — this name was never created through Name.Create or Name.Reconstitute."
+	);
 	/// <inheritdoc/>
 	/// <returns>Returns a string representation of the name</returns>
 	public override string ToString()

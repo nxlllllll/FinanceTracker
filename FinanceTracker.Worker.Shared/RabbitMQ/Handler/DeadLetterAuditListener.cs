@@ -179,6 +179,8 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 			(string reason, string? originalQueue, long? deathCount) = ExtractDeathInfo(headers: ea.BasicProperties.Headers);
 			string fullBody = Encoding.UTF8.GetString(bytes: ea.Body.ToArray());
 
+			Guid referenceId = Guid.TryParse(input: ea.BasicProperties.MessageId, result: out Guid messageId) ? messageId : Guid.CreateVersion7();
+
 			string payload = JsonSerializer.Serialize(value: new
 			{
 				messageType = typeof(TMessage).Name,
@@ -186,13 +188,14 @@ public sealed class DeadLetterAuditListener<TMessage, THandler>(
 				originalQueue,
 				deathCount,
 				deliveryTag = ea.DeliveryTag,
+				messageId = ea.BasicProperties.MessageId,
 				correlationId = ea.BasicProperties.CorrelationId,
 				body = fullBody
 			});
 
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await repository.CreateAsync(
 				type: UnresolvableEventType.ConsumerDeadLetter,
-				referenceId: Guid.CreateVersion7(),
+				referenceId: referenceId,
 				reason: reason,
 				payload: payload,
 				occurredAt: dateProvider.UtcNow,

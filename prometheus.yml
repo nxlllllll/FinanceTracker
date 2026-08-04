@@ -29,3 +29,4 @@ scrape_configs:
           - 'worker-balance-adjustment:5007'
           - 'worker-cleanup:5008'
           - 'worker-permission-projection:5009'
+          - 'worker-user-role-projection:5010'

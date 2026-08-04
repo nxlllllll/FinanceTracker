@@ -33,8 +33,8 @@ public sealed class Program
 		builder.Services.AddApiTelemetry();
 
 		builder.Services.AddInfrastructureHealthChecks(
-			connectionString: builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!,
-			redisConnectionString: builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!
+			connectionString: builder.Configuration.RequireValue(path: "ConnectionStrings:FinanceTrackerContext"),
+			redisConnectionString: builder.Configuration.RequireValue(path: "Redis:ConnectionString")
 		);
 
 		builder.Services.AddEndpoints();
