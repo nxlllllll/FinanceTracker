@@ -742,4 +742,33 @@ public sealed class AccountTests
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: account.Balance.Amount).IsEqualTo(expected: 0m);
 	}
+
+	[Test]
+	public async Task Debit_DatedBeforeTheAccountWasOpened_ShouldFail()
+	{
+		Account account = Account.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow,
+			userId: Guid.CreateVersion7(),
+			name: Name.Create(value: "Card").Value!,
+			type: AccountType.Checking,
+			currency: Currency.Create(value: "RUB").Value,
+			balance: 10_000m
+		).Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddDays(days: -1),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
+			amount: 500m,
+			exchangeRate: 1m,
+			description: null
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<OperationPredatesAccountException>().Because(message: """
+			The opening balance already reflects everything that happened before the account existed.
+			Recording an earlier movement counts that money a second time, and the balance is wrong
+			afterwards with nothing pointing at why.
+		""");
+	}
 }

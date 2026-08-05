@@ -48,6 +48,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<BackdatingOptions>()
+			.BindConfiguration(configSectionPath: BackdatingOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddScoped<PostCommitNotificationCollector>();
 		services.AddScoped<IPostCommitNotifications>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
 		services.AddScoped<IPostCommitNotificationSink>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());

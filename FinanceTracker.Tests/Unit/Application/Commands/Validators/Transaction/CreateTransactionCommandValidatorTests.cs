@@ -33,7 +33,8 @@ public sealed class CreateTransactionCommandValidatorTests
 			dateProvider: FakeDateProvider.Default,
 			currencyReadRepository: _currencyReadRepository,
 			categoryReadRepository: _categoryReadRepository,
-			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions())
+			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions()),
+			backdating: new FakeOptionsMonitor<BackdatingOptions>(value: new BackdatingOptions())
 		);
 	}
 
@@ -182,5 +183,33 @@ public sealed class CreateTransactionCommandValidatorTests
 
 		await Assert.That(value: result.IsValid).IsFalse();
 		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(CreateTransactionCommand.Currency))).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithADateInsideTheBackdatingWindow_ShouldNotHaveErrors()
+	{
+		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddMonths(months: -2)
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithADateBeyondTheBackdatingWindow_ShouldHaveError()
+	{
+		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddMonths(months: -4)
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.OccurredAt))).IsTrue().Because(message: """
+			A date years in the past is nearly always a typo, and a typo in a date puts the amount in
+			the wrong reporting period without anything looking wrong.
+		""");
 	}
 }

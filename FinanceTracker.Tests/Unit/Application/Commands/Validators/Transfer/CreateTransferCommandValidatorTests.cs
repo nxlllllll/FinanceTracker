@@ -14,7 +14,8 @@ public sealed class CreateTransferCommandValidatorTests
 	{
 		_validator = new CreateTransferCommandValidator(
 			dateProvider: FakeDateProvider.Default,
-			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions())
+			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions()),
+			backdating: new FakeOptionsMonitor<BackdatingOptions>(value: new BackdatingOptions())
 		);
 	}
 
@@ -132,5 +133,38 @@ public sealed class CreateTransferCommandValidatorTests
 
 		await Assert.That(value: result.IsValid).IsFalse();
 		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.Description))).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithADateInsideTheBackdatingWindow_ShouldNotHaveErrors()
+	{
+		CreateTransferCommand command = CreateTransferCommandFactory.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddMonths(months: -2)
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsTrue().Because(message: """
+			Entering an operation weeks or a couple of months late is the ordinary case the window
+			exists to allow. A bound tight enough to reject it would just push people to lie about
+			the date.
+		""");
+	}
+
+	[Test]
+	public async Task Validate_WithADateBeyondTheBackdatingWindow_ShouldHaveError()
+	{
+		CreateTransferCommand command = CreateTransferCommandFactory.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddMonths(months: -4)
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.OccurredAt))).IsTrue().Because(message: """
+			A cross-currency transfer converts at the rate of the date it carries, and that rate is
+			recorded as final. Without a lower bound the date is a free pick among every rate ever
+			recorded, and the resulting balances stop describing anything real.
+		""");
 	}
 }
