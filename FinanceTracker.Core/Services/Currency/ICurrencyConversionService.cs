@@ -11,10 +11,11 @@ public interface ICurrencyConversionService
 	/// <paramref name="toCurrency"/> on the given <paramref name="date"/>, together with how final
 	/// that rate is — see <see cref="ConversionResult"/>.
 	/// </summary>
-	/// <exception cref="Exceptions.ConfigurationExceptions.CurrencyRateMissingException">
-	/// No rate — not even a "latest" one — has ever been recorded for this currency pair. This is a
-	/// configuration gap (the pair isn't tracked), not a business-rule violation a caller is expected
-	/// to recover from, so it is thrown rather than returned via <c>Result</c>.
+	/// <exception cref="Exceptions.TransientExceptions.CurrencyRateMissingException">
+	/// No rate — not even a "latest" one — has ever been recorded for this currency pair, usually
+	/// because the rate job has not covered it yet. Thrown rather than returned via <c>Result</c>
+	/// because workers rely on it: an unhandled throw is what makes a consumer reject the message
+	/// and lets the queue retry it once the gap closes.
 	/// </exception>
 	Task<ConversionResult> GetConversionRateAsync(
 		ValueObjects.Currency fromCurrency,
@@ -28,7 +29,7 @@ public interface ICurrencyConversionService
 	/// time-invariant answer for a fixed <paramref name="asOf"/>, unlike <see cref="GetConversionRateAsync"/>
 	/// which can resolve differently over time when it falls back to "latest available".
 	/// </summary>
-	/// <exception cref="Exceptions.ConfigurationExceptions.CurrencyRateMissingException">
+	/// <exception cref="Exceptions.TransientExceptions.CurrencyRateMissingException">
 	/// No rate was ever recorded at or before <paramref name="asOf"/>.
 	/// </exception>
 	Task<decimal> GetStableRateAsync(
@@ -39,7 +40,7 @@ public interface ICurrencyConversionService
 	);
 
 	/// <summary>Batch variant of <see cref="GetStableRateAsync"/>.</summary>
-	/// <exception cref="Exceptions.ConfigurationExceptions.CurrencyRateMissingException">
+	/// <exception cref="Exceptions.TransientExceptions.CurrencyRateMissingException">
 	/// A rate was missing for at least one request in the batch.
 	/// </exception>
 	Task<Dictionary<CurrencyStableRateRequest, decimal>> GetStableRatesBatchAsync(

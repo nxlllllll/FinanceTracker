@@ -6,6 +6,7 @@ using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Account;

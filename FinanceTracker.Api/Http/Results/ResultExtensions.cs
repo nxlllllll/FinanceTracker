@@ -3,6 +3,7 @@ using System.Text.Json;
 using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Api.Http.Results;
@@ -10,54 +11,66 @@ namespace FinanceTracker.Api.Http.Results;
 /// <summary>Maps <see cref="Result{TValue,TError}"/> failures onto HTTP responses.</summary>
 public static class ResultExtensions
 {
+	public static IHttpResult ToProblem(this AppException error) => error switch
+	{
+		ValidationException validation => ValidationProblem(error: validation),
+		RateLimitExceededException rateLimit => RetryableProblem(
+			error: rateLimit,
+			statusCode: StatusCodes.Status429TooManyRequests,
+			retryAfterSeconds: rateLimit.RetryAfterSeconds
+		),
+		TransientException transient => RetryableProblem(
+			error: transient,
+			statusCode: StatusCodes.Status503ServiceUnavailable,
+			retryAfterSeconds: transient.RetryAfterSeconds
+		),
+		_ => Problem(error: error, statusCode: StatusCodeFor(error: error))
+	};
+
+	private static int StatusCodeFor(AppException error) => error switch
+	{
+		EmptyIdempotencyKeyException => StatusCodes.Status400BadRequest,
+		InvalidCredentialsException or InvalidTokenException => StatusCodes.Status401Unauthorized,
+		NotFoundException => StatusCodes.Status404NotFound,
+		ConcurrencyConflictException or UniqueConstraintException => StatusCodes.Status409Conflict,
+		IdempotencyTimeoutException or IdempotencyAbandonedException => StatusCodes.Status409Conflict,
+		SelfPermissionModificationException => StatusCodes.Status403Forbidden,
+		PreconditionFailedException => StatusCodes.Status412PreconditionFailed,
+		DomainException => StatusCodes.Status422UnprocessableEntity,
+		_ => StatusCodes.Status500InternalServerError
+	};
+
+	private static IHttpResult ValidationProblem(ValidationException error) => Microsoft.AspNetCore.Http.Results.ValidationProblem(
+		errors: error.Errors.ToDictionary(keySelector: kv => kv.Key, elementSelector: kv => kv.Value),
+		detail: error.Message,
+		extensions: Extensions(error: error)
+	);
+
+	private static IHttpResult RetryableProblem(
+		AppException error,
+		int statusCode,
+		int retryAfterSeconds
+	) => new ResultWithHeader(
+		inner: Problem(error: error, statusCode: statusCode),
+		headerName: "Retry-After",
+		headerValue: retryAfterSeconds.ToString()
+	);
+
+	private static IHttpResult Problem(
+		AppException error,
+		int statusCode
+	) => Microsoft.AspNetCore.Http.Results.Problem(
+		detail: error.Message,
+		statusCode: statusCode,
+		title: error.GetType().Name,
+		extensions: Extensions(error: error)
+	);
+
+	private static Dictionary<string, object?> Extensions(AppException error)
+		=> new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) };
+
 	private static string ResolveErrorCode(AppException error)
 		=> error.GetType().GetCustomAttribute<ErrorCodeAttribute>()?.Code ?? error.GetType().Name;
-
-	public static IHttpResult ToProblem(this AppException error)
-	{
-		if (error is ValidationException validation)
-		{
-			return Microsoft.AspNetCore.Http.Results.ValidationProblem(
-				errors: validation.Errors.ToDictionary(keySelector: kv => kv.Key, elementSelector: kv => kv.Value),
-				detail: validation.Message,
-				extensions: new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) }
-			);
-		}
-
-		if (error is RateLimitExceededException rateLimitExceeded)
-		{
-			return new ResultWithHeader(
-				inner: Microsoft.AspNetCore.Http.Results.Problem(
-					detail: error.Message,
-					statusCode: StatusCodes.Status429TooManyRequests,
-					title: error.GetType().Name,
-					extensions: new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) }
-				),
-				headerName: "Retry-After",
-				headerValue: rateLimitExceeded.RetryAfterSeconds.ToString()
-			);
-		}
-
-		int statusCode = error switch
-		{
-			EmptyIdempotencyKeyException => StatusCodes.Status400BadRequest,
-			InvalidCredentialsException or InvalidTokenException => StatusCodes.Status401Unauthorized,
-			NotFoundException => StatusCodes.Status404NotFound,
-			ConcurrencyConflictException or UniqueConstraintException => StatusCodes.Status409Conflict,
-			IdempotencyTimeoutException or IdempotencyAbandonedException => StatusCodes.Status409Conflict,
-			SelfPermissionModificationException => StatusCodes.Status403Forbidden,
-			PreconditionFailedException => StatusCodes.Status412PreconditionFailed,
-			DomainException => StatusCodes.Status422UnprocessableEntity,
-			_ => StatusCodes.Status500InternalServerError
-		};
-
-		return Microsoft.AspNetCore.Http.Results.Problem(
-			detail: error.Message,
-			statusCode: statusCode,
-			title: error.GetType().Name,
-			extensions: new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) }
-		);
-	}
 
 	public static IHttpResult ToHttpResult<TReadModel, TResponse>(
 		this Result<TReadModel, AppException> result,
@@ -100,7 +113,6 @@ public static class ResultExtensions
 		onSuccess?.Invoke(obj: result.Value!);
 		return Microsoft.AspNetCore.Http.Results.Ok(value: result.Value!.Select(selector: TResponse.FromReadModel).ToList());
 	}
-
 
 	public static IHttpResult ToCreatedResult(
 		this Result<Guid, AppException> result,
