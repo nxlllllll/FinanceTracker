@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Role.Notifications;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -10,6 +11,7 @@ namespace FinanceTracker.Application.UseCases.Role.Commands.CreateRole;
 
 public sealed class CreateRoleHandler(
 	IRoleRepository roleRepository,
+	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
 	IPostCommitNotifications postCommitNotifications
 ) : IRequestHandler<CreateRoleCommand, Result<Guid, AppException>>
@@ -20,12 +22,12 @@ public sealed class CreateRoleHandler(
 	{
 		DateTimeOffset now = dateProvider.UtcNow;
 
-		Guid roleId = await roleRepository.CreateAsync(
+		Guid roleId = await unitOfWork.ExecuteInTransactionAsync(operation: async () => await roleRepository.CreateAsync(
 			displayName: command.DisplayName,
 			permissions: command.Permissions,
 			createdAt: now,
 			ct: ct
-		);
+		), ct: ct);
 
 		postCommitNotifications.Stage(notification: new RoleCreatedNotification(
 			RoleId: roleId,

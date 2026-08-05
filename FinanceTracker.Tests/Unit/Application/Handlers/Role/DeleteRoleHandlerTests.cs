@@ -1,6 +1,7 @@
 ﻿using FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -11,13 +12,24 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Role;
 public sealed class DeleteRoleHandlerTests
 {
 	private IRoleRepository _roleRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private DeleteRoleHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_roleRepository = Substitute.For<IRoleRepository>();
-		_handler = new DeleteRoleHandler(roleRepository: _roleRepository);
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task<Result<FinanceTracker.Core.Results.Unit, AppException>>>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<Result<FinanceTracker.Core.Results.Unit, AppException>>>>()?.Invoke());
+
+		_handler = new DeleteRoleHandler(
+			roleRepository: _roleRepository,
+			unitOfWork: _unitOfWork
+		);
 	}
 
 	private static RoleDto BuildRole(Guid roleId) => new RoleDto(
@@ -51,6 +63,23 @@ public sealed class DeleteRoleHandlerTests
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await _roleRepository.Received(requiredNumberOfCalls: 1).DeleteAsync(roleId: roleId, ct: Arg.Any<CancellationToken>());
+	}
+
+	[Test]
+	public async Task HandleAsync_ShouldDeleteInsideATransaction()
+	{
+		Guid roleId = Guid.CreateVersion7();
+		ReturnsMembers(roleId: roleId);
+
+		await _handler.HandleAsync(
+			request: new DeleteRoleCommand(RoleId: roleId, DeletedBy: Guid.CreateVersion7()),
+			role: BuildRole(roleId: roleId)
+		);
+
+		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync<Result<FinanceTracker.Core.Results.Unit, AppException>>(
+			operation: Arg.Any<Func<Task<Result<FinanceTracker.Core.Results.Unit, AppException>>>>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]

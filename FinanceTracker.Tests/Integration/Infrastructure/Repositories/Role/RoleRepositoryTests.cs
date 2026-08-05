@@ -26,6 +26,16 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 	private static IReadOnlySet<Permission> Perms(params (Resource, PermissionAction)[] pairs)
 		=> pairs.Select(selector: p => Permission.Create(resource: p.Item1, action: p.Item2).Value!).ToHashSet();
 
+	private Task<Guid> CreateRoleAsync(string displayName, IReadOnlySet<Permission> permissions)
+	{
+		return UnitOfWork.ExecuteInTransactionAsync(operation: async () => await _repository.CreateAsync(
+			displayName: Name.Create(value: displayName).Value!,
+			permissions: permissions,
+			createdAt: FakeDateProvider.Default.UtcNow,
+			ct: CancellationToken.None
+		), ct: CancellationToken.None);
+	}
+
 	private Task AssignMembershipAsync(
 		Guid userId,
 		Guid roleId
@@ -44,11 +54,9 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task CreateAsync_ThenGetByIdAsync_ShouldReturnRoleWithPermissions()
 	{
-		Guid roleId = await _repository.CreateAsync(
-			displayName: Name.Create(value: "Accountant").Value!,
-			permissions: Perms((Resource.Account, PermissionAction.Read), (Resource.Budget, PermissionAction.Write)),
-			createdAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
+		Guid roleId = await CreateRoleAsync(
+			displayName: "Accountant",
+			permissions: Perms((Resource.Account, PermissionAction.Read), (Resource.Budget, PermissionAction.Write))
 		);
 
 		RoleDto? role = await _repository.GetByIdAsync(roleId: roleId, ct: CancellationToken.None);
@@ -57,6 +65,27 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 		await Assert.That(value: role!.DisplayName.Value).IsEqualTo(expected: "Accountant");
 		await Assert.That(value: role.SystemKey).IsNull();
 		await Assert.That(value: role.Permissions).Count().IsEqualTo(expected: 2);
+	}
+
+	[Test]
+	public async Task CreateAsync_WithoutACommit_ShouldNotPersistAnything()
+	{
+		Guid roleId = await _repository.CreateAsync(
+			displayName: Name.Create(value: "Uncommitted").Value!,
+			permissions: Perms((Resource.Account, PermissionAction.Read)),
+			createdAt: FakeDateProvider.Default.UtcNow,
+			ct: CancellationToken.None
+		);
+
+		Context.ChangeTracker.Clear();
+
+		RoleDto? role = await _repository.GetByIdAsync(roleId: roleId, ct: CancellationToken.None);
+
+		await Assert.That(value: role).IsNull().Because(message: """
+			The id is generated client-side, so it comes back looking perfectly valid whether or not the
+			role was written. Persisting is the caller's job via the unit of work — if this ever returns
+			a role, the repository has started committing on its own again.
+		""");
 	}
 
 	[Test]
@@ -79,23 +108,51 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task ReplacePermissionsAsync_ShouldOverwriteEntirePermissionSet()
 	{
-		Guid roleId = await _repository.CreateAsync(
-			displayName: Name.Create(value: "Support").Value!,
-			permissions: Perms((Resource.Account, PermissionAction.Read)),
-			createdAt: FakeDateProvider.Default.UtcNow,
-			ct: CancellationToken.None
+		Guid roleId = await CreateRoleAsync(
+			displayName: "Support",
+			permissions: Perms((Resource.Account, PermissionAction.Read))
 		);
 
-		await _repository.ReplacePermissionsAsync(
+		await UnitOfWork.ExecuteInTransactionAsync(operation: async () => await _repository.ReplacePermissionsAsync(
 			roleId: roleId,
 			permissions: Perms((Resource.Category, PermissionAction.Delete)),
 			ct: CancellationToken.None
-		);
+		), ct: CancellationToken.None);
 
 		RoleDto? role = await _repository.GetByIdAsync(roleId: roleId, ct: CancellationToken.None);
 
 		await Assert.That(value: role!.Permissions).Count().IsEqualTo(expected: 1);
 		await Assert.That(value: role.Permissions).Contains(expected: Permission.Create(resource: Resource.Category, action: PermissionAction.Delete).Value!);
+	}
+
+	[Test]
+	public async Task ReplacePermissionsAsync_WhenTheTransactionFails_ShouldLeaveTheOriginalSetIntact()
+	{
+		Guid roleId = await CreateRoleAsync(
+			displayName: "Support",
+			permissions: Perms((Resource.Account, PermissionAction.Read))
+		);
+
+		await Assert.That(async () => await UnitOfWork.ExecuteInTransactionAsync(operation: async () =>
+		{
+			await _repository.ReplacePermissionsAsync(
+				roleId: roleId,
+				permissions: Perms((Resource.Category, PermissionAction.Delete)),
+				ct: CancellationToken.None
+			);
+
+			throw new InvalidOperationException(message: "Something fails after the delete but before the inserts land.");
+		}, ct: CancellationToken.None)).Throws<InvalidOperationException>();
+
+		Context.ChangeTracker.Clear();
+
+		RoleDto? role = await _repository.GetByIdAsync(roleId: roleId, ct: CancellationToken.None);
+
+		await Assert.That(value: role!.Permissions).Contains(expected: Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!).Because(message: """
+			The delete runs immediately while the inserts wait for the flush. Without a transaction
+			around both, a failure in that gap strips the role's permissions for good — and nothing
+			reports it, because no exception ever reaches the caller about the missing rows.
+		""");
 	}
 
 	[Test]

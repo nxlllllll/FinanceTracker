@@ -1,11 +1,16 @@
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace FinanceTracker.Infrastructure.Cache;
 
 public sealed class CachedRoleRepository(
 	IRoleRepository inner,
-	RedisCache redisCache
+	RedisCache redisCache,
+	IUnitOfWork unitOfWork,
+	ILogger<CachedRoleRepository> logger
 ) : IRoleRepository
 {
 	public Task<Guid> CreateAsync(
@@ -52,7 +57,8 @@ public sealed class CachedRoleRepository(
 		IReadOnlyList<Guid> memberUserIds = await inner.GetMemberUserIdsAsync(roleId: roleId, ct: ct);
 
 		await inner.ReplacePermissionsAsync(roleId: roleId, permissions: permissions, ct: ct);
-		await InvalidateAsync(userIds: memberUserIds);
+
+		ScheduleInvalidation(userIds: memberUserIds, reason: "role permissions replaced");
 	}
 
 	public async Task DeleteAsync(
@@ -62,14 +68,31 @@ public sealed class CachedRoleRepository(
 		IReadOnlyList<Guid> memberUserIds = await inner.GetMemberUserIdsAsync(roleId: roleId, ct: ct);
 
 		await inner.DeleteAsync(roleId: roleId, ct: ct);
-		await InvalidateAsync(userIds: memberUserIds);
+
+		ScheduleInvalidation(userIds: memberUserIds, reason: "role deleted");
 	}
 
-	private async Task InvalidateAsync(IReadOnlyList<Guid> userIds)
+	private void ScheduleInvalidation(IReadOnlyList<Guid> userIds, string reason)
 	{
 		if (userIds.Count == 0)
 			return;
 
+		unitOfWork.OnCommitted(callback: async () =>
+		{
+			bool invalidated = await InvalidateAsync(userIds: userIds);
+
+			if (!invalidated)
+			{
+				logger.ZLogWarning(message: $"""
+					Permission and role caches for {userIds.Count} member(s) were not invalidated after {reason};
+					the previous sets stay in effect until their TTL expires.
+				""");
+			}
+		});
+	}
+
+	private async Task<bool> InvalidateAsync(IReadOnlyList<Guid> userIds)
+	{
 		SystemRole[] systemRoles = Enum.GetValues<SystemRole>();
 		List<string> keys = new List<string>(capacity: userIds.Count * (systemRoles.Length + 1));
 
@@ -79,6 +102,6 @@ public sealed class CachedRoleRepository(
 			keys.Add(item: CachedUserPermissionReadRepository.KeyFor(userId: userId));
 		}
 
-		await redisCache.DeleteBatchAsync(keys: keys);
+		return await redisCache.DeleteBatchAsync(keys: keys);
 	}
 }
