@@ -244,7 +244,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 	{
 		return new DeadLetterAuditListener<AggregateEventsMessage, THandler>(
 			connectionFactory: _connectionFactory,
-			options: Options.Create(options: options),
+			options: new FakeOptionsMonitor<RabbitMqOptions>(value: options),
 			scopeFactory: scopeFactory,
 			logger: NullLogger<DeadLetterAuditListener<AggregateEventsMessage, THandler>>.Instance
 		);

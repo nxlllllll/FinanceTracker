@@ -6,50 +6,39 @@ using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Tracing;
-using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Exceptions;
 using ZLogger;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 
 /// <summary>
-/// Background service that consumes messages of type <typeparamref name="TMessage"/>
-/// from a RabbitMQ queue and dispatches them to <typeparamref name="THandler"/>.
-/// <para>
-/// Handles connection recovery automatically with exponential backoff.
-/// </para>
+/// Consumes messages of type <typeparamref name="TMessage"/> from a RabbitMQ
+/// queue and dispatches them to <typeparamref name="THandler"/>.
 /// </summary>
 public sealed class RabbitMqListenerService<TMessage, THandler>(
 	RabbitMqConnectionFactory connectionFactory,
 	IOptionsMonitor<RabbitMqOptions> options,
 	IServiceScopeFactory scopeFactory,
 	ILogger<RabbitMqListenerService<TMessage, THandler>> logger
-) : BackgroundService
+) : RabbitMqConsumerBase<TMessage>(connectionFactory: connectionFactory, logger: logger)
 	where TMessage : class
 	where THandler : IMessageHandler<TMessage>
 {
-	public const string QueueTypeArgument = "x-queue-type";
-	public const string DeliveryLimitArgument = "x-delivery-limit";
-	public const string DelayedRetryTypeArgument = "x-delayed-retry-type";
-	public const string DelayedRetryMinArgument = "x-delayed-retry-min";
-	public const string DelayedRetryMaxArgument = "x-delayed-retry-max";
-	public const string DeadLetterExchangeArgument = "x-dead-letter-exchange";
-
 	private readonly string _routingKey = GetRoutingKey();
 	private readonly string _queueName = RabbitMqQueueNaming.Resolve<THandler>(options: options.CurrentValue);
 
-	private IConnection? _connection;
-	private IChannel? _channel;
-
 	internal string DeadLetterExchangeName => $"{_queueName}.dlx";
 	internal string DeadLetterQueueName => $"{_queueName}.dlq";
+
+	protected override string Description => "listener";
+	protected override string QueueName => _queueName;
+	protected override int PrefetchCount => options.CurrentValue.PrefetchCount;
+	protected override int MaxReconnectDelaySeconds => options.CurrentValue.MaxReconnectDelaySeconds;
 
 	private static string GetRoutingKey()
 	{
@@ -69,59 +58,11 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		await base.StartAsync(cancellationToken: ct);
 	}
 
-	protected override async Task ExecuteAsync(CancellationToken ct)
-	{
-		int attempt = 0;
-
-		while (!ct.IsCancellationRequested)
-		{
-			try
-			{
-				await ConnectAsync(ct: ct);
-
-				attempt = 0;
-				logger.ZLogInformation(message: $"[{typeof(TMessage).Name}] Connected successfully.");
-
-				await ConsumeAsync(ct: ct);
-			}
-			catch (OperationCanceledException) when (ct.IsCancellationRequested)
-			{
-				break;
-			}
-			catch (Exception exception)
-			{
-				attempt++;
-				int delaySeconds = RetryDelayCalculator.CalculateSeconds(
-					attempt: attempt,
-					maxSeconds: options.CurrentValue.MaxReconnectDelaySeconds
-				);
-
-				logger.ZLogError(exception: exception, message: $"[{typeof(TMessage).Name}] Connection failed (attempt {attempt}). Retrying in {delaySeconds}s.");
-
-				await DisposeConnectionAsync();
-
-				await Task.Delay(delay: TimeSpan.FromSeconds(value: delaySeconds), cancellationToken: ct);
-			}
-		}
-	}
-
-	private async Task ConnectAsync(CancellationToken ct)
+	protected override async Task DeclareTopologyAsync(CancellationToken ct)
 	{
 		RabbitMqOptions currentOptions = options.CurrentValue;
 
-		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
-		RabbitMqVersionGuard.EnsureSupportedVersion(connection: _connection);
-
-		_channel = await _connection.CreateChannelAsync(cancellationToken: ct);
-
-		await _channel.BasicQosAsync(
-			prefetchSize: 0,
-			prefetchCount: (ushort)currentOptions.PrefetchCount,
-			global: false,
-			cancellationToken: ct
-		);
-
-		await _channel.ExchangeDeclareAsync(
+		await Channel.ExchangeDeclareAsync(
 			exchange: currentOptions.ExchangeName,
 			type: ExchangeType.Topic,
 			durable: true,
@@ -130,24 +71,24 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 		await DeclareDeadLetterInfrastructureAsync(ct: ct);
 
-		await _channel.QueueDeclareAsync(
+		await Channel.QueueDeclareAsync(
 			queue: _queueName,
 			durable: true,
 			exclusive: false,
 			autoDelete: false,
 			arguments: new Dictionary<string, object?>
 			{
-				[QueueTypeArgument] = "quorum",
-				[DeadLetterExchangeArgument] = DeadLetterExchangeName,
-				[DeliveryLimitArgument] = currentOptions.MaxRetries,
-				[DelayedRetryTypeArgument] = "failed",
-				[DelayedRetryMinArgument] = currentOptions.DelayedRetryMinMs,
-				[DelayedRetryMaxArgument] = currentOptions.DelayedRetryMaxMs
+				[RabbitMqQueueArguments.QueueType] = RabbitMqQueueArguments.QuorumQueueType,
+				[RabbitMqQueueArguments.DeadLetterExchange] = DeadLetterExchangeName,
+				[RabbitMqQueueArguments.DeliveryLimit] = currentOptions.MaxRetries,
+				[RabbitMqQueueArguments.DelayedRetryType] = RabbitMqQueueArguments.FailedRetryType,
+				[RabbitMqQueueArguments.DelayedRetryMin] = currentOptions.DelayedRetryMinMs,
+				[RabbitMqQueueArguments.DelayedRetryMax] = currentOptions.DelayedRetryMaxMs
 			},
 			cancellationToken: ct
 		);
 
-		await _channel.QueueBindAsync(
+		await Channel.QueueBindAsync(
 			queue: _queueName,
 			exchange: currentOptions.ExchangeName,
 			routingKey: _routingKey,
@@ -158,20 +99,20 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	/// <summary>
 	/// Declares the per-queue dead-letter exchange/queue pair that <see cref="_queueName"/> routes into
 	/// once its native <c>x-delivery-limit</c> is exceeded, or a delivery is rejected with
-	/// <c>requeue: false</c> (see <see cref="ConnectAsync"/>'s <c>x-dead-letter-exchange</c> argument).
+	/// <c>requeue: false</c> (see the <c>x-dead-letter-exchange</c> argument above).
 	/// Also declared (idempotently) by <see cref="DeadLetterAuditListener{TMessage,THandler}"/>, since
 	/// the two services start independently and neither should depend on start order.
 	/// </summary>
 	private async Task DeclareDeadLetterInfrastructureAsync(CancellationToken ct)
 	{
-		await _channel!.ExchangeDeclareAsync(
+		await Channel.ExchangeDeclareAsync(
 			exchange: DeadLetterExchangeName,
 			type: ExchangeType.Fanout,
 			durable: true,
 			cancellationToken: ct
 		);
 
-		await _channel!.QueueDeclareAsync(
+		await Channel.QueueDeclareAsync(
 			queue: DeadLetterQueueName,
 			durable: true,
 			exclusive: false,
@@ -179,7 +120,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			cancellationToken: ct
 		);
 
-		await _channel!.QueueBindAsync(
+		await Channel.QueueBindAsync(
 			queue: DeadLetterQueueName,
 			exchange: DeadLetterExchangeName,
 			routingKey: String.Empty,
@@ -187,50 +128,15 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		);
 	}
 
-	private async Task ConsumeAsync(CancellationToken ct)
-	{
-		TaskCompletionSource connectionDropped = new TaskCompletionSource(creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
+	protected override Task OnDeliveryFailedAsync(
+		BasicDeliverEventArgs ea,
+		Exception exception
+	) => SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true);
 
-		_connection!.ConnectionShutdownAsync += (_, args) =>
-		{
-			logger.ZLogInformation(message: $"[{typeof(TMessage).Name}] Connection shutdown: {args.ReplyText}.");
-			connectionDropped.TrySetResult();
-			return Task.CompletedTask;
-		};
-
-		_channel!.ChannelShutdownAsync += (_, args) =>
-		{
-			logger.ZLogInformation(message: $"[{typeof(TMessage).Name}] Channel shutdown: {args.ReplyText}.");
-			connectionDropped.TrySetResult();
-			return Task.CompletedTask;
-		};
-
-		AsyncEventingBasicConsumer consumer = new AsyncEventingBasicConsumer(channel: _channel!);
-		consumer.ReceivedAsync += async (sender, ea) =>
-		{
-			try
-			{
-				await HandleMessageAsync(sender: sender, ea: ea, ct: ct);
-			}
-			catch (Exception ex)
-			{
-				logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Unhandled exception processing delivery {ea.DeliveryTag}.");
-				await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true);
-			}
-		};
-
-		await _channel!.BasicConsumeAsync(
-			queue: _queueName,
-			autoAck: false,
-			consumer: consumer,
-			cancellationToken: ct
-		);
-
-		await using CancellationTokenRegistration reg = ct.Register(callback: () => connectionDropped.TrySetCanceled());
-		await connectionDropped.Task;
-	}
-
-	private async Task HandleMessageAsync(object sender, BasicDeliverEventArgs ea, CancellationToken ct)
+	protected override async Task HandleDeliveryAsync(
+		object sender,
+		BasicDeliverEventArgs ea,
+		CancellationToken ct)
 	{
 		ActivityContext parentContext = ExtractParentContext(headers: ea.BasicProperties?.Headers);
 
@@ -275,7 +181,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		catch (Exception ex)
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: ex.Message);
-			logger.ZLogError(exception: ex, message: $"[{typeof(TMessage).Name}] Deserialization failed for message {ea.DeliveryTag}. Rejecting to DLQ.");
+			logger.ZLogError(exception: ex, message: $"{LogTag} deserialization failed for message {ea.DeliveryTag}. Rejecting to DLQ.");
 
 			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: false);
 			return null;
@@ -308,7 +214,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		catch (OperationCanceledException) when (ct.IsCancellationRequested)
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: "Cancelled.");
-			logger.ZLogWarning(message: $"[{typeof(TMessage).Name}] Processing cancelled for message {ea.DeliveryTag}. Requeuing without penalty.");
+			logger.ZLogWarning(message: $"{LogTag} processing cancelled for message {ea.DeliveryTag}. Requeuing without penalty.");
 			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true);
 		}
 		catch (Exception ex)
@@ -317,69 +223,11 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			activity?.AddException(exception: ex);
 
 			logger.ZLogWarning(exception: ex, message: $"""
-				[{typeof(TMessage).Name}] Handler failed for message {ea.DeliveryTag}. Rejecting for native delayed retry
+				{LogTag} handler failed for message {ea.DeliveryTag}. Rejecting for native delayed retry
 				(delivery-limit {currentOptions.MaxRetries}, {currentOptions.DelayedRetryMinMs}-{currentOptions.DelayedRetryMaxMs}ms linear backoff).
 			""");
 
 			await SafeRejectAsync(deliveryTag: ea.DeliveryTag, requeue: true);
-		}
-	}
-
-	/// <summary>
-	/// Acks a delivery, swallowing <see cref="AlreadyClosedException"/>/<see cref="ObjectDisposedException"/>/
-	/// <see cref="OperationCanceledException"/>. (e.g. during graceful shutdown) must never prevent
-	/// the outcome from actually reaching the broker. If the channel already closed concurrently,
-	/// RabbitMQ will automatically requeue the unacked delivery once it notices the channel/connection
-	/// is gone — the <c>ChannelShutdownAsync</c>/<c>ConnectionShutdownAsync</c> handlers in
-	/// <see cref="ConsumeAsync"/> will then trigger a reconnect. Letting this exception propagate
-	/// unhandled out of an AsyncEventingBasicConsumer event handler would otherwise just vanish
-	/// silently without ever surfacing in logs.
-	/// </summary>
-	private async Task SafeAckAsync(ulong deliveryTag)
-	{
-		try
-		{
-			await _channel!.BasicAckAsync(deliveryTag: deliveryTag, multiple: false, cancellationToken: CancellationToken.None);
-		}
-		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException or OperationCanceledException)
-		{
-			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Ack failed for delivery {deliveryTag}: channel already closed.");
-		}
-	}
-
-	/// <summary>
-	/// See <see cref="SafeAckAsync"/> — same rationale, for the nack path. Used specifically where a
-	/// requeue must <b>not</b> count toward the quorum queue's <c>x-delivery-limit</c> (cooperative
-	/// cancellation), since <c>basic.nack(requeue: true)</c> is treated by RabbitMQ 4.3+ as an
-	/// application-level "explicit return" rather than a failed redelivery — which only holds if the
-	/// nack actually reaches the broker, hence always using <see cref="CancellationToken.None"/> here too.
-	/// </summary>
-	private async Task SafeNackAsync(ulong deliveryTag, bool requeue)
-	{
-		try
-		{
-			await _channel!.BasicNackAsync(deliveryTag: deliveryTag, multiple: false, requeue: requeue, cancellationToken: CancellationToken.None);
-		}
-		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException or OperationCanceledException)
-		{
-			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Nack failed for delivery {deliveryTag}: channel already closed.");
-		}
-	}
-
-	/// <summary>
-	/// See <see cref="SafeAckAsync"/> — same rationale, for the reject path. Used for genuine handler
-	/// failures: unlike <see cref="SafeNackAsync"/>, <c>basic.reject</c> counts toward the quorum
-	/// queue's <c>x-delivery-limit</c> and triggers its native delayed-retry backoff.
-	/// </summary>
-	private async Task SafeRejectAsync(ulong deliveryTag, bool requeue)
-	{
-		try
-		{
-			await _channel!.BasicRejectAsync(deliveryTag: deliveryTag, requeue: requeue, cancellationToken: CancellationToken.None);
-		}
-		catch (Exception ex) when (ex is AlreadyClosedException or ObjectDisposedException or OperationCanceledException)
-		{
-			logger.ZLogWarning(exception: ex, message: $"[{typeof(TMessage).Name}] Reject failed for delivery {deliveryTag}: channel already closed.");
 		}
 	}
 
@@ -388,10 +236,17 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		if (headers is null)
 			return default;
 
-		return FinanceTrackerActivitySource.ParseTraceParent(
-			traceParent: ReadHeader(headers: headers, key: FinanceTrackerActivitySource.TraceContextHeaders.TraceParent),
-			traceState: ReadHeader(headers: headers, key: FinanceTrackerActivitySource.TraceContextHeaders.TraceState)
-		);
+		string? traceParent = ReadHeader(headers: headers, key: "traceparent");
+
+		if (traceParent is null)
+			return default;
+
+		string? traceState = ReadHeader(headers: headers, key: "tracestate");
+
+		if (ActivityContext.TryParse(traceParent: traceParent, traceState: traceState, context: out ActivityContext context))
+			return context;
+
+		return default;
 	}
 
 	private static string? ReadHeader(IDictionary<string, object?> headers, string key)
@@ -403,27 +258,5 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			return Encoding.UTF8.GetString(bytes: bytes);
 
 		return value as string;
-	}
-
-	public override async Task StopAsync(CancellationToken ct)
-	{
-		await base.StopAsync(cancellationToken: ct);
-		await DisposeConnectionAsync();
-		logger.ZLogInformation(message: $"[{typeof(TMessage).Name}] Listener stopped.");
-	}
-
-	private async Task DisposeConnectionAsync()
-	{
-		if (_channel is not null)
-		{
-			await _channel.DisposeAsync();
-			_channel = null;
-		}
-
-		if (_connection is not null)
-		{
-			await _connection.DisposeAsync();
-			_connection = null;
-		}
 	}
 }
