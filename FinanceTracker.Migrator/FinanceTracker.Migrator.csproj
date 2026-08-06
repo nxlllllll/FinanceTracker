@@ -107,6 +107,8 @@
         <EmbeddedResource Include="Migrations\V044__add_permission_revoked_at.sql" />
         <None Remove="Migrations\V045__drop_redundant_indexes.sql" />
         <EmbeddedResource Include="Migrations\V045__drop_redundant_indexes.sql" />
+        <None Remove="Migrations\V046__add_base_currency_recalculation.sql" />
+        <EmbeddedResource Include="Migrations\V046__add_base_currency_recalculation.sql" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\.dockerignore">
