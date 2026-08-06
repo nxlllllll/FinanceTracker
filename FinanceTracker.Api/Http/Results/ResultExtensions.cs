@@ -62,7 +62,6 @@ public static class ResultExtensions
 	) => Microsoft.AspNetCore.Http.Results.Problem(
 		detail: error.Message,
 		statusCode: statusCode,
-		title: error.GetType().Name,
 		extensions: Extensions(error: error)
 	);
 

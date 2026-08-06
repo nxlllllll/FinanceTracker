@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Tests.Architecture.Helpers;
 using MediatR;
 
 namespace FinanceTracker.Tests.Architecture;
@@ -11,32 +12,27 @@ public sealed partial class MultiStatementWriteArchitectureTests
 {
 	private const string InfrastructureProject = "FinanceTracker.Infrastructure";
 	private const string ApplicationProject = "FinanceTracker.Application";
-
 	private static readonly Assembly ApplicationAssembly = typeof(DependencyInjection).Assembly;
-
 	[GeneratedRegex(pattern: @"\b(ExecuteDeleteAsync|ExecuteUpdateAsync|ExecuteSqlAsync|ExecuteSqlRawAsync|ExecuteSqlInterpolatedAsync)\s*\(", RegexOptions.Compiled)]
 	private static partial Regex ImmediateWrite();
 	[GeneratedRegex(pattern: @"\b(AddAsync|AddRangeAsync|UpdateRange|RemoveRange)\s*\(", RegexOptions.Compiled)]
 	private static partial Regex DeferredWrite();
+	[GeneratedRegex(pattern: @"(?<name>\w+)\s*\([^;{}]*\)\s*\{", RegexOptions.Singleline)]
+	private static partial Regex Signature();
 
 	private static bool CallsMethod(string source, string methodName)
 		=> Regex.IsMatch(input: source, pattern: $@"\.\s*{Regex.Escape(str: methodName)}\s*\(");
 
 	private static IReadOnlyDictionary<string, string> HandlerSources()
 	{
-		string projectRoot = Path.Combine(
-			path1: SaveChangesIsolationArchitectureTests.RepositoryRoot(),
-			path2: ApplicationProject
-		);
-
 		Dictionary<string, string> sources = [];
 
-		foreach (string file in SaveChangesIsolationArchitectureTests.SourceFiles(projectRoot: projectRoot))
+		foreach (string file in SourceScan.FilesIn(projectName: ApplicationProject))
 		{
 			string typeName = Path.GetFileNameWithoutExtension(path: file);
 
 			if (!sources.ContainsKey(key: typeName))
-				sources[typeName] = StripComments(source: File.ReadAllText(path: file));
+				sources[typeName] = SourceScan.StripComments(source: File.ReadAllText(path: file));
 		}
 
 		return sources;
@@ -44,16 +40,11 @@ public sealed partial class MultiStatementWriteArchitectureTests
 
 	private static IReadOnlyDictionary<string, IReadOnlyList<string>> FindMultiStatementWriteMethods()
 	{
-		string projectRoot = Path.Combine(
-			path1: SaveChangesIsolationArchitectureTests.RepositoryRoot(),
-			path2: InfrastructureProject
-		);
-
 		Dictionary<string, IReadOnlyList<string>> result = [];
 
-		foreach (string file in SaveChangesIsolationArchitectureTests.SourceFiles(projectRoot: projectRoot))
+		foreach (string file in SourceScan.FilesIn(projectName: InfrastructureProject))
 		{
-			string source = StripComments(source: File.ReadAllText(path: file));
+			string source = SourceScan.StripComments(source: File.ReadAllText(path: file));
 			string typeName = Path.GetFileNameWithoutExtension(path: file);
 
 			List<string> methods = MethodBodies(source: source)
@@ -67,9 +58,6 @@ public sealed partial class MultiStatementWriteArchitectureTests
 
 		return result;
 	}
-
-	private static string StripComments(string source)
-		=> String.Join(separator: "\n", values: source.Split(separator: '\n').Select(selector: SaveChangesIsolationArchitectureTests.StripComment));
 
 	private static bool IsMultiStatementWrite(string body)
 	{
@@ -98,9 +86,7 @@ public sealed partial class MultiStatementWriteArchitectureTests
 
 	private static IEnumerable<(string Name, string Body)> MethodBodies(string source)
 	{
-		Regex signature = new Regex(pattern: @"(?<name>\w+)\s*\([^;{}]*\)\s*\{", options: RegexOptions.Singleline);
-
-		foreach (Match match in signature.Matches(input: source))
+		foreach (Match match in Signature().Matches(input: source))
 		{
 			int open = source.IndexOf(value: '{', startIndex: match.Index + match.Length - 1);
 			if (open < 0)

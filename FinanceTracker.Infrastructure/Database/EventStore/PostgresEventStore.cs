@@ -125,7 +125,7 @@ public sealed class PostgresEventStore(
 		if ((currentVersion ?? 0) != expectedVersion)
 		{
 			logger.ZLogWarning(message: $"Concurrency conflict on aggregate {aggregateId} ({aggregateType}): expected version {expectedVersion}, actual {currentVersion ?? 0}.");
-			throw new ConcurrencyConflictException(message: "Conflict: the aggregate was modified by another request.", id: aggregateId);
+			throw new ConcurrencyConflictException(message: "Conflict: the record was modified by another request.", id: aggregateId);
 		}
 	}
 
