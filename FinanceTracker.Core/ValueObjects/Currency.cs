@@ -52,7 +52,7 @@ public readonly partial record struct Currency
 	);
 
 	/// <inheritdoc/>
-	/// <returns>Returns a string representation of the money, for example, <c>100 RUB</c></returns>
+	/// <returns>Returns a string representation of the currency, for example, <c>RUB</c></returns>
 	public override string ToString()
 		=> Value;
 }

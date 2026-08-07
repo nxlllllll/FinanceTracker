@@ -74,7 +74,7 @@ services:
       RabbitMQ__Password: ${RABBITMQ_PASSWORD}
       Redis__ConnectionString: redis:6379
       Jwt__Secret: ${JWT_SECRET}
-      OpenApi__Expose: "true"
+      OpenApi__Expose: "${OPENAPI_EXPOSE:-false}"
     depends_on:
       postgres:
         condition: service_healthy
