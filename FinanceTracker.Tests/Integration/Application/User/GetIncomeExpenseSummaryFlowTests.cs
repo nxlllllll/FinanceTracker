@@ -61,22 +61,6 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 		return accountId;
 	}
 
-	private static DateTimeOffset PreviousMonth
-	{
-		get
-		{
-			DateTimeOffset firstOfThisMonth = new DateTimeOffset(
-				year: DateTimeOffset.UtcNow.Year,
-				month: DateTimeOffset.UtcNow.Month,
-				day: 1,
-				hour: 0, minute: 0, second: 0,
-				offset: TimeSpan.Zero
-			);
-
-			return firstOfThisMonth.AddMonths(months: -1);
-		}
-	}
-
 	private static DateOnly PeriodOf(DateTimeOffset occurredAt)
 		=> new DateOnly(year: occurredAt.Year, month: occurredAt.Month, day: 1);
 

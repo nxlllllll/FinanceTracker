@@ -9,7 +9,8 @@ using MediatR;
 namespace FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
 
 public sealed class GetIncomeExpenseSummaryHandler(
-	IUserQueryRepository userQueryRepository
+	IUserQueryRepository userQueryRepository,
+	IBaseCurrencyRecalculationReadRepository recalculationReadRepository
 ) : IRequestHandler<GetIncomeExpenseSummaryQuery, Result<IncomeExpenseSummary, AppException>>
 {
 	public async Task<Result<IncomeExpenseSummary, AppException>> Handle(
@@ -19,6 +20,18 @@ public sealed class GetIncomeExpenseSummaryHandler(
 		UserReadModel? user = await userQueryRepository.GetByIdAsync(userId: query.UserId, ct: ct);
 		if (user is null)
 			return Result<IncomeExpenseSummary, AppException>.Failure(error: new NotFoundException(message: "User not found.", id: query.UserId));
+
+		bool isUnavailable = await recalculationReadRepository.TotalsAreUnavailableAsync(userId: query.UserId, ct: ct);
+		if (isUnavailable)
+		{
+			return Result<IncomeExpenseSummary, AppException>.Success(value: new IncomeExpenseSummary(
+				Income: 0m,
+				Expense: 0m,
+				Currency: user.BaseCurrency,
+				Period: query.Period,
+				RecalculationPending: true
+			));
+		}
 
 		(decimal income, decimal expense) = await userQueryRepository.GetIncomeExpenseSummaryAsync(
 			userId: query.UserId,
@@ -30,7 +43,8 @@ public sealed class GetIncomeExpenseSummaryHandler(
 			Income: income,
 			Expense: expense,
 			Currency: user.BaseCurrency,
-			Period: query.Period
+			Period: query.Period,
+			RecalculationPending: false
 		));
 	}
 }

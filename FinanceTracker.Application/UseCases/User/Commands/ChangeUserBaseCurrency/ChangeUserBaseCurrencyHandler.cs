@@ -4,7 +4,6 @@ using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -14,7 +13,7 @@ namespace FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurren
 
 public sealed class ChangeUserBaseCurrencyHandler(
 	IUserWriteRepository userWriteRepository,
-	ICategoryTotalWriteRepository categoryTotalWriteRepository,
+	IBaseCurrencyRecalculationWriteRepository recalculationWriteRepository,
 	IUnitOfWork unitOfWork,
 	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider
@@ -34,6 +33,8 @@ public sealed class ChangeUserBaseCurrencyHandler(
 		if (user.BaseCurrency == oldBaseCurrency)
 			return Result<Guid, AppException>.Success(value: user.Id);
 
+		DateTimeOffset now = dateProvider.UtcNow;
+
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await userWriteRepository.ChangeBaseCurrencyAsync(
@@ -43,9 +44,10 @@ public sealed class ChangeUserBaseCurrencyHandler(
 				ct: ct
 			);
 
-			await categoryTotalWriteRepository.RecalculateAllForUserAsync(
+			await recalculationWriteRepository.RequestAsync(
 				userId: command.UserId,
-				baseCurrency: command.NewBaseCurrency,
+				targetCurrency: command.NewBaseCurrency,
+				requestedAt: now,
 				ct: ct
 			);
 		}, ct: ct);
@@ -54,7 +56,7 @@ public sealed class ChangeUserBaseCurrencyHandler(
 			UserId: user.Id,
 			OldBaseCurrency: oldBaseCurrency,
 			NewBaseCurrency: command.NewBaseCurrency,
-			OccurredAt: dateProvider.UtcNow
+			OccurredAt: now
 		));
 
 		return Result<Guid, AppException>.Success(value: user.Id);

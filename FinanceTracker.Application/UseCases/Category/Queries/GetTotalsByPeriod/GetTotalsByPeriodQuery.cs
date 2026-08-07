@@ -9,4 +9,4 @@ namespace FinanceTracker.Application.UseCases.Category.Queries.GetTotalsByPeriod
 public sealed record GetTotalsByPeriodQuery(
 	Guid UserId,
 	DateOnly Period
-) : IRequest<Result<IReadOnlyList<CategoryTotal>, AppException>>, IUserScopedRequest;
+) : IRequest<Result<CategoryTotalsView, AppException>>, IUserScopedRequest;

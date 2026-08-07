@@ -175,6 +175,10 @@ public static class DependencyInjection
 		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
 
+		// Base currency recalculation
+		services.AddScoped<IBaseCurrencyRecalculationWriteRepository, BaseCurrencyRecalculationWriteRepository>();
+		services.AddScoped<IBaseCurrencyRecalculationReadRepository, BaseCurrencyRecalculationReadRepository>();
+
 		// Category
 		services.AddScoped<ICategoryRepository, CategoryRepository>();
 		services.AddScoped<ICategoryReadRepository, CategoryReadRepository>();
