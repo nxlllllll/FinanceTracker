@@ -26,6 +26,7 @@ services:
       start_period: 10s
 
   backup:
+    profiles: ["ops"]
     image: postgres:16-alpine
     environment:
       POSTGRES_HOST: postgres
@@ -55,6 +56,7 @@ services:
     restart: unless-stopped
 
   backrest:
+    profiles: ["ops"]
     image: garethgeorge/backrest:latest
     environment:
       BACKREST_DATA: /data
@@ -73,7 +75,20 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  dozzle:
+    profiles: ["ops"]
+    image: amir20/dozzle:latest
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_NO_ANALYTICS: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:8888:8080"
+    restart: unless-stopped
+
   postgres-exporter:
+    profiles: ["observability"]
     image: prometheuscommunity/postgres-exporter:v0.15.0
     environment:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
@@ -85,6 +100,7 @@ services:
     restart: unless-stopped
 
   node-exporter:
+    profiles: ["observability"]
     image: prom/node-exporter:v1.8.2
     command:
       - '--collector.textfile.directory=/metrics'
@@ -96,6 +112,7 @@ services:
     restart: unless-stopped
 
   cadvisor:
+    profiles: ["observability"]
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     volumes:
       - /:/rootfs:ro
@@ -104,7 +121,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8080"
     privileged: true
     restart: unless-stopped
 
@@ -144,6 +161,7 @@ services:
       start_period: 30s
 
   api:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Api/Dockerfile
@@ -170,6 +188,7 @@ services:
         condition: service_completed_successfully
 
   worker-outbox:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.Outbox/Dockerfile
@@ -195,6 +214,7 @@ services:
         condition: service_completed_successfully
 
   worker-account-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.AccountProjection/Dockerfile
@@ -220,6 +240,7 @@ services:
         condition: service_completed_successfully
 
   worker-recurring-transaction:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.RecurringTransaction/Dockerfile
@@ -245,6 +266,7 @@ services:
         condition: service_completed_successfully
 
   worker-recurring-transaction-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.RecurringTransactionProjection/Dockerfile
@@ -270,6 +292,7 @@ services:
         condition: service_completed_successfully
 
   worker-dead-letter-monitor:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.DeadLetterMonitor/Dockerfile
@@ -290,6 +313,7 @@ services:
         condition: service_completed_successfully
 
   worker-transfer-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.TransferProjection/Dockerfile
@@ -315,6 +339,7 @@ services:
         condition: service_completed_successfully
 
   worker-currency-rate:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.CurrencyRate/Dockerfile
@@ -336,6 +361,7 @@ services:
         condition: service_completed_successfully
 
   worker-balance-adjustment:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.BalanceAdjustment/Dockerfile
@@ -356,6 +382,7 @@ services:
         condition: service_completed_successfully
 
   worker-cleanup:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.Cleanup/Dockerfile
@@ -376,6 +403,7 @@ services:
         condition: service_completed_successfully
 
   worker-permission-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.PermissionProjection/Dockerfile
@@ -401,6 +429,7 @@ services:
         condition: service_completed_successfully
 
   worker-user-role-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.UserRoleProjection/Dockerfile
@@ -426,6 +455,7 @@ services:
         condition: service_completed_successfully
 
   worker-base-currency-recalculation:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.BaseCurrencyRecalculation/Dockerfile
@@ -475,6 +505,7 @@ services:
         condition: service_healthy
 
   jaeger:
+    profiles: ["observability"]
     image: jaegertracing/all-in-one:latest
     ports:
       - "16686:16686"
@@ -483,6 +514,7 @@ services:
       COLLECTOR_OTLP_ENABLED: "true"
 
   alertmanager:
+    profiles: ["observability"]
     image: prom/alertmanager:latest
     ports:
       - "9093:9093"
@@ -490,6 +522,7 @@ services:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
 
   prometheus:
+    profiles: ["observability"]
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
@@ -501,6 +534,7 @@ services:
       - alertmanager
 
   grafana:
+    profiles: ["observability"]
     image: grafana/grafana:latest
     ports:
       - "3000:3000"

@@ -21,6 +21,8 @@ public sealed class Program
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
 
+		builder.AddStructuredLogging();
+
 		builder.Host.UseDefaultServiceProvider(configure: options =>
 		{
 			options.ValidateScopes = true;

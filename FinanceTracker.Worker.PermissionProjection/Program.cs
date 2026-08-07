@@ -16,6 +16,9 @@ public sealed class Program
 	public static void Main(string[] args)
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+
+		builder.AddStructuredLogging();
+
 		builder.UseStrictDependencyValidation();
 
 		builder.Services.AddPersistence(configuration: builder.Configuration);
