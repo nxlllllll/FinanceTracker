@@ -74,7 +74,7 @@ public static class DependencyInjection
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ValidationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(PostCommitNotificationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
-			cfg.AddOpenBehavior(openBehaviorType: typeof(ConcurrencyRetryBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(RetryBehaviour<,>));
 		});
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);

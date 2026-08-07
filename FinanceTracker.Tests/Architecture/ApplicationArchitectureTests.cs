@@ -299,7 +299,7 @@ public sealed class ApplicationArchitectureTests
 			typeof(ValidationBehaviour<,>),
 			typeof(PostCommitNotificationBehaviour<,>),
 			typeof(IdempotencyBehaviour<,>),
-			typeof(ConcurrencyRetryBehaviour<,>)
+			typeof(RetryBehaviour<,>)
 		];
 
 		IServiceCollection services = new ServiceCollection();
