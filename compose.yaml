@@ -25,6 +25,89 @@ services:
       retries: 10
       start_period: 10s
 
+  backup:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      METRICS_DIR: /metrics
+      BACKUP_DIR: /backups
+      BACKUP_KEEP: "${BACKUP_KEEP:-14}"
+      BACKUP_CRON: "${BACKUP_CRON:-30 3 * * *}"
+    volumes:
+      - ./scripts/backup:/scripts:ro
+      - metrics_textfile:/metrics
+      - backups:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        echo "$${BACKUP_CRON} /bin/sh /scripts/pg-backup.sh >> /proc/1/fd/1 2>&1" > /etc/crontabs/root
+        echo "[backup] Scheduled: $${BACKUP_CRON}"
+        exec crond -f -l 8
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backrest:
+    image: garethgeorge/backrest:latest
+    environment:
+      BACKREST_DATA: /data
+      BACKREST_CONFIG: /config/config.json
+      XDG_CACHE_HOME: /cache
+    volumes:
+      - backrest_data:/data
+      - backrest_config:/config
+      - backrest_cache:/cache
+      - backups:/userdata/postgres:ro
+      - rabbitmq_data:/userdata/rabbitmq:ro
+    ports:
+      - "127.0.0.1:9898:9898"
+    depends_on:
+      backup:
+        condition: service_started
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "127.0.0.1:9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    command:
+      - '--collector.textfile.directory=/metrics'
+      - '--path.rootfs=/host'
+    volumes:
+      - metrics_textfile:/metrics:ro
+    ports:
+      - "127.0.0.1:9100:9100"
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    privileged: true
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports:
@@ -44,6 +127,7 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "15692:15692"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
@@ -51,7 +135,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     command: >
-      sh -c "echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins && rabbitmq-server"
+      sh -c "echo '[rabbitmq_management,rabbitmq_prometheus].' > /etc/rabbitmq/enabled_plugins && rabbitmq-server"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -427,3 +511,8 @@ volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  backups:
+  backrest_data:
+  backrest_config:
+  backrest_cache:
+  metrics_textfile:
