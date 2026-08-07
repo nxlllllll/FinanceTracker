@@ -39,16 +39,17 @@ public sealed class ExchangeRateApiClient(
 
 			if (!response.IsSuccessStatusCode)
 			{
+				int statusCode = (int)response.StatusCode;
 				if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
 				{
 					logger.ZLogCritical(message: $"""
-						[{nameof(ExchangeRateApiClient)}] Got {(int)response.StatusCode} {response.StatusCode} fetching rates for {baseCurrency}.
+						[ExchangeRateApiClient] Got {statusCode} {response.StatusCode} fetching rates for {baseCurrency}.
 						This looks like a dead or missing API key, not a transient failure — it will not resolve on its own. Check ExchangeRateApiOptions.ApiKey.
 					""");
 				}
 				else
 				{
-					logger.ZLogError(message: $"[{nameof(ExchangeRateApiClient)}] Got {(int)response.StatusCode} {response.StatusCode} fetching rates for {baseCurrency}.");
+					logger.ZLogError(message: $"[ExchangeRateApiClient] Got {statusCode} {response.StatusCode} fetching rates for {baseCurrency}.");
 				}
 
 				return null;

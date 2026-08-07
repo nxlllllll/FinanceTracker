@@ -319,3 +319,32 @@
         annotations:
           summary: "{{ $labels.queue }} has messages and no consumer"
           description: "The worker for this queue is down, or connected without subscribing. Distinct from a backlog: nothing is being processed at all, and nothing will be until someone looks. This is the failure the reconnect loop is meant to prevent, so it firing means the loop itself is stuck."
+
+  - name: finance-tracker-health
+    rules:
+      - alert: HealthCheckFailing
+        expr: healthcheck < 2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.healthcheck }} is unhealthy on {{ $labels.instance }}"
+          description: "The dependency behind this check has been failing for two minutes, which is past a restart or a brief network blip. Until now a red check only showed on a page someone had to open; this is the same information arriving on its own. 2 means healthy, 1 degraded, 0 unhealthy — anything below 2 is worth reading. /health/ready on the instance lists every check with its reason."
+
+      - alert: HealthCheckSlow
+        expr: healthcheck_duration_seconds > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.healthcheck }} is taking over a second to answer"
+          description: "The check still passes, so nothing is broken yet — but a dependency that takes this long to say it is alive is usually about to stop saying it. Kubernetes and Docker health probes have their own timeouts, and a check slower than the probe interval makes an instance look dead while it is merely slow."
+
+      - alert: HealthCheckMetricMissing
+        expr: absent(healthcheck)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No health check metrics are arriving at all"
+          description: "HealthCheckFailing compares against a series that has to exist — with none, it is never true, so a total absence of health data looks exactly like everything being healthy. Either nothing is running, or the health-checks scrape job is broken."

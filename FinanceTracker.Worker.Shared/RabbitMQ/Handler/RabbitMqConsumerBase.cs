@@ -69,7 +69,7 @@ public abstract class RabbitMqConsumerBase<TMessage>(
 			if (ct.IsCancellationRequested)
 				break;
 
-			attempt++;
+			++attempt;
 			int delaySeconds = RetryDelayCalculator.CalculateSeconds(attempt: attempt, maxSeconds: MaxReconnectDelaySeconds);
 
 			logger.ZLogInformation(message: $"{LogTag} reconnecting in {delaySeconds}s (attempt {attempt}).");

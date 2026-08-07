@@ -1,8 +1,11 @@
+using System.Net;
 using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Worker.Shared.Metrics;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 
@@ -52,8 +55,14 @@ public static class WorkerHealthCheckExtensions
 
 		app.MapHealthChecks(pattern: "/health/ready", options: new HealthCheckOptions
 		{
-			Predicate = check => check.Tags.Contains(item: "ready")
+			Predicate = check => check.Tags.Contains(item: "ready"),
+			ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 		});
+
+		app.UseHealthChecksPrometheusExporter(
+			endpoint: "/health/metrics",
+			configure: options => options.ResultStatusCodes[HealthStatus.Unhealthy] = (int)HttpStatusCode.OK
+		);
 
 		app.MapPrometheusScrapingEndpoint();
 
