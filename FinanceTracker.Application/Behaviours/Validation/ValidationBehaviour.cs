@@ -47,7 +47,11 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 			elementSelector: group => group.Select(selector: failure => failure.ErrorMessage).ToArray()
 		);
 
-		logger.ZLogWarning(message: $"Validation failed for {request.GetType().Name}: {failures.Count} error(s) across {errors.Count} field(s).");
+		string commandType = request.GetType().Name;
+		int failureCount = failures.Count;
+		int fieldCount = errors.Count;
+
+		logger.ZLogWarning(message: $"Validation failed for {commandType}: {failureCount} error(s) across {fieldCount} field(s).");
 		return TResponse.CreateFailure(error: new FinanceTracker.Core.Exceptions.ValidationException(errors: errors));
 	}
 }

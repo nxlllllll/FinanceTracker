@@ -19,10 +19,26 @@ public static class LoggingExtensions
 			return builder;
 		}
 
+		builder.Logging.Configure(action: options =>
+		{
+			options.ActivityTrackingOptions = ActivityTrackingOptions.TraceId | ActivityTrackingOptions.SpanId;
+		});
+
 		builder.Logging.AddZLoggerConsole(configure: options =>
 		{
 			options.IncludeScopes = true;
-			options.UseJsonFormatter();
+			options.UseJsonFormatter(configure: formatter =>
+			{
+				formatter.IncludeProperties = IncludeProperties.Timestamp |
+					IncludeProperties.LogLevel |
+					IncludeProperties.CategoryName |
+					IncludeProperties.Message |
+					IncludeProperties.Exception |
+					IncludeProperties.ScopeKeyValues |
+					IncludeProperties.ParameterKeyValues;
+
+				formatter.KeyNameMutator = KeyNameMutator.LastMemberNameLowerFirstCharacter;
+			});
 		});
 
 		return builder;
