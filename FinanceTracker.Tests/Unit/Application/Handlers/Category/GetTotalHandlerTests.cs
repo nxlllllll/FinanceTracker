@@ -1,7 +1,9 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetTotal;
+using FinanceTracker.Application.UseCases.Category.Queries.GetTotalsByPeriod;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -12,12 +14,23 @@ public sealed class GetTotalHandlerTests
 {
 	private ICategoryTotalReadRepository _categoryTotalReadRepository = null!;
 	private GetTotalHandler _handler = null!;
+	private IBaseCurrencyRecalculationReadRepository _recalculationReadRepository = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_categoryTotalReadRepository = Substitute.For<ICategoryTotalReadRepository>();
-		_handler = new GetTotalHandler(categoryTotalReadRepository: _categoryTotalReadRepository);
+
+		_recalculationReadRepository = Substitute.For<IBaseCurrencyRecalculationReadRepository>();
+		_recalculationReadRepository.TotalsAreUnavailableAsync(
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: false);
+
+		_handler = new GetTotalHandler(
+			categoryTotalReadRepository: _categoryTotalReadRepository,
+			recalculationReadRepository: _recalculationReadRepository
+		);
 	}
 
 	[Test]
@@ -42,16 +55,16 @@ public sealed class GetTotalHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: dto);
 
-		Result<CategoryTotal, AppException> result = await _handler.Handle(
+		Result<CategoryTotalView, AppException> result = await _handler.Handle(
 			query: new GetTotalQuery(UserId: userId, CategoryId: categoryId, Period: period),
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value).IsNotNull();
-		await Assert.That(value: result.Value.CategoryId).IsEqualTo(expected: categoryId);
-		await Assert.That(value: result.Value.Total).IsEqualTo(expected: 5000m);
-		await Assert.That(value: result.Value.Count).IsEqualTo(expected: 3);
+		await Assert.That(value: result.Value.Total!.Total).IsEqualTo(expected: 5000m);
+		await Assert.That(value: result.Value.Total.CategoryId).IsEqualTo(expected: categoryId);
+		await Assert.That(value: result.Value.Total.Count).IsEqualTo(expected: 3);
 	}
 
 	[Test]
@@ -64,7 +77,7 @@ public sealed class GetTotalHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Task.FromResult<CategoryTotal?>(result: null));
 
-		Result<CategoryTotal, AppException> result = await _handler.Handle(
+		Result<CategoryTotalView, AppException> result = await _handler.Handle(
 			query: new GetTotalQuery(
 				UserId: Guid.CreateVersion7(),
 				CategoryId: Guid.CreateVersion7(),
@@ -75,8 +88,32 @@ public sealed class GetTotalHandlerTests
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value).IsNotNull();
-		await Assert.That(value: result.Value.Total).IsEqualTo(expected: 0);
-		await Assert.That(value: result.Value.Count).IsEqualTo(expected: 0);
-		await Assert.That(value: result.Value.UpdatedAt).IsNull();
+		await Assert.That(value: result.Value.Total!.Total).IsEqualTo(expected: 0);
+		await Assert.That(value: result.Value.Total.Count).IsEqualTo(expected: 0);
+		await Assert.That(value: result.Value.Total.UpdatedAt).IsNull();
+	}
+
+	[Test]
+	public async Task Handle_WhileTotalsAreBeingRebuilt_ShouldReturnNoAmountWithTheFlagSet()
+	{
+		_recalculationReadRepository.TotalsAreUnavailableAsync(
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: true);
+
+		Result<CategoryTotalView, AppException> result = await _handler.Handle(
+			query: new GetTotalQuery(
+				UserId: Guid.CreateVersion7(),
+				CategoryId: Guid.CreateVersion7(),
+				Period: new DateOnly(year: 2026, month: 8, day: 1)
+			),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.Value!.RecalculationPending).IsTrue();
+		await Assert.That(value: result.Value!.Total).IsNull().Because(message: """
+			Null here means the amount is not knowable yet. A category with no activity reports zero,
+			and collapsing the two would present an unfinished rebuild as an empty month.
+		""");
 	}
 }

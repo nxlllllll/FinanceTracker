@@ -31,6 +31,7 @@
   <Project Path="FinanceTracker.Tests/FinanceTracker.Tests.csproj" />
   <Project Path="FinanceTracker.Worker.AccountProjection/FinanceTracker.Worker.AccountProjection.csproj" />
   <Project Path="FinanceTracker.Worker.BalanceAdjustment/FinanceTracker.Worker.BalanceAdjustment.csproj" />
+  <Project Path="FinanceTracker.Worker.BaseCurrencyRecalculation/FinanceTracker.Worker.BaseCurrencyRecalculation.csproj" />
   <Project Path="FinanceTracker.Worker.Cleanup/FinanceTracker.Worker.Cleanup.csproj" />
   <Project Path="FinanceTracker.Worker.CurrencyRate/FinanceTracker.Worker.CurrencyRate.csproj" />
   <Project Path="FinanceTracker.Worker.DeadLetterMonitor/FinanceTracker.Worker.DeadLetterMonitor.csproj" />

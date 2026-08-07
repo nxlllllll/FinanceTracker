@@ -14,6 +14,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 {
 	private IUserQueryRepository _userQueryRepository = null!;
 	private GetIncomeExpenseSummaryHandler _handler = null!;
+	private IBaseCurrencyRecalculationReadRepository _recalculationReadRepository = null!;
 
 	private static UserReadModel CreateUserReadModel(string currency = "RUB") => new UserReadModel(
 		Id: Guid.CreateVersion7(),
@@ -26,7 +27,12 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 	public void Setup()
 	{
 		_userQueryRepository = Substitute.For<IUserQueryRepository>();
-		_handler = new GetIncomeExpenseSummaryHandler(userQueryRepository: _userQueryRepository);
+		_recalculationReadRepository = Substitute.For<IBaseCurrencyRecalculationReadRepository>();
+
+		_handler = new GetIncomeExpenseSummaryHandler(
+			userQueryRepository: _userQueryRepository,
+			recalculationReadRepository: _recalculationReadRepository
+		);
 	}
 
 	[Test]
@@ -110,6 +116,44 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 		await _userQueryRepository.Received(requiredNumberOfCalls: 1).GetIncomeExpenseSummaryAsync(
 			userId: Arg.Any<Guid>(),
 			period: period,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhileTotalsAreBeingRebuilt_ShouldReportZeroesWithTheFlagSet()
+	{
+		UserReadModel user = CreateUserReadModel();
+
+		_userQueryRepository.GetByIdAsync(
+			userId: user.Id,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: user);
+
+		_recalculationReadRepository.TotalsAreUnavailableAsync(
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: true);
+
+		Result<IncomeExpenseSummary, AppException> result = await _handler.Handle(
+			query: new GetIncomeExpenseSummaryQuery(
+				UserId: user.Id,
+				Period: new DateOnly(year: 2026, month: 8, day: 1)
+			),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+		await Assert.That(value: result.Value!.RecalculationPending).IsTrue();
+		await Assert.That(value: result.Value!.Income).IsEqualTo(expected: 0m);
+		await Assert.That(value: result.Value!.Expense).IsEqualTo(expected: 0m).Because(message: """
+			The summary is labelled with the user's current currency. Filling it with amounts built
+			from the previous one would put a correct label on wrong numbers.
+		""");
+
+		await _userQueryRepository.DidNotReceive().GetIncomeExpenseSummaryAsync(
+			userId: Arg.Any<Guid>(),
+			period: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

@@ -6,5 +6,6 @@ public sealed record IncomeExpenseSummary(
 	decimal Income,
 	decimal Expense,
 	Currency Currency,
-	DateOnly Period
+	DateOnly Period,
+	bool RecalculationPending
 );
