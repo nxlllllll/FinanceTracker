@@ -271,9 +271,11 @@ public sealed class CachedCurrencyRateReadRepositoryTests
 	[Test]
 	public async Task GetRateAsync_WhenRedisIsUnavailable_FallsThroughToInnerInsteadOfThrowing()
 	{
-		_database.StringGetAsync(key: Arg.Any<RedisKey>()).ThrowsAsync(
-			ex: new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost.")
-		);
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).ThrowsAsync(ex: new RedisConnectionException(
+			failureType: ConnectionFailureType.SocketFailure,
+			message: "Connection lost.",
+			flags: CommandFlags.None
+		));
 		_inner.GetRateAsync(
 			baseCurrencyCode: Arg.Any<Currency>(),
 			targetCurrencyCode: Arg.Any<Currency>(),

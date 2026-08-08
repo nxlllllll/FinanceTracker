@@ -158,7 +158,10 @@ public sealed class JwtBearerOptionsSetupTests
 		_database.StringGetAsync(
 			key: Arg.Any<RedisKey>(),
 			flags: Arg.Any<CommandFlags>()
-		).Returns<RedisValue>(returnThis: _ => throw new RedisConnectionException(failureType: ConnectionFailureType.UnableToConnect, message: "down"));
+		).Returns<RedisValue>(returnThis: _ => throw new RedisConnectionException(
+			failureType: ConnectionFailureType.UnableToConnect,
+			message: "down",
+			flags: CommandFlags.None));
 
 		TokenValidatedContext context = BuildContext(sessionId: sessionId);
 

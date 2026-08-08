@@ -67,7 +67,7 @@ public static class DependencyInjection
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 
-			cfg.AddOpenBehavior(openBehaviorType: typeof(TracingBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(ObservabilityBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(CorrelationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(AuthRateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(RateLimitingBehaviour<,>));

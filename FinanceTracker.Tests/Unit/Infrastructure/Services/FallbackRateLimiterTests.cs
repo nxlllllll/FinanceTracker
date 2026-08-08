@@ -84,7 +84,11 @@ public sealed class FallbackRateLimiterTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost."));
+		).ThrowsAsync(new RedisConnectionException(
+			failureType: ConnectionFailureType.SocketFailure,
+			message: "Connection lost.",
+			flags: CommandFlags.None
+		));
 
 		RateLimitResult result = await _limiter.IsAllowedAsync(
 			key: $"k:{Guid.CreateVersion7():N}",
@@ -154,7 +158,11 @@ public sealed class FallbackRateLimiterTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost."));
+		).ThrowsAsync(new RedisConnectionException(
+			failureType: ConnectionFailureType.SocketFailure,
+			message: "Connection lost.",
+			flags: CommandFlags.None
+		));
 
 		string key = $"k:{Guid.CreateVersion7():N}";
 
@@ -205,7 +213,11 @@ public sealed class FallbackRateLimiterTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost."));
+		).ThrowsAsync(new RedisConnectionException(
+			failureType: ConnectionFailureType.SocketFailure,
+			message: "Connection lost.",
+			flags: CommandFlags.None
+		));
 
 		await _limiter.IsAllowedAsync(
 			key: key,
@@ -236,7 +248,11 @@ public sealed class FallbackRateLimiterTests
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost again."));
+		).ThrowsAsync(new RedisConnectionException(
+			failureType: ConnectionFailureType.SocketFailure,
+			message: "Connection lost again.",
+			flags: CommandFlags.None
+		));
 
 		RateLimitResult allowedAfterClear = await _limiter.IsAllowedAsync(
 			key: key,

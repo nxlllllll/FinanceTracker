@@ -540,6 +540,12 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
 
 volumes:
   postgres_data:
@@ -550,3 +556,4 @@ volumes:
   backrest_config:
   backrest_cache:
   metrics_textfile:
+  grafana_data:

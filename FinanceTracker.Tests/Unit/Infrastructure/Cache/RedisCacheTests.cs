@@ -48,7 +48,8 @@ public sealed class RedisCacheTests
 
 	private static RedisConnectionException Unavailable() => new RedisConnectionException(
 		failureType: ConnectionFailureType.UnableToConnect,
-		message: "unavailable"
+		message: "unavailable",
+		flags: CommandFlags.None
 	);
 
 	[Test]

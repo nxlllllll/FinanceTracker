@@ -294,16 +294,16 @@
           description: "Publishing stops, so the outbox backs up rather than losing anything — that part is by design. Consumers reconnect on their own once the broker returns. What breaks meanwhile is that every projection stops updating, so balances and totals silently stop moving while the API keeps answering."
 
       - alert: QueueBacklogGrowing
-        expr: rabbitmq_queue_messages_ready > 1000
+        expr: rabbitmq_detailed_queue_messages_ready > 1000
         for: 10m
         labels:
           severity: warning
         annotations:
           summary: "{{ $labels.queue }} has over 1000 messages waiting"
-          description: "A consumer is slower than its producer, or is not consuming at all. The projections behind these queues are what account balances and category totals are read from, so a backlog here shows up to users as figures that stopped updating rather than as an error."
+          description: "A consumer is slower than its producer, or is not consuming at all. The projections behind these queues are what account balances and category totals are read from, so a backlog here shows up to users as figures that stopped updating rather than as an error. Threshold is a guess until there is real traffic to calibrate against."
 
       - alert: DeadLetterQueueNotEmpty
-        expr: rabbitmq_queue_messages_ready{queue=~".*\\.dlq"} > 0
+        expr: rabbitmq_detailed_queue_messages_ready{queue=~".*\\.dlq"} > 0
         for: 5m
         labels:
           severity: warning
@@ -312,14 +312,13 @@
           description: "Complements OutboxMessageDeadLettered, which watches the publish side. This watches the consume side: messages that exceeded x-delivery-limit and were routed to the per-queue DLX. DeadLetterAuditListener records each one in unresolvable_events with the full body, so start there rather than in the queue."
 
       - alert: NoConsumersOnQueue
-        expr: rabbitmq_queue_consumers == 0 and rabbitmq_queue_messages_ready > 0
+        expr: rabbitmq_detailed_queue_consumers == 0 and rabbitmq_detailed_queue_messages_ready > 0
         for: 5m
         labels:
           severity: critical
         annotations:
           summary: "{{ $labels.queue }} has messages and no consumer"
           description: "The worker for this queue is down, or connected without subscribing. Distinct from a backlog: nothing is being processed at all, and nothing will be until someone looks. This is the failure the reconnect loop is meant to prevent, so it firing means the loop itself is stuck."
-
   - name: finance-tracker-health
     rules:
       - alert: HealthCheckFailing

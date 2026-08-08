@@ -6,17 +6,22 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.Metrics;
+using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
+[NotInParallel]
 public sealed class IdempotencyBehaviourTests
 {
 	public sealed record TestCommand(Guid IdempotencyKey) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand;
 	public sealed record NonIdempotentCommand : IRequest<Result<Guid, DomainException>>;
 	public sealed record TestUserScopedCommand(Guid IdempotencyKey, Guid UserId) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand, IUserScopedRequest;
+
+	private const string Acquisition = "idempotency.acquisition";
 
 	private static readonly JsonSerializerOptions JsonOpts = new JsonSerializerOptions
 	{
@@ -332,5 +337,69 @@ public sealed class IdempotencyBehaviourTests
 			reservationId: reservationId,
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task Handle_WhenTheKeyIsFresh_ShouldRecordAReservation()
+	{
+		using MetricCollector collector = new MetricCollector(Acquisition);
+
+		GivenReserved(reservationId: Guid.CreateVersion7());
+
+		await _behaviour.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: collector.Total(
+			instrument: Acquisition,
+			(FinanceTrackerMetrics.Tags.Kind, "reserved")
+		)).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task Handle_WhenTheResponseIsReplayed_ShouldRecordACachedResponse()
+	{
+		using MetricCollector collector = new MetricCollector(Acquisition);
+
+		Guid original = Guid.CreateVersion7();
+		GivenCached(result: OkWith(value: original));
+
+		Result<Guid, DomainException> result = await _behaviour.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: result.Value).IsEqualTo(expected: original);
+
+		await Assert.That(value: collector.Total(
+			instrument: Acquisition,
+			(FinanceTrackerMetrics.Tags.Kind, "cached_response")
+		)).IsEqualTo(expected: 1).Because(message: """
+			This is the one measurement that shows the mechanism earning its keep: a duplicate request
+			answered without running the handler again. The rest of the design rests on clients
+			actually retrying, and nothing else reveals whether they do.
+		""");
+	}
+
+	[Test]
+	public async Task Handle_ForACommandWithoutAKey_ShouldRecordNothing()
+	{
+		using MetricCollector collector = new MetricCollector(Acquisition);
+
+		IdempotencyBehaviour<NonIdempotentCommand, Result<Guid, DomainException>> behaviour = BuildBehavior<NonIdempotentCommand>();
+
+		await behaviour.Handle(
+			request: new NonIdempotentCommand(),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await Assert.That(value: collector.Total(instrument: Acquisition)).IsEqualTo(expected: 0).Because(message: """
+			Thirty-one of the thirty-nine commands carry no key, and counting them as acquisitions
+			would bury the handful that do under noise from commands the mechanism never touches.
+		""");
 	}
 }

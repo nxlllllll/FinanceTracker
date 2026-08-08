@@ -5,6 +5,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.Services.Metrics;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -45,6 +46,17 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 			userId: userId,
 			ct: cancellationToken
 		);
+
+		FinanceTrackerMetrics.IdempotencyAcquisition.Add(delta: 1, tag: new KeyValuePair<string, object?>(
+			key: FinanceTrackerMetrics.Tags.Kind,
+			value: acquisition.Kind switch
+			{
+				IdempotencyAcquisitionKind.CachedResponse => "cached_response",
+				IdempotencyAcquisitionKind.Reserved => "reserved",
+				IdempotencyAcquisitionKind.Failed => "failed",
+				_ => "unknown"
+			}
+		));
 
 		if (acquisition.Kind == IdempotencyAcquisitionKind.CachedResponse)
 		{
