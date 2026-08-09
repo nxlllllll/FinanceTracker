@@ -52,6 +52,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Database.Repositories.UserRole;
+using FinanceTracker.Infrastructure.Database.Resilience;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
 using FinanceTracker.Infrastructure.Services.Auth;
@@ -175,6 +176,10 @@ public static class DependencyInjection
 		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
 
+		// Base currency recalculation
+		services.AddScoped<IBaseCurrencyRecalculationWriteRepository, BaseCurrencyRecalculationWriteRepository>();
+		services.AddScoped<IBaseCurrencyRecalculationReadRepository, BaseCurrencyRecalculationReadRepository>();
+
 		// Category
 		services.AddScoped<ICategoryRepository, CategoryRepository>();
 		services.AddScoped<ICategoryReadRepository, CategoryReadRepository>();
@@ -261,6 +266,8 @@ public static class DependencyInjection
 
 		services.AddScoped<AccountDomainEventApplier>();
 		services.AddScoped<IAccountProjectionRebuilder, AccountProjectionRebuilder>();
+
+		services.AddSingleton<ITransientFaultDetector, NpgsqlTransientFaultDetector>();
 
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 

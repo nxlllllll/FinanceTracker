@@ -292,14 +292,14 @@ public sealed class ApplicationArchitectureTests
 	{
 		Type[] expectedOrder =
 		[
-			typeof(TracingBehaviour<,>),
+			typeof(ObservabilityBehaviour<,>),
 			typeof(CorrelationBehaviour<,>),
 			typeof(AuthRateLimitingBehaviour<,>),
 			typeof(RateLimitingBehaviour<,>),
 			typeof(ValidationBehaviour<,>),
 			typeof(PostCommitNotificationBehaviour<,>),
 			typeof(IdempotencyBehaviour<,>),
-			typeof(ConcurrencyRetryBehaviour<,>)
+			typeof(RetryBehaviour<,>)
 		];
 
 		IServiceCollection services = new ServiceCollection();

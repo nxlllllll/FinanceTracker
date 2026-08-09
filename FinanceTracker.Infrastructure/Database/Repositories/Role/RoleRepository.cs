@@ -32,7 +32,6 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 			);
 		}
 
-		await context.SaveChangesAsync(cancellationToken: ct);
 		return role.Id;
 	}
 
@@ -151,8 +150,6 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 				cancellationToken: ct
 			);
 		}
-
-		await context.SaveChangesAsync(cancellationToken: ct);
 	}
 
 	public async Task DeleteAsync(

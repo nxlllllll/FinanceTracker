@@ -25,6 +25,106 @@ services:
       retries: 10
       start_period: 10s
 
+  backup:
+    profiles: ["ops"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      METRICS_DIR: /metrics
+      BACKUP_DIR: /backups
+      BACKUP_KEEP: "${BACKUP_KEEP:-14}"
+      BACKUP_CRON: "${BACKUP_CRON:-30 3 * * *}"
+    volumes:
+      - ./scripts/backup:/scripts:ro
+      - metrics_textfile:/metrics
+      - backups:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        echo "$${BACKUP_CRON} /bin/sh /scripts/pg-backup.sh >> /proc/1/fd/1 2>&1" > /etc/crontabs/root
+        echo "[backup] Scheduled: $${BACKUP_CRON}"
+        exec crond -f -l 8
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backrest:
+    profiles: ["ops"]
+    image: garethgeorge/backrest:latest
+    environment:
+      BACKREST_DATA: /data
+      BACKREST_CONFIG: /config/config.json
+      XDG_CACHE_HOME: /cache
+    volumes:
+      - backrest_data:/data
+      - backrest_config:/config
+      - backrest_cache:/cache
+      - backups:/userdata/postgres:ro
+      - rabbitmq_data:/userdata/rabbitmq:ro
+    ports:
+      - "127.0.0.1:9898:9898"
+    depends_on:
+      backup:
+        condition: service_started
+    restart: unless-stopped
+
+  dozzle:
+    profiles: ["ops"]
+    image: amir20/dozzle:latest
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_NO_ANALYTICS: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:8888:8080"
+    restart: unless-stopped
+
+  postgres-exporter:
+    profiles: ["observability"]
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "127.0.0.1:9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  node-exporter:
+    profiles: ["observability"]
+    image: prom/node-exporter:v1.8.2
+    command:
+      - '--collector.textfile.directory=/metrics'
+      - '--path.rootfs=/host'
+    volumes:
+      - metrics_textfile:/metrics:ro
+    ports:
+      - "127.0.0.1:9100:9100"
+    restart: unless-stopped
+
+  cadvisor:
+    profiles: ["observability"]
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "127.0.0.1:8081:8080"
+    privileged: true
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports:
@@ -44,6 +144,7 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "15692:15692"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
@@ -51,7 +152,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     command: >
-      sh -c "echo '[rabbitmq_management].' > /etc/rabbitmq/enabled_plugins && rabbitmq-server"
+      sh -c "echo '[rabbitmq_management,rabbitmq_prometheus].' > /etc/rabbitmq/enabled_plugins && rabbitmq-server"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -60,6 +161,7 @@ services:
       start_period: 30s
 
   api:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Api/Dockerfile
@@ -74,7 +176,7 @@ services:
       RabbitMQ__Password: ${RABBITMQ_PASSWORD}
       Redis__ConnectionString: redis:6379
       Jwt__Secret: ${JWT_SECRET}
-      OpenApi__Expose: "true"
+      OpenApi__Expose: "${OPENAPI_EXPOSE:-false}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +188,7 @@ services:
         condition: service_completed_successfully
 
   worker-outbox:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.Outbox/Dockerfile
@@ -111,6 +214,7 @@ services:
         condition: service_completed_successfully
 
   worker-account-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.AccountProjection/Dockerfile
@@ -136,6 +240,7 @@ services:
         condition: service_completed_successfully
 
   worker-recurring-transaction:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.RecurringTransaction/Dockerfile
@@ -161,6 +266,7 @@ services:
         condition: service_completed_successfully
 
   worker-recurring-transaction-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.RecurringTransactionProjection/Dockerfile
@@ -186,6 +292,7 @@ services:
         condition: service_completed_successfully
 
   worker-dead-letter-monitor:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.DeadLetterMonitor/Dockerfile
@@ -206,6 +313,7 @@ services:
         condition: service_completed_successfully
 
   worker-transfer-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.TransferProjection/Dockerfile
@@ -231,6 +339,7 @@ services:
         condition: service_completed_successfully
 
   worker-currency-rate:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.CurrencyRate/Dockerfile
@@ -252,6 +361,7 @@ services:
         condition: service_completed_successfully
 
   worker-balance-adjustment:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.BalanceAdjustment/Dockerfile
@@ -272,6 +382,7 @@ services:
         condition: service_completed_successfully
 
   worker-cleanup:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.Cleanup/Dockerfile
@@ -292,6 +403,7 @@ services:
         condition: service_completed_successfully
 
   worker-permission-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.PermissionProjection/Dockerfile
@@ -317,6 +429,7 @@ services:
         condition: service_completed_successfully
 
   worker-user-role-projection:
+    profiles: ["app"]
     build:
       context: .
       dockerfile: FinanceTracker.Worker.UserRoleProjection/Dockerfile
@@ -337,6 +450,27 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  worker-base-currency-recalculation:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.BaseCurrencyRecalculation/Dockerfile
+    ports:
+      - "5011:5011"
+    environment:
+      <<: [*redis-env, *otel-env]
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5011
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      Redis__ConnectionString: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       migrator:
         condition: service_completed_successfully
@@ -371,6 +505,7 @@ services:
         condition: service_healthy
 
   jaeger:
+    profiles: ["observability"]
     image: jaegertracing/all-in-one:latest
     ports:
       - "16686:16686"
@@ -379,6 +514,7 @@ services:
       COLLECTOR_OTLP_ENABLED: "true"
 
   alertmanager:
+    profiles: ["observability"]
     image: prom/alertmanager:latest
     ports:
       - "9093:9093"
@@ -386,6 +522,7 @@ services:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
 
   prometheus:
+    profiles: ["observability"]
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
@@ -397,13 +534,57 @@ services:
       - alertmanager
 
   grafana:
+    profiles: ["observability"]
     image: grafana/grafana:latest
     ports:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.3.2
+    profiles: ["observability"]
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.5.1
+    profiles: ["observability"]
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:12345:12345"
+    depends_on:
+      - loki
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  backups:
+  backrest_data:
+  backrest_config:
+  backrest_cache:
+  metrics_textfile:
+  grafana_data:
+  loki_data:
+  alloy_data:

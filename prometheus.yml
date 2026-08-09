@@ -30,3 +30,49 @@ scrape_configs:
           - 'worker-cleanup:5008'
           - 'worker-permission-projection:5009'
           - 'worker-user-role-projection:5010'
+          - 'worker-base-currency-recalculation:5011'
+
+  - job_name: 'health-checks'
+    metrics_path: /health/metrics
+    metric_relabel_configs:
+      - source_labels: [ __name__ ]
+        regex: 'healthcheck.*'
+        action: keep
+    static_configs:
+      - targets:
+          - 'api:9100'
+          - 'worker-outbox:5000'
+          - 'worker-account-projection:5001'
+          - 'worker-recurring-transaction:5002'
+          - 'worker-recurring-transaction-projection:5003'
+          - 'worker-dead-letter-monitor:5004'
+          - 'worker-transfer-projection:5005'
+          - 'worker-currency-rate:5006'
+          - 'worker-balance-adjustment:5007'
+          - 'worker-cleanup:5008'
+          - 'worker-permission-projection:5009'
+          - 'worker-user-role-projection:5010'
+          - 'worker-base-currency-recalculation:5011'
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+
+  - job_name: 'rabbitmq-detailed'
+    metrics_path: /metrics/detailed
+    params:
+      family: ['queue_coarse_metrics', 'queue_consumer_count']
+    static_configs:
+      - targets: ['rabbitmq:15692']
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  - job_name: 'containers'
+    static_configs:
+      - targets: ['cadvisor:8080']

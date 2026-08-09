@@ -82,7 +82,7 @@ public sealed class RegisterUserHandler(
 				);
 
 				if (roleAssignResult.IsFailure)
-					throw new ConfigurationException(message: $"The default 'user' role could not be assigned: {roleAssignResult.Error!.Message}");
+					throw roleAssignResult.Error!;
 			}, ct: ct);
 		}
 		catch (UniqueConstraintException ex)
@@ -92,6 +92,11 @@ public sealed class RegisterUserHandler(
 				message: "The user with this email address already exists.",
 				email: command.Email.Value
 			));
+		}
+		catch (AppException ex) when (ex is not ConcurrencyConflictException)
+		{
+			logger.ZLogError(message: $"Registration of {command.Email.Masked} was rolled back: {ex.Message}");
+			return Result<Guid, AppException>.Failure(error: ex);
 		}
 
 		postCommitNotifications.Stage(notification: new UserRegisteredNotification(

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FinanceTracker.Api.Configurations;
@@ -8,9 +9,11 @@ using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Infrastructure.Configurations;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 
 namespace FinanceTracker.Api;
@@ -20,6 +23,8 @@ public sealed class Program
 	public static void Main(string[] args)
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+
+		builder.AddStructuredLogging();
 
 		builder.Host.UseDefaultServiceProvider(configure: options =>
 		{
@@ -104,8 +109,14 @@ public sealed class Program
 
 		app.MapHealthChecks(pattern: "/health/ready", options: new HealthCheckOptions
 		{
-			Predicate = check => check.Tags.Contains(item: "ready")
+			Predicate = check => check.Tags.Contains(item: "ready"),
+			ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 		}).RequireHost(hosts: "*:9100");
+
+		app.UseHealthChecksPrometheusExporter(
+			endpoint: "/health/metrics",
+			configure: options => options.ResultStatusCodes[HealthStatus.Unhealthy] = (int)HttpStatusCode.OK
+		);
 
 		app.MapPrometheusScrapingEndpoint().RequireHost(hosts: "*:9100");
 

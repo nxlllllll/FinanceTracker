@@ -61,6 +61,9 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 		return accountId;
 	}
 
+	private static DateOnly PeriodOf(DateTimeOffset occurredAt)
+		=> new DateOnly(year: occurredAt.Year, month: occurredAt.Month, day: 1);
+
 	private CreateTransactionCommand BuildCommand(
 		Guid userId,
 		Guid accountId,
@@ -89,7 +92,7 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 		Guid accountId = await CreateAccountAsync(userId: userId, balance: 0m);
 		Guid incomeCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Зарплата", type: CategoryType.Income);
 
-		DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 6, day: 10, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset occurredAt = DateTimeOffset.UtcNow;
 
 		Result<Guid, AppException> transactionResult = await Mediator.Send(request: BuildCommand(
 			userId: userId,
@@ -103,7 +106,7 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 
 		Result<IncomeExpenseSummary, AppException> summaryResult = await Mediator.Send(request: new GetIncomeExpenseSummaryQuery(
 			UserId: userId,
-			Period: new DateOnly(year: 2025, month: 6, day: 1)
+			Period: PeriodOf(occurredAt: occurredAt)
 		));
 
 		await Assert.That(value: summaryResult.IsSuccess).IsTrue();
@@ -118,7 +121,7 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
 		Guid expenseCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда", type: CategoryType.Expense);
 
-		DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 6, day: 12, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset occurredAt = DateTimeOffset.UtcNow;
 
 		await Mediator.Send(request: BuildCommand(
 			userId: userId,
@@ -131,7 +134,7 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 
 		Result<IncomeExpenseSummary, AppException> summaryResult = await Mediator.Send(request: new GetIncomeExpenseSummaryQuery(
 			UserId: userId,
-			Period: new DateOnly(year: 2025, month: 6, day: 1)
+			Period: PeriodOf(occurredAt: occurredAt)
 		));
 
 		await Assert.That(value: summaryResult.Value!.Income).IsEqualTo(expected: 0m);
@@ -146,7 +149,7 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 		Guid incomeCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Зарплата", type: CategoryType.Income);
 		Guid expenseCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда", type: CategoryType.Expense);
 
-		DateTimeOffset occurredAt = new DateTimeOffset(year: 2025, month: 7, day: 5, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+		DateTimeOffset occurredAt = DateTimeOffset.UtcNow;
 
 		await Mediator.Send(request: BuildCommand(
 			userId: userId, accountId: accountId, categoryId: incomeCategoryId,
@@ -159,7 +162,7 @@ public sealed class GetIncomeExpenseSummaryFlowTests : MediatorFixture
 
 		Result<IncomeExpenseSummary, AppException> summaryResult = await Mediator.Send(request: new GetIncomeExpenseSummaryQuery(
 			UserId: userId,
-			Period: new DateOnly(year: 2025, month: 7, day: 1)
+			Period: PeriodOf(occurredAt: occurredAt)
 		));
 
 		await Assert.That(value: summaryResult.Value!.Income).IsEqualTo(expected: 50_000m);

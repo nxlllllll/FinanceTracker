@@ -20,7 +20,6 @@ public sealed class Account : AggregateRoot
 	public Name Name { get; private set; }
 	public AccountType Type { get; private set; }
 	public Money Balance { get; private set; }
-	/// <summary>Convenience accessor for the account's currency — derived from <see cref="Balance"/>.</summary>
 	public Currency Currency => Balance.Currency;
 	public bool IsArchived { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
@@ -128,6 +127,18 @@ public sealed class Account : AggregateRoot
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	private Result<Unit, DomainException> CheckNotBeforeCreation(DateTimeOffset occurredAt)
+	{
+		if (occurredAt < CreatedAt)
+		{
+			return Result<Unit, DomainException>.Failure(error: new OperationPredatesAccountException(
+				message: $"The operation is dated {occurredAt:yyyy-MM-dd}, before the account was opened on {CreatedAt:yyyy-MM-dd}."
+			));
+		}
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
 	private void Apply(AccountBalanceAdjusted @event)
 		=> Balance = Balance.Add(amount: @event.Delta);
 
@@ -199,6 +210,10 @@ public sealed class Account : AggregateRoot
 		decimal newRate,
 		decimal amount)
 	{
+		Result<Unit, DomainException> oldRateConstraints = CheckConstraints(amount: amount, rate: oldRate);
+		if (oldRateConstraints.IsFailure)
+			return oldRateConstraints;
+
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: newRate);
 		if (constraints.IsFailure)
 			return constraints;
@@ -237,6 +252,10 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
+		Result<Unit, DomainException> timing = CheckNotBeforeCreation(occurredAt: occurredAt);
+		if (timing.IsFailure)
+			return timing;
+
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
 		if (constraints.IsFailure)
 			return constraints;
@@ -271,6 +290,10 @@ public sealed class Account : AggregateRoot
 		decimal forexRate,
 		string? description)
 	{
+		Result<Unit, DomainException> timing = CheckNotBeforeCreation(occurredAt: occurredAt);
+		if (timing.IsFailure)
+			return timing;
+
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: forexRate);
 		if (constraints.IsFailure)
 			return constraints;
@@ -331,6 +354,10 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
+		Result<Unit, DomainException> timing = CheckNotBeforeCreation(occurredAt: occurredAt);
+		if (timing.IsFailure)
+			return timing;
+
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
 		if (constraints.IsFailure)
 			return constraints;
@@ -359,6 +386,10 @@ public sealed class Account : AggregateRoot
 		decimal exchangeRate,
 		string? description)
 	{
+		Result<Unit, DomainException> timing = CheckNotBeforeCreation(occurredAt: occurredAt);
+		if (timing.IsFailure)
+			return timing;
+
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
 		if (constraints.IsFailure)
 			return constraints;

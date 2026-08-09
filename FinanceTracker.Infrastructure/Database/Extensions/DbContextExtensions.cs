@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
+using FinanceTracker.Infrastructure.Database.Repositories.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Extensions;
@@ -285,46 +286,6 @@ public static class DbContextExtensions
 			WHERE user_permissions.last_version < EXCLUDED.last_version
 		""", cancellationToken: ct);
 	}
-//
-// 	public static Task<int> DeleteOldPermissionTombstonesAsync(
-// 		this DbContext context,
-// 		DateTimeOffset before,
-// 		int batchSize,
-// 		CancellationToken ct = default)
-// 	{
-// 		return context.Database.ExecuteSqlAsync(sql: $"""
-// 			DELETE FROM user_permissions
-// 			USING (
-// 				SELECT user_id, permission
-// 				FROM user_permissions
-// 				WHERE NOT is_active AND revoked_at < {before}
-// 				ORDER BY revoked_at
-// 				LIMIT {batchSize}
-// 			) old
-// 			WHERE user_permissions.user_id    = old.user_id
-// 			  AND user_permissions.permission = old.permission
-// 		""", cancellationToken: ct);
-// 	}
-//
-// 	public static Task<int> DeleteOldMembershipTombstonesAsync(
-// 		this DbContext context,
-// 		DateTimeOffset before,
-// 		int batchSize,
-// 		CancellationToken ct = default)
-// 	{
-// 		return context.Database.ExecuteSqlAsync(sql: $"""
-// 			DELETE FROM user_roles
-// 			USING (
-// 				SELECT user_id, role_id
-// 				FROM user_roles
-// 				WHERE NOT is_active AND removed_at < {before}
-// 				ORDER BY removed_at
-// 				LIMIT {batchSize}
-// 			) old
-// 			WHERE user_roles.user_id = old.user_id
-// 			  AND user_roles.role_id = old.role_id
-// 		""", cancellationToken: ct);
-// 	}
 
 	public static Task AssignUserRoleAsync(
 		this DbContext context,
@@ -424,4 +385,48 @@ public static class DbContextExtensions
 			RETURNING id
 		""").ToListAsync(cancellationToken: ct);
 	}
+
+	public static Task RequestBaseCurrencyRecalculationAsync(
+		this FinanceTrackerContext context,
+		Guid userId,
+		string targetCurrency,
+		DateTimeOffset requestedAt,
+		CancellationToken ct = default
+	) => context.Database.ExecuteSqlAsync(sql: $"""
+		INSERT INTO user_base_currency_recalculations (user_id, status, target_currency, requested_at, locked_until, attempts, last_error)
+		VALUES ({userId}, 'pending', {targetCurrency}, {requestedAt}, null, 0, null)
+		ON CONFLICT (user_id) DO UPDATE
+		SET status = 'pending',
+			target_currency = excluded.target_currency,
+			requested_at = excluded.requested_at,
+			locked_until = null,
+			attempts = 0,
+			last_error = null
+	""", cancellationToken: ct);
+
+	public static Task<List<BaseCurrencyRecalculationClaimDto>> ClaimBaseCurrencyRecalculationsAsync(
+		this FinanceTrackerContext context,
+		int batchSize,
+		DateTimeOffset now,
+		DateTimeOffset leaseUntil,
+		CancellationToken ct = default
+	) => context.Database.SqlQuery<BaseCurrencyRecalculationClaimDto>(sql: $"""
+		WITH claimable AS (
+			SELECT user_id
+			FROM user_base_currency_recalculations
+			WHERE status = 'pending' OR (status = 'in_progress' and locked_until < {now})
+			ORDER BY requested_at
+			LIMIT {batchSize}
+			FOR UPDATE SKIP LOCKED
+		)
+		UPDATE user_base_currency_recalculations r
+		SET status = 'in_progress', locked_until = {leaseUntil}
+		FROM claimable c
+		WHERE r.user_id = c.user_id
+		RETURNING r.user_id AS "UserId",
+			r.target_currency AS "TargetCurrency",
+			r.requested_at AS "RequestedAt",
+			r.attempts AS "Attempts",
+			r.last_error AS "LastError"
+	""").ToListAsync(cancellationToken: ct);
 }

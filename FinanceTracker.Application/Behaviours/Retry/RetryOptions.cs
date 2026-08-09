@@ -3,14 +3,14 @@ using System.ComponentModel.DataAnnotations;
 namespace FinanceTracker.Application.Behaviours.Retry;
 
 /// <summary>
-/// Configuration for <c>ConcurrencyRetryBehavior</c>.
+/// Configuration for <see cref="RetryBehaviour{TRequest,TResponse}"/>.
 /// Bind from <c>appsettings.json</c> under the <c>"Retry"</c> section.
 /// </summary>
 public sealed class RetryOptions
 {
 	public const string SectionName = "Retry";
 
-	/// <summary>Maximum number of retry attempts on concurrency conflict. Default: 3.</summary>
+	/// <summary>Maximum number of retry attempts on a conflict or transient fault. Default: 3.</summary>
 	[Range(minimum: 1, maximum: 10)]
 	public int MaxRetries { get; init; } = 3;
 

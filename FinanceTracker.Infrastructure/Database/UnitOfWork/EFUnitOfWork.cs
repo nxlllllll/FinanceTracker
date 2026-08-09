@@ -130,7 +130,7 @@ public sealed class EFUnitOfWork(
 		{
 			Guid aggregateId = ExtractGuidId(entries: ex.Entries, propertyName: "AggregateId");
 			logger.ZLogWarning(exception: ex, message: $"Concurrency conflict on event store aggregate {aggregateId}.");
-			throw new ConcurrencyConflictException(message: "Conflict: the aggregate was modified by another request.", id: aggregateId);
+			throw new ConcurrencyConflictException(message: "Conflict: the record was modified by another request.", id: aggregateId);
 		}
 		catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresUniqueViolationCode } pgEx)
 		{

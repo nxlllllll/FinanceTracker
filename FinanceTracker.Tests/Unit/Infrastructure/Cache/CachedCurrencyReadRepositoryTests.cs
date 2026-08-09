@@ -182,9 +182,11 @@ public sealed class CachedCurrencyReadRepositoryTests
 	[Test]
 	public async Task ExistsAsync_WhenRedisIsUnavailable_FallsThroughToInnerInsteadOfThrowing()
 	{
-		_database.StringGetAsync(key: Arg.Any<RedisKey>()).ThrowsAsync(
-			ex: new RedisConnectionException(failureType: ConnectionFailureType.SocketFailure, message: "Connection lost.")
-		);
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).ThrowsAsync(ex: new RedisConnectionException(
+			failureType: ConnectionFailureType.SocketFailure,
+			message: "Connection lost.",
+			flags: CommandFlags.None
+		));
 		_inner.ExistsAsync(code: Arg.Any<string>(), ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
 
 		bool result = await _repository.ExistsAsync(code: "RUB");

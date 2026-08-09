@@ -28,6 +28,7 @@
         <ProjectReference Include="..\FinanceTracker.Migrator\FinanceTracker.Migrator.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.AccountProjection\FinanceTracker.Worker.AccountProjection.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.BalanceAdjustment\FinanceTracker.Worker.BalanceAdjustment.csproj" />
+        <ProjectReference Include="..\FinanceTracker.Worker.BaseCurrencyRecalculation\FinanceTracker.Worker.BaseCurrencyRecalculation.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.Cleanup\FinanceTracker.Worker.Cleanup.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.CurrencyRate\FinanceTracker.Worker.CurrencyRate.csproj" />
         <ProjectReference Include="..\FinanceTracker.Worker.DeadLetterMonitor\FinanceTracker.Worker.DeadLetterMonitor.csproj" />

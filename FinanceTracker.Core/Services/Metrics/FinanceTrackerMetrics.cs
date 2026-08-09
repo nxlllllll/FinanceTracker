@@ -49,11 +49,47 @@ public static class FinanceTrackerMetrics
 		description: "Cache operations that failed because Redis was unavailable. Tagged by operation (read/write/delete)."
 	);
 
+	/// <summary>
+	/// Every command and query that reaches the pipeline, tagged by request type and outcome.
+	/// </summary>
+	public static readonly Counter<long> CommandExecuted = Meter.CreateCounter<long>(
+		name: "command.executed",
+		description: "Requests handled by the MediatR pipeline. Tagged by request_type and outcome (success/failure/error)."
+	);
+
+	/// <summary>
+	/// How long the handler itself took, tagged by request type.
+	/// </summary>
+	public static readonly Histogram<double> CommandDuration = Meter.CreateHistogram<double>(
+		name: "command.duration",
+		unit: "s",
+		description: "Time spent inside the MediatR pipeline, excluding HTTP overhead. Tagged by request_type."
+	);
+
+	/// <summary>
+	/// Retries performed by <c>RetryBehaviour</c>, tagged by what triggered them.
+	/// </summary>
+	public static readonly Counter<long> CommandRetried = Meter.CreateCounter<long>(
+		name: "command.retried",
+		description: "Retry attempts made by the pipeline. Tagged by request_type and reason (concurrency_conflict/transient_fault)."
+	);
+
+	/// <summary>
+	/// Outcome of acquiring an idempotency key, tagged by kind.
+	/// </summary>
+	public static readonly Counter<long> IdempotencyAcquisition = Meter.CreateCounter<long>(
+		name: "idempotency.acquisition",
+		description: "Idempotency key acquisitions. Tagged by kind (cached_response/reserved/failed)."
+	);
+
 	/// <summary>Standard metric tag keys.</summary>
 	public static class Tags
 	{
 		public const string Outcome = "outcome";
 		public const string Operation = "operation";
+		public const string RequestType = "request_type";
+		public const string Reason = "reason";
+		public const string Kind = "kind";
 	}
 
 	/// <summary>Values for the <see cref="Tags.Outcome"/> tag on <see cref="RefreshTokenReplay"/>.</summary>
@@ -72,5 +108,25 @@ public static class FinanceTrackerMetrics
 		public const string Read = "read";
 		public const string Write = "write";
 		public const string Delete = "delete";
+	}
+
+	/// <summary>Values for the <see cref="Tags.Outcome"/> tag on <see cref="CommandExecuted"/>.</summary>
+	public static class CommandOutcomes
+	{
+		/// <summary>Completed and returned a value.</summary>
+		public const string Success = "success";
+
+		/// <summary>Refused by a domain rule or by validation — the system working, not failing.</summary>
+		public const string Failure = "failure";
+
+		/// <summary>Threw. Something the domain did not anticipate.</summary>
+		public const string Error = "error";
+	}
+
+	/// <summary>Values for the <see cref="Tags.Reason"/> tag on <see cref="CommandRetried"/>.</summary>
+	public static class RetryReasons
+	{
+		public const string ConcurrencyConflict = "concurrency_conflict";
+		public const string TransientFault = "transient_fault";
 	}
 }

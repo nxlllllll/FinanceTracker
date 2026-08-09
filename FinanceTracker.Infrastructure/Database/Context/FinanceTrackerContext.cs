@@ -26,6 +26,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 
 	public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
 
+	public DbSet<BaseCurrencyRecalculationEntity> BaseCurrencyRecalculations => Set<BaseCurrencyRecalculationEntity>();
+
 	public DbSet<BudgetEntity> Budgets => Set<BudgetEntity>();
 
 	public DbSet<BudgetProgressEntity> BudgetProgresses => Set<BudgetProgressEntity>();

@@ -10,4 +10,4 @@ public sealed record GetTotalQuery(
 	Guid UserId,
 	Guid CategoryId,
 	DateOnly Period
-) : IRequest<Result<CategoryTotal, AppException>>, IUserScopedRequest;
+) : IRequest<Result<CategoryTotalView, AppException>>, IUserScopedRequest;

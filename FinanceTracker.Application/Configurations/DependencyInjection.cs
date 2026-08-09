@@ -48,6 +48,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<BackdatingOptions>()
+			.BindConfiguration(configSectionPath: BackdatingOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddScoped<PostCommitNotificationCollector>();
 		services.AddScoped<IPostCommitNotifications>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
 		services.AddScoped<IPostCommitNotificationSink>(implementationFactory: sp => sp.GetRequiredService<PostCommitNotificationCollector>());
@@ -62,14 +67,14 @@ public static class DependencyInjection
 		{
 			cfg.RegisterServicesFromAssembly(assembly: typeof(DependencyInjection).Assembly);
 
-			cfg.AddOpenBehavior(openBehaviorType: typeof(TracingBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(ObservabilityBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(CorrelationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(AuthRateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(RateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ValidationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(PostCommitNotificationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
-			cfg.AddOpenBehavior(openBehaviorType: typeof(ConcurrencyRetryBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(RetryBehaviour<,>));
 		});
 
 		services.AddValidatorsFromAssembly(assembly: typeof(DependencyInjection).Assembly);

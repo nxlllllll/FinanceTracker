@@ -208,7 +208,38 @@ public sealed class RegisterUserHandlerTests
 	}
 
 	[Test]
-	public async Task Handle_WhenTheRoleAssignmentFails_ShouldFailTheWholeRegistration()
+	public async Task Handle_WhenTheRoleAssignmentFails_ShouldReturnTheUnderlyingError()
+	{
+		_userAuthRepository.GetByEmailAsync(
+			email: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<FinanceTracker.Core.Domains.User.User?>(result: null));
+
+		NotFoundException underlying = new NotFoundException(message: "Role not found.", id: DefaultUserRole.Id);
+
+		_userRoleService.AssignAsync(
+			userId: Arg.Any<Guid>(),
+			roleId: Arg.Any<Guid>(),
+			assignedBy: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(error: underlying));
+
+		Result<Guid, AppException> result = await _handler.Handle(
+			command: RegisterUserCommandFactory.Create(),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsSameReferenceAs(expected: underlying).Because(message: """
+			Flattening this into a generic failure would answer a classified, actionable error with a
+			server error. The role service already said what went wrong — that is what the caller needs.
+		""");
+
+		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<UserRegisteredNotification>());
+	}
+
+	[Test]
+	public async Task Handle_WhenTheRoleAssignmentHitsAVersionConflict_ShouldLetItPropagate()
 	{
 		_userAuthRepository.GetByEmailAsync(
 			email: Arg.Any<string>(),
@@ -220,12 +251,16 @@ public sealed class RegisterUserHandlerTests
 			roleId: Arg.Any<Guid>(),
 			assignedBy: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(
-			error: new NotFoundException(message: "Role not found.", id: DefaultUserRole.Id)
+		).Returns(returnThis: call => Result<FinanceTracker.Core.Results.Unit, AppException>.Failure(
+			error: new ConcurrencyConflictException(message: "Version conflict while assigning the default role.", id: Guid.Empty)
 		));
 
 		await Assert.That(
 			action: async () => await _handler.Handle(command: RegisterUserCommandFactory.Create(), ct: CancellationToken.None)
-		).Throws<ConfigurationException>();
+		).Throws<ConcurrencyConflictException>().Because(message: """
+			Version conflicts are the one failure that must keep travelling: ConcurrencyRetryBehaviour
+			retries the whole registration. Catching it here would trade an automatic retry for a 409
+			the caller has to deal with themselves.
+		""");
 	}
 }

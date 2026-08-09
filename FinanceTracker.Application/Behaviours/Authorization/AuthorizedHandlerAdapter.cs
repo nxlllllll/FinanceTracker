@@ -36,10 +36,11 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 		TRequest request,
 		CancellationToken ct)
 	{
+		string commandType = request.GetType().Name;
 		Result<TEntity, TError> entity = await loader.LoadAsync(request: request, ct: ct);
 		if (entity.IsFailure)
 		{
-			logger.ZLogWarning(message: $"Authorization failed for {request.GetType().Name}: {entity.Error!.Message}");
+			logger.ZLogWarning(message: $"Authorization failed for {commandType}: {entity.Error!.Message}");
 			return Result<TValue, TError>.Failure(error: entity.Error!);
 		}
 
@@ -56,7 +57,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 			);
 		}
 
-		logger.ZLogInformation(message: $"Precondition failed for {request.GetType().Name}: {mismatch.Message}");
+		logger.ZLogInformation(message: $"Precondition failed for {commandType}: {mismatch.Message}");
 		return Result<TValue, TError>.Failure(error: typedMismatch);
 
 	}
@@ -105,7 +106,8 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TValue, TError>(
 		if (entity.IsSuccess)
 			return await handler.HandleAsync(request: request, ct: ct);
 
-		logger.ZLogWarning(message: $"Authorization failed for {request.GetType().Name}: {entity.Error!.Message}");
+		string commandType = request.GetType().Name;
+		logger.ZLogWarning(message: $"Authorization failed for {commandType}: {entity.Error!.Message}");
 		return Result<TValue, TError>.Failure(error: entity.Error!);
 	}
 }

@@ -213,22 +213,20 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 	}
 
 	[Test]
-	public async Task CreateTransfer_Backdated_LagJobShouldNotCompensateBeforeConsumer()
+	public async Task CreateTransfer_Fresh_LagJobShouldNotCompensateBeforeConsumer()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid fromAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 10_000m);
 		Guid toAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 0m);
 
-		// backdated transfer
 		await Mediator.Send(request: new CreateTransferCommand(
 			UserId: userId,
 			FromAccountId: fromAccountId,
 			ToAccountId: toAccountId,
 			Amount: 3_000m,
 			Description: null,
-			OccurredAt: DateTimeOffset.UtcNow.AddDays(days: -3)
-		)
-		{ IdempotencyKey = Guid.CreateVersion7() });
+			OccurredAt: DateTimeOffset.UtcNow
+		) { IdempotencyKey = Guid.CreateVersion7() });
 
 		await RunTransferCreditLagAsync();
 
@@ -239,7 +237,8 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 				.Select(selector: t => t.Status)
 				.FirstAsync();
 
-			await Assert.That(value: statusAfterLagJob).IsEqualTo(expected: TransferStatus.PendingCredit);
+			await Assert.That(value: statusAfterLagJob).IsEqualTo(expected: TransferStatus.PendingCredit)
+				.Because(message: "Compensating a transfer the consumer has not had a chance to pick up yet would reverse money that was about to arrive.");
 		}
 
 		// the transfer must complete, not compensate.

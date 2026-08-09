@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Role.Commands.UpdateRolePermissions;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -13,13 +14,24 @@ public sealed class UpdateRolePermissionsHandlerTests
 	private static readonly Permission CategoryRead = Permission.Create(resource: Resource.Category, action: PermissionAction.Read).Value!;
 
 	private IRoleRepository _roleRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private UpdateRolePermissionsHandler _handler = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_roleRepository = Substitute.For<IRoleRepository>();
-		_handler = new UpdateRolePermissionsHandler(roleRepository: _roleRepository);
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
+
+		_handler = new UpdateRolePermissionsHandler(
+			roleRepository: _roleRepository,
+			unitOfWork: _unitOfWork
+		);
 	}
 
 	private static RoleDto BuildRole(Guid roleId, params Permission[] permissions) => new RoleDto(
@@ -48,6 +60,26 @@ public sealed class UpdateRolePermissionsHandlerTests
 		await _roleRepository.Received(requiredNumberOfCalls: 1).ReplacePermissionsAsync(
 			roleId: roleId,
 			permissions: Arg.Is<IReadOnlySet<Permission>>(predicate: p => p!.Contains(item: CategoryRead) && !p.Contains(item: AccountRead)),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_ShouldReplaceThePermissionSetInsideATransaction()
+	{
+		Guid roleId = Guid.CreateVersion7();
+
+		await _handler.HandleAsync(
+			request: new UpdateRolePermissionsCommand(
+				RoleId: roleId,
+				NewPermissions: new HashSet<Permission> { CategoryRead },
+				UpdatedBy: Guid.CreateVersion7()
+			),
+			role: BuildRole(roleId: roleId, AccountRead)
+		);
+
+		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -90,6 +122,11 @@ public sealed class UpdateRolePermissionsHandlerTests
 		await _roleRepository.DidNotReceive().ReplacePermissionsAsync(
 			roleId: Arg.Any<Guid>(),
 			permissions: Arg.Any<IReadOnlySet<Permission>>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await _unitOfWork.DidNotReceive().ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

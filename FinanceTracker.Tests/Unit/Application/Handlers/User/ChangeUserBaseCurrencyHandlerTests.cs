@@ -15,8 +15,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.User;
 public sealed class ChangeUserBaseCurrencyHandlerTests
 {
 	private IUserWriteRepository _userWriteRepository = null!;
-	private ICategoryTotalWriteRepository _categoryTotalWriteRepository = null!;
 	private IPostCommitNotifications _postCommitNotifications = null!;
+	private IBaseCurrencyRecalculationWriteRepository _recalculationWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private ChangeUserBaseCurrencyHandler _handler = null!;
 
@@ -24,9 +24,9 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 	public void Setup()
 	{
 		_userWriteRepository = Substitute.For<IUserWriteRepository>();
-		_categoryTotalWriteRepository = Substitute.For<ICategoryTotalWriteRepository>();
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_recalculationWriteRepository = Substitute.For<IBaseCurrencyRecalculationWriteRepository>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -35,7 +35,7 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 
 		_handler = new ChangeUserBaseCurrencyHandler(
 			userWriteRepository: _userWriteRepository,
-			categoryTotalWriteRepository: _categoryTotalWriteRepository,
+			recalculationWriteRepository: _recalculationWriteRepository,
 			unitOfWork: _unitOfWork,
 			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default
@@ -55,27 +55,8 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 
 		await _userWriteRepository.Received(requiredNumberOfCalls: 1).ChangeBaseCurrencyAsync(
 			userId: Arg.Is(value: user.Id),
-			newBaseCurrencyCode: Arg.Is<FinanceTracker.Core.ValueObjects.Currency>(value: FinanceTracker.Core.ValueObjects.Currency.Create(value: "USD").Value),
+			newBaseCurrencyCode: Arg.Is(value: FinanceTracker.Core.ValueObjects.Currency.Create(value: "USD").Value),
 			expectedVersion: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_WithValidCommand_ShouldRecalculateCategoryTotals()
-	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
-		FinanceTracker.Core.ValueObjects.Currency newCurrency = FinanceTracker.Core.ValueObjects.Currency.Create(value: "USD").Value;
-
-		await _handler.HandleAsync(
-			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: newCurrency),
-			user: user,
-			ct: CancellationToken.None
-		);
-
-		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).RecalculateAllForUserAsync(
-			userId: user.Id,
-			baseCurrency: newCurrency,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -119,24 +100,6 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WithSameCurrency_ShouldNotRecalculateCategoryTotals()
-	{
-		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
-
-		await _handler.HandleAsync(
-			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value),
-			user: user,
-			ct: CancellationToken.None
-		);
-
-		await _categoryTotalWriteRepository.DidNotReceive().RecalculateAllForUserAsync(
-			userId: Arg.Any<Guid>(),
-			baseCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
 	public async Task HandleAsync_WithSameCurrency_ShouldNotPublishNotification()
 	{
 		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
@@ -148,5 +111,43 @@ public sealed class ChangeUserBaseCurrencyHandlerTests
 		);
 
 		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<INotification>());
+	}
+
+	[Test]
+	public async Task HandleAsync_ShouldRequestARebuildInsteadOfDoingItInline()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
+		FinanceTracker.Core.ValueObjects.Currency usd = FinanceTracker.Core.ValueObjects.Currency.Create(value: "USD").Value;
+
+		await _handler.HandleAsync(
+			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: usd),
+			user: user
+		);
+
+		await _recalculationWriteRepository.Received(requiredNumberOfCalls: 1).RequestAsync(
+			userId: user.Id,
+			targetCurrency: usd,
+			requestedAt: FakeDateProvider.Default.UtcNow,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTheCurrencyIsUnchanged_ShouldNotRequestARebuild()
+	{
+		FinanceTracker.Core.Domains.User.User user = UserFactory.Create(baseCurrencyCode: "RUB").Value!;
+		FinanceTracker.Core.ValueObjects.Currency usd = FinanceTracker.Core.ValueObjects.Currency.Create(value: "USD").Value;
+
+		await _handler.HandleAsync(
+			command: new ChangeUserBaseCurrencyCommand(UserId: user.Id, NewBaseCurrency: user.BaseCurrency),
+			user: user
+		);
+
+		await _recalculationWriteRepository.DidNotReceive().RequestAsync(
+			userId: Arg.Any<Guid>(),
+			targetCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
+			requestedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 }

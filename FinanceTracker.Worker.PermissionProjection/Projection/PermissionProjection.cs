@@ -19,7 +19,8 @@ public sealed class PermissionProjection(
 		foreach (IIntegrationEvent @event in notification.Events)
 		{
 			await applier.ApplyAsync(@event: @event, ct: ct);
-			logger.ZLogDebug(message: $"Projected {@event.GetType().Name}.");
+			string eventType = @event.GetType().Name;
+			logger.ZLogDebug(message: $"Projected {eventType}.");
 		}
 	}
 }

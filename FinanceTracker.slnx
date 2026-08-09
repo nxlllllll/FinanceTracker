@@ -12,6 +12,7 @@
     <File Path="alertmanager/alertmanager.example.yml" />
     <File Path="alertmanager/alertmanager.yml" />
     <File Path="BannedSymbols.txt" />
+    <File Path="compose.linux.yml" />
     <File Path="compose.yaml" />
     <File Path="coverage.runsettings" />
     <File Path="Directory.Build.props" />
@@ -19,6 +20,8 @@
     <File Path="prometheus.yml" />
     <File Path="prometheus/alerts.yml" />
     <File Path="README.md" />
+    <File Path="scripts/backup/pg-backup.sh" />
+    <File Path="scripts/backup/pg-restore.sh" />
   </Folder>
   <Project Path="FinanceTracker.Api/FinanceTracker.Api.csproj" />
   <Project Path="FinanceTracker.Application/FinanceTracker.Application.csproj" />
@@ -31,6 +34,7 @@
   <Project Path="FinanceTracker.Tests/FinanceTracker.Tests.csproj" />
   <Project Path="FinanceTracker.Worker.AccountProjection/FinanceTracker.Worker.AccountProjection.csproj" />
   <Project Path="FinanceTracker.Worker.BalanceAdjustment/FinanceTracker.Worker.BalanceAdjustment.csproj" />
+  <Project Path="FinanceTracker.Worker.BaseCurrencyRecalculation/FinanceTracker.Worker.BaseCurrencyRecalculation.csproj" />
   <Project Path="FinanceTracker.Worker.Cleanup/FinanceTracker.Worker.Cleanup.csproj" />
   <Project Path="FinanceTracker.Worker.CurrencyRate/FinanceTracker.Worker.CurrencyRate.csproj" />
   <Project Path="FinanceTracker.Worker.DeadLetterMonitor/FinanceTracker.Worker.DeadLetterMonitor.csproj" />

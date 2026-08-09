@@ -18,11 +18,12 @@ public abstract class BaseJob<TOptions>(
 {
 	public async Task Execute(IJobExecutionContext context)
 	{
+		string jobName = GetType().Name;
 		TOptions currentOptions = options.CurrentValue;
 
 		if (!currentOptions.IsEnabled)
 		{
-			logger.ZLogInformation(message: $"[{GetType().Name}] Disabled. Skipping.");
+			logger.ZLogInformation(message: $"[{jobName}] Disabled. Skipping.");
 			return;
 		}
 
@@ -33,7 +34,7 @@ public abstract class BaseJob<TOptions>(
 		catch (Exception ex)
 		{
 			WorkerMetrics.JobExecutionFailed.Add(delta: 1, new KeyValuePair<string, object?>(key: "job", value: GetType().Name));
-			logger.ZLogError(exception: ex, message: $"[{GetType().Name}] Unhandled exception during execution.");
+			logger.ZLogError(exception: ex, message: $"[{jobName}] Unhandled exception during execution.");
 			throw new JobExecutionException(cause: ex, refireImmediately: false);
 		}
 	}

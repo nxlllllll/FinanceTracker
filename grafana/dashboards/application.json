@@ -1,0 +1,196 @@
+{
+  "title": "FinanceTracker — Application",
+  "uid": "ft-application",
+  "tags": ["financetracker"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Commands / min",
+      "description": "Excludes queries by counting only request types ending in Command, so a dashboard refresh polling the read side does not read as user activity.",
+      "gridPos": { "h": 4, "w": 5, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(command_executed_total{request_type=~\".*Command\"}[30m])) * 60 or vector(0)",
+          "legendFormat": "per min",
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area" },
+      "fieldConfig": { "defaults": { "decimals": 2 }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Refusal rate",
+      "description": "Share of commands the domain rejected. Not an error rate — a refused transfer is the rules working. A sudden climb usually means a client started sending something it did not before.",
+      "gridPos": { "h": 4, "w": 5, "x": 5, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(command_executed_total{outcome=\"failure\"}[30m])) / clamp_min(sum(rate(command_executed_total[30m])), 0.0001) or vector(0)",
+          "legendFormat": "refused",
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.3 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Errors / min",
+      "description": "Commands that threw. Unlike a refusal this is nobody's intent, and any sustained value is worth opening the logs for — the trace id in each entry leads straight to the request.",
+      "gridPos": { "h": 4, "w": 5, "x": 10, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(command_executed_total{outcome=\"error\"}[30m])) * 60 or vector(0)",
+          "legendFormat": "errors",
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area", "colorMode": "background" },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Retries / min",
+      "description": "How much the pipeline is repeating itself. Counts attempts, not final failures — those show as errors on the left.",
+      "gridPos": { "h": 4, "w": 4, "x": 15, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(command_retried_total[30m])) * 60 or vector(0)",
+          "legendFormat": "retries",
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area" },
+      "fieldConfig": { "defaults": { "decimals": 2 }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Duplicates absorbed",
+      "description": "Total since the process started, not a rate: duplicates are rare enough that a windowed increase needs two samples inside the window and usually finds one. Resets when the API restarts.",
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(idempotency_acquisition_total{kind=\"cached_response\"}) or vector(0)",
+          "legendFormat": "cached",
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" },
+      "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "Outcomes over time",
+      "description": "Stacked, so the total height is throughput and the bands are what happened to it. Errors sit on top deliberately — they are the thinnest band and the one worth noticing.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(command_executed_total[10m])) * 60",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 40, "stacking": { "mode": "normal" }, "lineWidth": 1 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "success" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "failure" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "error" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Retry reasons",
+      "description": "Version conflicts rise with contention and are the concurrency design working. Transient faults are the database or the network. Reading them as one number cannot tell a busy afternoon from a dying connection.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum by (reason) (rate(command_retried_total[10m])) * 60",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 20 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "transient_fault" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "title": "Slowest commands",
+      "description": "Mean duration rather than a percentile: at this traffic level a p95 over a short window is computed from a handful of samples and reads NaN more often than it reads anything.",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (request_type) (rate(command_duration_seconds_sum[1h])) / clamp_min(sum by (request_type) (rate(command_duration_seconds_count[1h])), 0.0001))",
+          "legendFormat": "{{request_type}}",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "request_type": "Command", "Value": "Mean duration" } } }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Mean duration" }, "properties": [{ "id": "unit", "value": "s" }, { "id": "decimals", "value": 4 }] }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Idempotency outcomes",
+      "description": "reserved is a first-time request, cached_response a duplicate answered from store, failed a key that could not be taken. A rise in failed means contention on the same key, which is usually a client retrying too fast rather than a bug.",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "sum by (kind) (rate(idempotency_acquisition_total[10m])) * 60",
+          "legendFormat": "{{kind}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 20 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      }
+    }
+  ]
+}
