@@ -29,11 +29,12 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		if (request is not IIdempotentCommand idempotent)
 			return await next(t: cancellationToken);
 
+		string requestType = typeof(TRequest).Name;
 		if (idempotent.IdempotencyKey == Guid.Empty)
 		{
-			logger.ZLogWarning(message: $"[Idempotency] {typeof(TRequest).Name} has empty IdempotencyKey.");
+			logger.ZLogWarning(message: $"[Idempotency] {requestType} has empty IdempotencyKey.");
 			return TResponse.CreateFailure(error: new EmptyIdempotencyKeyException(
-				message: $"{typeof(TRequest).Name} implements IIdempotentCommand but IdempotencyKey is Guid.Empty.")
+				message: $"{requestType} implements IIdempotentCommand but IdempotencyKey is Guid.Empty.")
 			);
 		}
 
@@ -60,7 +61,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
 		if (acquisition.Kind == IdempotencyAcquisitionKind.CachedResponse)
 		{
-			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {typeof(TRequest).Name} (key: {idempotent.IdempotencyKey}).");
+			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {requestType} (key: {idempotent.IdempotencyKey}).");
 			return JsonSerializer.Deserialize<TResponse>(
 				json: acquisition.CachedResponseJson!,
 				options: FinanceTrackerJsonOptions.Application
@@ -88,6 +89,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken)
 	{
+		string requestType = typeof(TRequest).Name;
 		TResponse response;
 		try
 		{
@@ -128,7 +130,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 			);
 
 			logger.ZLogWarning(message: $"""
-				[Idempotency] Key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} was reclaimed mid-flight — the underlying change was rolled back.
+				[Idempotency] Key {idempotent.IdempotencyKey} for {requestType} was reclaimed mid-flight — the underlying change was rolled back.
 			""");
 
 			return TResponse.CreateFailure(error: ex);
@@ -143,14 +145,14 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 				ct: CancellationToken.None
 			);
 
-			logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} — handler threw, client may retry.");
+			logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {requestType} — handler threw, client may retry.");
 
 			throw;
 		}
 
 		if (response is IResult { IsSuccess: true })
 		{
-			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {typeof(TRequest).Name}.");
+			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {requestType}.");
 			return response;
 		}
 
@@ -162,7 +164,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 			ct: cancellationToken
 		);
 
-		logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {typeof(TRequest).Name} — command failed, client may retry.");
+		logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {requestType} — command failed, client may retry.");
 
 		return response;
 	}

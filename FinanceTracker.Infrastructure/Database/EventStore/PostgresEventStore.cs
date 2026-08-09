@@ -53,10 +53,11 @@ public sealed class PostgresEventStore(
 		foreach (IEvent @event in eventList)
 		{
 			string serialized = JsonSerializer.Serialize(value: @event, inputType: @event.GetType(), options: FinanceTrackerJsonOptions.Payload);
-			string? eventType = @event.GetType().GetCustomAttribute<EventTypeAttribute>()?.Name;
-			if (eventType is null)
+			string? aggregateEventType = @event.GetType().GetCustomAttribute<EventTypeAttribute>()?.Name;
+			if (aggregateEventType is null)
 			{
-				logger.ZLogError(message: $"Configuration error: {@event.GetType().Name} is missing [EventType] attribute.");
+				string eventType = @event.GetType().Name;
+				logger.ZLogError(message: $"Configuration error: {eventType} is missing [EventType] attribute.");
 				throw new UnknownEventTypeException(message: "The following IEvent classes are missing [EventType] attribute.", eventTypes: [@event.GetType().Name]);
 			}
 
@@ -65,8 +66,8 @@ public sealed class PostgresEventStore(
 				Id = @event.Id,
 				AggregateId = aggregateId,
 				AggregateType = aggregateType,
-				EventType = eventType,
-				SchemaVersion = eventTypeResolver.GetCurrentVersion(typeName: eventType),
+				EventType = aggregateEventType,
+				SchemaVersion = eventTypeResolver.GetCurrentVersion(typeName: aggregateEventType),
 				CorrelationId = correlationContext.CorrelationId,
 				Version = ++currentVersion,
 				Payload = serialized,

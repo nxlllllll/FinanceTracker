@@ -28,8 +28,13 @@ public static class WorkerHealthCheckExtensions
 		string connectionString,
 		string redisConnectionString)
 	{
-		return services.AddHealthChecks().AddNpgSql(connectionString: connectionString, name: "postgres", tags: ["ready", "db"])
-			.AddRedis(redisConnectionString: redisConnectionString, name: "redis", tags: ["ready", "cache"]);
+		return services.AddHealthChecks().AddNpgSql(connectionString: connectionString, name: "postgres", tags: ["ready", "db"]).AddRedis(
+			redisConnectionString: redisConnectionString,
+			name: "redis",
+			failureStatus: HealthStatus.Degraded,
+			tags: ["ready", "cache"],
+			timeout: TimeSpan.FromSeconds(value: 2)
+		);
 	}
 
 	public static IServiceCollection AddWorkerMetrics(this IServiceCollection services, string workerName)
