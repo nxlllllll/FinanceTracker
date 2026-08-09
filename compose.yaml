@@ -547,6 +547,35 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     restart: unless-stopped
 
+  loki:
+    image: grafana/loki:3.3.2
+    profiles: ["observability"]
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.5.1
+    profiles: ["observability"]
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:12345:12345"
+    depends_on:
+      - loki
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
@@ -557,3 +586,5 @@ volumes:
   backrest_cache:
   metrics_textfile:
   grafana_data:
+  loki_data:
+  alloy_data:
