@@ -1,6 +1,6 @@
 using System.Text.Json;
 using FinanceTracker.Api.Http.Results;
-using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Observability.Correlation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;

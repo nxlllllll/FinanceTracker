@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using Npgsql;
 
 namespace FinanceTracker.Infrastructure.Database.Resilience;

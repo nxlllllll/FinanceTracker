@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Api.Http.Results;
+using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Core.Exceptions;
 
 namespace FinanceTracker.Api.Http.Filters;

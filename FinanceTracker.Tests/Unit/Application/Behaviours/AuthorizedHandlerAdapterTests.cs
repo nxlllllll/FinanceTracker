@@ -2,6 +2,8 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;

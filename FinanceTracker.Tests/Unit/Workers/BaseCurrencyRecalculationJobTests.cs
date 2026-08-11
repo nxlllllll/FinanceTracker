@@ -1,6 +1,8 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Currency;
+using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;

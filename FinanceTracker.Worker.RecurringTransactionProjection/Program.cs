@@ -1,4 +1,4 @@
-using FinanceTracker.Application.UseCases.Transaction.Services;
+using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;

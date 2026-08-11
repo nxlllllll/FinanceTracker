@@ -1,7 +1,7 @@
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.EventStore;

@@ -7,7 +7,9 @@ using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRe
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.DeactivateRecurringTransaction;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;

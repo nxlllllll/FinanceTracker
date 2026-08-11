@@ -1,7 +1,7 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
-using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;

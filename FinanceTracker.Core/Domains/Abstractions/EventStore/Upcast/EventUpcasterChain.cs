@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
+namespace FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 
 /// <summary>
 /// The version range a registered upcaster chain covers for one event type.

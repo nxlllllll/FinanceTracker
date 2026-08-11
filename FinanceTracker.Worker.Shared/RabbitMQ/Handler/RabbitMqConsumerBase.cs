@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Utilities.Retry;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

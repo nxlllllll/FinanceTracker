@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.Category.Commands.ArchiveCategory;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Infrastructure.Cache;
+using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Caching.Distributed;

@@ -5,6 +5,7 @@ using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetPeriod;
 using FinanceTracker.Application.UseCases.Budget.Commands.DeactivateBudget;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 

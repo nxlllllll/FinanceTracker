@@ -4,6 +4,7 @@ using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Application.UseCases.Category.Commands.UnarchiveCategory;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 

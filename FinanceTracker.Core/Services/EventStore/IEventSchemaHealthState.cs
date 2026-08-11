@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.EventStore;
+namespace FinanceTracker.Core.Services.EventStore;
 
 public interface IEventSchemaHealthState
 {

@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.EventStore;
+using FinanceTracker.Core.Services.EventStore;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 

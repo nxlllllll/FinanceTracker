@@ -10,7 +10,7 @@ using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Application.Services.Roles;
-using FinanceTracker.Application.UseCases.Transaction.Services;
+using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Core.Results;
 using FluentValidation;
 using MediatR;

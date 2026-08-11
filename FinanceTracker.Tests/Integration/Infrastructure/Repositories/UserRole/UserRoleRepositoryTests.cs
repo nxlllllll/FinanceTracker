@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
-using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
@@ -153,7 +153,7 @@ public sealed class UserRoleRepositoryTests : DatabaseFixture
 		await Assert.That(value: loaded).IsNull();
 	}
 
-[Test]
+	[Test]
 	public async Task SaveAsync_ShouldWriteOneOutboxMessageCarryingEveryEvent()
 	{
 		Core.Domains.UserRole.UserRole userRole = UserRoleFactory.Create();

@@ -1,8 +1,13 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
+using FinanceTracker.Application.UseCases.Transfer.Commands.CreateTransfer;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transfer;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 

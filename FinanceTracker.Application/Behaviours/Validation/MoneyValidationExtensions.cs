@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Core.ValueObjects;
 using FluentValidation;
 
 namespace FinanceTracker.Application.Behaviours.Validation;

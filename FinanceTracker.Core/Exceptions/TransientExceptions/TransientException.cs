@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Exceptions.TransientExceptions;
+namespace FinanceTracker.Core.Exceptions.TransientExceptions;
 
 /// <summary>
 /// Base class for failures caused by data the system expects to have but does not have <i>yet</i>.

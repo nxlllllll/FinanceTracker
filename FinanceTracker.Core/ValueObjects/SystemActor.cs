@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.ValueObjects;
+namespace FinanceTracker.Core.ValueObjects;
 
 /// <summary>
 /// Identifies the system itself as the actor behind an operation nobody initiated.

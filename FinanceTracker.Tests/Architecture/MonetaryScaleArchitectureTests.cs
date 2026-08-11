@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Tests.Architecture.Helpers;
+using FinanceTracker.Tests.Architecture.Helpers;
 
 namespace FinanceTracker.Tests.Architecture;
 

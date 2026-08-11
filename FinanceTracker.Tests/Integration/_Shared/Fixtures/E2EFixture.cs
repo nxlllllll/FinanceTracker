@@ -1,5 +1,5 @@
 using FinanceTracker.Application.Configurations;
-using FinanceTracker.Application.UseCases.Transaction.Services;
+using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;

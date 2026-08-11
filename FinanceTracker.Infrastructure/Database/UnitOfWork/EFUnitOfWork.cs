@@ -1,6 +1,8 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Data;
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using Microsoft.EntityFrameworkCore;

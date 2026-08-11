@@ -6,6 +6,7 @@ using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.Account.Queries.GetAccount;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using MediatR;

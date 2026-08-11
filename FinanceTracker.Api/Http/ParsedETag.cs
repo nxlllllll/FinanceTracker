@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Api.Http;
+namespace FinanceTracker.Api.Http;
 
 /// <summary>Outcome of parsing an <c>If-Match</c> header.</summary>
 public readonly record struct ParsedETag(bool IsPresent, bool IsValid, bool IsWildcard, int? Version)

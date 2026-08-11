@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Currency;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;

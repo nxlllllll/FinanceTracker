@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;

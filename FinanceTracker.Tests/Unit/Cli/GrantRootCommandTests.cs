@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Services.Roles;
+using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Cli.Commands;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;

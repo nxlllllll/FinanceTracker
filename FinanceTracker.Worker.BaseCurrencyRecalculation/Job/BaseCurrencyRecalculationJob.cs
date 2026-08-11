@@ -1,5 +1,6 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.DateProvider;
@@ -34,7 +35,7 @@ public sealed class BaseCurrencyRecalculationJob(
 
 		CancellationToken ct = context.CancellationToken;
 
-		IReadOnlyList<Core.ReadModels.BaseCurrencyRecalculation> claimed = await recalculationWriteRepository.ClaimPendingBatchAsync(
+		IReadOnlyList<Core.ReadModels.Currency.BaseCurrencyRecalculation> claimed = await recalculationWriteRepository.ClaimPendingBatchAsync(
 			batchSize: currentOptions.BatchSize,
 			leaseDuration: TimeSpan.FromMinutes(value: currentOptions.LeaseMinutes),
 			now: dateProvider.UtcNow,
@@ -48,7 +49,7 @@ public sealed class BaseCurrencyRecalculationJob(
 
 		int rebuilt = 0;
 
-		foreach (Core.ReadModels.BaseCurrencyRecalculation request in claimed)
+		foreach (Core.ReadModels.Currency.BaseCurrencyRecalculation request in claimed)
 		{
 			if (ct.IsCancellationRequested)
 				break;
@@ -61,7 +62,7 @@ public sealed class BaseCurrencyRecalculationJob(
 	}
 
 	private async Task<bool> RebuildAsync(
-		Core.ReadModels.BaseCurrencyRecalculation request,
+		Core.ReadModels.Currency.BaseCurrencyRecalculation request,
 		int maxAttempts,
 		CancellationToken ct)
 	{

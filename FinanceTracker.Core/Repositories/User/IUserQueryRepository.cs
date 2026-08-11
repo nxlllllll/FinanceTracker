@@ -1,4 +1,6 @@
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Operation;
+using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.User;
@@ -23,7 +25,7 @@ public interface IUserQueryRepository : IReadRepository<UserReadModel>
 		CancellationToken ct = default
 	);
 
-	Task<PagedResult<ReadModels.Operation>> GetHistoryAsync(
+	Task<PagedResult<ReadModels.Operation.Operation>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
 		DateTimeOffset? dateFrom = null,

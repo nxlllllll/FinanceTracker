@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Contracts.Events.UserRole;
+using FinanceTracker.Contracts.Events.UserRole;
 using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Role;
@@ -200,7 +200,7 @@ public sealed class UserRoleWriteRepositoryTests : DatabaseFixture
 			is not a stale row — it is a user who cannot be stripped of admin access.
 		""");
 	}
-[Test]
+	[Test]
 	public async Task DeleteOldTombstonesAsync_ShouldRemoveOnlyExpiredOnes()
 	{
 		Guid userId = await _userBuilder.CreateAsync();

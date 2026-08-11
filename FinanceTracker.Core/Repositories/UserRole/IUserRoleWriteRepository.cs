@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.UserRole.Events;
+using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Repositories.Abstractions;
 
 namespace FinanceTracker.Core.Repositories.UserRole;

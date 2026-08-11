@@ -1,4 +1,5 @@
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
 using FinanceTracker.Tests.Integration._Shared.Builders;

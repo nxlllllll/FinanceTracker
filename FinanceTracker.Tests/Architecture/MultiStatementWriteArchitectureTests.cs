@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Configurations;

@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
 namespace FinanceTracker.Tests.Architecture.Helpers;
 
@@ -49,7 +49,7 @@ internal static class SourceScan
 
 	internal static string ReadFile(string projectName, params string[] pathSegments)
 	{
-		string path = Path.Combine(paths: [ProjectRoot(projectName: projectName), ..pathSegments]);
+		string path = Path.Combine(paths: [ProjectRoot(projectName: projectName), .. pathSegments]);
 
 		if (File.Exists(path: path))
 			return File.ReadAllText(path: path);

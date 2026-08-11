@@ -1,5 +1,5 @@
 using System.Net;
-using FinanceTracker.Core.Services.Metrics;
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Worker.Shared.Metrics;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;

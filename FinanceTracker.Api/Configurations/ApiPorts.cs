@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Api.Configurations;
+namespace FinanceTracker.Api.Configurations;
 
 public static class ApiPorts
 {

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Services.Auth;
+namespace FinanceTracker.Core.Services.Auth;
 
 /// <summary>
 /// Answers whether the session behind an access token is still usable.

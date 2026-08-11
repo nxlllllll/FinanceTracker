@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Utilities.Retry;
+using FinanceTracker.Core.Utilities.Retry;
 
 namespace FinanceTracker.Tests.Unit.Core.Utilities;
 

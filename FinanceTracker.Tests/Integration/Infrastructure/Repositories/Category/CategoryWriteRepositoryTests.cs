@@ -1,6 +1,8 @@
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;

@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Rate;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 

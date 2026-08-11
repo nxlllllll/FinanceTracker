@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Rate;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Tests.Unit.Core.Domains.Abstractions;

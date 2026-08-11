@@ -1,4 +1,5 @@
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;

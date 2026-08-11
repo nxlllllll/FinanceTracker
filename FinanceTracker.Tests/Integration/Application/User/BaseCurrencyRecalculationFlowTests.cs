@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Dtos;
+using FinanceTracker.Application.Dtos;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
 using FinanceTracker.Core.Exceptions;

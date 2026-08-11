@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;

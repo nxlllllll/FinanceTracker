@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.ValueObjects;
+namespace FinanceTracker.Core.ValueObjects;
 
 /// <summary>
 /// How many decimal places the storage schema keeps for monetary values and exchange rates.

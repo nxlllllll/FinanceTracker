@@ -4,6 +4,7 @@ using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Services.DateProvider;

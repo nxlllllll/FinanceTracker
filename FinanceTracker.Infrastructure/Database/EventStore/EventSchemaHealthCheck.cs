@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Services.EventStore;
+using FinanceTracker.Core.Services.EventStore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace FinanceTracker.Infrastructure.Database.EventStore;
@@ -15,7 +15,7 @@ public sealed class EventSchemaHealthCheck(
 		CancellationToken ct = default)
 	{
 		if (state.IsCompatible)
-			return Task.FromResult( HealthCheckResult.Healthy(description: "Every event read so far matched a schema version this build understands."));
+			return Task.FromResult(HealthCheckResult.Healthy(description: "Every event read so far matched a schema version this build understands."));
 
 		return Task.FromResult(HealthCheckResult.Unhealthy(description: state.Diagnosis ?? "Encountered an event whose schema version this build cannot read."));
 	}

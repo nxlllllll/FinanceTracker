@@ -1,5 +1,6 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
+using FinanceTracker.Application.UseCases.Transfer.Commands.CreateTransfer;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions;
@@ -226,7 +227,8 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			Amount: 3_000m,
 			Description: null,
 			OccurredAt: DateTimeOffset.UtcNow
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 
 		await RunTransferCreditLagAsync();
 

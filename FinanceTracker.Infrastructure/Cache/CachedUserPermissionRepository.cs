@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -34,7 +34,7 @@ public sealed class CachedUserPermissionRepository(
 		Guid userId = userPermission.UserId;
 		IReadOnlySet<string> roleGrants = await permissionSources.GetRoleGrantsAsync(userId: userId, ct: ct);
 
-		HashSet<string> effective = [..userPermission.Permissions, ..roleGrants];
+		HashSet<string> effective = [.. userPermission.Permissions, .. roleGrants];
 
 		unitOfWork.OnCommitted(callback: async () =>
 		{

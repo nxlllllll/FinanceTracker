@@ -6,6 +6,7 @@ using FinanceTracker.Application.UseCases.Role.Queries.GetRoles;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Role;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -216,7 +217,8 @@ public sealed class RoleE2ETests : E2EFixture
 		Result<Guid, AppException> roleResult = await Mediator.Send(request: new CreateRoleCommand(
 			DisplayName: Name.Create(value: "E2E Reader").Value!,
 			Permissions: new HashSet<Permission> { accountRead }
-		) { IdempotencyKey = Guid.CreateVersion7() });
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
 		Guid roleId = roleResult.Value;
 
 		await Mediator.Send(request: new GrantPermissionCommand(

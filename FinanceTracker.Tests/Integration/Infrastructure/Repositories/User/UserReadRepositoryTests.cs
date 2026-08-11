@@ -5,6 +5,8 @@ using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Operation;
+using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Currency;

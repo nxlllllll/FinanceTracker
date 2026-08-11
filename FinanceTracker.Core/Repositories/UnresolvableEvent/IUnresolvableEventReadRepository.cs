@@ -1,14 +1,15 @@
+using FinanceTracker.Core.ReadModels.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
 
-public interface IUnresolvableEventReadRepository : IReadRepository<ReadModels.UnresolvableEvent>
+public interface IUnresolvableEventReadRepository : IReadRepository<ReadModels.UnresolvableEvent.UnresolvableEvent>
 {
 	/// <summary>
 	/// Returns events that haven't been individually reported yet (and aren't already resolved) —
 	/// used by <c>DeadLetterMonitoringJob</c>'s frequent pass (every few minutes).
 	/// </summary>
-	Task<PagedResult<ReadModels.UnresolvableEvent>> GetUnacknowledgedBatchAsync(
+	Task<PagedResult<ReadModels.UnresolvableEvent.UnresolvableEvent>> GetUnacknowledgedBatchAsync(
 		int batchSize,
 		CancellationToken ct = default
 	);
@@ -18,7 +19,7 @@ public interface IUnresolvableEventReadRepository : IReadRepository<ReadModels.U
 	/// regardless of whether they were already acknowledged — used by <c>DeadLetterBacklogSummaryJob</c>'s
 	/// infrequent (daily) pass
 	/// </summary>
-	Task<ReadModels.UnresolvedBacklogSummary> GetUnresolvedOlderThanAsync(
+	Task<UnresolvedBacklogSummary> GetUnresolvedOlderThanAsync(
 		DateTimeOffset cutoff,
 		int sampleSize,
 		CancellationToken ct = default

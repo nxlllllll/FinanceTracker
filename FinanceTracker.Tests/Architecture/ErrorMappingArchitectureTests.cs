@@ -1,7 +1,9 @@
-﻿using System.Reflection;
+using System.Reflection;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Tests.Architecture.Helpers;
 

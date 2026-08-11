@@ -3,6 +3,7 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 
 namespace FinanceTracker.Tests.Architecture;
 

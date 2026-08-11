@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Observability.Correlation;
 
 namespace FinanceTracker.Api.Http.Middleware;
 

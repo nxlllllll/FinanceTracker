@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Repositories.User;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Infrastructure.Services.Token;

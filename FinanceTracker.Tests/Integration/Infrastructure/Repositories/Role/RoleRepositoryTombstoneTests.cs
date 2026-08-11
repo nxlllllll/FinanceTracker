@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.UserRole.Events;
+using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Role;

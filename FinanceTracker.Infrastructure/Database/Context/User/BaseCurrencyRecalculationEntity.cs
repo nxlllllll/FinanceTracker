@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Domains.User;
 
 namespace FinanceTracker.Infrastructure.Database.Context.User;
 

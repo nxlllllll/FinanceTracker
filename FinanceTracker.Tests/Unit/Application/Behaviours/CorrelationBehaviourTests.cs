@@ -1,5 +1,5 @@
 using FinanceTracker.Application.Behaviours.Correlation;
-using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Observability.Correlation;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;

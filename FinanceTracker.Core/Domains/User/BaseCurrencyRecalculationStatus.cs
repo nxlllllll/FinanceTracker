@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.User;
+namespace FinanceTracker.Core.Domains.User;
 
 /// <summary>
 /// Lifecycle of a category-total rebuild triggered by a base currency change.
