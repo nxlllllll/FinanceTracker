@@ -131,4 +131,16 @@ public static class WorkerMetrics
 		name: "currency_rates.fetch_failed",
 		description: "Total number of currency fetch failures by base currency."
 	);
+
+	public static readonly Counter<long> CurrencyRatesNormalized = Meter.CreateCounter<long>(
+		name: "financetracker.currency_rates.normalized",
+		unit: "{rate}",
+		description: "Exchange rates rounded to the stored scale on ingestion."
+	);
+
+	public static readonly Counter<long> CurrencyRatesRejected = Meter.CreateCounter<long>(
+		name: "financetracker.currency_rates.rejected",
+		unit: "{rate}",
+		description: "Exchange rates discarded on ingestion because the provider's value was not usable."
+	);
 }

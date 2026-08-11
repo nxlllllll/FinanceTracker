@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Services.DateProvider;
 using FluentValidation;
@@ -15,7 +16,8 @@ public sealed class CreateTransferCommandValidator : AbstractValidator<CreateTra
 		RuleFor(command => command.Amount)
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The transfer amount must be greater than zero.")
 			.LessThanOrEqualTo(valueToCompare: moneyLimits.CurrentValue.MaxAmount)
-			.WithMessage(errorMessage: $"The transfer amount cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.");
+			.WithMessage(errorMessage: $"The transfer amount cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.")
+			.MustFitAmountScale();
 
 		RuleFor(command => command.FromAccountId)
 			.NotEmpty().WithMessage(errorMessage: "The source account cannot be empty.");

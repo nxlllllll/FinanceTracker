@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FluentValidation;
 using Microsoft.Extensions.Options;
@@ -17,6 +18,7 @@ public sealed class ChangeBudgetAmountCommandValidator : AbstractValidator<Chang
 		RuleFor(expression: command => command.Amount)
 			.GreaterThan(valueToCompare: 0).WithMessage(errorMessage: "The amount must be greater than 0.")
 			.LessThanOrEqualTo(valueToCompare: moneyLimits.CurrentValue.MaxAmount)
-			.WithMessage(errorMessage: $"The amount cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.");
+			.WithMessage(errorMessage: $"The amount cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.")
+			.MustFitAmountScale();
 	}
 }
