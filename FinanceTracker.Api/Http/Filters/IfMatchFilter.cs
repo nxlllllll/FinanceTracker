@@ -18,7 +18,7 @@ public sealed class IfMatchFilter : IEndpointFilter
 		{
 			return new ValidationException(errors: new Dictionary<string, string[]>
 			{
-				["ifMatch"] = ["The If-Match header must be a single strong or weak entity tag, or '*'."]
+				["ifMatch"] = ["The If-Match header must be a single strong entity tag such as \"1\", or '*'."]
 			}).ToProblem();
 		}
 

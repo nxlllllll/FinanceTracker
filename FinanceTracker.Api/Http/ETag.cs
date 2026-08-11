@@ -19,7 +19,7 @@ public static class ETag
 
 		raw = raw.Trim().Trim(trimChar: '"');
 
-		if (Int32.TryParse(s: raw, result: out int version))
+		if (Int32.TryParse(s: raw, result: out int version) && version >= 0)
 			return ParsedETag.ForVersion(version: version);
 
 		return ParsedETag.Invalid;
