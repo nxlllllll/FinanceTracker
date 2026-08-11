@@ -11,4 +11,10 @@ public interface IUserSessionReadRepository
 		Guid sessionId,
 		CancellationToken ct = default
 	);
+
+	Task<bool> IsActiveAsync(
+		Guid sessionId,
+		DateTimeOffset now,
+		CancellationToken ct = default
+	);
 }

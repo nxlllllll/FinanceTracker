@@ -3,7 +3,6 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
-using FinanceTracker.Infrastructure.Services.Token;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -17,12 +16,8 @@ public sealed class CachedUserSessionWriteRepositoryTests
 	private IUserSessionWriteRepository _inner = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private List<Func<Task>?> _committedCallbacks = null!;
-	private IConnectionMultiplexer _connectionMultiplexer = null!;
 	private IDatabase _database = null!;
-	private IBatch _batch = null!;
 	private CachedUserSessionWriteRepository _repository = null!;
-
-	private const int AccessTokenTtlMinutes = 15;
 
 	[Before(hookType: Test)]
 	public void Setup()
@@ -36,19 +31,10 @@ public sealed class CachedUserSessionWriteRepositoryTests
 			callbackWithArguments: call => _committedCallbacks.Add(item: call.Arg<Func<Task>>())
 		);
 
-		_batch = Substitute.For<IBatch>();
-		_batch.StringSetAsync(
-			key: Arg.Any<RedisKey>(),
-			value: Arg.Any<RedisValue>(),
-			expiry: Arg.Any<Expiration>(),
-			flags: Arg.Any<CommandFlags>()
-		).Returns(returnThis: true);
-
 		_database = Substitute.For<IDatabase>();
-		_database.CreateBatch(asyncState: Arg.Any<object>()).Returns(returnThis: _batch);
 
-		_connectionMultiplexer = Substitute.For<IConnectionMultiplexer>();
-		_connectionMultiplexer.GetDatabase(
+		IConnectionMultiplexer connectionMultiplexer = Substitute.For<IConnectionMultiplexer>();
+		connectionMultiplexer.GetDatabase(
 			db: Arg.Any<int>(),
 			asyncState: Arg.Any<object>()
 		).Returns(returnThis: _database);
@@ -57,38 +43,26 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		redisOptions.CurrentValue.Returns(returnThis: new RedisOptions { InstanceName = "ft_test:" });
 
 		RedisCache redisCache = new RedisCache(
-			connectionMultiplexer: _connectionMultiplexer,
+			connectionMultiplexer: connectionMultiplexer,
 			options: redisOptions,
 			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RedisCache>.Instance
 		);
 
-		IOptionsMonitor<JwtOptions> jwtOptions = Substitute.For<IOptionsMonitor<JwtOptions>>();
-		jwtOptions.CurrentValue.Returns(returnThis: new JwtOptions
-		{
-			Secret = new String(c: '0', count: 32),
-			Issuer = "test",
-			Audience = "test",
-			AccessTokenTtlMinutes = AccessTokenTtlMinutes
-		});
-
 		_repository = new CachedUserSessionWriteRepository(
 			inner: _inner,
 			redisCache: redisCache,
-			unitOfWork: _unitOfWork,
-			jwtOptions: jwtOptions
+			unitOfWork: _unitOfWork
 		);
 	}
 
-	private List<RedisKey> CaptureWrittenKeys()
+	private List<RedisKey> CaptureDeletedKeys()
 	{
 		List<RedisKey> captured = [];
-		_batch.StringSetAsync(
-			key: Arg.Do<RedisKey>(useArgument: captured.Add),
-			value: Arg.Any<RedisValue>(),
-			expiry: Arg.Any<Expiration>(),
+		_database.KeyDeleteAsync(
+			keys: Arg.Do<RedisKey[]>(useArgument: keys => captured.AddRange(collection: keys)),
 			flags: Arg.Any<CommandFlags>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: 0L);
 		return captured;
 	}
 
@@ -97,6 +71,11 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		foreach (Func<Task> callback in _committedCallbacks.OfType<Func<Task>>())
 			await callback();
 	}
+
+	private async Task AssertRedisUntouchedAsync() => await _database.DidNotReceive().KeyDeleteAsync(
+		keys: Arg.Any<RedisKey[]>(),
+		flags: Arg.Any<CommandFlags>()
+	);
 
 	[Test]
 	public async Task CreateAsync_ShouldDelegateToInner_WithoutTouchingRedis()
@@ -115,7 +94,7 @@ public sealed class CachedUserSessionWriteRepositoryTests
 			ct: Arg.Any<CancellationToken>()
 		);
 		await Assert.That(value: _committedCallbacks).IsEmpty();
-		_database.DidNotReceive().CreateBatch(asyncState: Arg.Any<object>());
+		await AssertRedisUntouchedAsync();
 	}
 
 	[Test]
@@ -131,11 +110,11 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		await _repository.RevokeAsync(sessionId: sessionId, revokedAt: DateTimeOffset.UtcNow);
 
 		await Assert.That(value: _committedCallbacks).Count().IsEqualTo(expected: 1);
-		_database.DidNotReceive().CreateBatch(asyncState: Arg.Any<object>());
+		await AssertRedisUntouchedAsync();
 	}
 
 	[Test]
-	public async Task RevokeAsync_WhenSessionWasRevoked_ShouldMarkItInRedisOnCommit()
+	public async Task RevokeAsync_WhenSessionWasRevoked_ShouldEvictItsActiveMarkOnCommit()
 	{
 		Guid sessionId = Guid.CreateVersion7();
 		_inner.RevokeAsync(
@@ -144,13 +123,13 @@ public sealed class CachedUserSessionWriteRepositoryTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: [sessionId]);
 
-		List<RedisKey> writtenKeys = CaptureWrittenKeys();
+		List<RedisKey> deletedKeys = CaptureDeletedKeys();
 
 		await _repository.RevokeAsync(sessionId: sessionId, revokedAt: DateTimeOffset.UtcNow);
 		await SimulateCommitAsync();
 
-		await Assert.That(value: writtenKeys).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: (string)writtenKeys[0]!).IsEqualTo(expected: $"ft_test:revoked-session:{sessionId}");
+		await Assert.That(value: deletedKeys).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: (string)deletedKeys[0]!).IsEqualTo(expected: $"ft_test:active-session:{sessionId}");
 	}
 
 	[Test]
@@ -167,7 +146,7 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		await SimulateCommitAsync();
 
 		await Assert.That(value: _committedCallbacks).IsEmpty();
-		_database.DidNotReceive().CreateBatch(asyncState: Arg.Any<object>());
+		await AssertRedisUntouchedAsync();
 	}
 
 	[Test]
@@ -187,7 +166,31 @@ public sealed class CachedUserSessionWriteRepositoryTests
 	}
 
 	[Test]
-	public async Task RevokeAllExceptAsync_ShouldMarkEachRevokedSessionInRedisOnCommit()
+	public async Task SupersedeAsync_WhenSessionWasRotated_ShouldEvictItsActiveMarkOnCommit()
+	{
+		Guid sessionId = Guid.CreateVersion7();
+		Guid successorSessionId = Guid.CreateVersion7();
+		_inner.SupersedeAsync(
+			sessionId: sessionId,
+			successorSessionId: successorSessionId,
+			revokedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: [sessionId]);
+
+		List<RedisKey> deletedKeys = CaptureDeletedKeys();
+
+		await _repository.SupersedeAsync(
+			sessionId: sessionId,
+			successorSessionId: successorSessionId,
+			revokedAt: DateTimeOffset.UtcNow
+		);
+		await SimulateCommitAsync();
+
+		await Assert.That(value: deletedKeys.Select(selector: k => (string)k!)).Contains(expected: $"ft_test:active-session:{sessionId}");
+	}
+
+	[Test]
+	public async Task RevokeAllExceptAsync_ShouldEvictEveryRevokedSessionOnCommit()
 	{
 		Guid userId = Guid.CreateVersion7();
 		Guid exceptSessionId = Guid.CreateVersion7();
@@ -201,7 +204,7 @@ public sealed class CachedUserSessionWriteRepositoryTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: [revoked1, revoked2]);
 
-		List<RedisKey> writtenKeys = CaptureWrittenKeys();
+		List<RedisKey> deletedKeys = CaptureDeletedKeys();
 
 		await _repository.RevokeAllExceptAsync(
 			userId: userId,
@@ -210,9 +213,9 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		);
 		await SimulateCommitAsync();
 
-		await Assert.That(value: writtenKeys).Count().IsEqualTo(expected: 2);
-		await Assert.That(value: writtenKeys.Select(selector: k => (string)k!)).Contains(expected: $"ft_test:revoked-session:{revoked1}");
-		await Assert.That(value: writtenKeys.Select(selector: k => (string)k!)).Contains(expected: $"ft_test:revoked-session:{revoked2}");
+		await Assert.That(value: deletedKeys).Count().IsEqualTo(expected: 2);
+		await Assert.That(value: deletedKeys.Select(selector: k => (string)k!)).Contains(expected: $"ft_test:active-session:{revoked1}");
+		await Assert.That(value: deletedKeys.Select(selector: k => (string)k!)).Contains(expected: $"ft_test:active-session:{revoked2}");
 	}
 
 	[Test]
@@ -235,11 +238,11 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		);
 
 		await Assert.That(value: _committedCallbacks).Count().IsEqualTo(expected: 1);
-		_database.DidNotReceive().CreateBatch(asyncState: Arg.Any<object>());
+		await AssertRedisUntouchedAsync();
 	}
 
 	[Test]
-	public async Task RevokeAllAsync_ShouldMarkEachRevokedSessionInRedisOnCommit()
+	public async Task RevokeAllAsync_ShouldEvictEveryRevokedSessionOnCommit()
 	{
 		Guid userId = Guid.CreateVersion7();
 		Guid revoked1 = Guid.CreateVersion7();
@@ -251,12 +254,12 @@ public sealed class CachedUserSessionWriteRepositoryTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: [revoked1, revoked2]);
 
-		List<RedisKey> writtenKeys = CaptureWrittenKeys();
+		List<RedisKey> deletedKeys = CaptureDeletedKeys();
 
 		await _repository.RevokeAllAsync(userId: userId, revokedAt: DateTimeOffset.UtcNow);
 		await SimulateCommitAsync();
 
-		await Assert.That(value: writtenKeys).Count().IsEqualTo(expected: 2);
+		await Assert.That(value: deletedKeys).Count().IsEqualTo(expected: 2);
 	}
 
 	[Test]
@@ -272,7 +275,7 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		await _repository.RevokeAllAsync(userId: userId, revokedAt: DateTimeOffset.UtcNow);
 
 		await Assert.That(value: _committedCallbacks).Count().IsEqualTo(expected: 1);
-		_database.DidNotReceive().CreateBatch(asyncState: Arg.Any<object>());
+		await AssertRedisUntouchedAsync();
 	}
 
 	[Test]
@@ -289,6 +292,6 @@ public sealed class CachedUserSessionWriteRepositoryTests
 		await SimulateCommitAsync();
 
 		await Assert.That(value: _committedCallbacks).IsEmpty();
-		_database.DidNotReceive().CreateBatch(asyncState: Arg.Any<object>());
+		await AssertRedisUntouchedAsync();
 	}
 }

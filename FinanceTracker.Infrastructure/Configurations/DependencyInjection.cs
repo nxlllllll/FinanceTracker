@@ -263,6 +263,7 @@ public static class DependencyInjection
 		services.AddScoped<IUserRoleWriteRepository, UserRoleWriteRepository>();
 		services.Decorate<IUserRoleRepository, CachedUserRoleRepository>();
 
+		services.AddScoped<ISessionValidator, CachedSessionValidator>();
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		services.AddSingleton<IDateProvider, DateProvider>();
