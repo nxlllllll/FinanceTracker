@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore;
@@ -39,7 +40,7 @@ public class EventStoreBenchmarks : BenchmarkBase
 
 		private sealed class NullDisposable : IDisposable
 		{
-			public static readonly NullDisposable Instance = new();
+			public static readonly NullDisposable Instance = new NullDisposable();
 			public void Dispose() { }
 		}
 	}
@@ -56,7 +57,8 @@ public class EventStoreBenchmarks : BenchmarkBase
 		logger: NullLogger<PostgresEventStore>.Instance,
 		options: new FixedOptionsMonitor<EventStoreOptions>(new EventStoreOptions { SnapshotThreshold = 25 }),
 		correlationContext: new CorrelationContext(),
-		upcasterRegistry: new EventUpcasterRegistry(upcasters: [])
+		upcasterRegistry: new EventUpcasterRegistry(upcasters: []),
+		eventSchemaHealthState: new EventSchemaHealthState(logger: NullLogger<EventSchemaHealthState>.Instance)
 	);
 
 	private static AccountDebited BuildEvent(int version) => new AccountDebited(

@@ -13,6 +13,8 @@ public sealed class EventTypeResolver : IEventTypeResolver
 	private readonly FrozenDictionary<string, Type> _eventTypes;
 	private readonly FrozenDictionary<string, int> _eventVersions;
 
+	public IReadOnlyDictionary<string, int> CurrentVersions => _eventVersions;
+
 	public EventTypeResolver(
 		Assembly assembly,
 		ILogger<EventTypeResolver> logger)

@@ -8,6 +8,7 @@ using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
@@ -50,7 +51,8 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			correlationContext: Substitute.For<ICorrelationContext>(),
 			upcasterRegistry: upcasterRegistry,
 			options: new FakeOptionsMonitor<EventStoreOptions>(value: eventStoreOptions ?? new EventStoreOptions()),
-			logger: Substitute.For<ILogger<PostgresEventStore>>()
+			logger: Substitute.For<ILogger<PostgresEventStore>>(),
+			eventSchemaHealthState: Substitute.For<IEventSchemaHealthState>()
 		);
 	}
 

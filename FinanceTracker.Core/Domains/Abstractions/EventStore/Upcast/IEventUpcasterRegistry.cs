@@ -26,4 +26,10 @@ public interface IEventUpcasterRegistry
 	/// Use this to decide whether to call <see cref="Apply"/> or deserialize directly.
 	/// </summary>
 	bool HasChain(string eventType);
+
+	/// <summary>
+	/// Returns the version range covered for <paramref name="eventType"/>, or <c>null</c> when no
+	/// upcaster is registered for it.
+	/// </summary>
+	EventUpcasterChain? DescribeChain(string eventType);
 }

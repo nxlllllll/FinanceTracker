@@ -26,6 +26,7 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Core.Services.Rebuild;
@@ -161,6 +162,9 @@ public static class DependencyInjection
 			.WithSingletonLifetime()
 		);
 		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
+		services.AddSingleton<EventSchemaCompatibilityValidator>();
+		services.AddHostedService<EventSchemaValidationHostedService>();
+		services.AddSingleton<IEventSchemaHealthState, EventSchemaHealthState>();
 
 		services.AddScoped<IEventStore, PostgresEventStore>();
 

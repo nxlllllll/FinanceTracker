@@ -58,7 +58,8 @@ public class EventStoreSaveBenchmarks : BenchmarkBase
 		logger: NullLogger<PostgresEventStore>.Instance,
 		options: new FixedOptionsMonitor<EventStoreOptions>(new EventStoreOptions { SnapshotThreshold = snapshotThreshold }),
 		correlationContext: new CorrelationContext(),
-		upcasterRegistry: new EventUpcasterRegistry(upcasters: [])
+		upcasterRegistry: new EventUpcasterRegistry(upcasters: []),
+		eventSchemaHealthState: new EventSchemaHealthState(logger: NullLogger<EventSchemaHealthState>.Instance)
 	);
 
 	private static AccountDebited BuildEvent(int version) => new AccountDebited(

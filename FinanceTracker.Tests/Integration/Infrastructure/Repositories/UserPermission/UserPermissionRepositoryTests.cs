@@ -1,6 +1,7 @@
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Services.Correlation;
+using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
@@ -34,7 +35,8 @@ public sealed class UserPermissionRepositoryTests : DatabaseFixture
 		correlationContext: Substitute.For<ICorrelationContext>(),
 		upcasterRegistry: CreatePassthroughUpcasterRegistry(),
 		options: new FakeOptionsMonitor<EventStoreOptions>(value: new EventStoreOptions()),
-		logger: Substitute.For<ILogger<PostgresEventStore>>()
+		logger: Substitute.For<ILogger<PostgresEventStore>>(),
+		eventSchemaHealthState: Substitute.For<IEventSchemaHealthState>()
 	);
 
 	private static IEventUpcasterRegistry CreatePassthroughUpcasterRegistry()

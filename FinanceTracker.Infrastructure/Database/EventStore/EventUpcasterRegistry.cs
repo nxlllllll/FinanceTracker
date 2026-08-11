@@ -78,6 +78,19 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 
 	public bool HasChain(string eventType) => _chains.ContainsKey(key: eventType);
 
+	public EventUpcasterChain? DescribeChain(string eventType)
+	{
+		if (!_chains.TryGetValue(key: eventType, out IReadOnlyDictionary<int, Chain>? versionedChains) || versionedChains.Count == 0)
+			return null;
+
+		IReadOnlyList<IEventUpcaster> longest = versionedChains.Values.OrderBy(keySelector: chain => chain.Upcasters[0].FromVersion).First().Upcasters;
+
+		return new EventUpcasterChain(
+			FromVersion: longest[0].FromVersion,
+			ToVersion: longest[^1].ToVersion
+		);
+	}
+
 	public IEvent Apply(
 		string eventType,
 		string payload,
