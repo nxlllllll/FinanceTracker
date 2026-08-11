@@ -177,6 +177,7 @@ services:
       Redis__ConnectionString: redis:6379
       Jwt__Secret: ${JWT_SECRET}
       OpenApi__Expose: "${OPENAPI_EXPOSE:-false}"
+      Proxy__TrustNoProxy: "true"
     depends_on:
       postgres:
         condition: service_healthy

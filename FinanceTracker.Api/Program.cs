@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 namespace FinanceTracker.Api;
@@ -61,7 +62,10 @@ public sealed class Program
 		builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 		builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenProblemDetailsAuthorizationMiddlewareResultHandler>();
 
-		builder.Services.Configure<ProxyOptions>(config: builder.Configuration.GetSection(key: "Proxy"));
+		builder.Services.AddOptions<ProxyOptions>()
+			.BindConfiguration(configSectionPath: ProxyOptions.SectionName)
+			.ValidateOnStart();
+		builder.Services.AddSingleton<IValidateOptions<ProxyOptions>, ProxyOptionsValidator>();
 		builder.Services.ConfigureOptions<ForwardedHeadersOptionsSetup>();
 
 		builder.Services.AddOpenApi(configureOptions: options =>
