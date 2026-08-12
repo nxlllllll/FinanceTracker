@@ -38,7 +38,7 @@ public sealed class Budget
 		DateOnly from,
 		DateOnly to)
 	{
-		if (to < from)
+		if (to <= from)
 			return Result<Budget, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must not be before start date."));
 
 		return Result<Budget, DomainException>.Success(value: new Budget
@@ -102,7 +102,7 @@ public sealed class Budget
 		if (!IsActive)
 			return Result<bool, DomainException>.Failure(error: new InactiveBudgetException(message: "Cannot change period of an inactive budget."));
 
-		if (to < from)
+		if (to <= from)
 			return Result<bool, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must not be before start date."));
 
 		if (From == from && To == to)
