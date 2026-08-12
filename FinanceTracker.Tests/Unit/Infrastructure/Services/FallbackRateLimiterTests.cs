@@ -13,8 +13,11 @@ public sealed class FallbackRateLimiterTests
 {
 	private static readonly RateLimiterFallbackOptions DefaultOptions = new RateLimiterFallbackOptions
 	{
-		ProbeTimeoutMs = 100
+		ProbeTimeoutMs = 100,
+		RecoveryProbeIntervalMs = 0
 	};
+
+	private const long DegradedCallBudgetMs = 250;
 
 	private IRateLimiter _inner = null!;
 	private InMemoryRateLimiter _fallback = null!;
@@ -37,15 +40,54 @@ public sealed class FallbackRateLimiterTests
 		);
 	}
 
+	private void InnerReturns(RateLimitResult result) => _inner.IsAllowedAsync(
+		key: Arg.Any<string>(),
+		requestsPerWindow: Arg.Any<int>(),
+		windowSeconds: Arg.Any<int>(),
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: result);
+
+	private void InnerThrows(Exception exception) => _inner.IsAllowedAsync(
+		key: Arg.Any<string>(),
+		requestsPerWindow: Arg.Any<int>(),
+		windowSeconds: Arg.Any<int>(),
+		ct: Arg.Any<CancellationToken>()
+	).ThrowsAsync(ex: exception);
+
+	private void InnerHangs(int delayMs = 500) => _inner.IsAllowedAsync(
+		key: Arg.Any<string>(),
+		requestsPerWindow: Arg.Any<int>(),
+		windowSeconds: Arg.Any<int>(),
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: async _ =>
+	{
+		await Task.Delay(delay: TimeSpan.FromMilliseconds(value: delayMs));
+		return RateLimitResult.Allowed();
+	});
+
+	private static RedisConnectionException RedisDown(string message = "Connection lost.") => new RedisConnectionException(
+		failureType: ConnectionFailureType.SocketFailure,
+		message: message,
+		flags: CommandFlags.None
+	);
+
+	private async Task<bool> WaitUntilRecoveredAsync()
+	{
+		for (int attempt = 0; attempt < 100; attempt++)
+		{
+			if (!_limiter.IsDegraded)
+				return true;
+
+			await Task.Delay(delay: TimeSpan.FromMilliseconds(value: 20));
+		}
+
+		return false;
+	}
+
 	[Test]
 	public async Task IsAllowedAsync_WhenInnerRespondsInTime_ShouldReturnInnerResult()
 	{
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RateLimitResult.Allowed());
+		InnerReturns(result: RateLimitResult.Allowed());
 
 		RateLimitResult result = await _limiter.IsAllowedAsync(
 			key: "k",
@@ -59,12 +101,7 @@ public sealed class FallbackRateLimiterTests
 	[Test]
 	public async Task IsAllowedAsync_WhenInnerRespondsInTime_ShouldNotUseFallback()
 	{
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RateLimitResult.Denied(retryAfterSeconds: 42));
+		InnerReturns(result: RateLimitResult.Denied(retryAfterSeconds: 42));
 
 		RateLimitResult result = await _limiter.IsAllowedAsync(
 			key: $"k:{Guid.CreateVersion7():N}",
@@ -79,16 +116,7 @@ public sealed class FallbackRateLimiterTests
 	[Test]
 	public async Task IsAllowedAsync_WhenInnerThrowsRedisException_ShouldFallBackToInMemory()
 	{
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(
-			failureType: ConnectionFailureType.SocketFailure,
-			message: "Connection lost.",
-			flags: CommandFlags.None
-		));
+		InnerThrows(exception: RedisDown());
 
 		RateLimitResult result = await _limiter.IsAllowedAsync(
 			key: $"k:{Guid.CreateVersion7():N}",
@@ -102,12 +130,7 @@ public sealed class FallbackRateLimiterTests
 	[Test]
 	public async Task IsAllowedAsync_WhenInnerThrowsAnUnrelatedException_ShouldStillFallBackToInMemory()
 	{
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new InvalidOperationException(message: "Something unrelated to Redis broke."));
+		InnerThrows(exception: new InvalidOperationException(message: "Something unrelated to Redis broke."));
 
 		RateLimitResult result = await _limiter.IsAllowedAsync(
 			key: $"k:{Guid.CreateVersion7():N}",
@@ -153,29 +176,12 @@ public sealed class FallbackRateLimiterTests
 	[Test]
 	public async Task IsAllowedAsync_WhenInnerThrowsRedisException_ShouldEnforceLimitViaFallback()
 	{
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(
-			failureType: ConnectionFailureType.SocketFailure,
-			message: "Connection lost.",
-			flags: CommandFlags.None
-		));
+		InnerThrows(exception: RedisDown());
 
 		string key = $"k:{Guid.CreateVersion7():N}";
 
-		await _limiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: 1,
-			windowSeconds: 60
-		);
-		RateLimitResult secondResult = await _limiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: 1,
-			windowSeconds: 60
-		);
+		await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
+		RateLimitResult secondResult = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
 
 		await Assert.That(value: secondResult.IsAllowed).IsFalse();
 	}
@@ -183,16 +189,7 @@ public sealed class FallbackRateLimiterTests
 	[Test]
 	public async Task IsAllowedAsync_WhenInnerExceedsProbeTimeout_ShouldFallBackToInMemory()
 	{
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: async _ =>
-		{
-			await Task.Delay(delay: TimeSpan.FromMilliseconds(value: 500));
-			return RateLimitResult.Allowed();
-		});
+		InnerHangs();
 
 		RateLimitResult result = await _limiter.IsAllowedAsync(
 			key: $"k:{Guid.CreateVersion7():N}",
@@ -204,63 +201,91 @@ public sealed class FallbackRateLimiterTests
 	}
 
 	[Test]
+	public async Task IsAllowedAsync_WhenRedisFails_ShouldReportDegraded()
+	{
+		InnerThrows(exception: RedisDown());
+
+		await _limiter.IsAllowedAsync(
+			key: $"k:{Guid.CreateVersion7():N}",
+			requestsPerWindow: 5,
+			windowSeconds: 60
+		);
+
+		await Assert.That(value: _limiter.IsDegraded).IsTrue();
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_WhileDegraded_ShouldNotPayTheProbeTimeoutPerRequest()
+	{
+		InnerHangs();
+
+		await _limiter.IsAllowedAsync(key: "warmup", requestsPerWindow: 100, windowSeconds: 60);
+
+		long start = Environment.TickCount64;
+
+		for (int i = 0; i < 5; i++)
+			await _limiter.IsAllowedAsync(key: $"k:{Guid.CreateVersion7():N}", requestsPerWindow: 100, windowSeconds: 60);
+
+		long elapsed = Environment.TickCount64 - start;
+
+		await Assert.That(value: elapsed).IsLessThan(maximum: DegradedCallBudgetMs).Because(message: """
+			Without the breaker these five calls would each wait out ProbeTimeoutMs before falling
+			through — half a second of added latency spread across every request for as long as Redis
+			stays down, and this limiter sits near the front of the pipeline.
+		""");
+	}
+
+	[Test]
 	public async Task IsAllowedAsync_AfterRecoveringFromFailure_ShouldClearFallbackState()
+	{
+		string exhausted = $"a:{Guid.CreateVersion7():N}";
+		string recovering = $"b:{Guid.CreateVersion7():N}";
+
+		InnerThrows(exception: RedisDown());
+
+		await _limiter.IsAllowedAsync(key: exhausted, requestsPerWindow: 1, windowSeconds: 60);
+		RateLimitResult deniedWhileDegraded = await _limiter.IsAllowedAsync(key: exhausted, requestsPerWindow: 1, windowSeconds: 60);
+
+		await Assert.That(value: deniedWhileDegraded.IsAllowed).IsFalse();
+
+		InnerReturns(result: RateLimitResult.Allowed());
+
+		await _limiter.IsAllowedAsync(key: recovering, requestsPerWindow: 1, windowSeconds: 60);
+
+		bool recovered = await WaitUntilRecoveredAsync();
+		await Assert.That(value: recovered).IsTrue();
+
+		InnerThrows(exception: RedisDown(message: "Connection lost again."));
+
+		RateLimitResult afterClear = await _limiter.IsAllowedAsync(key: exhausted, requestsPerWindow: 1, windowSeconds: 60);
+
+		await Assert.That(value: afterClear.IsAllowed).IsTrue().Because(message: """
+			The exhausted window has to be gone once Redis is authoritative again. Remove the Clear()
+			call and this key stays blocked for the rest of its window for no reason.
+		""");
+	}
+
+	[Test]
+	public async Task IsAllowedAsync_AfterRecoveringFromFailure_ShouldGoBackToRedis()
 	{
 		string key = $"k:{Guid.CreateVersion7():N}";
 
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(
-			failureType: ConnectionFailureType.SocketFailure,
-			message: "Connection lost.",
-			flags: CommandFlags.None
-		));
+		InnerThrows(exception: RedisDown());
 
-		await _limiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: 1,
-			windowSeconds: 60
-		);
-		RateLimitResult deniedWhileDegraded = await _limiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: 1,
-			windowSeconds: 60
-		);
+		await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
+		await Assert.That(value: _limiter.IsDegraded).IsTrue();
 
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: RateLimitResult.Allowed());
+		InnerReturns(result: RateLimitResult.Allowed());
 
-		await _limiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: 1,
-			windowSeconds: 60
-		);
+		await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
 
-		_inner.IsAllowedAsync(
-			key: Arg.Any<string>(),
-			requestsPerWindow: Arg.Any<int>(),
-			windowSeconds: Arg.Any<int>(),
-			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new RedisConnectionException(
-			failureType: ConnectionFailureType.SocketFailure,
-			message: "Connection lost again.",
-			flags: CommandFlags.None
-		));
+		bool recovered = await WaitUntilRecoveredAsync();
+		await Assert.That(value: recovered).IsTrue();
 
-		RateLimitResult allowedAfterClear = await _limiter.IsAllowedAsync(
-			key: key,
-			requestsPerWindow: 1,
-			windowSeconds: 60
-		);
+		InnerReturns(result: RateLimitResult.Denied(retryAfterSeconds: 7));
 
-		await Assert.That(value: deniedWhileDegraded.IsAllowed).IsFalse();
-		await Assert.That(value: allowedAfterClear.IsAllowed).IsTrue();
+		RateLimitResult afterRecovery = await _limiter.IsAllowedAsync(key: key, requestsPerWindow: 1, windowSeconds: 60);
+
+		await Assert.That(value: afterRecovery.RetryAfterSeconds).IsEqualTo(expected: 7);
 	}
 }

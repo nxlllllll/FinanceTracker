@@ -24,20 +24,15 @@ public sealed class BaseCurrencyRecalculationJob(
 	IDateProvider dateProvider,
 	IOptionsMonitor<BaseCurrencyRecalculationJobOptions> options,
 	ILogger<BaseCurrencyRecalculationJob> logger
-) : IJob
+) : BaseJob<BaseCurrencyRecalculationJobOptions>(options: options, logger: logger)
 {
-	public async Task Execute(IJobExecutionContext context)
+	protected override async Task ProcessAsync(
+		BaseCurrencyRecalculationJobOptions options,
+		CancellationToken ct)
 	{
-		BaseCurrencyRecalculationJobOptions currentOptions = options.CurrentValue;
-
-		if (!currentOptions.IsEnabled)
-			return;
-
-		CancellationToken ct = context.CancellationToken;
-
 		IReadOnlyList<Core.ReadModels.Currency.BaseCurrencyRecalculation> claimed = await recalculationWriteRepository.ClaimPendingBatchAsync(
-			batchSize: currentOptions.BatchSize,
-			leaseDuration: TimeSpan.FromMinutes(value: currentOptions.LeaseMinutes),
+			batchSize: options.BatchSize,
+			leaseDuration: TimeSpan.FromMinutes(value: options.LeaseMinutes),
 			now: dateProvider.UtcNow,
 			ct: ct
 		);
@@ -54,7 +49,7 @@ public sealed class BaseCurrencyRecalculationJob(
 			if (ct.IsCancellationRequested)
 				break;
 
-			if (await RebuildAsync(request: request, maxAttempts: currentOptions.MaxAttempts, ct: ct))
+			if (await RebuildAsync(request: request, maxAttempts: options.MaxAttempts, ct: ct))
 				rebuilt++;
 		}
 
