@@ -3,8 +3,10 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransaction
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transaction;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
@@ -189,6 +191,6 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<FinanceTracker.Core.Exceptions.DomainExceptions.InvalidTransactionDirectionException>();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidTransactionDirectionException>();
 	}
 }

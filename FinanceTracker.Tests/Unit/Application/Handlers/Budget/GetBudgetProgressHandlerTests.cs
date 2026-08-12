@@ -1,7 +1,9 @@
 using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgetProgress;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Budget;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;

@@ -37,4 +37,11 @@ public sealed class JwtOptions
 	/// </summary>
 	[Range(0, 300)]
 	public int RefreshReplayGraceSeconds { get; init; } = 30;
+
+	/// <summary>
+	/// How long a session's state may be served from cache before the database is consulted again.
+	/// Default: 60 seconds.
+	/// </summary>
+	[Range(1, 300)]
+	public int ActiveSessionCacheSeconds { get; init; } = 60;
 }

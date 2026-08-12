@@ -10,11 +10,13 @@ using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
+using FinanceTracker.Core.Observability.Correlation;
+using FinanceTracker.Core.Observability.Tracing;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Outbox;
-using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.Tracing;
+using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.Context.Outbox;
@@ -36,7 +38,8 @@ public sealed class PostgresEventStore(
 	ILogger<PostgresEventStore> logger,
 	IOptionsMonitor<EventStoreOptions> options,
 	ICorrelationContext correlationContext,
-	IEventUpcasterRegistry upcasterRegistry
+	IEventUpcasterRegistry upcasterRegistry,
+	IEventSchemaHealthState eventSchemaHealthState
 ) : IEventStore
 {
 	private (List<EventEntity> Entities, List<OutboxEventEnvelope> Envelopes) BuildEntities(
@@ -128,6 +131,24 @@ public sealed class PostgresEventStore(
 			logger.ZLogWarning(message: $"Concurrency conflict on aggregate {aggregateId} ({aggregateType}): expected version {expectedVersion}, actual {currentVersion ?? 0}.");
 			throw new ConcurrencyConflictException(message: "Conflict: the record was modified by another request.", id: aggregateId);
 		}
+	}
+
+	private IncompatibleEventVersionException Incompatible(
+		string message,
+		string eventType,
+		int storedVersion,
+		int currentVersion)
+	{
+		eventSchemaHealthState.MarkIncompatible(
+			diagnosis: $"Event '{eventType}' is stored at schema version {storedVersion}, but this build declares version {currentVersion}."
+		);
+
+		return new IncompatibleEventVersionException(
+			message: message,
+			eventType: eventType,
+			storedVersion: storedVersion,
+			currentVersion: currentVersion
+		);
 	}
 
 	public async Task SaveAsync(
@@ -239,8 +260,37 @@ public sealed class PostgresEventStore(
 
 				IEvent domainEvent;
 
-				if (storedVersion < currentVersion && upcasterRegistry.HasChain(eventType: entity.EventType))
+				if (storedVersion > currentVersion)
 				{
+					throw Incompatible(
+						message: $"""
+							[Upcasting] Event '{entity.EventType}' is stored at schema version {storedVersion}, but this build only knows
+							version {currentVersion}. Deserializing it would quietly drop whatever the newer shape added. This build is
+							older than the data — roll forward, or roll the data back.
+						""",
+						eventType: entity.EventType,
+						storedVersion: storedVersion,
+						currentVersion: currentVersion
+					);
+				}
+
+				if (storedVersion < currentVersion)
+				{
+					if (!upcasterRegistry.HasChain(eventType: entity.EventType))
+					{
+						throw Incompatible(
+							message: $"""
+								[Upcasting] Event '{entity.EventType}' is stored at schema version {storedVersion}, the code declares
+								version {currentVersion}, and no upcaster is registered to bridge them. Failing here rather than
+								deserializing into the current shape, which would default the new fields and rebuild the aggregate
+								into a state it was never in.
+							""",
+							eventType: entity.EventType,
+							storedVersion: storedVersion,
+							currentVersion: currentVersion
+						);
+					}
+
 					domainEvent = upcasterRegistry.Apply(
 						eventType: entity.EventType,
 						payload: entity.Payload,

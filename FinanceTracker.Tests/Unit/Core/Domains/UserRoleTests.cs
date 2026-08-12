@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.UserRole;
 using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Exceptions.DomainExceptions;

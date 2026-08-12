@@ -1,9 +1,10 @@
 using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
-using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

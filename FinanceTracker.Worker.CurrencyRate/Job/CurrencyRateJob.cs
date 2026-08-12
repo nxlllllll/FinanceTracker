@@ -1,6 +1,9 @@
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Currency;
 using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Worker.CurrencyRate.Client;
@@ -29,14 +32,12 @@ public sealed class CurrencyRateJob(
 
 		if (currencies.Count == 0)
 		{
-			logger.ZLogWarning(message: $"No active currencies found. Skipping rate fetch.");
+			logger.ZLogInformation(message: $"No active currencies configured. Nothing to fetch.");
 			return;
 		}
 
-		HashSet<string> knownCodes = currencies.Select(selector: c => c.Code).ToHashSet();
-		DateOnly today = dateProvider.UtcToday;
-
-		logger.ZLogInformation(message: $"Fetching rates for {currencies.Count} currencies.");
+		HashSet<string> knownCodes = currencies.Select(selector: currency => currency.Code).ToHashSet();
+		DateOnly today = DateOnly.FromDateTime(dateTime: dateProvider.UtcNow.UtcDateTime);
 
 		int totalUpserted = 0;
 		int failed = 0;
@@ -57,14 +58,18 @@ public sealed class CurrencyRateJob(
 					continue;
 				}
 
-				List<Core.ValueObjects.CurrencyRate> entries = response.ConversionRates
-					.Where(predicate: rate => rate.Key != baseCurrency.Code && knownCodes.Contains(item: rate.Key))
-					.Select(selector: kvp => Core.ValueObjects.CurrencyRate.Reconstitute(
-						baseCurrency: Currency.Reconstitute(value: baseCurrency.Code),
-						target: Currency.Reconstitute(value: kvp.Key),
-						rate: kvp.Value,
-						date: today
-					)).ToList();
+				List<Core.ValueObjects.CurrencyRate> entries = BuildEntries(
+					response: response,
+					baseCurrency: baseCurrency,
+					knownCodes: knownCodes,
+					today: today
+				);
+
+				if (entries.Count == 0)
+				{
+					logger.ZLogWarning(message: $"No usable rates for {baseCurrency.Code}. Nothing to upsert.");
+					continue;
+				}
 
 				await unitOfWork.ExecuteInTransactionAsync(
 					operation: async () => await currencyRateWriteRepository.UpsertRatesAsync(rates: entries, ct: ct),
@@ -85,5 +90,46 @@ public sealed class CurrencyRateJob(
 		}
 
 		logger.ZLogInformation(message: $"Completed. Total upserted: {totalUpserted}, failed currencies: {failed}.");
+	}
+
+	private List<Core.ValueObjects.CurrencyRate> BuildEntries(
+		ExchangeRateApiResponse response,
+		CurrencyInfo baseCurrency,
+		HashSet<string> knownCodes,
+		DateOnly today)
+	{
+		List<Core.ValueObjects.CurrencyRate> entries = new List<Core.ValueObjects.CurrencyRate>(capacity: response.ConversionRates.Count);
+
+		foreach ((string targetCode, decimal rawRate) in response.ConversionRates)
+		{
+			if (targetCode == baseCurrency.Code || !knownCodes.Contains(item: targetCode))
+				continue;
+
+			Result<Core.ValueObjects.CurrencyRate, DomainException> created = Core.ValueObjects.CurrencyRate.Create(
+				baseCurrency: Currency.Reconstitute(value: baseCurrency.Code),
+				target: Currency.Reconstitute(value: targetCode),
+				rate: rawRate,
+				date: today
+			);
+
+			if (created.IsFailure)
+			{
+				WorkerMetrics.CurrencyRatesRejected.Add(delta: 1, new KeyValuePair<string, object?>(key: "base_currency", value: baseCurrency.Code));
+				logger.ZLogWarning(message: $"Discarded {baseCurrency.Code}/{targetCode}: the provider sent {rawRate}, which cannot be stored as a rate.");
+				continue;
+			}
+
+			Core.ValueObjects.CurrencyRate rate = created.Value;
+
+			if (rate.Rate != rawRate)
+			{
+				WorkerMetrics.CurrencyRatesNormalized.Add(delta: 1, new KeyValuePair<string, object?>(key: "base_currency", value: baseCurrency.Code));
+				logger.ZLogWarning(message: $"Rounded {baseCurrency.Code}/{targetCode} from {rawRate} to {rate.Rate}: the provider sends more precision than numeric(18, 6) keeps.");
+			}
+
+			entries.Add(item: rate);
+		}
+
+		return entries;
 	}
 }

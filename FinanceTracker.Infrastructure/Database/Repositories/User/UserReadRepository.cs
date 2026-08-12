@@ -4,6 +4,10 @@ using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Operation;
+using FinanceTracker.Core.ReadModels.Transaction;
+using FinanceTracker.Core.ReadModels.Transfer;
+using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -122,7 +126,7 @@ public sealed class UserReadRepository(
 		return (income, expense);
 	}
 
-	public async Task<PagedResult<Core.ReadModels.Operation>> GetHistoryAsync(
+	public async Task<PagedResult<Core.ReadModels.Operation.Operation>> GetHistoryAsync(
 		Guid userId,
 		OperationFilterType? type = null,
 		DateTimeOffset? dateFrom = null,
@@ -163,10 +167,10 @@ public sealed class UserReadRepository(
 		if (hasNextPage)
 			entities.RemoveAt(index: entities.Count - 1);
 
-		IReadOnlyList<Core.ReadModels.Operation> items = entities.Select(selector: MapOperation).ToList().AsReadOnly();
-		Core.ReadModels.Operation? last = items.Count > 0 ? items[^1] : null;
+		IReadOnlyList<Core.ReadModels.Operation.Operation> items = entities.Select(selector: MapOperation).ToList().AsReadOnly();
+		Core.ReadModels.Operation.Operation? last = items.Count > 0 ? items[^1] : null;
 
-		return new PagedResult<Core.ReadModels.Operation>(
+		return new PagedResult<Core.ReadModels.Operation.Operation>(
 			Items: items,
 			HasNextPage: hasNextPage,
 			NextCursorDate: hasNextPage ? last?.OccurredAt : null,
@@ -174,13 +178,13 @@ public sealed class UserReadRepository(
 		);
 	}
 
-	private static Core.ReadModels.Operation MapOperation(OperationEntity o)
+	private static Core.ReadModels.Operation.Operation MapOperation(OperationEntity o)
 	{
 		bool isTransaction = o.Type == AggregateTypeNames.Transaction;
 
 		if (!isTransaction)
 		{
-			return new Core.ReadModels.Operation(
+			return new Core.ReadModels.Operation.Operation(
 				Id: o.Id,
 				Type: OperationFilterType.Transfer,
 				Description: o.Description,
@@ -200,7 +204,7 @@ public sealed class UserReadRepository(
 
 		DirectionType direction = Enum.Parse<DirectionType>(value: o.DirectionType!, ignoreCase: true);
 
-		return new Core.ReadModels.Operation(
+		return new Core.ReadModels.Operation.Operation(
 			Id: o.Id,
 			Type: direction == DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense,
 			Description: o.Description,

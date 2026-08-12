@@ -1,5 +1,7 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Worker.Shared.Job;
@@ -44,7 +46,7 @@ public sealed class TransferCreditLagJob(
 	{
 		TimeSpan compensationThreshold = TimeSpan.FromMinutes(value: options.CompensationThresholdMinutes);
 
-		IReadOnlyList<Core.ReadModels.PendingCreditTransfer> stuck = await transferReadRepository.GetPendingCreditForCompensationAsync(
+		IReadOnlyList<PendingCreditTransfer> stuck = await transferReadRepository.GetPendingCreditForCompensationAsync(
 			compensationThreshold: compensationThreshold,
 			ct: ct
 		);
@@ -56,7 +58,7 @@ public sealed class TransferCreditLagJob(
 			[{nameof(TransferCreditLagJob)}] {stuck.Count} transfer(s) exceeded compensation threshold of {compensationThreshold.TotalMinutes} min. Compensating.
 		""");
 
-		foreach (Core.ReadModels.PendingCreditTransfer transfer in stuck)
+		foreach (PendingCreditTransfer transfer in stuck)
 		{
 			if (ct.IsCancellationRequested)
 				break;

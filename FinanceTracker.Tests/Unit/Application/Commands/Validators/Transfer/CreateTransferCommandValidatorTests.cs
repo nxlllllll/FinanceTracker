@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.UseCases.Transfer.Commands;
+using FinanceTracker.Application.UseCases.Transfer.Commands.CreateTransfer;
 using FinanceTracker.Tests.Unit.Helpers;
 using FluentValidation.Results;
 

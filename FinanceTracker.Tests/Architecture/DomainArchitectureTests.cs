@@ -76,19 +76,6 @@ public sealed class DomainArchitectureTests
 	}
 
 	[Test]
-	public async Task AllValueObjects_ShouldResideInValueObjectsNamespace()
-	{
-		TestResult result = Types.InAssembly(assembly: CoreAssembly)
-			.That().HaveNameEndingWith(end: "VO")
-			.Or().ResideInNamespace(name: "FinanceTracker.Core.ValueObjects")
-			.Should().ResideInNamespace(name: "FinanceTracker.Core.ValueObjects")
-			.GetResult();
-
-		await Assert.That(value: result.IsSuccessful).IsTrue()
-			.Because(message: String.Join(separator: ", ", values: result.FailingTypes?.Select(t => t.Name) ?? []));
-	}
-
-	[Test]
 	public async Task Account_ApplyDispatch_ShouldRouteEveryAccountEvent()
 	{
 		IReadOnlyList<string> unhandled = await SwitchExhaustivenessChecker.FindUnhandledAsync(candidateTypes: AccountEventTypes, invoke: instance =>

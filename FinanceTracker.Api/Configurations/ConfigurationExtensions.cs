@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 
 namespace FinanceTracker.Api.Configurations;
 

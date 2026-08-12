@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Infrastructure.Database.Repositories.User;
+namespace FinanceTracker.Infrastructure.Database.Repositories.User;
 
 public sealed record BaseCurrencyRecalculationClaimDto(
 	Guid UserId,

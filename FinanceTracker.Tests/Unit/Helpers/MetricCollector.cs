@@ -1,5 +1,5 @@
-﻿using System.Diagnostics.Metrics;
-using FinanceTracker.Core.Services.Metrics;
+using System.Diagnostics.Metrics;
+using FinanceTracker.Core.Observability.Metrics;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 

@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Domains.User;

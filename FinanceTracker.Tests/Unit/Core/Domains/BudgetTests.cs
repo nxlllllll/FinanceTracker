@@ -1,5 +1,7 @@
 using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Budget;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -43,34 +45,41 @@ public sealed class BudgetTests
 	}
 
 	[Test]
-	public async Task Create_WhenEndDateEqualsStartDate_ShouldCreateBudget()
+	public async Task Create_WhenEndDateEqualsStartDate_ShouldFail()
 	{
-		DateOnly sameDate = new DateOnly(year: 2025, month: 1, day: 1);
+		DateOnly date = new DateOnly(year: 2026, month: 8, day: 11);
 
 		Result<Budget, DomainException> result = Budget.Create(
-			createdAt: DateTimeOffset.UtcNow,
 			userId: Guid.CreateVersion7(),
 			categoryId: Guid.CreateVersion7(),
-			amount: Money.Create(amount: 1000m, currency: Currency.Create(value: "RUB").Value).Value,
-			from: sameDate,
-			to: sameDate
+			amount: Money.Reconstitute(amount: 100m, currency: Currency.Reconstitute(value: "USD")),
+			from: date,
+			to: date,
+			createdAt: DateTimeOffset.UtcNow
 		);
 
-		await Assert.That(result.IsSuccess).IsTrue();
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidBudgetPeriodException>();
 	}
 
 	[Test]
-	public async Task ChangePeriod_WhenEndDateEqualsStartDate_ShouldReportChange()
+	public async Task ChangePeriod_WhenEndDateEqualsStartDate_ShouldFail()
 	{
-		Budget budget = BudgetFactory.Create().Value!;
-		DateOnly sameDate = new DateOnly(year: 2025, month: 6, day: 1);
+		DateOnly date = new DateOnly(year: 2026, month: 8, day: 11);
 
-		Result<bool, DomainException> result = budget.ChangePeriod(from: sameDate, to: sameDate);
+		Budget budget = Budget.Create(
+			userId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
+			amount: Money.Reconstitute(amount: 100m, currency: Currency.Reconstitute(value: "USD")),
+			from: new DateOnly(year: 2026, month: 8, day: 1),
+			to: new DateOnly(year: 2026, month: 8, day: 31),
+			createdAt: DateTimeOffset.UtcNow
+		).Value!;
 
-		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value).IsTrue();
-		await Assert.That(value: budget.From).IsEqualTo(expected: sameDate);
-		await Assert.That(value: budget.To).IsEqualTo(expected: sameDate);
+		Result<bool, DomainException> result = budget.ChangePeriod(from: date, to: date);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<InvalidBudgetPeriodException>();
 	}
 
 	[Test]

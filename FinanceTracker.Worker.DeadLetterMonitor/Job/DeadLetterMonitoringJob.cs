@@ -1,4 +1,5 @@
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;

@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Core.Observability.Metrics;
+using FinanceTracker.Core.Observability.Tracing;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.Services.Metrics;
-using FinanceTracker.Core.Services.Tracing;
 using MediatR;
 
 namespace FinanceTracker.Application.Behaviours.Tracing;

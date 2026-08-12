@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Configurations;
+using FinanceTracker.Application.Configurations;
 using FinanceTracker.Cli.Commands;
 using FinanceTracker.Infrastructure.Configurations;
 using Microsoft.Extensions.DependencyInjection;

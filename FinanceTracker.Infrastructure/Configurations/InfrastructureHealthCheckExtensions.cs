@@ -1,3 +1,4 @@
+using FinanceTracker.Infrastructure.Database.EventStore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -10,12 +11,15 @@ public static class InfrastructureHealthCheckExtensions
 		string connectionString,
 		string redisConnectionString)
 	{
-		return services.AddHealthChecks().AddNpgSql(connectionString: connectionString, name: "postgres", tags: ["ready", "db"]).AddRedis(
-			redisConnectionString: redisConnectionString,
-			name: "redis",
-			failureStatus: HealthStatus.Degraded,
-			tags: ["ready", "cache"],
-			timeout: TimeSpan.FromSeconds(value: 2)
-		);
+		return services.AddHealthChecks()
+			.AddNpgSql(connectionString: connectionString, name: "postgres", tags: ["ready", "db"])
+			.AddCheck<EventSchemaHealthCheck>(name: "event-schema", tags: ["ready", "db"])
+			.AddRedis(
+				redisConnectionString: redisConnectionString,
+				name: "redis",
+				failureStatus: HealthStatus.Degraded,
+				tags: ["ready", "cache"],
+				timeout: TimeSpan.FromSeconds(value: 2)
+			);
 	}
 }

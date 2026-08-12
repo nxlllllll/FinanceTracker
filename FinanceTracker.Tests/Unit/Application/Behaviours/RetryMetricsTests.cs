@@ -1,7 +1,8 @@
-﻿using FinanceTracker.Application.Behaviours.Retry;
+using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.Extensions.Logging;

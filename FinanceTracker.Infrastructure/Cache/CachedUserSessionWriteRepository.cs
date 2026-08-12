@@ -1,16 +1,12 @@
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
-using FinanceTracker.Infrastructure.Services.Token;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Infrastructure.Cache;
 
 public sealed class CachedUserSessionWriteRepository(
 	IUserSessionWriteRepository inner,
 	RedisCache redisCache,
-	IUnitOfWork unitOfWork,
-	IOptionsMonitor<JwtOptions> jwtOptions
+	IUnitOfWork unitOfWork
 ) : IUserSessionWriteRepository
 {
 	public Task CreateAsync(
@@ -28,7 +24,7 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
+		ScheduleCacheEviction(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
@@ -44,7 +40,7 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
+		ScheduleCacheEviction(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
@@ -60,7 +56,7 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
+		ScheduleCacheEviction(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
@@ -74,31 +70,21 @@ public sealed class CachedUserSessionWriteRepository(
 			revokedAt: revokedAt,
 			ct: ct
 		);
-		ScheduleCacheMarking(sessionIds: revokedIds);
+		ScheduleCacheEviction(sessionIds: revokedIds);
 		return revokedIds;
 	}
 
-	private void ScheduleCacheMarking(IReadOnlyList<Guid> sessionIds)
+	private void ScheduleCacheEviction(IReadOnlyList<Guid> sessionIds)
 	{
 		if (sessionIds.Count == 0)
 			return;
 
-		unitOfWork.OnCommitted(callback: () => MarkRevokedInCacheAsync(sessionIds: sessionIds));
+		unitOfWork.OnCommitted(callback: () => EvictActiveMarksAsync(sessionIds: sessionIds));
 	}
 
-	private async Task MarkRevokedInCacheAsync(IReadOnlyList<Guid> sessionIds)
+	private Task EvictActiveMarksAsync(IReadOnlyList<Guid> sessionIds)
 	{
-		DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions
-		{
-			AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(value: jwtOptions.CurrentValue.AccessTokenTtlMinutes)
-		};
-
-		List<BatchItem<bool>> batch = sessionIds.Select(selector: id => new BatchItem<bool>(
-			Key: SessionRevocationCacheKeys.RevokedSessionKey(sessionId: id),
-			Value: true,
-			Options: cacheOptions
-		)).ToList();
-
-		await redisCache.SetBatchAsync(items: batch);
+		List<string> keys = sessionIds.Select(selector: SessionCacheKeys.ActiveSessionKey).ToList();
+		return redisCache.DeleteBatchAsync(keys: keys);
 	}
 }

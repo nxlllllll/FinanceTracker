@@ -1,4 +1,5 @@
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Budget;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Budget;

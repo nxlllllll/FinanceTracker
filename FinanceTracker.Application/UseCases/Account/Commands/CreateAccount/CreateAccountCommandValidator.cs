@@ -1,3 +1,4 @@
+using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Core.Repositories.Currency;
 using FluentValidation;
@@ -17,7 +18,8 @@ public sealed class CreateAccountCommandValidator : AbstractValidator<CreateAcco
 		RuleFor(expression: command => command.InitialBalance)
 			.GreaterThanOrEqualTo(valueToCompare: 0).WithMessage(errorMessage: "The initial balance cannot be negative.")
 			.LessThanOrEqualTo(valueToCompare: moneyLimits.CurrentValue.MaxAmount)
-			.WithMessage(errorMessage: $"The initial balance cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.");
+			.WithMessage(errorMessage: $"The initial balance cannot exceed {moneyLimits.CurrentValue.MaxAmount:N2}.")
+			.MustFitAmountScale();
 
 		RuleFor(expression: command => command.Type)
 			.IsInEnum().WithMessage(errorMessage: "The account type is invalid.");

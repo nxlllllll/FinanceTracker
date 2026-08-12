@@ -1,5 +1,6 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.DateProvider;
@@ -23,20 +24,15 @@ public sealed class BaseCurrencyRecalculationJob(
 	IDateProvider dateProvider,
 	IOptionsMonitor<BaseCurrencyRecalculationJobOptions> options,
 	ILogger<BaseCurrencyRecalculationJob> logger
-) : IJob
+) : BaseJob<BaseCurrencyRecalculationJobOptions>(options: options, logger: logger)
 {
-	public async Task Execute(IJobExecutionContext context)
+	protected override async Task ProcessAsync(
+		BaseCurrencyRecalculationJobOptions options,
+		CancellationToken ct)
 	{
-		BaseCurrencyRecalculationJobOptions currentOptions = options.CurrentValue;
-
-		if (!currentOptions.IsEnabled)
-			return;
-
-		CancellationToken ct = context.CancellationToken;
-
-		IReadOnlyList<Core.ReadModels.BaseCurrencyRecalculation> claimed = await recalculationWriteRepository.ClaimPendingBatchAsync(
-			batchSize: currentOptions.BatchSize,
-			leaseDuration: TimeSpan.FromMinutes(value: currentOptions.LeaseMinutes),
+		IReadOnlyList<Core.ReadModels.Currency.BaseCurrencyRecalculation> claimed = await recalculationWriteRepository.ClaimPendingBatchAsync(
+			batchSize: options.BatchSize,
+			leaseDuration: TimeSpan.FromMinutes(value: options.LeaseMinutes),
 			now: dateProvider.UtcNow,
 			ct: ct
 		);
@@ -48,12 +44,12 @@ public sealed class BaseCurrencyRecalculationJob(
 
 		int rebuilt = 0;
 
-		foreach (Core.ReadModels.BaseCurrencyRecalculation request in claimed)
+		foreach (Core.ReadModels.Currency.BaseCurrencyRecalculation request in claimed)
 		{
 			if (ct.IsCancellationRequested)
 				break;
 
-			if (await RebuildAsync(request: request, maxAttempts: currentOptions.MaxAttempts, ct: ct))
+			if (await RebuildAsync(request: request, maxAttempts: options.MaxAttempts, ct: ct))
 				rebuilt++;
 		}
 
@@ -61,7 +57,7 @@ public sealed class BaseCurrencyRecalculationJob(
 	}
 
 	private async Task<bool> RebuildAsync(
-		Core.ReadModels.BaseCurrencyRecalculation request,
+		Core.ReadModels.Currency.BaseCurrencyRecalculation request,
 		int maxAttempts,
 		CancellationToken ct)
 	{

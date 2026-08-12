@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Services.Tracing;
+using FinanceTracker.Core.Observability.Tracing;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;

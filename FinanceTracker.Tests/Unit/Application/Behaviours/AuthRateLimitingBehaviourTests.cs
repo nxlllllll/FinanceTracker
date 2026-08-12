@@ -1,6 +1,7 @@
 using System.Net;
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.RateLimit;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Core.ValueObjects;

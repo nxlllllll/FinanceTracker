@@ -182,8 +182,8 @@ public abstract class RabbitMqConsumerBase<TMessage>(
 
 	/// <summary>
 	/// See <see cref="SafeAckAsync"/> — same rationale, for the reject path. Used for genuine handler
-	/// failures: unlike <see cref="SafeNackAsync"/>, <c>basic.reject</c> counts toward the quorum
-	/// queue's delivery limit and so eventually dead-letters the message.
+	/// failures, where consuming a delivery attempt is the point: after <c>x-delivery-limit</c>
+	/// attempts the quorum queue dead-letters the message instead of retrying it forever.
 	/// </summary>
 	protected async Task SafeRejectAsync(ulong deliveryTag, bool requeue)
 	{

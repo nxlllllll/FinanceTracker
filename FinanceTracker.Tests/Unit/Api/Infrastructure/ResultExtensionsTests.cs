@@ -1,6 +1,9 @@
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.RateLimit;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;

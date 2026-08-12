@@ -4,8 +4,8 @@ using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Services.Correlation;
-using FinanceTracker.Core.Services.Tracing;
+using FinanceTracker.Core.Observability.Correlation;
+using FinanceTracker.Core.Observability.Tracing;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -131,7 +131,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	protected override Task OnDeliveryFailedAsync(
 		BasicDeliverEventArgs ea,
 		Exception exception
-	) => SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true);
+	) => SafeRejectAsync(deliveryTag: ea.DeliveryTag, requeue: true);
 
 	protected override async Task HandleDeliveryAsync(
 		object sender,
@@ -189,11 +189,10 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 	}
 
 	/// <summary>
-	/// Invokes <paramref name="handler"/> and reacts to the outcome: ack on success, requeue without
-	/// penalty on cooperative cancellation (doesn't count toward <c>x-delivery-limit</c>, since it
-	/// isn't a real processing failure), or reject with <c>requeue: true</c> on any other failure —
-	/// letting the quorum queue's native delayed-retry apply backoff and, once <c>x-delivery-limit</c>
-	/// is exceeded, dead-letter it automatically.
+	/// Invokes <paramref name="handler"/> and reacts to the outcome: ack on success, leave the
+	/// message unsettled on cooperative cancellation, or reject with <c>requeue: true</c> on any
+	/// other failure — letting the quorum queue's native delayed-retry apply backoff and, once
+	/// <c>x-delivery-limit</c> is exceeded, dead-letter it automatically.
 	/// </summary>
 	private async Task DispatchAsync(
 		THandler handler,
@@ -214,8 +213,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		catch (OperationCanceledException) when (ct.IsCancellationRequested)
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: "Cancelled.");
-			logger.ZLogWarning(message: $"{LogTag} processing cancelled for message {ea.DeliveryTag}. Requeuing without penalty.");
-			await SafeNackAsync(deliveryTag: ea.DeliveryTag, requeue: true);
+			logger.ZLogInformation(message: $"{LogTag} shutting down mid-delivery {ea.DeliveryTag}. Leaving it unsettled for redelivery.");
 		}
 		catch (Exception ex)
 		{

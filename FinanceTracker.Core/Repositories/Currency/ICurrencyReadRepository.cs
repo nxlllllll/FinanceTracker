@@ -1,4 +1,5 @@
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Currency;
 
 namespace FinanceTracker.Core.Repositories.Currency;
 

@@ -68,7 +68,7 @@ public sealed class ETagTests
 
 		await Assert.That(value: parsed).IsEqualTo(expected: 42);
 	}
-[Test]
+	[Test]
 	public async Task Parse_WithNoHeader_ShouldReportAbsentRatherThanInvalid()
 	{
 		ParsedETag parsed = ETag.Parse(ifMatchHeaderValue: null);

@@ -1,6 +1,7 @@
 using FinanceTracker.Application.UseCases.Budget.Queries.GetBudgets;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Budget;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;

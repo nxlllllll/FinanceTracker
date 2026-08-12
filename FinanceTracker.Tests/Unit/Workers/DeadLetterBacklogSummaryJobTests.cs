@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.DeadLetterMonitor.Job;

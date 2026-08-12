@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using System.Text;
-using FinanceTracker.Infrastructure.Cache;
+using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
@@ -12,15 +12,6 @@ namespace FinanceTracker.Api.Security;
 /// <summary>
 /// Configures JWT validation as the exact mirror of token generation in
 /// <c>JwtTokenService</c>: same HMAC-SHA256 key, issuer and audience.
-/// <para>
-/// Also closes the gap between "session revoked in the database" and "access token stops
-/// working": standard signature/lifetime validation only proves the token was genuinely issued
-/// and hasn't expired yet — it says nothing about whether the session behind it was revoked in
-/// the meantime. <see cref="OnTokenValidated"/> adds one cheap Redis lookup per request to reject
-/// a token whose session was revoked, without needing a database round trip. If Redis is
-/// unreachable, <c>RedisCache</c> already fails open (reports "not revoked") — the worst case is
-/// reverting to today's signature/lifetime-only behavior, not a new outage.
-/// </para>
 /// </summary>
 public sealed class JwtBearerOptionsSetup(
 	IOptions<JwtOptions> jwtOptions
@@ -58,7 +49,7 @@ public sealed class JwtBearerOptionsSetup(
 		options: options
 	);
 
-	private static async Task OnTokenValidatedAsync(TokenValidatedContext context)
+	private async Task OnTokenValidatedAsync(TokenValidatedContext context)
 	{
 		string? sidClaim = context.Principal?.FindFirstValue(claimType: JwtRegisteredClaimNames.Sid);
 		if (sidClaim is null || !Guid.TryParse(input: sidClaim, result: out Guid sessionId))
@@ -67,10 +58,14 @@ public sealed class JwtBearerOptionsSetup(
 			return;
 		}
 
-		RedisCache redisCache = context.HttpContext.RequestServices.GetRequiredService<RedisCache>();
+		ISessionValidator sessionValidator = context.HttpContext.RequestServices.GetRequiredService<ISessionValidator>();
 
-		CacheEntry<bool> entry = await redisCache.TryGetAsync<bool>(key: SessionRevocationCacheKeys.RevokedSessionKey(sessionId: sessionId));
-		if (entry is { Found: true, Value: true })
-			context.Fail(failureMessage: "Session has been revoked.");
+		bool isActive = await sessionValidator.IsSessionActiveAsync(
+			sessionId: sessionId,
+			ct: context.HttpContext.RequestAborted
+		);
+
+		if (!isActive)
+			context.Fail(failureMessage: "Session is no longer active.");
 	}
 }

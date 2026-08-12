@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Persistence;
+namespace FinanceTracker.Core.Persistence;
 
 /// <summary>
 /// Decides whether a failure is worth trying again.

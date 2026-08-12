@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.UserPermission;
+namespace FinanceTracker.Core.Repositories.UserPermission;
 
 /// <summary>
 /// Reads the two independent sources a user's effective permissions are assembled from: permissions

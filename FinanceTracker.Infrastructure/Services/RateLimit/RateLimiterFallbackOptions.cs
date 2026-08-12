@@ -18,4 +18,12 @@ public sealed class RateLimiterFallbackOptions
 	/// </summary>
 	[Range(minimum: 10, maximum: 5000)]
 	public int ProbeTimeoutMs { get; init; } = 100;
+
+	/// <summary>
+	/// How long to keep serving from the in-memory limiter before spending another probe on Redis.
+	/// Default: 5 seconds.
+	/// </summary>
+	[Range(minimum: 100, maximum: 60_000)]
+	public int RecoveryProbeIntervalMs { get; init; } = 5_000;
 }
+

@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.Category;
+namespace FinanceTracker.Core.Repositories.Category;
 
 /// <summary>
 /// One transaction paired with the exchange rate that applied on

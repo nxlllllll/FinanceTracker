@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
+namespace FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 
 /// <summary>
 /// Argument names RabbitMQ itself defines for queue declarations.

@@ -1,6 +1,8 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Pending;
+using FinanceTracker.Core.ReadModels.Transfer;
 using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;

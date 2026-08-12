@@ -1,17 +1,22 @@
 namespace FinanceTracker.Api.Configurations;
 
 /// <summary>
-/// Configures which reverse proxies/load balancers this API trusts. By default, both lists
-/// are empty, meaning redirected headers are completely ignored. When speed is limited
-/// and audit logging is performed, the IP address of the load balancer will be displayed.
-/// When the reverse proxy server/load balancer is installed, you will need to install
-/// <see cref="KnownProxies"/> or <see cref="KnownNetworks"/>
+/// Declares which reverse proxies this API trusts to set <c>X-Forwarded-For</c>.
 /// </summary>
 public sealed class ProxyOptions
 {
-	/// <summary>Exact IP addresses of trusted proxies as strings.</summary>
+	public const string SectionName = "Proxy";
+
+	/// <summary>Exact IP addresses of trusted proxies.</summary>
 	public string[] KnownProxies { get; init; } = [];
 
-	/// <summary>Trusted proxy IP ranges in "address/prefixLength" CIDR notation</summary>
+	/// <summary>Trusted proxy ranges in <c>address/prefixLength</c> CIDR notation.</summary>
 	public string[] KnownNetworks { get; init; } = [];
+
+	/// <summary>
+	/// Set when the API is reached directly and no proxy should be trusted. Client addresses then
+	/// come from the connection itself, and forwarded headers are ignored.
+	/// </summary>
+	public bool TrustNoProxy { get; init; }
 }
+

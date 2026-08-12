@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Repositories.UserRole;
+namespace FinanceTracker.Core.Repositories.UserRole;
 
 public interface IUserRoleRepository
 {

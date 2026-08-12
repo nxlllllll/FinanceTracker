@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using FinanceTracker.Worker.Shared.Job;
 
 namespace FinanceTracker.Worker.BaseCurrencyRecalculation.Job;

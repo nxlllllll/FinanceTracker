@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Services.Permissions;
+using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;

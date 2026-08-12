@@ -4,6 +4,7 @@ using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Budget;
@@ -23,9 +24,9 @@ using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.Services.Auth;
-using FinanceTracker.Core.Services.Correlation;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Core.Services.Rebuild;
@@ -161,6 +162,9 @@ public static class DependencyInjection
 			.WithSingletonLifetime()
 		);
 		services.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
+		services.AddSingleton<EventSchemaCompatibilityValidator>();
+		services.AddHostedService<EventSchemaValidationHostedService>();
+		services.AddSingleton<IEventSchemaHealthState, EventSchemaHealthState>();
 
 		services.AddScoped<IEventStore, PostgresEventStore>();
 
@@ -259,6 +263,7 @@ public static class DependencyInjection
 		services.AddScoped<IUserRoleWriteRepository, UserRoleWriteRepository>();
 		services.Decorate<IUserRoleRepository, CachedUserRoleRepository>();
 
+		services.AddScoped<ISessionValidator, CachedSessionValidator>();
 		services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 		services.AddScoped<ICorrelationContext, CorrelationContext>();
 		services.AddSingleton<IDateProvider, DateProvider>();

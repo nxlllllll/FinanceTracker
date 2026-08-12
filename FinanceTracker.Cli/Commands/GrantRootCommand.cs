@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Application.Services.Roles;
+using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.User;

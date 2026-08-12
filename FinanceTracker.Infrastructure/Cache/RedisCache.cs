@@ -1,6 +1,6 @@
 using System.Text.Json;
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Services.DateProvider;
-using FinanceTracker.Core.Services.Metrics;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;

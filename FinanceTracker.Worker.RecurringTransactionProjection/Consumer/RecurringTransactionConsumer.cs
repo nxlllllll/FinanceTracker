@@ -1,6 +1,6 @@
 using System.Text.Json;
+using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
-using FinanceTracker.Application.UseCases.Transaction.Services;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
@@ -10,6 +10,7 @@ using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.RecurringTransaction;

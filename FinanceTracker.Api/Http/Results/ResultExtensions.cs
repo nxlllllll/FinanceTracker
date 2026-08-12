@@ -3,6 +3,13 @@ using System.Text.Json;
 using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Permission;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Data;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Idempotency;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.RateLimit;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Core.Results;
 

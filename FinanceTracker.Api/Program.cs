@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 namespace FinanceTracker.Api;
@@ -61,7 +62,10 @@ public sealed class Program
 		builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 		builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenProblemDetailsAuthorizationMiddlewareResultHandler>();
 
-		builder.Services.Configure<ProxyOptions>(config: builder.Configuration.GetSection(key: "Proxy"));
+		builder.Services.AddOptions<ProxyOptions>()
+			.BindConfiguration(configSectionPath: ProxyOptions.SectionName)
+			.ValidateOnStart();
+		builder.Services.AddSingleton<IValidateOptions<ProxyOptions>, ProxyOptionsValidator>();
 		builder.Services.ConfigureOptions<ForwardedHeadersOptionsSetup>();
 
 		builder.Services.AddOpenApi(configureOptions: options =>
@@ -82,8 +86,8 @@ public sealed class Program
 
 		builder.WebHost.ConfigureKestrel(options: kestrel =>
 		{
-			kestrel.ListenAnyIP(port: 8080);
-			kestrel.ListenAnyIP(port: 9100);
+			kestrel.ListenAnyIP(port: ApiPorts.Public);
+			kestrel.ListenAnyIP(port: ApiPorts.Observability);
 		});
 
 		WebApplication app = builder.Build();
@@ -105,20 +109,23 @@ public sealed class Program
 		app.MapHealthChecks(pattern: "/health/live", options: new HealthCheckOptions
 		{
 			Predicate = _ => false
-		}).RequireHost(hosts: "*:9100");
+		}).RequireHost(hosts: ApiPorts.ObservabilityHost);
 
 		app.MapHealthChecks(pattern: "/health/ready", options: new HealthCheckOptions
 		{
 			Predicate = check => check.Tags.Contains(item: "ready"),
 			ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-		}).RequireHost(hosts: "*:9100");
+		}).RequireHost(hosts: ApiPorts.ObservabilityHost);
 
-		app.UseHealthChecksPrometheusExporter(
-			endpoint: "/health/metrics",
-			configure: options => options.ResultStatusCodes[HealthStatus.Unhealthy] = (int)HttpStatusCode.OK
+		app.UseWhen(
+			predicate: context => context.Connection.LocalPort == ApiPorts.Observability,
+			configuration: branch => branch.UseHealthChecksPrometheusExporter(
+				endpoint: "/health/metrics",
+				configure: options => options.ResultStatusCodes[HealthStatus.Unhealthy] = (int)HttpStatusCode.OK
+			)
 		);
 
-		app.MapPrometheusScrapingEndpoint().RequireHost(hosts: "*:9100");
+		app.MapPrometheusScrapingEndpoint().RequireHost(hosts: ApiPorts.ObservabilityHost);
 
 		app.MapEndpoints();
 

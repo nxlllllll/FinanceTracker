@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 
 namespace FinanceTracker.Core.Utilities.Retry;
 

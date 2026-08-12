@@ -9,6 +9,8 @@ namespace FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 /// </summary>
 public interface IEventTypeResolver
 {
+	public IReadOnlyDictionary<string, int> CurrentVersions { get; }
+
 	/// <summary>
 	/// Returns the CLR type for the given <see cref="EventTypeAttribute.Name"/>.
 	/// Throws if the type is not registered.

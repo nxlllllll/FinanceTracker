@@ -1,4 +1,6 @@
 using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.ReadModels.Pending;
+using FinanceTracker.Core.ReadModels.Transfer;
 using FinanceTracker.Core.Results;
 
 namespace FinanceTracker.Core.Repositories.Transfer;

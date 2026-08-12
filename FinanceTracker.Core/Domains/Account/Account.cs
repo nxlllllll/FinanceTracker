@@ -4,6 +4,10 @@ using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Rate;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transaction;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 

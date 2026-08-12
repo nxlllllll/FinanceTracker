@@ -1,4 +1,4 @@
-﻿namespace FinanceTracker.Core.Domains.User;
+namespace FinanceTracker.Core.Domains.User;
 
 public static class BaseCurrencyRecalculationStatusExtensions
 {

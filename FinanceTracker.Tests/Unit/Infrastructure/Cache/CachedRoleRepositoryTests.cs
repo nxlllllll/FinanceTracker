@@ -1,4 +1,4 @@
-﻿using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Cache;
@@ -78,7 +78,7 @@ public sealed class CachedRoleRepositoryTests
 	) => _inner.GetMemberUserIdsAsync(
 		roleId: roleId,
 		ct: Arg.Any<CancellationToken>()
-	).Returns(returnThis: [..userIds]);
+	).Returns(returnThis: [.. userIds]);
 
 	[Test]
 	public async Task ReplacePermissionsAsync_ShouldInvalidateEveryMemberPermissionCache()

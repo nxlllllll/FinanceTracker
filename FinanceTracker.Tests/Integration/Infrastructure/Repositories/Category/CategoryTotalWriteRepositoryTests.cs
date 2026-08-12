@@ -628,7 +628,7 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 			.Because(message: "Each transaction must round to 0.00 before summing — summing the raw amounts first would wrongly produce 0.01.");
 	}
 
-[Test]
+	[Test]
 	public async Task RecalculateAllForUserAsync_WithMoreTransactionsThanOnePage_ShouldTotalThemAll()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
