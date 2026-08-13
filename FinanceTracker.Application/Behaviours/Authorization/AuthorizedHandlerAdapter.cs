@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -58,7 +59,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 			);
 		}
 
-		logger.ZLogInformation(message: $"Precondition failed for {commandType}: {mismatch.Message}");
+		logger.ZLogInformation(message: $"Precondition failed for {commandType} on {mismatch.Id?.ToString() ?? "an unidentified entity"}: {mismatch.Message}");
 		return Result<TValue, TError>.Failure(error: typedMismatch);
 
 	}
@@ -83,7 +84,7 @@ public sealed class AuthorizedHandlerAdapter<TRequest, TEntity, TValue, TError>(
 
 		return new PreconditionFailedException(
 			message: $"{typeof(TEntity).Name} was modified since it was last fetched (expected version {expectedVersion}, actual {actualVersion}).",
-			id: Guid.Empty,
+			id: (entity as IHasId)?.Id,
 			expectedVersion: expectedVersion,
 			actualVersion: actualVersion
 		);

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -20,30 +21,42 @@ namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 
 /// <summary>
 /// Publishes <see cref="IRoutableMessage"/> instances to a RabbitMQ topic exchange.
-/// All channel access — creation, reconnection, and publishing — happens inside a single
-/// critical section guarded by <see cref="_channelLock"/>. This is intentional: publishing
-/// on a channel that another thread is concurrently disposing/recreating (e.g. after a broker
-/// blip) is unsafe, so "get a valid channel" and "use it" must be one atomic step, not two.
-/// The cached channel is re-validated via <see cref="IChannel.IsOpen"/> before reuse so a
-/// dropped connection is transparently recreated rather than silently reused forever.
 /// Propagates the W3C <c>traceparent</c> header for distributed tracing across service boundaries.
 /// </summary>
-public sealed class RabbitMqPublisher(
-	RabbitMqConnectionFactory connectionFactory,
-	IOptions<RabbitMqOptions> options,
-	IServiceScopeFactory scopeFactory,
-	ILogger<RabbitMqPublisher> logger
-) : IRabbitMqPublisher
+public sealed class RabbitMqPublisher : IRabbitMqPublisher
 {
-	private readonly RabbitMqOptions _options = options.Value;
-	private readonly SemaphoreSlim _channelLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
+	private readonly RabbitMqConnectionFactory _connectionFactory;
+	private readonly RabbitMqOptions _options;
+	private readonly IServiceScopeFactory _scopeFactory;
+	private readonly ILogger<RabbitMqPublisher> _logger;
+
+	private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
+	private readonly SemaphoreSlim _slots;
+	private readonly ConcurrentBag<IChannel> _idleChannels = [];
+
 	private IConnection? _connection;
-	private IChannel? _channel;
+
+	public RabbitMqPublisher(
+		RabbitMqConnectionFactory connectionFactory,
+		IOptions<RabbitMqOptions> options,
+		IServiceScopeFactory scopeFactory,
+		ILogger<RabbitMqPublisher> logger)
+	{
+		_connectionFactory = connectionFactory;
+		_options = options.Value;
+		_scopeFactory = scopeFactory;
+		_logger = logger;
+		_slots = new SemaphoreSlim(
+			initialCount: _options.PublisherChannelPoolSize,
+			maxCount: _options.PublisherChannelPoolSize
+		);
+	}
 
 	public async Task PublishAsync<TMessage>(
 		TMessage message,
 		Guid? correlationId = default,
-		CancellationToken ct = default) where TMessage : class, IRoutableMessage
+		CancellationToken ct = default
+	) where TMessage : class, IRoutableMessage
 	{
 		byte[] body = Encoding.UTF8.GetBytes(s: JsonSerializer.Serialize(value: message, options: FinanceTrackerJsonOptions.Payload));
 
@@ -77,42 +90,68 @@ public sealed class RabbitMqPublisher(
 	}
 
 	/// <summary>
-	/// Runs <paramref name="action"/> against a guaranteed-open channel, with the entire
-	/// "ensure channel is usable" + "use it" sequence protected by <see cref="_channelLock"/>.
-	/// This is deliberately the only place that touches <see cref="_channel"/>: no caller ever
-	/// obtains a channel reference and uses it outside this lock where one thread could
-	/// publish on a channel another thread is disposing.
+	/// Borrows a channel for the duration of <paramref name="action"/> and returns it afterwards.
+	/// A channel is never handed to two callers at once: the slot is held for the whole call, and a
+	/// borrowed channel is out of the bag until it comes back.
 	/// </summary>
 	private async Task WithChannelAsync(Func<IChannel, Task> action, CancellationToken ct)
 	{
-		await _channelLock.WaitAsync(cancellationToken: ct);
+		await _slots.WaitAsync(cancellationToken: ct);
+
+		IChannel? channel = null;
 
 		try
 		{
-			IChannel channel = await EnsureChannelAsync(ct: ct);
+			channel = await RentChannelAsync(ct: ct);
 			await action(channel);
 		}
 		finally
 		{
-			_channelLock.Release();
+			await ReturnChannelAsync(channel: channel);
+			_slots.Release();
 		}
 	}
 
 	/// <summary>
-	/// Returns the current channel if open, otherwise (re)creates connection + channel.
-	/// Callers must already hold <see cref="_channelLock"/> — this method does not lock itself.
+	/// Takes an open channel from the bag, discarding any that closed while idle, and opens a new one
+	/// when none is available. The slot semaphore caps how many can exist.
 	/// </summary>
-	private async Task<IChannel> EnsureChannelAsync(CancellationToken ct)
+	private async Task<IChannel> RentChannelAsync(CancellationToken ct)
 	{
-		if (_channel is { IsOpen: true })
-			return _channel;
+		while (_idleChannels.TryTake(result: out IChannel? pooled))
+		{
+			if (pooled is { IsOpen: true })
+				return pooled;
 
-		await DisposeStaleConnectionAsync();
+			await DiscardChannelAsync(channel: pooled);
+		}
 
-		_connection = await connectionFactory.CreateConnectionAsync(ct: ct);
-		RabbitMqVersionGuard.EnsureSupportedVersion(connection: _connection);
+		return await CreateChannelAsync(ct: ct);
+	}
 
-		_channel = await _connection.CreateChannelAsync(
+	/// <summary>
+	/// Puts a still-open channel back for reuse, or disposes it. A channel that closed mid-publish is
+	/// not worth keeping — the next caller would only find it closed and pay for the check.
+	/// </summary>
+	private async Task ReturnChannelAsync(IChannel? channel)
+	{
+		if (channel is null)
+			return;
+
+		if (channel.IsOpen)
+		{
+			_idleChannels.Add(item: channel);
+			return;
+		}
+
+		await DiscardChannelAsync(channel: channel);
+	}
+
+	private async Task<IChannel> CreateChannelAsync(CancellationToken ct)
+	{
+		IConnection connection = await EnsureConnectionAsync(ct: ct);
+
+		IChannel channel = await connection.CreateChannelAsync(
 			options: new CreateChannelOptions(
 				publisherConfirmationsEnabled: true,
 				publisherConfirmationTrackingEnabled: true
@@ -120,16 +159,42 @@ public sealed class RabbitMqPublisher(
 			cancellationToken: ct
 		);
 
-		_channel.BasicReturnAsync += OnBasicReturnAsync;
+		channel.BasicReturnAsync += OnBasicReturnAsync;
 
-		await _channel.ExchangeDeclareAsync(
+		await channel.ExchangeDeclareAsync(
 			exchange: _options.ExchangeName,
 			type: ExchangeType.Topic,
 			durable: true,
 			cancellationToken: ct
 		);
 
-		return _channel;
+		return channel;
+	}
+
+	private async Task<IConnection> EnsureConnectionAsync(CancellationToken ct)
+	{
+		if (_connection is { IsOpen: true })
+			return _connection;
+
+		await _connectionLock.WaitAsync(cancellationToken: ct);
+
+		try
+		{
+			if (_connection is { IsOpen: true })
+				return _connection;
+
+			await DiscardIdleChannelsAsync();
+			await DisposeConnectionAsync();
+
+			_connection = await _connectionFactory.CreateConnectionAsync(ct: ct);
+			RabbitMqVersionGuard.EnsureSupportedVersion(connection: _connection);
+
+			return _connection;
+		}
+		finally
+		{
+			_connectionLock.Release();
+		}
 	}
 
 	/// <summary>
@@ -141,7 +206,7 @@ public sealed class RabbitMqPublisher(
 	/// </summary>
 	private async Task OnBasicReturnAsync(object sender, BasicReturnEventArgs args)
 	{
-		logger.ZLogError(message: $"""
+		_logger.ZLogError(message: $"""
 			[RabbitMqPublisher] Message returned as unroutable: exchange='{args.Exchange}',
 			routingKey='{args.RoutingKey}', replyCode={args.ReplyCode}, replyText='{args.ReplyText}'.
 		""");
@@ -153,7 +218,7 @@ public sealed class RabbitMqPublisher(
 	{
 		try
 		{
-			await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
+			await using AsyncServiceScope scope = _scopeFactory.CreateAsyncScope();
 
 			IUnresolvableEventWriteRepository repository = scope.ServiceProvider.GetRequiredService<IUnresolvableEventWriteRepository>();
 			IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -179,29 +244,38 @@ public sealed class RabbitMqPublisher(
 		}
 		catch (Exception ex)
 		{
-			logger.ZLogError(exception: ex, message: $"[RabbitMqPublisher] Failed to record unroutable message in unresolvable_events.");
+			_logger.ZLogError(exception: ex, message: $"[RabbitMqPublisher] Failed to record unroutable message in unresolvable_events.");
 		}
 	}
 
-	private async Task DisposeStaleConnectionAsync()
+	private async Task DiscardChannelAsync(IChannel channel)
 	{
-		if (_channel is not null)
-		{
-			_channel.BasicReturnAsync -= OnBasicReturnAsync;
-			await _channel.DisposeAsync();
-			_channel = null;
-		}
+		channel.BasicReturnAsync -= OnBasicReturnAsync;
+		await channel.DisposeAsync();
+	}
 
-		if (_connection is not null)
-		{
-			await _connection.DisposeAsync();
-			_connection = null;
-		}
+	private async Task DiscardIdleChannelsAsync()
+	{
+		while (_idleChannels.TryTake(result: out IChannel? channel))
+			await DiscardChannelAsync(channel: channel);
+	}
+
+	private async Task DisposeConnectionAsync()
+	{
+		if (_connection is null)
+			return;
+
+		await _connection.DisposeAsync();
+		_connection = null;
 	}
 
 	public async ValueTask DisposeAsync()
 	{
-		await DisposeStaleConnectionAsync();
-		_channelLock.Dispose();
+		await DiscardIdleChannelsAsync();
+
+		await DisposeConnectionAsync();
+
+		_connectionLock.Dispose();
+		_slots.Dispose();
 	}
 }

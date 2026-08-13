@@ -18,9 +18,17 @@ public sealed class OutboxOptions : IJobOptions
 	[Range(minimum: 1, maximum: 60)]
 	public int IntervalSeconds { get; init; } = 3;
 
-	/// <summary>Maximum messages processed per job execution. Default: 20.</summary>
+	/// <summary>
+	/// Maximum messages processed per job execution. Default: 20.
+	/// </summary>
 	[Range(minimum: 1, maximum: 1000)]
-	public int BatchSize { get; init; } = 20;
+	public int BatchSize { get; init; } = 200;
+
+	/// <summary>
+	/// How many messages are published to the broker at once within a single batch. Default: 8.
+	/// </summary>
+	[Range(minimum: 1, maximum: 64)]
+	public int PublishConcurrency { get; init; } = 8;
 
 	/// <summary>
 	/// Maximum publish attempts before a message is moved to <c>unresolvable_events</c>. Default: 5.

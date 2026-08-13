@@ -8,9 +8,6 @@ public static class FinanceTrackerJsonOptions
 	public static readonly JsonSerializerOptions Payload = new JsonSerializerOptions
 	{
 		PropertyNamingPolicy = null,
-		WriteIndented = true,
-		IndentSize = 1,
-		IndentCharacter = '\t',
 		Converters = { new JsonStringEnumConverter() }
 	};
 

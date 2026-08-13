@@ -34,6 +34,11 @@ public sealed class OutboxPublisherJob(
 	ILogger<OutboxPublisherJob> logger
 ) : BaseJob<OutboxOptions>(options: options, logger: logger)
 {
+	private sealed record PublishOutcome(PendingOutboxMessage Message, Exception? Failure, bool Cancelled)
+	{
+		public bool IsPublished => Failure is null && !Cancelled;
+	}
+
 	protected override async Task ProcessAsync(OutboxOptions options, CancellationToken ct)
 	{
 		IReadOnlyList<PendingOutboxMessage> messages = await outboxReadRepository.ClaimPendingBatchAsync(
@@ -58,64 +63,99 @@ public sealed class OutboxPublisherJob(
 		OutboxOptions options,
 		CancellationToken ct)
 	{
-		logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s).");
+		logger.ZLogInformation(message: $"Publishing {messages.Count} outbox message(s) with a concurrency of {options.PublishConcurrency}.");
 
-		int published = 0;
-		foreach (PendingOutboxMessage message in messages)
+		PublishOutcome[] outcomes = await PublishAllAsync(messages: messages, options: options, ct: ct);
+
+		await SettleAsync(outcomes: outcomes, options: options, ct: ct);
+	}
+
+	private async Task<PublishOutcome[]> PublishAllAsync(
+		IReadOnlyList<PendingOutboxMessage> messages,
+		OutboxOptions options,
+		CancellationToken ct)
+	{
+		PublishOutcome[] outcomes = new PublishOutcome[messages.Count];
+
+		await Parallel.ForEachAsync(
+			source: Enumerable.Range(start: 0, count: messages.Count),
+			parallelOptions: new ParallelOptions { MaxDegreeOfParallelism = options.PublishConcurrency },
+			body: async (index, _) => outcomes[index] = await PublishOneAsync(message: messages[index], ct: ct)
+		);
+
+		return outcomes;
+	}
+
+	private async Task<PublishOutcome> PublishOneAsync(PendingOutboxMessage message, CancellationToken ct)
+	{
+		if (ct.IsCancellationRequested)
+			return new PublishOutcome(Message: message, Failure: null, Cancelled: true);
+
+		Stopwatch sw = Stopwatch.StartNew();
+		Activity? activity = null;
+
+		try
 		{
-			if (ct.IsCancellationRequested)
-				break;
+			OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
+				?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
 
-			Stopwatch sw = Stopwatch.StartNew();
-			Activity? activity = null;
+			activity = StartPublishActivity(message: message, payload: payload);
 
-			try
-			{
-				OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(json: message.Payload)
-					?? throw new SerializationException(message: "Failed to deserialize outbox payload.");
+			AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
+				MessageId: message.Id,
+				AggregateId: message.AggregateId,
+				AggregateType: message.AggregateType,
+				CorrelationId: payload.CorrelationId,
+				Events: payload.Events.Select(selector: e => new EventEnvelope(
+					EventType: e.EventType,
+					EventPayload: e.EventPayload
+				)).ToList()
+			);
 
-				activity = StartPublishActivity(message: message, payload: payload);
+			await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
 
-				AggregateEventsMessage brokerMessage = new AggregateEventsMessage(
-					MessageId: message.Id,
-					AggregateId: message.AggregateId,
-					AggregateType: message.AggregateType,
-					CorrelationId: payload.CorrelationId,
-					Events: payload.Events.Select(selector: e => new EventEnvelope(
-						EventType: e.EventType,
-						EventPayload: e.EventPayload
-					)).ToList()
-				);
+			activity?.SetStatus(code: ActivityStatusCode.Ok);
+			WorkerMetrics.OutboxPublished.Add(delta: 1);
 
-				await publisher.PublishAsync(message: brokerMessage, correlationId: payload.CorrelationId, ct: ct);
-
-				await outboxWriteRepository.MarkAsPublishedAsync(
-					messageId: message.Id,
-					processedAt: dateProvider.UtcNow,
-					ct: ct
-				);
-
-				activity?.SetStatus(code: ActivityStatusCode.Ok);
-
-				WorkerMetrics.OutboxPublished.Add(delta: 1);
-				logger.ZLogInformation(message: $"Published: {++published}/{messages.Count}.");
-			}
-			catch (Exception exception)
-			{
-				activity?.SetStatus(code: ActivityStatusCode.Error, description: exception.Message);
-
-				if (ct.IsCancellationRequested)
-					return;
-
-				logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
-				await UpdateRetryStateAsync(message: message, options: options, ct: ct);
-			}
-			finally
-			{
-				activity?.Dispose();
-				WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
-			}
+			return new PublishOutcome(Message: message, Failure: null, Cancelled: false);
 		}
+		catch (Exception exception)
+		{
+			activity?.SetStatus(code: ActivityStatusCode.Error, description: exception.Message);
+
+			if (ct.IsCancellationRequested)
+				return new PublishOutcome(Message: message, Failure: null, Cancelled: true);
+
+			logger.ZLogError(exception: exception, message: $"Failed to publish outbox message {message.Id}.");
+			return new PublishOutcome(Message: message, Failure: exception, Cancelled: false);
+		}
+		finally
+		{
+			activity?.Dispose();
+			WorkerMetrics.MessageProcessingDuration.Record(value: sw.Elapsed.TotalMilliseconds);
+		}
+	}
+
+	private async Task SettleAsync(PublishOutcome[] outcomes, OutboxOptions options, CancellationToken ct)
+	{
+		Guid[] publishedIds = outcomes.Where(predicate: o => o.IsPublished).Select(selector: o => o.Message.Id).ToArray();
+
+		if (publishedIds.Length > 0)
+		{
+			await outboxWriteRepository.MarkAsPublishedBatchAsync(
+				messageIds: publishedIds,
+				processedAt: dateProvider.UtcNow,
+				ct: ct.IsCancellationRequested ? CancellationToken.None : ct
+			);
+
+			logger.ZLogInformation(message: $"Published {publishedIds.Length}/{outcomes.Length} outbox message(s).");
+		}
+
+		if (ct.IsCancellationRequested)
+			return;
+
+		foreach (PublishOutcome outcome in outcomes.Where(predicate: o => o.Failure is not null))
+			await UpdateRetryStateAsync(message: outcome.Message, options: options, ct: ct);
 	}
 
 	/// <summary>

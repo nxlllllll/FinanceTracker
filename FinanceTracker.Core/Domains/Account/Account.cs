@@ -109,6 +109,14 @@ public sealed class Account : AggregateRoot
 		return account;
 	}
 
+	private Result<Unit, DomainException> CheckRate(decimal rate)
+	{
+		if (rate <= 0)
+			return Result<Unit, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
 	private Result<Unit, DomainException> CheckConstraints(decimal amount, decimal rate = 1m)
 	{
 		if (IsArchived)
@@ -117,10 +125,7 @@ public sealed class Account : AggregateRoot
 		if (amount <= 0)
 			return Result<Unit, DomainException>.Failure(error: new InvalidAmountException(message: "Amount must be greater than zero."));
 
-		if (rate <= 0)
-			return Result<Unit, DomainException>.Failure(error: new InvalidExchangeRateException(message: "Exchange rate must be greater than zero."));
-
-		return Result<Unit, DomainException>.Success(value: Unit.Default);
+		return CheckRate(rate: rate);
 	}
 
 	private Result<Unit, DomainException> CheckSufficientFunds(decimal amount, decimal rate = 1m)
@@ -214,13 +219,13 @@ public sealed class Account : AggregateRoot
 		decimal newRate,
 		decimal amount)
 	{
-		Result<Unit, DomainException> oldRateConstraints = CheckConstraints(amount: amount, rate: oldRate);
-		if (oldRateConstraints.IsFailure)
-			return oldRateConstraints;
-
 		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: newRate);
 		if (constraints.IsFailure)
 			return constraints;
+
+		Result<Unit, DomainException> oldRateValid = CheckRate(rate: oldRate);
+		if (oldRateValid.IsFailure)
+			return oldRateValid;
 
 		int sign = GetSign(direction: direction);
 		decimal delta = (Money.ConvertedAmount(amount: amount, rate: newRate) - Money.ConvertedAmount(amount: amount, rate: oldRate)) * sign;

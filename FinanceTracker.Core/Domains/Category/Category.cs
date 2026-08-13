@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
 using FinanceTracker.Core.Results;
@@ -9,7 +10,7 @@ namespace FinanceTracker.Core.Domains.Category;
 /// Represents a transaction category (e.g. Food, Transport).
 /// Categories can be nested via <see cref="ParentId"/> for sub-category grouping.
 /// </summary>
-public sealed class Category
+public sealed class Category : IHasId
 {
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }

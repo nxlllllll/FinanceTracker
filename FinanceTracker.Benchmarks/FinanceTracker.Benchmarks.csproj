@@ -11,6 +11,7 @@
         <PackageReference Include="BenchmarkDotNet" />
         <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+        <PackageReference Include="SSH.NET" />
         <PackageReference Include="Testcontainers.PostgreSql" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

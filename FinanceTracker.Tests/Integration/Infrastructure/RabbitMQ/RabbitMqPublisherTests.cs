@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -85,15 +86,18 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	}
 
 
-	private static IChannel? GetInternalChannel(RabbitMqPublisher publisher)
+	private static ConcurrentBag<IChannel>? GetIdleChannels(RabbitMqPublisher publisher)
 	{
 		FieldInfo? field = typeof(RabbitMqPublisher).GetField(
-			name: "_channel",
+			name: "_idleChannels",
 			bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance
 		);
 
-		return field?.GetValue(obj: publisher) as IChannel;
+		return field?.GetValue(obj: publisher) as ConcurrentBag<IChannel>;
 	}
+
+	private static IChannel? GetPooledChannel(RabbitMqPublisher publisher)
+		=> GetIdleChannels(publisher: publisher)?.SingleOrDefault();
 
 	private static AggregateEventsMessage BuildMessage() => new AggregateEventsMessage(
 		MessageId: Guid.CreateVersion7(),
@@ -214,31 +218,37 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	public async Task PublishAsync_CalledTwiceSequentially_ShouldReuseSameChannel()
 	{
 		await _publisher.PublishAsync(message: BuildMessage());
-		IChannel? channelAfterFirstCall = GetInternalChannel(publisher: _publisher);
+		IChannel? channelAfterFirstCall = GetPooledChannel(publisher: _publisher);
 
 		await _publisher.PublishAsync(message: BuildMessage());
-		IChannel? channelAfterSecondCall = GetInternalChannel(publisher: _publisher);
+		IChannel? channelAfterSecondCall = GetPooledChannel(publisher: _publisher);
 
 		await Assert.That(value: channelAfterFirstCall).IsNotNull();
-		await Assert.That(value: ReferenceEquals(objA: channelAfterFirstCall, objB: channelAfterSecondCall)).IsTrue();
+		await Assert.That(value: ReferenceEquals(objA: channelAfterFirstCall, objB: channelAfterSecondCall)).IsTrue().Because(message: """
+				Sequential publishes must not each open a channel. The pool grows to the concurrency it
+				actually sees, so a publisher that never overlaps should still end up with exactly one.
+			""");
 	}
 
 	[Test]
 	public async Task PublishAsync_WhenCachedChannelIsClosed_ShouldTransparentlyReconnectAndDeliver()
 	{
 		await _publisher.PublishAsync(message: BuildMessage());
-		IChannel? staleChannel = GetInternalChannel(publisher: _publisher);
+		IChannel? staleChannel = GetPooledChannel(publisher: _publisher);
 		await Assert.That(value: staleChannel).IsNotNull();
 
 		await staleChannel!.CloseAsync();
 		await Assert.That(value: staleChannel.IsOpen).IsFalse();
 
 		await _publisher.PublishAsync(message: BuildMessage());
-		IChannel? freshChannel = GetInternalChannel(publisher: _publisher);
+		IChannel? freshChannel = GetPooledChannel(publisher: _publisher);
 
 		await Assert.That(value: freshChannel).IsNotNull();
 		await Assert.That(value: freshChannel!.IsOpen).IsTrue();
-		await Assert.That(value: ReferenceEquals(objA: staleChannel, objB: freshChannel)).IsFalse();
+		await Assert.That(value: ReferenceEquals(objA: staleChannel, objB: freshChannel)).IsFalse().Because(message: """
+				A channel that closed while idle must be discarded on the way out of the pool, not handed
+				to the next caller. Reusing it would fail every publish until something recreated it.
+			""");
 
 		await WaitForMessageCountAsync(expected: 2);
 

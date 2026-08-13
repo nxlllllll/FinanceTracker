@@ -1,6 +1,7 @@
 using FinanceTracker.Contracts.Events.UserPermission;
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
@@ -24,7 +25,9 @@ public sealed class PermissionEventApplierTests
 	}
 
 	private IUserPermissionWriteRepository _repository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private IDatabase _database = null!;
+	private List<Func<Task>> _committedCallbacks = null!;
 	private PermissionEventApplier _applier = null!;
 
 	[Before(hookType: Test)]
@@ -51,8 +54,27 @@ public sealed class PermissionEventApplierTests
 			logger: NullLogger<RedisCache>.Instance
 		);
 
-		_applier = new PermissionEventApplier(repository: _repository, redisCache: redisCache);
+		_committedCallbacks = [];
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_unitOfWork.OnCommitted(callback: Arg.Do<Func<Task>>(useArgument: callback => _committedCallbacks.Add(item: callback)));
+
+		_applier = new PermissionEventApplier(
+			repository: _repository,
+			redisCache: redisCache,
+			unitOfWork: _unitOfWork
+		);
 	}
+
+	private async Task CommitAsync()
+	{
+		foreach (Func<Task> callback in _committedCallbacks)
+			await callback();
+
+		_committedCallbacks.Clear();
+	}
+
+	private static string ExpectedKeyFor(Guid userId)
+		=> $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: userId)}";
 
 	[Test]
 	public async Task ApplyAsync_WithUserPermissionCreatedEvent_ShouldBeANoOp()
@@ -70,6 +92,13 @@ public sealed class PermissionEventApplierTests
 			@event: Arg.Any<PermissionGranted>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+		await Assert.That(value: _committedCallbacks).IsEmpty().Because(message: """
+			There is no header row per user, so nothing changed and nothing needs evicting.
+			Scheduling a callback here would be dead work on every user's very first grant.
+		""");
+
+		await CommitAsync();
+
 		await _database.DidNotReceive().KeyDeleteAsync(keys: Arg.Any<RedisKey[]>());
 	}
 
@@ -95,7 +124,30 @@ public sealed class PermissionEventApplierTests
 	}
 
 	[Test]
-	public async Task ApplyAsync_WithPermissionGrantedEvent_ShouldInvalidatePermissionCacheForThatUser()
+	public async Task ApplyAsync_WithPermissionGrantedEvent_ShouldNotTouchTheCacheBeforeTheCommit()
+	{
+		Guid userId = Guid.CreateVersion7();
+
+		await _applier.ApplyAsync(@event: new PermissionGrantedEvent(
+			EventId: Guid.CreateVersion7(),
+			UserId: userId,
+			GrantedBy: Guid.CreateVersion7(),
+			Permission: "account:write",
+			Version: 1,
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		));
+
+		await _database.DidNotReceive().KeyDeleteAsync(keys: Arg.Any<RedisKey[]>());
+		await Assert.That(value: _committedCallbacks.Count).IsEqualTo(expected: 1).Because(message: """
+			Evicting inline drops the key while this projection's own UPDATE is still uncommitted.
+			A concurrent authorization check landing in that window reads the pre-update read model
+			and caches the stale permission set for the full TTL — replacing the correct value the
+			write side had already put there. The eviction has to be queued for after the commit.
+		""");
+	}
+
+	[Test]
+	public async Task ApplyAsync_WithPermissionGrantedEvent_ShouldInvalidatePermissionCacheOnceCommitted()
 	{
 		Guid userId = Guid.CreateVersion7();
 
@@ -111,9 +163,11 @@ public sealed class PermissionEventApplierTests
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		));
 
+		await CommitAsync();
+
 		await Assert.That(value: deletedKeys).IsNotNull();
 		await Assert.That(value: deletedKeys!.Length).IsEqualTo(expected: 1);
-		await Assert.That(value: (string)deletedKeys![0]!).IsEqualTo(expected: $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: userId)}");
+		await Assert.That(value: (string)deletedKeys![0]!).IsEqualTo(expected: ExpectedKeyFor(userId: userId));
 	}
 
 	[Test]
@@ -137,7 +191,29 @@ public sealed class PermissionEventApplierTests
 	}
 
 	[Test]
-	public async Task ApplyAsync_WithPermissionRevokedEvent_ShouldInvalidatePermissionCacheForThatUser()
+	public async Task ApplyAsync_WithPermissionRevokedEvent_ShouldNotTouchTheCacheBeforeTheCommit()
+	{
+		Guid userId = Guid.CreateVersion7();
+
+		await _applier.ApplyAsync(@event: new PermissionRevokedEvent(
+			EventId: Guid.CreateVersion7(),
+			UserId: userId,
+			RevokedBy: Guid.CreateVersion7(),
+			Permission: "account:write",
+			Version: 2,
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		));
+
+		await _database.DidNotReceive().KeyDeleteAsync(keys: Arg.Any<RedisKey[]>());
+		await Assert.That(value: _committedCallbacks.Count).IsEqualTo(expected: 1).Because(message: """
+			A revoke evicted inline is the worst case of the same race: the stale set cached during
+			the window still contains the permission that was just taken away, and it stays in
+			effect until the TTL expires.
+		""");
+	}
+
+	[Test]
+	public async Task ApplyAsync_WithPermissionRevokedEvent_ShouldInvalidatePermissionCacheOnceCommitted()
 	{
 		Guid userId = Guid.CreateVersion7();
 
@@ -153,8 +229,10 @@ public sealed class PermissionEventApplierTests
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		));
 
+		await CommitAsync();
+
 		await Assert.That(value: deletedKeys).IsNotNull();
-		await Assert.That(value: (string)deletedKeys![0]!).IsEqualTo(expected: $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: userId)}");
+		await Assert.That(value: (string)deletedKeys![0]!).IsEqualTo(expected: ExpectedKeyFor(userId: userId));
 	}
 
 	[Test]

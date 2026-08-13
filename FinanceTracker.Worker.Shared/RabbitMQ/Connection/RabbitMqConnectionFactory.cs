@@ -14,6 +14,8 @@ public sealed class RabbitMqConnectionFactory(IOptions<RabbitMqOptions> options)
 {
 	private readonly RabbitMqOptions _options = options.Value;
 
+	private const ushort DispatchConcurrency = 1;
+
 	public async Task<IConnection> CreateConnectionAsync(CancellationToken ct = default)
 	{
 		ConnectionFactory factory = new ConnectionFactory
@@ -23,7 +25,8 @@ public sealed class RabbitMqConnectionFactory(IOptions<RabbitMqOptions> options)
 			UserName = _options.Username,
 			Password = _options.Password,
 			AutomaticRecoveryEnabled = false,
-			TopologyRecoveryEnabled = false
+			TopologyRecoveryEnabled = false,
+			ConsumerDispatchConcurrency = DispatchConcurrency
 		};
 
 		return await factory.CreateConnectionAsync(cancellationToken: ct);

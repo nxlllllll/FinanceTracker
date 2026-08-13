@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.RecurringTransaction;
@@ -10,7 +11,7 @@ namespace FinanceTracker.Core.Domains.RecurringTransaction;
 /// Represents a monthly recurring transaction that is automatically triggered
 /// on a specific day of month by <c>RecurringTransactionHandlingJob</c>.
 /// </summary>
-public sealed class RecurringTransaction
+public sealed class RecurringTransaction : IHasId
 {
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }

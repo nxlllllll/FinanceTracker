@@ -32,8 +32,17 @@ public sealed class FallbackRateLimiter(
 	{
 		if (Volatile.Read(location: ref _isDegraded) == 1)
 		{
-			TryScheduleRecoveryProbe(key: key, requestsPerWindow: requestsPerWindow, windowSeconds: windowSeconds);
-			return await fallback.IsAllowedAsync(key: key, requestsPerWindow: requestsPerWindow, windowSeconds: windowSeconds, ct: ct);
+			TryScheduleRecoveryProbe(
+				key: key,
+				requestsPerWindow: requestsPerWindow,
+				windowSeconds: windowSeconds
+			);
+			return await ServeFromFallbackAsync(
+				key: key,
+				requestsPerWindow: requestsPerWindow,
+				windowSeconds: windowSeconds,
+				ct: ct
+			);
 		}
 
 		Task<RateLimitResult> primaryTask = inner.IsAllowedAsync(
@@ -66,7 +75,28 @@ public sealed class FallbackRateLimiter(
 			MarkDegraded(reason: ex.Message);
 		}
 
-		return await fallback.IsAllowedAsync(key: key, requestsPerWindow: requestsPerWindow, windowSeconds: windowSeconds, ct: ct);
+		return await ServeFromFallbackAsync(
+			key: key,
+			requestsPerWindow: requestsPerWindow,
+			windowSeconds: windowSeconds,
+			ct: ct
+		);
+	}
+
+	private async Task<RateLimitResult> ServeFromFallbackAsync(
+		string key,
+		int requestsPerWindow,
+		int windowSeconds,
+		CancellationToken ct)
+	{
+		FinanceTrackerMetrics.RateLimiterFallbackActivated.Add(delta: 1);
+
+		return await fallback.IsAllowedAsync(
+			key: key,
+			requestsPerWindow: requestsPerWindow,
+			windowSeconds: windowSeconds,
+			ct: ct
+		);
 	}
 
 	/// <summary>
@@ -83,7 +113,11 @@ public sealed class FallbackRateLimiter(
 
 		Volatile.Write(location: ref _nextProbeTicks, value: Environment.TickCount64 + options.CurrentValue.RecoveryProbeIntervalMs);
 
-		_ = ProbeRedisAsync(key: key, requestsPerWindow: requestsPerWindow, windowSeconds: windowSeconds);
+		_ = ProbeRedisAsync(
+			key: key,
+			requestsPerWindow: requestsPerWindow,
+			windowSeconds: windowSeconds
+		);
 	}
 
 	private async Task ProbeRedisAsync(string key, int requestsPerWindow, int windowSeconds)
@@ -122,8 +156,6 @@ public sealed class FallbackRateLimiter(
 
 	private void MarkDegraded(string reason)
 	{
-		FinanceTrackerMetrics.RateLimiterFallbackActivated.Add(delta: 1);
-
 		if (Interlocked.Exchange(ref _isDegraded, 1) == 1)
 			return;
 

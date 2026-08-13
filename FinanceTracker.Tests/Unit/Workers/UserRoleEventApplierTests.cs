@@ -1,11 +1,11 @@
 using FinanceTracker.Contracts.Events.UserRole;
 using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Infrastructure.Cache;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Tests.Unit.Helpers;
-using FinanceTracker.Worker.PermissionProjection.Projection;
 using FinanceTracker.Worker.UserRoleProjection.Projection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -25,7 +25,9 @@ public sealed class UserRoleEventApplierTests
 	}
 
 	private IUserRoleWriteRepository _repository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private IDatabase _database = null!;
+	private List<Func<Task>> _committedCallbacks = null!;
 	private UserRoleEventApplier _applier = null!;
 
 	[Before(hookType: Test)]
@@ -52,8 +54,27 @@ public sealed class UserRoleEventApplierTests
 			logger: NullLogger<RedisCache>.Instance
 		);
 
-		_applier = new UserRoleEventApplier(repository: _repository, redisCache: redisCache);
+		_committedCallbacks = [];
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_unitOfWork.OnCommitted(callback: Arg.Do<Func<Task>>(useArgument: callback => _committedCallbacks.Add(item: callback)));
+
+		_applier = new UserRoleEventApplier(
+			repository: _repository,
+			redisCache: redisCache,
+			unitOfWork: _unitOfWork
+		);
 	}
+
+	private async Task CommitAsync()
+	{
+		foreach (Func<Task> callback in _committedCallbacks)
+			await callback();
+
+		_committedCallbacks.Clear();
+	}
+
+	private static string ExpectedKeyFor(Guid userId)
+		=> $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: userId)}";
 
 	[Test]
 	public async Task ApplyAsync_WithUserRoleCreatedEvent_ShouldDoNothing()
@@ -67,6 +88,10 @@ public sealed class UserRoleEventApplierTests
 
 		await _repository.DidNotReceive().AssignAsync(@event: Arg.Any<RoleAssigned>(), ct: Arg.Any<CancellationToken>());
 		await _repository.DidNotReceive().RemoveAsync(@event: Arg.Any<RoleRemoved>(), ct: Arg.Any<CancellationToken>());
+		await Assert.That(value: _committedCallbacks).IsEmpty().Because(message: """
+			No membership changed, so there is nothing to evict. Scheduling a callback anyway would
+			be dead work on every user's very first role assignment.
+		""");
 	}
 
 	[Test]
@@ -124,7 +149,30 @@ public sealed class UserRoleEventApplierTests
 	}
 
 	[Test]
-	public async Task ApplyAsync_WithMembershipChange_ShouldInvalidateThePermissionCacheForThatUser()
+	public async Task ApplyAsync_WithMembershipChange_ShouldNotTouchTheCacheBeforeTheCommit()
+	{
+		Guid userId = Guid.CreateVersion7();
+
+		await _applier.ApplyAsync(@event: new RoleAssignedEvent(
+			EventId: Guid.CreateVersion7(),
+			UserId: userId,
+			RoleId: Guid.CreateVersion7(),
+			AssignedBy: Guid.CreateVersion7(),
+			Version: 2,
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		));
+
+		await _database.DidNotReceive().KeyDeleteAsync(keys: Arg.Any<RedisKey[]>());
+		await Assert.That(value: _committedCallbacks.Count).IsEqualTo(expected: 1).Because(message: """
+			Evicting inline drops the key while this projection's own UPDATE is still uncommitted.
+			A concurrent authorization check landing in that window reads the pre-update read model
+			and caches the stale permission set for the full TTL — replacing the correct value the
+			write side had already put there. The eviction has to be queued for after the commit.
+		""");
+	}
+
+	[Test]
+	public async Task ApplyAsync_WithRoleAssignedEvent_ShouldInvalidateThePermissionCacheOnceCommitted()
 	{
 		Guid userId = Guid.CreateVersion7();
 
@@ -140,10 +188,38 @@ public sealed class UserRoleEventApplierTests
 			OccurredAt: FakeDateProvider.Default.UtcNow
 		));
 
+		await CommitAsync();
+
 		await Assert.That(value: deletedKeys).IsNotNull();
-		await Assert.That(value: (string)deletedKeys![0]!).IsEqualTo(expected: $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: userId)}").Because(message: """
-			Roles feed effective permissions, so a membership change has to drop the same cache entry a
-			grant would. Leaving it in place means the change quietly does nothing until it expires.
+		await Assert.That(value: (string)deletedKeys![0]!).IsEqualTo(expected: ExpectedKeyFor(userId: userId)).Because(message: """
+			Roles feed effective permissions, so a membership change has to drop the same cache entry
+			a grant would. Leaving it in place means the change quietly does nothing until it expires.
+		""");
+	}
+
+	[Test]
+	public async Task ApplyAsync_WithRoleRemovedEvent_ShouldInvalidateThePermissionCacheOnceCommitted()
+	{
+		Guid userId = Guid.CreateVersion7();
+
+		RedisKey[]? deletedKeys = null;
+		_database.KeyDeleteAsync(keys: Arg.Do<RedisKey[]>(useArgument: k => deletedKeys = k)).Returns(returnThis: 1L);
+
+		await _applier.ApplyAsync(@event: new RoleRemovedEvent(
+			EventId: Guid.CreateVersion7(),
+			UserId: userId,
+			RoleId: Guid.CreateVersion7(),
+			RemovedBy: Guid.CreateVersion7(),
+			Version: 3,
+			OccurredAt: FakeDateProvider.Default.UtcNow
+		));
+
+		await CommitAsync();
+
+		await Assert.That(value: deletedKeys).IsNotNull();
+		await Assert.That(value: (string)deletedKeys![0]!).IsEqualTo(expected: ExpectedKeyFor(userId: userId)).Because(message: """
+			Losing a role has to drop the same entry gaining one does. Skipping it here leaves the
+			permissions the removed role granted in effect until the TTL expires.
 		""");
 	}
 

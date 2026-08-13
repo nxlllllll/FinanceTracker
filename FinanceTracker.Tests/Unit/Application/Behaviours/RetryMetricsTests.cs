@@ -1,5 +1,4 @@
-using FinanceTracker.Application.Behaviours.Retry;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
+﻿using FinanceTracker.Application.Behaviours.Retry;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Persistence;
@@ -21,21 +20,27 @@ public sealed class RetryMetricsTests
 
 	public sealed record TestResponse;
 
-	private static RetryBehaviour<TestCommand, TestResponse> CreateBehaviour(bool transientFaults)
+	private static IOptionsMonitor<RetryOptions> Options() => new FakeOptionsMonitor<RetryOptions>(value: new RetryOptions
 	{
-		IOptionsMonitor<RetryOptions> options = new FakeOptionsMonitor<RetryOptions>(value: new RetryOptions
-		{
-			MaxRetries = 3,
-			BaseDelayMs = 0,
-			UseJitter = false
-		});
+		MaxRetries = 3,
+		BaseDelayMs = 0,
+		UseJitter = false
+	});
 
+	private static ConcurrencyRetryBehaviour<TestCommand, TestResponse> CreateConcurrencyBehaviour()
+		=> new ConcurrencyRetryBehaviour<TestCommand, TestResponse>(
+			logger: Substitute.For<ILogger<ConcurrencyRetryBehaviour<TestCommand, TestResponse>>>(),
+			options: Options()
+		);
+
+	private static TransientRetryBehaviour<TestCommand, TestResponse> CreateTransientBehaviour(bool transientFaults)
+	{
 		ITransientFaultDetector detector = Substitute.For<ITransientFaultDetector>();
 		detector.IsTransient(exception: Arg.Any<Exception>()).Returns(returnThis: transientFaults);
 
-		return new RetryBehaviour<TestCommand, TestResponse>(
-			logger: Substitute.For<ILogger<RetryBehaviour<TestCommand, TestResponse>>>(),
-			options: options,
+		return new TransientRetryBehaviour<TestCommand, TestResponse>(
+			logger: Substitute.For<ILogger<TransientRetryBehaviour<TestCommand, TestResponse>>>(),
+			options: Options(),
 			transientFaultDetector: detector
 		);
 	}
@@ -61,7 +66,7 @@ public sealed class RetryMetricsTests
 	{
 		using MetricCollector collector = new MetricCollector(Retried);
 
-		await CreateBehaviour(transientFaults: false).Handle(
+		await CreateConcurrencyBehaviour().Handle(
 			request: new TestCommand(),
 			next: FailsOnceThenSucceeds(exception: new ConcurrencyConflictException(message: "conflict", id: Guid.CreateVersion7())),
 			cancellationToken: CancellationToken.None
@@ -78,7 +83,7 @@ public sealed class RetryMetricsTests
 	{
 		using MetricCollector collector = new MetricCollector(Retried);
 
-		await CreateBehaviour(transientFaults: true).Handle(
+		await CreateTransientBehaviour(transientFaults: true).Handle(
 			request: new TestCommand(),
 			next: FailsOnceThenSucceeds(exception: new InvalidOperationException("connection reset")),
 			cancellationToken: CancellationToken.None
@@ -105,7 +110,7 @@ public sealed class RetryMetricsTests
 		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
 		next(t: Arg.Any<CancellationToken>()).Throws(createException: _ => new ConcurrencyConflictException(message: "conflict", id: Guid.CreateVersion7()));
 
-		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await CreateBehaviour(transientFaults: false).Handle(
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await CreateConcurrencyBehaviour().Handle(
 			request: new TestCommand(),
 			next: next,
 			cancellationToken: CancellationToken.None
@@ -126,7 +131,7 @@ public sealed class RetryMetricsTests
 		RequestHandlerDelegate<TestResponse> next = Substitute.For<RequestHandlerDelegate<TestResponse>>();
 		next(t: Arg.Any<CancellationToken>()).Returns(returnThis: new TestResponse());
 
-		await CreateBehaviour(transientFaults: false).Handle(
+		await CreateConcurrencyBehaviour().Handle(
 			request: new TestCommand(),
 			next: next,
 			cancellationToken: CancellationToken.None
