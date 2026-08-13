@@ -135,7 +135,7 @@ public sealed class OutboxPublisherJobTests
 	}
 
 	[Test]
-	public async Task Execute_WhenBatchHasMessages_ShouldMarkEachAsPublished()
+	public async Task Execute_WhenBatchHasMessages_ShouldMarkThemPublishedInOneCall()
 	{
 		PendingOutboxMessage msg1 = MakeMessage();
 		PendingOutboxMessage msg2 = MakeMessage();
@@ -149,14 +149,15 @@ public sealed class OutboxPublisherJobTests
 
 		await _job.Execute(context: _jobContext);
 
-		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsPublishedAsync(
-			messageId: msg1.Id,
+		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsPublishedBatchAsync(
+			messageIds: Arg.Is<IReadOnlyCollection<Guid>>(predicate: ids => ids!.Count == 2 && ids.Contains(msg1.Id) && ids.Contains(msg2.Id)),
 			processedAt: Now,
 			ct: Arg.Any<CancellationToken>()
 		);
-		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsPublishedAsync(
-			messageId: msg2.Id,
-			processedAt: Now,
+
+		await _writeRepository.DidNotReceive().MarkAsPublishedAsync(
+			messageId: Arg.Any<Guid>(),
+			processedAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
