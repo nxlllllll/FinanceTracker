@@ -13,6 +13,24 @@ public sealed partial class MultiStatementWriteArchitectureTests
 	private const string InfrastructureProject = "FinanceTracker.Infrastructure";
 	private const string ApplicationProject = "FinanceTracker.Application";
 	private static readonly Assembly ApplicationAssembly = typeof(DependencyInjection).Assembly;
+
+	private static readonly HashSet<string> BlockKeywords =
+	[
+		"if",
+		"else",
+		"for",
+		"foreach",
+		"while",
+		"do",
+		"switch",
+		"try",
+		"catch",
+		"finally",
+		"using",
+		"lock",
+		"fixed"
+	];
+
 	[GeneratedRegex(pattern: @"\b(ExecuteDeleteAsync|ExecuteUpdateAsync|ExecuteSqlAsync|ExecuteSqlRawAsync|ExecuteSqlInterpolatedAsync)\s*\(", RegexOptions.Compiled)]
 	private static partial Regex ImmediateWrite();
 	[GeneratedRegex(pattern: @"\b(AddAsync|AddRangeAsync|UpdateRange|RemoveRange)\s*\(", RegexOptions.Compiled)]
@@ -48,8 +66,10 @@ public sealed partial class MultiStatementWriteArchitectureTests
 			string typeName = Path.GetFileNameWithoutExtension(path: file);
 
 			List<string> methods = MethodBodies(source: source)
+				.Where(predicate: method => !BlockKeywords.Contains(item: method.Name))
 				.Where(predicate: method => IsMultiStatementWrite(body: method.Body))
 				.Select(selector: method => method.Name)
+				.Distinct(comparer: StringComparer.Ordinal)
 				.ToList();
 
 			if (methods.Count != 0)
@@ -148,7 +168,7 @@ public sealed partial class MultiStatementWriteArchitectureTests
 					? dependency.Name[1..]
 					: dependency.Name;
 
-				if (!hazards.TryGetValue(key: implementationName, value: out IReadOnlyList<string>? methods))
+				if (!hazards.TryGetValue(key: implementationName, out IReadOnlyList<string>? methods))
 					continue;
 
 				List<string> called = methods.Where(predicate: method => CallsMethod(source: source, methodName: method)).ToList();
@@ -174,6 +194,19 @@ public sealed partial class MultiStatementWriteArchitectureTests
 		await Assert.That(value: hazards.ContainsKey(key: "RoleRepository")).IsTrue().Because(message:
 			"RoleRepository.ReplacePermissionsAsync deletes then re-inserts, and DeleteAsync issues three deletes — " +
 			"if the scan stops seeing that, it has stopped detecting the exact shape it was written for."
+		);
+
+		IReadOnlyList<string> roleRepositoryMethods = hazards["RoleRepository"];
+
+		await Assert.That(value: roleRepositoryMethods.All(predicate: name => !String.IsNullOrEmpty(value: name))).IsTrue().Because(message:
+			"At least one extracted method name is empty, which means the name capture in Signature() is not being read. " +
+			"Every name then flows into CallsMethod as an empty pattern that matches nothing, so the rule reports no " +
+			"violation regardless of the code — passing without checking anything."
+		);
+
+		await Assert.That(value: roleRepositoryMethods.Contains(value: "ReplacePermissionsAsync")).IsTrue().Because(message:
+			"The scan found hazardous methods in RoleRepository but not this one by name. Asserting on the key alone " +
+			"leaves the extracted names unverified, which is exactly how a broken capture stays invisible."
 		);
 	}
 

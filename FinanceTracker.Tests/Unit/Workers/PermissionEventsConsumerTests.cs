@@ -55,7 +55,11 @@ public sealed class PermissionEventsConsumerTests : DatabaseFixture
 			logger: NullLogger<RedisCache>.Instance
 		);
 
-		PermissionEventApplier applier = new PermissionEventApplier(repository: _writeRepository, redisCache: redisCache);
+		PermissionEventApplier applier = new PermissionEventApplier(
+			repository: _writeRepository,
+			redisCache: redisCache,
+			unitOfWork: UnitOfWork
+		);
 
 		PermissionProjection projection = new PermissionProjection(
 			applier: applier,

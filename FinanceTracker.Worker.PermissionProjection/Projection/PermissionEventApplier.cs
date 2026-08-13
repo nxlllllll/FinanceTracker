@@ -2,6 +2,7 @@ using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.UserPermission;
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Cache;
 
@@ -15,7 +16,8 @@ namespace FinanceTracker.Worker.PermissionProjection.Projection;
 /// </summary>
 public sealed class PermissionEventApplier(
 	IUserPermissionWriteRepository repository,
-	RedisCache redisCache)
+	RedisCache redisCache,
+	IUnitOfWork unitOfWork)
 {
 	public Task ApplyAsync(
 		IIntegrationEvent @event,
@@ -32,31 +34,37 @@ public sealed class PermissionEventApplier(
 		PermissionGrantedEvent e,
 		CancellationToken ct)
 	{
-		await repository.GrantAsync(new PermissionGranted(
+		await repository.GrantAsync(@event: new PermissionGranted(
 			Id: e.EventId,
 			UserId: e.UserId,
 			GrantedBy: e.GrantedBy,
 			Permission: e.Permission,
 			Version: e.Version,
 			OccurredAt: e.OccurredAt
-		), ct);
+		), ct: ct);
 
-		await redisCache.DeleteBatchAsync(keys: [CachedUserPermissionReadRepository.KeyFor(userId: e.UserId)]);
+		ScheduleCacheInvalidation(userId: e.UserId);
 	}
 
 	private async Task ApplyAsync(
 		PermissionRevokedEvent e,
 		CancellationToken ct)
 	{
-		await repository.RevokeAsync(new PermissionRevoked(
+		await repository.RevokeAsync(@event: new PermissionRevoked(
 			Id: e.EventId,
 			UserId: e.UserId,
 			RevokedBy: e.RevokedBy,
 			Permission: e.Permission,
 			Version: e.Version,
 			OccurredAt: e.OccurredAt
-		), ct);
+		), ct: ct);
 
-		await redisCache.DeleteBatchAsync(keys: [CachedUserPermissionReadRepository.KeyFor(userId: e.UserId)]);
+		ScheduleCacheInvalidation(userId: e.UserId);
 	}
+
+	private void ScheduleCacheInvalidation(
+		Guid userId
+	) => unitOfWork.OnCommitted(callback: () => redisCache.DeleteBatchAsync(
+		keys: [CachedUserPermissionReadRepository.KeyFor(userId: userId)]
+	));
 }
