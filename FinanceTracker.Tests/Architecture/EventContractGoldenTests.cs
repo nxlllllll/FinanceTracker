@@ -47,19 +47,7 @@ public sealed class EventContractGoldenTests
 				Version: 1,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"UserId": "00000000-0000-0000-0000-000000000003",
-				"Name": "Checking",
-				"Type": "Checking",
-				"Currency": "USD",
-				"Balance": 1000.50,
-				"Version": 1,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","UserId":"00000000-0000-0000-0000-000000000003","Name":"Checking","Type":"Checking","Currency":"USD","Balance":1000.50,"Version":1,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountDebited)] = (
 			new AccountDebited(
@@ -73,19 +61,7 @@ public sealed class EventContractGoldenTests
 				Version: 2,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"TransactionId": "00000000-0000-0000-0000-000000000004",
-				"CategoryId": "00000000-0000-0000-0000-000000000005",
-				"Amount": 250.75,
-				"ExchangeRate": 1.0,
-				"Description": "Groceries",
-				"Version": 2,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransactionId":"00000000-0000-0000-0000-000000000004","CategoryId":"00000000-0000-0000-0000-000000000005","Amount":250.75,"ExchangeRate":1.0,"Description":"Groceries","Version":2,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountCredited)] = (
 			new AccountCredited(
@@ -99,19 +75,7 @@ public sealed class EventContractGoldenTests
 				Version: 3,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"TransactionId": "00000000-0000-0000-0000-000000000004",
-				"CategoryId": "00000000-0000-0000-0000-000000000005",
-				"Amount": 500.00,
-				"ExchangeRate": 1.0,
-				"Description": "Salary",
-				"Version": 3,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransactionId":"00000000-0000-0000-0000-000000000004","CategoryId":"00000000-0000-0000-0000-000000000005","Amount":500.00,"ExchangeRate":1.0,"Description":"Salary","Version":3,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountArchived)] = (
 			new AccountArchived(
@@ -120,14 +84,7 @@ public sealed class EventContractGoldenTests
 				Version: 4,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"Version": 4,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","Version":4,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountUnarchived)] = (
 			new AccountUnarchived(
@@ -136,14 +93,7 @@ public sealed class EventContractGoldenTests
 				Version: 5,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"Version": 5,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","Version":5,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountRenamed)] = (
 			new AccountRenamed(
@@ -153,15 +103,7 @@ public sealed class EventContractGoldenTests
 				Version: 6,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"NewName": "Savings",
-				"Version": 6,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","NewName":"Savings","Version":6,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountTransferDebited)] = (
 			new AccountTransferDebited(
@@ -175,19 +117,7 @@ public sealed class EventContractGoldenTests
 				Version: 7,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"TransferId": "00000000-0000-0000-0000-000000000006",
-				"ToAccountId": "00000000-0000-0000-0000-000000000007",
-				"Amount": 100.00,
-				"ForexRate": 1.0,
-				"Description": "Transfer out",
-				"Version": 7,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransferId":"00000000-0000-0000-0000-000000000006","ToAccountId":"00000000-0000-0000-0000-000000000007","Amount":100.00,"ForexRate":1.0,"Description":"Transfer out","Version":7,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountTransferCredited)] = (
 			new AccountTransferCredited(
@@ -201,19 +131,7 @@ public sealed class EventContractGoldenTests
 				Version: 8,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"TransferId": "00000000-0000-0000-0000-000000000006",
-				"FromAccountId": "00000000-0000-0000-0000-000000000007",
-				"Amount": 100.00,
-				"ExchangeRate": 0.92,
-				"Description": "Transfer in",
-				"Version": 8,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransferId":"00000000-0000-0000-0000-000000000006","FromAccountId":"00000000-0000-0000-0000-000000000007","Amount":100.00,"ExchangeRate":0.92,"Description":"Transfer in","Version":8,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountTransferRefunded)] = (
 			new AccountTransferRefunded(
@@ -225,17 +143,7 @@ public sealed class EventContractGoldenTests
 				Version: 9,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"TransferId": "00000000-0000-0000-0000-000000000006",
-				"Amount": 100.00,
-				"Description": "Refund",
-				"Version": 9,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransferId":"00000000-0000-0000-0000-000000000006","Amount":100.00,"Description":"Refund","Version":9,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(AccountBalanceAdjusted)] = (
 			new AccountBalanceAdjusted(
@@ -250,20 +158,7 @@ public sealed class EventContractGoldenTests
 				Version: 10,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"AccountId": "00000000-0000-0000-0000-000000000002",
-				"SourceId": "00000000-0000-0000-0000-000000000008",
-				"SourceType": "Transaction",
-				"OldRate": 0.90,
-				"NewRate": 0.92,
-				"Amount": 100.00,
-				"Delta": 2.17,
-				"Version": 10,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","SourceId":"00000000-0000-0000-0000-000000000008","SourceType":"Transaction","OldRate":0.90,"NewRate":0.92,"Amount":100.00,"Delta":2.17,"Version":10,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(UserPermissionCreated)] = (
 			new UserPermissionCreated(
@@ -272,14 +167,7 @@ public sealed class EventContractGoldenTests
 				Version: 11,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"UserId": "00000000-0000-0000-0000-000000000009",
-				"Version": 11,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","UserId":"00000000-0000-0000-0000-000000000009","Version":11,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(PermissionGranted)] = (
 			new PermissionGranted(
@@ -290,16 +178,7 @@ public sealed class EventContractGoldenTests
 				Version: 12,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"UserId": "00000000-0000-0000-0000-000000000009",
-				"GrantedBy": "00000000-0000-0000-0000-000000000010",
-				"Permission": "account:write",
-				"Version": 12,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","UserId":"00000000-0000-0000-0000-000000000009","GrantedBy":"00000000-0000-0000-0000-000000000010","Permission":"account:write","Version":12,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(PermissionRevoked)] = (
 			new PermissionRevoked(
@@ -310,16 +189,7 @@ public sealed class EventContractGoldenTests
 				Version: 13,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"UserId": "00000000-0000-0000-0000-000000000009",
-				"RevokedBy": "00000000-0000-0000-0000-000000000010",
-				"Permission": "account:write",
-				"Version": 13,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","UserId":"00000000-0000-0000-0000-000000000009","RevokedBy":"00000000-0000-0000-0000-000000000010","Permission":"account:write","Version":13,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(UserRoleCreated)] = (
 			new UserRoleCreated(
@@ -328,14 +198,7 @@ public sealed class EventContractGoldenTests
 				Version: 14,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"UserId": "00000000-0000-0000-0000-000000000009",
-				"Version": 14,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","UserId":"00000000-0000-0000-0000-000000000009","Version":14,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(RoleAssigned)] = (
 			new RoleAssigned(
@@ -346,16 +209,7 @@ public sealed class EventContractGoldenTests
 				Version: 15,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"UserId": "00000000-0000-0000-0000-000000000009",
-				"RoleId": "00000000-0000-0000-0000-000000000011",
-				"AssignedBy": "00000000-0000-0000-0000-000000000010",
-				"Version": 15,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","UserId":"00000000-0000-0000-0000-000000000009","RoleId":"00000000-0000-0000-0000-000000000011","AssignedBy":"00000000-0000-0000-0000-000000000010","Version":15,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 		[typeof(RoleRemoved)] = (
 			new RoleRemoved(
@@ -366,16 +220,7 @@ public sealed class EventContractGoldenTests
 				Version: 16,
 				OccurredAt: OccurredAt
 			),
-			"""
-			{
-				"Id": "00000000-0000-0000-0000-000000000001",
-				"UserId": "00000000-0000-0000-0000-000000000009",
-				"RoleId": "00000000-0000-0000-0000-000000000011",
-				"RemovedBy": "00000000-0000-0000-0000-000000000010",
-				"Version": 16,
-				"OccurredAt": "2026-01-15T12:30:00+00:00"
-			}
-			"""
+			"""{"Id":"00000000-0000-0000-0000-000000000001","UserId":"00000000-0000-0000-0000-000000000009","RoleId":"00000000-0000-0000-0000-000000000011","RemovedBy":"00000000-0000-0000-0000-000000000010","Version":16,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
 	};
 
