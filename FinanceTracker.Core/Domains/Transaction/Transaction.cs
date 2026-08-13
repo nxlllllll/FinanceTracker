@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -18,7 +19,7 @@ namespace FinanceTracker.Core.Domains.Transaction;
 /// never be picked up again.
 /// </para>
 /// </summary>
-public sealed class Transaction
+public sealed class Transaction : IHasId
 {
 	public Guid Id { get; private set; }
 	public Guid AccountId { get; private set; }

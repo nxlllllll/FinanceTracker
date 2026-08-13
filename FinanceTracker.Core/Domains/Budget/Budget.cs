@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Budget;
 using FinanceTracker.Core.Results;
@@ -10,7 +11,7 @@ namespace FinanceTracker.Core.Domains.Budget;
 /// A budget is active when today falls within [<see cref="From"/>, <see cref="To"/>].
 /// Progress is tracked separately in <c>rm_budget_progress</c>.
 /// </summary>
-public sealed class Budget
+public sealed class Budget : IHasId
 {
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }
@@ -28,7 +29,8 @@ public sealed class Budget
 	private Budget() { }
 
 	/// <summary>
-	/// Creates a new budget. Fails if <paramref name="to"/> is before <paramref name="from"/>;
+	/// Creates a new budget. Fails unless <paramref name="to"/> is strictly after
+	/// <paramref name="from"/> — a period covering a single day is not a budget.
 	/// </summary>
 	public static Result<Budget, DomainException> Create(
 		DateTimeOffset createdAt,
@@ -39,7 +41,7 @@ public sealed class Budget
 		DateOnly to)
 	{
 		if (to <= from)
-			return Result<Budget, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must not be before start date."));
+			return Result<Budget, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must be after the start date."));
 
 		return Result<Budget, DomainException>.Success(value: new Budget
 		{
@@ -103,7 +105,7 @@ public sealed class Budget
 			return Result<bool, DomainException>.Failure(error: new InactiveBudgetException(message: "Cannot change period of an inactive budget."));
 
 		if (to <= from)
-			return Result<bool, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must not be before start date."));
+			return Result<bool, DomainException>.Failure(error: new InvalidBudgetPeriodException(message: "Budget end date must be after the start date."));
 
 		if (From == from && To == to)
 			return Result<bool, DomainException>.Success(value: false);

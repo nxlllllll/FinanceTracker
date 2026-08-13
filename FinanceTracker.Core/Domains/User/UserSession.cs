@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
 using FinanceTracker.Core.Results;
@@ -8,7 +9,7 @@ namespace FinanceTracker.Core.Domains.User;
 /// Represents an active user authentication session backed by a refresh token.
 /// Sessions are invalidated either by explicit <see cref="Revoke"/> or by expiry.
 /// </summary>
-public sealed class UserSession
+public sealed class UserSession : IHasId
 {
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }

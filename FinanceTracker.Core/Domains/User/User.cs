@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.Results;
@@ -5,7 +6,7 @@ using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Domains.User;
 
-public sealed class User
+public sealed class User : IHasId
 {
 	public Guid Id { get; private set; }
 	public Email Email { get; private set; }

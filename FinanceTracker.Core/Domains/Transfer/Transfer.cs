@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Rate;
@@ -12,7 +13,7 @@ namespace FinanceTracker.Core.Domains.Transfer;
 /// Created with status <c>PendingCredit</c>; transitions to <c>Completed</c>,
 /// <c>Compensated</c>, or <c>Failed</c> via the transfer worker.
 /// </summary>
-public sealed class Transfer
+public sealed class Transfer : IHasId
 {
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }
