@@ -1,7 +1,5 @@
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Observability.Metrics;
-using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Utilities.Retry;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -11,13 +9,12 @@ using ZLogger;
 namespace FinanceTracker.Application.Behaviours.Retry;
 
 /// <summary>
-/// Retries a request when it fails for a reason that a second attempt
-/// could get past: a version conflict, or a transient database fault.
+/// Retries a request whose write lost an optimistic-concurrency race, so the handler reloads the
+/// aggregate at its current version and reapplies the change.
 /// </summary>
-public sealed class RetryBehaviour<TRequest, TResponse>(
-	ILogger<RetryBehaviour<TRequest, TResponse>> logger,
-	IOptionsMonitor<RetryOptions> options,
-	ITransientFaultDetector transientFaultDetector
+public sealed class ConcurrencyRetryBehaviour<TRequest, TResponse>(
+	ILogger<ConcurrencyRetryBehaviour<TRequest, TResponse>> logger,
+	IOptionsMonitor<RetryOptions> options
 ) : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
 {
 	/// <inheritdoc/>
@@ -32,10 +29,6 @@ public sealed class RetryBehaviour<TRequest, TResponse>(
 			operation: async ct => await next(t: ct),
 			onError: (exception, attempt, delay) =>
 			{
-				string reasons = FinanceTrackerMetrics.RetryReasons.TransientFault;
-				if (exception is ConcurrencyConflictException)
-					reasons = FinanceTrackerMetrics.RetryReasons.ConcurrencyConflict;
-
 				FinanceTrackerMetrics.CommandRetried.Add(
 					delta: 1,
 					tag1: new KeyValuePair<string, object?>(
@@ -44,28 +37,20 @@ public sealed class RetryBehaviour<TRequest, TResponse>(
 					),
 					tag2: new KeyValuePair<string, object?>(
 						key: FinanceTrackerMetrics.Tags.Reason,
-						value: reasons
+						value: FinanceTrackerMetrics.RetryReasons.ConcurrencyConflict
 					)
 				);
 
 				logger.ZLogWarning(exception: exception, message: $"""
-					{Describe(exception: exception)} on {typeof(TRequest).Name}.
+					Concurrency conflict {((ConcurrencyConflictException)exception).Id} on {typeof(TRequest).Name}.
 					Retry {attempt + 1}/{currentOptions.MaxRetries} in {delay}ms.
 				""");
 			},
-			exceptionFilter: exception => exception is ConcurrencyConflictException || transientFaultDetector.IsTransient(exception: exception),
+			exceptionFilter: exception => exception is ConcurrencyConflictException,
 			maxRetries: currentOptions.MaxRetries,
 			baseDelayMs: currentOptions.BaseDelayMs,
 			useJitter: currentOptions.UseJitter,
 			ct: cancellationToken
 		);
-	}
-
-	private static string Describe(Exception exception)
-	{
-		if (exception is ConcurrencyConflictException conflict)
-			return $"Concurrency conflict {conflict.Id}";
-
-		return "Transient database fault";
 	}
 }

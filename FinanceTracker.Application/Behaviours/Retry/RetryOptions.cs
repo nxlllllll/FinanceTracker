@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace FinanceTracker.Application.Behaviours.Retry;
 
 /// <summary>
-/// Configuration for <see cref="RetryBehaviour{TRequest,TResponse}"/>.
+/// Configuration for <see cref="ConcurrencyRetryBehaviour{TRequest,TResponse}"/>.
 /// Bind from <c>appsettings.json</c> under the <c>"Retry"</c> section.
 /// </summary>
 public sealed class RetryOptions
