@@ -8,6 +8,12 @@ public interface IOutboxWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task MarkAsPublishedBatchAsync(
+		IReadOnlyCollection<Guid> messageIds,
+		DateTimeOffset processedAt,
+		CancellationToken ct = default
+	);
+
 	Task MarkAsFailedAsync(
 		Guid messageId,
 		int retryCount,

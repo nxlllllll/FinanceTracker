@@ -24,6 +24,24 @@ public sealed class OutboxWriteRepository(
 		);
 	}
 
+	/// <inheritdoc/>
+	public async Task MarkAsPublishedBatchAsync(
+		IReadOnlyCollection<Guid> messageIds,
+		DateTimeOffset processedAt,
+		CancellationToken ct = default)
+	{
+		if (messageIds.Count == 0)
+			return;
+
+		await context.OutboxMessages.Where(predicate: x => messageIds.Contains(x.Id)).ExecuteUpdateAsync(
+			setPropertyCalls: s => s.SetProperty(
+				propertyExpression: x => x.ProcessedAt,
+				valueExpression: processedAt
+			),
+			cancellationToken: ct
+		);
+	}
+
 	public async Task MarkAsFailedAsync(
 		Guid messageId,
 		int retryCount,

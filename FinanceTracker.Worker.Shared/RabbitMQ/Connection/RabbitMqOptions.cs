@@ -77,4 +77,10 @@ public sealed record RabbitMqOptions
 	/// </summary>
 	[Range(minimum: 1, maximum: 1000)]
 	public int PrefetchCount { get; init; } = 10;
+
+	/// <summary>
+	/// How many channels the publisher keeps for concurrent publishing. Default: 8.
+	/// </summary>
+	[Range(minimum: 1, maximum: 64)]
+	public int PublisherChannelPoolSize { get; init; } = 8;
 }
