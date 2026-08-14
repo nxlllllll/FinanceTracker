@@ -66,7 +66,13 @@ public sealed class Program
 			.BindConfiguration(configSectionPath: ProxyOptions.SectionName)
 			.ValidateOnStart();
 		builder.Services.AddSingleton<IValidateOptions<ProxyOptions>, ProxyOptionsValidator>();
+
 		builder.Services.ConfigureOptions<ForwardedHeadersOptionsSetup>();
+
+		builder.Services.AddOptions<IpRateLimitOptions>()
+			.BindConfiguration(configSectionPath: IpRateLimitOptions.SectionName)
+			.ValidateOnStart();
+		builder.Services.AddSingleton<IValidateOptions<IpRateLimitOptions>, IpRateLimitOptionsValidator>();
 
 		builder.Services.AddOpenApi(configureOptions: options =>
 		{
@@ -102,6 +108,11 @@ public sealed class Program
 		app.UseSecurityHeaders();
 
 		app.UseExceptionHandler();
+
+		app.UseWhen(
+			predicate: context => context.Connection.LocalPort == ApiPorts.Public,
+			configuration: branch => branch.UseIpRateLimit()
+		);
 
 		app.UseAuthentication();
 		app.UseAuthorization();
