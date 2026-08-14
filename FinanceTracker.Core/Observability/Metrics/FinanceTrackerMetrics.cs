@@ -33,6 +33,14 @@ public static class FinanceTrackerMetrics
 	);
 
 	/// <summary>
+	/// Notifications staged by a handler that could not be published once the request had already succeeded.
+	/// </summary>
+	public static readonly Counter<long> NotificationPublishFailures = Meter.CreateCounter<long>(
+		name: "notification.publish.failures",
+		description: "Post-commit notifications that failed to publish. Tagged by notification_type."
+	);
+
+	/// <summary>
 	/// Refresh tokens presented after their session had already been revoked, tagged by outcome.
 	/// </summary>
 	public static readonly Counter<long> RefreshTokenReplay = Meter.CreateCounter<long>(
@@ -88,6 +96,7 @@ public static class FinanceTrackerMetrics
 		public const string Outcome = "outcome";
 		public const string Operation = "operation";
 		public const string RequestType = "request_type";
+		public const string NotificationType = "notification_type";
 		public const string Reason = "reason";
 		public const string Kind = "kind";
 	}
