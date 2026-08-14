@@ -86,21 +86,17 @@ public sealed class CachedRoleRepository(
 				logger.ZLogWarning(message: $"""
 					Permission and role caches for {userIds.Count} member(s) were not invalidated after {reason};
 					the previous sets stay in effect until their TTL expires.
-				""");
+					""");
 			}
 		});
 	}
 
 	private async Task<bool> InvalidateAsync(IReadOnlyList<Guid> userIds)
 	{
-		SystemRole[] systemRoles = Enum.GetValues<SystemRole>();
-		List<string> keys = new List<string>(capacity: userIds.Count * (systemRoles.Length + 1));
+		List<string> keys = [];
 
 		foreach (Guid userId in userIds)
-		{
-			keys.AddRange(collection: systemRoles.Select(systemRole => CachedUserRoleReadRepository.KeyFor(userId: userId, systemKey: systemRole)));
-			keys.Add(item: CachedUserPermissionReadRepository.KeyFor(userId: userId));
-		}
+			keys.AddRange(collection: PermissionCacheKeys.AllForUser(userId: userId));
 
 		return await redisCache.DeleteBatchAsync(keys: keys);
 	}

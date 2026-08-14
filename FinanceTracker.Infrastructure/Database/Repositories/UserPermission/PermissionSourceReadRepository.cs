@@ -1,10 +1,13 @@
 using FinanceTracker.Core.Repositories.UserPermission;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
 
-public sealed class PermissionSourceReadRepository(FinanceTrackerContext context) : IPermissionSourceReadRepository
+public sealed class PermissionSourceReadRepository(
+	FinanceTrackerContext context
+) : IPermissionSourceReadRepository
 {
 	public async Task<IReadOnlySet<string>> GetDirectGrantsAsync(
 		Guid userId,
@@ -39,5 +42,29 @@ public sealed class PermissionSourceReadRepository(FinanceTrackerContext context
 			.Where(predicate: rp => roleIds.Contains(rp.RoleId))
 			.Select(selector: rp => rp.Permission)
 			.ToHashSetAsync(cancellationToken: ct);
+	}
+
+	public async Task<IReadOnlySet<SystemRole>> GetSystemRolesAsync(
+		IReadOnlyCollection<Guid> roleIds,
+		CancellationToken ct = default)
+	{
+		if (roleIds.Count == 0)
+			return new HashSet<SystemRole>();
+
+		List<SystemRole?> systemKeys = await context.Roles.AsNoTracking()
+			.Where(predicate: r => roleIds.Contains(r.Id) && r.SystemKey != null)
+			.Select(selector: r => r.SystemKey)
+			.Distinct()
+			.ToListAsync(cancellationToken: ct);
+
+		HashSet<SystemRole> systemRoles = [];
+
+		foreach (SystemRole? systemKey in systemKeys)
+		{
+			if (systemKey is { } value)
+				systemRoles.Add(item: value);
+		}
+
+		return systemRoles;
 	}
 }

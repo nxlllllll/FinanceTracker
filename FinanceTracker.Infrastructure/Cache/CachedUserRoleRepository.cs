@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Repositories.UserRole;
+using FinanceTracker.Core.ValueObjects;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using ZLogger;
@@ -33,25 +34,50 @@ public sealed class CachedUserRoleRepository(
 		await inner.SaveAsync(userRole: userRole, ct: ct);
 
 		Guid userId = userRole.UserId;
+		Guid[] roleIds = [.. userRole.RoleIds];
 
 		IReadOnlySet<string> directGrants = await permissionSources.GetDirectGrantsAsync(userId: userId, ct: ct);
-		IReadOnlySet<string> rolePermissions = await permissionSources.GetPermissionsForRolesAsync(
-			roleIds: [.. userRole.RoleIds],
-			ct: ct
-		);
+		IReadOnlySet<string> rolePermissions = await permissionSources.GetPermissionsForRolesAsync(roleIds: roleIds, ct: ct);
+		IReadOnlySet<SystemRole> heldSystemRoles = await permissionSources.GetSystemRolesAsync(roleIds: roleIds, ct: ct);
 
 		HashSet<string> effective = [.. directGrants, .. rolePermissions];
 
-		unitOfWork.OnCommitted(callback: async () =>
+		unitOfWork.OnCommitted(callback: async () => await RefreshAsync(
+			userId: userId,
+			effective: effective,
+			heldSystemRoles: heldSystemRoles
+		));
+	}
+
+	private async Task RefreshAsync(
+		Guid userId,
+		HashSet<string> effective,
+		IReadOnlySet<SystemRole> heldSystemRoles)
+	{
+		bool refreshed = await redisCache.SetAsync(
+			key: PermissionCacheKeys.Permissions(userId: userId),
+			value: effective,
+			options: Ttl
+		);
+
+		foreach (SystemRole systemRole in Enum.GetValues<SystemRole>())
 		{
-			bool refreshed = await redisCache.SetAsync(
-				key: CachedUserPermissionReadRepository.KeyFor(userId: userId),
-				value: effective,
+			bool written = await redisCache.SetAsync(
+				key: PermissionCacheKeys.SystemRoleKey(userId: userId, systemKey: systemRole),
+				value: heldSystemRoles.Contains(item: systemRole),
 				options: Ttl
 			);
 
-			if (!refreshed)
-				logger.ZLogWarning(message: $"Permission cache for {userId} was not refreshed; the previous set stays in effect until its TTL expires.");
-		});
+			refreshed &= written;
+		}
+
+		if (!refreshed)
+		{
+			logger.ZLogWarning(message: $"""
+				Authorization cache for {userId} was not fully refreshed after a membership change;
+				the previous entries stay in effect until their TTL expires or the projection worker
+				invalidates them.
+			""");
+		}
 	}
 }

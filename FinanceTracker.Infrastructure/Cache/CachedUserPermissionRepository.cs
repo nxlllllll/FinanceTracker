@@ -34,7 +34,7 @@ public sealed class CachedUserPermissionRepository(
 		Guid userId = userPermission.UserId;
 		IReadOnlySet<string> roleGrants = await permissionSources.GetRoleGrantsAsync(userId: userId, ct: ct);
 
-		HashSet<string> effective = [.. userPermission.Permissions, .. roleGrants];
+		HashSet<string> effective = [..userPermission.Permissions, ..roleGrants];
 
 		unitOfWork.OnCommitted(callback: async () =>
 		{
