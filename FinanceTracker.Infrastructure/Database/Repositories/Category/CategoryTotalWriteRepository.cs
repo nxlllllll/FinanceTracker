@@ -1,8 +1,5 @@
-using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;
@@ -33,17 +30,18 @@ public sealed class CategoryTotalWriteRepository(
 		public int TransactionCount { get; set; }
 	}
 
-	private async Task ApplyDeltaAsync(
+	/// <summary>
+	/// Converts <paramref name="amount"/> into the user's base currency, which is the unit every
+	/// category total is denominated in. Kept separate from writing the delta so that a caller
+	/// touching two categories with the same amount resolves the rate once instead of per row.
+	/// </summary>
+	private async Task<decimal> ResolveBaseAmountAsync(
 		Guid userId,
-		Guid categoryId,
 		decimal amount,
 		Core.ValueObjects.Currency currency,
-		int delta,
 		DateTimeOffset occurredAt,
 		CancellationToken ct)
 	{
-		DateOnly period = new DateOnly(year: occurredAt.Year, month: occurredAt.Month, day: 1);
-
 		UserReadModel user = await userQueryRepository.GetByIdAsync(userId: userId, ct: ct)
 			?? throw new NotFoundException(message: "User not found.", id: userId);
 
@@ -54,13 +52,30 @@ public sealed class CategoryTotalWriteRepository(
 			ct: ct
 		);
 
-		await context.UpsertCategoryTotalAsync(entity: new CategoryTotalEntity
+		return Money.ConvertedAmount(amount: amount, rate: rate);
+	}
+
+	/// <summary>
+	/// Applies a signed delta to one category's monthly total. The upsert increments in place, so
+	/// concurrent writers cannot lose each other's contribution.
+	/// </summary>
+	private Task ApplyDeltaAsync(
+		Guid userId,
+		Guid categoryId,
+		decimal baseAmount,
+		int delta,
+		DateTimeOffset occurredAt,
+		CancellationToken ct)
+	{
+		DateOnly period = new DateOnly(year: occurredAt.Year, month: occurredAt.Month, day: 1);
+
+		return context.UpsertCategoryTotalAsync(entity: new CategoryTotalEntity
 		{
 			Id = Guid.CreateVersion7(),
 			UserId = userId,
 			CategoryId = categoryId,
 			Period = period,
-			Total = delta * Money.ConvertedAmount(amount: amount, rate: rate),
+			Total = delta * baseAmount,
 			TransactionCount = delta,
 			UpdatedAt = dateProvider.UtcNow
 		}, ct: ct);
@@ -74,11 +89,18 @@ public sealed class CategoryTotalWriteRepository(
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default)
 	{
+		decimal baseAmount = await ResolveBaseAmountAsync(
+			userId: userId,
+			amount: amount,
+			currency: currency,
+			occurredAt: occurredAt,
+			ct: ct
+		);
+
 		await ApplyDeltaAsync(
 			userId: userId,
 			categoryId: categoryId,
-			amount: amount,
-			currency: currency,
+			baseAmount: baseAmount,
 			delta: 1,
 			occurredAt: occurredAt,
 			ct: ct
@@ -93,11 +115,18 @@ public sealed class CategoryTotalWriteRepository(
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default)
 	{
+		decimal baseAmount = await ResolveBaseAmountAsync(
+			userId: userId,
+			amount: amount,
+			currency: currency,
+			occurredAt: occurredAt,
+			ct: ct
+		);
+
 		await ApplyDeltaAsync(
 			userId: userId,
 			categoryId: categoryId,
-			amount: amount,
-			currency: currency,
+			baseAmount: baseAmount,
 			delta: -1,
 			occurredAt: occurredAt,
 			ct: ct
@@ -113,11 +142,18 @@ public sealed class CategoryTotalWriteRepository(
 		DateTimeOffset occurredAt,
 		CancellationToken ct = default)
 	{
+		decimal baseAmount = await ResolveBaseAmountAsync(
+			userId: userId,
+			amount: amount,
+			currency: currency,
+			occurredAt: occurredAt,
+			ct: ct
+		);
+
 		await ApplyDeltaAsync(
 			userId: userId,
 			categoryId: oldCategoryId,
-			currency: currency,
-			amount: amount,
+			baseAmount: baseAmount,
 			delta: -1,
 			occurredAt: occurredAt,
 			ct: ct
@@ -126,8 +162,7 @@ public sealed class CategoryTotalWriteRepository(
 		await ApplyDeltaAsync(
 			userId: userId,
 			categoryId: newCategoryId,
-			amount: amount,
-			currency: currency,
+			baseAmount: baseAmount,
 			delta: 1,
 			occurredAt: occurredAt,
 			ct: ct
