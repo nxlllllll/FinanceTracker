@@ -4,6 +4,7 @@ using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Currency;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Permission;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Data;
@@ -38,7 +39,7 @@ public static class ResultExtensions
 	{
 		EmptyIdempotencyKeyException => StatusCodes.Status400BadRequest,
 		InvalidCredentialsException or InvalidTokenException => StatusCodes.Status401Unauthorized,
-		NotFoundException => StatusCodes.Status404NotFound,
+		NotFoundException or CurrencyNotFoundException => StatusCodes.Status404NotFound,
 		ConcurrencyConflictException or UniqueConstraintException => StatusCodes.Status409Conflict,
 		IdempotencyTimeoutException or IdempotencyAbandonedException => StatusCodes.Status409Conflict,
 		SelfPermissionModificationException => StatusCodes.Status403Forbidden,

@@ -20,7 +20,9 @@ public sealed class CachedUserRoleReadRepository(
 		AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(minutes: 3)
 	};
 
-	internal static string KeyFor(Guid userId, SystemRole systemKey) => $"roles:{userId}:{systemKey}";
+	/// <inheritdoc cref="PermissionCacheKeys.SystemRoleKey"/>
+	public static string KeyFor(Guid userId, SystemRole systemKey)
+		=> PermissionCacheKeys.SystemRoleKey(userId: userId, systemKey: systemKey);
 
 	public async Task<bool> HasSystemRoleAsync(
 		Guid userId,

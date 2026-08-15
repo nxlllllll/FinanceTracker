@@ -29,9 +29,9 @@ public sealed class CreateBudgetHandlerTests
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task>>(),
+			operation: Arg.Any<Func<Task<bool>>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<bool>>>()?.Invoke());
 
 		_budgetReadRepository.HasOverlappingAsync(
 			userId: Arg.Any<Guid>(),

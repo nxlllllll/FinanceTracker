@@ -126,8 +126,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 				idempotent: idempotent,
 				commandType: commandType,
 				userId: userId,
-				reservationId: reservationId,
-				ct: CancellationToken.None
+				reservationId: reservationId
 			);
 
 			logger.ZLogWarning(message: $"""
@@ -142,8 +141,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 				idempotent: idempotent,
 				commandType: commandType,
 				userId: userId,
-				reservationId: reservationId,
-				ct: CancellationToken.None
+				reservationId: reservationId
 			);
 
 			logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {requestType} — handler threw, client may retry.");
@@ -161,8 +159,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 			idempotent: idempotent,
 			commandType: commandType,
 			userId: userId,
-			reservationId: reservationId,
-			ct: cancellationToken
+			reservationId: reservationId
 		);
 
 		logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {requestType} — command failed, client may retry.");
@@ -174,13 +171,12 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		IIdempotentCommand idempotent,
 		string commandType,
 		Guid userId,
-		Guid reservationId,
-		CancellationToken ct
+		Guid reservationId
 	) => idempotencyWriteRepository.DeleteAsync(
 		idempotencyKey: idempotent.IdempotencyKey,
 		commandType: commandType,
 		userId: userId,
 		reservationId: reservationId,
-		ct: ct
+		ct: CancellationToken.None
 	);
 }

@@ -4,8 +4,9 @@ using FinanceTracker.Core.ReadModels.Pending;
 namespace FinanceTracker.Core.Services.TransferCompensation;
 
 /// <summary>
-/// Compensates a stuck transfer by refunding the debit side of the source account.
-/// Called by <c>TransferCreditLagJob</c> for transfers exceeding the compensation threshold.
+/// Unwinds a transfer whose credit side never landed: the debit is refunded to the source account
+/// and the transfer is settled as failed, or escalated to <c>unresolvable_events</c> when the refund
+/// itself cannot be applied.
 /// </summary>
 public interface ITransferCompensationService
 {

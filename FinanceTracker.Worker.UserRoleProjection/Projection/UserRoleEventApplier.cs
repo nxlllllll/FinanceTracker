@@ -59,6 +59,6 @@ public sealed class UserRoleEventApplier(
 	private void ScheduleCacheInvalidation(
 		Guid userId
 	) => unitOfWork.OnCommitted(callback: () => redisCache.DeleteBatchAsync(
-		keys: [CachedUserPermissionReadRepository.KeyFor(userId: userId)]
+		keys: PermissionCacheKeys.AllForUser(userId: userId)
 	));
 }

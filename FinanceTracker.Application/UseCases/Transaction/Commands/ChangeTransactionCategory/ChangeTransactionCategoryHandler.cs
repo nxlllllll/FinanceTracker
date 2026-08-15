@@ -5,6 +5,7 @@ using FinanceTracker.Application.UseCases.Transaction.Utilities;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels;
@@ -38,6 +39,9 @@ public sealed class ChangeTransactionCategoryHandler(
 		CategoryReadModel? category = await categoryReadRepository.GetByIdAsync(categoryId: command.CategoryId, userId: command.UserId, ct: ct);
 		if (category is null)
 			return Result<Guid, AppException>.Failure(error: new NotFoundException(message: "Category not found.", id: command.CategoryId));
+
+		if (category.IsArchived)
+			return Result<Guid, AppException>.Failure(error: new ArchivedOperationException(message: "Cannot move a transaction to an archived category."));
 
 		DomainException? validationResult = CategoryDirectionValidator.Validate(category: category, direction: transaction.Direction);
 		if (validationResult is not null)

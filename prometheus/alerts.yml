@@ -130,6 +130,15 @@
           summary: "A post-commit callback threw after its transaction had already committed"
           description: "The database write succeeded and something that was supposed to follow it did not, with no way to roll back. These callbacks carry side effects that the transaction deliberately does not cover: marking revoked sessions in Redis, refreshing a user's cached permission set, clearing applied events off an aggregate. Two of them matter. A failed session marking leaves the session revoked in the database while its access token keeps working until it expires on its own; a failed permission refresh leaves the previous set in the cache, so a change to someone's access silently does nothing until the entry expires. The exception is logged where it was swallowed; start there."
 
+      - alert: PostCommitNotificationsDropped
+        expr: increase(notification_publish_failures_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A post-commit notification could not be published ({{ $labels.notification_type }})"
+          description: "Sits next to PostCommitCallbackFailing and describes the same shape of failure one layer up: the command committed, and the notification it staged never reached its handlers. The publish is swallowed on purpose — the write is already durable and the caller must not be told otherwise — so this counter is the only trace the side effect existed at all. Nothing retries these. Unlike the outbox, where a failed publish keeps its row and is picked up on the next lease, a dropped notification is gone: there is no record of it anywhere but the log line next to this counter. Today every subscriber is an audit logger, so a hit means an audit entry is missing rather than anything users can feel; raise this to critical the moment a subscriber with a real side effect is added, because the blast radius changes without the alert changing."
+
       - alert: CacheWritesNotLanding
         expr: increase(cache_operation_failures_total{operation="write"}[15m]) > 0
         for: 0m
@@ -319,6 +328,7 @@
         annotations:
           summary: "{{ $labels.queue }} has messages and no consumer"
           description: "The worker for this queue is down, or connected without subscribing. Distinct from a backlog: nothing is being processed at all, and nothing will be until someone looks. This is the failure the reconnect loop is meant to prevent, so it firing means the loop itself is stuck."
+
   - name: finance-tracker-health
     rules:
       - alert: HealthCheckFailing

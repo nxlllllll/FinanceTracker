@@ -41,13 +41,13 @@ public sealed class CreateBudgetHandler(
 			return Result<Guid, AppException>.Failure(error: budgetResult.Error!);
 
 		Core.Domains.Budget.Budget budget = budgetResult.Value!;
-		bool hasOverlap = false;
+		bool hasOverlap;
 
 		try
 		{
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			hasOverlap = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
-				hasOverlap = await budgetReadRepository.HasOverlappingAsync(
+				bool overlap = await budgetReadRepository.HasOverlappingAsync(
 					userId: command.UserId,
 					categoryId: command.CategoryId,
 					from: command.From,
@@ -55,10 +55,12 @@ public sealed class CreateBudgetHandler(
 					ct: ct
 				);
 
-				if (hasOverlap)
-					return;
+				if (overlap)
+					return true;
 
 				await budgetWriteRepository.CreateAsync(budget: budget, ct: ct);
+
+				return false;
 			}, ct: ct);
 		}
 		catch (UniqueConstraintException)

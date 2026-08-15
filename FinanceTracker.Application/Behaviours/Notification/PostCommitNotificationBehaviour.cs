@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,17 @@ public sealed class PostCommitNotificationBehaviour<TRequest, TResponse>(
 			}
 			catch (Exception ex)
 			{
-				logger.ZLogError(exception: ex, message: $"Failed to publish {notification.GetType().Name}.");
+				string notificationType = notification.GetType().Name;
+
+				FinanceTrackerMetrics.NotificationPublishFailures.Add(
+					delta: 1,
+					tag: new KeyValuePair<string, object?>(
+						key: FinanceTrackerMetrics.Tags.NotificationType,
+						value: notificationType
+					)
+				);
+
+				logger.ZLogError(exception: ex, message: $"Failed to publish {notificationType}.");
 			}
 		}
 
