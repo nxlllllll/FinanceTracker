@@ -108,7 +108,12 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 		foreach (IEventUpcaster upcaster in chain.Upcasters)
 		{
 			if (upcaster.FromVersion >= currentVersion)
-				break;
+			{
+				throw new InvalidOperationException(message:
+					$"[Upcasting] '{eventType}': the chain from version {storedVersion} reaches {upcaster.FromVersion}, " +
+					$"but this build only knows version {currentVersion}. The stored schema is ahead of the code."
+				);
+			}
 
 			current = upcaster.Upcast(source: current);
 		}
