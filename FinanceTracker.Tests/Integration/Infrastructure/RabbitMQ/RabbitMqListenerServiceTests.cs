@@ -469,13 +469,16 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		DateTimeOffset observedAt = DateTimeOffset.UtcNow;
 		await Task.Delay(millisecondsDelay: 500);
 
+		int callsWithinWindow = handlerState.CallCount;
+		TimeSpan elapsed = DateTimeOffset.UtcNow - observedAt;
+
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
 
-		await Assert.That(value: DateTimeOffset.UtcNow - observedAt).IsLessThan(maximum: TimeSpan.FromMilliseconds(value: 2000))
-				.Because(message: "the assertion below is only meaningful while the backoff window is still open");
+		await Assert.That(value: elapsed).IsLessThan(maximum: TimeSpan.FromMilliseconds(value: 2000))
+			.Because(message: "the assertion below is only meaningful while the backoff window is still open");
 
-		await Assert.That(value: handlerState.CallCount).IsEqualTo(expected: 1);
+		await Assert.That(value: callsWithinWindow).IsEqualTo(expected: 1);
 	}
 
 	[Test]
