@@ -6,4 +6,4 @@ using MediatR;
 
 namespace FinanceTracker.Application.UseCases.Currency.Queries.GetCurrency;
 
-public sealed record GetCurrencyQuery(string Code) : IRequest<Result<CurrencyInfo, AppException>>;
+public sealed record GetCurrencyQuery(Core.ValueObjects.Currency Code) : IRequest<Result<CurrencyInfo, AppException>>;

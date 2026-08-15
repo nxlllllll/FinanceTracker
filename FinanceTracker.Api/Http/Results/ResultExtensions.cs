@@ -121,6 +121,29 @@ public static class ResultExtensions
 		return Microsoft.AspNetCore.Http.Results.Ok(value: result.Value!.Select(selector: TResponse.FromReadModel).ToList());
 	}
 
+	public static IHttpResult ToPagedHttpResult<TReadModel, TResponse>(
+		this Result<PagedResult<TReadModel>, AppException> result,
+		Action<PagedResult<TReadModel>>? onSuccess = null,
+		Action<AppException>? onError = null
+	) where TResponse : IResponseOf<TReadModel, TResponse>
+	{
+		if (result.IsFailure)
+		{
+			onError?.Invoke(obj: result.Error!);
+			return result.Error!.ToProblem();
+		}
+
+		PagedResult<TReadModel> page = result.Value!;
+		onSuccess?.Invoke(obj: page);
+
+		return Microsoft.AspNetCore.Http.Results.Ok(value: new PagedResponse<TResponse>(
+			Items: [.. page.Items.Select(selector: TResponse.FromReadModel)],
+			HasNextPage: page.HasNextPage,
+			NextCursorDate: page.NextCursorDate,
+			NextCursorId: page.NextCursorId
+		));
+	}
+
 	public static IHttpResult ToCreatedResult(
 		this Result<Guid, AppException> result,
 		Func<Guid, string> locationFactory)

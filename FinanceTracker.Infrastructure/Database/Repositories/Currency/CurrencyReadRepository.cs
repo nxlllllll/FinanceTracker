@@ -34,7 +34,9 @@ public sealed class CurrencyReadRepository(
 		string code,
 		CancellationToken ct = default)
 	{
-		return await context.Currencies.AsNoTracking().Where(predicate: currency => currency.Code == code)
+		string normalized = code.ToUpperInvariant();
+
+		return await context.Currencies.AsNoTracking().Where(predicate: currency => currency.Code == normalized)
 			.Select(selector: currency => new CurrencyInfo(
 				Code: currency.Code,
 				Name: currency.Name,

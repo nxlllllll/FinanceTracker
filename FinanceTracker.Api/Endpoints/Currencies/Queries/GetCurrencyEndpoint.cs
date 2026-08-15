@@ -4,6 +4,7 @@ using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.Currency.Queries.GetCurrency;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.ReadModels.Currency;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -29,8 +30,12 @@ public sealed class GetCurrencyEndpoint : IEndpoint
 		ISender sender,
 		CancellationToken ct)
 	{
+		Result<Currency, DomainException> currency = Currency.Create(value: code);
+		if (currency.IsFailure)
+			return currency.Error!.ToValidationProblem(fieldName: nameof(code));
+
 		Result<CurrencyInfo, AppException> result = await sender.Send(
-			request: new GetCurrencyQuery(Code: code),
+			request: new GetCurrencyQuery(Code: currency.Value),
 			cancellationToken: ct
 		);
 
