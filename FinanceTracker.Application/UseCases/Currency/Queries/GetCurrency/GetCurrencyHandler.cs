@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Currency;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Currency;
@@ -22,9 +23,12 @@ public sealed class GetCurrencyHandler(
 			ct: ct
 		);
 
-		if (model is null)
-			return Result<CurrencyInfo, AppException>.Failure(error: new CurrencyException(message: $"Currency '{query.Code}' not found."));
+		if (model is not null)
+			return Result<CurrencyInfo, AppException>.Success(value: model);
 
-		return Result<CurrencyInfo, AppException>.Success(value: model);
+		return Result<CurrencyInfo, AppException>.Failure(
+			error: new CurrencyNotFoundException(message: $"Currency '{query.Code}' not found.",
+			code: query.Code
+		));
 	}
 }

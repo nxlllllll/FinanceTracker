@@ -75,7 +75,7 @@ public sealed class CategoryTests
 		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<ArchivingException>();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>();
 	}
 
 	[Test]

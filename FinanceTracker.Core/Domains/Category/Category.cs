@@ -70,7 +70,7 @@ public sealed class Category : IHasId
 	public Result<bool, DomainException> Rename(Name newName)
 	{
 		if (IsArchived)
-			return Result<bool, DomainException>.Failure(error: new ArchivingException(message: "It is forbidden to change the name of an archived category."));
+			return Result<bool, DomainException>.Failure(error: new ArchivedOperationException(message: "It is forbidden to change the name of an archived category."));
 
 		if (Name == newName)
 			return Result<bool, DomainException>.Success(value: false);
