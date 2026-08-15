@@ -13,5 +13,6 @@ public enum Resource
 	Budget,
 	Category,
 	RecurringTransaction,
+	Currency,
 	Permission
 }
