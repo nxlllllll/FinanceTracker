@@ -60,7 +60,7 @@ public sealed class CreateAccountEndpoint : IEndpoint
 		return result.ToCreatedAtRoute(
 			linkGenerator: linkGenerator,
 			httpContext: httpContext,
-			routeName: "GetAccount",
+			routeName: RouteNames.GetAccount,
 			routeValues: id => new { accountId = id }
 		);
 	}

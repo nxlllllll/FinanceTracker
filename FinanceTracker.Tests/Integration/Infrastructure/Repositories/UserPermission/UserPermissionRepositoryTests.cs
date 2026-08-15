@@ -134,15 +134,23 @@ public sealed class UserPermissionRepositoryTests : DatabaseFixture
 		await SaveAsync(userPermission: userPermission);
 
 		Core.Domains.UserPermission.UserPermission? loaded = await _repository.GetByUserIdAsync(userId: userPermission.UserId, ct: CancellationToken.None);
-		loaded!.Grant(occurredAt: FakeDateProvider.Default.UtcNow, grantedBy: Guid.CreateVersion7(), permission: Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!);
-		loaded.Grant(occurredAt: FakeDateProvider.Default.UtcNow, grantedBy: Guid.CreateVersion7(), permission: Permission.Create(resource: Resource.Balance, action: PermissionAction.Write).Value!);
+		loaded!.Grant(
+			occurredAt: FakeDateProvider.Default.UtcNow,
+			grantedBy: Guid.CreateVersion7(),
+			permission: Permission.Create(resource: Resource.Account, action: PermissionAction.Read).Value!
+		);
+		loaded.Grant(
+			occurredAt: FakeDateProvider.Default.UtcNow,
+			grantedBy: Guid.CreateVersion7(),
+			permission: Permission.Create(resource: Resource.Balance, action: PermissionAction.Read).Value!
+		);
 		await SaveAsync(userPermission: loaded);
 
 		Core.Domains.UserPermission.UserPermission? restored = await _repository.GetByUserIdAsync(userId: userPermission.UserId, ct: CancellationToken.None);
 
 		await Assert.That(value: restored!.Permissions).Count().IsEqualTo(expected: 2);
 		await Assert.That(value: restored.Permissions).Contains(expected: "account:read");
-		await Assert.That(value: restored.Permissions).Contains(expected: "balance:write");
+		await Assert.That(value: restored.Permissions).Contains(expected: "balance:read");
 	}
 
 	[Test]

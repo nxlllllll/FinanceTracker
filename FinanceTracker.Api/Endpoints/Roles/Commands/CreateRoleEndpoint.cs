@@ -56,7 +56,7 @@ public sealed class CreateRoleEndpoint : IEndpoint
 		return result.ToCreatedAtRoute(
 			linkGenerator: linkGenerator,
 			httpContext: httpContext,
-			routeName: "GetRole",
+			routeName: RouteNames.GetRole,
 			routeValues: id => new { roleId = id }
 		);
 	}

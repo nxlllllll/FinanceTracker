@@ -1,0 +1,8 @@
+﻿namespace FinanceTracker.Api.Routing;
+
+/// <summary>Names given to endpoints that something else needs to link to.</summary>
+public static class RouteNames
+{
+	public const string GetAccount = nameof(GetAccount);
+	public const string GetRole = nameof(GetRole);
+}
