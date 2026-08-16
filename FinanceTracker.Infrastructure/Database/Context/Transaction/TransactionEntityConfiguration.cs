@@ -80,10 +80,6 @@ public sealed class TransactionEntityConfiguration : IEntityTypeConfiguration<Tr
 		builder.Property(propertyExpression: t => t.OccurredAt)
 			.HasColumnName(name: "occurred_at");
 
-		builder.HasOne<AccountEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: t => t.AccountId)
-			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
 		builder.HasOne<CategoryEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: t => t.CategoryId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);

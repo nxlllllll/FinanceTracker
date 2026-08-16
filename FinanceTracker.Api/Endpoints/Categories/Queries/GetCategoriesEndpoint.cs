@@ -55,7 +55,7 @@ public sealed class GetCategoriesEndpoint : IEndpoint
 			Type: parsedType.Value,
 			IsArchived: isArchived,
 			ParentId: parentId,
-			CursorCreatedAt: QueryTime.ToUtc(cursorCreatedAt),
+			CursorCreatedAt: cursorCreatedAt?.ToUniversalTime(),
 			CursorId: cursorId,
 			PageSize: pageSize
 		);

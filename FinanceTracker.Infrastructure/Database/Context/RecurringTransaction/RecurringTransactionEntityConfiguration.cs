@@ -76,10 +76,6 @@ public sealed class RecurringTransactionEntityConfiguration
 			.HasForeignKey(foreignKeyExpression: r => r.UserId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-		builder.HasOne<AccountEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: r => r.AccountId)
-			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
 		builder.HasOne<CategoryEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: r => r.CategoryId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Restrict);

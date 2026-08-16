@@ -6,4 +6,5 @@ public static class RouteNames
 	public const string GetAccount = nameof(GetAccount);
 	public const string GetRole = nameof(GetRole);
 	public const string GetCategory = nameof(GetCategory);
+	public const string GetTransaction = nameof(GetTransaction);
 }

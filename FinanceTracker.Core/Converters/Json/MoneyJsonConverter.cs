@@ -25,9 +25,11 @@ public sealed class MoneyJsonConverter : JsonConverter<Money>
 			switch (propertyName)
 			{
 				case nameof(Money.Amount):
+				case "amount":
 					amount = reader.GetDecimal();
 					break;
 				case nameof(Money.Currency):
+				case "currency":
 					currency = JsonSerializer.Deserialize<Currency>(ref reader, options: options);
 					break;
 			}
@@ -47,8 +49,11 @@ public sealed class MoneyJsonConverter : JsonConverter<Money>
 	public override void Write(Utf8JsonWriter writer, Money value, JsonSerializerOptions options)
 	{
 		writer.WriteStartObject();
-		writer.WriteNumber(propertyName: nameof(Money.Amount), value: value.Amount);
-		writer.WriteString(propertyName: nameof(Money.Currency), value: value.Currency.Value);
+		writer.WriteNumber(propertyName: PropertyName(name: nameof(Money.Amount), options: options), value: value.Amount);
+		writer.WriteString(propertyName: PropertyName(name: nameof(Money.Currency), options: options), value: value.Currency.Value);
 		writer.WriteEndObject();
 	}
+
+	private static string PropertyName(string name, JsonSerializerOptions options)
+		=> options.PropertyNamingPolicy?.ConvertName(name: name) ?? name;
 }
