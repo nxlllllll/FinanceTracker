@@ -37,13 +37,13 @@ public sealed class ChangeBudgetPeriodHandler(
 		if (!result.Value)
 			return Result<Guid, AppException>.Success(value: budget.Id);
 
-		bool hasOverlap;
+		Guid? conflictingBudgetId;
 
 		try
 		{
-			hasOverlap = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			conflictingBudgetId = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
-				bool overlap = await budgetReadRepository.HasOverlappingAsync(
+				Guid? conflict = await budgetReadRepository.FindOverlappingAsync(
 					userId: command.UserId,
 					categoryId: budget.CategoryId,
 					from: command.From,
@@ -52,8 +52,8 @@ public sealed class ChangeBudgetPeriodHandler(
 					ct: ct
 				);
 
-				if (overlap)
-					return true;
+				if (conflict is not null)
+					return conflict;
 
 				await budgetWriteRepository.ChangePeriodAsync(
 					budgetId: budget.Id,
@@ -72,18 +72,25 @@ public sealed class ChangeBudgetPeriodHandler(
 					ct: ct
 				);
 
-				return false;
+				return null;
 			},
 			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {budget.Id} ({command.From} > {command.To})."),
 			ct: ct);
 		}
 		catch (UniqueConstraintException)
 		{
-			hasOverlap = true;
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(
+				message: "Another budget for this category already covers part of the requested period."
+			));
 		}
 
-		if (hasOverlap)
-			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
+		if (conflictingBudgetId is not null)
+		{
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(
+				message: "Another budget for this category already covers part of the requested period.",
+				conflictingBudgetId: conflictingBudgetId
+			));
+		}
 
 		postCommitNotifications.Stage(notification: new BudgetPeriodChangedNotification(
 			BudgetId: budget.Id,

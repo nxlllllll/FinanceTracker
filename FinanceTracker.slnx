@@ -13,6 +13,7 @@
     <File Path="alertmanager/alertmanager.yml" />
     <File Path="BannedSymbols.txt" />
     <File Path="compose.linux.yml" />
+    <File Path="compose.override.yaml" />
     <File Path="compose.yaml" />
     <File Path="coverage.runsettings" />
     <File Path="Directory.Build.props" />

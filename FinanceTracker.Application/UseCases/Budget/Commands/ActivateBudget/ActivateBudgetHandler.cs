@@ -32,13 +32,13 @@ public sealed class ActivateBudgetHandler(
 		if (!result.Value)
 			return Result<Guid, AppException>.Success(value: budget.Id);
 
-		bool hasOverlap;
+		Guid? conflictingBudgetId;
 
 		try
 		{
-			hasOverlap = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			conflictingBudgetId = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
-				bool overlap = await budgetReadRepository.HasOverlappingAsync(
+				Guid? conflict = await budgetReadRepository.FindOverlappingAsync(
 					userId: command.UserId,
 					categoryId: budget.CategoryId,
 					from: budget.From,
@@ -47,8 +47,8 @@ public sealed class ActivateBudgetHandler(
 					ct: ct
 				);
 
-				if (overlap)
-					return true;
+				if (conflict is not null)
+					return conflict;
 
 				await budgetWriteRepository.ActivateAsync(
 					budgetId: budget.Id,
@@ -56,18 +56,21 @@ public sealed class ActivateBudgetHandler(
 					ct: ct
 				);
 
-				return false;
+				return null;
 			}, ct: ct);
 		}
 		catch (UniqueConstraintException)
 		{
-			hasOverlap = true;
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(
+				message: "Cannot activate: another active budget covers this category during the same period. Deactivate it, or move this budget to different dates."
+			));
 		}
 
-		if (hasOverlap)
+		if (conflictingBudgetId is not null)
 		{
 			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(
-				message: "Cannot activate: a budget for this category already exists in an overlapping period."
+				message: "Cannot activate: another active budget covers this category during the same period. Deactivate it, or move this budget to different dates.",
+				conflictingBudgetId: conflictingBudgetId
 			));
 		}
 

@@ -4,6 +4,7 @@ using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Currency;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Permission;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
@@ -74,7 +75,17 @@ public static class ResultExtensions
 	);
 
 	private static Dictionary<string, object?> Extensions(AppException error)
-		=> new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) };
+	{
+		Dictionary<string, object?> extensions = new Dictionary<string, object?>
+		{
+			["code"] = ResolveErrorCode(error: error)
+		};
+
+		if (error is OverlappingBudgetException { ConflictingBudgetId: { } conflictingBudgetId })
+			extensions["conflictingBudgetId"] = conflictingBudgetId;
+
+		return extensions;
+	}
 
 	private static string ResolveErrorCode(AppException error)
 		=> error.GetType().GetCustomAttribute<ErrorCodeAttribute>()?.Code ?? error.GetType().Name;

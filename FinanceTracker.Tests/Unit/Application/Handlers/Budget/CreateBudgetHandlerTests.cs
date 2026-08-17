@@ -2,7 +2,6 @@ using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.CreateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Budget;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -14,6 +13,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
 
 public sealed class CreateBudgetHandlerTests
 {
+	private static readonly Guid ConflictingBudgetId = Guid.CreateVersion7();
+
 	private IBudgetReadRepository _budgetReadRepository = null!;
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
@@ -29,17 +30,18 @@ public sealed class CreateBudgetHandlerTests
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task<bool>>>(),
+			operation: Arg.Any<Func<Task<Guid?>>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<bool>>>()?.Invoke());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<Guid?>>>()?.Invoke());
 
-		_budgetReadRepository.HasOverlappingAsync(
+		_budgetReadRepository.FindOverlappingAsync(
 			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
 			from: Arg.Any<DateOnly>(),
 			to: Arg.Any<DateOnly>(),
+			excludeBudgetId: Arg.Any<Guid?>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: false);
+		).Returns(returnThis: (Guid?)null);
 
 		_handler = new CreateBudgetHandler(
 			budgetReadRepository: _budgetReadRepository,
@@ -50,17 +52,28 @@ public sealed class CreateBudgetHandlerTests
 		);
 	}
 
+	private static CreateBudgetCommand ValidCommand() => new CreateBudgetCommand(
+		UserId: Guid.CreateVersion7(),
+		CategoryId: Guid.CreateVersion7(),
+		Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
+		Amount: 10000m,
+		From: new DateOnly(year: 2025, month: 1, day: 1),
+		To: new DateOnly(year: 2025, month: 1, day: 31)
+	);
+
+	private void ReturnConflict() => _budgetReadRepository.FindOverlappingAsync(
+		userId: Arg.Any<Guid>(),
+		categoryId: Arg.Any<Guid>(),
+		from: Arg.Any<DateOnly>(),
+		to: Arg.Any<DateOnly>(),
+		excludeBudgetId: Arg.Any<Guid?>(),
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: ConflictingBudgetId);
+
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldReturnBudgetId()
 	{
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
+		CreateBudgetCommand command = ValidCommand();
 
 		Result<Guid, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
 
@@ -71,14 +84,7 @@ public sealed class CreateBudgetHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldCallCreateAsync()
 	{
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
+		CreateBudgetCommand command = ValidCommand();
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
@@ -97,14 +103,7 @@ public sealed class CreateBudgetHandlerTests
 	[Test]
 	public async Task Handle_WithValidCommand_ShouldPublishNotification()
 	{
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
+		CreateBudgetCommand command = ValidCommand();
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
@@ -117,50 +116,32 @@ public sealed class CreateBudgetHandlerTests
 	[Test]
 	public async Task Handle_WhenOverlappingBudgetExists_ShouldReturnFailure()
 	{
-		_budgetReadRepository.HasOverlappingAsync(
-			userId: Arg.Any<Guid>(),
-			categoryId: Arg.Any<Guid>(),
-			from: Arg.Any<DateOnly>(),
-			to: Arg.Any<DateOnly>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		ReturnConflict();
 
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
-
-		Result<Guid, AppException> result = await _handler.Handle(command: command, ct: CancellationToken.None);
+		Result<Guid, AppException> result = await _handler.Handle(command: ValidCommand(), ct: CancellationToken.None);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<OverlappingBudgetException>();
 	}
 
 	[Test]
+	public async Task Handle_WhenOverlappingBudgetExists_ShouldNameTheConflictingBudget()
+	{
+		ReturnConflict();
+
+		Result<Guid, AppException> result = await _handler.Handle(command: ValidCommand(), ct: CancellationToken.None);
+
+		OverlappingBudgetException error = (OverlappingBudgetException)result.Error!;
+
+		await Assert.That(value: error.ConflictingBudgetId).IsEqualTo(expected: ConflictingBudgetId);
+	}
+
+	[Test]
 	public async Task Handle_WhenOverlappingBudgetExists_ShouldNotCallCreateAsync()
 	{
-		_budgetReadRepository.HasOverlappingAsync(
-			userId: Arg.Any<Guid>(),
-			categoryId: Arg.Any<Guid>(),
-			from: Arg.Any<DateOnly>(),
-			to: Arg.Any<DateOnly>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		ReturnConflict();
 
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
-
-		await _handler.Handle(command: command, ct: CancellationToken.None);
+		await _handler.Handle(command: ValidCommand(), ct: CancellationToken.None);
 
 		await _budgetWriteRepository.DidNotReceive().CreateAsync(
 			budget: Arg.Any<FinanceTracker.Core.Domains.Budget.Budget>(),
@@ -171,24 +152,9 @@ public sealed class CreateBudgetHandlerTests
 	[Test]
 	public async Task Handle_WhenOverlappingBudgetExists_ShouldNotPublishNotification()
 	{
-		_budgetReadRepository.HasOverlappingAsync(
-			userId: Arg.Any<Guid>(),
-			categoryId: Arg.Any<Guid>(),
-			from: Arg.Any<DateOnly>(),
-			to: Arg.Any<DateOnly>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		ReturnConflict();
 
-		CreateBudgetCommand command = new CreateBudgetCommand(
-			UserId: Guid.CreateVersion7(),
-			CategoryId: Guid.CreateVersion7(),
-			Currency: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
-			Amount: 10000m,
-			From: new DateOnly(year: 2025, month: 1, day: 1),
-			To: new DateOnly(year: 2025, month: 1, day: 31)
-		);
-
-		await _handler.Handle(command: command, ct: CancellationToken.None);
+		await _handler.Handle(command: ValidCommand(), ct: CancellationToken.None);
 
 		_postCommitNotifications.DidNotReceive().Stage(notification: Arg.Any<BudgetCreatedNotification>());
 	}

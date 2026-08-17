@@ -51,7 +51,7 @@ public sealed class BudgetProgressReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: result!.BudgetId).IsEqualTo(expected: budgetId);
 		await Assert.That(value: result.Spent).IsEqualTo(expected: 3000m);
 		await Assert.That(value: result.Remaining).IsEqualTo(expected: 7000m);
-		await Assert.That(value: result.Percentage).IsEqualTo(expected: 0.3m);
+		await Assert.That(value: result.Percentage).IsEqualTo(expected: 30m);
 	}
 
 	[Test]

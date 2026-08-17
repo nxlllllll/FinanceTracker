@@ -1,6 +1,19 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
+    Учётка «постороннего» — общая для всех наборов.
+
+.DESCRIPTION
+    Изоляция везде проверяется одинаково: чужой ресурс не читается и не меняется. Своя
+    вторая учётка на каждый набор ничего к этому не добавляет, зато удваивает расход
+    регистраций, которых двадцать на пять минут.
+#>
+function Get-OutsiderUser {
+    return New-TestUser -Label 'outsider'
+}
+
+<#
+.SYNOPSIS
     Общая обвязка для API-наборов. Подключается через dot-source:  . "$PSScriptRoot\_Common.ps1"
 
 .DESCRIPTION

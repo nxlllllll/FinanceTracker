@@ -37,7 +37,7 @@ public class BudgetBenchmarks : BenchmarkBase
 		=> await _progressRepository.GetByBudgetIdAsync(budgetId: Db.BudgetId, userId: Db.UserId);
 
 	[Benchmark]
-	public async Task HasOverlappingAsync() => await _readRepository.HasOverlappingAsync(
+	public async Task HasOverlappingAsync() => await _readRepository.FindOverlappingAsync(
 		userId: Db.UserId,
 		categoryId: Db.CategoryId,
 		from: DateOnly.FromDateTime(dateTime: DateTime.UtcNow.AddDays(value: -5)),

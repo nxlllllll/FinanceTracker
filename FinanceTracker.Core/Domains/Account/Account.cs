@@ -141,7 +141,7 @@ public sealed class Account : AggregateRoot
 		if (occurredAt < CreatedAt)
 		{
 			return Result<Unit, DomainException>.Failure(error: new OperationPredatesAccountException(
-				message: $"The operation is dated {occurredAt:yyyy-MM-dd}, before the account was opened on {CreatedAt:yyyy-MM-dd}."
+				message: $"The operation is dated {occurredAt:dd.MM.yyyy hh:mm:ss}, before the account was opened on {CreatedAt:dd.MM.yyyy hh:mm:ss}."
 			));
 		}
 
