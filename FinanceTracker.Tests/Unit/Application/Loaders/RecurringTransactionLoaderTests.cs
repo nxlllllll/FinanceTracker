@@ -4,14 +4,10 @@ using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRe
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
-using FinanceTracker.Core.ReadModels;
-using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
-using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -20,17 +16,17 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 public sealed class RecurringTransactionLoaderTests
 {
 	private IRecurringTransactionRepository _readRepository = null!;
-	private IAccountReadRepository _accountReadRepository = null!;
+	private IAccountRepository _accountRepository = null!;
 	private RecurringTransactionLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_readRepository = Substitute.For<IRecurringTransactionRepository>();
-		_accountReadRepository = Substitute.For<IAccountReadRepository>();
+		_accountRepository = Substitute.For<IAccountRepository>();
 		_loader = new RecurringTransactionLoader(
 			recurringTransactionRepository: _readRepository,
-			accountRepository: _accountReadRepository
+			accountRepository: _accountRepository
 		);
 	}
 
@@ -92,11 +88,10 @@ public sealed class RecurringTransactionLoaderTests
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
 
-		_accountReadRepository.GetByIdAsync(
+		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountReadModel?>(result: null));
+		).Returns(returnThis: Task.FromResult<Account?>(result: null));
 
 		Result<FinanceTracker.Core.Results.Unit, AppException> result = await _loader.LoadAsync(request: command, ct: CancellationToken.None);
 
@@ -108,20 +103,10 @@ public sealed class RecurringTransactionLoaderTests
 	public async Task LoadAsync_CreateCommand_WhenAccountBelongsToAnotherUser_ShouldReturnNotFoundException()
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
-		AccountReadModel account = new AccountReadModel(
-			Id: command.AccountId,
-			UserId: Guid.CreateVersion7(),
-			Name: Name.Create(value: "Main").Value!,
-			Type: AccountType.Checking,
-			Balance: Money.Reconstitute(amount: 1000m, currency: Currency.Reconstitute(value: "RUB")),
-			IsArchived: false,
-			Version: 1,
-			CreatedAt: DateTimeOffset.UtcNow
-		);
+		Account account = AccountFactory.CreateWithArchivation(userId: Guid.CreateVersion7());
 
-		_accountReadRepository.GetByIdAsync(
+		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 
@@ -135,20 +120,10 @@ public sealed class RecurringTransactionLoaderTests
 	public async Task LoadAsync_CreateCommand_WhenOwner_ShouldReturnSuccess()
 	{
 		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
-		AccountReadModel account = new AccountReadModel(
-			Id: command.AccountId,
-			UserId: command.UserId,
-			Name: Name.Create(value: "Main").Value!,
-			Type: AccountType.Checking,
-			Balance: Money.Reconstitute(amount: 1000m, currency: Currency.Reconstitute(value: "RUB")),
-			IsArchived: false,
-			Version: 1,
-			CreatedAt: DateTimeOffset.UtcNow
-		);
+		Account account = AccountFactory.CreateWithArchivation(userId: command.UserId);
 
-		_accountReadRepository.GetByIdAsync(
+		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: account);
 

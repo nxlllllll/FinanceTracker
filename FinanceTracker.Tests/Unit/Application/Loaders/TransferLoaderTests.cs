@@ -1,12 +1,9 @@
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
-using FinanceTracker.Core.ReadModels;
-using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -17,18 +14,13 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 public sealed class TransferLoaderTests
 {
 	private IAccountRepository _accountRepository = null!;
-	private IAccountReadRepository _accountReadRepository = null!;
 	private TransferLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_accountReadRepository = Substitute.For<IAccountReadRepository>();
-		_loader = new TransferLoader(
-			accountRepository: _accountRepository,
-			accountReadRepository: _accountReadRepository
-		);
+		_loader = new TransferLoader(accountRepository: _accountRepository);
 	}
 
 	[Test]
@@ -89,6 +81,36 @@ public sealed class TransferLoaderTests
 	}
 
 	[Test]
+	public async Task LoadAsync_WhenToAccountNotFound_ShouldThrowNotFoundException()
+	{
+		Account fromAccount = AccountFactory.CreateWithArchivation();
+		Guid missingToAccountId = Guid.CreateVersion7();
+
+		_accountRepository.GetByIdAsync(
+			accountId: fromAccount.Id,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: fromAccount);
+
+		_accountRepository.GetByIdAsync(
+			accountId: missingToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Task.FromResult<Account?>(result: null));
+
+		Result<TransferAccount, AppException> result = await _loader.LoadAsync(
+			request: CreateTransferCommandFactory.Create(
+				userId: fromAccount.UserId,
+				fromAccountId: fromAccount.Id,
+				toAccountId: missingToAccountId,
+				amount: 100m
+			),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
+	}
+
+	[Test]
 	public async Task LoadAsync_WhenToAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
 		Account fromAccount = AccountFactory.CreateWithArchivation();
@@ -99,11 +121,10 @@ public sealed class TransferLoaderTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: fromAccount);
 
-		_accountReadRepository.GetByIdAsync(
+		_accountRepository.GetByIdAsync(
 			accountId: toAccount.Id,
-			userId: fromAccount.UserId,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<AccountReadModel?>(result: null));
+		).Returns(returnThis: toAccount);
 
 		Result<TransferAccount, AppException> resultTo = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
@@ -123,23 +144,23 @@ public sealed class TransferLoaderTests
 	public async Task LoadAsync_WhenBothAccountsOwnedByUser_ShouldReturnTransferAccounts()
 	{
 		Account fromAccount = AccountFactory.CreateWithArchivation();
-		AccountReadModel toAccountReadModel = AccountFactory.CreateReadModel(userId: fromAccount.UserId, currency: "USD");
+		Account toAccount = AccountFactory.CreateWithArchivation(userId: fromAccount.UserId, currency: "USD");
 
 		_accountRepository.GetByIdAsync(
 			accountId: fromAccount.Id,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: fromAccount);
-		_accountReadRepository.GetByIdAsync(
-			accountId: toAccountReadModel.Id,
-			userId: fromAccount.UserId,
+
+		_accountRepository.GetByIdAsync(
+			accountId: toAccount.Id,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: toAccountReadModel);
+		).Returns(returnThis: toAccount);
 
 		Result<TransferAccount, AppException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
-				toAccountId: toAccountReadModel.Id,
+				toAccountId: toAccount.Id,
 				amount: 100m
 			),
 			ct: CancellationToken.None
@@ -147,30 +168,30 @@ public sealed class TransferLoaderTests
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value!.FromAccount.Id).IsEqualTo(expected: fromAccount.Id);
-		await Assert.That(value: result.Value!.ToAccountCurrency).IsEqualTo(expected: toAccountReadModel.Balance.Currency);
+		await Assert.That(value: result.Value!.ToAccountCurrency).IsEqualTo(expected: toAccount.Balance.Currency);
 	}
 
 	[Test]
 	public async Task LoadAsync_WhenToAccountIsArchived_ShouldThrowArchivedOperationException()
 	{
 		Account fromAccount = AccountFactory.CreateWithArchivation();
-		AccountReadModel toAccountReadModel = AccountFactory.CreateReadModel(userId: fromAccount.UserId, currency: "USD", isArchived: true);
+		Account toAccount = AccountFactory.CreateWithArchivation(userId: fromAccount.UserId, currency: "USD", archived: true);
 
 		_accountRepository.GetByIdAsync(
 			accountId: fromAccount.Id,
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: fromAccount);
-		_accountReadRepository.GetByIdAsync(
-			accountId: toAccountReadModel.Id,
-			userId: fromAccount.UserId,
+
+		_accountRepository.GetByIdAsync(
+			accountId: toAccount.Id,
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: toAccountReadModel);
+		).Returns(returnThis: toAccount);
 
 		Result<TransferAccount, AppException> result = await _loader.LoadAsync(
 			request: CreateTransferCommandFactory.Create(
 				userId: fromAccount.UserId,
 				fromAccountId: fromAccount.Id,
-				toAccountId: toAccountReadModel.Id,
+				toAccountId: toAccount.Id,
 				amount: 100m
 			),
 			ct: CancellationToken.None

@@ -6,10 +6,7 @@ using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRe
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.DeactivateRecurringTransaction;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
-using FinanceTracker.Core.ReadModels;
-using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
@@ -18,7 +15,7 @@ namespace FinanceTracker.Application.UseCases.RecurringTransaction.Authorization
 
 public sealed class RecurringTransactionLoader(
 	IRecurringTransactionRepository recurringTransactionRepository,
-	IAccountReadRepository accountRepository
+	IAccountRepository accountRepository
 ) : IEntityLoader<CreateRecurringTransactionCommand, AppException>,
 	IEntityLoader<ActivateRecurringTransactionCommand, Core.Domains.RecurringTransaction.RecurringTransaction, AppException>,
 	IEntityLoader<ChangeRecurringTransactionAmountCommand, Core.Domains.RecurringTransaction.RecurringTransaction, AppException>,
@@ -30,7 +27,7 @@ public sealed class RecurringTransactionLoader(
 		CreateRecurringTransactionCommand request,
 		CancellationToken ct)
 	{
-		AccountReadModel? account = await accountRepository.GetByIdAsync(accountId: request.AccountId, userId: request.UserId, ct: ct);
+		Core.Domains.Account.Account? account = await accountRepository.GetByIdAsync(accountId: request.AccountId, ct: ct);
 
 		if (account is null || account.UserId != request.UserId)
 			return Result<Unit, AppException>.Failure(error: new NotFoundException(message: "Account not found.", id: request.AccountId));

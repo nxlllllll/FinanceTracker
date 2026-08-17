@@ -14,8 +14,7 @@ using FinanceTracker.Core.Results;
 namespace FinanceTracker.Application.UseCases.Transfer.Authorization;
 
 public sealed class TransferLoader(
-	IAccountRepository accountRepository,
-	IAccountReadRepository accountReadRepository
+	IAccountRepository accountRepository
 ) : IEntityLoader<CreateTransferCommand, TransferAccount, AppException>
 {
 	public Task<Result<TransferAccount, AppException>> LoadAsync(
@@ -36,8 +35,8 @@ public sealed class TransferLoader(
 		if (account is null || account.UserId != userId)
 			return Result<TransferAccount, AppException>.Failure(error: new NotFoundException(message: "Source account not found.", id: fromAccountId));
 
-		AccountReadModel? toAccount = await accountReadRepository.GetByIdAsync(accountId: toAccountId, userId: userId, ct: ct);
-		if (toAccount is null)
+		Core.Domains.Account.Account? toAccount = await accountRepository.GetByIdAsync(accountId: toAccountId, ct: ct);
+		if (toAccount is null || toAccount.UserId != userId)
 			return Result<TransferAccount, AppException>.Failure(error: new NotFoundException(message: "Destination account not found.", id: toAccountId));
 
 		if (toAccount.IsArchived)

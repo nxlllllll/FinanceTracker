@@ -114,68 +114,52 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 	}
 
 	[Test]
-	public async Task CreateTransfer_WhenToAccountDeleted_ShouldCompensateAndRefundFromAccount()
-	{
-		Guid userId = await _userBuilder.CreateAsync();
-		Guid fromAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 10_000m);
+    public async Task CreateTransfer_WhenToAccountDeleted_ShouldCompensateAndRefundFromAccount()
+    {
+       Guid userId = await _userBuilder.CreateAsync();
+       Guid fromAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 10_000m);
+       Guid toAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 0m);
 
-		Guid nonExistentToAccountId = Guid.CreateVersion7();
+       await Mediator.Send(request: new CreateTransferCommand(
+          UserId: userId,
+          FromAccountId: fromAccountId,
+          ToAccountId: toAccountId,
+          Amount: 4_000m,
+          Description: null,
+          OccurredAt: DateTimeOffset.UtcNow
+       )
+       { IdempotencyKey = Guid.CreateVersion7() });
 
-		await Context.Accounts.AddAsync(entity: new AccountEntity
-		{
-			Id = nonExistentToAccountId,
-			UserId = userId,
-			Name = Name.Create(value: "Temp").Value,
-			AccountType = AccountType.Checking,
-			Currency = Currency.Create(value: "RUB").Value,
-			IsArchived = false,
-			CreatedAt = DateTimeOffset.UtcNow
-		});
-		await Context.AccountBalances.AddAsync(entity: new AccountBalanceEntity
-		{
-			AccountId = nonExistentToAccountId,
-			Balance = 0m,
-			LastVersion = 0,
-			UpdatedAt = DateTimeOffset.UtcNow
-		});
-		await Context.SaveChangesAsync();
+		await Context.Events.Where(predicate: e => e.AggregateId == toAccountId).ExecuteDeleteAsync();
+		await Context.AccountBalances.Where(predicate: b => b.AccountId == toAccountId).ExecuteDeleteAsync();
+		await Context.Accounts.Where(predicate: a => a.Id == toAccountId).ExecuteDeleteAsync();
 
-		await Mediator.Send(request: new CreateTransferCommand(
-			UserId: userId,
-			FromAccountId: fromAccountId,
-			ToAccountId: nonExistentToAccountId,
-			Amount: 4_000m,
-			Description: null,
-			OccurredAt: DateTimeOffset.UtcNow
-		)
-		{ IdempotencyKey = Guid.CreateVersion7() });
+       await RunOutboxAsync();
 
-		await RunOutboxAsync();
+       await WaitForConditionAsync(condition: async () =>
+       {
+          await using FinanceTrackerContext ctx = CreateReadContext();
+          return await ctx.Transfers.AnyAsync(predicate: t => t.FromAccountId == fromAccountId && t.Status == TransferStatus.Compensated);
+       });
 
-		await WaitForConditionAsync(condition: async () =>
-		{
-			await using FinanceTrackerContext ctx = CreateReadContext();
-			return await ctx.Transfers.AnyAsync(predicate: t => t.FromAccountId == fromAccountId && t.Status == TransferStatus.Compensated);
-		});
+       await WaitForConditionAsync(condition: async () =>
+       {
+          await RunOutboxAsync();
+          await using FinanceTrackerContext ctx = CreateReadContext();
+          decimal? balance = await ctx.AccountBalances.Where(predicate: b => b.AccountId == fromAccountId)
+             .Select(selector: b => b.Balance)
+             .FirstOrDefaultAsync();
+          return balance == 10_000m;
+       });
 
+       await using FinanceTrackerContext readCtx = CreateReadContext();
+       decimal fromBalance = await readCtx.AccountBalances.Where(predicate: b => b.AccountId == fromAccountId)
+          .Select(selector: b => b.Balance)
+          .FirstAsync();
 
-		await WaitForConditionAsync(condition: async () =>
-		{
-			await RunOutboxAsync();
-			await using FinanceTrackerContext ctx = CreateReadContext();
-			decimal? balance = await ctx.AccountBalances.Where(predicate: b => b.AccountId == fromAccountId)
-				.Select(selector: b => b.Balance)
-				.FirstOrDefaultAsync();
-			return balance == 10_000m;
-		});
-
-		await using FinanceTrackerContext readCtx = CreateReadContext();
-		decimal fromBalance = await readCtx.AccountBalances.Where(predicate: b => b.AccountId == fromAccountId)
-			.Select(selector: b => b.Balance)
-			.FirstAsync();
-
-		await Assert.That(value: fromBalance).IsEqualTo(expected: 10_000m);
-	}
+       await Assert.That(value: fromBalance).IsEqualTo(expected: 10_000m)
+          .Because(message: "компенсация обязана вернуть списанное: иначе деньги ушли со счёта и не пришли никуда");
+    }
 
 	[Test]
 	public async Task CreateTransfer_StuckBeyondThreshold_TransferCreditLagShouldCompensate()
