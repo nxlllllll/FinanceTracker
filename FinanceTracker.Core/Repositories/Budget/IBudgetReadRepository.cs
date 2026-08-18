@@ -19,7 +19,7 @@ public interface IBudgetReadRepository : IReadRepository<BudgetReadModel>
 		CancellationToken ct = default
 	);
 
-	Task<bool> HasOverlappingAsync(
+	Task<Guid?> FindOverlappingAsync(
 		Guid userId,
 		Guid categoryId,
 		DateOnly from,

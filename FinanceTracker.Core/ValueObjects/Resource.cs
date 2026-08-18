@@ -9,8 +9,11 @@ public enum Resource
 	Account,
 	Balance,
 	Transaction,
+	Transfer,
 	Budget,
 	Category,
 	RecurringTransaction,
+	Currency,
+	User,
 	Permission
 }

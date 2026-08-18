@@ -11,3 +11,5 @@ appsettings.Staging.json
 /.config
 /alertmanager/alertmanager.yml
 *.sln.DotSettings.user
+FinanceTracker.Tests/Api/.api-users.json
+compose.override.yaml

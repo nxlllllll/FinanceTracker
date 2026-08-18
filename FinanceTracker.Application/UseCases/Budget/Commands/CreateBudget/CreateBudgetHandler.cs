@@ -41,13 +41,13 @@ public sealed class CreateBudgetHandler(
 			return Result<Guid, AppException>.Failure(error: budgetResult.Error!);
 
 		Core.Domains.Budget.Budget budget = budgetResult.Value!;
-		bool hasOverlap;
+		Guid? conflictingBudgetId;
 
 		try
 		{
-			hasOverlap = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+			conflictingBudgetId = await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
-				bool overlap = await budgetReadRepository.HasOverlappingAsync(
+				Guid? conflict = await budgetReadRepository.FindOverlappingAsync(
 					userId: command.UserId,
 					categoryId: command.CategoryId,
 					from: command.From,
@@ -55,21 +55,28 @@ public sealed class CreateBudgetHandler(
 					ct: ct
 				);
 
-				if (overlap)
-					return true;
+				if (conflict is not null)
+					return conflict;
 
 				await budgetWriteRepository.CreateAsync(budget: budget, ct: ct);
 
-				return false;
+				return null;
 			}, ct: ct);
 		}
 		catch (UniqueConstraintException)
 		{
-			hasOverlap = true;
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(
+				message: "A budget for this category already exists in the specified period."
+			));
 		}
 
-		if (hasOverlap)
-			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(message: "A budget for this category already exists in the specified period."));
+		if (conflictingBudgetId is not null)
+		{
+			return Result<Guid, AppException>.Failure(error: new OverlappingBudgetException(
+				message: "A budget for this category already exists in the specified period.",
+				conflictingBudgetId: conflictingBudgetId
+			));
+		}
 
 		postCommitNotifications.Stage(notification: new BudgetCreatedNotification(
 			BudgetId: budget.Id,

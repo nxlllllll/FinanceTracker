@@ -2,7 +2,6 @@ using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.ActivateBudget;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Budget;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
@@ -14,6 +13,8 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
 
 public sealed class ActivateBudgetHandlerTests
 {
+	private static readonly Guid ConflictingBudgetId = Guid.CreateVersion7();
+
 	private IBudgetReadRepository _budgetReadRepository = null!;
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
@@ -29,18 +30,18 @@ public sealed class ActivateBudgetHandlerTests
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		_unitOfWork.ExecuteInTransactionAsync(
-			operation: Arg.Any<Func<Task<bool>>>(),
+			operation: Arg.Any<Func<Task<Guid?>>>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<bool>>>()?.Invoke());
+		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task<Guid?>>>()?.Invoke());
 
-		_budgetReadRepository.HasOverlappingAsync(
+		_budgetReadRepository.FindOverlappingAsync(
 			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
 			from: Arg.Any<DateOnly>(),
 			to: Arg.Any<DateOnly>(),
 			excludeBudgetId: Arg.Any<Guid?>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: false);
+		).Returns(returnThis: (Guid?)null);
 
 		_handler = new ActivateBudgetHandler(
 			budgetReadRepository: _budgetReadRepository,
@@ -82,7 +83,7 @@ public sealed class ActivateBudgetHandlerTests
 			ct: CancellationToken.None
 		);
 
-		await _budgetReadRepository.Received(requiredNumberOfCalls: 1).HasOverlappingAsync(
+		await _budgetReadRepository.Received(requiredNumberOfCalls: 1).FindOverlappingAsync(
 			userId: budget.UserId,
 			categoryId: budget.CategoryId,
 			from: budget.From,
@@ -174,14 +175,14 @@ public sealed class ActivateBudgetHandlerTests
 	[Test]
 	public async Task HandleAsync_WhenOverlappingBudgetExists_ShouldReturnFailure()
 	{
-		_budgetReadRepository.HasOverlappingAsync(
+		_budgetReadRepository.FindOverlappingAsync(
 			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
 			from: Arg.Any<DateOnly>(),
 			to: Arg.Any<DateOnly>(),
 			excludeBudgetId: Arg.Any<Guid?>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: ConflictingBudgetId);
 
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();
@@ -197,16 +198,43 @@ public sealed class ActivateBudgetHandlerTests
 	}
 
 	[Test]
-	public async Task HandleAsync_WhenOverlappingBudgetExists_ShouldNotCallActivateAsync()
+	public async Task HandleAsync_WhenOverlappingBudgetExists_ShouldNameTheConflictingBudget()
 	{
-		_budgetReadRepository.HasOverlappingAsync(
+		_budgetReadRepository.FindOverlappingAsync(
 			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
 			from: Arg.Any<DateOnly>(),
 			to: Arg.Any<DateOnly>(),
 			excludeBudgetId: Arg.Any<Guid?>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: ConflictingBudgetId);
+
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
+		budget.Deactivate();
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(
+			command: new ActivateBudgetCommand(UserId: budget.UserId, BudgetId: budget.Id),
+			budget: budget,
+			ct: CancellationToken.None
+		);
+
+		OverlappingBudgetException error = (OverlappingBudgetException)result.Error!;
+
+		await Assert.That(value: error.ConflictingBudgetId).IsEqualTo(expected: ConflictingBudgetId)
+			.Because(message: "иначе пользователь видит отказ и не знает, какой бюджет мешает вернуть этот");
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenOverlappingBudgetExists_ShouldNotCallActivateAsync()
+	{
+		_budgetReadRepository.FindOverlappingAsync(
+			userId: Arg.Any<Guid>(),
+			categoryId: Arg.Any<Guid>(),
+			from: Arg.Any<DateOnly>(),
+			to: Arg.Any<DateOnly>(),
+			excludeBudgetId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: (Guid?)ConflictingBudgetId);
 
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();
@@ -227,14 +255,14 @@ public sealed class ActivateBudgetHandlerTests
 	[Test]
 	public async Task HandleAsync_WhenOverlappingBudgetExists_ShouldNotPublishNotification()
 	{
-		_budgetReadRepository.HasOverlappingAsync(
+		_budgetReadRepository.FindOverlappingAsync(
 			userId: Arg.Any<Guid>(),
 			categoryId: Arg.Any<Guid>(),
 			from: Arg.Any<DateOnly>(),
 			to: Arg.Any<DateOnly>(),
 			excludeBudgetId: Arg.Any<Guid?>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: true);
+		).Returns(returnThis: ConflictingBudgetId);
 
 		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
 		budget.Deactivate();

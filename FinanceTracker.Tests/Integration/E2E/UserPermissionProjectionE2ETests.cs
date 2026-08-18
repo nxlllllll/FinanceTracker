@@ -77,14 +77,15 @@ public sealed class UserPermissionProjectionE2ETests : E2EFixture
 	public async Task GrantThenRevokePermission_AfterOutbox_ShouldRemoveProjectedRow()
 	{
 		Guid targetUserId = await _userBuilder.CreateAsync();
-		Permission permission = Permission.Create(resource: Resource.Transaction, action: PermissionAction.Delete).Value!;
+		Permission permission = Permission.Create(resource: Resource.Transaction, action: PermissionAction.Write).Value!;
+		string projected = permission.ToString();
 
 		await Mediator.Send(request: new GrantPermissionCommand(TargetUserId: targetUserId, Permission: permission, GrantedBy: Guid.CreateVersion7()));
 		await RunOutboxAsync();
 		await WaitForConditionAsync(condition: async () =>
 		{
 			await using FinanceTrackerContext ctx = CreateReadContext();
-			return await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete");
+			return await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == projected);
 		});
 
 		Result<Core.Results.Unit, AppException> revokeResult = await Mediator.Send(request: new RevokePermissionCommand(
@@ -99,17 +100,17 @@ public sealed class UserPermissionProjectionE2ETests : E2EFixture
 		await WaitForConditionAsync(condition: async () =>
 		{
 			await using FinanceTrackerContext ctx = CreateReadContext();
-			return !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete" && p.IsActive);
+			return !await ctx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == projected && p.IsActive);
 		});
 
 		await using FinanceTrackerContext readCtx = CreateReadContext();
 		bool stillActive = await readCtx.UserPermissions.AnyAsync(
-			predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete" && p.IsActive
+			predicate: p => p.UserId == targetUserId && p.Permission == projected && p.IsActive
 		);
 
 		await Assert.That(value: stillActive).IsFalse();
 
-		bool tombstoneKept = await readCtx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == "transaction:delete");
+		bool tombstoneKept = await readCtx.UserPermissions.AnyAsync(predicate: p => p.UserId == targetUserId && p.Permission == projected);
 		await Assert.That(value: tombstoneKept).IsTrue().Because(message: """
 			The row stays behind on purpose: it records which version revoked the permission, which is
 			what stops a grant delivered out of order from putting it back.

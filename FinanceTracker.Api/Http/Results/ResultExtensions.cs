@@ -4,6 +4,7 @@ using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Currency;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Permission;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
@@ -74,7 +75,17 @@ public static class ResultExtensions
 	);
 
 	private static Dictionary<string, object?> Extensions(AppException error)
-		=> new Dictionary<string, object?> { ["code"] = ResolveErrorCode(error: error) };
+	{
+		Dictionary<string, object?> extensions = new Dictionary<string, object?>
+		{
+			["code"] = ResolveErrorCode(error: error)
+		};
+
+		if (error is OverlappingBudgetException { ConflictingBudgetId: { } conflictingBudgetId })
+			extensions["conflictingBudgetId"] = conflictingBudgetId;
+
+		return extensions;
+	}
 
 	private static string ResolveErrorCode(AppException error)
 		=> error.GetType().GetCustomAttribute<ErrorCodeAttribute>()?.Code ?? error.GetType().Name;
@@ -119,6 +130,29 @@ public static class ResultExtensions
 
 		onSuccess?.Invoke(obj: result.Value!);
 		return Microsoft.AspNetCore.Http.Results.Ok(value: result.Value!.Select(selector: TResponse.FromReadModel).ToList());
+	}
+
+	public static IHttpResult ToPagedHttpResult<TReadModel, TResponse>(
+		this Result<PagedResult<TReadModel>, AppException> result,
+		Action<PagedResult<TReadModel>>? onSuccess = null,
+		Action<AppException>? onError = null
+	) where TResponse : IResponseOf<TReadModel, TResponse>
+	{
+		if (result.IsFailure)
+		{
+			onError?.Invoke(obj: result.Error!);
+			return result.Error!.ToProblem();
+		}
+
+		PagedResult<TReadModel> page = result.Value!;
+		onSuccess?.Invoke(obj: page);
+
+		return Microsoft.AspNetCore.Http.Results.Ok(value: new PagedResponse<TResponse>(
+			Items: [.. page.Items.Select(selector: TResponse.FromReadModel)],
+			HasNextPage: page.HasNextPage,
+			NextCursorDate: page.NextCursorDate,
+			NextCursorId: page.NextCursorId
+		));
 	}
 
 	public static IHttpResult ToCreatedResult(

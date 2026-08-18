@@ -23,7 +23,7 @@ public sealed class BudgetProgressReadRepository(
 				BudgetId: progress.BudgetId,
 				Spent: progress.Spent,
 				Remaining: budget.Amount - progress.Spent,
-				Percentage: budget.Amount == 0 ? 0 : progress.Spent / budget.Amount,
+				Percentage: budget.Amount == 0 ? 0 : progress.Spent / budget.Amount * 100,
 				UpdatedAt: progress.UpdatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

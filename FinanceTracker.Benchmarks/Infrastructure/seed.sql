@@ -59,9 +59,11 @@ LIMIT 10;
 INSERT INTO rm_budget_progress (budget_id, spent, updated_at)
 SELECT id, (random() * 10000)::numeric(18,2), now() FROM budgets;
 
--- Транзакции: размазаны по всем пользователям и их аккаунтам
--- ~0.5% с is_rate_pending = true (кросс-валютные без курса)
-INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, base_currency_code, direction_type, exchange_rate, is_excluded, description, is_rate_pending, occurred_at)
+-- Транзакции: размазаны по всем пользователям и их аккаунтам.
+-- ~0.5% в статусе pending — кросс-валютные, для которых курс на дату ещё не опубликован:
+-- их подбирает BalanceAdjustmentJob, и на них же настроен частичный индекс
+-- idx_rm_transactions_pending_rate.
+INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, base_currency_code, direction_type, exchange_rate, is_excluded, description, rate_status, rate_status_changed_at, occurred_at)
 SELECT
     gen_random_uuid(),
     a.id,
@@ -74,7 +76,8 @@ SELECT
     CASE WHEN a.currency_code != 'RUB' THEN (0.8 + random() * 0.4)::numeric(18,6) ELSE 1.0 END,
     (random() < 0.05),
     'Tx ' || i,
-    (random() < 0.005 AND a.currency_code != 'RUB'),
+    CASE WHEN random() < 0.005 AND a.currency_code != 'RUB' THEN 'pending' ELSE 'exact' END,
+    now() - (random() * interval '365 days'),
     now() - (random() * interval '365 days')
 FROM generate_series(1, 1000000) i
          JOIN LATERAL (
@@ -88,7 +91,7 @@ FROM generate_series(1, 1000000) i
     ) c ON true;
 
 -- Реалистичный объём для целевого пользователя: ~2000 транзакций за год
-INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, base_currency_code, direction_type, exchange_rate, is_excluded, description, is_rate_pending, occurred_at)
+INSERT INTO rm_transactions (id, account_id, user_id, category_id, amount, currency_code, base_currency_code, direction_type, exchange_rate, is_excluded, description, rate_status, rate_status_changed_at, occurred_at)
 SELECT
     CASE WHEN i = 1 THEN '{TransactionId}'::uuid ELSE gen_random_uuid() END,
     CASE WHEN i % 3 = 0 THEN '{AccountId}'::uuid ELSE '{FromAccountId}'::uuid END,
@@ -101,13 +104,14 @@ SELECT
     1.0,
     (random() < 0.03),
     'My tx ' || i,
-    false,
+    'exact',
+    now(),
     now() - (random() * interval '365 days')
 FROM generate_series(1, 2000) i;
 
 -- Трансферы: размазаны по пользователям
 -- 1% pending_credit, 2% compensated, ~1.3% failed, остальные completed
-INSERT INTO rm_transfers (id, user_id, from_account_id, to_account_id, amount_from, currency_from, amount_to, currency_to, exchange_rate, description, is_rate_pending, status, occurred_at)
+INSERT INTO rm_transfers (id, user_id, from_account_id, to_account_id, amount_from, currency_from, amount_to, currency_to, exchange_rate, description, rate_status, rate_status_changed_at, status, occurred_at)
 SELECT
     gen_random_uuid(),
     a1.user_id,
@@ -119,7 +123,8 @@ SELECT
     a2.currency_code,
     CASE WHEN a1.currency_code != a2.currency_code THEN (0.8 + random() * 0.4)::numeric(18,6) ELSE 1.0 END,
     'Transfer ' || i,
-    false,
+    'exact',
+    now(),
     CASE
         WHEN i % 100 = 0 THEN 'pending_credit'
         WHEN i % 50  = 0 THEN 'compensated'
@@ -143,7 +148,7 @@ FROM generate_series(1, 500000) i
     ) a2 ON true;
 
 -- Трансферы целевого пользователя с именованными счетами (~500 штук)
-INSERT INTO rm_transfers (id, user_id, from_account_id, to_account_id, amount_from, currency_from, amount_to, currency_to, exchange_rate, description, is_rate_pending, status, occurred_at)
+INSERT INTO rm_transfers (id, user_id, from_account_id, to_account_id, amount_from, currency_from, amount_to, currency_to, exchange_rate, description, rate_status, rate_status_changed_at, status, occurred_at)
 SELECT
     CASE WHEN i = 1 THEN '{TransferId}'::uuid ELSE gen_random_uuid() END,
     '{UserId}'::uuid,
@@ -155,7 +160,8 @@ SELECT
     'RUB',
     1.0,
     'My transfer ' || i,
-    false,
+    'exact',
+    now(),
     CASE WHEN i % 100 = 0 THEN 'pending_credit' ELSE 'completed' END,
     now() - (random() * interval '365 days')
 FROM generate_series(1, 500) i;

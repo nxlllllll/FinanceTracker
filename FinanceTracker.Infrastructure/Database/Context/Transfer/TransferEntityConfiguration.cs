@@ -91,14 +91,6 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 			.HasForeignKey(foreignKeyExpression: t => t.UserId)
 			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
 
-		builder.HasOne<AccountEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: t => t.FromAccountId)
-			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
-		builder.HasOne<AccountEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: t => t.ToAccountId)
-			.OnDelete(deleteBehavior: DeleteBehavior.Cascade);
-
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: t => t.CurrencyFrom)
 			.OnDelete(deleteBehavior: DeleteBehavior.Cascade)

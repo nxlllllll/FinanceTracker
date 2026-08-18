@@ -16,11 +16,14 @@ public sealed record Permission
 	public static readonly IReadOnlyDictionary<Resource, IReadOnlySet<PermissionAction>> Catalog = new Dictionary<Resource, IReadOnlySet<PermissionAction>>
 	{
 		[Resource.Account] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
-		[Resource.Balance] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
-		[Resource.Transaction] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write, PermissionAction.Delete },
-		[Resource.Budget] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write, PermissionAction.Delete },
-		[Resource.Category] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write, PermissionAction.Delete },
-		[Resource.RecurringTransaction] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write, PermissionAction.Delete },
+		[Resource.Balance] = new HashSet<PermissionAction> { PermissionAction.Read },
+		[Resource.Transaction] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
+		[Resource.Transfer] = new HashSet<PermissionAction> { PermissionAction.Write },
+		[Resource.Budget] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
+		[Resource.Category] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
+		[Resource.RecurringTransaction] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
+		[Resource.Currency] = new HashSet<PermissionAction> { PermissionAction.Read },
+		[Resource.User] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
 		[Resource.Permission] = new HashSet<PermissionAction> { PermissionAction.Manage }
 	};
 

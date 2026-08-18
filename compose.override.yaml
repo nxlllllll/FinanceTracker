@@ -1,0 +1,7 @@
+﻿services:
+  api:
+    environment:
+      RateLimit__RequestsPerWindow: 9999
+      AnonymousRateLimit__IpRequestsPerWindow: 9999
+      AnonymousRateLimit__EmailRequestsPerWindow: 9999
+      IpRateLimit__Enabled: "false"
