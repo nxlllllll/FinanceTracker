@@ -82,8 +82,8 @@ public sealed class UserPermissionTests
 	[Test]
 	public async Task Revoke_HeldPermission_ShouldRaisePermissionRevokedEvent()
 	{
-		UserPermission userPermission = UserPermissionFactory.CreateWithGrant(resource: Resource.Transaction, action: PermissionAction.Delete);
-		Permission permission = Permission.Create(resource: Resource.Transaction, action: PermissionAction.Delete).Value!;
+		UserPermission userPermission = UserPermissionFactory.CreateWithGrant(resource: Resource.Transaction, action: PermissionAction.Write);
+		Permission permission = Permission.Create(resource: Resource.Transaction, action: PermissionAction.Write).Value!;
 
 		Result<FinanceTracker.Core.Results.Unit, DomainException> result = userPermission.Revoke(
 			occurredAt: Now,

@@ -2,6 +2,7 @@
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
+using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
@@ -18,7 +19,7 @@ public sealed class ChangeBaseCurrencyEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
 		group.MapPatch(pattern: "/me/base-currency", handler: HandleAsync)
-			.RequireAuthorization()
+			.RequirePermission(resource: Resource.User, action: PermissionAction.Read)
 			.WithSummary(summary: "Change the currency everything is summed in")
 			.WithDescription(description:
 				"Individual accounts keep their own currencies; this only changes what they are compared in. Every " +

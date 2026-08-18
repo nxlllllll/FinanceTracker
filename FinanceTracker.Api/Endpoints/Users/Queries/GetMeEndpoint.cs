@@ -2,10 +2,12 @@
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
+using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.User.Queries.GetUser;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Api.Endpoints.Users.Queries;
@@ -17,7 +19,7 @@ public sealed class GetMeEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
 		group.MapGet(pattern: "/me", handler: HandleAsync)
-			.RequireAuthorization()
+			.RequirePermission(resource: Resource.User, action: PermissionAction.Read)
 			.WithSummary(summary: "Get the current user's profile")
 			.WithDescription(description: "Reads whoever the token belongs to; there is no route for looking up another user's profile.")
 			.Produces<UserResponse>(statusCode: StatusCodes.Status200OK)

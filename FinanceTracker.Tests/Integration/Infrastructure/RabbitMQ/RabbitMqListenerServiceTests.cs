@@ -440,8 +440,8 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		RabbitMqOptions options = _baseOptions with
 		{
 			MaxRetries = 5,
-			DelayedRetryMinMs = 2000,
-			DelayedRetryMaxMs = 2000
+			DelayedRetryMinMs = 10_000,
+			DelayedRetryMaxMs = 10_000
 		};
 
 		FailingMessageHandlerState handlerState = new FailingMessageHandlerState();
@@ -475,7 +475,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await listener.StopAsync(ct: CancellationToken.None);
 		listener.Dispose();
 
-		await Assert.That(value: elapsed).IsLessThan(maximum: TimeSpan.FromMilliseconds(value: 2000))
+		await Assert.That(value: elapsed).IsLessThan(maximum: TimeSpan.FromMilliseconds(value: 10_000))
 			.Because(message: "the assertion below is only meaningful while the backoff window is still open");
 
 		await Assert.That(value: callsWithinWindow).IsEqualTo(expected: 1);

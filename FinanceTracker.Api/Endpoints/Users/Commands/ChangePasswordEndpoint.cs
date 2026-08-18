@@ -2,9 +2,11 @@
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
+using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Api.Endpoints.Users.Commands;
@@ -16,7 +18,7 @@ public sealed class ChangePasswordEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
 		group.MapPatch(pattern: "/me/password", handler: HandleAsync)
-			.RequireAuthorization()
+			.RequirePermission(resource: Resource.User, action: PermissionAction.Read)
 			.WithSummary(summary: "Change the current user's password")
 			.WithDescription(description:
 				"Requires the current one — the usual defence against someone who walked up to an unlocked screen. " +

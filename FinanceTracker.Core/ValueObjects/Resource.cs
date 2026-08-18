@@ -14,5 +14,6 @@ public enum Resource
 	Category,
 	RecurringTransaction,
 	Currency,
+	User,
 	Permission
 }

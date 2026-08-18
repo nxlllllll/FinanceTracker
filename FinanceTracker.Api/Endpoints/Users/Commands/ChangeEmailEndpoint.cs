@@ -2,9 +2,11 @@
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
+using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using MediatR;
 
 namespace FinanceTracker.Api.Endpoints.Users.Commands;
@@ -16,7 +18,7 @@ public sealed class ChangeEmailEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
 		group.MapPatch(pattern: "/me/email", handler: HandleAsync)
-			.RequireAuthorization()
+			.RequirePermission(resource: Resource.User, action: PermissionAction.Write)
 			.WithSummary(summary: "Change the current user's email")
 			.WithDescription(description:
 				"Requires the current password: possession of a valid token is not enough to move the address a lost " +

@@ -114,7 +114,7 @@ public sealed class UserPermissionRepositoryTests : DatabaseFixture
 		await SaveAsync(userPermission: userPermission);
 
 		Core.Domains.UserPermission.UserPermission? loaded = await _repository.GetByUserIdAsync(userId: userPermission.UserId, ct: CancellationToken.None);
-		Permission permission = Permission.Create(resource: Resource.Transaction, action: PermissionAction.Delete).Value!;
+		Permission permission = Permission.Create(resource: Resource.Transaction, action: PermissionAction.Write).Value!;
 		loaded!.Grant(occurredAt: FakeDateProvider.Default.UtcNow, grantedBy: Guid.CreateVersion7(), permission: permission);
 		await SaveAsync(userPermission: loaded);
 

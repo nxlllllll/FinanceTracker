@@ -115,14 +115,14 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 
 		await UnitOfWork.ExecuteInTransactionAsync(operation: async () => await _repository.ReplacePermissionsAsync(
 			roleId: roleId,
-			permissions: Perms((Resource.Category, PermissionAction.Delete)),
+			permissions: Perms((Resource.Category, PermissionAction.Write)),
 			ct: CancellationToken.None
 		), ct: CancellationToken.None);
 
 		RoleDto? role = await _repository.GetByIdAsync(roleId: roleId, ct: CancellationToken.None);
 
 		await Assert.That(value: role!.Permissions).Count().IsEqualTo(expected: 1);
-		await Assert.That(value: role.Permissions).Contains(expected: Permission.Create(resource: Resource.Category, action: PermissionAction.Delete).Value!);
+		await Assert.That(value: role.Permissions).Contains(expected: Permission.Create(resource: Resource.Category, action: PermissionAction.Write).Value!);
 	}
 
 	[Test]
@@ -137,7 +137,7 @@ public sealed class RoleRepositoryTests : DatabaseFixture
 		{
 			await _repository.ReplacePermissionsAsync(
 				roleId: roleId,
-				permissions: Perms((Resource.Category, PermissionAction.Delete)),
+				permissions: Perms((Resource.Category, PermissionAction.Write)),
 				ct: CancellationToken.None
 			);
 
