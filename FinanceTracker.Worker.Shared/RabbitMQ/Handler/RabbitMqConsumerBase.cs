@@ -1,4 +1,6 @@
-﻿using FinanceTracker.Core.Utilities.Retry;
+﻿using System.Runtime.ExceptionServices;
+using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -38,12 +40,17 @@ public abstract class RabbitMqConsumerBase<TMessage>(
 
 	protected abstract Task OnDeliveryFailedAsync(BasicDeliverEventArgs ea, Exception exception);
 
+	/// <summary>
+	/// Reconnects on transient failures and stops the host on unrecoverable ones.
+	/// </summary>
 	protected override async Task ExecuteAsync(CancellationToken ct)
 	{
 		int attempt = 0;
 
 		while (!ct.IsCancellationRequested)
 		{
+			ExceptionDispatchInfo? fatal = null;
+
 			try
 			{
 				await ConnectAsync(ct: ct);
@@ -57,6 +64,10 @@ public abstract class RabbitMqConsumerBase<TMessage>(
 			{
 				break;
 			}
+			catch (Exception exception) when (IsUnrecoverable(exception: exception))
+			{
+				fatal = ExceptionDispatchInfo.Capture(source: Describe(exception: exception));
+			}
 			catch (Exception exception)
 			{
 				logger.ZLogError(exception: exception, message: $"{LogTag} connection attempt {attempt + 1} failed.");
@@ -64,6 +75,15 @@ public abstract class RabbitMqConsumerBase<TMessage>(
 			finally
 			{
 				await ReleaseConnectionAsync();
+			}
+
+			if (fatal is not null)
+			{
+				logger.ZLogCritical(
+					exception: fatal.SourceException,
+					message: $"{LogTag} cannot start against this broker and will not retry. Stopping the host."
+				);
+				fatal.Throw();
 			}
 
 			if (ct.IsCancellationRequested)
@@ -83,6 +103,52 @@ public abstract class RabbitMqConsumerBase<TMessage>(
 				break;
 			}
 		}
+	}
+
+	private static bool IsUnrecoverable(Exception exception) => Unwrap(exception: exception) switch
+	{
+		ConfigurationException => true,
+		AuthenticationFailureException => true,
+		OperationInterruptedException { ShutdownReason.ReplyCode: var replyCode } => IsFatalReplyCode(replyCode: replyCode),
+		_ => false
+	};
+
+	private static bool IsFatalReplyCode(int replyCode)
+		=> replyCode is Constants.AccessRefused or Constants.PreconditionFailed or Constants.NotAllowed;
+
+	/// <summary>
+	/// Finds the exception worth classifying inside a wrapper chain.
+	/// </summary>
+	private static Exception Unwrap(Exception exception)
+	{
+		for (Exception? current = exception; current is not null; current = current.InnerException)
+		{
+			if (current is ConfigurationException or AuthenticationFailureException or OperationInterruptedException)
+				return current;
+		}
+
+		return exception;
+	}
+
+	private Exception Describe(Exception exception)
+	{
+		if (Unwrap(exception: exception) is not OperationInterruptedException interrupted || interrupted.ShutdownReason?.ReplyCode != Constants.PreconditionFailed)
+			return exception;
+
+		string brokerReply = interrupted.ShutdownReason.ReplyText;
+
+		return new RabbitMqTopologyConflictException(
+			message: $"""
+				Queue '{QueueName}' already exists with arguments that differ from the ones this worker declares.
+				The broker refused the declaration: {brokerReply}
+				Arguments fixed at declaration time (x-delivery-limit from RabbitMQ:MaxRetries, x-delayed-retry-min/max
+				from RabbitMQ:DelayedRetryMinMs/DelayedRetryMaxMs, x-queue-type, x-dead-letter-exchange) cannot be changed
+				by re-declaring an existing queue. Either restore the previous values, or drain and delete the queue during
+				a maintenance window, or move these settings to a RabbitMQ policy so they can be changed on a live broker.
+				""",
+			queueName: QueueName,
+			brokerReply: brokerReply
+		);
 	}
 
 	private async Task ConnectAsync(CancellationToken ct)
