@@ -36,14 +36,20 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
 			);
 
+		builder.Property(propertyExpression: u => u.TimeZoneId)
+			.HasColumnName(name: "time_zone_id")
+			.HasMaxLength(maxLength: 64)
+			.HasConversion(
+				convertToProviderExpression: timeZone => timeZone.Value,
+				convertFromProviderExpression: timeZone => TimeZoneId.Reconstitute(value: timeZone)
+			);
+
 		builder.Property(propertyExpression: u => u.RowVersion)
 			.HasColumnName(name: "row_version")
 			.HasDefaultValue(value: 0);
 
 		builder.Property(propertyExpression: u => u.CreatedAt)
 			.HasColumnName(name: "created_at");
-
-		// builder.HasIndex(indexExpression: u => u.Email).IsUnique();
 
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.BaseCurrencyCode)

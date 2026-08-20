@@ -31,6 +31,7 @@ public sealed class UserReadRepository(
 				email: u.Email,
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
+				timeZone: u.TimeZoneId,
 				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
@@ -46,6 +47,7 @@ public sealed class UserReadRepository(
 				email: u.Email,
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
+				timeZone: u.TimeZoneId,
 				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);

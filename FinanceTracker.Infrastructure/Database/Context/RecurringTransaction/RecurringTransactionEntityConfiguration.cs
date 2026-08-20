@@ -52,6 +52,9 @@ public sealed class RecurringTransactionEntityConfiguration
 		builder.Property(propertyExpression: r => r.DayOfMonth)
 			.HasColumnName(name: "day_of_month");
 
+		builder.Property(propertyExpression: r => r.NextDueAtUtc)
+			.HasColumnName(name: "next_due_at_utc");
+
 		builder.Property(propertyExpression: r => r.Description)
 			.HasColumnName(name: "description")
 			.HasMaxLength(maxLength: 255);

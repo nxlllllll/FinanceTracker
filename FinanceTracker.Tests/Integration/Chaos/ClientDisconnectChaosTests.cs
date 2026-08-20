@@ -38,10 +38,6 @@ public sealed class ClientDisconnectChaosTests
 
 	private static readonly TimeSpan ObservationTimeout = TimeSpan.FromSeconds(value: 15);
 	private static readonly TimeSpan SettleWindow = TimeSpan.FromSeconds(value: 3);
-	private static readonly HttpClient Client = new HttpClient();
-
-	[After(hookType: Class)]
-	public static void DisposeClient() => Client.Dispose();
 
 	[Test]
 	public async Task ClientHangingUp_ShouldNotReachAnyExceptionHandler()
@@ -178,6 +174,8 @@ public sealed class ClientDisconnectChaosTests
 			failAfterAbort: failAfterAbort
 		);
 
+		using HttpClient client = new HttpClient();
+
 		try
 		{
 			await app.StartAsync();
@@ -186,7 +184,7 @@ public sealed class ClientDisconnectChaosTests
 
 			using CancellationTokenSource clientCancellation = new CancellationTokenSource();
 
-			Task request = Client.GetAsync(requestUri: $"{address}/hang", cancellationToken: clientCancellation.Token);
+			Task request = client.GetAsync(requestUri: $"{address}/hang", cancellationToken: clientCancellation.Token);
 
 			await requestReached.Task.WaitAsync(timeout: ObservationTimeout, cancellationToken: CancellationToken.None);
 

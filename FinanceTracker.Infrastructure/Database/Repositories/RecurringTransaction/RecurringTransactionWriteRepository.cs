@@ -1,7 +1,9 @@
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +19,8 @@ public sealed class RecurringTransactionWriteRepository(
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
 		CancellationToken ct = default)
 	{
+		DateTimeOffset now = dateProvider.UtcNow;
+
 		await context.RecurringTransactions.AddAsync(entity: new RecurringTransactionEntity()
 		{
 			Id = recurringTransaction.Id,
@@ -27,12 +31,17 @@ public sealed class RecurringTransactionWriteRepository(
 			Currency = recurringTransaction.Amount.Currency,
 			Direction = recurringTransaction.Direction,
 			DayOfMonth = recurringTransaction.DayOfMonth,
+			NextDueAtUtc = RecurringDueDate.Next(
+				dayOfMonth: recurringTransaction.DayOfMonth,
+				timeZone: TimeZoneId.Utc,
+				after: now
+			),
 			Description = recurringTransaction.Description,
 			IsActive = true,
 			LastExecutedAt = null,
 			LastMissedAt = null,
 			RowVersion = 0,
-			CreatedAt = dateProvider.UtcNow
+			CreatedAt = now
 		}, cancellationToken: ct);
 	}
 

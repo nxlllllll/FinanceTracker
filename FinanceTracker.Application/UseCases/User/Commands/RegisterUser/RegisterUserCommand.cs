@@ -12,10 +12,15 @@ public sealed record RegisterUserCommand(
 	Email Email,
 	string Password,
 	Core.ValueObjects.Currency BaseCurrencyCode,
-	IPAddress IpAddress
+	IPAddress IpAddress,
+	TimeZoneId? TimeZone = null
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IIpScopedRequest, IEmailScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
 
-	public override string ToString() => $"RegisterUserCommand{{Email={Email},Password=******,BaseCurrencyCode={BaseCurrencyCode},IpAddress={IpAddress}}}";
+	public override string ToString()
+	{
+		return  $"RegisterUserCommand{{Email={Email},Password=******,BaseCurrencyCode={BaseCurrencyCode}," +
+				$"IpAddress={IpAddress},TimeZone={TimeZone?.Value ?? "unset"}}}";
+	}
 }

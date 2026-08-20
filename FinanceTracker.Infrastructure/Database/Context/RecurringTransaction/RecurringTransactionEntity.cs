@@ -12,6 +12,7 @@ public sealed class RecurringTransactionEntity
 	public Core.ValueObjects.Currency Currency { get; init; }
 	public DirectionType Direction { get; init; }
 	public int DayOfMonth { get; init; }
+	public DateTimeOffset NextDueAtUtc { get; init; }
 	public string? Description { get; init; }
 	public bool IsActive { get; init; }
 	public int RowVersion { get; init; }

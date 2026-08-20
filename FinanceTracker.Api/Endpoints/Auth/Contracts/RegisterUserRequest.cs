@@ -4,5 +4,6 @@ namespace FinanceTracker.Api.Endpoints.Auth.Contracts;
 public sealed record RegisterUserRequest(
 	string Email,
 	string Password,
-	string BaseCurrency
+	string BaseCurrency,
+	string? TimeZone = null
 );

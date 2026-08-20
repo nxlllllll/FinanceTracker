@@ -8,6 +8,7 @@ public sealed class UserEntity
 	public Email Email { get; init; }
 	public string PasswordHash { get; init; } = String.Empty;
 	public Core.ValueObjects.Currency BaseCurrencyCode { get; init; }
+	public TimeZoneId TimeZoneId { get; init; } = TimeZoneId.Utc;
 	public int RowVersion { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

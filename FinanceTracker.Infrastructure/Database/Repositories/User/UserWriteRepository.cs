@@ -22,6 +22,7 @@ public sealed class UserWriteRepository(
 			Email = user.Email,
 			PasswordHash = user.PasswordHash,
 			BaseCurrencyCode = user.BaseCurrency,
+			TimeZoneId = user.TimeZone,
 			RowVersion = 0,
 			CreatedAt = user.CreatedAt
 		}, cancellationToken: ct);
@@ -70,6 +71,23 @@ public sealed class UserWriteRepository(
 		int affected = await context.Users.Where(predicate: u => u.Id == userId && u.RowVersion == expectedVersion).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder
 				.SetProperty(propertyExpression: u => u.BaseCurrencyCode, valueExpression: newBaseCurrencyCode)
+				.SetProperty(propertyExpression: u => u.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"User {userId} was modified by another request.", id: userId);
+	}
+
+	public async Task ChangeTimeZoneAsync(
+		Guid userId,
+		TimeZoneId newTimeZone,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Users.Where(predicate: u => u.Id == userId && u.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: u => u.TimeZoneId, valueExpression: newTimeZone)
 				.SetProperty(propertyExpression: u => u.RowVersion, valueExpression: expectedVersion + 1),
 			cancellationToken: ct
 		);
