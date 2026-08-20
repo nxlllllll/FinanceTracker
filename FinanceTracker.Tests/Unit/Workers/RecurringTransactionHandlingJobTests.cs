@@ -109,6 +109,32 @@ public sealed class RecurringTransactionHandlingJobTests
 		).Returns(returnThis: transactions);
 	}
 
+	private RecurringTransactionHandlingJob CreateJobAt(DateTimeOffset instant)
+	{
+		return new RecurringTransactionHandlingJob(
+			recurringTransactionReadRepository: _recurringTransactionReadRepository,
+			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
+			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
+			unitOfWork: _unitOfWork,
+			correlationContext: _correlationContext,
+			publisher: _publisher,
+			dateProvider: new FakeDateProvider(utcNow: instant),
+			options: new FakeOptionsMonitor<RecurringTransactionJobOptions>(value: new RecurringTransactionJobOptions()),
+			logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()
+		);
+	}
+
+	private object?[] CapturedDueDayCall()
+	{
+		return _recurringTransactionReadRepository.ReceivedCalls()
+			.Single(predicate: call => call.GetMethodInfo().Name == nameof(IRecurringTransactionReadRepository.GetDueTodayAsync))
+			.GetArguments();
+	}
+
+	private int CapturedDueDay() => (int)CapturedDueDayCall()[0]!;
+
+	private DateTimeOffset CapturedMonthStart() => (DateTimeOffset)CapturedDueDayCall()[2]!;
+
 	[Test]
 	public async Task Execute_WhenNoDueTransactions_ShouldNotPublish()
 	{
@@ -530,5 +556,65 @@ public sealed class RecurringTransactionHandlingJobTests
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task DueDay_ComesFromUtc_SoAUserBehindUtcIsChargedOnTheirPreviousDay()
+	{
+		DateTimeOffset instant = new DateTimeOffset(year: 2026, month: 9, day: 1, hour: 2, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		RecurringTransactionHandlingJob job = CreateJobAt(instant: instant);
+
+		SetupEmptyRepository();
+
+		await job.Execute(context: _jobContext);
+
+		int requestedDay = CapturedDueDay();
+		int localDay = instant.ToOffset(offset: TimeSpan.FromHours(value: -10)).Day;
+
+		await Assert.That(value: requestedDay).IsEqualTo(expected: instant.Day).Because(message: """
+			The job asks for due transactions by DateTimeOffset.Day on the UTC instant, with no notion of
+			where the owner of the transaction lives.
+		""");
+
+		await Assert.That(value: requestedDay).IsNotEqualTo(notExpected: localDay).Because(message: $"""
+			The job asked for day {requestedDay}; for a user at UTC-10 the local date is still
+			{instant.ToOffset(offset: TimeSpan.FromHours(value: -10)):yyyy-MM-dd}, so their day is {localDay}.
+
+			An operation scheduled for the 1st therefore leaves their account on what they see as the last
+			day of the previous month — landing in the wrong month for their own budgeting, and for
+			rm_category_totals, whose period boundaries are cut the same way.
+		""");
+	}
+
+	[Test]
+	public async Task DueDay_ComesFromUtc_SoAUserAheadOfUtcIsChargedOnTheirNextDay()
+	{
+		DateTimeOffset instant = new DateTimeOffset(year: 2026, month: 8, day: 31, hour: 22, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		RecurringTransactionHandlingJob job = CreateJobAt(instant: instant);
+
+		SetupEmptyRepository();
+
+		await job.Execute(context: _jobContext);
+
+		int requestedDay = CapturedDueDay();
+		DateTimeOffset local = instant.ToOffset(offset: TimeSpan.FromHours(value: 12));
+
+		await Assert.That(value: requestedDay).IsNotEqualTo(notExpected: local.Day).Because(message: $"""
+			The job asked for day {requestedDay}; for a user at UTC+12 it is already
+			{local:yyyy-MM-dd}, so an operation scheduled for the 1st has not fired yet and will not until
+			this run's window closes and the next one opens.
+
+			The mirror of the previous test: west of UTC the charge is early, east of UTC it is late.
+		""");
+
+		await Assert.That(value: CapturedMonthStart().Month).IsEqualTo(expected: 8).Because(message: $"""
+			currentMonthStart is built from the same UTC instant, so the job is still working in August
+			while the user at UTC+12 has been in September for ten hours.
+
+			This is the part that outlives the due-day question: the same boundary decides which month an
+			operation is attributed to, and a forecast built on it inherits the offset.
+		""");
 	}
 }
