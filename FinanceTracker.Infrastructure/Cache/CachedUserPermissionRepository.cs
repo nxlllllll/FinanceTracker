@@ -39,7 +39,7 @@ public sealed class CachedUserPermissionRepository(
 		unitOfWork.OnCommitted(callback: async () =>
 		{
 			bool refreshed = await redisCache.SetAsync(
-				key: CachedUserPermissionReadRepository.KeyFor(userId: userId),
+				key: PermissionCacheKeys.Permissions(userId: userId),
 				value: effective,
 				options: Ttl
 			);

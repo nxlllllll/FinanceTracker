@@ -74,7 +74,7 @@ public sealed class UserRoleEventApplierTests
 	}
 
 	private static string ExpectedKeyFor(Guid userId)
-		=> $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: userId)}";
+		=> $"ft_test:{PermissionCacheKeys.Permissions(userId: userId)}";
 
 	[Test]
 	public async Task ApplyAsync_WithUserRoleCreatedEvent_ShouldDoNothing()

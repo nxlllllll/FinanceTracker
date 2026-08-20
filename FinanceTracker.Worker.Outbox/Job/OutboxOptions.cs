@@ -19,7 +19,7 @@ public sealed class OutboxOptions : IJobOptions
 	public int IntervalSeconds { get; init; } = 3;
 
 	/// <summary>
-	/// Maximum messages processed per job execution. Default: 20.
+	/// Maximum messages processed per job execution. Default: 200.
 	/// </summary>
 	[Range(minimum: 1, maximum: 1000)]
 	public int BatchSize { get; init; } = 200;
