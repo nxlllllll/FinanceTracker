@@ -82,12 +82,14 @@ public sealed class RecurringTransactionWriteRepository(
 	public async Task ChangeDayOfMonthAsync(
 		Guid recurringTransactionId,
 		int dayOfMonth,
+		DateTimeOffset nextDueAtUtc,
 		int expectedVersion,
 		CancellationToken ct = default)
 	{
 		int affected = await context.RecurringTransactions.Where(predicate: r => r.Id == recurringTransactionId && r.RowVersion == expectedVersion).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder
 				.SetProperty(propertyExpression: r => r.DayOfMonth, valueExpression: dayOfMonth)
+				.SetProperty(propertyExpression: r => r.NextDueAtUtc, valueExpression: nextDueAtUtc)
 				.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
 			cancellationToken: ct
 		);
@@ -143,6 +145,7 @@ public sealed class RecurringTransactionWriteRepository(
 	public async Task MarkExecutedAsync(
 		Guid recurringTransactionId,
 		DateTimeOffset executedAt,
+		DateTimeOffset nextDueAtUtc,
 		int expectedVersion,
 		CancellationToken ct = default)
 	{
@@ -150,6 +153,7 @@ public sealed class RecurringTransactionWriteRepository(
 			.ExecuteUpdateAsync(
 				setPropertyCalls: builder => builder
 					.SetProperty(propertyExpression: r => r.LastExecutedAt, valueExpression: executedAt)
+					.SetProperty(propertyExpression: r => r.NextDueAtUtc, valueExpression: nextDueAtUtc)
 					.SetProperty(propertyExpression: r => r.RowVersion, valueExpression: expectedVersion + 1),
 				cancellationToken: ct
 			);

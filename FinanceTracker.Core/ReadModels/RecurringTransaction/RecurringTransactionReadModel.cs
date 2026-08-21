@@ -11,6 +11,8 @@ public sealed record RecurringTransactionReadModel(
 	Money Amount,
 	DirectionType Direction,
 	int DayOfMonth,
+	DateTimeOffset NextDueAtUtc,
+	TimeZoneId TimeZone,
 	string? Description,
 	bool IsActive,
 	int RowVersion,

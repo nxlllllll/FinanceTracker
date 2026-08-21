@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Results;
@@ -9,6 +10,7 @@ using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
+using RT = FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.RecurringTransaction;
 
@@ -28,14 +30,14 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		_categoryBuilder = new CategoryBuilder(context: Context);
 	}
 
-	private async Task<Core.Domains.RecurringTransaction.RecurringTransaction> CreateRecurringTransactionAsync(
+	private async Task<RT> CreateRecurringTransactionAsync(
 		Guid userId,
 		Guid accountId,
 		Guid categoryId,
 		decimal amount = 5000m,
 		int dayOfMonth = 15)
 	{
-		Result<Core.Domains.RecurringTransaction.RecurringTransaction, DomainException> result = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+		Result<RT, DomainException> result = RT.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			accountId: accountId,
@@ -43,10 +45,11 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 			amount: Money.Create(amount: amount, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
 			direction: DirectionType.Debit,
 			dayOfMonth: dayOfMonth,
+			timeZone: TimeZoneId.Utc,
 			description: null
 		);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = result.Value!;
+		RT recurringTransaction = result.Value!;
 		await _writeRepository.CreateAsync(recurringTransaction: recurringTransaction);
 		await Context.SaveChangesAsync();
 		return recurringTransaction;
@@ -59,7 +62,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		RecurringTransactionEntity? entity = await Context.RecurringTransactions.FirstOrDefaultAsync(predicate: r => r.Id == recurringTransaction.Id);
 
@@ -78,7 +81,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.ChangeAmountAsync(
 			recurringTransactionId: recurringTransaction.Id,
@@ -100,7 +103,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 		await new CurrencyBuilder(context: Context).CreateAsync(code: "USD");
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.ChangeCurrencyAsync(
 			recurringTransactionId: recurringTransaction.Id,
@@ -115,23 +118,35 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task ChangeDayOfMonthAsync_ShouldUpdateDayOfMonth()
+	public async Task ChangeDayOfMonthAsync_ShouldUpdateDayOfMonthAndTheDueInstant()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+
+		DateTimeOffset nextDue = RecurringDueDate.Next(
+			dayOfMonth: 20,
+			timeZone: TimeZoneId.Utc,
+			after: FakeDateProvider.Default.UtcNow
+		);
 
 		await _writeRepository.ChangeDayOfMonthAsync(
 			recurringTransactionId: recurringTransaction.Id,
 			dayOfMonth: 20,
+			nextDueAtUtc: nextDue,
 			expectedVersion: 0
 		);
 
 		RecurringTransactionEntity entity = await Context.RecurringTransactions.AsNoTracking().FirstAsync(predicate: r => r.Id == recurringTransaction.Id);
 
 		await Assert.That(value: entity.DayOfMonth).IsEqualTo(expected: 20);
+		await Assert.That(value: entity.NextDueAtUtc).IsEqualTo(expected: nextDue).Because(message: """
+		   Both columns in one statement. The day is what the user asked for; the instant is what the job
+		   reads. Persisting only the first leaves the operation firing on its old schedule until it runs
+		   once — a change that appears to have taken effect and has not.
+		""");
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
 
@@ -142,7 +157,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.DeactivateAsync(
 			recurringTransactionId: recurringTransaction.Id,
@@ -162,7 +177,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.DeactivateAsync(recurringTransactionId: recurringTransaction.Id, expectedVersion: 0);
 		await _writeRepository.ActivateAsync(recurringTransactionId: recurringTransaction.Id, expectedVersion: 1);
@@ -180,18 +195,25 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		DateTimeOffset executedAt = DateTimeOffset.UtcNow;
+		DateTimeOffset nextDue = recurringTransaction.NextDueAtUtc.AddMonths(months: 1);
+
 		await _writeRepository.MarkExecutedAsync(
 			recurringTransactionId: recurringTransaction.Id,
 			executedAt: executedAt,
+			nextDueAtUtc: nextDue,
 			expectedVersion: 0
 		);
 
 		RecurringTransactionEntity entity = await Context.RecurringTransactions.AsNoTracking().FirstAsync(predicate: r => r.Id == recurringTransaction.Id);
 
 		await Assert.That(value: entity.LastExecutedAt).IsNotNull();
+		await Assert.That(value: entity.NextDueAtUtc).IsEqualTo(expected: nextDue).Because(message: """
+		   Both columns move in one statement. Recording the execution without advancing the schedule
+		   would leave the operation due, and the next poll would run it a second time.
+		""");
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
 	}
 
@@ -202,8 +224,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction =
-			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		DateTimeOffset missedAt = DateTimeOffset.UtcNow;
 		await _writeRepository.MarkMissedAsync(
@@ -226,8 +247,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction =
-			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await Task.Run(function: async () => await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () => await _writeRepository.MarkMissedAsync(
 			recurringTransactionId: recurringTransaction.Id,
@@ -263,8 +283,7 @@ public sealed class RecurringTransactionWriteRepositoryTests : DatabaseFixture
 		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction =
-			await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
+		RT recurringTransaction = await CreateRecurringTransactionAsync(userId: userId, accountId: accountId, categoryId: categoryId);
 
 		await _writeRepository.ChangeAmountAsync(
 			recurringTransactionId: recurringTransaction.Id,

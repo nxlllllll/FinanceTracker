@@ -10,6 +10,7 @@ using FinanceTracker.Core.ReadModels.Transfer;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Extensions;
@@ -21,6 +22,13 @@ public sealed class UserReadRepository(
 	FinanceTrackerContext context
 ) : IUserAuthRepository, IUserQueryRepository
 {
+	private sealed record AccountBalanceProjection(
+		Core.ValueObjects.Currency Currency,
+		decimal Balance,
+		decimal? ExactRate,
+		decimal? LatestRate
+	);
+
 	async Task<Core.Domains.User.User?> IUserAuthRepository.GetByIdAsync(
 		Guid userId,
 		CancellationToken ct)
@@ -66,12 +74,15 @@ public sealed class UserReadRepository(
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
-	private sealed record AccountBalanceProjection(
-		Core.ValueObjects.Currency Currency,
-		decimal Balance,
-		decimal? ExactRate,
-		decimal? LatestRate
-	);
+	public async Task<TimeZoneId?> GetTimeZoneAsync(
+		Guid userId,
+		CancellationToken ct = default)
+	{
+		return await context.Users.AsNoTracking()
+			.Where(predicate: u => u.Id == userId)
+			.Select(selector: u => (TimeZoneId?)u.TimeZoneId)
+			.FirstOrDefaultAsync(cancellationToken: ct);
+	}
 
 	public async Task<decimal> GetTotalBalanceAsync(
 		Guid userId,

@@ -1,12 +1,13 @@
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Utilities;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.RecurringTransaction.Job;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -47,64 +48,48 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: call => call.Arg<Func<Task>>()?.Invoke());
 
-		SetupNoMissedTransactions();
+		SetupNoOverdueTransactions();
 
-		_job = new RecurringTransactionHandlingJob(
-			recurringTransactionReadRepository: _recurringTransactionReadRepository,
-			recurringTransactionWriteRepository: _recurringTransactionWriteRepository,
-			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
-			unitOfWork: _unitOfWork,
-			correlationContext: _correlationContext,
-			publisher: _publisher,
-			dateProvider: FakeDateProvider.Default,
-			options: new FakeOptionsMonitor<RecurringTransactionJobOptions>(value: new RecurringTransactionJobOptions()),
-			logger: Substitute.For<ILogger<RecurringTransactionHandlingJob>>()
-		);
+		_job = CreateJobAt(instant: FakeDateProvider.Default.UtcNow);
 	}
 
-	private void SetupNoMissedTransactions()
+	private void SetupNoOverdueTransactions()
 	{
-		_recurringTransactionReadRepository.GetMissedThisMonthAsync(
-			dayOfMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Any<DateTimeOffset>(),
-			previousMonthStart: Arg.Any<DateTimeOffset>(),
+		_recurringTransactionReadRepository.GetOverdueAsync(
+			before: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 	}
 
 	private void SetupEmptyRepository()
 	{
-		_recurringTransactionReadRepository.GetDueTodayAsync(
-			dayOfMonth: Arg.Any<int>(),
-			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Any<DateTimeOffset>(),
+		_recurringTransactionReadRepository.GetDueAsync(
+			asOf: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 	}
 
 	private void SetupRepository(int count)
 	{
-		IReadOnlyList<RecurringTransactionReadModel> transactions = [.. Enumerable.Range(start: 0, count: count).Select(selector: _ => RecurringTransactionFactory.CreateReadModel())];
+		IReadOnlyList<RecurringTransactionReadModel> transactions = [
+			..Enumerable.Range(start: 0, count: count).Select(selector: _ => RecurringTransactionFactory.CreateReadModel())
+		];
 
 		SetupRepository(transactions: transactions);
 	}
 
 	private void SetupRepository(IReadOnlyList<RecurringTransactionReadModel> transactions)
 	{
-		_recurringTransactionReadRepository.GetDueTodayAsync(
-			dayOfMonth: Arg.Any<int>(),
-			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Any<DateTimeOffset>(),
+		_recurringTransactionReadRepository.GetDueAsync(
+			asOf: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transactions);
 	}
 
-	private void SetupMissedTransactions(IReadOnlyList<RecurringTransactionReadModel> transactions)
+	private void SetupOverdueTransactions(IReadOnlyList<RecurringTransactionReadModel> transactions)
 	{
-		_recurringTransactionReadRepository.GetMissedThisMonthAsync(
-			dayOfMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Any<DateTimeOffset>(),
-			previousMonthStart: Arg.Any<DateTimeOffset>(),
+		_recurringTransactionReadRepository.GetOverdueAsync(
+			before: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: transactions);
 	}
@@ -124,16 +109,19 @@ public sealed class RecurringTransactionHandlingJobTests
 		);
 	}
 
-	private object?[] CapturedDueDayCall()
+	private DateTimeOffset CapturedDueBound()
 	{
-		return _recurringTransactionReadRepository.ReceivedCalls()
-			.Single(predicate: call => call.GetMethodInfo().Name == nameof(IRecurringTransactionReadRepository.GetDueTodayAsync))
-			.GetArguments();
+		return (DateTimeOffset)_recurringTransactionReadRepository.ReceivedCalls()
+			.Single(predicate: call => call.GetMethodInfo().Name == nameof(IRecurringTransactionReadRepository.GetDueAsync))
+			.GetArguments()[0]!;
 	}
 
-	private int CapturedDueDay() => (int)CapturedDueDayCall()[0]!;
-
-	private DateTimeOffset CapturedMonthStart() => (DateTimeOffset)CapturedDueDayCall()[2]!;
+	private DateTimeOffset CapturedOverdueBound()
+	{
+		return (DateTimeOffset)_recurringTransactionReadRepository.ReceivedCalls()
+			.Single(predicate: call => call.GetMethodInfo().Name == nameof(IRecurringTransactionReadRepository.GetOverdueAsync))
+			.GetArguments()[0]!;
+	}
 
 	[Test]
 	public async Task Execute_WhenNoDueTransactions_ShouldNotPublish()
@@ -144,6 +132,7 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _publisher.DidNotReceive().PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -158,6 +147,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -194,13 +184,27 @@ public sealed class RecurringTransactionHandlingJobTests
 	}
 
 	[Test]
+	public async Task Execute_ShouldPublishWithTheInstantTheOperationWasDue()
+	{
+		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
+		SetupRepository(transactions: [transaction]);
+
+		await _job.Execute(context: _jobContext);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
+			message: Arg.Is<RecurringTransactionTriggeredMessage>(predicate: m => m!.OccurredAt == transaction.NextDueAtUtc),
+			correlationId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
 	public async Task Execute_WhenDueTransactionsExist_ShouldPublishWithDeterministicMessageId()
 	{
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
 		SetupRepository(transactions: [transaction]);
 
-		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
-		Guid expectedMessageId = DeterministicGuid.Create(baseId: transaction.Id, year: now.Year, month: now.Month);
+		Guid expectedMessageId = DeterministicGuid.Create(baseId: transaction.Id, occurrence: transaction.NextDueAtUtc);
 
 		await _job.Execute(context: _jobContext);
 
@@ -232,6 +236,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		_recurringTransactionWriteRepository.MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: _ =>
@@ -255,6 +260,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 2).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -271,6 +277,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: transaction.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -286,6 +293,30 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: FakeDateProvider.Default.UtcNow,
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_ShouldAdvanceTheScheduleWhenMarkingExecuted()
+	{
+		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
+		SetupRepository(transactions: [transaction]);
+
+		DateTimeOffset expectedNext = RecurringDueDate.Next(
+			dayOfMonth: transaction.DayOfMonth,
+			timeZone: transaction.TimeZone,
+			after: transaction.NextDueAtUtc
+		);
+
+		await _job.Execute(context: _jobContext);
+
+		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
+			recurringTransactionId: transaction.Id,
+			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: expectedNext,
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -307,6 +338,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -362,6 +394,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: first.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -369,6 +402,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: second.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -376,66 +410,37 @@ public sealed class RecurringTransactionHandlingJobTests
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: third.Id,
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task Execute_ShouldPassCorrectDayOfMonthToRepository()
+	public async Task Execute_ShouldAskWhatIsDueAsOfNow()
 	{
 		SetupEmptyRepository();
 
 		await _job.Execute(context: _jobContext);
 
-		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
-
-		await _recurringTransactionReadRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
-			dayOfMonth: now.Day,
-			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
-			currentMonthStart: Arg.Any<DateTimeOffset>(),
-			ct: Arg.Any<CancellationToken>()
-		);
+		await Assert.That(value: CapturedDueBound()).IsEqualTo(expected: FakeDateProvider.Default.UtcNow);
 	}
 
 	[Test]
-	public async Task Execute_ShouldPassCorrectCurrentMonthStartToRepository()
+	public async Task Execute_ShouldLookForOverdueOperationsBehindTheConfiguredThreshold()
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(context: _jobContext);
-
-		DateTimeOffset now = FakeDateProvider.Default.UtcNow;
-		DateTimeOffset expectedMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
-
-		await _recurringTransactionReadRepository.Received(requiredNumberOfCalls: 1).GetDueTodayAsync(
-			dayOfMonth: Arg.Any<int>(),
-			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: expectedMonthStart,
-			ct: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task Execute_ShouldPassUtcKindCurrentMonthStartToRepository()
-	{
-		SetupEmptyRepository();
-		DateTimeOffset? capturedMonthStart = null;
-
-		_recurringTransactionReadRepository.GetDueTodayAsync(
-			dayOfMonth: Arg.Any<int>(),
-			daysInCurrentMonth: Arg.Any<int>(),
-			currentMonthStart: Arg.Do<DateTimeOffset>(useArgument: x => capturedMonthStart = x),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: []);
+		RecurringTransactionJobOptions options = new RecurringTransactionJobOptions();
 
 		await _job.Execute(context: _jobContext);
 
-		await Assert.That(value: capturedMonthStart!.Value.Offset).IsEqualTo(expected: TimeSpan.Zero);
+		await Assert.That(value: CapturedOverdueBound())
+			.IsEqualTo(expected: FakeDateProvider.Default.UtcNow.AddHours(hours: -options.OverdueAfterHours));
 	}
 
 	[Test]
-	public async Task Execute_WhenNoMissedTransactions_ShouldNotEscalate()
+	public async Task Execute_WhenNoOverdueTransactions_ShouldNotEscalate()
 	{
 		SetupEmptyRepository();
 
@@ -452,10 +457,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	}
 
 	[Test]
-	public async Task Execute_WhenMissedTransactionsExist_ShouldEscalateEach()
+	public async Task Execute_WhenOverdueTransactionsExist_ShouldEscalateEach()
 	{
 		SetupEmptyRepository();
-		SetupMissedTransactions(transactions: [
+		SetupOverdueTransactions(transactions: [
 			RecurringTransactionFactory.CreateReadModel(),
 			RecurringTransactionFactory.CreateReadModel()
 		]);
@@ -473,17 +478,17 @@ public sealed class RecurringTransactionHandlingJobTests
 	}
 
 	[Test]
-	public async Task Execute_WhenMissedTransactionsExist_ShouldEscalateWithCorrectReferenceId()
+	public async Task Execute_WhenOverdueTransactionsExist_ShouldEscalateWithCorrectReferenceId()
 	{
-		RecurringTransactionReadModel missed = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel overdue = RecurringTransactionFactory.CreateReadModel();
 		SetupEmptyRepository();
-		SetupMissedTransactions(transactions: [missed]);
+		SetupOverdueTransactions(transactions: [overdue]);
 
 		await _job.Execute(context: _jobContext);
 
 		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			type: UnresolvableEventType.RecurringTransactionFailed,
-			referenceId: missed.Id,
+			referenceId: overdue.Id,
 			reason: Arg.Any<string>(),
 			payload: Arg.Any<string>(),
 			occurredAt: Arg.Any<DateTimeOffset>(),
@@ -492,28 +497,28 @@ public sealed class RecurringTransactionHandlingJobTests
 	}
 
 	[Test]
-	public async Task Execute_WhenMissedTransactionsExist_ShouldMarkMissed()
+	public async Task Execute_WhenOverdueTransactionsExist_ShouldMarkMissed()
 	{
-		RecurringTransactionReadModel missed = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel overdue = RecurringTransactionFactory.CreateReadModel();
 		SetupEmptyRepository();
-		SetupMissedTransactions(transactions: [missed]);
+		SetupOverdueTransactions(transactions: [overdue]);
 
 		await _job.Execute(context: _jobContext);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkMissedAsync(
-			recurringTransactionId: missed.Id,
+			recurringTransactionId: overdue.Id,
 			missedAt: Arg.Any<DateTimeOffset>(),
-			expectedVersion: missed.RowVersion,
+			expectedVersion: overdue.RowVersion,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
 
 	[Test]
-	public async Task Execute_WhenMissedTransactionsExist_ShouldNotPublishForThem()
+	public async Task Execute_WhenOverdueTransactionsExist_ShouldNotPublishForThem()
 	{
-		RecurringTransactionReadModel missed = RecurringTransactionFactory.CreateReadModel();
+		RecurringTransactionReadModel overdue = RecurringTransactionFactory.CreateReadModel();
 		SetupEmptyRepository();
-		SetupMissedTransactions(transactions: [missed]);
+		SetupOverdueTransactions(transactions: [overdue]);
 
 		await _job.Execute(context: _jobContext);
 
@@ -530,7 +535,7 @@ public sealed class RecurringTransactionHandlingJobTests
 		RecurringTransactionReadModel first = RecurringTransactionFactory.CreateReadModel();
 		RecurringTransactionReadModel second = RecurringTransactionFactory.CreateReadModel();
 		SetupEmptyRepository();
-		SetupMissedTransactions(transactions: [first, second]);
+		SetupOverdueTransactions(transactions: [first, second]);
 
 		int callCount = 0;
 		_unresolvableEventWriteRepository.CreateAsync(
@@ -559,9 +564,13 @@ public sealed class RecurringTransactionHandlingJobTests
 	}
 
 	[Test]
-	public async Task DueDay_ComesFromUtc_SoAUserBehindUtcIsChargedOnTheirPreviousDay()
+	public async Task DueOperations_ForAUserBehindUtc_ShouldNotFireBeforeTheirLocalDayBegins()
 	{
+		// 02:00 UTC on 1 September — already the 1st in UTC, still 31 August at UTC-10.
 		DateTimeOffset instant = new DateTimeOffset(year: 2026, month: 9, day: 1, hour: 2, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		// Mid-August, so the next occurrence of the 1st is September's rather than August's.
+		DateTimeOffset reference = new DateTimeOffset(year: 2026, month: 8, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		RecurringTransactionHandlingJob job = CreateJobAt(instant: instant);
 
@@ -569,28 +578,32 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await job.Execute(context: _jobContext);
 
-		int requestedDay = CapturedDueDay();
-		int localDay = instant.ToOffset(offset: TimeSpan.FromHours(value: -10)).Day;
+		DateTimeOffset bound = CapturedDueBound();
 
-		await Assert.That(value: requestedDay).IsEqualTo(expected: instant.Day).Because(message: """
-			The job asks for due transactions by DateTimeOffset.Day on the UTC instant, with no notion of
-			where the owner of the transaction lives.
-		""");
+		DateTimeOffset honoluluDue = RecurringDueDate.Next(
+			dayOfMonth: 1,
+			timeZone: TimeZoneId.Create(value: "Pacific/Honolulu").Value,
+			after: reference
+		);
 
-		await Assert.That(value: requestedDay).IsNotEqualTo(notExpected: localDay).Because(message: $"""
-			The job asked for day {requestedDay}; for a user at UTC-10 the local date is still
-			{instant.ToOffset(offset: TimeSpan.FromHours(value: -10)):yyyy-MM-dd}, so their day is {localDay}.
+		await Assert.That(value: bound).IsEqualTo(expected: instant);
 
-			An operation scheduled for the 1st therefore leaves their account on what they see as the last
-			day of the previous month — landing in the wrong month for their own budgeting, and for
-			rm_category_totals, whose period boundaries are cut the same way.
+		await Assert.That(value: honoluluDue > bound).IsTrue().Because(message: $"""
+			The operation is due at {honoluluDue:u}, which is midnight on 1 September in Honolulu. At
+			{bound:u} that has not arrived, so the query does not return it.
+
+			This is the inverse of what this test asserted before: the same instant used to produce
+			day-of-month 1 and charge the user on their 31 August.
 		""");
 	}
 
 	[Test]
-	public async Task DueDay_ComesFromUtc_SoAUserAheadOfUtcIsChargedOnTheirNextDay()
+	public async Task DueOperations_ForAUserAheadOfUtc_ShouldFireWhileUtcIsStillInThePreviousMonth()
 	{
-		DateTimeOffset instant = new DateTimeOffset(year: 2026, month: 8, day: 31, hour: 22, minute: 0, second: 0, offset: TimeSpan.Zero);
+		// 12:00 UTC on 31 August — already 1 September at UTC+12.
+		DateTimeOffset instant = new DateTimeOffset(year: 2026, month: 8, day: 31, hour: 12, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+		DateTimeOffset reference = new DateTimeOffset(year: 2026, month: 8, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
 		RecurringTransactionHandlingJob job = CreateJobAt(instant: instant);
 
@@ -598,23 +611,19 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await job.Execute(context: _jobContext);
 
-		int requestedDay = CapturedDueDay();
-		DateTimeOffset local = instant.ToOffset(offset: TimeSpan.FromHours(value: 12));
+		DateTimeOffset aucklandDue = RecurringDueDate.Next(
+			dayOfMonth: 1,
+			timeZone: TimeZoneId.Create(value: "Pacific/Auckland").Value,
+			after: reference
+		);
 
-		await Assert.That(value: requestedDay).IsNotEqualTo(notExpected: local.Day).Because(message: $"""
-			The job asked for day {requestedDay}; for a user at UTC+12 it is already
-			{local:yyyy-MM-dd}, so an operation scheduled for the 1st has not fired yet and will not until
-			this run's window closes and the next one opens.
+		await Assert.That(value: aucklandDue <= CapturedDueBound()).IsTrue().Because(message: $"""
+			The operation is due at {aucklandDue:u} — midnight on 1 September in Auckland — and the job is
+			asking what is due as of {instant:u}, so it is picked up.
 
-			The mirror of the previous test: west of UTC the charge is early, east of UTC it is late.
-		""");
-
-		await Assert.That(value: CapturedMonthStart().Month).IsEqualTo(expected: 8).Because(message: $"""
-			currentMonthStart is built from the same UTC instant, so the job is still working in August
-			while the user at UTC+12 has been in September for ten hours.
-
-			This is the part that outlives the due-day question: the same boundary decides which month an
-			operation is attributed to, and a forecast built on it inherits the offset.
+			The due instant legitimately sits in the previous UTC month. That is the case the old
+			day-of-month comparison could not express, and why the operation used to fire a day late for
+			everyone east of UTC.
 		""");
 	}
 }

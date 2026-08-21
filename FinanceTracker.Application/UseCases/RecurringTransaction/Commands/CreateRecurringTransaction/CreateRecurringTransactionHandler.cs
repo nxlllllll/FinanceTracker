@@ -10,14 +10,17 @@ using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
+using RT = FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 
 public sealed class CreateRecurringTransactionHandler(
 	ICategoryReadRepository categoryReadRepository,
+	IUserQueryRepository userQueryRepository,
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
 	IUnitOfWork unitOfWork,
 	IPostCommitNotifications postCommitNotifications,
@@ -40,7 +43,11 @@ public sealed class CreateRecurringTransactionHandler(
 		if (moneyResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: moneyResult.Error!);
 
-		Result<Core.Domains.RecurringTransaction.RecurringTransaction, DomainException> rtResult = Core.Domains.RecurringTransaction.RecurringTransaction.Create(
+		TimeZoneId? timeZone = await userQueryRepository.GetTimeZoneAsync(userId: command.UserId, ct: ct);
+		if (timeZone is null)
+			return Result<Guid, AppException>.Failure(error: new NotFoundException(message: "User not found.", id: command.UserId));
+
+		Result<RT, DomainException> rtResult = RT.Create(
 			createdAt: dateProvider.UtcNow,
 			userId: command.UserId,
 			accountId: command.AccountId,
@@ -48,12 +55,13 @@ public sealed class CreateRecurringTransactionHandler(
 			amount: moneyResult.Value,
 			direction: command.Direction,
 			dayOfMonth: command.DayOfMonth,
-			description: command.Description
+			description: command.Description,
+			timeZone: timeZone.Value
 		);
 		if (rtResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: rtResult.Error!);
 
-		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction = rtResult.Value!;
+		RT recurringTransaction = rtResult.Value!;
 
 		await unitOfWork.ExecuteInTransactionAsync(
 			operation: async () => await recurringTransactionWriteRepository.CreateAsync(recurringTransaction: recurringTransaction, ct: ct),

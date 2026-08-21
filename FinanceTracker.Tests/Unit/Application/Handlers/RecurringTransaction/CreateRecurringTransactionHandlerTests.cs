@@ -3,17 +3,17 @@ using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRe
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -22,6 +22,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.RecurringTransaction;
 public sealed class CreateRecurringTransactionHandlerTests
 {
 	private ICategoryReadRepository _categoryReadRepository = null!;
+	private IUserQueryRepository _userQueryRepository = null!;
 	private IRecurringTransactionWriteRepository _writeRepository = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private IPostCommitNotifications _postCommitNotifications = null!;
@@ -31,11 +32,13 @@ public sealed class CreateRecurringTransactionHandlerTests
 	public void Setup()
 	{
 		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+		_userQueryRepository = Substitute.For<IUserQueryRepository>();
 		_writeRepository = Substitute.For<IRecurringTransactionWriteRepository>();
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 
 		SetupCategory(type: CategoryType.Expense);
+		SetupTimeZone(timeZone: TimeZoneId.Utc);
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -44,6 +47,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 
 		_handler = new CreateRecurringTransactionHandler(
 			categoryReadRepository: _categoryReadRepository,
+			userQueryRepository: _userQueryRepository,
 			recurringTransactionWriteRepository: _writeRepository,
 			unitOfWork: _unitOfWork,
 			postCommitNotifications: _postCommitNotifications,
@@ -60,6 +64,14 @@ public sealed class CreateRecurringTransactionHandlerTests
 			userId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: category);
+	}
+
+	private void SetupTimeZone(TimeZoneId? timeZone)
+	{
+		_userQueryRepository.GetTimeZoneAsync(
+			userId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: timeZone);
 	}
 
 	[Test]
@@ -89,6 +101,24 @@ public sealed class CreateRecurringTransactionHandlerTests
 			n.AccountId == command.AccountId &&
 			n.CategoryId == command.CategoryId
 		));
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTheUserHasNoTimeZone_ShouldReturnNotFound()
+	{
+		SetupTimeZone(timeZone: null);
+
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create();
+
+		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>();
+
+		await _writeRepository.DidNotReceive().CreateAsync(
+			recurringTransaction: Arg.Any<FinanceTracker.Core.Domains.RecurringTransaction.RecurringTransaction>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]

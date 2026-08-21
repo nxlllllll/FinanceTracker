@@ -24,6 +24,7 @@ public interface IRecurringTransactionWriteRepository
 	Task ChangeDayOfMonthAsync(
 		Guid recurringTransactionId,
 		int dayOfMonth,
+		DateTimeOffset nextDueAtUtc,
 		int expectedVersion,
 		CancellationToken ct = default
 	);
@@ -48,6 +49,7 @@ public interface IRecurringTransactionWriteRepository
 	Task MarkExecutedAsync(
 		Guid recurringTransactionId,
 		DateTimeOffset executedAt,
+		DateTimeOffset nextDueAtUtc,
 		int expectedVersion,
 		CancellationToken ct = default
 	);

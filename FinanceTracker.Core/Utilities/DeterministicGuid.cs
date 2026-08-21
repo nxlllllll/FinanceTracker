@@ -22,4 +22,11 @@ public static class DeterministicGuid
 		byte[] hashBytes = SHA256.HashData(source: inputBytes);
 		return new Guid(b: hashBytes[..16]);
 	}
+
+	/// <summary>Derives an identifier from an entity and a specific instant.</summary>
+	public static Guid Create(Guid baseId, DateTimeOffset occurrence)
+	{
+		byte[] hash = SHA256.HashData(source: Encoding.UTF8.GetBytes(s: $"{baseId:N}:{occurrence.UtcTicks}"));
+		return new Guid(b: hash[..16]);
+	}
 }

@@ -1,9 +1,9 @@
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.RecurringTransaction;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
@@ -33,27 +33,30 @@ public sealed class RecurringTransactionHandlingJob(
 	protected override async Task ProcessAsync(RecurringTransactionJobOptions options, CancellationToken ct)
 	{
 		DateTimeOffset now = dateProvider.UtcNow;
-		DateTimeOffset currentMonthStart = new DateTimeOffset(year: now.Year, month: now.Month, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
 
-		logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processing due recurring transactions for {now:G}.");
+		logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processing due recurring transactions as of {now:G}.");
 
-		await EscalateMissedTransactionsAsync(now: now, currentMonthStart: currentMonthStart, ct: ct);
+		await EscalateOverdueTransactionsAsync(now: now, options: options, ct: ct);
 
 		int processed = 0;
 		int failed = 0;
 
-		IReadOnlyList<RecurringTransactionReadModel> dueTransactions = await recurringTransactionReadRepository.GetDueTodayAsync(
-			dayOfMonth: now.Day,
-			daysInCurrentMonth: DateTime.DaysInMonth(year: now.Year, month: now.Month),
-			currentMonthStart: currentMonthStart,
-			ct: ct
-		);
+		IReadOnlyList<RecurringTransactionReadModel> dueTransactions = await recurringTransactionReadRepository.GetDueAsync(asOf: now, ct: ct);
 
 		foreach (RecurringTransactionReadModel transaction in dueTransactions)
 		{
 			try
 			{
-				Guid messageId = DeterministicGuid.Create(baseId: transaction.Id, year: now.Year, month: now.Month);
+				Guid messageId = DeterministicGuid.Create(
+					baseId: transaction.Id,
+					occurrence: transaction.NextDueAtUtc
+				);
+
+				DateTimeOffset nextDueAtUtc = RecurringDueDate.Next(
+					dayOfMonth: transaction.DayOfMonth,
+					timeZone: transaction.TimeZone,
+					after: transaction.NextDueAtUtc
+				);
 
 				await publisher.PublishAsync(message: new RecurringTransactionTriggeredMessage(
 					MessageId: messageId,
@@ -65,23 +68,30 @@ public sealed class RecurringTransactionHandlingJob(
 					Currency: transaction.Amount.Currency.Value,
 					Direction: transaction.Direction.ToString(),
 					Description: transaction.Description,
-					OccurredAt: now,
+					OccurredAt: transaction.NextDueAtUtc,
 					CorrelationId: correlationContext.CorrelationId
 				), correlationId: correlationContext.CorrelationId, ct: ct);
 
 				await unitOfWork.ExecuteInTransactionAsync(operation: async () => await recurringTransactionWriteRepository.MarkExecutedAsync(
 					recurringTransactionId: transaction.Id,
 					executedAt: now,
+					nextDueAtUtc: nextDueAtUtc,
 					expectedVersion: transaction.RowVersion,
 					ct: ct
 				), ct: ct);
 
-				logger.ZLogInformation(message: $"[{correlationContext.CorrelationId}] Processed recurring transaction {transaction.Id} ({++processed}).");
+				logger.ZLogInformation(message:
+					$"[{correlationContext.CorrelationId}] Processed recurring transaction {transaction.Id}, due " +
+					$"{transaction.NextDueAtUtc:G}, next {nextDueAtUtc:G} ({++processed})."
+				);
 			}
 			catch (Exception ex)
 			{
 				failed++;
-				logger.ZLogError(exception: ex, message: $"[{correlationContext.CorrelationId}] Failed to process recurring transaction {transaction.Id}. Will retry on the next run while today's window is still open.");
+				logger.ZLogError(exception: ex, message:
+					$"[{correlationContext.CorrelationId}] Failed to process recurring transaction {transaction.Id}. " +
+					$"It stays due and will be retried on the next run."
+				);
 			}
 		}
 
@@ -89,18 +99,15 @@ public sealed class RecurringTransactionHandlingJob(
 			logger.ZLogWarning(message: $"[{correlationContext.CorrelationId}] Completed with {failed} failure(s).");
 	}
 
-	private async Task EscalateMissedTransactionsAsync(DateTimeOffset now, DateTimeOffset currentMonthStart, CancellationToken ct)
+	private async Task EscalateOverdueTransactionsAsync(
+		DateTimeOffset now,
+		RecurringTransactionJobOptions options,
+		CancellationToken ct)
 	{
-		DateTimeOffset previousMonthStart = currentMonthStart.AddMonths(months: -1);
+		DateTimeOffset threshold = now.AddHours(hours: -options.OverdueAfterHours);
+		IReadOnlyList<RecurringTransactionReadModel> overdue = await recurringTransactionReadRepository.GetOverdueAsync(before: threshold, ct: ct);
 
-		IReadOnlyList<RecurringTransactionReadModel> missed = await recurringTransactionReadRepository.GetMissedThisMonthAsync(
-			dayOfMonth: now.Day,
-			currentMonthStart: currentMonthStart,
-			previousMonthStart: previousMonthStart,
-			ct: ct
-		);
-
-		foreach (RecurringTransactionReadModel transaction in missed)
+		foreach (RecurringTransactionReadModel transaction in overdue)
 		{
 			try
 			{
@@ -109,11 +116,13 @@ public sealed class RecurringTransactionHandlingJob(
 					await unresolvableEventWriteRepository.CreateAsync(
 						type: UnresolvableEventType.RecurringTransactionFailed,
 						referenceId: transaction.Id,
-						reason: $"Scheduled for day {transaction.DayOfMonth}, no occurrence was ever executed; detected as missed on {now:dd.MM.yyyy}.",
+						reason: $"Due at {transaction.NextDueAtUtc:u} and still not executed {options.OverdueAfterHours}h later; detected on {now:u}.",
 						payload: JsonSerializer.Serialize(value: new
 						{
 							recurringTransactionId = transaction.Id,
 							scheduledDayOfMonth = transaction.DayOfMonth,
+							timeZone = transaction.TimeZone.Value,
+							nextDueAtUtc = transaction.NextDueAtUtc,
 							accountId = transaction.AccountId,
 							categoryId = transaction.CategoryId,
 							detectedOn = now
@@ -130,11 +139,14 @@ public sealed class RecurringTransactionHandlingJob(
 					);
 				}, ct: ct);
 
-				logger.ZLogError(message: $"[{correlationContext.CorrelationId}] Recurring transaction {transaction.Id} missed its occurrence (scheduled day {transaction.DayOfMonth}) — escalated to unresolvable_events.");
+				logger.ZLogError(message:
+					$"[{correlationContext.CorrelationId}] Recurring transaction {transaction.Id} was due " +
+					$"{transaction.NextDueAtUtc:u} and is still unexecuted — escalated to unresolvable_events."
+				);
 			}
 			catch (Exception ex)
 			{
-				logger.ZLogError(exception: ex, message: $"[{correlationContext.CorrelationId}] Failed to escalate missed recurring transaction {transaction.Id}.");
+				logger.ZLogError(exception: ex, message: $"[{correlationContext.CorrelationId}] Failed to escalate overdue recurring transaction {transaction.Id}.");
 			}
 		}
 	}

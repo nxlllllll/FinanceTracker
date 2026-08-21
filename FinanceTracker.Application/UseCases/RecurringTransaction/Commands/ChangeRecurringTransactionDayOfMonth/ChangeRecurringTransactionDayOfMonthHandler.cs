@@ -3,15 +3,19 @@ using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
+using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.ValueObjects;
 using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.RecurringTransaction.Commands.ChangeRecurringTransactionDayOfMonth;
 
 public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 	IRecurringTransactionWriteRepository recurringTransactionWriteRepository,
+	IUserQueryRepository userQueryRepository,
 	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeRecurringTransactionDayOfMonthCommand, Core.Domains.RecurringTransaction.RecurringTransaction, Guid, AppException>
@@ -21,7 +25,15 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 		Core.Domains.RecurringTransaction.RecurringTransaction recurringTransaction,
 		CancellationToken ct = default)
 	{
-		Result<bool, DomainException> result = recurringTransaction.ChangeDayOfMonth(dayOfMonth: command.DayOfMonth);
+		TimeZoneId? timeZone = await userQueryRepository.GetTimeZoneAsync(userId: recurringTransaction.UserId, ct: ct);
+		if (timeZone is null)
+			return Result<Guid, AppException>.Failure(error: new NotFoundException(message: "User not found.", id: recurringTransaction.UserId));
+
+		Result<bool, DomainException> result = recurringTransaction.ChangeDayOfMonth(
+			dayOfMonth: command.DayOfMonth,
+			timeZone: timeZone.Value,
+			now: dateProvider.UtcNow
+		);
 		if (result.IsFailure)
 			return Result<Guid, AppException>.Failure(error: result.Error!);
 
@@ -32,6 +44,7 @@ public sealed class ChangeRecurringTransactionDayOfMonthHandler(
 			recurringTransactionId: command.RecurringTransactionId,
 			expectedVersion: recurringTransaction.RowVersion,
 			dayOfMonth: command.DayOfMonth,
+			nextDueAtUtc: recurringTransaction.NextDueAtUtc,
 			ct: ct
 		);
 
