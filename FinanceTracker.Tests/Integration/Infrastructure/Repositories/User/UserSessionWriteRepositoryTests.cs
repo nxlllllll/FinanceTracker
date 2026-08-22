@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
@@ -19,13 +20,13 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		_userBuilder = new UserBuilder(context: Context);
 	}
 
-	private async Task<Core.Domains.User.UserSession> CreateAndPersistSessionAsync(
+	private async Task<UserSession> CreateAndPersistSessionAsync(
 		Guid userId,
 		string hash = "default-hash",
 		DateTimeOffset? expiresAt = null,
 		DateTimeOffset? revokedAt = null)
 	{
-		Core.Domains.User.UserSession session = Core.Domains.User.UserSession.Reconstitute(
+		UserSession session = UserSession.Reconstitute(
 			id: Guid.CreateVersion7(),
 			userId: userId,
 			refreshTokenHash: hash,
@@ -44,7 +45,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task CreateAsync_ShouldPersistSession()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession session = Core.Domains.User.UserSession.Create(
+		UserSession session = UserSession.Create(
 			userId: userId,
 			refreshTokenHash: "testhash",
 			expiresAt: FakeDateProvider.Default.UtcNow.AddDays(days: 7),
@@ -54,7 +55,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 		await _userSessionWriteRepository.CreateAsync(session: session);
 		await Context.SaveChangesAsync();
 
-		Core.Domains.User.UserSession? loaded = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "testhash");
+		UserSession? loaded = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "testhash");
 
 		await Assert.That(value: loaded).IsNotNull();
 		await Assert.That(value: loaded!.Id).IsEqualTo(expected: session.Id);
@@ -65,12 +66,12 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task RevokeAsync_ShouldSetRevokedAt()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession session = await CreateAndPersistSessionAsync(userId: userId, hash: "revoke-test-hash");
+		UserSession session = await CreateAndPersistSessionAsync(userId: userId, hash: "revoke-test-hash");
 		DateTimeOffset revokedAt = FakeDateProvider.Default.UtcNow;
 
 		await _userSessionWriteRepository.RevokeAsync(sessionId: session.Id, revokedAt: revokedAt);
 
-		Core.Domains.User.UserSession? revoked = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "revoke-test-hash");
+		UserSession? revoked = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "revoke-test-hash");
 		bool? isActive = revoked?.IsActive(now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: revoked!.RevokedAt).IsNotNull();
@@ -81,12 +82,12 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task RevokeAsync_ShouldNotAffectOtherSessions()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession session1 = await CreateAndPersistSessionAsync(userId: userId, hash: "hash-1");
+		UserSession session1 = await CreateAndPersistSessionAsync(userId: userId, hash: "hash-1");
 		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "hash-2");
 
 		await _userSessionWriteRepository.RevokeAsync(sessionId: session1.Id, revokedAt: FakeDateProvider.Default.UtcNow);
 
-		Core.Domains.User.UserSession? notRevoked = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "hash-2");
+		UserSession? notRevoked = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "hash-2");
 		bool? isActive = notRevoked?.IsActive(now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: notRevoked!.RevokedAt).IsNull();
@@ -97,7 +98,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task RevokeAllExceptAsync_ShouldRevokeOtherActiveSessions_ButNotTheExcludedOne()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "keep-hash");
+		UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "keep-hash");
 		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "other-hash-1");
 		_ = await CreateAndPersistSessionAsync(userId: userId, hash: "other-hash-2");
 
@@ -107,9 +108,9 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 			revokedAt: FakeDateProvider.Default.UtcNow
 		);
 
-		Core.Domains.User.UserSession? kept = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "keep-hash");
-		Core.Domains.User.UserSession? revoked1 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "other-hash-1");
-		Core.Domains.User.UserSession? revoked2 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "other-hash-2");
+		UserSession? kept = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "keep-hash");
+		UserSession? revoked1 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "other-hash-1");
+		UserSession? revoked2 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "other-hash-2");
 
 		await Assert.That(value: kept!.RevokedAt).IsNull();
 		await Assert.That(value: revoked1!.RevokedAt).IsNotNull();
@@ -121,7 +122,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 		Guid otherUserId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "mine-keep");
+		UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "mine-keep");
 		_ = await CreateAndPersistSessionAsync(userId: otherUserId, hash: "not-mine");
 
 		await _userSessionWriteRepository.RevokeAllExceptAsync(
@@ -130,7 +131,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 			revokedAt: FakeDateProvider.Default.UtcNow
 		);
 
-		Core.Domains.User.UserSession? untouched = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "not-mine");
+		UserSession? untouched = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "not-mine");
 
 		await Assert.That(value: untouched!.RevokedAt).IsNull();
 	}
@@ -144,8 +145,8 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 
 		await _userSessionWriteRepository.RevokeAllAsync(userId: userId, revokedAt: FakeDateProvider.Default.UtcNow);
 
-		Core.Domains.User.UserSession? s1 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "all-hash-1");
-		Core.Domains.User.UserSession? s2 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "all-hash-2");
+		UserSession? s1 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "all-hash-1");
+		UserSession? s2 = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "all-hash-2");
 
 		await Assert.That(value: s1!.RevokedAt).IsNotNull();
 		await Assert.That(value: s2!.RevokedAt).IsNotNull();
@@ -161,7 +162,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 
 		await _userSessionWriteRepository.RevokeAllAsync(userId: userId, revokedAt: FakeDateProvider.Default.UtcNow);
 
-		Core.Domains.User.UserSession? untouched = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "not-mine-all");
+		UserSession? untouched = await _userSessionReadRepository.GetByRefreshTokenHashForUpdateAsync(tokenHash: "not-mine-all");
 
 		await Assert.That(value: untouched!.RevokedAt).IsNull();
 	}
@@ -170,7 +171,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task RevokeAsync_ShouldReturnTheRevokedSessionId()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession session = await CreateAndPersistSessionAsync(userId: userId, hash: "return-value-hash");
+		UserSession session = await CreateAndPersistSessionAsync(userId: userId, hash: "return-value-hash");
 
 		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAsync(
 			sessionId: session.Id,
@@ -185,7 +186,7 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task RevokeAsync_WhenSessionAlreadyRevoked_ShouldReturnEmptyList()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession session = await CreateAndPersistSessionAsync(
+		UserSession session = await CreateAndPersistSessionAsync(
 			userId: userId,
 			hash: "already-revoked-hash",
 			revokedAt: FakeDateProvider.Default.UtcNow
@@ -214,9 +215,9 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task RevokeAllExceptAsync_ShouldReturnOnlyTheActuallyRevokedIds()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "return-keep-hash");
-		Core.Domains.User.UserSession other1 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-other-hash-1");
-		Core.Domains.User.UserSession other2 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-other-hash-2");
+		UserSession keep = await CreateAndPersistSessionAsync(userId: userId, hash: "return-keep-hash");
+		UserSession other1 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-other-hash-1");
+		UserSession other2 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-other-hash-2");
 
 		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAllExceptAsync(
 			userId: userId,
@@ -234,8 +235,8 @@ public sealed class UserSessionWriteRepositoryTests : DatabaseFixture
 	public async Task RevokeAllAsync_ShouldReturnAllRevokedIds()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Core.Domains.User.UserSession s1 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-all-hash-1");
-		Core.Domains.User.UserSession s2 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-all-hash-2");
+		UserSession s1 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-all-hash-1");
+		UserSession s2 = await CreateAndPersistSessionAsync(userId: userId, hash: "return-all-hash-2");
 
 		IReadOnlyList<Guid> revokedIds = await _userSessionWriteRepository.RevokeAllAsync(
 			userId: userId,

@@ -3,6 +3,7 @@ using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
@@ -49,8 +50,8 @@ public sealed class RecurringTransactionReadRepository(
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.RecurringTransaction.RecurringTransactionEntity> query = context.RecurringTransactions.AsNoTracking()
-			.Where(predicate: r => r.UserId == userId);
+		IQueryable<RecurringTransactionEntity> query = context.RecurringTransactions.AsNoTracking()
+															.Where(predicate: r => r.UserId == userId);
 
 		if (cursorCreatedAt is not null && cursorId is not null)
 			query = query.Where(predicate: r => r.CreatedAt < cursorCreatedAt.Value || (r.CreatedAt == cursorCreatedAt.Value && r.Id < cursorId.Value));
@@ -112,8 +113,8 @@ public sealed class RecurringTransactionReadRepository(
 
 	private IQueryable<RecurringTransactionReadModel> DueQuery(DateTimeOffset bound, bool onlyUnescalated)
 	{
-		IQueryable<Context.RecurringTransaction.RecurringTransactionEntity> query = context.RecurringTransactions.AsNoTracking()
-			.Where(predicate: r => r.IsActive && r.NextDueAtUtc <= bound);
+		IQueryable<RecurringTransactionEntity> query = context.RecurringTransactions.AsNoTracking()
+															.Where(predicate: r => r.IsActive && r.NextDueAtUtc <= bound);
 
 		if (onlyUnescalated)
 			query = query.Where(predicate: r => r.LastMissedAt == null || r.LastMissedAt < r.NextDueAtUtc);

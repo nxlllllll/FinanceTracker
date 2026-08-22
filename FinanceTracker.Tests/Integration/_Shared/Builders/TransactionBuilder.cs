@@ -1,5 +1,6 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
 
@@ -31,8 +32,8 @@ public class TransactionBuilder(FinanceTrackerContext context)
 			UserId = userId,
 			CategoryId = categoryId,
 			Amount = amount,
-			Currency = Core.ValueObjects.Currency.Create(value: currencyCode).Value,
-			BaseCurrency = Core.ValueObjects.Currency.Create(value: baseCurrency).Value,
+			Currency = Currency.Create(value: currencyCode).Value,
+			BaseCurrency = Currency.Create(value: baseCurrency).Value,
 			Direction = direction,
 			ExchangeRate = exchangeRate,
 			IsExcluded = isExcluded,

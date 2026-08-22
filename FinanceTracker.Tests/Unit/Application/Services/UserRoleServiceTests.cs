@@ -1,7 +1,6 @@
 using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Role;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Persistence;

@@ -2,7 +2,6 @@ using FinanceTracker.Application.UseCases.Budget.Authorization;
 using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount;
 using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;

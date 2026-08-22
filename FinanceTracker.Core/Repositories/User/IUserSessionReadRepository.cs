@@ -1,13 +1,15 @@
+using FinanceTracker.Core.Domains.User;
+
 namespace FinanceTracker.Core.Repositories.User;
 
 public interface IUserSessionReadRepository
 {
-	Task<Domains.User.UserSession?> GetByRefreshTokenHashForUpdateAsync(
+	Task<UserSession?> GetByRefreshTokenHashForUpdateAsync(
 		string tokenHash,
 		CancellationToken ct = default
 	);
 
-	Task<Domains.User.UserSession?> GetByIdForUpdateAsync(
+	Task<UserSession?> GetByIdForUpdateAsync(
 		Guid sessionId,
 		CancellationToken ct = default
 	);

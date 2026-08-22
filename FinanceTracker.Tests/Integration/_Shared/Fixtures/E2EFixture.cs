@@ -8,6 +8,7 @@ using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
+using FinanceTracker.Migrator;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.BalanceAdjustment.Job;
@@ -82,7 +83,7 @@ public abstract class E2EFixture
 				Database = TemplateDatabaseName
 			}.ConnectionString;
 
-			Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
+			DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
 			NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
 		});
 
@@ -137,120 +138,120 @@ public abstract class E2EFixture
 		}
 
 		Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-			.ConfigureAppConfiguration(configureDelegate: (_, b) => b.AddInMemoryCollection(initialData: new Dictionary<string, string?>
-			{
-				[$"ConnectionStrings:{nameof(FinanceTrackerContext)}"] = _connectionString,
-				[$"{RedisOptions.SectionName}:ConnectionString"] = redisCs,
-				[$"{RedisOptions.SectionName}:InstanceName"] = $"ft_e2e_{testRunId}:",
-				[$"{EventStoreOptions.SectionName}:SnapshotThreshold"] = "25",
-				["Retry:MaxRetries"] = "3",
-				["Retry:BaseDelayMs"] = "5",
-				["Retry:UseJitter"] = "false",
-				["Idempotency:InFlightInitialDelayMs"] = "50",
-				["Idempotency:InFlightMaxDelayMs"] = "200",
-				["Idempotency:InFlightMaxWaitMs"] = "500",
-				["Idempotency:AbandonedAfterSeconds"] = "5",
-				["RateLimit:RequestsPerWindow"] = "1000",
-				["RateLimit:WindowSeconds"] = "60",
-				["Argon2:Iterations"] = "2",
-				["Argon2:MemorySize"] = "65536",
-				["Argon2:DegreeOfParallelism"] = "1",
-				["Jwt:Secret"] = "super-secret-test-key-at-least-32-chars!!",
-				["Jwt:AccessTokenExpiryMinutes"] = "60",
-				["Jwt:RefreshTokenExpiryDays"] = "7",
-				["Jwt:Issuer"] = "test",
-				["Jwt:Audience"] = "test",
-				["ProjectionRetry:MaxRetries"] = "3",
-				["ProjectionRetry:BaseDelayMs"] = "5",
-				["ProjectionRetry:UseJitter"] = "false",
-				["RabbitMQ:Host"] = rabbitUri.Host,
-				["RabbitMQ:Port"] = rabbitUri.Port.ToString(),
-				["RabbitMQ:Username"] = RabbitData,
-				["RabbitMQ:Password"] = RabbitData,
-				["RabbitMQ:ExchangeName"] = ExchangeName(testRunId: testRunId),
-				["RabbitMQ:QueueName"] = "ft-e2e",
-				["RabbitMQ:QueueNameOverrides:AccountEventsConsumer"] = AccountQueueName(testRunId: testRunId),
-				["RabbitMQ:QueueNameOverrides:AccountTransferConsumer"] = TransferQueueName(testRunId: testRunId),
-				["RabbitMQ:QueueNameOverrides:RecurringTransactionConsumer"] = RecurringQueueName(testRunId: testRunId),
-				["RabbitMQ:QueueNameOverrides:PermissionEventsConsumer"] = PermissionQueueName(testRunId: testRunId),
-				["RabbitMQ:QueueNameOverrides:UserRoleEventsConsumer"] = UserRoleQueueName(testRunId: testRunId),
-				["RabbitMQ:MaxRetries"] = "3",
-				["Outbox:BatchSize"] = "50",
-				["Outbox:MaxRetries"] = "3",
-				["Outbox:Group"] = "test",
-				["Outbox:TriggerName"] = "OutboxTrigger",
-				["BalanceAdjustmentJob:CronExpression"] = "0 0 3 * * ?",
-				["BalanceAdjustmentJob:Group"] = "test",
-				["BalanceAdjustmentJob:TriggerName"] = "BalanceTrigger",
-				["BalanceAdjustmentJob:MaxRetries"] = "3",
-				["BalanceAdjustmentJob:BaseDelayMs"] = "5",
-				["BalanceAdjustmentJob:UseJitter"] = "false",
-				["TransferCreditLag:GracePeriodMinutes"] = "5",
-				["TransferCreditLag:CompensationThresholdMinutes"] = "30",
-				["TransferCreditLag:Group"] = "test",
-				["TransferCreditLag:TriggerName"] = "TransferLagTrigger",
-				["RecurringTransaction:CronExpression"] = "0 0 3 * * ?",
-				["RecurringTransaction:Group"] = "test",
-				["RecurringTransaction:TriggerName"] = "RecurringTrigger",
-			}))
-			.ConfigureServices(configureDelegate: (ctx, services) =>
-			{
-				services.AddPersistence(configuration: ctx.Configuration).AddAuth();
-				services.AddApplication();
+					.ConfigureAppConfiguration(configureDelegate: (_, b) => b.AddInMemoryCollection(initialData: new Dictionary<string, string?>
+						{
+							[$"ConnectionStrings:{nameof(FinanceTrackerContext)}"] = _connectionString,
+							[$"{RedisOptions.SectionName}:ConnectionString"] = redisCs,
+							[$"{RedisOptions.SectionName}:InstanceName"] = $"ft_e2e_{testRunId}:",
+							[$"{EventStoreOptions.SectionName}:SnapshotThreshold"] = "25",
+							["Retry:MaxRetries"] = "3",
+							["Retry:BaseDelayMs"] = "5",
+							["Retry:UseJitter"] = "false",
+							["Idempotency:InFlightInitialDelayMs"] = "50",
+							["Idempotency:InFlightMaxDelayMs"] = "200",
+							["Idempotency:InFlightMaxWaitMs"] = "500",
+							["Idempotency:AbandonedAfterSeconds"] = "5",
+							["RateLimit:RequestsPerWindow"] = "1000",
+							["RateLimit:WindowSeconds"] = "60",
+							["Argon2:Iterations"] = "2",
+							["Argon2:MemorySize"] = "65536",
+							["Argon2:DegreeOfParallelism"] = "1",
+							["Jwt:Secret"] = "super-secret-test-key-at-least-32-chars!!",
+							["Jwt:AccessTokenExpiryMinutes"] = "60",
+							["Jwt:RefreshTokenExpiryDays"] = "7",
+							["Jwt:Issuer"] = "test",
+							["Jwt:Audience"] = "test",
+							["ProjectionRetry:MaxRetries"] = "3",
+							["ProjectionRetry:BaseDelayMs"] = "5",
+							["ProjectionRetry:UseJitter"] = "false",
+							["RabbitMQ:Host"] = rabbitUri.Host,
+							["RabbitMQ:Port"] = rabbitUri.Port.ToString(),
+							["RabbitMQ:Username"] = RabbitData,
+							["RabbitMQ:Password"] = RabbitData,
+							["RabbitMQ:ExchangeName"] = ExchangeName(testRunId: testRunId),
+							["RabbitMQ:QueueName"] = "ft-e2e",
+							["RabbitMQ:QueueNameOverrides:AccountEventsConsumer"] = AccountQueueName(testRunId: testRunId),
+							["RabbitMQ:QueueNameOverrides:AccountTransferConsumer"] = TransferQueueName(testRunId: testRunId),
+							["RabbitMQ:QueueNameOverrides:RecurringTransactionConsumer"] = RecurringQueueName(testRunId: testRunId),
+							["RabbitMQ:QueueNameOverrides:PermissionEventsConsumer"] = PermissionQueueName(testRunId: testRunId),
+							["RabbitMQ:QueueNameOverrides:UserRoleEventsConsumer"] = UserRoleQueueName(testRunId: testRunId),
+							["RabbitMQ:MaxRetries"] = "3",
+							["Outbox:BatchSize"] = "50",
+							["Outbox:MaxRetries"] = "3",
+							["Outbox:Group"] = "test",
+							["Outbox:TriggerName"] = "OutboxTrigger",
+							["BalanceAdjustmentJob:CronExpression"] = "0 0 3 * * ?",
+							["BalanceAdjustmentJob:Group"] = "test",
+							["BalanceAdjustmentJob:TriggerName"] = "BalanceTrigger",
+							["BalanceAdjustmentJob:MaxRetries"] = "3",
+							["BalanceAdjustmentJob:BaseDelayMs"] = "5",
+							["BalanceAdjustmentJob:UseJitter"] = "false",
+							["TransferCreditLag:GracePeriodMinutes"] = "5",
+							["TransferCreditLag:CompensationThresholdMinutes"] = "30",
+							["TransferCreditLag:Group"] = "test",
+							["TransferCreditLag:TriggerName"] = "TransferLagTrigger",
+							["RecurringTransaction:CronExpression"] = "0 0 3 * * ?",
+							["RecurringTransaction:Group"] = "test",
+							["RecurringTransaction:TriggerName"] = "RecurringTrigger",
+						}))
+					.ConfigureServices(configureDelegate: (ctx, services) =>
+						{
+							services.AddPersistence(configuration: ctx.Configuration).AddAuth();
+							services.AddApplication();
 
-				services.AddScoped<ITransactionCreationService, TransactionCreationService>();
+							services.AddScoped<ITransactionCreationService, TransactionCreationService>();
 
-				services.AddRabbitMqCore();
-				services.AddRabbitMqPublisher();
+							services.AddRabbitMqCore();
+							services.AddRabbitMqPublisher();
 
-				services.AddScoped<AccountEventApplier>();
-				services.AddScoped<AccountProjection>();
+							services.AddScoped<AccountEventApplier>();
+							services.AddScoped<AccountProjection>();
 
-				services.AddScoped<PermissionEventApplier>();
-				services.AddScoped<PermissionProjection>();
+							services.AddScoped<PermissionEventApplier>();
+							services.AddScoped<PermissionProjection>();
 
-				services.AddScoped<UserRoleEventApplier>();
-				services.AddScoped<UserRoleProjection>();
+							services.AddScoped<UserRoleEventApplier>();
+							services.AddScoped<UserRoleProjection>();
 
-				services.AddOptions<ProjectionRetryOptions>()
-					 .BindConfiguration(ProjectionRetryOptions.SectionName)
-					 .ValidateDataAnnotations();
+							services.AddOptions<ProjectionRetryOptions>()
+								.BindConfiguration(ProjectionRetryOptions.SectionName)
+								.ValidateDataAnnotations();
 
-				services.AddScoped<ITransferCompensationService, TransferCompensationService>();
+							services.AddScoped<ITransferCompensationService, TransferCompensationService>();
 
-				services.AddScoped<OutboxPublisherJob>();
-				services.AddScoped<BalanceAdjustmentJob>();
-				services.AddScoped<TransferCreditLagJob>();
-				services.AddScoped<RecurringTransactionHandlingJob>();
-				services.AddScoped<RecurringTransactionConsumer>();
+							services.AddScoped<OutboxPublisherJob>();
+							services.AddScoped<BalanceAdjustmentJob>();
+							services.AddScoped<TransferCreditLagJob>();
+							services.AddScoped<RecurringTransactionHandlingJob>();
+							services.AddScoped<RecurringTransactionConsumer>();
 
-				services.AddOptions<OutboxOptions>()
-					 .BindConfiguration(OutboxOptions.SectionName)
-					 .ValidateDataAnnotations();
-				services.AddOptions<BalanceAdjustmentJobOptions>()
-					 .BindConfiguration(BalanceAdjustmentJobOptions.SectionName)
-					 .ValidateDataAnnotations();
-				services.AddOptions<TransferCreditLagOptions>()
-					 .BindConfiguration(TransferCreditLagOptions.SectionName)
-					 .ValidateDataAnnotations();
-				services.AddOptions<RecurringTransactionJobOptions>()
-					 .BindConfiguration(RecurringTransactionJobOptions.SectionName)
-					 .ValidateDataAnnotations();
+							services.AddOptions<OutboxOptions>()
+								.BindConfiguration(OutboxOptions.SectionName)
+								.ValidateDataAnnotations();
+							services.AddOptions<BalanceAdjustmentJobOptions>()
+								.BindConfiguration(BalanceAdjustmentJobOptions.SectionName)
+								.ValidateDataAnnotations();
+							services.AddOptions<TransferCreditLagOptions>()
+								.BindConfiguration(TransferCreditLagOptions.SectionName)
+								.ValidateDataAnnotations();
+							services.AddOptions<RecurringTransactionJobOptions>()
+								.BindConfiguration(RecurringTransactionJobOptions.SectionName)
+								.ValidateDataAnnotations();
 
-				// RabbitMQ listeners start as BackgroundServices with Host
-				services.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
-				services.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
-				services.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
-				services.AddRabbitMqListener<AggregateEventsMessage, PermissionEventsConsumer>();
-				services.AddRabbitMqListener<AggregateEventsMessage, UserRoleEventsConsumer>();
+							// RabbitMQ listeners start as BackgroundServices with Host
+							services.AddRabbitMqListener<AggregateEventsMessage, AccountEventsConsumer>();
+							services.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
+							services.AddRabbitMqListener<RecurringTransactionTriggeredMessage, RecurringTransactionConsumer>();
+							services.AddRabbitMqListener<AggregateEventsMessage, PermissionEventsConsumer>();
+							services.AddRabbitMqListener<AggregateEventsMessage, UserRoleEventsConsumer>();
 
-				ConfigureAdditionalServices(services: services, configuration: ctx.Configuration);
-			})
-			.Build();
+							ConfigureAdditionalServices(services: services, configuration: ctx.Configuration);
+						})
+					.Build();
 
 		await Host.StartAsync();
 
-		Migrator.DatabaseMigrator.Upgrade(connectionString: _connectionString, logToConsole: false);
+		DatabaseMigrator.Upgrade(connectionString: _connectionString, logToConsole: false);
 
 		Context = Host.Services.GetRequiredService<FinanceTrackerContext>();
 		Mediator = Host.Services.GetRequiredService<IMediator>();

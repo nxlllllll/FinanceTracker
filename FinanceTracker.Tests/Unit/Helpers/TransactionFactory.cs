@@ -2,7 +2,6 @@ using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;

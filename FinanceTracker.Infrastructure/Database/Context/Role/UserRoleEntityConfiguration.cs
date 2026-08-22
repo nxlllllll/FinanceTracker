@@ -11,31 +11,6 @@ public sealed class UserRoleEntityConfiguration : IEntityTypeConfiguration<UserR
 
 		builder.HasKey(keyExpression: e => new { e.UserId, e.RoleId });
 
-		builder.Property(propertyExpression: e => e.UserId)
-			.HasColumnName(name: "user_id");
-
-		builder.Property(propertyExpression: e => e.RoleId)
-			.HasColumnName(name: "role_id");
-
-		builder.Property(propertyExpression: e => e.AssignedAt)
-			.HasColumnName(name: "assigned_at");
-
-		builder.Property(propertyExpression: e => e.AssignedBy)
-			.HasColumnName(name: "assigned_by");
-
-		builder.Property(propertyExpression: e => e.LastVersion)
-			.HasColumnName(name: "last_version");
-
-		builder.Property(propertyExpression: e => e.IsActive)
-			.HasColumnName(name: "is_active");
-
-		builder.Property(propertyExpression: e => e.RemovedAt)
-			.HasColumnName(name: "removed_at");
-
-		builder.Property(propertyExpression: e => e.RemovedBy)
-			.HasColumnName(name: "removed_by");
-
-		builder.HasOne<RoleEntity>().WithMany()
-			.HasForeignKey(foreignKeyExpression: e => e.RoleId);
+		builder.HasOne<RoleEntity>().WithMany().HasForeignKey(foreignKeyExpression: e => e.RoleId);
 	}
 }

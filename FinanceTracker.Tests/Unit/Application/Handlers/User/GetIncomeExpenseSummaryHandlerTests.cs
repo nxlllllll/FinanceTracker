@@ -1,7 +1,6 @@
 using FinanceTracker.Application.Dtos;
 using FinanceTracker.Application.UseCases.User.Queries.GetIncomeExpenseSummary;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;

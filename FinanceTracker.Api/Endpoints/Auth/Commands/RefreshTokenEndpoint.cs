@@ -4,7 +4,6 @@ using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Application.UseCases.User.Commands.RefreshToken;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;

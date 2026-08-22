@@ -12,7 +12,6 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using Microsoft.Extensions.Logging;
 using ZLogger;
-using Unit = FinanceTracker.Core.Results.Unit;
 
 namespace FinanceTracker.Application.UseCases.Transaction.Commands.ExcludeTransaction;
 

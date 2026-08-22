@@ -13,28 +13,10 @@ public sealed class BaseCurrencyRecalculationEntityConfiguration : IEntityTypeCo
 
 		builder.HasKey(keyExpression: e => e.UserId);
 
-		builder.Property(propertyExpression: e => e.UserId)
-			.HasColumnName(name: "user_id");
-
 		builder.Property(propertyExpression: e => e.Status)
-			.HasColumnName(name: "status")
 			.HasMaxLength(maxLength: 16)
 			.HasConversion<SnakeCaseEnumConverter<BaseCurrencyRecalculationStatus>>();
 
-		builder.Property(propertyExpression: e => e.TargetCurrency)
-			.HasColumnName(name: "target_currency")
-			.HasMaxLength(maxLength: 3);
-
-		builder.Property(propertyExpression: e => e.RequestedAt)
-			.HasColumnName(name: "requested_at");
-
-		builder.Property(propertyExpression: e => e.LockedUntil)
-			.HasColumnName(name: "locked_until");
-
-		builder.Property(propertyExpression: e => e.Attempts)
-			.HasColumnName(name: "attempts");
-
-		builder.Property(propertyExpression: e => e.LastError)
-			.HasColumnName(name: "last_error");
+		builder.Property(propertyExpression: e => e.TargetCurrency).HasMaxLength(maxLength: 3);
 	}
 }

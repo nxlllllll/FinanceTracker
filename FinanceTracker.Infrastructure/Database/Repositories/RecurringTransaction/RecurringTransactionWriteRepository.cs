@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.RecurringTransaction;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
 using FinanceTracker.Core.Services.DateProvider;

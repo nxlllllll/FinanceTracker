@@ -3,6 +3,7 @@ using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -118,7 +119,7 @@ public sealed class AccountProjectionE2ETests : E2EFixture
 	public async Task CreateAccount_ThenCreditTransaction_ShouldIncreaseProjectedBalance()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId, type: Core.Domains.Category.CategoryType.Income);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId, type: CategoryType.Income);
 		Guid accountId = await CreateAccountAsync(userId: userId, balance: 1_000m);
 
 		await RunOutboxAsync();

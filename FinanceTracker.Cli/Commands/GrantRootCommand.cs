@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Services.Roles;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.User;
@@ -23,7 +24,7 @@ public sealed class GrantRootCommand(
 		string email,
 		CancellationToken ct = default)
 	{
-		Core.Domains.User.User? user = await userAuthRepository.GetByEmailAsync(email: email, ct: ct);
+		User? user = await userAuthRepository.GetByEmailAsync(email: email, ct: ct);
 
 		if (user is null)
 		{

@@ -1,4 +1,4 @@
-using FinanceTracker.Core.Repositories.Role;
+using System.Text.Json;
 using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Cache;
@@ -72,7 +72,7 @@ public sealed class CachedUserRoleReadRepositoryTests
 	{
 		_database.StringGetAsync(
 			key: Arg.Any<RedisKey>()
-		).Returns(returnThis: (RedisValue)System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value: true));
+		).Returns(returnThis: (RedisValue)JsonSerializer.SerializeToUtf8Bytes(value: true));
 
 		bool result = await _repository.HasSystemRoleAsync(userId: Guid.CreateVersion7(), systemKey: SystemRole.Root);
 

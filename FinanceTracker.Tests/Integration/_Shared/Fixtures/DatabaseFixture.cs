@@ -1,5 +1,6 @@
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
+using FinanceTracker.Migrator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
@@ -27,7 +28,7 @@ public abstract class DatabaseFixture
 			Database = TemplateDatabaseName
 		}.ConnectionString;
 
-		Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
+		DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
 		NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
 	}
 

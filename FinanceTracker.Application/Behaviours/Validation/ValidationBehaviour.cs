@@ -5,6 +5,7 @@ using FluentValidation.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ZLogger;
+using ValidationException = FinanceTracker.Core.Exceptions.ValidationException;
 
 namespace FinanceTracker.Application.Behaviours.Validation;
 
@@ -18,7 +19,7 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 	ILogger<ValidationBehaviour<TRequest, TResponse>> logger
 ) : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : notnull
-	where TResponse : IResult<TResponse, FinanceTracker.Core.Exceptions.ValidationException>
+	where TResponse : IResult<TResponse, ValidationException>
 {
 	public async Task<TResponse> Handle(
 		TRequest request,
@@ -52,6 +53,6 @@ public sealed class ValidationBehaviour<TRequest, TResponse>(
 		int fieldCount = errors.Count;
 
 		logger.ZLogWarning(message: $"Validation failed for {commandType}: {failureCount} error(s) across {fieldCount} field(s).");
-		return TResponse.CreateFailure(error: new FinanceTracker.Core.Exceptions.ValidationException(errors: errors));
+		return TResponse.CreateFailure(error: new ValidationException(errors: errors));
 	}
 }

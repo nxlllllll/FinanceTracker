@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.Category.Queries.GetTotalsByPeriod;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.User;

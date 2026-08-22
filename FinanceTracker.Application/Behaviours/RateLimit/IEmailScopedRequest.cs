@@ -1,3 +1,5 @@
+using FinanceTracker.Core.ValueObjects;
+
 namespace FinanceTracker.Application.Behaviours.RateLimit;
 
 /// <summary>
@@ -8,5 +10,5 @@ namespace FinanceTracker.Application.Behaviours.RateLimit;
 public interface IEmailScopedRequest
 {
 	/// <summary>Email address supplied with the request. Used as part of the rate limit key.</summary>
-	Core.ValueObjects.Email Email { get; }
+	Email Email { get; }
 }

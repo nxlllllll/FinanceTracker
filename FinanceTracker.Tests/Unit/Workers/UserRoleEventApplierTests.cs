@@ -1,3 +1,4 @@
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.UserRole;
 using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
@@ -16,7 +17,7 @@ namespace FinanceTracker.Tests.Unit.Workers;
 
 public sealed class UserRoleEventApplierTests
 {
-	private sealed record UnrelatedFakeEvent : Contracts.Events.Abstraction.IIntegrationEvent
+	private sealed record UnrelatedFakeEvent : IIntegrationEvent
 	{
 		public Guid EventId => Guid.CreateVersion7();
 		public Guid AggregateId => Guid.CreateVersion7();

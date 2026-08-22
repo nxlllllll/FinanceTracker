@@ -1,4 +1,3 @@
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Context;

@@ -15,14 +15,7 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 
 		builder.HasKey(keyExpression: a => a.Id);
 
-		builder.Property(propertyExpression: a => a.Id)
-			.HasColumnName(name: "id");
-
-		builder.Property(propertyExpression: a => a.UserId)
-			.HasColumnName(name: "user_id");
-
 		builder.Property(propertyExpression: a => a.Name)
-			.HasColumnName(name: "name")
 			.HasMaxLength(maxLength: 100)
 			.HasConversion(
 				convertToProviderExpression: name => name.Value,
@@ -37,25 +30,9 @@ public sealed class AccountEntityConfiguration : IEntityTypeConfiguration<Accoun
 				convertFromProviderExpression: value => Enum.Parse<AccountType>(value: value, ignoreCase: true)
 			);
 
-		builder.Property(propertyExpression: a => a.Currency)
-			.HasColumnName(name: "currency_code")
-			.HasMaxLength(maxLength: 3)
-			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
-			);
+		builder.Property(propertyExpression: a => a.Currency).HasColumnName(name: "currency_code");
 
-		builder.Property(propertyExpression: a => a.IsArchived)
-			.HasColumnName(name: "is_archived");
-
-		builder.Property(propertyExpression: a => a.LastVersion)
-			.HasColumnName(name: "last_version");
-
-		builder.Property(propertyExpression: a => a.CreatedAt)
-			.HasColumnName(name: "created_at");
-
-		builder.HasOne<AccountBalanceEntity>().WithOne()
-			.HasForeignKey<AccountBalanceEntity>(foreignKeyExpression: b => b.AccountId);
+		builder.HasOne<AccountBalanceEntity>().WithOne().HasForeignKey<AccountBalanceEntity>(foreignKeyExpression: b => b.AccountId);
 
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: a => a.UserId)

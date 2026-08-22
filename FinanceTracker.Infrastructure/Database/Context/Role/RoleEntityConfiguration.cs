@@ -12,22 +12,13 @@ public sealed class RoleEntityConfiguration : IEntityTypeConfiguration<RoleEntit
 
 		builder.HasKey(keyExpression: e => e.Id);
 
-		builder.Property(propertyExpression: e => e.Id)
-			.HasColumnName(name: "id");
-
 		builder.Property(propertyExpression: e => e.SystemKey)
-			.HasColumnName(name: "system_key")
 			.HasMaxLength(maxLength: 32)
 			.HasConversion(
 				convertToProviderExpression: role => role.ToString()!.ToLowerInvariant(),
 				convertFromProviderExpression: value => Enum.Parse<SystemRole>(value: value, ignoreCase: true)
 			);
 
-		builder.Property(propertyExpression: e => e.DisplayName)
-			.HasColumnName(name: "display_name")
-			.HasMaxLength(maxLength: 100);
-
-		builder.Property(propertyExpression: e => e.CreatedAt)
-			.HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: e => e.DisplayName).HasMaxLength(maxLength: 100);
 	}
 }

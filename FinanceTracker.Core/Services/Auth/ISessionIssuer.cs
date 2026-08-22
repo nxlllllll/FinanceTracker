@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Domains.User;
+
 namespace FinanceTracker.Core.Services.Auth;
 
 /// <summary>
@@ -11,7 +13,7 @@ public interface ISessionIssuer
 	/// and a long-lived refresh token. The refresh token is hashed before storage.
 	/// </summary>
 	Task<SessionToken> IssueAsync(
-		Domains.User.User user,
+		User user,
 		CancellationToken ct = default
 	);
 }

@@ -1,5 +1,4 @@
 using BenchmarkDotNet.Attributes;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Operation;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;

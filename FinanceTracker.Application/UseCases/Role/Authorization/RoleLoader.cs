@@ -2,7 +2,6 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 using FinanceTracker.Application.UseCases.Role.Commands.UpdateRolePermissions;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Role;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Role;

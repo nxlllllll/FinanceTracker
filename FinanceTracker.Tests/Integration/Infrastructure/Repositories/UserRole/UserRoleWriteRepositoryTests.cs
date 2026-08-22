@@ -1,4 +1,3 @@
-using FinanceTracker.Contracts.Events.UserRole;
 using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Role;

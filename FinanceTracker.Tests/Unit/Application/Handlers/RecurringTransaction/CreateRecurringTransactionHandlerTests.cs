@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Commands.CreateRecurringTransaction;
 using FinanceTracker.Application.UseCases.RecurringTransaction.Notifications;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.RecurringTransaction;
@@ -216,7 +217,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		SetupCategory(type: CategoryType.Income);
 
-		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Debit);
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: DirectionType.Debit);
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
@@ -229,7 +230,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		SetupCategory(type: CategoryType.Expense);
 
-		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Credit);
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: DirectionType.Credit);
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
@@ -242,7 +243,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		SetupCategory(type: CategoryType.Income);
 
-		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Debit);
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: DirectionType.Debit);
 
 		await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 
@@ -257,7 +258,7 @@ public sealed class CreateRecurringTransactionHandlerTests
 	{
 		SetupCategory(type: CategoryType.Income);
 
-		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: FinanceTracker.Core.Domains.Account.DirectionType.Credit);
+		CreateRecurringTransactionCommand command = CreateRecurringTransactionCommandFactory.Create(direction: DirectionType.Credit);
 
 		Result<Guid, AppException> result = await _handler.HandleAsync(command: command, ct: CancellationToken.None);
 

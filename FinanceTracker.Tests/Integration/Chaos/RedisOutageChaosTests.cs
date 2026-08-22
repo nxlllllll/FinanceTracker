@@ -7,6 +7,7 @@ using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Migrator;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -42,7 +43,7 @@ public sealed class RedisOutageChaosTests
 			Database = TemplateDatabaseName
 		}.ConnectionString;
 
-		Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
+		DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
 		NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
 
 		_databaseName = $"ft_chaos_{Guid.CreateVersion7():N}";

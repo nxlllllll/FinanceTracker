@@ -1,6 +1,5 @@
 using FinanceTracker.Api.Endpoints.Accounts.Contracts;
 using FinanceTracker.Api.Http;
-using FinanceTracker.Api.Http.Filters;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;

@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Account;
@@ -17,7 +18,7 @@ public class AccountBuilder(FinanceTrackerContext context)
 			Id = accountId,
 			UserId = userId,
 			Name = Name.Create(value: "Основной счёт").Value,
-			AccountType = Core.Domains.Account.AccountType.Checking,
+			AccountType = AccountType.Checking,
 			Currency = Currency.Create(value: currencyCode).Value,
 			IsArchived = false,
 			CreatedAt = DateTimeOffset.UtcNow

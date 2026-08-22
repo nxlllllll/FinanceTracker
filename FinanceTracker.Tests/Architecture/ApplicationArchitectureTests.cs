@@ -9,7 +9,10 @@ using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Infrastructure.Database.Context;
+using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
 using TUnit.Assertions.Enums;
@@ -104,7 +107,7 @@ public sealed class ApplicationArchitectureTests
 	public async Task AllIValidatorClasses_ShouldHaveValidatorSuffix()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.That().ImplementInterface(interfaceType: typeof(FluentValidation.IValidator<>))
+			.That().ImplementInterface(interfaceType: typeof(IValidator<>))
 			.Should().HaveNameEndingWith(end: "Validator")
 			.GetResult();
 
@@ -115,7 +118,7 @@ public sealed class ApplicationArchitectureTests
 	public async Task AllIValidatorClasses_ShouldBeSealed()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.That().ImplementInterface(interfaceType: typeof(FluentValidation.IValidator<>))
+			.That().ImplementInterface(interfaceType: typeof(IValidator<>))
 			.And().AreClasses()
 			.Should().BeSealed()
 			.GetResult();

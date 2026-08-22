@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 
 namespace FinanceTracker.Tests.Unit.Helpers;
 
@@ -18,7 +19,7 @@ internal sealed class FakeHttpMessageHandler : HttpMessageHandler
 	{
 		Enqueue(baseCode: baseCode, response: new HttpResponseMessage(statusCode: HttpStatusCode.OK)
 		{
-			Content = new StringContent(content: json, encoding: System.Text.Encoding.UTF8, mediaType: "application/json")
+			Content = new StringContent(content: json, encoding: Encoding.UTF8, mediaType: "application/json")
 		});
 	}
 
@@ -35,7 +36,7 @@ internal sealed class FakeHttpMessageHandler : HttpMessageHandler
 
 		Enqueue(baseCode: baseCode, response: new HttpResponseMessage(statusCode: HttpStatusCode.OK)
 		{
-			Content = new StringContent(content: successJson, encoding: System.Text.Encoding.UTF8, mediaType: "application/json")
+			Content = new StringContent(content: successJson, encoding: Encoding.UTF8, mediaType: "application/json")
 		});
 	}
 

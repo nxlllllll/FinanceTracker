@@ -1,9 +1,11 @@
+using FinanceTracker.Core.Domains.User;
+
 namespace FinanceTracker.Core.Repositories.User;
 
 public interface IUserSessionWriteRepository
 {
 	Task CreateAsync(
-		Domains.User.UserSession session,
+		UserSession session,
 		CancellationToken ct = default
 	);
 

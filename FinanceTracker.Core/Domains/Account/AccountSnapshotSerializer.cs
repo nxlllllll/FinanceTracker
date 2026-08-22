@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
@@ -24,7 +25,7 @@ public sealed class AccountSnapshotSerializer : ISnapshotSerializer<Account>
 
 	public string Serialize(Account aggregate)
 	{
-		return System.Text.Json.JsonSerializer.Serialize(value: new AccountSnapshotState(
+		return JsonSerializer.Serialize(value: new AccountSnapshotState(
 			Id: aggregate.Id,
 			UserId: aggregate.UserId,
 			Name: aggregate.Name,
@@ -38,7 +39,7 @@ public sealed class AccountSnapshotSerializer : ISnapshotSerializer<Account>
 
 	public Account Deserialize(SnapshotData snapshot)
 	{
-		AccountSnapshotState state = System.Text.Json.JsonSerializer.Deserialize<AccountSnapshotState>(
+		AccountSnapshotState state = JsonSerializer.Deserialize<AccountSnapshotState>(
 			json: snapshot.State,
 			options: FinanceTrackerJsonOptions.Payload
 		)!;

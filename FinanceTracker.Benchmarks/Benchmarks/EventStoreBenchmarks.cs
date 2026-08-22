@@ -4,7 +4,6 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Services.EventStore;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore;

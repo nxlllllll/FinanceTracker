@@ -1,8 +1,9 @@
 using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Core.Domains.UserPermission.Events;
 
 namespace FinanceTracker.Contracts.Events.UserPermission;
 
-[IntegrationEventType(domainEventType: typeof(Core.Domains.UserPermission.Events.PermissionRevoked))]
+[IntegrationEventType(domainEventType: typeof(PermissionRevoked))]
 public sealed record PermissionRevokedEvent(
 	Guid EventId,
 	Guid UserId,

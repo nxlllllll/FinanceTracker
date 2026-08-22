@@ -16,31 +16,7 @@ public sealed class CurrencyRateEntityConfiguration : IEntityTypeConfiguration<C
 			r.ActualAt
 		});
 
-		builder.Property(propertyExpression: r => r.BaseCode)
-			.HasColumnName(name: "base_code")
-			.HasMaxLength(maxLength: 3)
-			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
-			);
-
-		builder.Property(propertyExpression: r => r.TargetCode)
-			.HasColumnName(name: "target_code")
-			.HasMaxLength(maxLength: 3)
-			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
-			);
-
-		builder.Property(propertyExpression: r => r.Rate)
-			.HasColumnName(name: "rate")
-			.HasColumnType(typeName: "numeric(18,6)");
-
-		builder.Property(propertyExpression: r => r.ActualAt)
-			.HasColumnName(name: "actual_at");
-
-		builder.Property(propertyExpression: r => r.CreatedAt)
-			.HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: r => r.Rate).HasColumnType(typeName: "numeric(18,6)");
 
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.BaseCode)

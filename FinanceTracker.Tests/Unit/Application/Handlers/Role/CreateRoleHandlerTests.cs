@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Role.Commands.CreateRole;
+using FinanceTracker.Application.UseCases.Role.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;
@@ -132,7 +133,7 @@ public sealed class CreateRoleHandlerTests
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 
 		_postCommitNotifications.Received(requiredNumberOfCalls: 1).Stage(
-			notification: Arg.Any<FinanceTracker.Application.UseCases.Role.Notifications.RoleCreatedNotification>()
+			notification: Arg.Any<RoleCreatedNotification>()
 		);
 	}
 }

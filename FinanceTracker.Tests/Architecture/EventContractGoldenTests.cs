@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
@@ -27,7 +28,7 @@ public sealed class EventContractGoldenTests
 	private static readonly Guid RoleId = Guid.Parse(input: "00000000-0000-0000-0000-000000000011");
 	private static readonly DateTimeOffset OccurredAt = new DateTimeOffset(year: 2026, month: 1, day: 15, hour: 12, minute: 30, second: 0, offset: TimeSpan.Zero);
 
-	private static string Serialize(IEvent @event) => System.Text.Json.JsonSerializer.Serialize(
+	private static string Serialize(IEvent @event) => JsonSerializer.Serialize(
 		value: @event,
 		inputType: @event.GetType(),
 		options: FinanceTrackerJsonOptions.Payload

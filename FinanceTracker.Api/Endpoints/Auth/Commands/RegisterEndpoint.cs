@@ -1,5 +1,5 @@
-using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Api.Endpoints.Auth.Contracts;
+using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;

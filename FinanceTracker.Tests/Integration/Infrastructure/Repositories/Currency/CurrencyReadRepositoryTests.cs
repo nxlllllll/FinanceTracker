@@ -1,4 +1,3 @@
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Tests.Integration._Shared.Builders;

@@ -1,8 +1,9 @@
 using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Core.Domains.Account.Events;
 
 namespace FinanceTracker.Contracts.Events.Account;
 
-[IntegrationEventType(domainEventType: typeof(Core.Domains.Account.Events.AccountDebited))]
+[IntegrationEventType(domainEventType: typeof(AccountDebited))]
 public sealed record AccountDebitedEvent(
 	Guid EventId,
 	Guid AccountId,

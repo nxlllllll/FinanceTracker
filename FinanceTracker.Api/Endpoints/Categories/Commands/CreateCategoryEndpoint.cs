@@ -5,7 +5,6 @@ using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
-using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Idempotency;

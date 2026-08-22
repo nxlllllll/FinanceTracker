@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;

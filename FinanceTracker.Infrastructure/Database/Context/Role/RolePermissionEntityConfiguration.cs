@@ -11,11 +11,7 @@ public sealed class RolePermissionEntityConfiguration : IEntityTypeConfiguration
 
 		builder.HasKey(keyExpression: e => new { e.RoleId, e.Permission });
 
-		builder.Property(propertyExpression: e => e.RoleId)
-			.HasColumnName(name: "role_id");
-
-		builder.Property(propertyExpression: e => e.Permission)
-			.HasColumnName(name: "permission").HasMaxLength(maxLength: 64);
+		builder.Property(propertyExpression: e => e.Permission).HasMaxLength(maxLength: 64);
 
 		builder.HasOne<RoleEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: e => e.RoleId)

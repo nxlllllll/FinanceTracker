@@ -1,4 +1,3 @@
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Pending;
 
 namespace FinanceTracker.Core.Services.TransferCompensation;

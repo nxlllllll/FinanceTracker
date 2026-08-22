@@ -9,7 +9,6 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.ProcessedMessage;

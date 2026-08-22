@@ -1,6 +1,5 @@
 using FinanceTracker.Application.Behaviours.RateLimit;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.Results;
 using MediatR;

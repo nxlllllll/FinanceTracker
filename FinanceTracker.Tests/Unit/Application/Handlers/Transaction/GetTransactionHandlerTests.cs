@@ -1,8 +1,6 @@
 using FinanceTracker.Application.UseCases.Transaction.Queries.GetTransaction;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;

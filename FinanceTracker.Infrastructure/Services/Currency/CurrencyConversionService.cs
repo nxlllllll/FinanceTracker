@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
-using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Services.Currency;

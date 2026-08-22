@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Domains.UserRole.Events;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Database.Context.Role;
 using FinanceTracker.Infrastructure.Database.Repositories.UserPermission;
 using FinanceTracker.Infrastructure.Database.Repositories.UserRole;
 using FinanceTracker.Tests.Integration._Shared.Builders;
@@ -49,7 +50,7 @@ public sealed class UserPermissionReadRepositoryTests : DatabaseFixture
 
 		foreach (string permission in permissions)
 		{
-			await Context.RolePermissions.AddAsync(entity: new FinanceTracker.Infrastructure.Database.Context.Role.RolePermissionEntity
+			await Context.RolePermissions.AddAsync(entity: new RolePermissionEntity
 			{
 				RoleId = roleId,
 				Permission = permission

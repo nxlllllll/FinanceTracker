@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;

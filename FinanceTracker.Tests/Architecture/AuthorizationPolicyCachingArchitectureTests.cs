@@ -46,11 +46,11 @@ public sealed class AuthorizationPolicyCachingArchitectureTests
 			calls stopped resolving the name.
 		""");
 
-		await Assert.That(value: Object.ReferenceEquals(objA: first, objB: second)).IsTrue().Because(message: """
-			AllowsCachingPolicies is a promise that a policy never changes for a given name. Returning a
-			fresh instance each time leaves that promise true only by accident — it holds because the
-			framework happens to ask once per endpoint, not because this class guarantees it.
-		""");
+		await Assert.That(value: ReferenceEquals(objA: first, objB: second)).IsTrue().Because(message: """
+				AllowsCachingPolicies is a promise that a policy never changes for a given name. Returning a
+				fresh instance each time leaves that promise true only by accident — it holds because the
+				framework happens to ask once per endpoint, not because this class guarantees it.
+			""");
 	}
 
 	[Test]

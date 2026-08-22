@@ -1,4 +1,3 @@
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Operation;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Results;

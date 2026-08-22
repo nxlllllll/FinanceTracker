@@ -1,6 +1,5 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;

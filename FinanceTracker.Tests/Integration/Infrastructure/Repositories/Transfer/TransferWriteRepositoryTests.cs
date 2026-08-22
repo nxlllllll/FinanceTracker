@@ -1,6 +1,5 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Infrastructure.Database.Context.Transfer;
 using FinanceTracker.Infrastructure.Database.Repositories.Operation;

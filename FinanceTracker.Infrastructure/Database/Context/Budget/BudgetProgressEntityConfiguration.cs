@@ -11,19 +11,9 @@ public sealed class BudgetProgressEntityConfiguration : IEntityTypeConfiguration
 
 		builder.HasKey(keyExpression: b => b.BudgetId);
 
-		builder.Property(propertyExpression: b => b.BudgetId)
-			.HasColumnName(name: "budget_id");
+		builder.Property(propertyExpression: b => b.Spent).HasColumnType(typeName: "numeric(18,2)");
 
-		builder.Property(propertyExpression: b => b.Spent)
-			.HasColumnName(name: "spent")
-			.HasColumnType(typeName: "numeric(18,2)");
-
-		builder.Property(propertyExpression: b => b.RowVersion)
-			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
-
-		builder.Property(propertyExpression: b => b.UpdatedAt)
-			.HasColumnName(name: "updated_at");
+		builder.Property(propertyExpression: b => b.RowVersion).HasDefaultValue(value: 0);
 
 		builder.HasOne<BudgetEntity>().WithOne()
 			.HasForeignKey<BudgetProgressEntity>(foreignKeyExpression: b => b.BudgetId)

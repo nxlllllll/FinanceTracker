@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.User;
@@ -10,7 +11,7 @@ public sealed class UserSessionWriteRepository(
 ) : IUserSessionWriteRepository
 {
 	public async Task CreateAsync(
-		Core.Domains.User.UserSession session,
+		UserSession session,
 		CancellationToken ct = default)
 	{
 		await context.UserSessions.AddAsync(entity: new UserSessionEntity

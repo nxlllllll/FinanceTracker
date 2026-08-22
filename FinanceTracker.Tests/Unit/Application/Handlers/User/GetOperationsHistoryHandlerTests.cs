@@ -1,7 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Queries.GetOperationsHistory;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Operation;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.Repositories.User;

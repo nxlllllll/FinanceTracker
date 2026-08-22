@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.Account.Events;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Services.DateProvider;

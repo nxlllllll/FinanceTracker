@@ -1,6 +1,5 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.ReadModels.Transfer;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -8,6 +7,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Context.Transfer;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transfer;
@@ -46,9 +46,9 @@ public sealed class TransferReadRepository(
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.Transfer.TransferEntity> query = context.Transfers
-			.AsNoTracking()
-			.Where(predicate: t => t.UserId == userId);
+		IQueryable<TransferEntity> query = context.Transfers
+												.AsNoTracking()
+												.Where(predicate: t => t.UserId == userId);
 
 		if (accountId is not null)
 		{
@@ -104,8 +104,8 @@ public sealed class TransferReadRepository(
 		Guid? cursorId = null,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.Transfer.TransferEntity> query = context.Transfers.AsNoTracking()
-			.Where(predicate: t => t.RateStatus == RateStatus.Pending && t.Status == TransferStatus.Completed);
+		IQueryable<TransferEntity> query = context.Transfers.AsNoTracking()
+												.Where(predicate: t => t.RateStatus == RateStatus.Pending && t.Status == TransferStatus.Completed);
 
 		if (cursorOccurredAt is not null && cursorId is not null)
 		{

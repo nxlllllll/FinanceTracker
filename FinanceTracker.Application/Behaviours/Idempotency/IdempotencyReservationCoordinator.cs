@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Idempotency;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Services.DateProvider;
