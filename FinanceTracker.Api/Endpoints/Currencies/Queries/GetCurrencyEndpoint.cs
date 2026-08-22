@@ -25,7 +25,7 @@ public sealed class GetCurrencyEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		string code,
 		ISender sender,
 		CancellationToken ct)

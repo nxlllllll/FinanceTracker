@@ -30,7 +30,7 @@ public sealed class RenameAccountEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status412PreconditionFailed);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid accountId,
 		RenameAccountRequest request,
 		HttpContext httpContext,

@@ -26,7 +26,7 @@ public sealed class RefreshTokenEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status401Unauthorized);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ISender sender,
 		HttpContext httpContext,
 		IOptions<JwtOptions> jwtOptions,

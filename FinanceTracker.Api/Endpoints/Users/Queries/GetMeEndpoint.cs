@@ -26,7 +26,7 @@ public sealed class GetMeEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ICurrentUserProvider currentUser,
 		ISender sender,
 		CancellationToken ct)

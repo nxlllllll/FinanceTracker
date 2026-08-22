@@ -29,7 +29,7 @@ public sealed class ChangeRecurringTransactionAmountEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid recurringTransactionId,
 		ChangeRecurringTransactionAmountRequest request,
 		ICurrentUserProvider currentUser,

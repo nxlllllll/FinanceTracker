@@ -33,7 +33,7 @@ public sealed class CreateBudgetEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		CreateBudgetRequest request,
 		HttpContext httpContext,
 		ICurrentUserProvider currentUser,

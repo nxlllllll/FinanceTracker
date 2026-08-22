@@ -32,7 +32,7 @@ public sealed class CreateCategoryEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		CreateCategoryRequest request,
 		HttpContext httpContext,
 		ICurrentUserProvider currentUser,

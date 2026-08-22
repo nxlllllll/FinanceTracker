@@ -29,7 +29,7 @@ public sealed class GetRecurringTransactionsEndpoint : IEndpoint
 			.ProducesValidationProblem();
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ICurrentUserProvider currentUser,
 		ISender sender,
 		CancellationToken ct,

@@ -27,7 +27,7 @@ public sealed class LoginEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status401Unauthorized);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		LoginUserRequest request,
 		ISender sender,
 		HttpContext httpContext,

@@ -34,7 +34,7 @@ public sealed class GetTransactionsEndpoint : IEndpoint
 			.ProducesValidationProblem();
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid accountId,
 		ICurrentUserProvider currentUser,
 		ISender sender,

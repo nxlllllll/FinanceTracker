@@ -28,7 +28,7 @@ public sealed class IncludeTransactionEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid transactionId,
 		ICurrentUserProvider currentUser,
 		ISender sender,

@@ -40,4 +40,8 @@
         </ItemGroup>
     </Target>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="FinanceTracker.Tests" />
+    </ItemGroup>
+
 </Project>

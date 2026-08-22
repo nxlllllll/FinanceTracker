@@ -27,7 +27,7 @@ public sealed class RegisterEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		RegisterUserRequest request,
 		ISender sender,
 		HttpContext httpContext,

@@ -17,7 +17,7 @@ public sealed class LogoutEndpoint : IEndpoint
 			.Produces(statusCode: StatusCodes.Status204NoContent); ;
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ISender sender,
 		HttpContext httpContext,
 		CancellationToken ct)

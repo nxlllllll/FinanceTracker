@@ -26,7 +26,7 @@ public sealed class GetCategoryEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid categoryId,
 		ICurrentUserProvider currentUser,
 		ISender sender,

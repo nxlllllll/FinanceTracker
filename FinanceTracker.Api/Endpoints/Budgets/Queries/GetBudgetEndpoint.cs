@@ -26,7 +26,7 @@ public sealed class GetBudgetEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid budgetId,
 		ICurrentUserProvider currentUser,
 		ISender sender,

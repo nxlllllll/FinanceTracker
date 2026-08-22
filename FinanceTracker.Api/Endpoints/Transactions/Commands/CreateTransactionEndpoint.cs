@@ -35,7 +35,7 @@ public sealed class CreateTransactionEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid accountId,
 		CreateTransactionRequest request,
 		HttpContext httpContext,

@@ -25,7 +25,7 @@ public sealed class GetCategoryTotalsEndpoint : IEndpoint
 			.Produces<CategoryTotalsResponse>(statusCode: StatusCodes.Status200OK);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		DateOnly period,
 		ICurrentUserProvider currentUser,
 		ISender sender,

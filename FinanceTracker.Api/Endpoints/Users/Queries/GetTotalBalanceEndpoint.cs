@@ -27,7 +27,7 @@ public sealed class GetTotalBalanceEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status503ServiceUnavailable);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ICurrentUserProvider currentUser,
 		ISender sender,
 		CancellationToken ct)

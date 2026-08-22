@@ -25,7 +25,7 @@ public sealed class GetAccountsEndpoint : IEndpoint
 			.Produces<List<AccountResponse>>(statusCode: StatusCodes.Status200OK);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		bool? isArchived,
 		ICurrentUserProvider currentUser,
 		ISender sender,

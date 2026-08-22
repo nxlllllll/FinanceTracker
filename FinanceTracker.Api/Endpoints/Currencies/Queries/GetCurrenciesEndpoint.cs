@@ -26,7 +26,7 @@ public sealed class GetCurrenciesEndpoint : IEndpoint
 			).Produces<IReadOnlyList<CurrencyResponse>>(statusCode: StatusCodes.Status200OK);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ISender sender,
 		CancellationToken ct)
 	{
