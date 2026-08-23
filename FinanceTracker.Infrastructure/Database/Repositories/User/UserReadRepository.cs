@@ -68,6 +68,7 @@ public sealed class UserReadRepository(
 				Id: u.Id,
 				Email: u.Email,
 				BaseCurrency: u.BaseCurrencyCode,
+				TimeZone: u.TimeZoneId,
 				CreatedAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

@@ -5,6 +5,7 @@ using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.RecurringTransaction;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.RecurringTransaction;
@@ -30,11 +31,7 @@ public sealed class RecurringTransactionWriteRepository(
 			Currency = recurringTransaction.Amount.Currency,
 			Direction = recurringTransaction.Direction,
 			DayOfMonth = recurringTransaction.DayOfMonth,
-			NextDueAtUtc = RecurringDueDate.Next(
-				dayOfMonth: recurringTransaction.DayOfMonth,
-				timeZone: TimeZoneId.Utc,
-				after: now
-			),
+			NextDueAtUtc = recurringTransaction.NextDueAtUtc,
 			Description = recurringTransaction.Description,
 			IsActive = true,
 			LastExecutedAt = null,
@@ -177,5 +174,36 @@ public sealed class RecurringTransactionWriteRepository(
 
 		if (affected == 0)
 			throw new ConcurrencyConflictException(message: $"RecurringTransaction {recurringTransactionId} was modified by another request.", id: recurringTransactionId);
+	}
+
+	public async Task RescheduleAllForUserAsync(
+		Guid userId,
+		TimeZoneId timeZone,
+		CancellationToken ct = default)
+	{
+		var operations = await context.RecurringTransactions.AsNoTracking()
+			.Where(predicate: r => r.UserId == userId && r.IsActive)
+			.Select(selector: r => new { r.Id, r.DayOfMonth, r.NextDueAtUtc })
+			.ToListAsync(cancellationToken: ct);
+
+		List<Guid> ids = [];
+		List<DateTimeOffset> rescheduled = [];
+
+		foreach (var operation in operations)
+		{
+			DateTimeOffset next = RecurringDueDate.Next(
+				dayOfMonth: operation.DayOfMonth,
+				timeZone: timeZone,
+				after: operation.NextDueAtUtc.AddHours(hours: -36)
+			);
+
+			if (next == operation.NextDueAtUtc)
+				continue;
+
+			ids.Add(item: operation.Id);
+			rescheduled.Add(item: next);
+		}
+
+		await context.RescheduleRecurringTransactionsAsync(ids: ids, nextDueAtUtc: rescheduled, ct: ct);
 	}
 }

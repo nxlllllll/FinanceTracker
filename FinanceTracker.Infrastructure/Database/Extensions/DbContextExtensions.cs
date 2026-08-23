@@ -429,4 +429,26 @@ public static class DbContextExtensions
 			r.attempts AS "Attempts",
 			r.last_error AS "LastError"
 	""").ToListAsync(cancellationToken: ct);
+
+	public static Task RescheduleRecurringTransactionsAsync(
+		this DbContext context,
+		IReadOnlyList<Guid> ids,
+		IReadOnlyList<DateTimeOffset> nextDueAtUtc,
+		CancellationToken ct = default)
+	{
+		if (ids.Count == 0)
+			return Task.CompletedTask;
+
+		Guid[] idArray = [.. ids];
+		DateTimeOffset[] dueArray = [.. nextDueAtUtc];
+
+		return context.Database.ExecuteSqlAsync(sql: $"""
+			UPDATE recurring_transactions AS r
+			SET next_due_at_utc = v.next_due_at_utc, row_version = r.row_version + 1
+			FROM (
+			    SELECT * FROM unnest({idArray}::uuid[], {dueArray}::timestamptz[]) AS t(id, next_due_at_utc)
+			) AS v
+			WHERE r.id = v.id
+		""", cancellationToken: ct);
+	}
 }

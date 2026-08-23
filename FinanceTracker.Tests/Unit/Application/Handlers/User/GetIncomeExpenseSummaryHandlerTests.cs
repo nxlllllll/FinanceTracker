@@ -20,6 +20,7 @@ public sealed class GetIncomeExpenseSummaryHandlerTests
 		Id: Guid.CreateVersion7(),
 		Email: Email.Create(value: "test@test.com").Value!,
 		BaseCurrency: FinanceTracker.Core.ValueObjects.Currency.Create(value: currency).Value,
+		TimeZone: TimeZoneId.Utc,
 		CreatedAt: FakeDateProvider.Default.UtcNow
 	);
 

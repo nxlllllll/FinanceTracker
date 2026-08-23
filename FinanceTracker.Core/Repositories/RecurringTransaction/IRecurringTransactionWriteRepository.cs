@@ -1,3 +1,5 @@
+using FinanceTracker.Core.ValueObjects;
+
 namespace FinanceTracker.Core.Repositories.RecurringTransaction;
 
 public interface IRecurringTransactionWriteRepository
@@ -58,6 +60,12 @@ public interface IRecurringTransactionWriteRepository
 		Guid recurringTransactionId,
 		DateTimeOffset missedAt,
 		int expectedVersion,
+		CancellationToken ct = default
+	);
+
+	Task RescheduleAllForUserAsync(
+		Guid userId,
+		TimeZoneId timeZone,
 		CancellationToken ct = default
 	);
 }

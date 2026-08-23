@@ -86,6 +86,7 @@ public sealed class BaseCurrencyRecalculationJobTests
 		Id: _userId,
 		Email: Email.Reconstitute(value: "someone@example.com"),
 		BaseCurrency: currency,
+		TimeZone: TimeZoneId.Utc,
 		CreatedAt: FakeDateProvider.Default.UtcNow
 	));
 
@@ -217,6 +218,7 @@ public sealed class BaseCurrencyRecalculationJobTests
 			Id: secondUserId,
 			Email: Email.Reconstitute(value: "other@example.com"),
 			BaseCurrency: Usd,
+			TimeZone: TimeZoneId.Utc,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		));
 
@@ -286,6 +288,7 @@ public sealed class BaseCurrencyRecalculationJobTests
 			Id: secondUserId,
 			Email: Email.Reconstitute(value: "other@example.com"),
 			BaseCurrency: Usd,
+			TimeZone: TimeZoneId.Utc,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		));
 

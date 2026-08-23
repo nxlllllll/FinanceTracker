@@ -11,6 +11,7 @@ public sealed record UserResponse(
 	Guid Id,
 	Email Email,
 	Currency BaseCurrency,
+	TimeZoneId TimeZone,
 	DateTimeOffset CreatedAt
 ) : IResponseOf<UserReadModel, UserResponse>
 {
@@ -18,6 +19,7 @@ public sealed record UserResponse(
 		Id: readModel.Id,
 		Email: readModel.Email,
 		BaseCurrency: readModel.BaseCurrency,
+		TimeZone: readModel.TimeZone,
 		CreatedAt: readModel.CreatedAt
 	);
 }
