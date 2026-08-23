@@ -1,6 +1,8 @@
+using System.Text;
 using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Infrastructure.Database.Context.Budget;
 using FinanceTracker.Infrastructure.Database.Context.Category;
+using FinanceTracker.Infrastructure.Database.Context.Conversions;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.Context.Idempotency;
@@ -15,6 +17,7 @@ using FinanceTracker.Infrastructure.Database.Context.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.Context.User;
 using FinanceTracker.Infrastructure.Database.Context.UserPermission;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FinanceTracker.Infrastructure.Database.Context;
 
@@ -72,6 +75,46 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 
 	public DbSet<UserSessionEntity> UserSessions => Set<UserSessionEntity>();
 
+	protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+	{
+		configurationBuilder.Properties<Core.ValueObjects.Currency>()
+			.HaveConversion<CurrencyValueConverter>()
+			.HaveMaxLength(maxLength: 3);
+	}
+
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
-		=> modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);
+	{
+		modelBuilder.ApplyConfigurationsFromAssembly(assembly: typeof(FinanceTrackerContext).Assembly);
+
+		ApplySnakeCaseColumnNames(modelBuilder: modelBuilder);
+	}
+
+	private static void ApplySnakeCaseColumnNames(ModelBuilder modelBuilder)
+	{
+		foreach (IMutableEntityType entityType in modelBuilder.Model.GetEntityTypes())
+		{
+			foreach (IMutableProperty property in entityType.GetProperties())
+			{
+				if (property.FindAnnotation(name: RelationalAnnotationNames.ColumnName) is not null)
+					continue;
+
+				property.SetColumnName(name: ToSnakeCase(value: property.Name));
+			}
+		}
+	}
+
+	private static string ToSnakeCase(string value)
+	{
+		StringBuilder builder = new StringBuilder(capacity: value.Length + 8);
+
+		for (int i = 0; i < value.Length; i++)
+		{
+			if (i > 0 && Char.IsUpper(c: value[i]))
+				builder.Append(value: '_');
+
+			builder.Append(value: Char.ToLowerInvariant(c: value[i]));
+		}
+
+		return builder.ToString();
+	}
 }

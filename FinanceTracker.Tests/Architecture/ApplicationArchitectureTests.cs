@@ -9,7 +9,10 @@ using FinanceTracker.Application.Behaviours.Tracing;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Infrastructure.Database.Context;
+using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NetArchTest.Rules;
 using TUnit.Assertions.Enums;
@@ -19,6 +22,54 @@ namespace FinanceTracker.Tests.Architecture;
 
 public sealed class ApplicationArchitectureTests
 {
+	private sealed class ExecutionLog
+	{
+		public List<string> Entries { get; } = [];
+	}
+
+	private sealed record ProbeRequest : IRequest<string>;
+
+	private sealed class ProbeHandler(ExecutionLog log) : IRequestHandler<ProbeRequest, string>
+	{
+		public Task<string> Handle(ProbeRequest request, CancellationToken cancellationToken)
+		{
+			log.Entries.Add(item: "handler");
+			return Task.FromResult(result: "done");
+		}
+	}
+
+	private sealed class FirstProbeBehaviour<TRequest, TResponse>(ExecutionLog log)
+		: IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
+	{
+		public async Task<TResponse> Handle(
+			TRequest request,
+			RequestHandlerDelegate<TResponse> next,
+			CancellationToken cancellationToken = default)
+		{
+			log.Entries.Add(item: "first:before");
+			TResponse response = await next(t: cancellationToken);
+			log.Entries.Add(item: "first:after");
+
+			return response;
+		}
+	}
+
+	private sealed class SecondProbeBehaviour<TRequest, TResponse>(ExecutionLog log)
+		: IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
+	{
+		public async Task<TResponse> Handle(
+			TRequest request,
+			RequestHandlerDelegate<TResponse> next,
+			CancellationToken cancellationToken = default)
+		{
+			log.Entries.Add(item: "second:before");
+			TResponse response = await next(t: cancellationToken);
+			log.Entries.Add(item: "second:after");
+
+			return response;
+		}
+	}
+
 	private static readonly Assembly ApplicationAssembly = typeof(DependencyInjection).Assembly;
 
 	private static async Task AssertPasses(TestResult result)
@@ -56,7 +107,7 @@ public sealed class ApplicationArchitectureTests
 	public async Task AllIValidatorClasses_ShouldHaveValidatorSuffix()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.That().ImplementInterface(interfaceType: typeof(FluentValidation.IValidator<>))
+			.That().ImplementInterface(interfaceType: typeof(IValidator<>))
 			.Should().HaveNameEndingWith(end: "Validator")
 			.GetResult();
 
@@ -67,7 +118,7 @@ public sealed class ApplicationArchitectureTests
 	public async Task AllIValidatorClasses_ShouldBeSealed()
 	{
 		TestResult result = Types.InAssembly(assembly: ApplicationAssembly)
-			.That().ImplementInterface(interfaceType: typeof(FluentValidation.IValidator<>))
+			.That().ImplementInterface(interfaceType: typeof(IValidator<>))
 			.And().AreClasses()
 			.Should().BeSealed()
 			.GetResult();
@@ -316,6 +367,37 @@ public sealed class ApplicationArchitectureTests
 		await Assert.That(value: actualOrder).IsEquivalentTo(expectedOrder, CollectionOrdering.Matching).Because(message: $"""
 			Expected: {String.Join(separator: " -> ", values: expectedOrder.Select(selector: t => t.Name))}
 			Actual: {String.Join(separator: " -> ", values: actualOrder.Select(selector: t => t.Name))}
+		""");
+	}
+
+	[Test]
+	public async Task MediatR_ShouldExecuteOpenBehavioursInRegistrationOrder()
+	{
+		ExecutionLog log = new ExecutionLog();
+
+		IServiceCollection services = new ServiceCollection();
+		services.AddSingleton(implementationInstance: log);
+		services.AddLogging();
+		services.AddMediatR(configuration: cfg =>
+		{
+			cfg.RegisterServicesFromAssembly(assembly: typeof(ApplicationArchitectureTests).Assembly);
+
+			cfg.AddOpenBehavior(openBehaviorType: typeof(FirstProbeBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(SecondProbeBehaviour<,>));
+		});
+
+		await using ServiceProvider provider = services.BuildServiceProvider();
+
+		await provider.GetRequiredService<IMediator>().Send(request: new ProbeRequest());
+
+		string[] expected = ["first:before", "second:before", "handler", "second:after", "first:after"];
+
+		await Assert.That(value: log.Entries).IsEquivalentTo(expected, CollectionOrdering.Matching).Because(message: $"""
+			Expected: {String.Join(separator: " -> ", values: expected)}
+			Actual: {String.Join(separator: " -> ", values: log.Entries)}
+
+			The first behaviour registered has to be the outermost one, wrapping every behaviour
+			registered after it.
 		""");
 	}
 }

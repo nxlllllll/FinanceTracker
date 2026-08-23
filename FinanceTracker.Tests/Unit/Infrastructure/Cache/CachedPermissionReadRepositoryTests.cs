@@ -106,6 +106,6 @@ public sealed class CachedPermissionReadRepositoryTests
 	{
 		Guid userId = Guid.CreateVersion7();
 
-		await Assert.That(value: CachedUserPermissionReadRepository.KeyFor(userId: userId)).IsEqualTo(expected: $"permissions:{userId}");
+		await Assert.That(value: PermissionCacheKeys.Permissions(userId: userId)).IsEqualTo(expected: $"permissions:{userId}");
 	}
 }

@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -23,7 +24,7 @@ public class BudgetBuilder(FinanceTrackerContext context)
 		DateOnly? dateTo = null,
 		bool isActive = true)
 	{
-		Result<Core.Domains.Budget.Budget, DomainException> result = Core.Domains.Budget.Budget.Create(
+		Result<Budget, DomainException> result = Budget.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId,
 			categoryId: categoryId,
@@ -32,7 +33,7 @@ public class BudgetBuilder(FinanceTrackerContext context)
 			to: dateTo ?? new DateOnly(year: 2025, month: 1, day: 31)
 		);
 
-		Core.Domains.Budget.Budget budget = result.Value!;
+		Budget budget = result.Value!;
 
 		await _writeRepository.CreateAsync(budget: budget);
 		await context.SaveChangesAsync();

@@ -5,12 +5,12 @@ namespace FinanceTracker.Core.Repositories.Operation;
 public interface IOperationWriteRepository
 {
 	Task InsertTransactionAsync(
-		Core.Domains.Transaction.Transaction transaction,
+		Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default
 	);
 
 	Task InsertTransferAsync(
-		Core.Domains.Transfer.Transfer transfer,
+		Domains.Transfer.Transfer transfer,
 		CancellationToken ct = default
 	);
 

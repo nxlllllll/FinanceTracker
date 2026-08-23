@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Data;
 using FinanceTracker.Core.Observability.Metrics;

@@ -1,5 +1,7 @@
+using System.Text.Json;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Outbox;
@@ -176,9 +178,9 @@ public sealed class CreateAccountFlowTests : MediatorFixture
 			.Where(predicate: o => o.AggregateId == accountId)
 			.FirstAsync();
 
-		OutboxPayload payload = System.Text.Json.JsonSerializer.Deserialize<OutboxPayload>(
+		OutboxPayload payload = JsonSerializer.Deserialize<OutboxPayload>(
 			json: outbox.Payload,
-			options: Core.Converters.Json.FinanceTrackerJsonOptions.Payload
+			options: FinanceTrackerJsonOptions.Payload
 		)!;
 
 		await consumer.HandleAsync(message: new AggregateEventsMessage(

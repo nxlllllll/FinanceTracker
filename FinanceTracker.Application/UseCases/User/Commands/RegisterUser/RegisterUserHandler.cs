@@ -51,7 +51,8 @@ public sealed class RegisterUserHandler(
 			createdAt: dateProvider.UtcNow,
 			email: command.Email,
 			passwordHash: passwordHash,
-			baseCurrency: command.BaseCurrencyCode
+			baseCurrency: command.BaseCurrencyCode,
+			timeZone: command.TimeZone
 		);
 		if (userResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: userResult.Error!);

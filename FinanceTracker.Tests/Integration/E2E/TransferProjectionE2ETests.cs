@@ -1,5 +1,4 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
-using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Application.UseCases.Transfer.Commands.CreateTransfer;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
@@ -7,7 +6,6 @@ using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using Microsoft.EntityFrameworkCore;

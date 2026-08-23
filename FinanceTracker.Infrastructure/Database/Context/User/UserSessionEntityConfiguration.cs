@@ -11,27 +11,7 @@ public sealed class UserSessionEntityConfiguration : IEntityTypeConfiguration<Us
 
 		builder.HasKey(keyExpression: s => s.Id);
 
-		builder.Property(propertyExpression: s => s.Id)
-			.HasColumnName(name: "id");
-
-		builder.Property(propertyExpression: s => s.UserId)
-			.HasColumnName(name: "user_id");
-
-		builder.Property(propertyExpression: s => s.RefreshTokenHash)
-			.HasColumnName(name: "refresh_token_hash")
-			.HasMaxLength(maxLength: 64);
-
-		builder.Property(propertyExpression: s => s.ExpiresAt)
-			.HasColumnName(name: "expires_at");
-
-		builder.Property(propertyExpression: s => s.CreatedAt)
-			.HasColumnName(name: "created_at");
-
-		builder.Property(propertyExpression: s => s.RevokedAt)
-			.HasColumnName(name: "revoked_at");
-
-		builder.Property(propertyExpression: s => s.SupersededBySessionId)
-			.HasColumnName(name: "superseded_by_session_id");
+		builder.Property(propertyExpression: s => s.RefreshTokenHash).HasMaxLength(maxLength: 64);
 
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: s => s.UserId)

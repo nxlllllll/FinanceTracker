@@ -11,14 +11,6 @@ public sealed class ProcessedMessageEntityConfiguration : IEntityTypeConfigurati
 
 		builder.HasKey(keyExpression: e => new { e.MessageId, e.ConsumerType });
 
-		builder.Property(propertyExpression: e => e.MessageId)
-			.HasColumnName(name: "message_id");
-
-		builder.Property(propertyExpression: e => e.ConsumerType)
-			.HasColumnName(name: "consumer_type")
-			.HasMaxLength(maxLength: 100);
-
-		builder.Property(propertyExpression: e => e.ProcessedAt)
-			.HasColumnName(name: "processed_at");
+		builder.Property(propertyExpression: e => e.ConsumerType).HasMaxLength(maxLength: 100);
 	}
 }

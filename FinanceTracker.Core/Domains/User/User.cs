@@ -12,6 +12,7 @@ public sealed class User : IHasId
 	public Email Email { get; private set; }
 	public string PasswordHash { get; private set; } = String.Empty;
 	public Currency BaseCurrency { get; private set; }
+	public TimeZoneId TimeZone { get; private set; }
 	public int RowVersion { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 
@@ -21,7 +22,8 @@ public sealed class User : IHasId
 		DateTimeOffset createdAt,
 		Email email,
 		string passwordHash,
-		Currency baseCurrency)
+		Currency baseCurrency,
+		TimeZoneId? timeZone = null)
 	{
 		if (String.IsNullOrWhiteSpace(value: passwordHash))
 			return Result<User, DomainException>.Failure(error: new PasswordException(message: "The password hash cannot be empty."));
@@ -32,6 +34,7 @@ public sealed class User : IHasId
 			Email = email,
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrency,
+			TimeZone = timeZone ?? TimeZoneId.Utc,
 			RowVersion = 0,
 			CreatedAt = createdAt
 		});
@@ -42,6 +45,7 @@ public sealed class User : IHasId
 		Email email,
 		string passwordHash,
 		Currency baseCurrencyCode,
+		TimeZoneId timeZone,
 		int rowVersion,
 		DateTimeOffset createdAt)
 	{
@@ -51,6 +55,7 @@ public sealed class User : IHasId
 			Email = email,
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrencyCode,
+			TimeZone = timeZone,
 			RowVersion = rowVersion,
 			CreatedAt = createdAt
 		};
@@ -80,6 +85,15 @@ public sealed class User : IHasId
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		BaseCurrency = newBaseCurrency;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> ChangeTimeZone(TimeZoneId newTimeZone)
+	{
+		if (TimeZone == newTimeZone)
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
+
+		TimeZone = newTimeZone;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

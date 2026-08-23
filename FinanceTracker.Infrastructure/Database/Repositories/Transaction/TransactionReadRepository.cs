@@ -1,12 +1,12 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Context.Transaction;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Transaction;
@@ -47,8 +47,8 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.Transaction.TransactionEntity> query = context.Transactions.AsNoTracking()
-			.Where(predicate: t => t.AccountId == accountId && t.UserId == userId);
+		IQueryable<TransactionEntity> query = context.Transactions.AsNoTracking()
+												.Where(predicate: t => t.AccountId == accountId && t.UserId == userId);
 
 		if (categoryId is not null)
 			query = query.Where(predicate: t => t.CategoryId == categoryId.Value);
@@ -107,8 +107,8 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 		Guid? cursorId = null,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.Transaction.TransactionEntity> query = context.Transactions.AsNoTracking()
-			.Where(predicate: t => t.RateStatus == RateStatus.Pending);
+		IQueryable<TransactionEntity> query = context.Transactions.AsNoTracking()
+												.Where(predicate: t => t.RateStatus == RateStatus.Pending);
 
 		if (cursorOccurredAt is not null && cursorId is not null)
 		{

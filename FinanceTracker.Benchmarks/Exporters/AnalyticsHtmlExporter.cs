@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Reports;
+using BenchmarkDotNet.Running;
 
 namespace FinanceTracker.Benchmarks.Exporters;
 
@@ -103,7 +104,7 @@ public sealed class AnalyticsHtmlExporter : IExporter
 		List<BenchmarkRow> rows = [];
 		foreach (BenchmarkReport report in summary.Reports)
 		{
-			BenchmarkDotNet.Running.BenchmarkCase bc = report.BenchmarkCase;
+			BenchmarkCase bc = report.BenchmarkCase;
 			bool ok = report is { Success: true, ResultStatistics: not null };
 			double? allocKb = ok ? report.GcStats.GetBytesAllocatedPerOperation(benchmarkCase: bc) / 1024.0 : 0;
 

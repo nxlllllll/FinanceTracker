@@ -9,7 +9,6 @@ using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Observability.Tracing;

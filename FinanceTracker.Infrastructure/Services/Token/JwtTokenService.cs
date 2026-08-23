@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Blake3;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.Token;
 using Microsoft.Extensions.Options;
@@ -23,7 +24,7 @@ public sealed class JwtTokenService(
 
 	private static readonly JsonWebTokenHandler Handler = new JsonWebTokenHandler();
 
-	public AccessTokenResult GenerateAccessToken(Core.Domains.User.User user, Guid sessionId)
+	public AccessTokenResult GenerateAccessToken(User user, Guid sessionId)
 	{
 		DateTimeOffset expiresAt = dateProvider.UtcNow.AddMinutes(minutes: _options.AccessTokenTtlMinutes);
 

@@ -55,6 +55,9 @@ public sealed class GlobalExceptionHandler(
 
 		httpContext.Response.StatusCode = statusCode;
 
+		if (httpContext.RequestAborted.IsCancellationRequested)
+			return true;
+
 		await httpContext.Response.WriteAsJsonAsync(
 			value: new ProblemDetails
 			{

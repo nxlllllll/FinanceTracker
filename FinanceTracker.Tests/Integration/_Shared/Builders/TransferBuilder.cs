@@ -2,6 +2,7 @@ using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
@@ -28,14 +29,14 @@ public sealed class TransferBuilder(FinanceTrackerContext context)
 		DateTimeOffset? occurredAt = null,
 		DateTimeOffset? createdAt = null)
 	{
-		Result<Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
+		Result<Transfer, DomainException> transferResult = Transfer.Create(
 			createdAt: createdAt ?? DateTimeOffset.UtcNow,
 			userId: userId,
 			fromAccountId: fromAccountId,
 			toAccountId: toAccountId,
 			amount: amount,
-			currencyFrom: Core.ValueObjects.Currency.Create(value: currencyFrom).Value,
-			currencyTo: Core.ValueObjects.Currency.Create(value: currencyTo).Value,
+			currencyFrom: Currency.Create(value: currencyFrom).Value,
+			currencyTo: Currency.Create(value: currencyTo).Value,
 			exchangeRate: exchangeRate,
 			rateStatus: rateStatus,
 			description: null,

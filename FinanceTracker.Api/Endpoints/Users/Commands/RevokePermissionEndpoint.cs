@@ -26,7 +26,7 @@ public sealed class RevokePermissionEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid userId,
 		string permission,
 		ICurrentUserProvider currentUser,

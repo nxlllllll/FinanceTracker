@@ -1,6 +1,5 @@
 using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Transfer.Authorization;
-using FinanceTracker.Application.UseCases.Transfer.Commands;
 using FinanceTracker.Application.UseCases.Transfer.Commands.CreateTransfer;
 using FinanceTracker.Application.UseCases.Transfer.Notifications;
 using FinanceTracker.Core.Domains.Abstractions.Rate;

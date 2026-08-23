@@ -1,4 +1,6 @@
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
+using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Results;
 
@@ -17,9 +19,9 @@ public interface ITransactionCreationService
 	/// updates category totals and budget progress, and handles exchange rate conversion.
 	/// All operations are executed within the caller's transaction scope.
 	/// </summary>
-	Task<Result<Core.Domains.Transaction.Transaction, DomainException>> CreateAsync(
+	Task<Result<Transaction, DomainException>> CreateAsync(
 		CreateTransactionCommand command,
-		Core.Domains.Account.Account account,
+		Account account,
 		CancellationToken ct = default
 	);
 }

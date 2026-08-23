@@ -1,4 +1,5 @@
-﻿using FinanceTracker.Core.Persistence;
+﻿using System.Text;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.UserPermission;
 using FinanceTracker.Core.Repositories.UserRole;
 using FinanceTracker.Core.ValueObjects;
@@ -92,7 +93,7 @@ public sealed class CachedUserRoleRepositoryTests
 			.Select(selector: call => call.GetArguments())
 			.ToDictionary(
 				keySelector: arguments => ((RedisKey)arguments[0]!).ToString(),
-				elementSelector: arguments => System.Text.Encoding.UTF8.GetString(bytes: ((byte[])(RedisValue)arguments[1]!)!)
+				elementSelector: arguments => Encoding.UTF8.GetString(bytes: ((byte[])(RedisValue)arguments[1]!)!)
 			);
 	}
 

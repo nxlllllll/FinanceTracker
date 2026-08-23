@@ -13,37 +13,23 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 
 		builder.HasKey(keyExpression: u => u.Id);
 
-		builder.Property(propertyExpression: a => a.Id)
-			.HasColumnName(name: "id");
-
 		builder.Property(propertyExpression: u => u.Email)
-			.HasColumnName(name: "email")
 			.HasMaxLength(maxLength: 255)
 			.HasConversion(
 				convertToProviderExpression: email => email.Value,
 				convertFromProviderExpression: email => Email.Reconstitute(value: email)
 			);
 
-		builder.Property(propertyExpression: u => u.PasswordHash)
-			.HasColumnName(name: "password_hash")
-			.HasMaxLength(maxLength: 255);
+		builder.Property(propertyExpression: u => u.PasswordHash).HasMaxLength(maxLength: 255);
 
-		builder.Property(propertyExpression: u => u.BaseCurrencyCode)
-			.HasColumnName(name: "base_currency_code")
-			.HasMaxLength(maxLength: 3)
+		builder.Property(propertyExpression: u => u.TimeZoneId)
+			.HasMaxLength(maxLength: 64)
 			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
+				convertToProviderExpression: timeZone => timeZone.Value,
+				convertFromProviderExpression: timeZone => TimeZoneId.Reconstitute(value: timeZone)
 			);
 
-		builder.Property(propertyExpression: u => u.RowVersion)
-			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
-
-		builder.Property(propertyExpression: u => u.CreatedAt)
-			.HasColumnName(name: "created_at");
-
-		// builder.HasIndex(indexExpression: u => u.Email).IsUnique();
+		builder.Property(propertyExpression: u => u.RowVersion).HasDefaultValue(value: 0);
 
 		builder.HasOne<CurrencyEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.BaseCurrencyCode)

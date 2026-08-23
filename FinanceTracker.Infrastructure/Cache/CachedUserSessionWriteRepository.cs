@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
 
@@ -10,7 +11,7 @@ public sealed class CachedUserSessionWriteRepository(
 ) : IUserSessionWriteRepository
 {
 	public Task CreateAsync(
-		Core.Domains.User.UserSession session,
+		UserSession session,
 		CancellationToken ct = default
 	) => inner.CreateAsync(session: session, ct: ct);
 

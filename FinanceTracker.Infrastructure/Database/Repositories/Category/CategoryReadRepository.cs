@@ -1,4 +1,4 @@
-using FinanceTracker.Core.ReadModels;
+using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
@@ -29,7 +29,7 @@ public sealed class CategoryReadRepository(FinanceTrackerContext context) : ICat
 
 	public async Task<PagedResult<CategoryReadModel>> GetAllAsync(
 		Guid userId,
-		Core.Domains.Category.CategoryType? type = null,
+		CategoryType? type = null,
 		bool? isArchived = null,
 		Guid? parentId = null,
 		DateTimeOffset? cursorCreatedAt = null,

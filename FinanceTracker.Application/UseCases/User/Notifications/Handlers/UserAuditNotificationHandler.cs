@@ -12,6 +12,7 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 	INotificationHandler<UserEmailChangedNotification>,
 	INotificationHandler<UserPasswordChangedNotification>,
 	INotificationHandler<UserBaseCurrencyChangedNotification>,
+	INotificationHandler<UserTimeZoneChangedNotification>,
 	INotificationHandler<RefreshTokenReuseDetectedNotification>
 {
 	public Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken)
@@ -54,6 +55,15 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 		logger.ZLogWarning(message: $"""
 			[Security] Refresh token reuse detected — all active sessions revoked.
 			UserId: {notification.UserId}, OccurredAt: {notification.OccurredAt:O}.
+		""");
+		return Task.CompletedTask;
+	}
+
+	public Task Handle(UserTimeZoneChangedNotification notification, CancellationToken cancellationToken)
+	{
+		logger.ZLogInformation(message: $"""
+			[Audit] User time zone changed. UserId: {notification.UserId}, OldTimeZone: {notification.OldTimeZone},
+			NewTimeZone: {notification.NewTimeZone}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}

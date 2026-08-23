@@ -2,10 +2,10 @@ using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.RecurringTransaction;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -66,7 +66,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		_transactionCreationService.CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Transaction, DomainException>.Success(value: TransactionFactory.Create()));
 	}
@@ -116,7 +116,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await _transactionCreationService.DidNotReceive().CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -156,7 +156,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await _transactionCreationService.DidNotReceive().CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -188,13 +188,13 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+		).Returns(returnThis: (Account?)null);
 
 		await _consumer.HandleAsync(message: BuildMessage(), ct: CancellationToken.None);
 
 		await _transactionCreationService.DidNotReceive().CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -211,7 +211,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+		).Returns(returnThis: (Account?)null);
 
 		RecurringTransactionTriggeredMessage message = BuildMessage();
 		await _consumer.HandleAsync(message: message, ct: CancellationToken.None);
@@ -234,7 +234,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		_accountRepository.GetByIdAsync(
 			accountId: Arg.Any<Guid>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: (FinanceTracker.Core.Domains.Account.Account?)null);
+		).Returns(returnThis: (Account?)null);
 
 		Guid recurringTransactionId = Guid.CreateVersion7();
 		await _consumer.HandleAsync(message: BuildMessage(recurringTransactionId: recurringTransactionId), ct: CancellationToken.None);
@@ -260,7 +260,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await _transactionCreationService.DidNotReceive().CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -306,7 +306,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await _transactionCreationService.DidNotReceive().CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -350,7 +350,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		_transactionCreationService.CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Transaction, DomainException>.Failure(error: new InsufficientFundsException(
 			message: "Insufficient funds.",
@@ -383,7 +383,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		const string failureMessage = "Insufficient funds.";
 		_transactionCreationService.CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: Result<Transaction, DomainException>.Failure(error: new InsufficientFundsException(
 			message: failureMessage,
@@ -409,7 +409,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await _transactionCreationService.Received(requiredNumberOfCalls: 1).CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -453,6 +453,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 		await writeRepo.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
 		);
@@ -470,7 +471,7 @@ public sealed class RecurringTransactionConsumerTests : DatabaseFixture
 
 		await _transactionCreationService.Received(requiredNumberOfCalls: 1).CreateAsync(
 			command: Arg.Any<CreateTransactionCommand>(),
-			account: Arg.Any<FinanceTracker.Core.Domains.Account.Account>(),
+			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

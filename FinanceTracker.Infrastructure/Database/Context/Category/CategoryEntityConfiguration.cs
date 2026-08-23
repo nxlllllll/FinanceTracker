@@ -13,17 +13,7 @@ public sealed class CategoryEntityConfiguration : IEntityTypeConfiguration<Categ
 
 		builder.HasKey(keyExpression: c => c.Id);
 
-		builder.Property(propertyExpression: a => a.Id)
-			.HasColumnName(name: "id");
-
-		builder.Property(propertyExpression: c => c.UserId)
-			.HasColumnName(name: "user_id");
-
-		builder.Property(propertyExpression: c => c.ParentId)
-			.HasColumnName(name: "parent_id");
-
 		builder.Property(propertyExpression: c => c.Name)
-			.HasColumnName(name: "name")
 			.HasMaxLength(maxLength: 100)
 			.HasConversion(
 				convertToProviderExpression: name => name.Value,
@@ -38,15 +28,7 @@ public sealed class CategoryEntityConfiguration : IEntityTypeConfiguration<Categ
 				convertFromProviderExpression: value => Enum.Parse<CategoryType>(value: value, ignoreCase: true)
 			);
 
-		builder.Property(propertyExpression: c => c.IsArchived)
-			.HasColumnName(name: "is_archived");
-
-		builder.Property(propertyExpression: c => c.RowVersion)
-			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
-
-		builder.Property(propertyExpression: c => c.CreatedAt)
-			.HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: c => c.RowVersion).HasDefaultValue(value: 0);
 
 		builder.HasOne<CategoryEntity>()
 			.WithMany()

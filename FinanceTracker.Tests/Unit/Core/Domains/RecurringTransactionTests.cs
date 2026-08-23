@@ -164,20 +164,29 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction recurring = RecurringTransactionFactory.Create().Value!;
 
-		Result<bool, DomainException> result = recurring.ChangeDayOfMonth(dayOfMonth: recurring.DayOfMonth);
+		Result<bool, DomainException> result = recurring.ChangeDayOfMonth(
+			dayOfMonth: recurring.DayOfMonth,
+			timeZone: TimeZoneId.Utc,
+			now: FakeDateProvider.Default.UtcNow
+		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 		await Assert.That(value: result.Value).IsFalse();
 	}
 
 	[Test]
-	public async Task ChangeDayOfMonth_WithValidDay_ShouldUpdateDayOfMonth()
+	public async Task ChangeDayOfMonth_WithValidDay_ShouldUpdateDayOfMonthAndTheDueInstant()
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
+		DateTimeOffset before = rt.NextDueAtUtc;
 
-		rt.ChangeDayOfMonth(dayOfMonth: 28);
+		rt.ChangeDayOfMonth(dayOfMonth: 28, timeZone: TimeZoneId.Utc, now: FakeDateProvider.Default.UtcNow);
 
 		await Assert.That(value: rt.DayOfMonth).IsEqualTo(expected: 28);
+		await Assert.That(value: rt.NextDueAtUtc).IsNotEqualTo(notExpected: before).Because(message: """
+		   The day alone is inert — the job reads only the due instant. A change that left it untouched
+		   would not take effect until the operation fired once on its old schedule.
+		""");
 	}
 
 	[Test]
@@ -185,7 +194,11 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<bool, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 0);
+		Result<bool, DomainException> result = rt.ChangeDayOfMonth(
+			dayOfMonth: 0,
+			timeZone: TimeZoneId.Utc,
+			now: FakeDateProvider.Default.UtcNow
+		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
@@ -196,7 +209,11 @@ public sealed class RecurringTransactionTests
 	{
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 
-		Result<bool, DomainException> result = rt.ChangeDayOfMonth(dayOfMonth: 32);
+		Result<bool, DomainException> result = rt.ChangeDayOfMonth(
+			dayOfMonth: 32,
+			timeZone: TimeZoneId.Utc,
+			now: FakeDateProvider.Default.UtcNow
+		);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
 		await Assert.That(value: result.Error).IsTypeOf<InvalidDayOfMonthException>();
@@ -208,7 +225,7 @@ public sealed class RecurringTransactionTests
 		RecurringTransaction rt = RecurringTransactionFactory.Create().Value!;
 		DateTimeOffset executedAt = DateTimeOffset.UtcNow;
 
-		rt.MarkExecuted(executedAt: executedAt);
+		rt.MarkExecuted(executedAt: executedAt, timeZone: TimeZoneId.Utc);
 
 		await Assert.That(value: rt.LastExecutedAt).IsEqualTo(expected: executedAt);
 	}

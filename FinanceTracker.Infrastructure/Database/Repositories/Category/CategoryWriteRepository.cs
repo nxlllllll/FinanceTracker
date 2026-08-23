@@ -1,8 +1,8 @@
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Context.Category;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
@@ -13,7 +13,7 @@ public sealed class CategoryWriteRepository(FinanceTrackerContext context) : ICa
 		Core.Domains.Category.Category category,
 		CancellationToken ct = default)
 	{
-		await context.Categories.AddAsync(entity: new Context.Category.CategoryEntity()
+		await context.Categories.AddAsync(entity: new CategoryEntity()
 		{
 			Id = category.Id,
 			UserId = category.UserId,

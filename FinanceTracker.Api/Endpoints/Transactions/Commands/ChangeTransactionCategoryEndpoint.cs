@@ -28,7 +28,7 @@ public sealed class ChangeTransactionCategoryEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid transactionId,
 		ChangeTransactionCategoryRequest request,
 		ICurrentUserProvider currentUser,

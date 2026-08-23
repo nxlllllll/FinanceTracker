@@ -1,4 +1,3 @@
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Infrastructure.Database.Resilience;
 using Npgsql;

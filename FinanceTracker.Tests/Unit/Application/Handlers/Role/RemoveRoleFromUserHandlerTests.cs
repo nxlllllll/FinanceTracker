@@ -3,7 +3,6 @@ using FinanceTracker.Application.Services.Roles;
 using FinanceTracker.Application.UseCases.Role.Commands.RemoveRoleFromUser;
 using FinanceTracker.Application.UseCases.Role.Notifications;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Role;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;

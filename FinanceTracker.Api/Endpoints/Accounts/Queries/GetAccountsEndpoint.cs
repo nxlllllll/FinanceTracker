@@ -5,7 +5,6 @@ using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;
 using FinanceTracker.Application.UseCases.Account.Queries.GetAccounts;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -26,7 +25,7 @@ public sealed class GetAccountsEndpoint : IEndpoint
 			.Produces<List<AccountResponse>>(statusCode: StatusCodes.Status200OK);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		bool? isArchived,
 		ICurrentUserProvider currentUser,
 		ISender sender,

@@ -2,8 +2,10 @@ using System.Text.Json;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Migrator;
 using FinanceTracker.Worker.Outbox.Job;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
+using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using NSubstitute;
 using Quartz;
+using RabbitMQ.Client;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
 
@@ -47,7 +50,7 @@ public sealed class OutboxPublisherJobChaosTests
 			Database = TemplateDatabaseName
 		}.ConnectionString;
 
-		Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
+		DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
 		NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
 
 		_databaseName = $"ft_outbox_chaos_{Guid.CreateVersion7():N}";
@@ -130,13 +133,13 @@ public sealed class OutboxPublisherJobChaosTests
 	private async Task DeclareQueueBoundToRoutingKeyAsync()
 	{
 		using IServiceScope scope = _host.Services.CreateScope();
-		FinanceTracker.Worker.Shared.RabbitMQ.Connection.RabbitMqConnectionFactory connectionFactory =
-			scope.ServiceProvider.GetRequiredService<FinanceTracker.Worker.Shared.RabbitMQ.Connection.RabbitMqConnectionFactory>();
+		RabbitMqConnectionFactory connectionFactory =
+			scope.ServiceProvider.GetRequiredService<RabbitMqConnectionFactory>();
 
-		await using RabbitMQ.Client.IConnection connection = await connectionFactory.CreateConnectionAsync();
-		await using RabbitMQ.Client.IChannel channel = await connection.CreateChannelAsync();
+		await using IConnection connection = await connectionFactory.CreateConnectionAsync();
+		await using IChannel channel = await connection.CreateChannelAsync();
 
-		await channel.ExchangeDeclareAsync(exchange: "outbox-chaos-exchange", type: RabbitMQ.Client.ExchangeType.Topic, durable: true, autoDelete: false, cancellationToken: CancellationToken.None);
+		await channel.ExchangeDeclareAsync(exchange: "outbox-chaos-exchange", type: ExchangeType.Topic, durable: true, autoDelete: false, cancellationToken: CancellationToken.None);
 		await channel.QueueDeclareAsync(queue: "outbox-chaos-sink", durable: true, exclusive: false, autoDelete: false, cancellationToken: CancellationToken.None);
 		await channel.QueueBindAsync(queue: "outbox-chaos-sink", exchange: "outbox-chaos-exchange", routingKey: "ChaosTestAggregate", cancellationToken: CancellationToken.None);
 	}
@@ -236,14 +239,14 @@ public sealed class OutboxPublisherJobChaosTests
 	private async Task WaitForBrokerToAcceptConnectionsAsync()
 	{
 		await using AsyncServiceScope scope = _host.Services.CreateAsyncScope();
-		FinanceTracker.Worker.Shared.RabbitMQ.Connection.RabbitMqConnectionFactory connectionFactory =
-			scope.ServiceProvider.GetRequiredService<FinanceTracker.Worker.Shared.RabbitMQ.Connection.RabbitMqConnectionFactory>();
+		RabbitMqConnectionFactory connectionFactory =
+			scope.ServiceProvider.GetRequiredService<RabbitMqConnectionFactory>();
 
 		for (int attempt = 0; attempt < 15; attempt++)
 		{
 			try
 			{
-				await using RabbitMQ.Client.IConnection connection = await connectionFactory.CreateConnectionAsync();
+				await using IConnection connection = await connectionFactory.CreateConnectionAsync();
 				return;
 			}
 			catch

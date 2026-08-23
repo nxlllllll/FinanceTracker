@@ -29,7 +29,7 @@ public sealed class GetBudgetsEndpoint : IEndpoint
 			.ProducesValidationProblem();
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ICurrentUserProvider currentUser,
 		ISender sender,
 		CancellationToken ct,

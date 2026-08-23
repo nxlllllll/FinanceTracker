@@ -1,3 +1,4 @@
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.UserPermission;
 using FinanceTracker.Core.Domains.UserPermission.Events;
 using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
@@ -16,7 +17,7 @@ namespace FinanceTracker.Tests.Unit.Workers;
 
 public sealed class PermissionEventApplierTests
 {
-	private sealed record UnrelatedFakeEvent : Contracts.Events.Abstraction.IIntegrationEvent
+	private sealed record UnrelatedFakeEvent : IIntegrationEvent
 	{
 		public Guid EventId => Guid.CreateVersion7();
 		public Guid AggregateId => Guid.CreateVersion7();
@@ -74,7 +75,7 @@ public sealed class PermissionEventApplierTests
 	}
 
 	private static string ExpectedKeyFor(Guid userId)
-		=> $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: userId)}";
+		=> $"ft_test:{PermissionCacheKeys.Permissions(userId: userId)}";
 
 	[Test]
 	public async Task ApplyAsync_WithUserPermissionCreatedEvent_ShouldBeANoOp()

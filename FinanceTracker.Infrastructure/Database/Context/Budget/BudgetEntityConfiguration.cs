@@ -14,15 +14,6 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 
 		builder.HasKey(keyExpression: b => b.Id);
 
-		builder.Property(propertyExpression: b => b.Id)
-			.HasColumnName(name: "id");
-
-		builder.Property(propertyExpression: b => b.UserId)
-			.HasColumnName(name: "user_id");
-
-		builder.Property(propertyExpression: b => b.CategoryId)
-			.HasColumnName(name: "category_id");
-
 		builder.Property(propertyExpression: b => b.From)
 			.HasColumnName(name: "date_from")
 			.HasColumnType(typeName: "date");
@@ -31,27 +22,11 @@ public sealed class BudgetEntityConfiguration : IEntityTypeConfiguration<BudgetE
 			.HasColumnName(name: "date_to")
 			.HasColumnType(typeName: "date");
 
-		builder.Property(propertyExpression: b => b.Currency)
-			.HasColumnName(name: "currency_code")
-			.HasMaxLength(maxLength: 3)
-			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
-			);
+		builder.Property(propertyExpression: b => b.Currency).HasColumnName(name: "currency_code");
 
-		builder.Property(propertyExpression: b => b.Amount)
-			.HasColumnName(name: "amount")
-			.HasColumnType(typeName: "numeric(18,2)");
+		builder.Property(propertyExpression: b => b.Amount).HasColumnType(typeName: "numeric(18,2)");
 
-		builder.Property(propertyExpression: b => b.IsActive)
-			.HasColumnName(name: "is_active");
-
-		builder.Property(propertyExpression: b => b.RowVersion)
-			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
-
-		builder.Property(propertyExpression: b => b.CreatedAt)
-			.HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: b => b.RowVersion).HasDefaultValue(value: 0);
 
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: b => b.UserId)

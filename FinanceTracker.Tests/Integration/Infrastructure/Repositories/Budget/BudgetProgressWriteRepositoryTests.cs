@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Infrastructure.Database.Context.Budget;
@@ -422,7 +423,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 			accountId: accountId,
 			categoryId: categoryId,
 			amount: 1000m,
-			direction: Core.Domains.Account.DirectionType.Debit,
+			direction: DirectionType.Debit,
 			occurredAt: occurredAt
 		);
 		await _transactionBuilder.CreateAsync(
@@ -430,7 +431,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 			accountId: accountId,
 			categoryId: categoryId,
 			amount: 9999m,
-			direction: Core.Domains.Account.DirectionType.Credit,
+			direction: DirectionType.Credit,
 			occurredAt: occurredAt
 		);
 

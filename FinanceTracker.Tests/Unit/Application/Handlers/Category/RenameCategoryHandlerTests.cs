@@ -1,9 +1,7 @@
 using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
-using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Repositories.Category;
-using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;

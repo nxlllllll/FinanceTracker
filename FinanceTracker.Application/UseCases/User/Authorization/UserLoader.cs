@@ -2,8 +2,8 @@ using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserTimeZone;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
@@ -14,7 +14,8 @@ public sealed class UserLoader(
 	IUserAuthRepository userAuthRepository
 ) : IEntityLoader<ChangeUserBaseCurrencyCommand, Core.Domains.User.User, AppException>,
 	IEntityLoader<ChangeUserEmailCommand, Core.Domains.User.User, AppException>,
-	IEntityLoader<ChangeUserPasswordCommand, Core.Domains.User.User, AppException>
+	IEntityLoader<ChangeUserPasswordCommand, Core.Domains.User.User, AppException>,
+	IEntityLoader<ChangeUserTimeZoneCommand, Core.Domains.User.User, AppException>
 {
 	public Task<Result<Core.Domains.User.User, AppException>> LoadAsync(
 		ChangeUserBaseCurrencyCommand request,
@@ -28,6 +29,11 @@ public sealed class UserLoader(
 
 	public Task<Result<Core.Domains.User.User, AppException>> LoadAsync(
 		ChangeUserPasswordCommand request,
+		CancellationToken ct
+	) => LoadAndAuthorize(userId: request.UserId, ct: ct);
+
+	public Task<Result<Core.Domains.User.User, AppException>> LoadAsync(
+		ChangeUserTimeZoneCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(userId: request.UserId, ct: ct);
 

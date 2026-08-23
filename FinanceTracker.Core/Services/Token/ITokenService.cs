@@ -1,3 +1,5 @@
+using FinanceTracker.Core.Domains.User;
+
 namespace FinanceTracker.Core.Services.Token;
 
 /// <summary>
@@ -8,7 +10,7 @@ public interface ITokenService
 {
 	/// <summary>Generates a signed JWT access token for the given user.</summary>
 	AccessTokenResult GenerateAccessToken(
-		Domains.User.User user,
+		User user,
 		Guid sessionId
 	);
 

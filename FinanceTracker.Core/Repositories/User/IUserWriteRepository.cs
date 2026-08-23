@@ -29,4 +29,11 @@ public interface IUserWriteRepository
 		int expectedVersion,
 		CancellationToken ct = default
 	);
+
+	Task ChangeTimeZoneAsync(
+		Guid userId,
+		TimeZoneId newTimeZone,
+		int expectedVersion,
+		CancellationToken ct = default
+	);
 }

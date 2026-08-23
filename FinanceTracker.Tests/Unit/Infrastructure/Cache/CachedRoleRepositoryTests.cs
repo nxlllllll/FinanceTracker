@@ -96,12 +96,12 @@ public sealed class CachedRoleRepositoryTests
 
 		List<string> keys = deleted.Select(selector: k => (string)k!).ToList();
 
-		await Assert.That(value: keys).Contains(expected: $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: firstMember)}").Because(message: """
-			Changing a role changes what its members can do straight away, and their cached permission
-			sets are what the API actually reads. Leaving them in place means the change appears to do
-			nothing for as long as the entries live.
-		""");
-		await Assert.That(value: keys).Contains(expected: $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: secondMember)}");
+		await Assert.That(value: keys).Contains(expected: $"ft_test:{PermissionCacheKeys.Permissions(userId: firstMember)}").Because(message: """
+				Changing a role changes what its members can do straight away, and their cached permission
+				sets are what the API actually reads. Leaving them in place means the change appears to do
+				nothing for as long as the entries live.
+			""");
+		await Assert.That(value: keys).Contains(expected: $"ft_test:{PermissionCacheKeys.Permissions(userId: secondMember)}");
 	}
 
 	[Test]
@@ -135,7 +135,7 @@ public sealed class CachedRoleRepositoryTests
 		await CommitAsync();
 
 		List<string> keys = deleted.Select(selector: k => (string)k!).ToList();
-		await Assert.That(value: keys).Contains(expected: $"ft_test:{CachedUserPermissionReadRepository.KeyFor(userId: member)}");
+		await Assert.That(value: keys).Contains(expected: $"ft_test:{PermissionCacheKeys.Permissions(userId: member)}");
 	}
 
 	[Test]

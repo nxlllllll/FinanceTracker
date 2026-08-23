@@ -62,9 +62,6 @@ public sealed class PermissionEventApplier(
 		ScheduleCacheInvalidation(userId: e.UserId);
 	}
 
-	private void ScheduleCacheInvalidation(
-		Guid userId
-	) => unitOfWork.OnCommitted(callback: () => redisCache.DeleteBatchAsync(
-		keys: [CachedUserPermissionReadRepository.KeyFor(userId: userId)]
-	));
+	private void ScheduleCacheInvalidation(Guid userId)
+		=> unitOfWork.OnCommitted(callback: () => redisCache.DeleteBatchAsync(keys: [PermissionCacheKeys.Permissions(userId: userId)]));
 }

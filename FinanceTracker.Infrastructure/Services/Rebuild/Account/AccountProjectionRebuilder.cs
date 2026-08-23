@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
+using FinanceTracker.Core.Domains.Abstractions.EventStore;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.Snapshot;
 using FinanceTracker.Core.Persistence;
@@ -24,7 +25,7 @@ public sealed class AccountProjectionRebuilder(
 	{
 		logger.ZLogInformation(message: $"[Rebuild] Starting rebuild for Account {accountId}.");
 
-		Core.Domains.Abstractions.EventStore.EventStoreResult result = await eventStore.LoadAsync(
+		EventStoreResult result = await eventStore.LoadAsync(
 			aggregateId: accountId,
 			aggregateType: AggregateTypeNames.Account,
 			ct: ct

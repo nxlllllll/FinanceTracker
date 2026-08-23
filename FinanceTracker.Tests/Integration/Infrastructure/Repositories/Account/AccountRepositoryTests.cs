@@ -1,4 +1,5 @@
 using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Observability.Correlation;
@@ -25,7 +26,7 @@ public sealed class AccountRepositoryTests : DatabaseFixture
 	private PostgresEventStore CreateEventStore() => new PostgresEventStore(
 		context: Context,
 		eventTypeResolver: new EventTypeResolver(
-			assembly: typeof(FinanceTracker.Core.Domains.Abstractions.EventStore.Event.IEvent).Assembly,
+			assembly: typeof(IEvent).Assembly,
 			logger: Substitute.For<ILogger<EventTypeResolver>>()
 		),
 		integrationEventMapper: new AccountIntegrationEventMapper(),

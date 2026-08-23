@@ -28,7 +28,7 @@ public sealed class GetIncomeExpenseSummaryEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		DateOnly period,
 		ICurrentUserProvider currentUser,
 		ISender sender,

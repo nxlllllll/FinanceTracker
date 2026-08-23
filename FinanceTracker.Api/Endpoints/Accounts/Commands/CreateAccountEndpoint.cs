@@ -28,7 +28,7 @@ public sealed class CreateAccountEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		CreateAccountRequest request,
 		LinkGenerator linkGenerator,
 		ICurrentUserProvider currentUser,

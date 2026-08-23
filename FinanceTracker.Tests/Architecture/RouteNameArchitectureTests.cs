@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using FinanceTracker.Api;
 using FinanceTracker.Api.Configurations;
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Routing;
@@ -16,9 +17,9 @@ public sealed class RouteNameArchitectureTests
 {
 	private static IEnumerable<T> InstancesOf<T>()
 	{
-		return typeof(Api.Program).Assembly.GetTypes()
-			.Where(predicate: type => type is { IsAbstract: false, IsInterface: false } && type.IsAssignableTo(targetType: typeof(T)))
-			.Select(selector: type => (T)Activator.CreateInstance(type: type)!);
+		return typeof(Program).Assembly.GetTypes()
+							.Where(predicate: type => type is { IsAbstract: false, IsInterface: false } && type.IsAssignableTo(targetType: typeof(T)))
+							.Select(selector: type => (T)Activator.CreateInstance(type: type)!);
 	}
 
 	private static IEndpointRouteBuilder MapEverything()

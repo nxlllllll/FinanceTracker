@@ -1,9 +1,11 @@
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+
 namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
 
 public interface IUnresolvableEventWriteRepository
 {
 	Task CreateAsync(
-		Domains.Abstractions.UnresolvableEvent.UnresolvableEventType type,
+		UnresolvableEventType type,
 		Guid referenceId,
 		string reason,
 		string payload,

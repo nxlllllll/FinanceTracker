@@ -3,13 +3,14 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransaction
 using FinanceTracker.Application.UseCases.Transaction.Notifications;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transaction;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
 
@@ -184,7 +185,7 @@ public sealed class ChangeTransactionCategoryHandlerTests
 		FinanceTracker.Core.Domains.Transaction.Transaction transaction = TransactionFactory.Create(direction: DirectionType.Debit, isExcluded: false);
 		SetupNewCategory(type: CategoryType.Income);
 
-		FinanceTracker.Core.Results.Result<Guid, FinanceTracker.Core.Exceptions.AppException> result = await _handler.HandleAsync(
+		Result<Guid, AppException> result = await _handler.HandleAsync(
 			command: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
 			transaction: transaction,
 			ct: CancellationToken.None

@@ -1,7 +1,6 @@
 using System.Net;
 using FinanceTracker.Application.UseCases.User.Commands.LoginUser;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.User;
@@ -32,6 +31,7 @@ public sealed class LoginUserHandlerTests
 		email: TestEmail,
 		passwordHash: PasswordHash,
 		baseCurrencyCode: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
+		timeZone: TimeZoneId.Utc,
 		rowVersion: 0,
 		createdAt: FakeDateProvider.Default.UtcNow
 	);

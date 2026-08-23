@@ -98,7 +98,7 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 	/// <c>users</c>, so a random unpersisted <c>UserId</c> from a bare in-memory aggregate
 	/// would violate that constraint the moment the projection step runs.
 	/// </summary>
-	private async Task<FinanceTracker.Core.Domains.Account.Account> CreateTestAccountAsync(decimal balance, string currency)
+	private async Task<Core.Domains.Account.Account> CreateTestAccountAsync(decimal balance, string currency)
 	{
 		Guid userId = await _userBuilder.CreateAsync(currencyCode: currency);
 		return AccountFactory.Create(userId: userId, balance: balance, currency: currency).Value!;
@@ -122,7 +122,7 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 	/// the database but never touches the tracker, so the rebuilder's subsequent
 	/// <c>AddAsync</c> for the same key collides with that stale tracked instance.
 	/// </remarks>
-	private async Task SaveAndProjectAsync(FinanceTracker.Core.Domains.Account.Account account)
+	private async Task SaveAndProjectAsync(Core.Domains.Account.Account account)
 	{
 		List<IEvent> events = account.Events.ToList();
 
@@ -146,10 +146,10 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 	[Test]
 	public async Task RebuildAsync_AfterNonTrivialExchangeRateOperations_ShouldMatchIncrementallyProjectedBalance()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = await CreateTestAccountAsync(balance: 0m, currency: "USD");
+		Core.Domains.Account.Account account = await CreateTestAccountAsync(balance: 0m, currency: "USD");
 		await SaveAndProjectAsync(account: account);
 
-		FinanceTracker.Core.Domains.Account.Account? loaded = await _accountRepository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
+		Core.Domains.Account.Account? loaded = await _accountRepository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
 		loaded!.Credit(
 			occurredAt: FakeDateProvider.Default.UtcNow,
@@ -190,17 +190,17 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 		decimal balanceAfterRebuild = await GetProjectedBalanceAsync(accountId: account.Id);
 		await Assert.That(value: balanceAfterRebuild).IsEqualTo(expected: balanceBeforeRebuild);
 
-		FinanceTracker.Core.Domains.Account.Account? reloaded = await _accountRepository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
+		Core.Domains.Account.Account? reloaded = await _accountRepository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 		await Assert.That(value: reloaded!.Balance.Amount).IsEqualTo(expected: balanceAfterRebuild);
 	}
 
 	[Test]
 	public async Task RebuildAsync_AfterManySmallConversions_ShouldNotAccumulateDrift()
 	{
-		FinanceTracker.Core.Domains.Account.Account account = await CreateTestAccountAsync(balance: 0m, currency: "EUR");
+		Core.Domains.Account.Account account = await CreateTestAccountAsync(balance: 0m, currency: "EUR");
 		await SaveAndProjectAsync(account: account);
 
-		FinanceTracker.Core.Domains.Account.Account? loaded = await _accountRepository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
+		Core.Domains.Account.Account? loaded = await _accountRepository.GetByIdAsync(accountId: account.Id, ct: CancellationToken.None);
 
 		for (int i = 0; i < 50; i++)
 		{

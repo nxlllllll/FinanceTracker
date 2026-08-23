@@ -3,7 +3,6 @@ using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;

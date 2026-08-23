@@ -1,13 +1,18 @@
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Operation;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Core.Repositories.User;
 
 public interface IUserQueryRepository : IReadRepository<UserReadModel>
 {
 	Task<UserReadModel?> GetByIdAsync(
+		Guid userId,
+		CancellationToken ct = default
+	);
+
+	Task<TimeZoneId?> GetTimeZoneAsync(
 		Guid userId,
 		CancellationToken ct = default
 	);

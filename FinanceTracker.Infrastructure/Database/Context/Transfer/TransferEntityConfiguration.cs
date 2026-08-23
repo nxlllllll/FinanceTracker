@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.Abstractions.Rate;
-using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.User;
 using FinanceTracker.Infrastructure.Database.Converters;
@@ -17,70 +16,21 @@ public sealed class TransferEntityConfiguration : IEntityTypeConfiguration<Trans
 
 		builder.HasKey(keyExpression: t => t.Id);
 
-		builder.Property(propertyExpression: a => a.Id)
-			.HasColumnName(name: "id");
+		builder.Property(propertyExpression: t => t.AmountFrom).HasColumnType(typeName: "numeric(18,2)");
 
-		builder.Property(propertyExpression: t => t.UserId)
-			.HasColumnName(name: "user_id");
+		builder.Property(propertyExpression: t => t.AmountTo).HasColumnType(typeName: "numeric(18,2)");
 
-		builder.Property(propertyExpression: t => t.FromAccountId)
-			.HasColumnName(name: "from_account_id");
-
-		builder.Property(propertyExpression: t => t.ToAccountId)
-			.HasColumnName(name: "to_account_id");
-
-		builder.Property(propertyExpression: t => t.AmountFrom)
-			.HasColumnName(name: "amount_from")
-			.HasColumnType(typeName: "numeric(18,2)");
-
-		builder.Property(propertyExpression: t => t.CurrencyFrom)
-			.HasColumnName(name: "currency_from")
-			.HasMaxLength(maxLength: 3)
-			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
-			);
-
-		builder.Property(propertyExpression: t => t.AmountTo)
-			.HasColumnName(name: "amount_to")
-			.HasColumnType(typeName: "numeric(18,2)");
-
-		builder.Property(propertyExpression: t => t.CurrencyTo)
-			.HasColumnName(name: "currency_to")
-			.HasMaxLength(maxLength: 3)
-			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
-			);
-
-		builder.Property(propertyExpression: t => t.ExchangeRate)
-			.HasColumnName(name: "exchange_rate")
-			.HasColumnType(typeName: "numeric(18,6)");
+		builder.Property(propertyExpression: t => t.ExchangeRate).HasColumnType(typeName: "numeric(18,6)");
 
 		builder.Property(propertyExpression: t => t.RateStatus)
-			.HasColumnName(name: "rate_status")
 			.HasMaxLength(maxLength: 16)
 			.HasConversion<SnakeCaseEnumConverter<RateStatus>>();
 
-		builder.Property(propertyExpression: t => t.RateStatusChangedAt)
-			.HasColumnName(name: "rate_status_changed_at");
+		builder.Property(propertyExpression: t => t.Description).HasMaxLength(maxLength: 255);
 
-		builder.Property(propertyExpression: t => t.Description)
-			.HasColumnName(name: "description")
-			.HasMaxLength(maxLength: 255);
-
-		builder.Property(propertyExpression: t => t.OccurredAt)
-			.HasColumnName(name: "occurred_at");
-
-		builder.Property(propertyExpression: t => t.CreatedAt)
-			.HasColumnName(name: "created_at");
-
-		builder.Property(propertyExpression: t => t.RowVersion)
-			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
+		builder.Property(propertyExpression: t => t.RowVersion).HasDefaultValue(value: 0);
 
 		builder.Property(propertyExpression: t => t.Status)
-			.HasColumnName(name: "status")
 			.HasMaxLength(maxLength: 20)
 			.HasConversion(
 				convertToProviderExpression: status => status.ToCode(),

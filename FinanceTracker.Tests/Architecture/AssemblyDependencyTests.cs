@@ -1,4 +1,5 @@
 using System.Reflection;
+using FinanceTracker.Application.Configurations;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using NetArchTest.Rules;
@@ -9,7 +10,7 @@ namespace FinanceTracker.Tests.Architecture;
 public sealed class AssemblyDependencyTests
 {
 	private static readonly Assembly CoreAssembly = typeof(IEvent).Assembly;
-	private static readonly Assembly ApplicationAssembly = typeof(Application.Configurations.DependencyInjection).Assembly;
+	private static readonly Assembly ApplicationAssembly = typeof(DependencyInjection).Assembly;
 	private static readonly Assembly InfrastructureAssembly = typeof(EFUnitOfWork).Assembly;
 
 	private static readonly string[] SystemAssemblyPrefixes =

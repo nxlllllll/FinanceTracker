@@ -31,7 +31,7 @@ public sealed class ChangeEmailEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ChangeEmailRequest request,
 		ICurrentUserProvider currentUser,
 		ISender sender,

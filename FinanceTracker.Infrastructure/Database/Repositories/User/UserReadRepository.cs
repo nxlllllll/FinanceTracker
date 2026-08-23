@@ -1,15 +1,14 @@
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
-using FinanceTracker.Core.Exceptions.ConfigurationExceptions;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Operation;
 using FinanceTracker.Core.ReadModels.Transaction;
 using FinanceTracker.Core.ReadModels.Transfer;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Extensions;
@@ -21,6 +20,13 @@ public sealed class UserReadRepository(
 	FinanceTrackerContext context
 ) : IUserAuthRepository, IUserQueryRepository
 {
+	private sealed record AccountBalanceProjection(
+		Core.ValueObjects.Currency Currency,
+		decimal Balance,
+		decimal? ExactRate,
+		decimal? LatestRate
+	);
+
 	async Task<Core.Domains.User.User?> IUserAuthRepository.GetByIdAsync(
 		Guid userId,
 		CancellationToken ct)
@@ -31,6 +37,7 @@ public sealed class UserReadRepository(
 				email: u.Email,
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
+				timeZone: u.TimeZoneId,
 				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
@@ -46,6 +53,7 @@ public sealed class UserReadRepository(
 				email: u.Email,
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
+				timeZone: u.TimeZoneId,
 				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
@@ -60,16 +68,20 @@ public sealed class UserReadRepository(
 				Id: u.Id,
 				Email: u.Email,
 				BaseCurrency: u.BaseCurrencyCode,
+				TimeZone: u.TimeZoneId,
 				CreatedAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}
 
-	private sealed record AccountBalanceProjection(
-		Core.ValueObjects.Currency Currency,
-		decimal Balance,
-		decimal? ExactRate,
-		decimal? LatestRate
-	);
+	public async Task<TimeZoneId?> GetTimeZoneAsync(
+		Guid userId,
+		CancellationToken ct = default)
+	{
+		return await context.Users.AsNoTracking()
+			.Where(predicate: u => u.Id == userId)
+			.Select(selector: u => (TimeZoneId?)u.TimeZoneId)
+			.FirstOrDefaultAsync(cancellationToken: ct);
+	}
 
 	public async Task<decimal> GetTotalBalanceAsync(
 		Guid userId,

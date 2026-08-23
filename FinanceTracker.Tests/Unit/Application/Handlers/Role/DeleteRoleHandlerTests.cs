@@ -1,6 +1,5 @@
 using FinanceTracker.Application.UseCases.Role.Commands.DeleteRole;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Role;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Role;

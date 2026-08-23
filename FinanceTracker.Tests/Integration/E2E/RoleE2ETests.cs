@@ -5,7 +5,6 @@ using FinanceTracker.Application.UseCases.Role.Commands.UpdateRolePermissions;
 using FinanceTracker.Application.UseCases.Role.Queries.GetRoles;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Role;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.Results;

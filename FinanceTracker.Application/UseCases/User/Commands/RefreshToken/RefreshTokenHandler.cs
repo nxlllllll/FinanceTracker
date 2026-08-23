@@ -1,7 +1,6 @@
 using FinanceTracker.Application.UseCases.User.Notifications;
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Auth;
 using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Persistence;

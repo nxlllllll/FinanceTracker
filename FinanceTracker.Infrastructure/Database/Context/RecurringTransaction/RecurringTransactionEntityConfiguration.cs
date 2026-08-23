@@ -1,5 +1,4 @@
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Infrastructure.Database.Context.Category;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.User;
@@ -17,29 +16,9 @@ public sealed class RecurringTransactionEntityConfiguration
 
 		builder.HasKey(keyExpression: r => r.Id);
 
-		builder.Property(propertyExpression: a => a.Id)
-			.HasColumnName(name: "id");
+		builder.Property(propertyExpression: r => r.Amount).HasColumnType(typeName: "numeric(18,2)");
 
-		builder.Property(propertyExpression: r => r.UserId)
-			.HasColumnName(name: "user_id");
-
-		builder.Property(propertyExpression: r => r.AccountId)
-			.HasColumnName(name: "account_id");
-
-		builder.Property(propertyExpression: r => r.CategoryId)
-			.HasColumnName(name: "category_id");
-
-		builder.Property(propertyExpression: r => r.Amount)
-			.HasColumnName(name: "amount")
-			.HasColumnType(typeName: "numeric(18,2)");
-
-		builder.Property(propertyExpression: r => r.Currency)
-			.HasColumnName(name: "currency_code")
-			.HasMaxLength(maxLength: 3)
-			.HasConversion(
-				convertToProviderExpression: currency => currency.Value,
-				convertFromProviderExpression: currency => Core.ValueObjects.Currency.Reconstitute(value: currency)
-			);
+		builder.Property(propertyExpression: r => r.Currency).HasColumnName(name: "currency_code");
 
 		builder.Property(propertyExpression: r => r.Direction)
 			.HasColumnName(name: "direction_type")
@@ -49,28 +28,9 @@ public sealed class RecurringTransactionEntityConfiguration
 			)
 			.HasMaxLength(maxLength: 10);
 
-		builder.Property(propertyExpression: r => r.DayOfMonth)
-			.HasColumnName(name: "day_of_month");
+		builder.Property(propertyExpression: r => r.Description).HasMaxLength(maxLength: 255);
 
-		builder.Property(propertyExpression: r => r.Description)
-			.HasColumnName(name: "description")
-			.HasMaxLength(maxLength: 255);
-
-		builder.Property(propertyExpression: r => r.IsActive)
-			.HasColumnName(name: "is_active");
-
-		builder.Property(propertyExpression: r => r.LastExecutedAt)
-			.HasColumnName(name: "last_executed_at");
-
-		builder.Property(propertyExpression: r => r.LastMissedAt)
-			.HasColumnName(name: "last_missed_at");
-
-		builder.Property(propertyExpression: r => r.RowVersion)
-			.HasColumnName(name: "row_version")
-			.HasDefaultValue(value: 0);
-
-		builder.Property(propertyExpression: r => r.CreatedAt)
-			.HasColumnName(name: "created_at");
+		builder.Property(propertyExpression: r => r.RowVersion).HasDefaultValue(value: 0);
 
 		builder.HasOne<UserEntity>().WithMany()
 			.HasForeignKey(foreignKeyExpression: r => r.UserId)

@@ -1,3 +1,4 @@
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using Microsoft.EntityFrameworkCore;
@@ -6,23 +7,23 @@ namespace FinanceTracker.Tests.Integration._Shared.Builders;
 
 public class CurrencyBuilder(FinanceTrackerContext context)
 {
-	public async Task<Core.ValueObjects.Currency> CreateAsync(string code = "RUB", bool isActive = true)
+	public async Task<Currency> CreateAsync(string code = "RUB", bool isActive = true)
 	{
-		bool exists = await context.Currencies.AnyAsync(c => c.Code == Core.ValueObjects.Currency.Reconstitute(value: code));
+		bool exists = await context.Currencies.AnyAsync(c => c.Code == Currency.Reconstitute(value: code));
 		if (exists)
 		{
-			CurrencyEntity? existing = await context.Currencies.FirstOrDefaultAsync(predicate: c => c.Code == Core.ValueObjects.Currency.Reconstitute(value: code));
+			CurrencyEntity? existing = await context.Currencies.FirstOrDefaultAsync(predicate: c => c.Code == Currency.Reconstitute(value: code));
 			if (existing is not null && existing.IsActive != isActive)
 			{
 				existing.IsActive = isActive;
 				await context.SaveChangesAsync();
 			}
-			return Core.ValueObjects.Currency.Reconstitute(value: code);
+			return Currency.Reconstitute(value: code);
 		}
 
 		await context.Currencies.AddAsync(new CurrencyEntity()
 		{
-			Code = Core.ValueObjects.Currency.Create(value: code).Value,
+			Code = Currency.Create(value: code).Value,
 			Name = code switch
 			{
 				"RUB" => "Российский рубль",
@@ -40,6 +41,6 @@ public class CurrencyBuilder(FinanceTrackerContext context)
 			IsActive = isActive
 		});
 		await context.SaveChangesAsync();
-		return Core.ValueObjects.Currency.Reconstitute(value: code);
+		return Currency.Reconstitute(value: code);
 	}
 }

@@ -9,6 +9,7 @@ using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
+using FinanceTracker.Migrator;
 using FinanceTracker.Worker.AccountProjection.Consumer;
 using FinanceTracker.Worker.AccountProjection.Projection;
 using FinanceTracker.Worker.Shared.Projection;
@@ -55,7 +56,7 @@ public abstract class MediatorFixture
 				Database = TemplateDatabaseName
 			}.ConnectionString;
 
-			Migrator.DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
+			DatabaseMigrator.Upgrade(connectionString: templateConnectionString, logToConsole: false);
 			NpgsqlConnection.ClearPool(connection: new NpgsqlConnection(connectionString: templateConnectionString));
 		});
 

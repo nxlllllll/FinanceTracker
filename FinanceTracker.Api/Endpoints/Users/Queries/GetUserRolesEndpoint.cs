@@ -21,7 +21,7 @@ public sealed class GetUserRolesEndpoint : IEndpoint
 			.Produces<List<RoleResponse>>(statusCode: StatusCodes.Status200OK);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid userId,
 		ISender sender,
 		CancellationToken ct)

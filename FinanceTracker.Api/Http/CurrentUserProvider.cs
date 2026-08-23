@@ -1,5 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace FinanceTracker.Api.Http;
 

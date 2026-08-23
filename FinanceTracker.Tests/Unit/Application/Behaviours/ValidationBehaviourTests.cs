@@ -1,3 +1,4 @@
+using System.Collections;
 using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Core.Results;
 using FluentValidation;
@@ -206,7 +207,7 @@ public sealed class ValidationBehaviourTests
 			return items.GetEnumerator();
 		}
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 
 	[Test]

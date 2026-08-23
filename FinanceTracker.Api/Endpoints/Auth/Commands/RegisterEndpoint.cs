@@ -1,5 +1,5 @@
-using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Api.Endpoints.Auth.Contracts;
+using FinanceTracker.Api.Endpoints.Shared;
 using FinanceTracker.Api.Http;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
@@ -27,7 +27,7 @@ public sealed class RegisterEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		RegisterUserRequest request,
 		ISender sender,
 		HttpContext httpContext,
@@ -45,11 +45,22 @@ public sealed class RegisterEndpoint : IEndpoint
 		if (currency.IsFailure)
 			return currency.Error!.ToValidationProblem(fieldName: nameof(request.BaseCurrency));
 
+		TimeZoneId? timeZone = null;
+		if (request.TimeZone is not null)
+		{
+			Result<TimeZoneId, DomainException> parsed = TimeZoneId.Create(value: request.TimeZone);
+			if (parsed.IsFailure)
+				return parsed.Error!.ToValidationProblem(fieldName: nameof(request.TimeZone));
+
+			timeZone = parsed.Value;
+		}
+
 		RegisterUserCommand command = new RegisterUserCommand(
 			Email: email.Value!,
 			Password: request.Password,
 			BaseCurrencyCode: currency.Value!,
-			IpAddress: httpContext.GetClientIpAddress()
+			IpAddress: httpContext.GetClientIpAddress(),
+			TimeZone: timeZone
 		)
 		{ IdempotencyKey = idempotencyKey.Value };
 

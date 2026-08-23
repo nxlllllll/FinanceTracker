@@ -18,7 +18,7 @@ public sealed class ChangePasswordEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
 		group.MapPatch(pattern: "/me/password", handler: HandleAsync)
-			.RequirePermission(resource: Resource.User, action: PermissionAction.Read)
+			.RequirePermission(resource: Resource.User, action: PermissionAction.Write)
 			.WithSummary(summary: "Change the current user's password")
 			.WithDescription(description:
 				"Requires the current one — the usual defence against someone who walked up to an unlocked screen. " +
@@ -30,7 +30,7 @@ public sealed class ChangePasswordEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ChangePasswordRequest request,
 		ICurrentUserProvider currentUser,
 		ISender sender,

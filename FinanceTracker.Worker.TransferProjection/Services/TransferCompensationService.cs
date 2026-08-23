@@ -1,8 +1,8 @@
 using System.Text.Json;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -47,7 +47,7 @@ public sealed class TransferCompensationService(
 			return;
 		}
 
-		Core.Domains.Account.Account? fromAccount = await accountRepository.GetByIdAsync(
+		Account? fromAccount = await accountRepository.GetByIdAsync(
 			accountId: pendingTransfer.FromAccountId,
 			ct: ct
 		);

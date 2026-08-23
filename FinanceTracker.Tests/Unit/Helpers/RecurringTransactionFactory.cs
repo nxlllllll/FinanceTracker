@@ -1,7 +1,6 @@
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.RecurringTransaction;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.RecurringTransaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -19,7 +18,8 @@ public static class RecurringTransactionFactory
 		DirectionType direction = DirectionType.Debit,
 		int dayOfMonth = 15,
 		string? description = "Monthly rent",
-		bool isActive = true)
+		bool isActive = true,
+		TimeZoneId? timeZone = null)
 	{
 		Result<RecurringTransaction, DomainException> result = RecurringTransaction.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
@@ -29,7 +29,8 @@ public static class RecurringTransactionFactory
 			amount: Money.Create(amount: amount, currency: Currency.Create(value: currency).Value).Value,
 			direction: direction,
 			dayOfMonth: dayOfMonth,
-			description: description
+			description: description,
+			timeZone: timeZone ?? TimeZoneId.Utc
 		);
 		if (result.IsFailure)
 			return Result<RecurringTransaction, DomainException>.Failure(error: result.Error!);
@@ -51,6 +52,8 @@ public static class RecurringTransactionFactory
 		string currency = "RUB",
 		DirectionType direction = DirectionType.Debit,
 		int dayOfMonth = 15,
+		DateTimeOffset? nextDueAtUtc = null,
+		TimeZoneId? timeZone = null,
 		string? description = "Monthly rent",
 		bool isActive = true,
 		int rowVersion = 0,
@@ -67,6 +70,8 @@ public static class RecurringTransactionFactory
 			Amount: Money.Reconstitute(amount: amount, currency: curr),
 			Direction: direction,
 			DayOfMonth: dayOfMonth,
+			NextDueAtUtc: nextDueAtUtc ?? FakeDateProvider.Default.UtcNow.AddHours(hours: -1),
+			TimeZone: timeZone ?? TimeZoneId.Utc,
 			Description: description,
 			IsActive: isActive,
 			RowVersion: rowVersion,

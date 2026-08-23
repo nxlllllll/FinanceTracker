@@ -19,7 +19,7 @@ public sealed class ChangeBaseCurrencyEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder group)
 	{
 		group.MapPatch(pattern: "/me/base-currency", handler: HandleAsync)
-			.RequirePermission(resource: Resource.User, action: PermissionAction.Read)
+			.RequirePermission(resource: Resource.User, action: PermissionAction.Write)
 			.WithSummary(summary: "Change the currency everything is summed in")
 			.WithDescription(description:
 				"Individual accounts keep their own currencies; this only changes what they are compared in. Every " +
@@ -31,7 +31,7 @@ public sealed class ChangeBaseCurrencyEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status422UnprocessableEntity);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ChangeBaseCurrencyRequest request,
 		ICurrentUserProvider currentUser,
 		ISender sender,

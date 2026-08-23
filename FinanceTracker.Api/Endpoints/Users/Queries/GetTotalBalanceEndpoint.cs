@@ -21,13 +21,15 @@ public sealed class GetTotalBalanceEndpoint : IEndpoint
 			.WithSummary(summary: "Get the total across all accounts")
 			.WithDescription(description:
 				"Converted into the user's base currency at the rates in force, so accounts in different currencies " +
-				"add up to one figure. Archived accounts are included — the money in them is still theirs."
+				"add up to one figure. Archived accounts are left out — archiving requires a zero balance, so they " +
+				"contribute nothing, and including one denominated in a currency that no longer has a published rate " +
+				"would fail the whole sum for the sake of adding zero."
 			).Produces<Money>(statusCode: StatusCodes.Status200OK)
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound)
 			.ProducesProblem(statusCode: StatusCodes.Status503ServiceUnavailable);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		ICurrentUserProvider currentUser,
 		ISender sender,
 		CancellationToken ct)

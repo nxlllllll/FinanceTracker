@@ -3,9 +3,10 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.Rate;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Transaction;
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Currency;
@@ -120,7 +121,7 @@ public sealed class BalanceAdjustmentJob(
 		if (newRate is null && !HasOutlivedGrace(rateStatusChangedAt: item.RateStatusChangedAt, options: options))
 			return new Outcome(Result: AdjustResult.Waiting);
 
-		Core.Domains.Transaction.Transaction? transaction = await transactionRepository.GetByIdAsync(
+		Transaction? transaction = await transactionRepository.GetByIdAsync(
 			transactionId: item.TransactionId,
 			userId: item.UserId,
 			ct: ct
@@ -267,7 +268,7 @@ public sealed class BalanceAdjustmentJob(
 		if (newRate is null && !HasOutlivedGrace(rateStatusChangedAt: item.RateStatusChangedAt, options: options))
 			return new Outcome(Result: AdjustResult.Waiting);
 
-		Core.Domains.Transfer.Transfer? transfer = await transferRepository.GetByIdAsync(transferId: item.TransferId, ct: ct);
+		Transfer? transfer = await transferRepository.GetByIdAsync(transferId: item.TransferId, ct: ct);
 
 		if (transfer is null)
 			return new Outcome(Result: AdjustResult.Waiting, Reason: "Transfer disappeared between queue and settlement.");

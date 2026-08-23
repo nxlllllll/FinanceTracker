@@ -16,11 +16,9 @@ public sealed class CachedUserPermissionReadRepository(
 		AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(minutes: 3)
 	};
 
-	public static string KeyFor(Guid userId) => $"permissions:{userId}";
-
 	public async Task<IReadOnlySet<string>> GetPermissionsAsync(Guid userId, CancellationToken ct = default)
 	{
-		string key = KeyFor(userId: userId);
+		string key = PermissionCacheKeys.Permissions(userId: userId);
 
 		CacheEntry<HashSet<string>> entry = await redisCache.TryGetAsync<HashSet<string>>(key: key);
 		if (entry.Found)

@@ -1,8 +1,8 @@
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
+using FinanceTracker.Infrastructure.Database.Context.UnresolvableEvent;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
@@ -46,8 +46,8 @@ public sealed class UnresolvableEventReadRepository(FinanceTrackerContext contex
 		int sampleSize,
 		CancellationToken ct = default)
 	{
-		IQueryable<Context.UnresolvableEvent.UnresolvableEventEntity> unresolved = context.UnresolvableEvents.AsNoTracking()
-			.Where(predicate: e => e.ResolvedAt == null && e.OccurredAt < cutoff);
+		IQueryable<UnresolvableEventEntity> unresolved = context.UnresolvableEvents.AsNoTracking()
+															.Where(predicate: e => e.ResolvedAt == null && e.OccurredAt < cutoff);
 
 		int totalCount = await unresolved.CountAsync(cancellationToken: ct);
 

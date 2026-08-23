@@ -1,3 +1,5 @@
+using FinanceTracker.Core.ValueObjects;
+
 namespace FinanceTracker.Core.Repositories.RecurringTransaction;
 
 public interface IRecurringTransactionWriteRepository
@@ -24,6 +26,7 @@ public interface IRecurringTransactionWriteRepository
 	Task ChangeDayOfMonthAsync(
 		Guid recurringTransactionId,
 		int dayOfMonth,
+		DateTimeOffset nextDueAtUtc,
 		int expectedVersion,
 		CancellationToken ct = default
 	);
@@ -48,6 +51,7 @@ public interface IRecurringTransactionWriteRepository
 	Task MarkExecutedAsync(
 		Guid recurringTransactionId,
 		DateTimeOffset executedAt,
+		DateTimeOffset nextDueAtUtc,
 		int expectedVersion,
 		CancellationToken ct = default
 	);
@@ -56,6 +60,12 @@ public interface IRecurringTransactionWriteRepository
 		Guid recurringTransactionId,
 		DateTimeOffset missedAt,
 		int expectedVersion,
+		CancellationToken ct = default
+	);
+
+	Task RescheduleAllForUserAsync(
+		Guid userId,
+		TimeZoneId timeZone,
 		CancellationToken ct = default
 	);
 }

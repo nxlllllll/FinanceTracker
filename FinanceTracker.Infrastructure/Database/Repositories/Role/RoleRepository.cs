@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using FinanceTracker.Core.Repositories.Role;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -114,7 +115,7 @@ public sealed class RoleRepository(FinanceTrackerContext context) : IRoleReposit
 	}
 
 	private async Task<RoleDto?> LoadAsync(
-		System.Linq.Expressions.Expression<Func<RoleEntity, bool>> predicate,
+		Expression<Func<RoleEntity, bool>> predicate,
 		CancellationToken ct)
 	{
 		RoleEntity? role = await context.Roles.AsNoTracking().FirstOrDefaultAsync(predicate: predicate, cancellationToken: ct);

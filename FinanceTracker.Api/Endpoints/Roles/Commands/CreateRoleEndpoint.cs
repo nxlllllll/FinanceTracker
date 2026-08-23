@@ -28,7 +28,7 @@ public sealed class CreateRoleEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status409Conflict);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		CreateRoleRequest request,
 		LinkGenerator linkGenerator,
 		ISender sender,

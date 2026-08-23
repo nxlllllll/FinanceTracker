@@ -1,6 +1,5 @@
 using FinanceTracker.Api.Endpoints.Accounts.Contracts;
 using FinanceTracker.Api.Http;
-using FinanceTracker.Api.Http.Filters;
 using FinanceTracker.Api.Http.Results;
 using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;
@@ -31,7 +30,7 @@ public sealed class RenameAccountEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status412PreconditionFailed);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid accountId,
 		RenameAccountRequest request,
 		HttpContext httpContext,

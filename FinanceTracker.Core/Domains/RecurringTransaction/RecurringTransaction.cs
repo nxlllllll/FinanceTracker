@@ -24,6 +24,7 @@ public sealed class RecurringTransaction : IHasId
 	public bool IsActive { get; private set; }
 	public DateTimeOffset? LastExecutedAt { get; private set; }
 	public DateTimeOffset? LastMissedAt { get; private set; }
+	public DateTimeOffset NextDueAtUtc { get; private set; }
 	public int RowVersion { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 
@@ -37,7 +38,8 @@ public sealed class RecurringTransaction : IHasId
 		Money amount,
 		DirectionType direction,
 		int dayOfMonth,
-		string? description)
+		string? description,
+		TimeZoneId timeZone)
 	{
 		if (dayOfMonth is < 1 or > 31)
 			return Result<RecurringTransaction, DomainException>.Failure(error: new InvalidDayOfMonthException(message: "Day of month must be between 1 and 31."));
@@ -51,6 +53,11 @@ public sealed class RecurringTransaction : IHasId
 			Amount = amount,
 			Direction = direction,
 			DayOfMonth = dayOfMonth,
+			NextDueAtUtc = RecurringDueDate.Next(
+				dayOfMonth: dayOfMonth,
+				timeZone: timeZone,
+				after: createdAt
+			),
 			Description = description,
 			IsActive = true,
 			LastExecutedAt = null,
@@ -151,7 +158,7 @@ public sealed class RecurringTransaction : IHasId
 		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<bool, DomainException> ChangeDayOfMonth(int dayOfMonth)
+	public Result<bool, DomainException> ChangeDayOfMonth(int dayOfMonth, TimeZoneId timeZone, DateTimeOffset now)
 	{
 		if (!IsActive)
 		{
@@ -167,15 +174,19 @@ public sealed class RecurringTransaction : IHasId
 			return Result<bool, DomainException>.Success(value: false);
 
 		DayOfMonth = dayOfMonth;
+		NextDueAtUtc = RecurringDueDate.Next(dayOfMonth: dayOfMonth, timeZone: timeZone, after: now);
+
 		return Result<bool, DomainException>.Success(value: true);
 	}
 
-	public Result<Unit, DomainException> MarkExecuted(DateTimeOffset executedAt)
+	public Result<Unit, DomainException> MarkExecuted(DateTimeOffset executedAt, TimeZoneId timeZone)
 	{
 		if (!IsActive)
 			return Result<Unit, DomainException>.Failure(error: new InactiveRecurringTransactionException(message: "Cannot execute an inactive recurring transaction."));
 
 		LastExecutedAt = executedAt;
+		NextDueAtUtc = RecurringDueDate.Next(dayOfMonth: DayOfMonth, timeZone: timeZone, after: NextDueAtUtc);
+
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 

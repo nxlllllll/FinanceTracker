@@ -5,6 +5,7 @@ namespace FinanceTracker.Tests.Unit.Helpers;
 public sealed class CapturingLogger<T> : ILogger<T>
 {
 	public int LogCount { get; private set; }
+	public bool InformationLogged { get; private set; }
 	public bool WarningLogged { get; private set; }
 	public bool ErrorLogged { get; private set; }
 	public bool CriticalLogged { get; private set; }
@@ -19,6 +20,9 @@ public sealed class CapturingLogger<T> : ILogger<T>
 		Exception? exception,
 		Func<TState, Exception?, string> formatter)
 	{
+		if (logLevel == LogLevel.Information)
+			InformationLogged = true;
+
 		if (logLevel == LogLevel.Warning)
 			WarningLogged = true;
 

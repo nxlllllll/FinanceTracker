@@ -15,6 +15,8 @@ public sealed record RecurringTransactionResponse(
 	Money Amount,
 	DirectionType Direction,
 	int DayOfMonth,
+	DateTimeOffset NextDueAtUtc,
+	DateOnly NextDueLocalDate,
 	string? Description,
 	bool IsActive,
 	DateTimeOffset? LastExecutedAt,
@@ -29,6 +31,11 @@ public sealed record RecurringTransactionResponse(
 		Amount: readModel.Amount,
 		Direction: readModel.Direction,
 		DayOfMonth: readModel.DayOfMonth,
+		NextDueAtUtc: readModel.NextDueAtUtc,
+		NextDueLocalDate: DateOnly.FromDateTime(dateTime: TimeZoneInfo.ConvertTime(
+			dateTimeOffset: readModel.NextDueAtUtc,
+			destinationTimeZone: readModel.TimeZone.ToTimeZoneInfo()
+		).Date),
 		Description: readModel.Description,
 		IsActive: readModel.IsActive,
 		LastExecutedAt: readModel.LastExecutedAt,

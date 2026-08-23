@@ -1,6 +1,5 @@
 using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Permission;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Auth;

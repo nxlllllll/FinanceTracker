@@ -1,6 +1,5 @@
 using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
-using FinanceTracker.Core.ReadModels;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -32,13 +31,17 @@ public static class UserFactory
 		return result;
 	}
 
-	public static UserReadModel CreateReadModel()
-	{
-		return new UserReadModel(
-			Id: Guid.CreateVersion7(),
-			Email: Email.Create(value: "test@test.com").Value,
-			BaseCurrency: Currency.Create(value: "RUB").Value,
-			CreatedAt: FakeDateProvider.Default.UtcNow
-		);
-	}
+	public static UserReadModel CreateReadModel(
+		Guid? id = null,
+		string email = "user@test.com",
+		string baseCurrency = "RUB",
+		TimeZoneId? timeZone = null,
+		DateTimeOffset? createdAt = null
+	) => new UserReadModel(
+		Id: id ?? Guid.CreateVersion7(),
+		Email: Email.Reconstitute(value: email),
+		BaseCurrency: Currency.Reconstitute(value: baseCurrency),
+		TimeZone: timeZone ?? TimeZoneId.Utc,
+		CreatedAt: createdAt ?? FakeDateProvider.Default.UtcNow
+	);
 }

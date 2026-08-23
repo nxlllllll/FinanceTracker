@@ -5,7 +5,6 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction
 using FinanceTracker.Application.UseCases.Transaction.Commands.ExcludeTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransaction;
 using FinanceTracker.Core.Exceptions;
-using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transaction;

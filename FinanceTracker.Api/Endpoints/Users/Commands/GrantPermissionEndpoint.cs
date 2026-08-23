@@ -27,7 +27,7 @@ public sealed class GrantPermissionEndpoint : IEndpoint
 			.ProducesProblem(statusCode: StatusCodes.Status403Forbidden);
 	}
 
-	private static async Task<IHttpResult> HandleAsync(
+	internal static async Task<IHttpResult> HandleAsync(
 		Guid userId,
 		GrantPermissionRequest request,
 		ICurrentUserProvider currentUser,
