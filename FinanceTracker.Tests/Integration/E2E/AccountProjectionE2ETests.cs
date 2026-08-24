@@ -1,10 +1,13 @@
 using FinanceTracker.Application.UseCases.Account.Commands.ArchiveAccount;
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Account.Commands.RenameAccount;
+using FinanceTracker.Application.UseCases.Account.Queries.GetAccount;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
+using FinanceTracker.Core.ReadModels.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
@@ -227,5 +230,91 @@ public sealed class AccountProjectionE2ETests : E2EFixture
 			.FirstAsync();
 
 		await Assert.That(value: isArchived).IsTrue();
+	}
+
+	[Test]
+	public async Task RenameAccount_WithVersionReadBackAfterTransaction_ShouldSucceed()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
+
+		await RunOutboxAsync();
+		await WaitForConditionAsync(condition: async () =>
+		{
+			await using FinanceTrackerContext ctx = CreateReadContext();
+			return await ctx.Accounts.AnyAsync(predicate: a => a.Id == accountId);
+		});
+
+		await Mediator.Send(request: new CreateTransactionCommand(
+			AccountId: accountId,
+			UserId: userId,
+			CategoryId: categoryId,
+			Amount: 3_000m,
+			Currency: Currency.Create(value: "RUB").Value,
+			Direction: DirectionType.Debit,
+			Description: null,
+			OccurredAt: DateTimeOffset.UtcNow
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
+
+		await RunOutboxAsync();
+
+		await WaitForConditionAsync(condition: async () =>
+		{
+			await using FinanceTrackerContext ctx = CreateReadContext();
+			decimal b = await ctx.AccountBalances.Where(predicate: x => x.AccountId == accountId)
+				.Select(selector: x => x.Balance)
+				.FirstOrDefaultAsync();
+			return b == 7_000m;
+		});
+
+		Result<AccountReadModel, AppException> read = await Mediator.Send(request: new GetAccountQuery(
+			AccountId: accountId,
+			UserId: userId
+		));
+
+		int versionServedToClient = read.Value!.Version;
+
+		Result<Guid, AppException> renamed = await Mediator.Send(request: new RenameAccountCommand(
+			UserId: userId,
+			AccountId: accountId,
+			NewName: Name.Create(value: "Переименованный после операции").Value
+		)
+		{ ExpectedVersion = versionServedToClient });
+
+		await Assert.That(value: renamed.IsSuccess).IsTrue().Because(message: $"""
+		A rename carrying the version the read model had just served was rejected with {renamed.Error?.GetType().Name}.
+		The ETag and the precondition are reading different counters again.
+		""");
+	}
+
+	[Test]
+	public async Task RenameAccount_WithStaleVersion_ShouldStillFailPrecondition()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
+
+		await RunOutboxAsync();
+		await WaitForConditionAsync(condition: async () =>
+		{
+			await using FinanceTrackerContext ctx = CreateReadContext();
+			return await ctx.Accounts.AnyAsync(predicate: a => a.Id == accountId);
+		});
+
+		Result<AccountReadModel, AppException> read = await Mediator.Send(request: new GetAccountQuery(
+			AccountId: accountId,
+			UserId: userId
+		));
+
+		Result<Guid, AppException> renamed = await Mediator.Send(request: new RenameAccountCommand(
+			UserId: userId,
+			AccountId: accountId,
+			NewName: Name.Create(value: "Переименование по устаревшей версии").Value
+		)
+		{ ExpectedVersion = read.Value!.Version - 1 });
+
+		await Assert.That(value: renamed.IsFailure).IsTrue();
+		await Assert.That(value: renamed.Error).IsTypeOf<PreconditionFailedException>();
 	}
 }

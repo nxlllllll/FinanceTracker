@@ -62,7 +62,6 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 		{
 			AccountId = accountId,
 			Balance = balance,
-			LastVersion = 1,
 			UpdatedAt = DateTimeOffset.UtcNow
 		});
 		await Context.SaveChangesAsync();

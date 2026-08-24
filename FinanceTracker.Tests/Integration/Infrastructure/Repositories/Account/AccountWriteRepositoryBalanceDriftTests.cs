@@ -16,7 +16,7 @@ namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Account;
 public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 {
 	private const int SequenceCount = 15;
-	private const int OperationsPerSequence = 15;
+	private const int OperationsPerSequence = 20;
 	private const int Seed = 20260711;
 
 	private enum OperationKind
@@ -26,7 +26,9 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 		AdjustBalance,
 		DebitTransfer,
 		CreditTransfer,
-		RefundTransfer
+		RefundTransfer,
+		Rename,
+		ArchiveAndUnarchive
 	}
 
 	private AccountWriteRepository _writeRepository = null!;
@@ -45,7 +47,7 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task ProjectedBalance_ShouldMatchAggregateBalance_AfterRandomOperationSequences()
+	public async Task ProjectedAccount_ShouldMatchAggregate_AfterRandomOperationSequences()
 	{
 		Random random = new Random(Seed: Seed);
 
@@ -83,16 +85,21 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 				await ApplyAndClearAsync(account: account);
 			}
 
-			var projected = await Context.AccountBalances
+			decimal projectedBalance = await Context.AccountBalances
 				.Where(predicate: b => b.AccountId == account.Id)
-				.Select(selector: b => new { b.Balance, b.LastVersion })
+				.Select(selector: b => b.Balance)
 				.FirstAsync();
 
-			await Assert.That(value: projected.Balance).IsEqualTo(expected: account.Balance.Amount)
+			await Assert.That(value: projectedBalance).IsEqualTo(expected: account.Balance.Amount)
 				.Because(message: $"Sequence #{sequenceIndex} (seed {Seed}) diverged. Applied operations: {String.Join(separator: " | ", values: appliedOperationsLog)}");
 
-			await Assert.That(value: projected.LastVersion).IsEqualTo(expected: account.Version)
-				.Because(message: $"Sequence #{sequenceIndex} (seed {Seed}): projected LastVersion did not track the aggregate's version.");
+			int projectedVersion = await Context.Accounts
+				.Where(predicate: a => a.Id == account.Id)
+				.Select(selector: a => a.LastVersion)
+				.FirstAsync();
+
+			await Assert.That(value: projectedVersion).IsEqualTo(expected: account.Version)
+				.Because(message: $"Sequence #{sequenceIndex} (seed {Seed}): accounts.last_version is the single counter behind both the ETag and the If-Match check, so it has to track every event the aggregate raised, not just the ones its own projection handles. Applied operations: {String.Join(separator: " | ", values: appliedOperationsLog)}");
 		}
 	}
 
@@ -115,6 +122,9 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 				AccountTransferDebited e => _writeRepository.TransferDebitAsync(@event: e),
 				AccountTransferCredited e => _writeRepository.TransferCreditAsync(@event: e),
 				AccountTransferRefunded e => _writeRepository.RefundTransferAsync(@event: e),
+				AccountRenamed e => _writeRepository.RenameAsync(@event: e),
+				AccountArchived e => _writeRepository.ArchiveAsync(@event: e),
+				AccountUnarchived e => _writeRepository.UnarchiveAsync(@event: e),
 				_ => throw new InvalidOperationException(message: $"Unexpected event type in balance-drift test: {@event.GetType().Name}")
 			});
 		}
@@ -179,6 +189,11 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 				amount: amount,
 				description: null
 			),
+			OperationKind.Rename => account.Rename(
+				occurredAt: now,
+				newName: Name.Create(value: $"Drift test account #{log.Count + 1}").Value
+			),
+			OperationKind.ArchiveAndUnarchive => ArchiveAndUnarchive(account: account, occurredAt: now),
 			_ => throw new InvalidOperationException(message: $"Unhandled operation kind: {kind}")
 		};
 
@@ -186,6 +201,15 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 			log.Add(item: $"{kind}({amount}@{rate})");
 
 		return result;
+	}
+
+	private static Result<Core.Results.Unit, DomainException> ArchiveAndUnarchive(Core.Domains.Account.Account account, DateTimeOffset occurredAt)
+	{
+		Result<Core.Results.Unit, DomainException> archived = account.Archive(occurredAt: occurredAt);
+		if (archived.IsFailure)
+			return archived;
+
+		return account.Unarchive(occurredAt: occurredAt);
 	}
 
 	private static decimal RandomAmount(Random random)

@@ -204,15 +204,14 @@ public static class DbContextExtensions
 		this DbContext context,
 		Guid accountId,
 		decimal balance,
-		int lastVersion,
 		DateTimeOffset updatedAt,
 		CancellationToken ct = default)
 	{
 		return context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO rm_account_balances (account_id, balance, last_version, updated_at)
-			VALUES ({accountId}, {balance}, {lastVersion}, {updatedAt})
+			INSERT INTO rm_account_balances (account_id, balance, updated_at)
+			VALUES ({accountId}, {balance}, {updatedAt})
 			ON CONFLICT (account_id) DO NOTHING
-		""", cancellationToken: ct);
+			""", cancellationToken: ct);
 	}
 
 	public static async Task<bool> TryRecordAccountBalanceEventAppliedAsync(
