@@ -22,4 +22,7 @@ public sealed class OperationEntity
 	public decimal? AmountTo { get; init; }
 	public string? CurrencyTo { get; init; }
 	public string? Status { get; init; }
+	// Reversal
+	public bool IsReverted { get; init; }
+	public Guid? ReversalOfId { get; init; }
 }

@@ -1,4 +1,6 @@
+using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transaction;
 using FinanceTracker.Core.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Operation;
@@ -11,6 +13,13 @@ public sealed class OperationWriteRepository(FinanceTrackerContext context) : IO
 {
 	private const string Transaction = nameof(Transaction);
 	private const string Transfer = nameof(Transfer);
+
+	private static string Invert(DirectionType direction) => direction switch
+	{
+		DirectionType.Debit => nameof(DirectionType.Credit).ToLowerInvariant(),
+		DirectionType.Credit => nameof(DirectionType.Debit).ToLowerInvariant(),
+		_ => throw new InvalidTransactionDirectionException(message: "Unknown direction type.")
+	};
 
 	public async Task InsertTransactionAsync(
 		Core.Domains.Transaction.Transaction transaction,
@@ -29,6 +38,8 @@ public sealed class OperationWriteRepository(FinanceTrackerContext context) : IO
 			CurrencyCode = transaction.Amount.Currency.Value,
 			DirectionType = transaction.Direction.ToString().ToLowerInvariant(),
 			IsExcluded = transaction.IsExcluded,
+			IsReverted = false,
+			ReversalOfId = null,
 			FromAccountId = null,
 			ToAccountId = null,
 			AmountFrom = null,
@@ -56,6 +67,8 @@ public sealed class OperationWriteRepository(FinanceTrackerContext context) : IO
 			CurrencyCode = null,
 			DirectionType = null,
 			IsExcluded = null,
+			IsReverted = false,
+			ReversalOfId = null,
 			FromAccountId = transfer.FromAccountId,
 			ToAccountId = transfer.ToAccountId,
 			AmountFrom = transfer.AmountFrom.Amount,
@@ -64,6 +77,42 @@ public sealed class OperationWriteRepository(FinanceTrackerContext context) : IO
 			CurrencyTo = transfer.AmountTo.Currency.Value,
 			Status = transfer.Status.ToCode()
 		}, cancellationToken: ct);
+	}
+
+	public async Task InsertTransactionReversalAsync(
+		Guid reversalId,
+		Core.Domains.Transaction.Transaction transaction,
+		DateTimeOffset occurredAt,
+		CancellationToken ct = default)
+	{
+		await context.Operations.AddAsync(entity: new OperationEntity
+		{
+			Id = reversalId,
+			UserId = transaction.UserId,
+			Type = Transaction,
+			OccurredAt = occurredAt,
+			Description = transaction.Description,
+			AccountId = transaction.AccountId,
+			CategoryId = transaction.CategoryId,
+			Amount = transaction.Amount.Amount,
+			CurrencyCode = transaction.Amount.Currency.Value,
+			DirectionType = Invert(direction: transaction.Direction),
+			IsExcluded = transaction.IsExcluded,
+			IsReverted = false,
+			ReversalOfId = transaction.Id,
+			FromAccountId = null,
+			ToAccountId = null,
+			AmountFrom = null,
+			CurrencyFrom = null,
+			AmountTo = null,
+			CurrencyTo = null,
+			Status = null
+		}, cancellationToken: ct);
+
+		await context.Operations.Where(predicate: o => o.Id == transaction.Id && o.UserId == transaction.UserId && o.Type == Transaction).ExecuteUpdateAsync(
+			setPropertyCalls: b => b.SetProperty(propertyExpression: o => o.IsReverted, valueExpression: true),
+			cancellationToken: ct
+		);
 	}
 
 	public async Task UpdateTransactionCategoryAsync(

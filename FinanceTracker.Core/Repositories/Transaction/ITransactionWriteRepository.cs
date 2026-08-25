@@ -37,6 +37,12 @@ public interface ITransactionWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task CancelAsync(
+		Domains.Transaction.Transaction transaction,
+		Guid reversalId,
+		CancellationToken ct = default
+	);
+
 	Task SaveRateResolutionAsync(
 		Domains.Transaction.Transaction transaction,
 		CancellationToken ct = default
