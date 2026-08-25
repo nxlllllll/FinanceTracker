@@ -20,7 +20,8 @@ public class TransactionBuilder(FinanceTrackerContext context)
 		decimal exchangeRate = 1m,
 		RateStatus rateStatus = RateStatus.Exact,
 		DateTimeOffset? occurredAt = null,
-		DateTimeOffset? rateStatusChangedAt = null)
+		DateTimeOffset? rateStatusChangedAt = null,
+		DateTimeOffset? createdAt = null)
 	{
 		Guid transactionId = Guid.CreateVersion7();
 		DateTimeOffset now = occurredAt ?? DateTimeOffset.UtcNow;
@@ -37,9 +38,12 @@ public class TransactionBuilder(FinanceTrackerContext context)
 			Direction = direction,
 			ExchangeRate = exchangeRate,
 			IsExcluded = isExcluded,
+			IsCancelled = false,
+			CancelledAt = null,
 			RateStatus = rateStatus,
 			RateStatusChangedAt = rateStatusChangedAt ?? now,
 			Description = null,
+			CreatedAt = createdAt ?? now,
 			OccurredAt = now
 		});
 

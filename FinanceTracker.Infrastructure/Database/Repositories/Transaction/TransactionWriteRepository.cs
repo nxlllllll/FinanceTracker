@@ -31,7 +31,10 @@ public sealed class TransactionWriteRepository(
 			RateStatusChangedAt = transaction.RateStatusChangedAt,
 			Description = transaction.Description,
 			IsExcluded = false,
+			IsCancelled = false,
+			CancelledAt = null,
 			RowVersion = 0,
+			CreatedAt = transaction.CreatedAt,
 			OccurredAt = transaction.OccurredAt
 		}, cancellationToken: ct);
 

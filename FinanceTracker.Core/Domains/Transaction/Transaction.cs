@@ -31,11 +31,12 @@ public sealed class Transaction : IHasId
 	public decimal ExchangeRate { get; private set; }
 	public RateStatus RateStatus { get; private set; }
 	public DateTimeOffset RateStatusChangedAt { get; private set; }
-
-	/// <summary>When <c>true</c>, this transaction is excluded from budget and total calculations.</summary>
 	public bool IsExcluded { get; private set; }
+	public bool IsCancelled { get; private set; }
+	public DateTimeOffset? CancelledAt { get; private set; }
 	public string? Description { get; private set; }
 	public int RowVersion { get; private set; }
+	public DateTimeOffset CreatedAt { get; private set; }
 	public DateTimeOffset OccurredAt { get; private set; }
 
 	private Transaction() { }
@@ -83,8 +84,11 @@ public sealed class Transaction : IHasId
 			RateStatus = rateStatus,
 			RateStatusChangedAt = createdAt,
 			IsExcluded = false,
+			IsCancelled = false,
+			CancelledAt = null,
 			Description = description,
 			RowVersion = 0,
+			CreatedAt = createdAt,
 			OccurredAt = occurredAt
 		});
 	}
@@ -102,8 +106,11 @@ public sealed class Transaction : IHasId
 		RateStatus rateStatus,
 		DateTimeOffset rateStatusChangedAt,
 		bool isExcluded,
+		bool isCancelled,
+		DateTimeOffset? cancelledAt,
 		string? description,
 		int rowVersion,
+		DateTimeOffset createdAt,
 		DateTimeOffset occurredAt)
 	{
 		return new Transaction
@@ -119,10 +126,32 @@ public sealed class Transaction : IHasId
 			RateStatus = rateStatus,
 			RateStatusChangedAt = rateStatusChangedAt,
 			IsExcluded = isExcluded,
+			IsCancelled = isCancelled,
+			CancelledAt = cancelledAt,
 			Description = description,
 			RowVersion = rowVersion,
+			CreatedAt = createdAt,
 			OccurredAt = occurredAt
 		};
+	}
+
+	public Result<Unit, DomainException> Cancel(DateTimeOffset cancelledAt, TimeSpan maxAge)
+	{
+		if (IsCancelled)
+			return Result<Unit, DomainException>.Failure(error: new CancelledOperationException(message: "Transaction has already been cancelled."));
+
+		if (cancelledAt - CreatedAt > maxAge)
+		{
+			return Result<Unit, DomainException>.Failure(error: new TransactionCancellationWindowExpiredException(
+				message: $"Transaction can no longer be cancelled: it was recorded on {CreatedAt:yyyy-MM-dd} and the cancellation window is {maxAge.TotalDays:0} day(s)."
+			));
+		}
+
+		IsCancelled = true;
+		CancelledAt = cancelledAt;
+		CancelPendingRate(occurredAt: cancelledAt);
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
 	public Result<Unit, DomainException> ResolveRate(decimal newRate, DateTimeOffset changedAt)
@@ -167,6 +196,9 @@ public sealed class Transaction : IHasId
 
 	public Result<bool, DomainException> Exclude()
 	{
+		if (IsCancelled)
+			return Result<bool, DomainException>.Failure(error: new CancelledOperationException(message: "Cannot modify a cancelled transaction."));
+
 		if (IsExcluded)
 			return Result<bool, DomainException>.Success(value: false);
 
@@ -176,6 +208,9 @@ public sealed class Transaction : IHasId
 
 	public Result<bool, DomainException> Include()
 	{
+		if (IsCancelled)
+			return Result<bool, DomainException>.Failure(error: new CancelledOperationException(message: "Cannot modify a cancelled transaction."));
+
 		if (!IsExcluded)
 			return Result<bool, DomainException>.Success(value: false);
 
@@ -185,6 +220,9 @@ public sealed class Transaction : IHasId
 
 	public Result<bool, DomainException> ChangeCategory(Guid categoryId)
 	{
+		if (IsCancelled)
+			return Result<bool, DomainException>.Failure(error: new CancelledOperationException(message: "Cannot modify a cancelled transaction."));
+
 		if (IsExcluded)
 			return Result<bool, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
 
@@ -197,6 +235,9 @@ public sealed class Transaction : IHasId
 
 	public Result<bool, DomainException> ChangeDescription(string? description)
 	{
+		if (IsCancelled)
+			return Result<bool, DomainException>.Failure(error: new CancelledOperationException(message: "Cannot modify a cancelled transaction."));
+
 		if (IsExcluded)
 			return Result<bool, DomainException>.Failure(error: new ExcludedOperationException(message: "Cannot modify an excluded transaction."));
 
@@ -205,5 +246,14 @@ public sealed class Transaction : IHasId
 
 		Description = description;
 		return Result<bool, DomainException>.Success(value: true);
+	}
+
+	private void CancelPendingRate(DateTimeOffset occurredAt)
+	{
+		if (!RateStatus.IsOpen())
+			return;
+
+		RateStatus = RateStatus.Cancelled;
+		RateStatusChangedAt = occurredAt;
 	}
 }

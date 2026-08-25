@@ -85,10 +85,13 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		direction: DirectionType.Debit,
 		exchangeRate: 1m,
 		isExcluded: false,
+		isCancelled: false,
+		cancelledAt: null,
 		description: description,
 		rateStatus: RateStatus.Exact,
 		rateStatusChangedAt: DateTimeOffset.UtcNow,
 		rowVersion: 0,
+		createdAt: DateTimeOffset.UtcNow,
 		occurredAt: DateTimeOffset.UtcNow
 	);
 
@@ -115,14 +118,17 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			categoryId: categoryId,
 			amount: Money.Create(amount: 1000m, currency: Core.ValueObjects.Currency.Create(value: "RUB").Value).Value,
-			Core.ValueObjects.Currency.Create(value: "RUB").Value,
+			baseCurrency: Core.ValueObjects.Currency.Create(value: "RUB").Value,
 			direction: DirectionType.Debit,
 			exchangeRate: 1m,
 			isExcluded: false,
+			isCancelled: false,
+			cancelledAt: null,
 			description: "тест",
 			rateStatus: RateStatus.Exact,
 			rateStatusChangedAt: DateTimeOffset.UtcNow,
 			rowVersion: 0,
+			createdAt: DateTimeOffset.UtcNow,
 			occurredAt: DateTimeOffset.UtcNow
 		);
 
@@ -135,6 +141,8 @@ public sealed class TransactionWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: entity.Direction).IsEqualTo(expected: DirectionType.Debit);
 		await Assert.That(value: entity.Description).IsEqualTo(expected: "тест");
 		await Assert.That(value: entity.IsExcluded).IsFalse();
+		await Assert.That(value: entity.IsCancelled).IsFalse();
+		await Assert.That(value: entity.CancelledAt).IsNull();
 		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 0);
 	}
 

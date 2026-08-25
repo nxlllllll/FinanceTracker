@@ -17,7 +17,10 @@ public sealed class TransactionEntity
 	public RateStatus RateStatus { get; init; }
 	public DateTimeOffset RateStatusChangedAt { get; init; }
 	public bool IsExcluded { get; init; }
+	public bool IsCancelled { get; init; }
+	public DateTimeOffset? CancelledAt { get; init; }
 	public string? Description { get; init; }
 	public int RowVersion { get; init; }
+	public DateTimeOffset CreatedAt { get; init; }
 	public DateTimeOffset OccurredAt { get; init; }
 }
