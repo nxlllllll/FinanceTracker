@@ -17,6 +17,7 @@ public sealed class AccountDomainEventApplier(IAccountWriteRepository repository
 		AccountCreated e => repository.CreateAsync(@event: e, ct: ct),
 		AccountDebited e => repository.DebitAsync(@event: e, ct: ct),
 		AccountCredited e => repository.CreditAsync(@event: e, ct: ct),
+		AccountTransactionReverted e => repository.RevertTransactionAsync(@event: e, ct: ct),
 		AccountRenamed e => repository.RenameAsync(@event: e, ct: ct),
 		AccountArchived e => repository.ArchiveAsync(@event: e, ct: ct),
 		AccountUnarchived e => repository.UnarchiveAsync(@event: e, ct: ct),

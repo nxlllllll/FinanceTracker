@@ -27,6 +27,8 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 		DebitTransfer,
 		CreditTransfer,
 		RefundTransfer,
+		RevertDebit,
+		RevertCredit,
 		Rename,
 		ArchiveAndUnarchive
 	}
@@ -118,6 +120,7 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 				AccountCreated e => _writeRepository.CreateAsync(@event: e),
 				AccountDebited e => _writeRepository.DebitAsync(@event: e),
 				AccountCredited e => _writeRepository.CreditAsync(@event: e),
+				AccountTransactionReverted e => _writeRepository.RevertTransactionAsync(@event: e),
 				AccountBalanceAdjusted e => _writeRepository.AdjustBalanceAsync(@event: e),
 				AccountTransferDebited e => _writeRepository.TransferDebitAsync(@event: e),
 				AccountTransferCredited e => _writeRepository.TransferCreditAsync(@event: e),
@@ -187,6 +190,24 @@ public sealed class AccountWriteRepositoryBalanceDriftTests : DatabaseFixture
 				occurredAt: now,
 				transferId: Guid.CreateVersion7(),
 				amount: amount,
+				description: null
+			),
+			OperationKind.RevertDebit => account.RevertTransaction(
+				occurredAt: now,
+				transactionId: Guid.CreateVersion7(),
+				categoryId: Guid.CreateVersion7(),
+				amount: amount,
+				exchangeRate: rate,
+				direction: DirectionType.Debit,
+				description: null
+			),
+			OperationKind.RevertCredit => account.RevertTransaction(
+				occurredAt: now,
+				transactionId: Guid.CreateVersion7(),
+				categoryId: Guid.CreateVersion7(),
+				amount: amount,
+				exchangeRate: rate,
+				direction: DirectionType.Credit,
 				description: null
 			),
 			OperationKind.Rename => account.Rename(

@@ -166,6 +166,13 @@ public sealed class Account : AggregateRoot
 	private void Apply(AccountTransferRefunded @event)
 		=> Balance = Balance.Add(amount: @event.Amount);
 
+	private void Apply(AccountTransactionReverted @event)
+	{
+		decimal delta = Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate);
+
+		Balance = @event.Direction is DirectionType.Debit ? Balance.Add(amount: delta) : Balance.Subtract(amount: delta);
+	}
+
 	private void Apply(AccountRenamed @event)
 		=> Name = @event.NewName;
 
@@ -200,6 +207,7 @@ public sealed class Account : AggregateRoot
 			case AccountTransferDebited e: Apply(@event: e); break;
 			case AccountTransferCredited e: Apply(@event: e); break;
 			case AccountTransferRefunded e: Apply(@event: e); break;
+			case AccountTransactionReverted e: Apply(@event: e); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
@@ -346,6 +354,46 @@ public sealed class Account : AggregateRoot
 			AccountId: Id,
 			TransferId: transferId,
 			Amount: amount,
+			Description: description,
+			Version: 0,
+			OccurredAt: occurredAt
+		));
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> RevertTransaction(
+		DateTimeOffset occurredAt,
+		Guid transactionId,
+		Guid categoryId,
+		decimal amount,
+		decimal exchangeRate,
+		DirectionType direction,
+		string? description)
+	{
+		Result<Unit, DomainException> timing = CheckNotBeforeCreation(occurredAt: occurredAt);
+		if (timing.IsFailure)
+			return timing;
+
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
+		if (constraints.IsFailure)
+			return constraints;
+
+		if (direction is DirectionType.Credit)
+		{
+			Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount, rate: exchangeRate);
+			if (funds.IsFailure)
+				return funds;
+		}
+
+		RaiseEvent(@event: new AccountTransactionReverted(
+			Id: Guid.CreateVersion7(),
+			AccountId: Id,
+			TransactionId: transactionId,
+			CategoryId: categoryId,
+			Amount: amount,
+			ExchangeRate: exchangeRate,
+			Direction: direction,
 			Description: description,
 			Version: 0,
 			OccurredAt: occurredAt

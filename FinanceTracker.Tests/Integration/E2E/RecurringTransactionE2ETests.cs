@@ -316,7 +316,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
 		await WaitForConditionAsync(condition: async () =>
 		{
 			await using FinanceTrackerContext ctx = CreateReadContext();
-			return await ctx.UnresolvableEvents.AnyAsync(predicate: e => e.ReferenceId == recurringId);
+			return await ctx.UnresolvableEvents.CountAsync(predicate: e => e.ReferenceId == recurringId) >= 2;
 		});
 
 		int firstRunCount;

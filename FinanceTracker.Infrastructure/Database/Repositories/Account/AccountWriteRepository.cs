@@ -143,6 +143,20 @@ public sealed class AccountWriteRepository(
 		);
 	}
 
+	public async Task RevertTransactionAsync(
+		AccountTransactionReverted @event,
+		CancellationToken ct = default)
+	{
+		decimal amount = Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate);
+
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: @event.Direction is Core.Domains.Account.DirectionType.Debit ? amount : -amount,
+			version: @event.Version,
+			ct: ct
+		);
+	}
+
 	public async Task TransferDebitAsync(
 		AccountTransferDebited @event,
 		CancellationToken ct = default)
