@@ -267,12 +267,12 @@ public sealed class CancelTransactionFlowTests : MediatorFixture
 	}
 
 	[Test]
-	public async Task Cancel_PastTheWindow_ShouldFailWithoutTouchingTheAccount()
+	public async Task Cancel_PastTheWindow_ShouldFail()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await CreateAccountAsync(userId: userId);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
-		Guid accountId = Guid.CreateVersion7();
 		Guid transactionId = await _transactionBuilder.CreateAsync(
 			userId: userId,
 			accountId: accountId,
@@ -284,6 +284,7 @@ public sealed class CancelTransactionFlowTests : MediatorFixture
 		Result<Guid, AppException> result = await CancelAsync(userId: userId, transactionId: transactionId);
 
 		await Assert.That(value: result.IsFailure).IsTrue();
-		await Assert.That(value: result.Error).IsTypeOf<TransactionCancellationWindowExpiredException>();
+		await Assert.That(value: result.Error).IsTypeOf<TransactionCancellationWindowExpiredException>()
+				.Because(message: "The window is measured from CreatedAt, and this record was entered two months ago. OccurredAt matches here only because the builder was told both — back-dating is covered separately, in the domain tests.");
 	}
 }

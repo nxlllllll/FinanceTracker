@@ -294,7 +294,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
 		""");
 	}
 
-	[Test]
+		[Test]
 	public async Task RecurringTransaction_WhenOverdue_AndJobRunsAgain_ShouldNotEscalateTwice()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
@@ -313,16 +313,23 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
 
 		await RunRecurringTransactionJobAsync();
 
+		const int escalationsPerRun = 2;
+
 		await WaitForConditionAsync(condition: async () =>
 		{
 			await using FinanceTrackerContext ctx = CreateReadContext();
-			return await ctx.UnresolvableEvents.CountAsync(predicate: e => e.ReferenceId == recurringId) >= 2;
+			return await ctx.UnresolvableEvents.CountAsync(predicate: e => e.ReferenceId == recurringId) >= escalationsPerRun;
 		});
 
 		int firstRunCount;
 
 		await using (FinanceTrackerContext afterFirstRun = CreateReadContext())
 			firstRunCount = await afterFirstRun.UnresolvableEvents.CountAsync(predicate: e => e.ReferenceId == recurringId);
+
+		await Assert.That(value: firstRunCount).IsEqualTo(expected: escalationsPerRun).Because(message: """
+			The first run has to settle before the second one can be judged. If this is short, the wait above
+			gave up early and the comparison below would measure a race instead of the rule.
+		""");
 
 		await RunRecurringTransactionJobAsync();
 

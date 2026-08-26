@@ -155,7 +155,11 @@ public sealed class TransactionCreationService(
 				ct: ct
 			);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to create transaction for account {account.Id}."),
+		onError: exception =>
+		{
+			logger.ZLogError(exception: exception, message: $"Failed to create transaction for account {account.Id}.");
+			return Task.CompletedTask;
+		},
 		ct: ct);
 
 		return Result<Transaction, DomainException>.Success(value: transaction);
