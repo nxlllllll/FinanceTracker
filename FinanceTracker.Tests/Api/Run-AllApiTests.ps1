@@ -72,9 +72,6 @@ foreach ($suite in $suites) {
     $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $suite.FullName `
         -BaseUrl $BaseUrl -ApiPrefix $ApiPrefix 2>&1
 
-    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $suite.FullName `
-            -BaseUrl $BaseUrl -ApiPrefix $ApiPrefix 2>&1
-
     $exitCode = $LASTEXITCODE
 
     $summary = $output | Select-String -Pattern "$name`: (?:провалено (\d+) из (\d+)|все (\d+) проверок)" | Select-Object -Last 1

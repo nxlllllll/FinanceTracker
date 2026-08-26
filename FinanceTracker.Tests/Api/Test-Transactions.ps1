@@ -1,12 +1,12 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Группа Transactions: запись операций по счёту, их пагинация и участие в аналитике.
+    Группа Transactions: запись операций по счёту, их пагинация, участие в аналитике и отмена.
 
 .DESCRIPTION
     Создание и список вложены под счёт, остальное адресуется по идентификатору самой
     операции. Отдельно проверяется, что исключение из аналитики не трогает баланс —
-    это самое вероятное недопонимание в группе.
+    это самое вероятное недопонимание в группе — и что отмена, наоборот, возвращает деньги.
 
 .EXAMPLE
     ./Test-Transactions.ps1
@@ -82,6 +82,55 @@ function Wait-Balance {
     }
 
     return $false
+}
+
+<#
+.SYNOPSIS
+    Ждёт, пока баланс перестанет меняться, и возвращает его.
+
+.DESCRIPTION
+    Wait-Balance годится, когда ожидаемое значение известно заранее. Отсчитывать дельту
+    не от чего, если предыдущие разделы оставили в полёте операции, которых они не дожидались:
+    прочитанный «до» баланс окажется старше реального, и любое ожидание от него промахнётся
+    на сумму ещё не доехавшего движения — причём промахнётся молчаливым таймаутом.
+#>
+function Wait-BalanceSettled {
+    param([int] $TimeoutSeconds = 10)
+
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $previous = Get-Balance
+
+    while ($watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        Start-Sleep -Milliseconds 400
+        $current = Get-Balance
+        if ($current -eq $previous) { return $current }
+        $previous = $current
+    }
+
+    return $previous
+}
+
+<#
+.SYNOPSIS
+    Ищет операцию в ленте истории по идентификатору.
+
+.DESCRIPTION
+    Отмена оставляет две строки: исходную с isReverted и компенсирующую с reversalOfId.
+    Сама транзакция флага отмены пока не отдаёт, поэтому лента — единственное место,
+    где результат виден снаружи.
+#>
+function Get-HistoryLine {
+    param([Parameter(Mandatory)][string] $Id)
+
+    $history = Read-Json -Response (Send-Api -Method GET -Path '/users/me/operations?pageSize=100' -Token $user.Token)
+    return $history.items | Where-Object { $_.id -eq $Id } | Select-Object -First 1
+}
+
+function Get-ReversalLine {
+    param([Parameter(Mandatory)][string] $OriginalId)
+
+    $history = Read-Json -Response (Send-Api -Method GET -Path '/users/me/operations?pageSize=100' -Token $user.Token)
+    return $history.items | Where-Object { $_.reversalOfId -eq $OriginalId } | Select-Object -First 1
 }
 
 Write-Step 'Создание'
@@ -280,6 +329,118 @@ Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$transaction
 
 Assert-True -Condition ((Get-Balance) -eq $balanceBefore) -What 'баланс не изменился и при возврате'
 
+Write-Step 'Отмена операции'
+
+$cancelBody = @{
+    categoryId  = $otherExpense
+    amount      = 2000
+    currency    = 'RUB'
+    direction   = 'Debit'
+    description = 'Оплата, которую вернём'
+    occurredAt  = (Get-Date).ToUniversalTime().ToString('o')
+}
+
+# 10000 − 1500 − 100 − 200 из раздела «Создание». Явная константа, а не чтение «текущего»
+# баланса: раздел выше не дожидается своих операций, и любая попытка определить базу
+# наблюдением возвращает цифру, которая ещё догоняет.
+$balanceBase = 8200
+
+Assert-True -Condition (Wait-Balance -Expected $balanceBase) `
+    -What "операции раздела «Создание» доехали, баланс $balanceBase"
+
+Write-Note "фактический баланс перед отменой: $(Get-Balance)"
+
+$toCancel = Send-Api -Method POST -Path "/accounts/$accountId/transactions" -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key } -Body $cancelBody
+
+if (Assert-Status -Response $toCancel -Expected 201 -What 'операция под отмену создана' -PassThru) {
+    $cancelId = (Read-Json -Response $toCancel).id
+
+    Assert-True -Condition (Wait-Balance -Expected ($balanceBase - 2000)) `
+        -What 'списание доехало до проекции'
+
+    Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$cancelId/cancel" -Token $user.Token) `
+        -Expected 400 -What 'отмена без Idempotency-Key'
+
+    $cancelKey = New-Key
+
+    Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$cancelId/cancel" -Token $user.Token `
+        -Headers @{ 'Idempotency-Key' = $cancelKey }) `
+        -Expected 202 -What 'POST /transactions/{id}/cancel — принято, возврат в полёте'
+
+    Assert-True -Condition (Wait-Balance -Expected $balanceBase) `
+        -What 'деньги вернулись на счёт после того, как проекция догнала'
+
+    Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$cancelId/cancel" -Token $user.Token `
+        -Headers @{ 'Idempotency-Key' = $cancelKey }) `
+        -Expected 202 -What 'повтор с тем же Idempotency-Key — тот же ответ, второго возврата нет'
+
+    Start-Sleep -Seconds 2
+    Assert-True -Condition ((Get-Balance) -eq $balanceBase) `
+        -What 'баланс не вырос дважды — ключ отдал сохранённый ответ, не выполнив отмену заново'
+
+    Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$cancelId/cancel" -Token $user.Token `
+        -Headers @{ 'Idempotency-Key' = New-Key }) `
+        -Expected 422 -What 'отмена уже отменённой с новым ключом отклонена'
+
+    $original = Get-HistoryLine -Id $cancelId
+    $reversal = Get-ReversalLine -OriginalId $cancelId
+
+    Assert-True -Condition ($null -ne $original -and $original.isReverted -eq $true) `
+        -What 'исходная строка ленты помечена возвращённой'
+
+    if (Assert-True -Condition ($null -ne $reversal) -What 'в ленте появилась строка возврата' -PassThru) {
+        Assert-True -Condition ($reversal.transaction.direction -eq 'credit') `
+            -What 'возврат идёт с обратным знаком — минус и плюс рядом'
+        Assert-True -Condition ($reversal.transaction.amount -eq 2000) -What 'сумма возврата совпадает с исходной'
+        Assert-True -Condition ($reversal.transaction.categoryId -eq $otherExpense) `
+            -What 'возврат отнесён к той же категории'
+    }
+
+    Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$cancelId/exclude" -Token $user.Token) `
+        -Expected 422 -What 'отменённую нельзя исключить — вычитание итогов прошло один раз'
+
+    Assert-Status -Response (Send-Api -Method PATCH -Path "/transactions/$cancelId/category" -Token $user.Token `
+        -Body @{ categoryId = $expenseCategory }) `
+        -Expected 422 -What 'отменённой нельзя сменить категорию'
+
+    Assert-Status -Response (Send-Api -Method PATCH -Path "/transactions/$cancelId/description" -Token $user.Token `
+        -Body @{ description = 'после отмены' }) `
+        -Expected 422 -What 'отменённой нельзя сменить описание'
+}
+
+Write-Step 'Отмена исключённой операции'
+
+$excludedBody = $cancelBody.Clone()
+$excludedBody.amount = 700
+$excludedBody.description = 'Не в аналитике, но деньги ушли'
+$excludedBody.occurredAt = (Get-Date).ToUniversalTime().ToString('o')
+
+$toExcludeThenCancel = Send-Api -Method POST -Path "/accounts/$accountId/transactions" -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key } -Body $excludedBody
+
+if (Assert-Status -Response $toExcludeThenCancel -Expected 201 -What 'операция создана' -PassThru) {
+    $excludedId = (Read-Json -Response $toExcludeThenCancel).id
+
+    # Предыдущий раздел вернул баланс к $balanceBase, так что база известна и здесь.
+    Assert-True -Condition (Wait-Balance -Expected ($balanceBase - 700)) `
+        -What 'списание 700 доехало до проекции'
+
+    Send-Api -Method POST -Path "/transactions/$excludedId/exclude" -Token $user.Token | Out-Null
+
+    Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$excludedId/cancel" -Token $user.Token `
+        -Headers @{ 'Idempotency-Key' = New-Key }) `
+        -Expected 202 -What 'исключённая операция отменяется — из аналитики убрана запись, но деньги двигались'
+
+    Assert-True -Condition (Wait-Balance -Expected $balanceBase) `
+        -What 'деньги вернулись и по исключённой операции'
+
+    $excludedReversal = Get-ReversalLine -OriginalId $excludedId
+
+    Assert-True -Condition ($null -ne $excludedReversal -and $excludedReversal.transaction.isExcluded -eq $true) `
+        -What 'строка возврата унаследовала исключённость — иначе пара считалась бы наполовину'
+}
+
 Write-Step 'Изоляция между учётками'
 
 $other = New-TestUser -Label 'tx-other'
@@ -290,6 +451,10 @@ Assert-Status -Response (Send-Api -Method GET -Path "/transactions/$transactionI
 
 Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$transactionId/exclude" -Token $other.Token) `
     -Expected 404 -What 'чужая операция не исключается'
+
+Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$transactionId/cancel" -Token $other.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key }) `
+    -Expected 404 -What 'чужая операция не отменяется'
 
 $foreignBody = $body.Clone()
 $foreignBody.categoryId = $otherCategory
