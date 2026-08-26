@@ -48,6 +48,23 @@ public sealed class RedisCache(
 		tag: new KeyValuePair<string, object?>(key: FinanceTrackerMetrics.Tags.Operation, value: operation)
 	);
 
+	private CacheEntry<T> ToEntry<T>(string key, RedisValue value)
+	{
+		try
+		{
+			return new CacheEntry<T>(Found: true, Value: JsonSerializer.Deserialize<T>(utf8Json: (byte[])value!)!);
+		}
+		catch (JsonException ex)
+		{
+			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Read);
+			logger.LogWarning(exception: ex, message: "Unreadable value under key {Key} — reporting a cache miss and dropping it.", Prefixed(key: key));
+
+			_ = DeleteBatchAsync(keys: [key]);
+
+			return new CacheEntry<T>(Found: false, Value: default!);
+		}
+	}
+
 	public async Task<CacheEntry<T>> TryGetAsync<T>(string key)
 	{
 		IDatabase database = connectionMultiplexer.GetDatabase();
@@ -67,10 +84,7 @@ public sealed class RedisCache(
 		if (value.IsNull)
 			return new CacheEntry<T>(Found: false, Value: default!);
 
-		return new CacheEntry<T>(
-			Found: true,
-			Value: JsonSerializer.Deserialize<T>(utf8Json: (byte[])value!)!
-		);
+		return ToEntry<T>(key: key, value: value);
 	}
 
 	public async Task<bool> SetAsync<T>(
@@ -133,7 +147,7 @@ public sealed class RedisCache(
 			RedisValue value = values[i];
 			result[keys[i]] = value.IsNull
 				? new CacheEntry<T>(Found: false, Value: default!)
-				: new CacheEntry<T>(Found: true, Value: JsonSerializer.Deserialize<T>(utf8Json: (byte[])value!)!);
+				: ToEntry<T>(key: keys[i], value: value);
 		}
 
 		return result;
