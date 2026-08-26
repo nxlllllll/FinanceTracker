@@ -74,7 +74,11 @@ public sealed class CreateTransferHandler(
 			await transferWriteRepository.CreateAsync(transfer: transfer, ct: ct);
 			await accountRepository.SaveAsync(account: account, ct: ct);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to debit transfer {account.Id} > {command.ToAccountId}."),
+		onError: exception =>
+		{
+			logger.ZLogError(exception: exception, message: $"Failed to debit transfer {account.Id} > {command.ToAccountId}.");
+			return Task.CompletedTask;
+		},
 		ct: ct);
 
 		postCommitNotifications.Stage(notification: new TransferCreatedNotification(
