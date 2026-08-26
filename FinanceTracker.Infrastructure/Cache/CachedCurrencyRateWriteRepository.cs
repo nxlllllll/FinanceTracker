@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Repositories.Currency;
+using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Cache;
@@ -21,7 +22,12 @@ public sealed class CachedCurrencyRateWriteRepository(
 		if (rates.Count == 0)
 			return;
 
-		List<string> keys = rates.Select(selector: r => CurrencyRateCacheKeys.LatestRateKey(from: r.Base, to: r.Target)).Distinct().ToList();
+		List<string> keys = rates.SelectMany(selector: r => new[]
+		{
+			CurrencyRateCacheKeys.LatestRateKey(from: r.Base, to: r.Target),
+			CurrencyRateCacheKeys.RateKey(request: new CurrencyRateRequest(From: r.Base, To: r.Target, Date: r.Date))
+		}).Distinct().ToList();
+
 		await redisCache.DeleteBatchAsync(keys: keys);
 	}
 }
