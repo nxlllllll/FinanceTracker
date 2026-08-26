@@ -134,6 +134,21 @@ public sealed class EventContractGoldenTests
 			),
 			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransferId":"00000000-0000-0000-0000-000000000006","FromAccountId":"00000000-0000-0000-0000-000000000007","Amount":100.00,"ExchangeRate":0.92,"Description":"Transfer in","Version":8,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
+		[typeof(AccountTransactionReverted)] = (
+			new AccountTransactionReverted(
+				Id: Id,
+				AccountId: AccountId,
+				TransactionId: Guid.Parse(input: "00000000-0000-0000-0000-000000000004"),
+				CategoryId: Guid.Parse(input: "00000000-0000-0000-0000-000000000005"),
+				Amount: 250.75m,
+				ExchangeRate: 1.0m,
+				Direction: DirectionType.Debit,
+				Description: "Groceries",
+				Version: 4,
+				OccurredAt: OccurredAt
+			),
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransactionId":"00000000-0000-0000-0000-000000000004","CategoryId":"00000000-0000-0000-0000-000000000005","Amount":250.75,"ExchangeRate":1.0,"Direction":"Debit","Description":"Groceries","Version":4,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
+		),
 		[typeof(AccountTransferRefunded)] = (
 			new AccountTransferRefunded(
 				Id: Id,

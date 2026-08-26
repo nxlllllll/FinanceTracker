@@ -31,7 +31,10 @@ public sealed class TransactionWriteRepository(
 			RateStatusChangedAt = transaction.RateStatusChangedAt,
 			Description = transaction.Description,
 			IsExcluded = false,
+			IsCancelled = false,
+			CancelledAt = null,
 			RowVersion = 0,
+			CreatedAt = transaction.CreatedAt,
 			OccurredAt = transaction.OccurredAt
 		}, cancellationToken: ct);
 
@@ -132,6 +135,32 @@ public sealed class TransactionWriteRepository(
 			transactionId: transactionId,
 			userId: userId,
 			isExcluded: true,
+			ct: ct
+		);
+	}
+
+	public async Task CancelAsync(
+		Core.Domains.Transaction.Transaction transaction,
+		Guid reversalId,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Transactions.Where(predicate: t => t.Id == transaction.Id && t.RowVersion == transaction.RowVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: e => e.IsCancelled, valueExpression: true)
+				.SetProperty(propertyExpression: e => e.CancelledAt, valueExpression: transaction.CancelledAt)
+				.SetProperty(propertyExpression: e => e.RateStatus, valueExpression: transaction.RateStatus)
+				.SetProperty(propertyExpression: e => e.RateStatusChangedAt, valueExpression: transaction.RateStatusChangedAt)
+				.SetProperty(propertyExpression: e => e.RowVersion, valueExpression: transaction.RowVersion + 1),
+			cancellationToken: ct
+		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"Transaction {transaction.Id} was modified by another request.", id: transaction.Id);
+
+		await operationRepository.InsertTransactionReversalAsync(
+			reversalId: reversalId,
+			transaction: transaction,
+			occurredAt: transaction.CancelledAt!.Value,
 			ct: ct
 		);
 	}

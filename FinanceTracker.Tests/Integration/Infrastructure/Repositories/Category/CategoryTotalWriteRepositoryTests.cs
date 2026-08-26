@@ -102,7 +102,8 @@ public sealed class CategoryTotalWriteRepositoryTests : DatabaseFixture
 			RateStatus = RateStatus.Exact,
 			RateStatusChangedAt = occurredAt,
 			Description = null,
-			OccurredAt = occurredAt
+			OccurredAt = occurredAt,
+			CreatedAt = occurredAt
 		}).ToList();
 
 		await Context.Transactions.AddRangeAsync(entities: transactions);

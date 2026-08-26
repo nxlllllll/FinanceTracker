@@ -50,6 +50,8 @@ public sealed class GetOperationsHistoryHandlerTests
 			Type: OperationFilterType.Income,
 			Description: null,
 			OccurredAt: FakeDateProvider.Default.UtcNow,
+			IsReverted: false,
+			ReversalOfId: null,
 			Transaction: new TransactionDetails(
 				AccountId: Guid.CreateVersion7(),
 				CategoryId: Guid.CreateVersion7(),

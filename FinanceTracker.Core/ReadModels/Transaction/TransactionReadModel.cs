@@ -13,7 +13,10 @@ public sealed record TransactionReadModel(
 	DirectionType Direction,
 	decimal ExchangeRate,
 	bool IsExcluded,
+	bool IsCancelled,
+	DateTimeOffset? CancelledAt,
 	RateStatus RateStatus,
 	string? Description,
 	DateTimeOffset OccurredAt
 ) : IReadModel;
+

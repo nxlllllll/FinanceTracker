@@ -8,6 +8,8 @@ public sealed record Operation(
 	OperationFilterType Type,
 	string? Description,
 	DateTimeOffset OccurredAt,
+	bool IsReverted,
+	Guid? ReversalOfId,
 	TransactionDetails? Transaction,
 	TransferDetails? Transfer
 ) : IReadModel;

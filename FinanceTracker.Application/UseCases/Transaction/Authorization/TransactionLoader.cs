@@ -1,4 +1,5 @@
 using FinanceTracker.Application.Behaviours.Authorization;
+using FinanceTracker.Application.UseCases.Transaction.Commands.CancelTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionDescription;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
@@ -19,7 +20,8 @@ public sealed class TransactionLoader(
 	IEntityLoader<ChangeTransactionCategoryCommand, Core.Domains.Transaction.Transaction, AppException>,
 	IEntityLoader<ChangeTransactionDescriptionCommand, Core.Domains.Transaction.Transaction, AppException>,
 	IEntityLoader<IncludeTransactionCommand, Core.Domains.Transaction.Transaction, AppException>,
-	IEntityLoader<ExcludeTransactionCommand, Core.Domains.Transaction.Transaction, AppException>
+	IEntityLoader<ExcludeTransactionCommand, Core.Domains.Transaction.Transaction, AppException>,
+	IEntityLoader<CancelTransactionCommand, Core.Domains.Transaction.Transaction, AppException>
 {
 	public async Task<Result<Core.Domains.Account.Account, AppException>> LoadAsync(
 		CreateTransactionCommand request,
@@ -43,6 +45,11 @@ public sealed class TransactionLoader(
 
 	public Task<Result<Core.Domains.Transaction.Transaction, AppException>> LoadAsync(
 		ExcludeTransactionCommand request,
+		CancellationToken ct
+	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
+
+	public Task<Result<Core.Domains.Transaction.Transaction, AppException>> LoadAsync(
+		CancelTransactionCommand request,
 		CancellationToken ct
 	) => LoadAndAuthorize(transactionId: request.TransactionId, userId: request.UserId, ct: ct);
 

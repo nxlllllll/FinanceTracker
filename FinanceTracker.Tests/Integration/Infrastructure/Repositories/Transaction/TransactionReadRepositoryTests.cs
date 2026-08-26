@@ -99,6 +99,8 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 		bool isExcluded = false,
 		DateTimeOffset? occurredAt = null)
 	{
+		DateTimeOffset recordedAt = occurredAt ?? DateTimeOffset.UtcNow;
+
 		Core.Domains.Transaction.Transaction transaction = Core.Domains.Transaction.Transaction.Reconstitute(
 			id: Guid.CreateVersion7(),
 			accountId: accountId,
@@ -109,11 +111,14 @@ public sealed class TransactionReadRepositoryTests : DatabaseFixture
 			direction: direction,
 			exchangeRate: 1m,
 			isExcluded: false,
+			isCancelled: false,
+			cancelledAt: null,
 			rateStatus: RateStatus.Exact,
 			rateStatusChangedAt: DateTimeOffset.UtcNow,
 			description: "тест",
 			rowVersion: 0,
-			occurredAt: occurredAt ?? DateTimeOffset.UtcNow
+			createdAt: recordedAt,
+			occurredAt: recordedAt
 		);
 
 		await _writeRepository.CreateAsync(transaction: transaction);
