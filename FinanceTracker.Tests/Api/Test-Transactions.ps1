@@ -70,6 +70,10 @@ function Get-Balance {
     Баланс живёт в rm_account_balances и обновляется проекцией через outbox, а транзакция
     пишется синхронно. Читать баланс сразу после записи — значит спрашивать догоняющую
     копию до того, как она догнала.
+
+    Ожидаемое значение задаётся явно, а не вычисляется наблюдением: два одинаковых чтения
+    подряд означают лишь «сейчас не меняется», и ровно так же выглядит проекция, которая
+    ещё не начала догонять.
 #>
 function Wait-Balance {
     param([Parameter(Mandatory)][decimal] $Expected, [int] $TimeoutSeconds = 10)
@@ -86,38 +90,10 @@ function Wait-Balance {
 
 <#
 .SYNOPSIS
-    Ждёт, пока баланс перестанет меняться, и возвращает его.
-
-.DESCRIPTION
-    Wait-Balance годится, когда ожидаемое значение известно заранее. Отсчитывать дельту
-    не от чего, если предыдущие разделы оставили в полёте операции, которых они не дожидались:
-    прочитанный «до» баланс окажется старше реального, и любое ожидание от него промахнётся
-    на сумму ещё не доехавшего движения — причём промахнётся молчаливым таймаутом.
-#>
-function Wait-BalanceSettled {
-    param([int] $TimeoutSeconds = 10)
-
-    $watch = [Diagnostics.Stopwatch]::StartNew()
-    $previous = Get-Balance
-
-    while ($watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
-        Start-Sleep -Milliseconds 400
-        $current = Get-Balance
-        if ($current -eq $previous) { return $current }
-        $previous = $current
-    }
-
-    return $previous
-}
-
-<#
-.SYNOPSIS
     Ищет операцию в ленте истории по идентификатору.
 
 .DESCRIPTION
     Отмена оставляет две строки: исходную с isReverted и компенсирующую с reversalOfId.
-    Сама транзакция флага отмены пока не отдаёт, поэтому лента — единственное место,
-    где результат виден снаружи.
 #>
 function Get-HistoryLine {
     param([Parameter(Mandatory)][string] $Id)
@@ -214,6 +190,8 @@ if (Assert-Status -Response $single -Expected 200 -What 'GET /transactions/{id}'
     Assert-True -Condition ($tx.PSObject.Properties.Name -contains 'rateStatus') `
         -What 'ответ несёт rateStatus — клиент должен знать, окончателен ли пересчёт в базовую валюту'
     Assert-True -Condition ($tx.accountId -eq $accountId) -What 'ответ несёт accountId'
+    Assert-True -Condition ($tx.isCancelled -eq $false) -What 'свежая операция не отменена'
+    Assert-True -Condition ($null -eq $tx.cancelledAt) -What 'у неотменённой операции нет момента отмены'
 }
 
 Assert-Status -Response (Send-Api -Method GET -Path "/transactions/$([guid]::NewGuid())" -Token $user.Token) `
@@ -370,6 +348,11 @@ if (Assert-Status -Response $toCancel -Expected 201 -What 'операция по
 
     Assert-True -Condition (Wait-Balance -Expected $balanceBase) `
         -What 'деньги вернулись на счёт после того, как проекция догнала'
+
+    $cancelledTx = Read-Json -Response (Send-Api -Method GET -Path "/transactions/$cancelId" -Token $user.Token)
+    Assert-True -Condition ($cancelledTx.isCancelled -eq $true) `
+        -What 'операция помечена отменённой — клиенту не нужно догадываться по ленте'
+    Assert-True -Condition ($null -ne $cancelledTx.cancelledAt) -What 'ответ несёт момент отмены'
 
     Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$cancelId/cancel" -Token $user.Token `
         -Headers @{ 'Idempotency-Key' = $cancelKey }) `

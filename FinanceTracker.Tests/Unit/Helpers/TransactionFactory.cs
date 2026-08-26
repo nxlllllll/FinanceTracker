@@ -60,6 +60,8 @@ public static class TransactionFactory
 		decimal exchangeRate = 1m,
 		RateStatus rateStatus = RateStatus.Pending,
 		bool isExcluded = false,
+		bool isCancelled = false,
+		DateTimeOffset? cancelledAt = null,
 		string? description = null)
 	{
 		return new TransactionReadModel(
@@ -71,6 +73,8 @@ public static class TransactionFactory
 			Direction: direction,
 			ExchangeRate: exchangeRate,
 			IsExcluded: isExcluded,
+			IsCancelled: isCancelled,
+			CancelledAt: cancelledAt ?? (isCancelled ? FakeDateProvider.Default.UtcNow : null),
 			RateStatus: rateStatus,
 			Description: description,
 			OccurredAt: FakeDateProvider.Default.UtcNow

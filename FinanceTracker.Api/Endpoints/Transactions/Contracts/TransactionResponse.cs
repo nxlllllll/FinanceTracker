@@ -18,6 +18,8 @@ public sealed record TransactionResponse(
 	decimal ExchangeRate,
 	RateStatus RateStatus,
 	bool IsExcluded,
+	bool IsCancelled,
+	DateTimeOffset? CancelledAt,
 	string? Description,
 	DateTimeOffset OccurredAt
 ) : IResponseOf<TransactionReadModel, TransactionResponse>
@@ -31,6 +33,8 @@ public sealed record TransactionResponse(
 		ExchangeRate: readModel.ExchangeRate,
 		RateStatus: readModel.RateStatus,
 		IsExcluded: readModel.IsExcluded,
+		IsCancelled: readModel.IsCancelled,
+		CancelledAt: readModel.CancelledAt,
 		Description: readModel.Description,
 		OccurredAt: readModel.OccurredAt
 	);
