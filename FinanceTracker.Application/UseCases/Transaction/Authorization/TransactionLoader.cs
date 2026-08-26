@@ -6,6 +6,7 @@ using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction
 using FinanceTracker.Application.UseCases.Transaction.Commands.ExcludeTransaction;
 using FinanceTracker.Application.UseCases.Transaction.Commands.IncludeTransaction;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transaction;
@@ -62,6 +63,14 @@ public sealed class TransactionLoader(
 
 		if (transaction is null)
 			return Result<Core.Domains.Transaction.Transaction, AppException>.Failure(error: new NotFoundException(message: "Transaction not found.", id: transactionId));
+
+		Core.Domains.Account.Account? account = await accountRepository.GetByIdAsync(accountId: transaction.AccountId, ct: ct);
+
+		if (account is null)
+			return Result<Core.Domains.Transaction.Transaction, AppException>.Failure(error: new NotFoundException(message: "Account not found.", id: transaction.AccountId));
+
+		if (account.IsArchived)
+			return Result<Core.Domains.Transaction.Transaction, AppException>.Failure(error: new ArchivedOperationException(message: "Cannot modify a transaction on an archived account."));
 
 		return Result<Core.Domains.Transaction.Transaction, AppException>.Success(value: transaction);
 	}

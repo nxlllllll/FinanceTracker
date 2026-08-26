@@ -1,12 +1,11 @@
 using FinanceTracker.Application.UseCases.Transaction.Authorization;
 using FinanceTracker.Application.UseCases.Transaction.Commands.ChangeTransactionCategory;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Domains.Transaction;
 using FinanceTracker.Core.Exceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Account;
-using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Transaction;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
@@ -18,7 +17,6 @@ public sealed class TransactionLoaderTests
 {
 	private ITransactionRepository _transactionRepository = null!;
 	private IAccountRepository _accountRepository = null!;
-	private ICategoryRepository _categoryRepository = null!;
 	private TransactionLoader _loader = null!;
 
 	[Before(hookType: Test)]
@@ -26,12 +24,22 @@ public sealed class TransactionLoaderTests
 	{
 		_transactionRepository = Substitute.For<ITransactionRepository>();
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_categoryRepository = Substitute.For<ICategoryRepository>();
 		_loader = new TransactionLoader(
 			accountRepository: _accountRepository,
 			transactionRepository: _transactionRepository
 		);
 	}
+
+	private void GivenTransaction(Transaction transaction) => _transactionRepository.GetByIdAsync(
+		transactionId: Arg.Any<Guid>(),
+		userId: Arg.Any<Guid>(),
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: transaction);
+
+	private void GivenAccount(Account? account) => _accountRepository.GetByIdAsync(
+		accountId: Arg.Any<Guid>(),
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: Task.FromResult(result: account));
 
 	[Test]
 	public async Task LoadAsync_WhenTransactionNotFound_ShouldThrowNotFoundException()
@@ -78,17 +86,8 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_WhenOwner_ShouldReturnTransaction()
 	{
 		Transaction transaction = TransactionFactory.Create();
-		Category category = CategoryFactory.Create().Value!;
-		_transactionRepository.GetByIdAsync(
-			transactionId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: transaction);
-		_categoryRepository.GetByIdAsync(
-			categoryId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: category);
+		GivenTransaction(transaction: transaction);
+		GivenAccount(account: AccountFactory.CreateWithArchivation(archived: false));
 
 		Result<Transaction, AppException> result = await _loader.LoadAsync(
 			request: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
@@ -100,11 +99,43 @@ public sealed class TransactionLoaderTests
 	}
 
 	[Test]
+	public async Task LoadAsync_WhenAccountIsArchived_ShouldRefuse()
+	{
+		Transaction transaction = TransactionFactory.Create();
+		GivenTransaction(transaction: transaction);
+		GivenAccount(account: AccountFactory.CreateWithArchivation(archived: true));
+
+		Result<Transaction, AppException> result = await _loader.LoadAsync(
+			request: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<ArchivedOperationException>()
+			.Because(message: "Every command that mutates a transaction comes through this method, so the rule is stated once here rather than in each handler. This is the test that notices if the shared path ever stops applying it.");
+	}
+
+	[Test]
+	public async Task LoadAsync_WhenAccountIsMissing_ShouldReturnNotFound()
+	{
+		Transaction transaction = TransactionFactory.Create();
+		GivenTransaction(transaction: transaction);
+		GivenAccount(account: null);
+
+		Result<Transaction, AppException> result = await _loader.LoadAsync(
+			request: new ChangeTransactionCategoryCommand(UserId: transaction.UserId, TransactionId: transaction.Id, CategoryId: Guid.CreateVersion7()),
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: result.IsFailure).IsTrue();
+		await Assert.That(value: result.Error).IsTypeOf<NotFoundException>()
+			.Because(message: "A transaction whose account cannot be replayed is not a transaction anyone can act on. Answering with the archiving rule instead would claim a state the event store never reported.");
+	}
+
+	[Test]
 	public async Task LoadAsync_CreateTransaction_WhenAccountNotFound_ShouldThrowNotFoundException()
 	{
-		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Task.FromResult<Account?>(result: null));
+		GivenAccount(account: null);
 
 		Result<Account, AppException> resultAccount = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(),
@@ -119,9 +150,7 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_CreateTransaction_WhenAccountBelongsToAnotherUser_ShouldThrowNotFoundException()
 	{
 		Account account = AccountFactory.CreateWithArchivation();
-		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(), ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: account);
+		GivenAccount(account: account);
 
 		Result<Account, AppException> resultAccount = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(userId: Guid.CreateVersion7(), accountId: account.Id),
@@ -136,16 +165,7 @@ public sealed class TransactionLoaderTests
 	public async Task LoadAsync_CreateTransaction_WhenOwner_ShouldReturnAccount()
 	{
 		Account account = AccountFactory.CreateWithArchivation();
-		Category category = CategoryFactory.Create().Value!;
-		_accountRepository.GetByIdAsync(
-			accountId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: account);
-		_categoryRepository.GetByIdAsync(
-			categoryId: Arg.Any<Guid>(),
-			userId: Arg.Any<Guid>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: category);
+		GivenAccount(account: account);
 
 		Result<Account, AppException> result = await _loader.LoadAsync(
 			request: CreateTransactionCommandFactory.Create(userId: account.UserId, accountId: account.Id),
