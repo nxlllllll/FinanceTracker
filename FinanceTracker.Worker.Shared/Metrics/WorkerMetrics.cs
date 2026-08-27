@@ -20,6 +20,12 @@ public static class WorkerMetrics
 		description: "Total number of job executions that threw an unhandled exception. Tagged by job (job type name)."
 	);
 
+	public static readonly Histogram<double> ProjectionLag = Meter.CreateHistogram<double>(
+		name: "projection.lag",
+		unit: "s",
+		description: "Seconds between a domain event occurring and a projection applying it. Tagged by handler."
+	);
+
 	// Outbox
 
 	/// <remarks>

@@ -6,6 +6,8 @@ using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Observability.Tracing;
+using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -155,11 +157,13 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 		THandler handler = scope.ServiceProvider.GetRequiredService<THandler>();
 
+		IDateProvider? dateProvider = scope.ServiceProvider.GetService<IDateProvider>();
+
 		TMessage? message = await DeserializeMessageAsync(ea: ea, activity: activity, ct: ct);
 		if (message is null)
 			return;
 
-		await DispatchAsync(handler: handler, message: message, ea: ea, activity: activity, ct: ct);
+		await DispatchAsync(handler: handler, message: message, ea: ea, activity: activity, dateProvider: dateProvider, ct: ct);
 	}
 
 	/// <summary>
@@ -199,6 +203,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		TMessage message,
 		BasicDeliverEventArgs ea,
 		Activity? activity,
+		IDateProvider? dateProvider,
 		CancellationToken ct)
 	{
 		RabbitMqOptions currentOptions = options.CurrentValue;
@@ -206,6 +211,8 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		try
 		{
 			await handler.HandleAsync(message: message, ct: ct);
+
+			RecordLag(message: message, dateProvider: dateProvider);
 
 			activity?.SetStatus(code: ActivityStatusCode.Ok);
 			await SafeAckAsync(deliveryTag: ea.DeliveryTag);
@@ -256,5 +263,21 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			return Encoding.UTF8.GetString(bytes: bytes);
 
 		return value as string;
+	}
+
+	private void RecordLag(TMessage message, IDateProvider? dateProvider)
+	{
+		if (dateProvider is null || message is not IHasEventTime timed)
+			return;
+
+		double seconds = (dateProvider.UtcNow - timed.OccurredAt).TotalSeconds;
+
+		if (seconds < 0)
+			return;
+
+		WorkerMetrics.ProjectionLag.Record(
+			value: seconds,
+			tag: new KeyValuePair<string, object?>(key: "handler", value: typeof(THandler).Name)
+		);
 	}
 }

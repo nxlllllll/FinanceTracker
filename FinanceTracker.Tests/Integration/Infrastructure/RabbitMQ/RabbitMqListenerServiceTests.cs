@@ -256,6 +256,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		ServiceCollection services = new ServiceCollection();
 		services.AddSingleton<TestHandlerState>(_ => state);
 		services.AddScoped<TestMessageHandler>();
+		services.AddScoped<IDateProvider>(implementationFactory: _ => FakeDateProvider.Default);
 		return services.BuildServiceProvider();
 	}
 
@@ -282,6 +283,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		ServiceCollection services = new ServiceCollection();
 		services.AddSingleton<BlockingMessageHandlerState>(implementationFactory: _ => state);
 		services.AddScoped<BlockingMessageHandler>();
+		services.AddScoped<IDateProvider>(implementationFactory: _ => FakeDateProvider.Default);
 		return services.BuildServiceProvider();
 	}
 
@@ -346,6 +348,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -372,6 +375,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -399,6 +403,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -454,6 +459,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -495,6 +501,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		ServiceCollection services = new ServiceCollection();
 		services.AddSingleton<FlakyMessageHandlerState>(implementationFactory: _ => handlerState);
 		services.AddScoped<FlakyMessageHandler>();
+		services.AddScoped<IDateProvider>(implementationFactory: _ => FakeDateProvider.Default);
 		await using ServiceProvider sp = services.BuildServiceProvider();
 
 		RabbitMqListenerService<AggregateEventsMessage, FlakyMessageHandler> listener = BuildListener<FlakyMessageHandler>(
@@ -505,6 +512,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -545,6 +553,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -587,6 +596,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -627,6 +637,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -668,6 +679,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -717,6 +729,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -761,6 +774,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 

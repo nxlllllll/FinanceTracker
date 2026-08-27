@@ -6,6 +6,7 @@ using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
+using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.Extensions.DependencyInjection;
@@ -72,6 +73,7 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 			connectionFactory: new RabbitMqConnectionFactory(options: Options.Create(options: _options)),
 			options: Options.Create(options: _options),
 			scopeFactory: _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 	}
