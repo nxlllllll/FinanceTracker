@@ -9,7 +9,6 @@ public interface ICorrelationContext
 {
 	/// <summary>
 	/// The correlation ID for the current request.
-	/// Defaults to <see cref="Guid.Empty"/> until <see cref="Set"/> is called.
 	/// </summary>
 	Guid CorrelationId { get; }
 
