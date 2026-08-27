@@ -73,7 +73,11 @@ public sealed class ChangeBudgetPeriodHandler(
 
 				return null;
 			},
-			onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to change period for budget {budget.Id} ({command.From} > {command.To})."),
+			onError: exception =>
+			{
+				logger.ZLogError(exception: exception, message: $"Failed to change period for budget {budget.Id} ({command.From} > {command.To}).");
+				return Task.CompletedTask;
+			},
 			ct: ct);
 		}
 		catch (UniqueConstraintException)

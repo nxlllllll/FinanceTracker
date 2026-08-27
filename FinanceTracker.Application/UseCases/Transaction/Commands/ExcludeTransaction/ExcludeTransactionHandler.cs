@@ -67,7 +67,11 @@ public sealed class ExcludeTransactionHandler(
 				ct: ct
 			);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to exclude transaction {transaction.Id}."),
+		onError: exception =>
+		{
+			logger.ZLogError(exception: exception, message: $"Failed to exclude transaction {transaction.Id}.");
+			return Task.CompletedTask;
+		},
 		ct: ct);
 
 		postCommitNotifications.Stage(notification: new TransactionExcludedNotification(

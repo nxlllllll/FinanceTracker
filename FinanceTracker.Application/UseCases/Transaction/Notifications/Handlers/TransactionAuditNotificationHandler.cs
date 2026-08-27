@@ -12,7 +12,8 @@ public sealed class TransactionAuditNotificationHandler(ILogger<TransactionAudit
 	INotificationHandler<TransactionCategoryChangedNotification>,
 	INotificationHandler<TransactionDescriptionChangedNotification>,
 	INotificationHandler<TransactionExcludedNotification>,
-	INotificationHandler<TransactionIncludedNotification>
+	INotificationHandler<TransactionIncludedNotification>,
+	INotificationHandler<TransactionCancelledNotification>
 {
 	public Task Handle(TransactionCreatedNotification notification, CancellationToken cancellationToken)
 	{
@@ -60,6 +61,18 @@ public sealed class TransactionAuditNotificationHandler(ILogger<TransactionAudit
 		logger.ZLogInformation(message: $"""
 			[Audit] Transaction included. TransactionId: {notification.TransactionId},
 			UserId: {notification.UserId}, OccurredAt: {notification.OccurredAt:O}.
+		""");
+		return Task.CompletedTask;
+	}
+
+	public Task Handle(TransactionCancelledNotification notification, CancellationToken cancellationToken)
+	{
+		logger.ZLogInformation(message: $"""
+			[Audit] Transaction cancelled. TransactionId: {notification.TransactionId},
+			UserId: {notification.UserId}, AccountId: {notification.AccountId},
+			ReversalId: {notification.ReversalId}, Amount: {notification.Amount},
+			Direction: {notification.Direction}, WasExcluded: {notification.WasExcluded},
+			OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}

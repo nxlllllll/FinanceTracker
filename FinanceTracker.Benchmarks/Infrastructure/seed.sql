@@ -24,8 +24,8 @@ SELECT
 FROM (SELECT id, ROW_NUMBER() OVER () AS rn FROM users) u
          CROSS JOIN generate_series(1, 5) a(i);
 
-INSERT INTO rm_account_balances (account_id, balance, last_version, updated_at)
-SELECT id, (random() * 500000 + 1000)::numeric(18,2), 1, now()
+INSERT INTO rm_account_balances (account_id, balance, updated_at)
+SELECT id, (random() * 500000 + 1000)::numeric(18,2), now()
 FROM accounts;
 
 -- 20 категорий на пользователя, income + expense

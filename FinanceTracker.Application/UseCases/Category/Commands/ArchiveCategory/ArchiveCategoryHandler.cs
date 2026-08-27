@@ -42,7 +42,11 @@ public sealed class ArchiveCategoryHandler(
 			await recurringTransactionWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 			await budgetWriteRepository.DeactivateByCategoryIdAsync(categoryId: command.CategoryId, ct: ct);
 		},
-		onError: async exception => logger.ZLogError(exception: exception, message: $"Failed to archive category {category.Id}."),
+		onError: exception =>
+		{
+			logger.ZLogError(exception: exception, message: $"Failed to archive category {category.Id}.");
+			return Task.CompletedTask;
+		},
 		ct: ct);
 
 		postCommitNotifications.Stage(notification: new CategoryArchivedNotification(

@@ -54,6 +54,9 @@ public readonly partial record struct Currency
 
 	/// <inheritdoc/>
 	/// <returns>Returns a string representation of the currency, for example, <c>RUB</c></returns>
+	/// <exception cref="InvalidOperationException">The value is <c>default(Currency)</c>.</exception>
 	public override string ToString()
-		=> Value;
+		=> Value ?? throw new InvalidOperationException(
+			message: "Cannot convert a default(Currency) to a string — this currency was never created via Currency.Create or Currency.Reconstitute."
+		);
 }

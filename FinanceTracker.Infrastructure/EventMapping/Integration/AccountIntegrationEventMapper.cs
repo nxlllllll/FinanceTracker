@@ -42,6 +42,18 @@ public sealed class AccountIntegrationEventMapper : IAggregateIntegrationEventMa
 			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
+		AccountTransactionReverted e => new AccountTransactionRevertedEvent(
+			EventId: e.Id,
+			AccountId: e.AccountId,
+			TransactionId: e.TransactionId,
+			CategoryId: e.CategoryId,
+			Amount: e.Amount,
+			ExchangeRate: e.ExchangeRate,
+			Direction: e.Direction,
+			Description: e.Description,
+			Version: e.Version,
+			OccurredAt: e.OccurredAt
+		),
 		AccountRenamed e => new AccountRenamedEvent(
 			EventId: e.Id,
 			AccountId: e.AccountId,

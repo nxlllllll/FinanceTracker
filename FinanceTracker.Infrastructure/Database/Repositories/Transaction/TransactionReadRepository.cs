@@ -28,6 +28,8 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 				Direction: t.Direction,
 				ExchangeRate: t.ExchangeRate,
 				IsExcluded: t.IsExcluded,
+				IsCancelled: t.IsCancelled,
+				CancelledAt: t.CancelledAt,
 				RateStatus: t.RateStatus,
 				Description: t.Description,
 				OccurredAt: t.OccurredAt
@@ -82,6 +84,8 @@ public sealed class TransactionReadRepository(FinanceTrackerContext context) : I
 				Direction: t.Direction,
 				ExchangeRate: t.ExchangeRate,
 				IsExcluded: t.IsExcluded,
+				IsCancelled: t.IsCancelled,
+				CancelledAt: t.CancelledAt,
 				RateStatus: t.RateStatus,
 				Description: t.Description,
 				OccurredAt: t.OccurredAt

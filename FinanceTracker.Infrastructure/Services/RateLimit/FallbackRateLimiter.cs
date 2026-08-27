@@ -18,6 +18,10 @@ public sealed class FallbackRateLimiter(
 	ILogger<FallbackRateLimiter> logger
 ) : IRateLimiter
 {
+	private const string ProbeKey = "ratelimit:probe";
+	private const int ProbeRequestsPerWindow = 1_000_000;
+	private const int ProbeWindowSeconds = 60;
+
 	private int _isDegraded;
 	private int _isProbing;
 	private long _nextProbeTicks;
@@ -32,11 +36,8 @@ public sealed class FallbackRateLimiter(
 	{
 		if (Volatile.Read(location: ref _isDegraded) == 1)
 		{
-			TryScheduleRecoveryProbe(
-				key: key,
-				requestsPerWindow: requestsPerWindow,
-				windowSeconds: windowSeconds
-			);
+			TryScheduleRecoveryProbe();
+
 			return await ServeFromFallbackAsync(
 				key: key,
 				requestsPerWindow: requestsPerWindow,
@@ -103,7 +104,7 @@ public sealed class FallbackRateLimiter(
 	/// Starts one Redis probe in the background if the interval has elapsed and no probe is already
 	/// running. The caller does not wait for it.
 	/// </summary>
-	private void TryScheduleRecoveryProbe(string key, int requestsPerWindow, int windowSeconds)
+	private void TryScheduleRecoveryProbe()
 	{
 		if (Environment.TickCount64 < Volatile.Read(location: ref _nextProbeTicks))
 			return;
@@ -113,23 +114,19 @@ public sealed class FallbackRateLimiter(
 
 		Volatile.Write(location: ref _nextProbeTicks, value: Environment.TickCount64 + options.CurrentValue.RecoveryProbeIntervalMs);
 
-		_ = ProbeRedisAsync(
-			key: key,
-			requestsPerWindow: requestsPerWindow,
-			windowSeconds: windowSeconds
-		);
+		_ = ProbeRedisAsync();
 	}
 
-	private async Task ProbeRedisAsync(string key, int requestsPerWindow, int windowSeconds)
+	private async Task ProbeRedisAsync()
 	{
 		try
 		{
 			using CancellationTokenSource probeCts = new CancellationTokenSource(delay: TimeSpan.FromMilliseconds(value: options.CurrentValue.ProbeTimeoutMs));
 
 			await inner.IsAllowedAsync(
-				key: key,
-				requestsPerWindow: requestsPerWindow,
-				windowSeconds: windowSeconds,
+				key: ProbeKey,
+				requestsPerWindow: ProbeRequestsPerWindow,
+				windowSeconds: ProbeWindowSeconds,
 				ct: probeCts.Token
 			);
 

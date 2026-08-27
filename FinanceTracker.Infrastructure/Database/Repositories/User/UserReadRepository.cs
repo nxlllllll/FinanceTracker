@@ -201,6 +201,8 @@ public sealed class UserReadRepository(
 				Type: OperationFilterType.Transfer,
 				Description: o.Description,
 				OccurredAt: o.OccurredAt,
+				IsReverted: o.IsReverted,
+				ReversalOfId: o.ReversalOfId,
 				Transaction: null,
 				Transfer: new TransferDetails(
 					FromAccountId: o.FromAccountId!.Value,
@@ -221,6 +223,8 @@ public sealed class UserReadRepository(
 			Type: direction == DirectionType.Credit ? OperationFilterType.Income : OperationFilterType.Expense,
 			Description: o.Description,
 			OccurredAt: o.OccurredAt,
+			IsReverted: o.IsReverted,
+			ReversalOfId: o.ReversalOfId,
 			Transaction: new TransactionDetails(
 				AccountId: o.AccountId!.Value,
 				CategoryId: o.CategoryId!.Value,

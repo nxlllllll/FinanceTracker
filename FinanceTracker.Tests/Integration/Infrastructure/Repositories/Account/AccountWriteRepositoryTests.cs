@@ -368,12 +368,16 @@ public sealed class AccountWriteRepositoryTests : DatabaseFixture
 			OccurredAt: DateTimeOffset.UtcNow
 		));
 
-		var result = await Context.AccountBalances.Where(predicate: b => b.AccountId == created.AccountId)
-			.Select(selector: b => new { b.Balance, b.LastVersion })
+		decimal balance = await Context.AccountBalances.Where(predicate: b => b.AccountId == created.AccountId)
+			.Select(selector: b => b.Balance)
 			.FirstAsync();
 
-		await Assert.That(value: result.Balance).IsEqualTo(expected: 4000m);
-		await Assert.That(value: result.LastVersion).IsEqualTo(expected: 4);
+		int projectedVersion = await Context.Accounts.Where(predicate: a => a.Id == created.AccountId)
+			.Select(selector: a => a.LastVersion)
+			.FirstAsync();
+
+		await Assert.That(value: balance).IsEqualTo(expected: 4000m);
+		await Assert.That(value: projectedVersion).IsEqualTo(expected: 4);
 	}
 
 	[Test]

@@ -27,7 +27,6 @@ public class AccountBuilder(FinanceTrackerContext context)
 		{
 			AccountId = accountId,
 			Balance = balance,
-			LastVersion = 0,
 			UpdatedAt = DateTimeOffset.UtcNow
 		});
 		await context.SaveChangesAsync();

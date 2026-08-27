@@ -122,7 +122,6 @@ public sealed class CachedCurrencyRateReadRepository(
 		Dictionary<TRequest, decimal> dbResults,
 		Func<TRequest, string> keyFor,
 		DistributedCacheEntryOptions foundOptions,
-		DistributedCacheEntryOptions notFoundOptions,
 		CancellationToken ct)
 		where TRequest : notnull
 	{
@@ -133,13 +132,15 @@ public sealed class CachedCurrencyRateReadRepository(
 
 		foreach (TRequest request in cacheMisses)
 		{
-			string key = keyFor(request);
-			decimal? value = null;
-			if (dbResults.TryGetValue(key: request, out decimal rate))
-				value = result[request] = rate;
+			if (!dbResults.TryGetValue(key: request, out decimal rate))
+				continue;
 
-			writes.Add(item: new BatchItem<decimal?>(Key: key, Value: value, Options: foundOptions));
+			result[request] = rate;
+			writes.Add(item: new BatchItem<decimal?>(Key: keyFor(request), Value: rate, Options: foundOptions));
 		}
+
+		if (writes.Count == 0)
+			return;
 
 		await redisCache.SetBatchAsync(items: writes);
 	}
@@ -211,7 +212,6 @@ public sealed class CachedCurrencyRateReadRepository(
 			dbResults: dbResults,
 			keyFor: p => CurrencyRateCacheKeys.LatestRateKey(from: p.From, to: p.To),
 			foundOptions: EndOfDay,
-			notFoundOptions: NotFound,
 			ct: ct
 		);
 
@@ -244,7 +244,6 @@ public sealed class CachedCurrencyRateReadRepository(
 			dbResults: dbResults,
 			keyFor: CurrencyRateCacheKeys.StableRateKey,
 			foundOptions: Stable,
-			notFoundOptions: Stable,
 			ct: ct
 		);
 

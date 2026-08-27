@@ -27,8 +27,11 @@ public sealed class TransactionRepository(
 				rateStatus: t.RateStatus,
 				rateStatusChangedAt: t.RateStatusChangedAt,
 				isExcluded: t.IsExcluded,
+				isCancelled: t.IsCancelled,
+				cancelledAt: t.CancelledAt,
 				description: t.Description,
 				rowVersion: t.RowVersion,
+				createdAt: t.CreatedAt,
 				occurredAt: t.OccurredAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

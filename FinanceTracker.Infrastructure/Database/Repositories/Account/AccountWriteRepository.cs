@@ -14,6 +14,23 @@ public sealed class AccountWriteRepository(
 	IDateProvider dateProvider
 ) : IAccountWriteRepository
 {
+	/// <summary>
+	/// Moves accounts.last_version forward, never backward.
+	/// </summary>
+	private Task AdvanceVersionAsync(
+		Guid accountId,
+		int version,
+		CancellationToken ct)
+	{
+		return context.Accounts.Where(predicate: a => a.Id == accountId && a.LastVersion < version).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: version),
+			cancellationToken: ct
+		);
+	}
+
+	/// <summary>
+	/// Applies a balance delta and advances the aggregate's version.
+	/// </summary>
 	private async Task ApplyBalanceChangeAsync(
 		Guid accountId,
 		decimal delta,
@@ -38,13 +55,14 @@ public sealed class AccountWriteRepository(
 
 		int rows = await context.AccountBalances.Where(predicate: b => b.AccountId == accountId).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder.SetProperty(propertyExpression: e => e.Balance, valueExpression: e => e.Balance + delta)
-				.SetProperty(propertyExpression: e => e.LastVersion, valueExpression: e => e.LastVersion > version ? e.LastVersion : version)
 				.SetProperty(propertyExpression: e => e.UpdatedAt, valueExpression: now),
 			cancellationToken: ct
 		);
 
 		if (rows == 0)
 			throw new NotFoundException(message: $"Account balance row for {accountId} does not exist yet (AccountCreated not projected?).", id: accountId);
+
+		await AdvanceVersionAsync(accountId: accountId, version: version, ct: ct);
 	}
 
 	private async Task EnsureAccountExistsAsync(Guid accountId, CancellationToken ct)
@@ -84,7 +102,6 @@ public sealed class AccountWriteRepository(
 		await context.InsertAccountBalanceAsync(
 			accountId: @event.AccountId,
 			balance: @event.Balance,
-			lastVersion: @event.Version,
 			updatedAt: @event.OccurredAt,
 			ct: ct
 		);
@@ -121,6 +138,20 @@ public sealed class AccountWriteRepository(
 		await ApplyBalanceChangeAsync(
 			accountId: @event.AccountId,
 			delta: Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate),
+			version: @event.Version,
+			ct: ct
+		);
+	}
+
+	public async Task RevertTransactionAsync(
+		AccountTransactionReverted @event,
+		CancellationToken ct = default)
+	{
+		decimal amount = Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate);
+
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: @event.Direction is Core.Domains.Account.DirectionType.Debit ? amount : -amount,
 			version: @event.Version,
 			ct: ct
 		);
@@ -234,7 +265,6 @@ public sealed class AccountWriteRepository(
 		await context.InsertAccountBalanceAsync(
 			accountId: account.Id,
 			balance: account.Balance.Amount,
-			lastVersion: account.Version,
 			updatedAt: dateProvider.UtcNow,
 			ct: ct
 		);

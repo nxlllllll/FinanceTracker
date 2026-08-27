@@ -47,6 +47,12 @@ public interface IAccountWriteRepository
 		CancellationToken ct = default
 	);
 
+	[EventuallyConsistentDelta(ledgerTable: "rm_account_balance_applied_events")]
+	Task RevertTransactionAsync(
+		AccountTransactionReverted @event,
+		CancellationToken ct = default
+	);
+
 	[EventuallyConsistentAssignment(versionColumn: "last_version")]
 	Task RenameAsync(
 		AccountRenamed @event,

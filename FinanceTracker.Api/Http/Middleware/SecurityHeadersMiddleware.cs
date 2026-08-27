@@ -14,7 +14,18 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 		"frame-ancestors 'none'; " +
 		"base-uri 'self'";
 
-	public async Task InvokeAsync(HttpContext context)
+	public Task InvokeAsync(HttpContext context)
+	{
+		context.Response.OnStarting(callback: () =>
+		{
+			ApplyHeaders(context: context);
+			return Task.CompletedTask;
+		});
+
+		return next(context: context);
+	}
+
+	private static void ApplyHeaders(HttpContext context)
 	{
 		context.Response.Headers.XContentTypeOptions = "nosniff";
 		context.Response.Headers.XFrameOptions = "DENY";
@@ -24,8 +35,6 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 		bool isDocumentation = context.Request.Path.StartsWithSegments(other: "/scalar") || context.Request.Path.StartsWithSegments(other: "/openapi");
 
 		context.Response.Headers.ContentSecurityPolicy = isDocumentation ? DocumentationPolicy : ApiPolicy;
-
-		await next(context: context);
 	}
 }
 

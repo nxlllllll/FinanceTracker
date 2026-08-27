@@ -54,6 +54,8 @@ public sealed record OperationResponse(
 	OperationFilterType Type,
 	string? Description,
 	DateTimeOffset OccurredAt,
+	bool IsReverted,
+	Guid? ReversalOfId,
 	OperationTransactionDetails? Transaction,
 	OperationTransferDetails? Transfer
 ) : IResponseOf<Operation, OperationResponse>
@@ -63,6 +65,8 @@ public sealed record OperationResponse(
 		Type: readModel.Type,
 		Description: readModel.Description,
 		OccurredAt: readModel.OccurredAt,
+		IsReverted: readModel.IsReverted,
+		ReversalOfId: readModel.ReversalOfId,
 		Transaction: readModel.Transaction is null ? null : OperationTransactionDetails.FromReadModel(readModel: readModel.Transaction),
 		Transfer: readModel.Transfer is null ? null : OperationTransferDetails.FromReadModel(readModel: readModel.Transfer)
 	);

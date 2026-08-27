@@ -20,6 +20,7 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		AccountCreatedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountDebitedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountCreditedEvent e => ApplyAsync(e: e, ct: ct),
+		AccountTransactionRevertedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountRenamedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountArchivedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountUnarchivedEvent e => ApplyAsync(e: e, ct: ct),
@@ -61,6 +62,19 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		CategoryId: e.CategoryId,
 		Amount: e.Amount,
 		ExchangeRate: e.ExchangeRate,
+		Description: e.Description,
+		Version: e.Version,
+		OccurredAt: e.OccurredAt
+	), ct);
+
+	private Task ApplyAsync(AccountTransactionRevertedEvent e, CancellationToken ct) => repository.RevertTransactionAsync(new AccountTransactionReverted(
+		Id: e.EventId,
+		AccountId: e.AccountId,
+		TransactionId: e.TransactionId,
+		CategoryId: e.CategoryId,
+		Amount: e.Amount,
+		ExchangeRate: e.ExchangeRate,
+		Direction: e.Direction,
 		Description: e.Description,
 		Version: e.Version,
 		OccurredAt: e.OccurredAt
