@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Net.Mime;
-using System.Net.Sockets;
 using FinanceTracker.Api.Configurations;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Services.RateLimit;
@@ -17,8 +16,6 @@ public sealed class IpRateLimitMiddleware(
 	IOptionsMonitor<IpRateLimitOptions> options,
 	ILogger<IpRateLimitMiddleware> logger)
 {
-	private const string KeyPrefix = "ratelimit:ip:";
-
 	public async Task InvokeAsync(
 		HttpContext context,
 		IRateLimiter rateLimiter,
@@ -32,9 +29,9 @@ public sealed class IpRateLimitMiddleware(
 			return;
 		}
 
-		string? partition = PartitionFor(address: context.Connection.RemoteIpAddress);
+		IPAddress? address = context.Connection.RemoteIpAddress;
 
-		if (partition is null)
+		if (address is null)
 		{
 			logger.ZLogDebug(message: $"[IpRateLimit] No remote address on {context.Request.Path} — skipped.");
 			await next(context: context);
@@ -42,7 +39,7 @@ public sealed class IpRateLimitMiddleware(
 		}
 
 		RateLimitResult result = await rateLimiter.IsAllowedAsync(
-			key: KeyPrefix + partition,
+			key: RateLimitKeys.GetGlobalIp(address: address),
 			requestsPerWindow: current.RequestsPerWindow,
 			windowSeconds: current.WindowSeconds,
 			ct: context.RequestAborted
@@ -54,6 +51,8 @@ public sealed class IpRateLimitMiddleware(
 			return;
 		}
 
+		string partition = RateLimitKeys.GetPartition(address: address);
+
 		logger.ZLogWarning(message: $"[IpRateLimit] {partition} exceeded {current.RequestsPerWindow} requests per {current.WindowSeconds}s on {context.Request.Path}.");
 
 		await WriteRejectionAsync(
@@ -61,27 +60,6 @@ public sealed class IpRateLimitMiddleware(
 			retryAfterSeconds: result.RetryAfterSeconds,
 			correlationContext: correlationContext
 		);
-	}
-
-	/// <summary>
-	/// Groups an address into the unit the limit is counted against, or <c>null</c> when there is no
-	/// address to count.
-	/// </summary>
-	private static string? PartitionFor(IPAddress? address)
-	{
-		if (address is null)
-			return null;
-
-		if (address.IsIPv4MappedToIPv6)
-			address = address.MapToIPv4();
-
-		if (address.AddressFamily != AddressFamily.InterNetworkV6)
-			return address.ToString();
-
-		byte[] prefix = address.GetAddressBytes();
-		Array.Clear(array: prefix, index: 8, length: 8);
-
-		return new IPAddress(address: prefix) + "/64";
 	}
 
 	private static async Task WriteRejectionAsync(
