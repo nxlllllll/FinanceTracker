@@ -12,7 +12,10 @@ namespace FinanceTracker.Infrastructure.Services.Rebuild.Account;
 /// </summary>
 public sealed class AccountDomainEventApplier(IAccountWriteRepository repository)
 {
-	public Task ApplyAsync(IEvent @event, CancellationToken ct) => @event switch
+	public Task ApplyAsync(
+		IEvent @event,
+		CancellationToken ct
+	) => @event switch
 	{
 		AccountCreated e => repository.CreateAsync(@event: e, ct: ct),
 		AccountDebited e => repository.DebitAsync(@event: e, ct: ct),

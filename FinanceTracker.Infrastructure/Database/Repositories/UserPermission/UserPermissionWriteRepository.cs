@@ -30,6 +30,11 @@ public sealed class UserPermissionWriteRepository(FinanceTrackerContext context)
 		ct: ct
 	);
 
+	public async Task DeleteAllForUserAsync(
+		Guid userId,
+		CancellationToken ct = default
+	) => await context.UserPermissions.Where(predicate: e => e.UserId == userId).ExecuteDeleteAsync(cancellationToken: ct);
+
 	public async Task<int> DeleteOldTombstonesAsync(
 		DateTimeOffset before,
 		int batchSize,

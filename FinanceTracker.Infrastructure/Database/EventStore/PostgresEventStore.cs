@@ -240,8 +240,62 @@ public sealed class PostgresEventStore(
 			.OrderByDescending(s => s.Version)
 			.FirstOrDefaultAsync(cancellationToken: ct);
 
-		int fromVersion = snapshot?.Version ?? 0;
+		List<IEvent> domainEvents = await ReadEventsAsync(
+			aggregateId: aggregateId,
+			aggregateType: aggregateType,
+			fromVersion: snapshot?.Version ?? 0,
+			ct: ct
+		);
 
+		SnapshotData? snapshotData = snapshot is null ? null : new SnapshotData(
+			AggregateId: snapshot.AggregateId,
+			AggregateType: snapshot.AggregateType,
+			Version: snapshot.Version,
+			State: snapshot.State
+		);
+
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.SnapshotFound, value: snapshot is not null);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsLoaded, value: domainEvents.Count);
+
+		return new EventStoreResult(Snapshot: snapshotData, Events: domainEvents);
+	}
+
+	public async Task<IReadOnlyList<IEvent>> LoadAllEventsAsync(
+		Guid aggregateId,
+		string aggregateType,
+		CancellationToken ct = default)
+	{
+		using Activity? activity = FinanceTrackerActivitySource.Instance.StartActivity(
+			name: FinanceTrackerActivitySource.Operations.EventStoreLoad,
+			kind: ActivityKind.Client
+		);
+
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateId, value: aggregateId);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.AggregateType, value: aggregateType);
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.SnapshotFound, value: false);
+
+		List<IEvent> domainEvents = await ReadEventsAsync(
+			aggregateId: aggregateId,
+			aggregateType: aggregateType,
+			fromVersion: 0,
+			ct: ct
+		);
+
+		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsLoaded, value: domainEvents.Count);
+
+		return domainEvents;
+	}
+
+	/// <summary>
+	/// Reads and deserializes the events above <paramref name="fromVersion"/>, upcasting anything stored at
+	/// an older schema version.
+	/// </summary>
+	private async Task<List<IEvent>> ReadEventsAsync(
+		Guid aggregateId,
+		string aggregateType,
+		int fromVersion,
+		CancellationToken ct)
+	{
 		List<EventEntity> entities = await context.Events.AsNoTracking()
 			.Where(predicate: e => e.AggregateId == aggregateId && e.Version > fromVersion && e.AggregateType == aggregateType)
 			.OrderBy(keySelector: e => e.Version)
@@ -318,17 +372,7 @@ public sealed class PostgresEventStore(
 			}
 		}
 
-		SnapshotData? snapshotData = snapshot is null ? null : new SnapshotData(
-			AggregateId: snapshot.AggregateId,
-			AggregateType: snapshot.AggregateType,
-			Version: snapshot.Version,
-			State: snapshot.State
-		);
-
-		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.SnapshotFound, value: snapshot is not null);
-		activity?.SetTag(key: FinanceTrackerActivitySource.Tags.EventsLoaded, value: entities.Count);
-
-		return new EventStoreResult(Snapshot: snapshotData, Events: domainEvents);
+		return domainEvents;
 	}
 
 	public async IAsyncEnumerable<Guid> GetAggregateIdsAsync(

@@ -1,63 +1,87 @@
 ﻿using FinanceTracker.Core.Services.Rebuild;
+using FinanceTracker.Infrastructure.Services.Rebuild;
 using Microsoft.Extensions.Logging;
 using ZLogger;
 
 namespace FinanceTracker.Cli.Commands;
 
 /// <summary>
-/// Replays the event store back into the account read model, for a single account or for all of them.
+/// Replays the event log back into a projection, for one aggregate or for all of them.
 /// </summary>
 public sealed class RebuildProjectionCommand(
-	IAccountProjectionRebuilder rebuilder,
+	ProjectionRegistry registry,
+	ProjectionRebuilder rebuilder,
 	ILogger<RebuildProjectionCommand> logger)
 {
-	public async Task<int> ExecuteForAccountAsync(
-		string accountId,
+	public async Task<int> ExecuteForAggregateAsync(
+		string projectionName,
+		string aggregateId,
 		CancellationToken ct = default)
 	{
-		if (!Guid.TryParse(input: accountId, result: out Guid parsed))
+		if (Resolve(projectionName: projectionName) is not (var projection, var aggregateType))
+			return 1;
+
+		if (!Guid.TryParse(input: aggregateId, result: out Guid parsed))
 		{
-			logger.ZLogError(message: $"'{accountId}' is not a valid account id.");
+			logger.ZLogError(message: $"'{aggregateId}' is not a valid id.");
 			return 1;
 		}
 
-		logger.ZLogInformation(message: $"Rebuilding the projection for account {parsed}.");
+		await rebuilder.RebuildAsync(
+			projection: projection,
+			aggregateType: aggregateType,
+			aggregateId: parsed,
+			ct: ct
+		);
 
-		await rebuilder.RebuildAsync(accountId: parsed, ct: ct);
-
-		logger.ZLogInformation(message: $"Done. An account with no events and no snapshot is left untouched — check the log above to tell that apart from a successful rebuild.");
 		return 0;
 	}
 
-	/// <summary>
-	/// Rebuilds every account.
-	/// </summary>
 	public async Task<int> ExecuteForAllAsync(
+		string projectionName,
 		bool confirmed,
 		int batchSize,
+		int parallelism,
 		CancellationToken ct = default)
 	{
+		if (Resolve(projectionName: projectionName) is null)
+			return 1;
+
 		if (!confirmed)
 		{
-			logger.ZLogError(message: $"Refusing to rebuild every account without --yes. This overwrites the whole account read model, and a mistyped argument should not be able to start it.");
+			logger.ZLogError(message: $"Refusing to rebuild every '{projectionName}' without --yes. This overwrites the whole read model, and a mistyped argument should not be able to start it.");
 			return 1;
 		}
 
-		if (batchSize <= 0)
+		if (batchSize <= 0 || parallelism <= 0)
 		{
-			logger.ZLogError(message: $"--batch-size must be greater than zero, got {batchSize}.");
+			logger.ZLogError(message: $"--batch-size and --parallelism must both be greater than zero.");
 			return 1;
 		}
 
 		logger.ZLogInformation(message: $"""
-			Rebuilding the projection for every account, {batchSize} at a time.
-			Reads are served from the projection while this runs, so an account is briefly missing between
-			its row being deleted and its events being replayed. Prefer a quiet window.
+			Rebuilding every '{projectionName}'.
+			Reads are served from the projection while this runs, so an aggregate is briefly missing between
+			its rows being erased and its events being replayed. Prefer a quiet window.
 		""");
 
-		await rebuilder.RebuildAllAsync(batchSize: batchSize, ct: ct);
+		await rebuilder.RebuildAllAsync(
+			projectionName: projectionName,
+			batchSize: batchSize,
+			parallelism: parallelism,
+			ct: ct
+		);
 
-		logger.ZLogInformation(message: $"Done. Accounts that failed individually were logged and skipped — the counts are in the line above.");
 		return 0;
+	}
+
+	private (IProjectionRebuild Projection, string AggregateType)? Resolve(string projectionName)
+	{
+		(IProjectionRebuild Projection, string AggregateType)? resolved = registry.Resolve(name: projectionName);
+
+		if (resolved is null)
+			logger.ZLogError(message: $"No projection named '{projectionName}'. Known: {String.Join(separator: ", ", values: ProjectionRegistry.Names)}.");
+
+		return resolved;
 	}
 }

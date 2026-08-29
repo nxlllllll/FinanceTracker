@@ -254,4 +254,66 @@ public sealed class UserRoleWriteRepositoryTests : DatabaseFixture
 		await Assert.That(value: deleted).IsEqualTo(expected: 0);
 		await Assert.That(value: (await FindAsync(userId: userId, roleId: roleId))!.IsActive).IsTrue();
 	}
+
+		[Test]
+	public async Task DeleteAllForUserAsync_ShouldRemoveLiveMembershipAndTombstonesAlike()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid keptRoleId = await SeededRoleIdAsync(systemKey: SystemRole.User);
+		Guid removedRoleId = await SeededRoleIdAsync(systemKey: SystemRole.Admin);
+
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: keptRoleId, version: 2), ct: CancellationToken.None);
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: removedRoleId, version: 3), ct: CancellationToken.None);
+		await _repository.RemoveAsync(@event: BuildRemovedEvent(userId: userId, roleId: removedRoleId, version: 4), ct: CancellationToken.None);
+
+		await _repository.DeleteAllForUserAsync(userId: userId, ct: CancellationToken.None);
+
+		int remaining = await Context.UserRoles.CountAsync(predicate: e => e.UserId == userId);
+
+		await Assert.That(value: remaining).IsEqualTo(expected: 0).Because(message: """
+			Tombstones have to go with the live rows. A replay starts at the first event, and a leftover row
+			already carrying the latest version makes every version-guarded write bounce off it — the rebuild
+			would then report success having applied nothing.
+		""");
+	}
+
+	[Test]
+	public async Task DeleteAllForUserAsync_ShouldLeaveOtherUsersAlone()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid otherUserId = await _userBuilder.CreateAsync();
+		Guid roleId = await SeededRoleIdAsync(systemKey: SystemRole.User);
+
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: roleId), ct: CancellationToken.None);
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: otherUserId, roleId: roleId), ct: CancellationToken.None);
+
+		await _repository.DeleteAllForUserAsync(userId: userId, ct: CancellationToken.None);
+
+		await Assert.That(value: await FindAsync(userId: userId, roleId: roleId)).IsNull();
+		await Assert.That(value: await FindAsync(userId: otherUserId, roleId: roleId)).IsNotNull().Because(message: """
+			Rebuilds run one aggregate at a time and in parallel with others. A clear that reached past its
+			own user would wipe read models nobody asked to rebuild.
+		""");
+	}
+
+	[Test]
+	public async Task DeleteAllForUserAsync_ThenReplayingTheSameEvent_ShouldRestoreMembership()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid roleId = await SeededRoleIdAsync(systemKey: SystemRole.User);
+
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: roleId, version: 2), ct: CancellationToken.None);
+
+		await _repository.DeleteAllForUserAsync(userId: userId, ct: CancellationToken.None);
+		await _repository.AssignAsync(@event: BuildAssignedEvent(userId: userId, roleId: roleId, version: 2), ct: CancellationToken.None);
+
+		UserRoleEntity? row = await FindAsync(userId: userId, roleId: roleId);
+
+		await Assert.That(value: row!.IsActive).IsTrue().Because(message: """
+			This pair is what makes a rebuild possible here at all. Version-guarded writes are the reason the
+			out-of-order tests above pass, and the same guard would reject an honest replay — clearing first
+			is what tells the two apart.
+		""");
+		await Assert.That(value: row.LastVersion).IsEqualTo(expected: 2);
+	}
 }

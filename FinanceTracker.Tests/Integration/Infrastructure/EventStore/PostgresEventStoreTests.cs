@@ -99,6 +99,45 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 		return accountId;
 	}
 
+	private async Task<Account> SaveAccountWithSnapshotAsync()
+	{
+		Account account = AccountFactory.Create(balance: 0m, currency: "RUB").Value!;
+
+		await SaveAsync(
+			store: _eventStore,
+			aggregateId: account.Id,
+			aggregateType: AggregateTypeNames.Account,
+			events: account.Events,
+			expectedVersion: 0,
+			snapshotFactory: () => _serializer.Serialize(aggregate: account)
+		);
+		account.ClearEvents();
+
+		for (int i = 0; i < 30; i++)
+		{
+			account.Credit(
+				occurredAt: FakeDateProvider.Default.UtcNow,
+				transactionId: Guid.CreateVersion7(),
+				categoryId: Guid.CreateVersion7(),
+				amount: 10m,
+				exchangeRate: 1m,
+				description: null
+			);
+
+			await SaveAsync(
+				store: _eventStore,
+				aggregateId: account.Id,
+				aggregateType: AggregateTypeNames.Account,
+				events: account.Events,
+				expectedVersion: account.Version - account.Events.Count,
+				snapshotFactory: () => _serializer.Serialize(aggregate: account)
+			);
+			account.ClearEvents();
+		}
+
+		return account;
+	}
+
 	[Before(hookType: Test)]
 	public void SetupEventStore()
 	{
@@ -593,5 +632,94 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 		await Assert.That(value: ids).Contains(expected: second);
 		await Assert.That(value: ids.Count(predicate: id => id == first)).IsEqualTo(expected: 1)
 			.Because(message: "a rebuild iterates this list, and a repeated id would replay the same aggregate twice");
+	}
+
+	[Test]
+	public async Task LoadAllEventsAsync_ShouldReturnTheWholeHistory()
+	{
+		Account account = await SaveAccountWithSnapshotAsync();
+
+		IReadOnlyList<IEvent> events = await _eventStore.LoadAllEventsAsync(
+			aggregateId: account.Id,
+			aggregateType: AggregateTypeNames.Account
+		);
+
+		await Assert.That(value: events.Count).IsEqualTo(expected: 31).Because(message: """
+			One creation and thirty credits. The count is the point: LoadAsync would return only what came
+			after the snapshot, and a rebuild starting there would replay a fraction of the history onto an
+			empty projection.
+		""");
+		await Assert.That(value: events[0]).IsTypeOf<AccountCreated>();
+	}
+
+	[Test]
+	public async Task LoadAllEventsAsync_ShouldReturnMoreThanLoadAsyncWhenASnapshotExists()
+	{
+		Account account = await SaveAccountWithSnapshotAsync();
+
+		EventStoreResult withSnapshot = await _eventStore.LoadAsync(
+			aggregateId: account.Id,
+			aggregateType: AggregateTypeNames.Account
+		);
+
+		IReadOnlyList<IEvent> everything = await _eventStore.LoadAllEventsAsync(
+			aggregateId: account.Id,
+			aggregateType: AggregateTypeNames.Account
+		);
+
+		await Assert.That(value: withSnapshot.Snapshot).IsNotNull().Because(message: """
+			Without a snapshot the two loads agree, and the comparison below would pass while proving nothing.
+		""");
+		await Assert.That(value: everything.Count).IsGreaterThan(minimum: withSnapshot.Events.Count).Because(message: """
+			This is the whole reason the method exists. A snapshot is derived data, and a rebuild is what you
+			reach for when derived data is suspect — reading through one would carry the corruption being
+			repaired straight back in.
+		""");
+	}
+
+	[Test]
+	public async Task LoadAllEventsAsync_ShouldReturnEventsInVersionOrder()
+	{
+		Account account = await SaveAccountWithSnapshotAsync();
+
+		IReadOnlyList<IEvent> events = await _eventStore.LoadAllEventsAsync(
+			aggregateId: account.Id,
+			aggregateType: AggregateTypeNames.Account
+		);
+
+		IReadOnlyList<int> versions = events.Select(selector: e => e.Version).ToList();
+
+		await Assert.That(value: versions).IsEquivalentTo(expected: versions.Order().ToList()).Because(message: """
+			A projection applies deltas in the order they happened. Out of order, an archive arriving before
+			the rename it followed leaves the read model holding a state the aggregate was never in.
+		""");
+	}
+
+	[Test]
+	public async Task LoadAllEventsAsync_ForAnUnknownAggregate_ShouldReturnEmpty()
+	{
+		IReadOnlyList<IEvent> events = await _eventStore.LoadAllEventsAsync(
+			aggregateId: Guid.CreateVersion7(),
+			aggregateType: AggregateTypeNames.Account
+		);
+
+		await Assert.That(value: events).IsEmpty().Because(message: """
+			The rebuilder distinguishes "no history" from "history I could not read" and leaves the projection
+			untouched in the first case — a mistyped id must not become data loss.
+		""");
+	}
+
+	[Test]
+	public async Task LoadAllEventsAsync_ShouldIgnoreOtherAggregatesOfTheSameType()
+	{
+		Guid firstId = await SaveOneCreatedEventAsync();
+		await SaveOneCreatedEventAsync();
+
+		IReadOnlyList<IEvent> events = await _eventStore.LoadAllEventsAsync(
+			aggregateId: firstId,
+			aggregateType: AggregateTypeNames.Account
+		);
+
+		await Assert.That(value: events.Count).IsEqualTo(expected: 1);
 	}
 }
