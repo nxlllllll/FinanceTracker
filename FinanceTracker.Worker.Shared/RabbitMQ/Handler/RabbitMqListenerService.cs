@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -212,7 +213,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		{
 			await handler.HandleAsync(message: message, ct: ct);
 
-			RecordLag(message: message, dateProvider: dateProvider);
+			RecordLag(ea: ea, dateProvider: dateProvider);
 
 			activity?.SetStatus(code: ActivityStatusCode.Ok);
 			await SafeAckAsync(deliveryTag: ea.DeliveryTag);
@@ -265,19 +266,29 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		return value as string;
 	}
 
-	private void RecordLag(TMessage message, IDateProvider? dateProvider)
+	private void RecordLag(BasicDeliverEventArgs ea, IDateProvider? dateProvider)
 	{
-		if (dateProvider is null || message is not IHasEventTime timed)
+		if (dateProvider is null)
 			return;
 
-		double seconds = (dateProvider.UtcNow - timed.OccurredAt).TotalSeconds;
+		IDictionary<string, object?>? headers = ea.BasicProperties?.Headers;
+		if (headers is null)
+			return;
+
+		string? publishedAt = ReadHeader(headers: headers, key: RabbitMqHeaders.PublishedAt);
+		if (publishedAt is null || !Int64.TryParse(s: publishedAt, style: NumberStyles.Integer, provider: CultureInfo.InvariantCulture, result: out long publishedAtMs))
+			return;
+
+		KeyValuePair<string, object?> handlerTag = new KeyValuePair<string, object?>(key: "handler", value: typeof(THandler).Name);
+
+		double seconds = (dateProvider.UtcNow - DateTimeOffset.FromUnixTimeMilliseconds(milliseconds: publishedAtMs)).TotalSeconds;
 
 		if (seconds < 0)
+		{
+			WorkerMetrics.ProjectionLagClockSkew.Add(delta: 1, tag: handlerTag);
 			return;
+		}
 
-		WorkerMetrics.ProjectionLag.Record(
-			value: seconds,
-			tag: new KeyValuePair<string, object?>(key: "handler", value: typeof(THandler).Name)
-		);
+		WorkerMetrics.ProjectionLag.Record(value: seconds, tag: handlerTag);
 	}
 }

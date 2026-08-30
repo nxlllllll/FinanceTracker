@@ -23,7 +23,12 @@ public static class WorkerMetrics
 	public static readonly Histogram<double> ProjectionLag = Meter.CreateHistogram<double>(
 		name: "projection.lag",
 		unit: "s",
-		description: "Seconds between a domain event occurring and a projection applying it. Tagged by handler."
+		description: "Seconds between the publisher handing a message to the broker and a handler finishing it. Tagged by handler."
+	);
+
+	public static readonly Counter<long> ProjectionLagClockSkew = Meter.CreateCounter<long>(
+		name: "projection.lag.clock_skew",
+		description: "Deliveries whose publish timestamp is in the consumer's future, so the lag sample was discarded. Tagged by handler."
 	);
 
 	// Outbox

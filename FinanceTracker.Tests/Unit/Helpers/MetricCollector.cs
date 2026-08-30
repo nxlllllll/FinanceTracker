@@ -10,6 +10,12 @@ public sealed class MetricCollector : IDisposable
 	private readonly Lock _gate = new Lock();
 
 	public MetricCollector(params string[] instrumentNames)
+		: this(meterName: FinanceTrackerMetrics.MeterName, instrumentNames: instrumentNames) { }
+
+	public static MetricCollector ForMeter(string meterName, params string[] instrumentNames)
+		=> new MetricCollector(meterName: meterName, instrumentNames: instrumentNames);
+
+	private MetricCollector(string meterName, string[] instrumentNames)
 	{
 		HashSet<string> wanted = instrumentNames.ToHashSet();
 
@@ -17,7 +23,7 @@ public sealed class MetricCollector : IDisposable
 		{
 			InstrumentPublished = (instrument, listener) =>
 			{
-				if (instrument.Meter.Name == FinanceTrackerMetrics.MeterName && wanted.Contains(item: instrument.Name))
+				if (instrument.Meter.Name == meterName && wanted.Contains(item: instrument.Name))
 					listener.EnableMeasurementEvents(instrument: instrument);
 			}
 		};
