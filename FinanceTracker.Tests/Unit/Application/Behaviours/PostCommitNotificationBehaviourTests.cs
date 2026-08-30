@@ -5,6 +5,7 @@ using FinanceTracker.Core.Results;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 
@@ -292,6 +293,84 @@ public sealed class PostCommitNotificationBehaviourTests
 
 		await Assert.That(value: attempted).Count().IsEqualTo(expected: 2);
 		await Assert.That(value: attempted[1]).IsEqualTo(expected: following);
+	}
+
+	[Test]
+	public async Task Handle_WhenNextThrows_ShouldNotLeaveWhatItStagedForWhoeverRunsNext()
+	{
+		ProbeNotification abandoned = new ProbeNotification(Marker: 70);
+
+		await Assert.ThrowsAsync<InvalidOperationException>(action: async () => await _behaviour.Handle(
+			request: new object(),
+			next: _ =>
+			{
+				_collector.Stage(notification: abandoned);
+				throw new InvalidOperationException(message: "commit failed");
+			},
+			cancellationToken: CancellationToken.None
+		));
+
+		await Assert.That(value: _collector.Mark()).IsEqualTo(expected: 0).Because(message: """
+			An attempt that threw did not commit, so what it staged describes something that never
+			happened. Left behind it sits below every later mark — never published, but shifting the
+			index every subsequent dispatch measures itself against, so the collector's depth becomes a
+			function of how many attempts failed earlier in the request.
+		""");
+
+		await _publisher.DidNotReceive().Publish(
+			notification: Arg.Any<INotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_WhenAFailedAttemptIsRetriedSuccessfully_ShouldPublishOncePerOutcomeRatherThanOncePerAttempt()
+	{
+		ProbeNotification notification = new ProbeNotification(Marker: 80);
+		List<INotification> published = [];
+
+		_publisher.Publish(
+			notification: Arg.Any<INotification>(),
+			cancellationToken: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo =>
+		{
+			published.Add(item: callInfo.ArgAt<INotification>(position: 0));
+			return Task.CompletedTask;
+		});
+
+		int attempts = 0;
+
+		Task<Result<Guid, DomainException>> Attempt(CancellationToken ct) => _behaviour.Handle(
+			request: new object(),
+			next: _ =>
+			{
+				_collector.Stage(notification: notification);
+
+				if (++attempts == 1)
+					throw new InvalidOperationException(message: "transient fault at commit");
+
+				return Task.FromResult(Result<Guid, DomainException>.Success(value: Guid.NewGuid()));
+			},
+			cancellationToken: ct
+		);
+
+		try
+		{
+			await Attempt(ct: CancellationToken.None);
+		}
+		catch (InvalidOperationException)
+		{
+			await Attempt(ct: CancellationToken.None);
+		}
+
+		await Assert.That(value: attempts).IsEqualTo(expected: 2);
+
+		await Assert.That(value: published).Count().IsEqualTo(expected: 1).Because(message: """
+			TransientRetryBehaviour is registered outside this one, so a retried request runs the handler
+			— and its staging — once per attempt while only one of them commits. Counting per attempt
+			rather than per outcome doubles every audit line the moment the database drops a connection
+			at commit time, and would double the rows once the audit trail stops being a log.
+		""");
 	}
 
 	[Test]

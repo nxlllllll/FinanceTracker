@@ -77,8 +77,8 @@ public static class DependencyInjection
 			cfg.AddOpenBehavior(openBehaviorType: typeof(AuthRateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(RateLimitingBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ValidationBehaviour<,>));
-			cfg.AddOpenBehavior(openBehaviorType: typeof(PostCommitNotificationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(TransientRetryBehaviour<,>));
+			cfg.AddOpenBehavior(openBehaviorType: typeof(PostCommitNotificationBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(IdempotencyBehaviour<,>));
 			cfg.AddOpenBehavior(openBehaviorType: typeof(ConcurrencyRetryBehaviour<,>));
 		});

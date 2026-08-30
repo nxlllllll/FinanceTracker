@@ -348,8 +348,8 @@ public sealed class ApplicationArchitectureTests
 			typeof(AuthRateLimitingBehaviour<,>),
 			typeof(RateLimitingBehaviour<,>),
 			typeof(ValidationBehaviour<,>),
-			typeof(PostCommitNotificationBehaviour<,>),
 			typeof(TransientRetryBehaviour<,>),
+			typeof(PostCommitNotificationBehaviour<,>),
 			typeof(IdempotencyBehaviour<,>),
 			typeof(ConcurrencyRetryBehaviour<,>)
 		];
