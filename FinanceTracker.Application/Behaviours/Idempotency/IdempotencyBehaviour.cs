@@ -22,6 +22,8 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 	where TRequest : notnull
 	where TResponse : IResult<TResponse, DomainException>
 {
+	private static readonly string RequestTypeName = typeof(TRequest).Name;
+
 	public async Task<TResponse> Handle(
 		TRequest request,
 		RequestHandlerDelegate<TResponse> next,
@@ -30,21 +32,19 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		if (request is not IIdempotentCommand idempotent)
 			return await next(t: cancellationToken);
 
-		string requestType = typeof(TRequest).Name;
 		if (idempotent.IdempotencyKey == Guid.Empty)
 		{
-			logger.ZLogWarning(message: $"[Idempotency] {requestType} has empty IdempotencyKey.");
+			logger.ZLogWarning(message: $"[Idempotency] {RequestTypeName} has empty IdempotencyKey.");
 			return TResponse.CreateFailure(error: new EmptyIdempotencyKeyException(
-				message: $"{requestType} implements IIdempotentCommand but IdempotencyKey is Guid.Empty.")
+				message: $"{RequestTypeName} implements IIdempotentCommand but IdempotencyKey is Guid.Empty.")
 			);
 		}
 
-		string commandType = typeof(TRequest).Name;
 		Guid userId = request is IUserScopedRequest scoped ? scoped.UserId : Guid.Empty;
 
 		IdempotencyAcquisition acquisition = await coordinator.AcquireAsync(
 			idempotencyKey: idempotent.IdempotencyKey,
-			commandType: commandType,
+			commandType: RequestTypeName,
 			userId: userId,
 			ct: cancellationToken
 		);
@@ -62,7 +62,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
 		if (acquisition.Kind == IdempotencyAcquisitionKind.CachedResponse)
 		{
-			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {requestType} (key: {idempotent.IdempotencyKey}).");
+			logger.ZLogInformation(message: $"[Idempotency] Returning cached result for {RequestTypeName} (key: {idempotent.IdempotencyKey}).");
 			return JsonSerializer.Deserialize<TResponse>(
 				json: acquisition.CachedResponseJson!,
 				options: FinanceTrackerJsonOptions.Application
@@ -74,7 +74,6 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
 		return await ExecuteAndCompleteAsync(
 			idempotent: idempotent,
-			commandType: commandType,
 			userId: userId,
 			reservationId: acquisition.ReservationId,
 			next: next,
@@ -84,13 +83,11 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 
 	private async Task<TResponse> ExecuteAndCompleteAsync(
 		IIdempotentCommand idempotent,
-		string commandType,
 		Guid userId,
 		Guid reservationId,
 		RequestHandlerDelegate<TResponse> next,
 		CancellationToken cancellationToken)
 	{
-		string requestType = typeof(TRequest).Name;
 		TResponse response;
 		try
 		{
@@ -102,7 +99,7 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 				{
 					bool completed = await idempotencyWriteRepository.CompleteAsync(
 						idempotencyKey: idempotent.IdempotencyKey,
-						commandType: commandType,
+						commandType: RequestTypeName,
 						userId: userId,
 						reservationId: reservationId,
 						responseJson: JsonSerializer.Serialize(value: result, options: FinanceTrackerJsonOptions.Application),
@@ -124,13 +121,12 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		{
 			await ReleaseAsync(
 				idempotent: idempotent,
-				commandType: commandType,
 				userId: userId,
 				reservationId: reservationId
 			);
 
 			logger.ZLogWarning(message: $"""
-				[Idempotency] Key {idempotent.IdempotencyKey} for {requestType} was reclaimed mid-flight — the underlying change was rolled back.
+				[Idempotency] Key {idempotent.IdempotencyKey} for {RequestTypeName} was reclaimed mid-flight — the underlying change was rolled back.
 			""");
 
 			return TResponse.CreateFailure(error: ex);
@@ -139,42 +135,39 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		{
 			await ReleaseAsync(
 				idempotent: idempotent,
-				commandType: commandType,
 				userId: userId,
 				reservationId: reservationId
 			);
 
-			logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {requestType} — handler threw, client may retry.");
+			logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {RequestTypeName} — handler threw, client may retry.");
 
 			throw;
 		}
 
 		if (response is IResult { IsSuccess: true })
 		{
-			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {requestType}.");
+			logger.ZLogDebug(message: $"[Idempotency] Completed key {idempotent.IdempotencyKey} for {RequestTypeName}.");
 			return response;
 		}
 
 		await ReleaseAsync(
 			idempotent: idempotent,
-			commandType: commandType,
 			userId: userId,
 			reservationId: reservationId
 		);
 
-		logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {requestType} — command failed, client may retry.");
+		logger.ZLogWarning(message: $"[Idempotency] Released key {idempotent.IdempotencyKey} for {RequestTypeName} — command failed, client may retry.");
 
 		return response;
 	}
 
-	private Task ReleaseAsync(
+	private Task<bool> ReleaseAsync(
 		IIdempotentCommand idempotent,
-		string commandType,
 		Guid userId,
 		Guid reservationId
 	) => idempotencyWriteRepository.DeleteAsync(
 		idempotencyKey: idempotent.IdempotencyKey,
-		commandType: commandType,
+		commandType: RequestTypeName,
 		userId: userId,
 		reservationId: reservationId,
 		ct: CancellationToken.None

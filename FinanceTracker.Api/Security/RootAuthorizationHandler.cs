@@ -17,7 +17,9 @@ public sealed class RootAuthorizationHandler(
 		if (!Guid.TryParse(input: sub, result: out Guid userId))
 			return;
 
-		if (await rootAuthority.IsRootAsync(userId: userId))
+		CancellationToken ct = (context.Resource as HttpContext)?.RequestAborted ?? CancellationToken.None;
+
+		if (await rootAuthority.IsRootAsync(userId: userId, ct: ct))
 			context.Succeed(requirement: requirement);
 	}
 }

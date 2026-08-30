@@ -89,13 +89,12 @@ public sealed class PostgresEventStore(
 		return (entities, envelopes);
 	}
 
-	private async Task ApplySnapshot(
+	private void ApplySnapshot(
 		Guid aggregateId,
 		string aggregateType,
 		int expectedVersion,
 		Func<string>? snapshotFactory,
-		int eventsCount,
-		CancellationToken ct = default)
+		int eventsCount)
 	{
 		int newVersion = expectedVersion + eventsCount;
 		int previousThreshold = expectedVersion / options.CurrentValue.SnapshotThreshold;
@@ -106,14 +105,14 @@ public sealed class PostgresEventStore(
 
 		string snapshot = snapshotFactory();
 
-		await context.Snapshots.AddAsync(entity: new SnapshotEntity()
+		context.Snapshots.Add(entity: new SnapshotEntity()
 		{
 			AggregateId = aggregateId,
 			AggregateType = aggregateType,
 			Version = newVersion,
 			State = snapshot,
 			CreatedAt = dateProvider.UtcNow
-		}, cancellationToken: ct);
+		});
 	}
 
 	private async Task EnsureExpectedVersionAsync(
@@ -189,7 +188,7 @@ public sealed class PostgresEventStore(
 			now: dateProvider.UtcNow
 		);
 
-		await context.Events.AddRangeAsync(entities: entities, cancellationToken: ct);
+		context.Events.AddRange(entities: entities);
 
 		if (envelopes.Count > 0)
 		{
@@ -201,7 +200,7 @@ public sealed class PostgresEventStore(
 				TraceState: Activity.Current?.TraceStateString
 			), options: FinanceTrackerJsonOptions.Payload);
 
-			await context.OutboxMessages.AddAsync(entity: new OutboxMessageEntity()
+			context.OutboxMessages.Add(entity: new OutboxMessageEntity()
 			{
 				Id = Guid.CreateVersion7(),
 				AggregateId = aggregateId,
@@ -209,16 +208,15 @@ public sealed class PostgresEventStore(
 				Payload = payload,
 				UpdatedAt = dateProvider.UtcNow,
 				ProcessedAt = null
-			}, cancellationToken: ct);
+			});
 		}
 
-		await ApplySnapshot(
+		ApplySnapshot(
 			aggregateId: aggregateId,
 			aggregateType: aggregateType,
 			expectedVersion: expectedVersion,
 			snapshotFactory: snapshotFactory,
-			eventsCount: eventList.Count,
-			ct: ct
+			eventsCount: eventList.Count
 		);
 	}
 
