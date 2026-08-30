@@ -96,6 +96,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<CurrencyRateOptions>()
+			.BindConfiguration(configSectionPath: CurrencyRateOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddOptions<CategoryTotalOptions>()
 			.BindConfiguration(configSectionPath: CategoryTotalOptions.SectionName)
 			.ValidateDataAnnotations()

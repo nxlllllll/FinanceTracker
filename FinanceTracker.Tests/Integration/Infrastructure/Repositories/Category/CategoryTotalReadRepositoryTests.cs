@@ -26,7 +26,10 @@ public sealed class CategoryTotalReadRepositoryTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupRepositories()
 	{
-		_userQueryRepository = new UserReadRepository(context: Context);
+		_userQueryRepository = new UserReadRepository(
+			context: Context,
+			currencyRateOptions: new FakeOptionsMonitor<CurrencyRateOptions>(value: new CurrencyRateOptions())
+		);
 		_currencyConversionService = new CurrencyConversionService(
 			currencyRateReadRepository: new CurrencyRateReadRepository(context: Context),
 			dateProvider: FakeDateProvider.Default,

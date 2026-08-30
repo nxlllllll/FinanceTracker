@@ -7,6 +7,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions.Validation;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Repositories.Role;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
@@ -34,7 +35,7 @@ public sealed class RegisterUserConcurrencyTests : DatabaseFixture
 	private RegisterUserHandler BuildHandler(
 		FinanceTrackerContext context)
 	{
-		UserReadRepository readRepository = new UserReadRepository(context: context);
+		UserReadRepository readRepository = new UserReadRepository(context: context, currencyRateOptions: new FakeOptionsMonitor<CurrencyRateOptions>(value: new CurrencyRateOptions()));
 		UserWriteRepository writeRepository = new UserWriteRepository(context: context);
 		EFUnitOfWork unitOfWork = new EFUnitOfWork(context: context, logger: NullLogger<EFUnitOfWork>.Instance);
 		RoleRepository roleRepository = new RoleRepository(context: context);

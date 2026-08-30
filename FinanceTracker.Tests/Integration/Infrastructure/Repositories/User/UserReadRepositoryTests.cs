@@ -48,7 +48,10 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			logger: Substitute.For<ILogger<CurrencyConversionService>>()
 		);
 
-		_readRepository = new UserReadRepository(context: Context);
+		_readRepository = new UserReadRepository(
+			context: Context,
+			currencyRateOptions: new FakeOptionsMonitor<CurrencyRateOptions>(value: new CurrencyRateOptions())
+		);
 		_writeRepository = new UserWriteRepository(context: Context);
 		_categoryTotalWriteRepository = new CategoryTotalWriteRepository(
 			context: Context,
@@ -442,13 +445,13 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 	{
 		Core.Domains.User.User user = await CreateAndSaveUserAsync();
 
-		decimal result = await _readRepository.GetTotalBalanceAsync(
+		TotalBalanceReadModel result = await _readRepository.GetTotalBalanceAsync(
 			userId: user.Id,
 			baseCurrency: user.BaseCurrency,
 			date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
 		);
 
-		await Assert.That(value: result).IsEqualTo(expected: 0m);
+		await Assert.That(value: result.Total.Amount).IsEqualTo(expected: 0m);
 	}
 
 	[Test]
@@ -457,13 +460,13 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 		Core.Domains.User.User user = await CreateAndSaveUserAsync();
 		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "RUB", balance: 5000m);
 
-		decimal result = await _readRepository.GetTotalBalanceAsync(
+		TotalBalanceReadModel result = await _readRepository.GetTotalBalanceAsync(
 			userId: user.Id,
 			baseCurrency: user.BaseCurrency,
 			date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
 		);
 
-		await Assert.That(value: result).IsEqualTo(expected: 5000m);
+		await Assert.That(value: result.Total.Amount).IsEqualTo(expected: 5000m);
 	}
 
 	[Test]
@@ -473,13 +476,13 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "RUB", balance: 3000m);
 		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "RUB", balance: 7000m);
 
-		decimal result = await _readRepository.GetTotalBalanceAsync(
+		TotalBalanceReadModel result = await _readRepository.GetTotalBalanceAsync(
 			userId: user.Id,
 			baseCurrency: user.BaseCurrency,
 			date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
 		);
 
-		await Assert.That(value: result).IsEqualTo(expected: 10000m);
+		await Assert.That(value: result.Total.Amount).IsEqualTo(expected: 10000m);
 	}
 
 	[Test]
@@ -490,13 +493,13 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 		await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 90m, date: today);
 		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
 
-		decimal result = await _readRepository.GetTotalBalanceAsync(
+		TotalBalanceReadModel result = await _readRepository.GetTotalBalanceAsync(
 			userId: user.Id,
 			baseCurrency: user.BaseCurrency,
 			date: today
 		);
 
-		await Assert.That(value: result).IsEqualTo(expected: 9000m);
+		await Assert.That(value: result.Total.Amount).IsEqualTo(expected: 9000m);
 	}
 
 	[Test]
@@ -514,13 +517,13 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 			.Where(a => a.Id == archivedAccountId)
 			.ExecuteUpdateAsync(s => s.SetProperty(a => a.IsArchived, true));
 
-		decimal result = await _readRepository.GetTotalBalanceAsync(
+		TotalBalanceReadModel result = await _readRepository.GetTotalBalanceAsync(
 			userId: user.Id,
 			baseCurrency: user.BaseCurrency,
 			date: DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime)
 		);
 
-		await Assert.That(value: result).IsEqualTo(expected: 5000m);
+		await Assert.That(value: result.Total.Amount).IsEqualTo(expected: 5000m);
 	}
 
 	[Test]
@@ -541,21 +544,63 @@ public sealed class UserReadRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
-	public async Task GetTotalBalanceAsync_WithNoExactRateButHistoricalRateExists_ShouldFallBackWithoutThrowing()
+	public async Task GetTotalBalanceAsync_WithNoExactRateButOneInsideTheWindow_ShouldFallBackAndReportItAsApproximate()
 	{
 		Core.Domains.User.User user = await CreateAndSaveUserAsync(currencyCode: "RUB");
 		DateOnly today = DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime);
-		DateOnly lastWeek = today.AddDays(value: -7);
-		await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 85m, date: lastWeek);
+		await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 85m, date: today.AddDays(value: -1));
 		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
 
-		decimal result = await _readRepository.GetTotalBalanceAsync(
+		TotalBalanceReadModel result = await _readRepository.GetTotalBalanceAsync(
 			userId: user.Id,
 			baseCurrency: user.BaseCurrency,
 			date: today
 		);
 
-		await Assert.That(value: result).IsEqualTo(expected: 8500m);
+		await Assert.That(value: result.Total.Amount).IsEqualTo(expected: 8500m);
+
+		await Assert.That(value: result.IsApproximate).IsTrue().Because(message: """
+			Yesterday's rate is close enough to answer with, but the caller is told the figure was not
+			computed at today's rate. Everywhere else a rate that is not the exact one is tracked through
+			RateStatus and corrected later by the adjustment job; this query used to be the one place
+			where an approximate number came back indistinguishable from an exact one.
+		""");
+	}
+
+	[Test]
+	public async Task GetTotalBalanceAsync_WithAnExactRate_ShouldNotReportItAsApproximate()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync(currencyCode: "RUB");
+		DateOnly today = DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime);
+		await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 90m, date: today);
+		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
+
+		TotalBalanceReadModel result = await _readRepository.GetTotalBalanceAsync(
+			userId: user.Id,
+			baseCurrency: user.BaseCurrency,
+			date: today
+		);
+
+		await Assert.That(value: result.IsApproximate).IsFalse();
+	}
+
+	[Test]
+	public async Task GetTotalBalanceAsync_WithTheOnlyRateOlderThanTheWindow_ShouldThrowRatherThanReportAStaleFigure()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync(currencyCode: "RUB");
+		DateOnly today = DateOnly.FromDateTime(dateTime: FakeDateProvider.Default.UtcNow.UtcDateTime);
+		await SeedRateAsync(baseCode: "USD", targetCode: "RUB", rate: 85m, date: today.AddDays(value: -7));
+		await _accountBuilder.CreateAsync(userId: user.Id, currencyCode: "USD", balance: 100m);
+
+		await Assert.ThrowsAsync<CurrencyRateMissingException>(action: async () => await _readRepository.GetTotalBalanceAsync(
+			userId: user.Id,
+			baseCurrency: user.BaseCurrency,
+			date: today
+		)).Because(message: """
+			Past the staleness window a rate is not slightly out of date, it is missing. Converting at a
+			week-old rate and presenting the result as a balance states a number nobody can act on, and
+			the rate job filling the gap is what the caller should be waiting for.
+		""");
 	}
 
 	[Test]

@@ -127,7 +127,7 @@ public sealed class UserQueryEndpointTests
 		sender.Send(
 			request: Arg.Any<GetTotalBalanceQuery>(),
 			cancellationToken: Arg.Any<CancellationToken>()
-		).Returns(returnThis: Result<Money, AppException>.Failure(
+		).Returns(returnThis: Result<TotalBalanceReadModel, AppException>.Failure(
 			error: new NotFoundException(message: "User not found.", id: CallerId)
 		));
 

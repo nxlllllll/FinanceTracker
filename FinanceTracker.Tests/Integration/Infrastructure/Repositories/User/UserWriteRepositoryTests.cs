@@ -4,6 +4,7 @@ using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context.User;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 using FinanceTracker.Tests.Integration._Shared.Builders;
@@ -22,7 +23,10 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
 	[Before(hookType: Test)]
 	public void SetupRepository()
 	{
-		_readRepository = new UserReadRepository(context: Context);
+		_readRepository = new UserReadRepository(
+			context: Context,
+			currencyRateOptions: new FakeOptionsMonitor<CurrencyRateOptions>(value: new CurrencyRateOptions())
+		);
 		_writeRepository = new UserWriteRepository(context: Context);
 		_currencyBuilder = new CurrencyBuilder(context: Context);
 	}

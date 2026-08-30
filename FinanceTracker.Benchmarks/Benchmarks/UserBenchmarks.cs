@@ -1,7 +1,9 @@
 using BenchmarkDotNet.Attributes;
+using FinanceTracker.Benchmarks.Infrastructure;
 using FinanceTracker.Core.ReadModels.Operation;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Repositories.User;
 
 namespace FinanceTracker.Benchmarks.Benchmarks;
@@ -22,7 +24,10 @@ public class UserBenchmarks : BenchmarkBase
 	public override void IterationSetup()
 	{
 		base.IterationSetup();
-		_repository = new UserReadRepository(context: Context);
+		_repository = new UserReadRepository(
+			context: Context,
+			currencyRateOptions: new FixedOptionsMonitor<CurrencyRateOptions>(value: new CurrencyRateOptions())
+		);
 		_authRepository = _repository;
 		_queryRepository = _repository;
 		_sessionRepository = new UserSessionReadRepository(context: Context);
