@@ -61,8 +61,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			FromAccountId: fromAccountId,
 			ToAccountId: toAccountId,
 			Amount: 3_000m,
-			Description: null,
-			OccurredAt: DateTimeOffset.UtcNow
+			Description: null
 		)
 		{ IdempotencyKey = Guid.CreateVersion7() });
 
@@ -123,8 +122,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
           FromAccountId: fromAccountId,
           ToAccountId: toAccountId,
           Amount: 4_000m,
-          Description: null,
-          OccurredAt: DateTimeOffset.UtcNow
+          Description: null
        )
        { IdempotencyKey = Guid.CreateVersion7() });
 
@@ -207,8 +205,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			FromAccountId: fromAccountId,
 			ToAccountId: toAccountId,
 			Amount: 3_000m,
-			Description: null,
-			OccurredAt: DateTimeOffset.UtcNow
+			Description: null
 		)
 		{ IdempotencyKey = Guid.CreateVersion7() });
 
@@ -254,8 +251,7 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			FromAccountId: fromAccountId,
 			ToAccountId: toAccountId,
 			Amount: 1_000m,
-			Description: null,
-			OccurredAt: DateTimeOffset.UtcNow
+			Description: null
 		)
 		{ IdempotencyKey = Guid.CreateVersion7() });
 

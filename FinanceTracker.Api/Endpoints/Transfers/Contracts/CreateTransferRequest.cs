@@ -3,6 +3,5 @@
 public sealed record CreateTransferRequest(
 	Guid ToAccountId,
 	decimal Amount,
-	string? Description,
-	DateTimeOffset OccurredAt
+	string? Description
 );

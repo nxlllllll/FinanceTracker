@@ -54,8 +54,7 @@ public sealed class CreateTransferEndpoint : IEndpoint
 			FromAccountId: accountId,
 			ToAccountId: request.ToAccountId,
 			Amount: request.Amount,
-			Description: request.Description,
-			OccurredAt: request.OccurredAt.ToUniversalTime()
+			Description: request.Description
 		)
 		{
 			IdempotencyKey = idempotencyKey.Value

@@ -51,13 +51,11 @@ public sealed class CreateTransferEndpointTests
 
 	private static CreateTransferRequest Request(
 		Guid? toAccountId = null,
-		decimal amount = 1_000m,
-		DateTimeOffset? occurredAt = null
+		decimal amount = 1_000m
 	) => new CreateTransferRequest(
 		ToAccountId: toAccountId ?? Guid.CreateVersion7(),
 		Amount: amount,
-		Description: null,
-		OccurredAt: occurredAt ?? DateTimeOffset.UtcNow
+		Description: null
 	);
 
 	private static DefaultHttpContext ResponseContext(Stream body) => new DefaultHttpContext
@@ -113,30 +111,6 @@ public sealed class CreateTransferEndpointTests
 				command.Amount == 2_500m &&
 				command.IdempotencyKey == idempotencyKey
 			),
-			cancellationToken: Arg.Any<CancellationToken>()
-		);
-	}
-
-	[Test]
-	public async Task HandleAsync_ShouldNormaliseTheOccurredAtToUtc()
-	{
-		using MemoryStream body = new MemoryStream();
-
-		DateTimeOffset supplied = new DateTimeOffset(year: 2026, month: 9, day: 1, hour: 0, minute: 0, second: 0, offset: TimeSpan.FromHours(value: 12));
-
-		ISender sender = SenderReturning(result: Result<Guid, AppException>.Success(value: Guid.CreateVersion7()));
-
-		await CreateTransferEndpoint.HandleAsync(
-			accountId: Guid.CreateVersion7(),
-			request: Request(occurredAt: supplied),
-			httpContext: Context(body: body, idempotencyKey: Guid.CreateVersion7()),
-			currentUser: CurrentUser(),
-			sender: sender,
-			ct: CancellationToken.None
-		);
-
-		await sender.Received(requiredNumberOfCalls: 1).Send(
-			request: Arg.Is<CreateTransferCommand>(predicate: command => command!.OccurredAt == supplied.ToUniversalTime()),
 			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}

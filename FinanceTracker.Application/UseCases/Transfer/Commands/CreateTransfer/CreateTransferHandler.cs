@@ -33,15 +33,17 @@ public sealed class CreateTransferHandler(
 	{
 		Core.Domains.Account.Account account = transferAccount.FromAccount;
 
+		DateTimeOffset occurredAt = dateProvider.UtcNow;
+
 		ConversionResult conversion = await currencyConversionService.GetConversionRateAsync(
 			fromCurrency: account.Currency,
 			toCurrency: transferAccount.ToAccountCurrency,
-			date: DateOnly.FromDateTime(dateTime: command.OccurredAt.UtcDateTime),
+			date: DateOnly.FromDateTime(dateTime: occurredAt.UtcDateTime),
 			ct: ct
 		);
 
 		Result<Core.Domains.Transfer.Transfer, DomainException> transferResult = Core.Domains.Transfer.Transfer.Create(
-			createdAt: dateProvider.UtcNow,
+			createdAt: occurredAt,
 			userId: command.UserId,
 			fromAccountId: command.FromAccountId,
 			toAccountId: command.ToAccountId,
@@ -51,7 +53,7 @@ public sealed class CreateTransferHandler(
 			exchangeRate: conversion.Rate,
 			rateStatus: conversion.Status,
 			description: command.Description,
-			occurredAt: command.OccurredAt
+			occurredAt: occurredAt
 		);
 		if (transferResult.IsFailure)
 			return Result<Guid, AppException>.Failure(error: transferResult.Error!);
@@ -59,7 +61,7 @@ public sealed class CreateTransferHandler(
 		Core.Domains.Transfer.Transfer transfer = transferResult.Value!;
 
 		Result<Unit, DomainException> debitResult = account.DebitTransfer(
-			occurredAt: command.OccurredAt,
+			occurredAt: occurredAt,
 			transferId: transfer.Id,
 			toAccountId: command.ToAccountId,
 			amount: command.Amount,

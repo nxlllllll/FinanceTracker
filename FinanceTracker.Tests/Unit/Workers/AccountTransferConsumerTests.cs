@@ -5,6 +5,7 @@ using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
+using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.Repositories.Account;
@@ -71,7 +72,8 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 
 	private AggregateEventsMessage BuildMessage(
 		Guid? messageId = null,
-		bool includeDebitEvent = true)
+		bool includeDebitEvent = true,
+		DateTimeOffset? occurredAt = null)
 	{
 		List<EventEnvelope> events = [];
 
@@ -86,7 +88,7 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 				ForexRate: 1m,
 				Description: "Test",
 				Version: 1,
-				OccurredAt: FakeDateProvider.Default.UtcNow
+				OccurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow
 			);
 
 			events.Add(item: new EventEnvelope(
@@ -105,6 +107,32 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			CorrelationId: Guid.CreateVersion7(),
 			Events: events
 		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenDeliveryLagged_ShouldDateTheCreditWhenItWasApplied()
+	{
+		Account toAccount = AccountFactory.Create().Value!;
+
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: toAccount);
+
+		await _consumer.HandleAsync(
+			message: BuildMessage(occurredAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: -30)),
+			ct: CancellationToken.None
+		);
+
+		AccountTransferCredited credited = toAccount.Events.OfType<AccountTransferCredited>().Single();
+
+		await Assert.That(value: credited.OccurredAt).IsEqualTo(expected: FakeDateProvider.Default.UtcNow).Because(message: """
+			Both sides of a transfer carry the moment they were applied. The debit is dated when the
+			command ran; the credit is dated when this consumer applied it, which can be later because
+			the outbox and the broker sit between them. Copying the debit's timestamp onto the credit
+			would look like symmetry and would claim the money arrived before it did — and debitEvent
+			sits right there, so the next reader is one line away from doing it.
+		""");
 	}
 
 	[Test]
