@@ -18,7 +18,7 @@ public sealed record Permission
 		[Resource.Account] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
 		[Resource.Balance] = new HashSet<PermissionAction> { PermissionAction.Read },
 		[Resource.Transaction] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
-		[Resource.Transfer] = new HashSet<PermissionAction> { PermissionAction.Write },
+		[Resource.Transfer] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
 		[Resource.Budget] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
 		[Resource.Category] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },
 		[Resource.RecurringTransaction] = new HashSet<PermissionAction> { PermissionAction.Read, PermissionAction.Write },

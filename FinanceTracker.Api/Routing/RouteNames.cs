@@ -9,4 +9,5 @@ public static class RouteNames
 	public const string GetRole = nameof(GetRole);
 	public const string GetRecurringTransaction = nameof(GetRecurringTransaction);
 	public const string GetTransaction = nameof(GetTransaction);
+	public const string GetTransfer = nameof(GetTransfer);
 }

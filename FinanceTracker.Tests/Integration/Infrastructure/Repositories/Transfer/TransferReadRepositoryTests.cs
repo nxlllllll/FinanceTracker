@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.ReadModels.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Repositories.Transfer;
@@ -29,7 +30,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 	[Test]
 	public async Task GetByIdAsync_WithNonExistentTransfer_ShouldReturnNull()
 	{
-		TransferReadModel? result = await _readRepository.GetByIdAsync(transferId: Guid.CreateVersion7());
+		TransferReadModel? result = await _readRepository.GetByIdAsync(transferId: Guid.CreateVersion7(), userId: Guid.CreateVersion7());
 		await Assert.That(value: result).IsNull();
 	}
 
@@ -50,7 +51,7 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 			exchangeRate: 0.9m
 		);
 
-		TransferReadModel? result = await _readRepository.GetByIdAsync(transferId: transferId);
+		TransferReadModel? result = await _readRepository.GetByIdAsync(transferId: transferId, userId: userId);
 
 		await Assert.That(value: result).IsNotNull();
 		await Assert.That(value: result!.Id).IsEqualTo(expected: transferId);
@@ -60,10 +61,72 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
+	public async Task GetByIdAsync_ForATransferBelongingToSomeoneElse_ShouldReturnNull()
+	{
+		Guid ownerId = await _userBuilder.CreateAsync();
+		Guid strangerId = await _userBuilder.CreateAsync();
+		Guid fromAccountId = await _accountBuilder.CreateAsync(userId: ownerId);
+		Guid toAccountId = await _accountBuilder.CreateAsync(userId: ownerId);
+
+		Guid transferId = await _transferBuilder.CreateAsync(
+			userId: ownerId,
+			fromAccountId: fromAccountId,
+			currencyFrom: "RUB",
+			toAccountId: toAccountId,
+			currencyTo: "RUB"
+		);
+
+		TransferReadModel? result = await _readRepository.GetByIdAsync(transferId: transferId, userId: strangerId);
+
+		await Assert.That(value: result).IsNull().Because(message: """
+			Reading someone else's transfer must be indistinguishable from reading one that does not
+			exist. Returning it and leaving the caller to compare owners moves the check to whoever
+			remembers, and telling them apart by status code confirms the id is real.
+		""");
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithStatusFilter_ShouldReturnOnlyTransfersInThatState()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid fromAccountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid toAccountId = await _accountBuilder.CreateAsync(userId: userId);
+
+		Guid pendingId = await _transferBuilder.CreateAsync(
+			userId: userId,
+			fromAccountId: fromAccountId,
+			currencyFrom: "RUB",
+			toAccountId: toAccountId,
+			currencyTo: "RUB",
+			status: TransferStatus.PendingCredit
+		);
+
+		await _transferBuilder.CreateAsync(
+			userId: userId,
+			fromAccountId: fromAccountId,
+			currencyFrom: "RUB",
+			toAccountId: toAccountId,
+			currencyTo: "RUB",
+			status: TransferStatus.Completed
+		);
+
+		PagedResult<TransferReadModel> result = await _readRepository.GetAllAsync(
+			userId: userId,
+			status: TransferStatus.PendingCredit
+		);
+
+		await Assert.That(value: result.Items).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].Id).IsEqualTo(expected: pendingId).Because(message: """
+			The filter is what makes the listing answer the question a caller actually has after a
+			transfer is accepted: which of mine have not landed yet.
+		""");
+	}
+
+	[Test]
 	public async Task GetAllAsync_WithNoTransfers_ShouldReturnEmptyList()
 	{
 		PagedResult<TransferReadModel> result = await _readRepository.GetAllAsync(userId: Guid.CreateVersion7());
-		// await Assert.That(value: result.Count).IsEqualTo(expected: 0);
+		await Assert.That(value: result.Items).IsEmpty();
 	}
 
 	[Test]
@@ -92,8 +155,8 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 
 		PagedResult<TransferReadModel> result = await _readRepository.GetAllAsync(userId: userId);
 
-		// await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-		// await Assert.That(value: result[0].UserId).IsEqualTo(expected: userId);
+		await Assert.That(value: result.Items).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].UserId).IsEqualTo(expected: userId);
 	}
 
 	[Test]
@@ -122,8 +185,8 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 
 		PagedResult<TransferReadModel> result = await _readRepository.GetAllAsync(userId: userId, accountId: accountA);
 
-		// await Assert.That(value: result.Count).IsEqualTo(expected: 1);
-		// await Assert.That(value: result[0].FromAccountId).IsEqualTo(expected: accountA);
+		await Assert.That(value: result.Items).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].FromAccountId).IsEqualTo(expected: accountA);
 	}
 
 	[Test]
@@ -158,6 +221,6 @@ public sealed class TransferReadRepositoryTests : DatabaseFixture
 			dateFrom: DateTimeOffset.UtcNow.AddDays(days: -1)
 		);
 
-		// await Assert.That(value: result.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items).Count().IsEqualTo(expected: 1);
 	}
 }

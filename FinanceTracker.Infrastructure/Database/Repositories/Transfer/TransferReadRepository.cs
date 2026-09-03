@@ -19,9 +19,10 @@ public sealed class TransferReadRepository(
 {
 	public async Task<TransferReadModel?> GetByIdAsync(
 		Guid transferId,
+		Guid userId,
 		CancellationToken ct = default)
 	{
-		return await context.Transfers.AsNoTracking().Where(predicate: t => t.Id == transferId).Select(selector: t => new TransferReadModel(
+		return await context.Transfers.AsNoTracking().Where(predicate: t => t.Id == transferId && t.UserId == userId).Select(selector: t => new TransferReadModel(
 			Id: t.Id,
 			UserId: t.UserId,
 			FromAccountId: t.FromAccountId,
@@ -39,6 +40,7 @@ public sealed class TransferReadRepository(
 	public async Task<PagedResult<TransferReadModel>> GetAllAsync(
 		Guid userId,
 		Guid? accountId = null,
+		TransferStatus? status = null,
 		DateTimeOffset? dateFrom = null,
 		DateTimeOffset? dateTo = null,
 		DateTimeOffset? cursorOccurredAt = null,
@@ -46,9 +48,7 @@ public sealed class TransferReadRepository(
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
-		IQueryable<TransferEntity> query = context.Transfers
-												.AsNoTracking()
-												.Where(predicate: t => t.UserId == userId);
+		IQueryable<TransferEntity> query = context.Transfers.AsNoTracking().Where(predicate: t => t.UserId == userId);
 
 		if (accountId is not null)
 		{
@@ -57,6 +57,9 @@ public sealed class TransferReadRepository(
 				t.ToAccountId == accountId.Value
 			);
 		}
+
+		if (status is not null)
+			query = query.Where(predicate: t => t.Status == status.Value);
 
 		if (dateFrom is not null)
 			query = query.Where(predicate: t => t.OccurredAt >= dateFrom.Value);
@@ -104,8 +107,7 @@ public sealed class TransferReadRepository(
 		Guid? cursorId = null,
 		CancellationToken ct = default)
 	{
-		IQueryable<TransferEntity> query = context.Transfers.AsNoTracking()
-												.Where(predicate: t => t.RateStatus == RateStatus.Pending && t.Status == TransferStatus.Completed);
+		IQueryable<TransferEntity> query = context.Transfers.AsNoTracking().Where(predicate: t => t.RateStatus == RateStatus.Pending && t.Status == TransferStatus.Completed);
 
 		if (cursorOccurredAt is not null && cursorId is not null)
 		{

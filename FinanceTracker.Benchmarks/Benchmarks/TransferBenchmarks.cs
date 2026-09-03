@@ -51,7 +51,7 @@ public class TransferBenchmarks : BenchmarkBase
 
 	[Benchmark]
 	public async Task GetByIdAsync()
-		=> await _repository.GetByIdAsync(transferId: Db.TransferId);
+		=> await _repository.GetByIdAsync(transferId: Db.TransferId, userId: Db.UserId);
 
 	[Benchmark]
 	public async Task GetPendingRateAsync()

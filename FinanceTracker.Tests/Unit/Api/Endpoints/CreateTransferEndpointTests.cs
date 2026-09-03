@@ -9,6 +9,7 @@ using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using IResult = Microsoft.AspNetCore.Http.IResult;
@@ -77,6 +78,7 @@ public sealed class CreateTransferEndpointTests
 			httpContext: Context(body: body, idempotencyKey: null),
 			currentUser: CurrentUser(),
 			sender: sender,
+			linkGenerator: Substitute.For<LinkGenerator>(),
 			ct: CancellationToken.None
 		);
 
@@ -100,6 +102,7 @@ public sealed class CreateTransferEndpointTests
 			httpContext: Context(body: body, idempotencyKey: idempotencyKey),
 			currentUser: CurrentUser(),
 			sender: sender,
+			linkGenerator: Substitute.For<LinkGenerator>(),
 			ct: CancellationToken.None
 		);
 
@@ -130,6 +133,7 @@ public sealed class CreateTransferEndpointTests
 			httpContext: Context(body: body, idempotencyKey: Guid.CreateVersion7()),
 			currentUser: CurrentUser(),
 			sender: sender,
+			linkGenerator: Substitute.For<LinkGenerator>(),
 			ct: CancellationToken.None
 		);
 
@@ -160,6 +164,7 @@ public sealed class CreateTransferEndpointTests
 			httpContext: Context(body: body, idempotencyKey: Guid.CreateVersion7()),
 			currentUser: CurrentUser(),
 			sender: sender,
+			linkGenerator: Substitute.For<LinkGenerator>(),
 			ct: CancellationToken.None
 		);
 
