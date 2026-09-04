@@ -29,8 +29,9 @@ public interface IBudgetReadRepository : IReadRepository<BudgetReadModel>
 
 	Task<PagedResult<BudgetReadModel>> GetAllAsync(
 		Guid userId,
-		DateTimeOffset? cursorCreatedAt = null,
+		Guid? categoryId = null,
 		bool? isActive = null,
+		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default

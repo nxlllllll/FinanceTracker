@@ -71,13 +71,18 @@ public sealed class BudgetReadRepository(
 
 	public async Task<PagedResult<BudgetReadModel>> GetAllAsync(
 		Guid userId,
-		DateTimeOffset? cursorCreatedAt = null,
+		Guid? categoryId = null,
 		bool? isActive = null,
+		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20,
 		CancellationToken ct = default)
 	{
 		IQueryable<BudgetEntity> query = context.Budgets.AsNoTracking().Where(predicate: b => b.UserId == userId);
+
+		if (categoryId is not null)
+			query = query.Where(predicate: b => b.CategoryId == categoryId.Value);
+
 		if (isActive is not null)
 			query = query.Where(predicate: b => b.IsActive == isActive);
 

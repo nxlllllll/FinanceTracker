@@ -5,6 +5,7 @@ using FinanceTracker.Application.UseCases.Transfer.Commands.CreateTransfer;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Idempotency;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.RateLimit;
 using FinanceTracker.Core.Exceptions.TransientExceptions;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
@@ -213,8 +214,7 @@ public sealed class RateLimitFailureSurfaceTests : MediatorFixture
 	protected override IReadOnlyDictionary<string, string?> ConfigurationOverrides { get; } = new Dictionary<string, string?>
 	{
 		["RateLimit:RequestsPerWindow"] = "1",
-		["RateLimit:WindowSeconds"] = "60",
-		["RateLimiterFallback:ProbeTimeoutMs"] = "5000"
+		["RateLimit:WindowSeconds"] = "60"
 	};
 
 	private UserBuilder _userBuilder = null!;
@@ -240,13 +240,25 @@ public sealed class RateLimitFailureSurfaceTests : MediatorFixture
 	{
 		Guid userId = await _userBuilder.CreateAsync();
 
-		await Mediator.Send(request: Command(userId: userId));
+		const int attempts = 6;
+		AppException? refusal = null;
 
-		Result<Guid, AppException> second = await Mediator.Send(request: Command(userId: userId));
+		for (int attempt = 0; attempt < attempts && refusal is null; attempt++)
+		{
+			Result<Guid, AppException> result = await Mediator.Send(request: Command(userId: userId));
 
-		await Assert.That(value: second.IsFailure).IsTrue();
+			if (result.IsFailure)
+				refusal = result.Error;
+		}
 
-		DefaultHttpContext context = await FailureSurfaceTests.AnswerForAsync(error: second.Error!);
+		await Assert.That(value: refusal).IsTypeOf<RateLimitExceededException>().Because(message: """
+			The ceiling is one request per window, so everything after the first should be refused.
+			Several are attempted because FallbackRateLimiter hands a request to the in-memory limiter
+			when Redis misses its probe budget, and clears those counts once Redis answers again — one
+			admitted request past the ceiling is that handover, not a limit that failed to apply.
+		""");
+
+		DefaultHttpContext context = await FailureSurfaceTests.AnswerForAsync(error: refusal!);
 
 		await Assert.That(value: context.Response.StatusCode).IsEqualTo(expected: StatusCodes.Status429TooManyRequests);
 

@@ -385,4 +385,42 @@ public sealed class BudgetEndpointTests
 			cancellationToken: Arg.Any<CancellationToken>()
 		);
 	}
+
+	[Test]
+	public async Task GetBudgets_ShouldPassTheFiltersThrough()
+	{
+		Guid categoryId = Guid.CreateVersion7();
+
+		ISender sender = SenderForListing();
+
+		await GetBudgetsEndpoint.HandleAsync(
+			currentUser: CurrentUser(),
+			sender: sender,
+			ct: CancellationToken.None,
+			categoryId: categoryId,
+			isActive: false
+		);
+
+		await sender.Received(requiredNumberOfCalls: 1).Send(
+			request: Arg.Is<GetBudgetsQuery>(predicate: query => query!.CategoryId == categoryId && query.IsActive == false),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task GetBudgets_WithoutFilters_ShouldLeaveThemUnset()
+	{
+		ISender sender = SenderForListing();
+
+		await GetBudgetsEndpoint.HandleAsync(
+			currentUser: CurrentUser(),
+			sender: sender,
+			ct: CancellationToken.None
+		);
+
+		await sender.Received(requiredNumberOfCalls: 1).Send(
+			request: Arg.Is<GetBudgetsQuery>(predicate: query => query!.CategoryId == null && query.IsActive == null),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
 }

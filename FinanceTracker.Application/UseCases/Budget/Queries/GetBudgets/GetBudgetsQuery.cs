@@ -8,6 +8,8 @@ namespace FinanceTracker.Application.UseCases.Budget.Queries.GetBudgets;
 
 public sealed record GetBudgetsQuery(
 	Guid UserId,
+	Guid? CategoryId = null,
+	bool? IsActive = null,
 	DateTimeOffset? CursorCreatedAt = null,
 	Guid? CursorId = null,
 	int PageSize = 20

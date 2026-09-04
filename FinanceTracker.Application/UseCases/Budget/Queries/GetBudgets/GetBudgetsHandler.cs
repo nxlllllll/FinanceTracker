@@ -16,6 +16,8 @@ public sealed class GetBudgetsHandler(
 	{
 		return Result<PagedResult<BudgetReadModel>, AppException>.Success(value: await budgetReadRepository.GetAllAsync(
 			userId: query.UserId,
+			categoryId: query.CategoryId,
+			isActive: query.IsActive,
 			cursorCreatedAt: query.CursorCreatedAt,
 			cursorId: query.CursorId,
 			pageSize: query.PageSize,
