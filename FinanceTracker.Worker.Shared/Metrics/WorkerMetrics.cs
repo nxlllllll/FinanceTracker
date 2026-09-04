@@ -20,6 +20,17 @@ public static class WorkerMetrics
 		description: "Total number of job executions that threw an unhandled exception. Tagged by job (job type name)."
 	);
 
+	public static readonly Histogram<double> ProjectionLag = Meter.CreateHistogram<double>(
+		name: "projection.lag",
+		unit: "s",
+		description: "Seconds between the publisher handing a message to the broker and a handler finishing it. Tagged by handler."
+	);
+
+	public static readonly Counter<long> ProjectionLagClockSkew = Meter.CreateCounter<long>(
+		name: "projection.lag.clock_skew",
+		description: "Deliveries whose publish timestamp is in the consumer's future, so the lag sample was discarded. Tagged by handler."
+	);
+
 	// Outbox
 
 	/// <remarks>

@@ -219,4 +219,63 @@ public sealed class UserPermissionWriteRepositoryTests : DatabaseFixture
 
 		await Assert.That(value: deleted).IsEqualTo(expected: 0);
 	}
+
+		[Test]
+	public async Task DeleteAllForUserAsync_ShouldRemoveActiveRowsAndTombstonesAlike()
+	{
+		Guid userId = Guid.CreateVersion7();
+
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: "account:read"), ct: CancellationToken.None);
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: "account:write"), ct: CancellationToken.None);
+		await _repository.RevokeAsync(@event: BuildRevokedEvent(userId: userId, permission: "account:write"), ct: CancellationToken.None);
+
+		await _repository.DeleteAllForUserAsync(userId: userId, ct: CancellationToken.None);
+
+		int remaining = await Context.UserPermissions.CountAsync(predicate: e => e.UserId == userId);
+
+		await Assert.That(value: remaining).IsEqualTo(expected: 0).Because(message: """
+			Tombstones have to go with the live rows. A replay starts at the first event, and a leftover row
+			already carrying the latest version makes every version-guarded write bounce off it — the rebuild
+			would then report success having applied nothing.
+		""");
+	}
+
+	[Test]
+	public async Task DeleteAllForUserAsync_ShouldLeaveOtherUsersAlone()
+	{
+		Guid userId = Guid.CreateVersion7();
+		Guid otherUserId = Guid.CreateVersion7();
+
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: "account:read"), ct: CancellationToken.None);
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: otherUserId, permission: "account:read"), ct: CancellationToken.None);
+
+		await _repository.DeleteAllForUserAsync(userId: userId, ct: CancellationToken.None);
+
+		await Assert.That(value: await FindAsync(userId: userId, permission: "account:read")).IsNull();
+		await Assert.That(value: await FindAsync(userId: otherUserId, permission: "account:read")).IsNotNull().Because(message: """
+			Rebuilds run one aggregate at a time and in parallel with others. A clear that reached past its
+			own user would wipe read models nobody asked to rebuild.
+		""");
+	}
+
+	[Test]
+	public async Task DeleteAllForUserAsync_ThenReplayingTheSameEvent_ShouldRestoreThePermission()
+	{
+		Guid userId = Guid.CreateVersion7();
+		const string permission = "account:write";
+
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: permission), ct: CancellationToken.None);
+
+		await _repository.DeleteAllForUserAsync(userId: userId, ct: CancellationToken.None);
+		await _repository.GrantAsync(@event: BuildGrantedEvent(userId: userId, permission: permission), ct: CancellationToken.None);
+
+		UserPermissionEntity? row = await FindAsync(userId: userId, permission: permission);
+
+		await Assert.That(value: row!.IsActive).IsTrue().Because(message: """
+			This pair is what makes a rebuild possible here at all. Version-guarded writes are the reason the
+			out-of-order tests above pass, and the same guard would reject an honest replay — clearing first
+			is what tells the two apart.
+		""");
+		await Assert.That(value: row.LastVersion).IsEqualTo(expected: 1);
+	}
 }

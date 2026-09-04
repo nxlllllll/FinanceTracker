@@ -13,6 +13,9 @@ public sealed class SecurityHeadersPipelineTests
 {
 	private static readonly HttpClient Client = new HttpClient();
 
+	[After(hookType: Class)]
+	public static void DisposeClient() => Client.Dispose();
+
 	private sealed class ProblemExceptionHandler : IExceptionHandler
 	{
 		public async ValueTask<bool> TryHandleAsync(

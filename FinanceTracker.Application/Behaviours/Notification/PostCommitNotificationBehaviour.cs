@@ -24,7 +24,16 @@ public sealed class PostCommitNotificationBehaviour<TRequest, TResponse>(
 	{
 		int mark = notifications.Mark();
 
-		TResponse response = await next(t: cancellationToken);
+		TResponse response;
+		try
+		{
+			response = await next(t: cancellationToken);
+		}
+		catch
+		{
+			notifications.TakeFrom(mark: mark);
+			throw;
+		}
 
 		if (response is IResult { IsFailure: true })
 		{

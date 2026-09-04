@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Benchmarks.Infrastructure;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Account.Events;
@@ -32,19 +33,6 @@ public class EventStoreSaveBenchmarks : BenchmarkBase
 	private Guid _withSnapshotAggregateId;
 	private IEventStore _noSnapshotEventStore = null!;
 	private IEventStore _withSnapshotEventStore = null!;
-
-	private sealed class FixedOptionsMonitor<T>(T value) : IOptionsMonitor<T>
-	{
-		public T CurrentValue { get; } = value;
-		public T Get(string? name) => CurrentValue;
-		public IDisposable OnChange(Action<T, string?> listener) => NullDisposable.Instance;
-
-		private sealed class NullDisposable : IDisposable
-		{
-			public static readonly NullDisposable Instance = new();
-			public void Dispose() { }
-		}
-	}
 
 	private IEventStore CreateEventStore(int snapshotThreshold) => new PostgresEventStore(
 		context: Context,

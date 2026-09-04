@@ -28,8 +28,8 @@ public sealed class CreateTransferEndpoint : IEndpoint
 				"Requires an Idempotency-Key header. The amount is in the source account's currency; if the destination " +
 				"is in another, the rate in force at the time is applied. Answers 202 rather than 201 on purpose: the " +
 				"debit is done, but the credit is applied by a worker and can still be reversed — if the destination " +
-				"turns out to be unusable the whole transfer is compensated and the money comes back. Watch the " +
-				"operations history for the outcome."
+				"turns out to be unusable the whole transfer is compensated and the money comes back. Location points " +
+				"at the transfer, whose status carries the outcome."
 			).Produces<CreatedIdResponse>(statusCode: StatusCodes.Status202Accepted)
 			.ProducesValidationProblem()
 			.ProducesProblem(statusCode: StatusCodes.Status404NotFound)
@@ -43,6 +43,7 @@ public sealed class CreateTransferEndpoint : IEndpoint
 		HttpContext httpContext,
 		ICurrentUserProvider currentUser,
 		ISender sender,
+		LinkGenerator linkGenerator,
 		CancellationToken ct)
 	{
 		Guid? idempotencyKey = httpContext.GetIdempotencyKey();
@@ -54,8 +55,7 @@ public sealed class CreateTransferEndpoint : IEndpoint
 			FromAccountId: accountId,
 			ToAccountId: request.ToAccountId,
 			Amount: request.Amount,
-			Description: request.Description,
-			OccurredAt: request.OccurredAt.ToUniversalTime()
+			Description: request.Description
 		)
 		{
 			IdempotencyKey = idempotencyKey.Value
@@ -63,9 +63,11 @@ public sealed class CreateTransferEndpoint : IEndpoint
 
 		Result<Guid, AppException> result = await sender.Send(request: command, cancellationToken: ct);
 
-		if (result.IsFailure)
-			return result.Error!.ToProblem();
-
-		return Results.Accepted(value: new CreatedIdResponse(Id: result.Value));
+		return result.ToAcceptedAtRoute(
+			linkGenerator: linkGenerator,
+			httpContext: httpContext,
+			routeName: RouteNames.GetTransfer,
+			routeValues: transferId => new { transferId }
+		);
 	}
 }

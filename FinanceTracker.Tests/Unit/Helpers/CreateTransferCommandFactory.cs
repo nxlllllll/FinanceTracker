@@ -9,16 +9,14 @@ public static class CreateTransferCommandFactory
 		Guid? fromAccountId = null,
 		Guid? toAccountId = null,
 		decimal amount = 1000m,
-		string? description = "Тест",
-		DateTimeOffset? occurredAt = null)
+		string? description = "Тест")
 	{
 		return new CreateTransferCommand(
 			UserId: userId ?? Guid.CreateVersion7(),
 			FromAccountId: fromAccountId ?? Guid.CreateVersion7(),
 			ToAccountId: toAccountId ?? Guid.CreateVersion7(),
 			Amount: amount,
-			Description: description,
-			OccurredAt: occurredAt ?? FakeDateProvider.Default.UtcNow
+			Description: description
 		);
 	}
 }

@@ -168,7 +168,7 @@ public sealed class AuthRateLimitingBehaviourTests
 		);
 
 		await _rateLimiter.Received(requiredNumberOfCalls: 1).IsAllowedAsync(
-			key: $"ratelimit:ip:{_testIp}",
+			key: $"ratelimit:auth:ip:{_testIp}",
 			requestsPerWindow: customOptions.IpRequestsPerWindow,
 			windowSeconds: customOptions.IpWindowSeconds,
 			ct: Arg.Any<CancellationToken>()
@@ -256,7 +256,7 @@ public sealed class AuthRateLimitingBehaviourTests
 		);
 
 		await _rateLimiter.Received(requiredNumberOfCalls: 1).IsAllowedAsync(
-			key: $"ratelimit:ip:{_testIp}",
+			key: $"ratelimit:auth:ip:{_testIp}",
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -274,7 +274,7 @@ public sealed class AuthRateLimitingBehaviourTests
 	public async Task Handle_WhenBothScopedAndOnlyIpDenies_ShouldReturnFailureAndNotCheckEmail()
 	{
 		_rateLimiter.IsAllowedAsync(
-			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:ip:")),
+			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:auth:ip:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -310,7 +310,7 @@ public sealed class AuthRateLimitingBehaviourTests
 	public async Task Handle_WhenBothScopedAndOnlyEmailDenies_ShouldReturnFailure()
 	{
 		_rateLimiter.IsAllowedAsync(
-			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:ip:")),
+			key: Arg.Is<string>(predicate: k => k!.StartsWith(value: "ratelimit:auth:ip:")),
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()
@@ -383,7 +383,7 @@ public sealed class AuthRateLimitingBehaviourTests
 		);
 
 		await _rateLimiter.Received(requiredNumberOfCalls: 2).IsAllowedAsync(
-			key: $"ratelimit:ip:{_testIp}",
+			key: $"ratelimit:auth:ip:{_testIp}",
 			requestsPerWindow: Arg.Any<int>(),
 			windowSeconds: Arg.Any<int>(),
 			ct: Arg.Any<CancellationToken>()

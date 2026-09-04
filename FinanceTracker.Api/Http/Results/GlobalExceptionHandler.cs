@@ -1,4 +1,5 @@
 using System.Net.Mime;
+using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Observability.Correlation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ public sealed class GlobalExceptionHandler(
 		CancellationToken cancellationToken
 	) => exception switch
 	{
+		AppException app => await WriteMappedProblemAsync(httpContext: httpContext, error: app),
 		BadHttpRequestException badRequest => await WriteProblemAsync(
 			httpContext: httpContext,
 			statusCode: badRequest.StatusCode,
@@ -35,6 +37,25 @@ public sealed class GlobalExceptionHandler(
 			ct: cancellationToken
 		)
 	};
+
+	private async ValueTask<bool> WriteMappedProblemAsync(
+		HttpContext httpContext,
+		AppException error)
+	{
+		string errorType = error.GetType().Name;
+
+		logger.ZLogWarning(
+			exception: error,
+			message: $"{errorType} reached the exception handler instead of the Result channel for {httpContext.Request.Method} {httpContext.Request.Path}."
+		);
+
+		if (httpContext.RequestAborted.IsCancellationRequested)
+			return true;
+
+		await error.ToProblem().ExecuteAsync(httpContext: httpContext);
+
+		return true;
+	}
 
 	private static async ValueTask<bool> WriteProblemAsync(
 		HttpContext httpContext,

@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -46,6 +48,7 @@ public sealed class RabbitMqOutageChaosTests
 			["RabbitMQ:PrefetchCount"] = "10",
 		})).ConfigureServices(configureDelegate: (_, services) =>
 		{
+			services.AddSingleton<IDateProvider>(implementationInstance: FakeDateProvider.Default);
 			services.AddRabbitMqCore();
 			services.AddRabbitMqPublisher();
 			services.AddRabbitMqListener<ChaosTestMessage, ChaosTestMessageHandler>();

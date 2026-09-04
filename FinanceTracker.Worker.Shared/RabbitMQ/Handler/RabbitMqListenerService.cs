@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -6,6 +7,8 @@ using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Observability.Tracing;
+using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -155,11 +158,13 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 
 		THandler handler = scope.ServiceProvider.GetRequiredService<THandler>();
 
+		IDateProvider? dateProvider = scope.ServiceProvider.GetService<IDateProvider>();
+
 		TMessage? message = await DeserializeMessageAsync(ea: ea, activity: activity, ct: ct);
 		if (message is null)
 			return;
 
-		await DispatchAsync(handler: handler, message: message, ea: ea, activity: activity, ct: ct);
+		await DispatchAsync(handler: handler, message: message, ea: ea, activity: activity, dateProvider: dateProvider, ct: ct);
 	}
 
 	/// <summary>
@@ -199,6 +204,7 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		TMessage message,
 		BasicDeliverEventArgs ea,
 		Activity? activity,
+		IDateProvider? dateProvider,
 		CancellationToken ct)
 	{
 		RabbitMqOptions currentOptions = options.CurrentValue;
@@ -206,6 +212,8 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 		try
 		{
 			await handler.HandleAsync(message: message, ct: ct);
+
+			RecordLag(ea: ea, dateProvider: dateProvider);
 
 			activity?.SetStatus(code: ActivityStatusCode.Ok);
 			await SafeAckAsync(deliveryTag: ea.DeliveryTag);
@@ -256,5 +264,31 @@ public sealed class RabbitMqListenerService<TMessage, THandler>(
 			return Encoding.UTF8.GetString(bytes: bytes);
 
 		return value as string;
+	}
+
+	private void RecordLag(BasicDeliverEventArgs ea, IDateProvider? dateProvider)
+	{
+		if (dateProvider is null)
+			return;
+
+		IDictionary<string, object?>? headers = ea.BasicProperties?.Headers;
+		if (headers is null)
+			return;
+
+		string? publishedAt = ReadHeader(headers: headers, key: RabbitMqHeaders.PublishedAt);
+		if (publishedAt is null || !Int64.TryParse(s: publishedAt, style: NumberStyles.Integer, provider: CultureInfo.InvariantCulture, result: out long publishedAtMs))
+			return;
+
+		KeyValuePair<string, object?> handlerTag = new KeyValuePair<string, object?>(key: "handler", value: typeof(THandler).Name);
+
+		double seconds = (dateProvider.UtcNow - DateTimeOffset.FromUnixTimeMilliseconds(milliseconds: publishedAtMs)).TotalSeconds;
+
+		if (seconds < 0)
+		{
+			WorkerMetrics.ProjectionLagClockSkew.Add(delta: 1, tag: handlerTag);
+			return;
+		}
+
+		WorkerMetrics.ProjectionLag.Record(value: seconds, tag: handlerTag);
 	}
 }

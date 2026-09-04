@@ -43,6 +43,8 @@ public abstract class MediatorFixture
 	protected IMediator Mediator { get; private set; } = null!;
 	protected FinanceTrackerContext Context { get; private set; } = null!;
 
+	protected virtual IReadOnlyDictionary<string, string?> ConfigurationOverrides { get; } = new Dictionary<string, string?>();
+
 	[Before(hookType: Assembly)]
 	public static async Task StartContainersAsync()
 	{
@@ -80,7 +82,7 @@ public abstract class MediatorFixture
 
 		string redisConnectionString = _redis.GetConnectionString() + ",allowAdmin=true";
 
-		Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().ConfigureAppConfiguration(configureDelegate: (_, builder) => builder.AddInMemoryCollection(initialData: new Dictionary<string, string?>
+		Dictionary<string, string?> configuration = new Dictionary<string, string?>
 		{
 			[$"ConnectionStrings:{nameof(FinanceTrackerContext)}"] = _connectionString,
 			[$"{RedisOptions.SectionName}:ConnectionString"] = redisConnectionString,
@@ -106,7 +108,14 @@ public abstract class MediatorFixture
 			["ProjectionRetry:MaxRetries"] = "3",
 			["ProjectionRetry:BaseDelayMs"] = "5",
 			["ProjectionRetry:UseJitter"] = "false",
-		})).ConfigureServices(configureDelegate: (ctx, services) =>
+		};
+
+		foreach ((string key, string? value) in ConfigurationOverrides)
+			configuration[key] = value;
+
+		Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().ConfigureAppConfiguration(
+			configureDelegate: (_, builder) => builder.AddInMemoryCollection(initialData: configuration)
+		).ConfigureServices(configureDelegate: (ctx, services) =>
 		{
 			services.AddPersistence(configuration: ctx.Configuration).AddAuth();
 			services.AddApplication();

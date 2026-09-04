@@ -42,4 +42,9 @@ public sealed class UserRoleWriteRepository(FinanceTrackerContext context) : IUs
 			.Take(count: batchSize)
 			.ExecuteDeleteAsync(cancellationToken: ct);
 	}
+
+	public async Task DeleteAllForUserAsync(
+		Guid userId,
+		CancellationToken ct = default
+	) => await context.UserRoles.Where(predicate: e => e.UserId == userId).ExecuteDeleteAsync(cancellationToken: ct);
 }

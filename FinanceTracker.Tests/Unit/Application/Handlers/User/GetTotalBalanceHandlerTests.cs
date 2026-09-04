@@ -48,16 +48,16 @@ public sealed class GetTotalBalanceHandlerTests
 			baseCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: 5000m);
+		).Returns(returnThis: new TotalBalanceReadModel(Total: Money.Reconstitute(amount: 5000m, currency: user.BaseCurrency), IsApproximate: false));
 
-		Result<Money, AppException> result = await _handler.Handle(
+		Result<TotalBalanceReadModel, AppException> result = await _handler.Handle(
 			query: new GetTotalBalanceQuery(UserId: user.Id),
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
-		await Assert.That(value: result.Value.Amount).IsEqualTo(expected: 5000m);
-		await Assert.That(value: result.Value.Currency.Value).IsEqualTo(expected: "RUB");
+		await Assert.That(value: result.Value!.Total.Amount).IsEqualTo(expected: 5000m);
+		await Assert.That(value: result.Value!.Total.Currency.Value).IsEqualTo(expected: "RUB");
 	}
 
 	[Test]
@@ -74,7 +74,7 @@ public sealed class GetTotalBalanceHandlerTests
 			baseCurrency: Arg.Any<FinanceTracker.Core.ValueObjects.Currency>(),
 			date: Arg.Any<DateOnly>(),
 			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: 0m);
+		).Returns(returnThis: new TotalBalanceReadModel(Total: Money.Reconstitute(amount: 0m, currency: user.BaseCurrency), IsApproximate: false));
 
 		await _handler.Handle(
 			query: new GetTotalBalanceQuery(UserId: user.Id),
@@ -97,7 +97,7 @@ public sealed class GetTotalBalanceHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (UserReadModel?)null);
 
-		Result<Money, AppException> result = await _handler.Handle(
+		Result<TotalBalanceReadModel, AppException> result = await _handler.Handle(
 			query: new GetTotalBalanceQuery(UserId: Guid.CreateVersion7()),
 			ct: CancellationToken.None
 		);

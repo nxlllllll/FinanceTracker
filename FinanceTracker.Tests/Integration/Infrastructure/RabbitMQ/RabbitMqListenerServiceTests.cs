@@ -12,6 +12,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 using FinanceTracker.Infrastructure.Database.UnitOfWork;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
+using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -57,6 +58,26 @@ public sealed class TestHandlerState
 
 [RoutingKey(routingKey: AggregateTypeNames.Account)]
 public sealed class TestMessageHandler(TestHandlerState state) : IMessageHandler<AggregateEventsMessage>
+{
+	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	{
+		state.Record(message: message);
+		return Task.CompletedTask;
+	}
+}
+
+[RoutingKey(routingKey: AggregateTypeNames.Account)]
+public sealed class LagProbeMessageHandler(TestHandlerState state) : IMessageHandler<AggregateEventsMessage>
+{
+	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
+	{
+		state.Record(message: message);
+		return Task.CompletedTask;
+	}
+}
+
+[RoutingKey(routingKey: AggregateTypeNames.Account)]
+public sealed class ClockSkewProbeMessageHandler(TestHandlerState state) : IMessageHandler<AggregateEventsMessage>
 {
 	public Task HandleAsync(AggregateEventsMessage message, CancellationToken ct = default)
 	{
@@ -256,6 +277,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		ServiceCollection services = new ServiceCollection();
 		services.AddSingleton<TestHandlerState>(_ => state);
 		services.AddScoped<TestMessageHandler>();
+		services.AddScoped<IDateProvider>(implementationFactory: _ => FakeDateProvider.Default);
 		return services.BuildServiceProvider();
 	}
 
@@ -282,6 +304,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		ServiceCollection services = new ServiceCollection();
 		services.AddSingleton<BlockingMessageHandlerState>(implementationFactory: _ => state);
 		services.AddScoped<BlockingMessageHandler>();
+		services.AddScoped<IDateProvider>(implementationFactory: _ => FakeDateProvider.Default);
 		return services.BuildServiceProvider();
 	}
 
@@ -346,6 +369,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -372,6 +396,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -399,6 +424,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -454,6 +480,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -495,6 +522,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		ServiceCollection services = new ServiceCollection();
 		services.AddSingleton<FlakyMessageHandlerState>(implementationFactory: _ => handlerState);
 		services.AddScoped<FlakyMessageHandler>();
+		services.AddScoped<IDateProvider>(implementationFactory: _ => FakeDateProvider.Default);
 		await using ServiceProvider sp = services.BuildServiceProvider();
 
 		RabbitMqListenerService<AggregateEventsMessage, FlakyMessageHandler> listener = BuildListener<FlakyMessageHandler>(
@@ -505,6 +533,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -545,6 +574,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -587,6 +617,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -627,6 +658,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -668,6 +700,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -717,6 +750,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -761,6 +795,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
 			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			dateProvider: FakeDateProvider.Default,
 			logger: NullLogger<RabbitMqPublisher>.Instance
 		);
 
@@ -791,5 +826,124 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await Assert.That(value: firstReceived).IsTrue();
 		await Assert.That(value: callCountWhileBlocked).IsEqualTo(expected: 1);
 		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: expectedReady);
+	}
+
+	private const string ProjectionLagInstrument = "projection.lag";
+	private const string ProjectionLagClockSkewInstrument = "projection.lag.clock_skew";
+
+	private static ServiceProvider BuildProbeServiceProvider<THandler>() where THandler : class
+	{
+		TestHandlerState state = new TestHandlerState();
+		ServiceCollection services = new ServiceCollection();
+		services.AddSingleton<TestHandlerState>(implementationFactory: _ => state);
+		services.AddScoped<THandler>();
+		services.AddScoped<IDateProvider>(implementationFactory: _ => FakeDateProvider.Default);
+		return services.BuildServiceProvider();
+	}
+
+	private RabbitMqPublisher BuildPublisherWithClock(IServiceScopeFactory scopeFactory, DateTimeOffset publishedAt) => new RabbitMqPublisher(
+		connectionFactory: _connectionFactory,
+		options: Options.Create(options: _baseOptions),
+		scopeFactory: scopeFactory,
+		dateProvider: new FakeDateProvider(utcNow: publishedAt),
+		logger: NullLogger<RabbitMqPublisher>.Instance
+	);
+
+	[Test]
+	public async Task Listener_WhenAMessageIsHandled_ShouldRecordHowLongItSpentBetweenPublishAndCompletion()
+	{
+		await using ServiceProvider sp = BuildProbeServiceProvider<LagProbeMessageHandler>();
+		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
+
+		using MetricCollector collector = MetricCollector.ForMeter(
+			meterName: WorkerMetrics.MeterName,
+			ProjectionLagInstrument
+		);
+
+		RabbitMqListenerService<AggregateEventsMessage, LagProbeMessageHandler> listener = BuildListener<LagProbeMessageHandler>(
+			options: _baseOptions,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+
+		await using RabbitMqPublisher publisher = BuildPublisherWithClock(
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			publishedAt: FakeDateProvider.Default.UtcNow.AddSeconds(seconds: -2)
+		);
+
+		await listener.StartAsync(ct: CancellationToken.None);
+		await WaitForConsumerAsync();
+		await publisher.PublishAsync(message: BuildMessage());
+		await state.WaitAsync(timeout: TimeSpan.FromSeconds(value: 5));
+
+		await WaitForConditionAsync(
+			condition: () => Task.FromResult(result: collector.For(instrument: ProjectionLagInstrument, ("handler", nameof(LagProbeMessageHandler))).Count > 0),
+			timeout: TimeSpan.FromSeconds(seconds: 5)
+		);
+
+		await listener.StopAsync(ct: CancellationToken.None);
+		listener.Dispose();
+
+		IReadOnlyList<MetricCollector.Measurement> samples = collector.For(
+			instrument: ProjectionLagInstrument,
+			("handler", nameof(LagProbeMessageHandler))
+		);
+
+		await Assert.That(value: samples).IsNotEmpty().Because(message: """
+			The histogram is only reachable if the listener can find a publish timestamp on the delivery.
+			It previously keyed on an IHasEventTime interface that no message type implemented, so the
+			guard was never satisfied and the instrument reported nothing at all — which is
+			indistinguishable from a projection that never lags, and left the replica-routing work
+			without the signal it was supposed to depend on.
+		""");
+
+		await Assert.That(value: samples[0].Value).IsEqualTo(expected: 2d).Because(message: """
+			The publisher's clock is two seconds behind the consumer's, so the sample pins that the
+			measurement is taken against the published-at header rather than against the domain event's
+			own OccurredAt, which backdating can push months into the past.
+		""");
+	}
+
+	[Test]
+	public async Task Listener_WhenThePublisherClockIsAhead_ShouldCountTheSkewRatherThanDropTheSampleSilently()
+	{
+		await using ServiceProvider sp = BuildProbeServiceProvider<ClockSkewProbeMessageHandler>();
+		TestHandlerState state = sp.GetRequiredService<TestHandlerState>();
+
+		using MetricCollector collector = MetricCollector.ForMeter(
+			meterName: WorkerMetrics.MeterName,
+			ProjectionLagInstrument,
+			ProjectionLagClockSkewInstrument
+		);
+
+		RabbitMqListenerService<AggregateEventsMessage, ClockSkewProbeMessageHandler> listener = BuildListener<ClockSkewProbeMessageHandler>(
+			options: _baseOptions,
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>()
+		);
+
+		await using RabbitMqPublisher publisher = BuildPublisherWithClock(
+			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
+			publishedAt: FakeDateProvider.Default.UtcNow.AddSeconds(seconds: 5)
+		);
+
+		await listener.StartAsync(ct: CancellationToken.None);
+		await WaitForConsumerAsync();
+		await publisher.PublishAsync(message: BuildMessage());
+		await state.WaitAsync(timeout: TimeSpan.FromSeconds(value: 5));
+
+		await WaitForConditionAsync(
+			condition: () => Task.FromResult(result: collector.For(instrument: ProjectionLagClockSkewInstrument, ("handler", nameof(ClockSkewProbeMessageHandler))).Count > 0),
+			timeout: TimeSpan.FromSeconds(seconds: 5)
+		);
+
+		await listener.StopAsync(ct: CancellationToken.None);
+		listener.Dispose();
+
+		await Assert.That(value: collector.Total(instrument: ProjectionLagClockSkewInstrument, ("handler", nameof(ClockSkewProbeMessageHandler)))).IsEqualTo(expected: 1d);
+
+		await Assert.That(value: collector.For(instrument: ProjectionLagInstrument, ("handler", nameof(ClockSkewProbeMessageHandler)))).IsEmpty().Because(message: """
+			A negative lag means the two containers disagree about the time, not that the projection is
+			instant. Folding it into the histogram would drag the reported lag down; discarding it without
+			a trace would leave the disagreement invisible, which is how it stays unfixed.
+		""");
 	}
 }

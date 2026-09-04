@@ -17,6 +17,11 @@ public interface IUserPermissionWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task DeleteAllForUserAsync(
+		Guid userId,
+		CancellationToken ct = default
+	);
+
 	Task<int> DeleteOldTombstonesAsync(
 		DateTimeOffset before,
 		int batchSize,

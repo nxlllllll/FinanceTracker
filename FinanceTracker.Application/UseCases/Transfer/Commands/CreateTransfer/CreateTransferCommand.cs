@@ -12,8 +12,7 @@ public sealed record CreateTransferCommand(
 	Guid FromAccountId,
 	Guid ToAccountId,
 	decimal Amount,
-	string? Description,
-	DateTimeOffset OccurredAt
+	string? Description
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }

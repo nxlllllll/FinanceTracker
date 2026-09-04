@@ -19,13 +19,15 @@ public sealed class PermissionAuthorizationHandler(
 		if (!Guid.TryParse(input: sub, result: out Guid userId))
 			return;
 
-		if (await rootAuthority.IsRootAsync(userId: userId))
+		CancellationToken ct = (context.Resource as HttpContext)?.RequestAborted ?? CancellationToken.None;
+
+		if (await rootAuthority.IsRootAsync(userId: userId, ct: ct))
 		{
 			context.Succeed(requirement: requirement);
 			return;
 		}
 
-		IReadOnlySet<string> permissions = await permissionReadRepository.GetPermissionsAsync(userId: userId);
+		IReadOnlySet<string> permissions = await permissionReadRepository.GetPermissionsAsync(userId: userId, ct: ct);
 
 		if (permissions.Contains(item: requirement.Permission))
 			context.Succeed(requirement: requirement);

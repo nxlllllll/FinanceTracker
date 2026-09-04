@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
@@ -29,6 +30,7 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 	private readonly RabbitMqOptions _options;
 	private readonly IServiceScopeFactory _scopeFactory;
 	private readonly ILogger<RabbitMqPublisher> _logger;
+	private readonly IDateProvider _dateProvider;
 
 	private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
 	private readonly SemaphoreSlim _slots;
@@ -40,12 +42,14 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 		RabbitMqConnectionFactory connectionFactory,
 		IOptions<RabbitMqOptions> options,
 		IServiceScopeFactory scopeFactory,
-		ILogger<RabbitMqPublisher> logger)
+		ILogger<RabbitMqPublisher> logger,
+		IDateProvider dateProvider)
 	{
 		_connectionFactory = connectionFactory;
 		_options = options.Value;
 		_scopeFactory = scopeFactory;
 		_logger = logger;
+		_dateProvider = dateProvider;
 		_slots = new SemaphoreSlim(
 			initialCount: _options.PublisherChannelPoolSize,
 			maxCount: _options.PublisherChannelPoolSize
@@ -65,12 +69,16 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 			DeliveryMode = DeliveryModes.Persistent
 		};
 
+		props.Headers ??= new Dictionary<string, object?>();
+		props.Headers[RabbitMqHeaders.PublishedAt] = Encoding.UTF8.GetBytes(
+			s: _dateProvider.UtcNow.ToUnixTimeMilliseconds().ToString(provider: CultureInfo.InvariantCulture)
+		);
+
 		if (correlationId is not null && correlationId != Guid.Empty)
 			props.CorrelationId = correlationId.ToString();
 
 		if (Activity.Current is { } current)
 		{
-			props.Headers ??= new Dictionary<string, object?>();
 			props.Headers[FinanceTrackerActivitySource.TraceContextHeaders.TraceParent] = Encoding.UTF8.GetBytes(
 				s: $"00-{current.TraceId}-{current.SpanId}-{(current.ActivityTraceFlags.HasFlag(ActivityTraceFlags.Recorded) ? "01" : "00")}"
 			);

@@ -8,12 +8,14 @@ public interface ITransferReadRepository : IReadRepository<TransferReadModel>
 {
 	Task<TransferReadModel?> GetByIdAsync(
 		Guid transferId,
+		Guid userId,
 		CancellationToken ct = default
 	);
 
 	Task<PagedResult<TransferReadModel>> GetAllAsync(
 		Guid userId,
 		Guid? accountId = null,
+		Domains.Transfer.TransferStatus? status = null,
 		DateTimeOffset? dateFrom = null,
 		DateTimeOffset? dateTo = null,
 		DateTimeOffset? cursorOccurredAt = null,

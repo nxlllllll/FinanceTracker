@@ -34,6 +34,15 @@ public interface IEventStore
 	);
 
 	/// <summary>
+	/// Loads every event for the aggregate, from the first one, ignoring snapshots.
+	/// </summary>
+	Task<IReadOnlyList<IEvent>> LoadAllEventsAsync(
+		Guid aggregateId,
+		string aggregateType,
+		CancellationToken ct = default
+	);
+
+	/// <summary>
 	/// Streams distinct aggregate IDs of the given type without loading all into memory.
 	/// Intended for bulk operations such as projection rebuilds.
 	/// </summary>

@@ -22,4 +22,9 @@ public interface IUserRoleWriteRepository
 		int batchSize,
 		CancellationToken ct = default
 	);
+
+	Task DeleteAllForUserAsync(
+		Guid userId,
+		CancellationToken ct = default
+	);
 }

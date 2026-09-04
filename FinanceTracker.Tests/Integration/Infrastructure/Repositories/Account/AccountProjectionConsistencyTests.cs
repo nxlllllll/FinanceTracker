@@ -1,4 +1,5 @@
 using FinanceTracker.Contracts.Events.Abstraction;
+using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Event;
 using FinanceTracker.Core.Domains.Abstractions.EventStore.Upcast;
 using FinanceTracker.Core.Domains.Account;
@@ -9,6 +10,7 @@ using FinanceTracker.Infrastructure.Database.EventStore;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.Account;
 using FinanceTracker.Infrastructure.EventMapping.Integration;
+using FinanceTracker.Infrastructure.Services.Rebuild;
 using FinanceTracker.Infrastructure.Services.Rebuild.Account;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
@@ -35,7 +37,8 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 	private AccountRepository _accountRepository = null!;
 	private AccountWriteRepository _writeRepository = null!;
 	private AccountDomainEventApplier _applier = null!;
-	private AccountProjectionRebuilder _rebuilder = null!;
+	private ProjectionRebuilder _rebuilder = null!;
+	private AccountProjectionRebuild _projection = null!;
 	private UserBuilder _userBuilder = null!;
 
 	private PostgresEventStore CreateEventStore() => new PostgresEventStore(
@@ -79,14 +82,12 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 			dateProvider: FakeDateProvider.Default
 		);
 		_applier = new AccountDomainEventApplier(repository: _writeRepository);
-		_rebuilder = new AccountProjectionRebuilder(
+		_projection = new AccountProjectionRebuild(repository: _writeRepository, applier: _applier);
+		_rebuilder = new ProjectionRebuilder(
 			eventStore: eventStore,
-			writeRepository: _writeRepository,
-			snapshotSerializer: new AccountSnapshotSerializer(),
 			unitOfWork: UnitOfWork,
-			applier: _applier,
-			scopeFactory: Substitute.For<IServiceScopeFactory>(), // unused here — only RebuildAsync is exercised directly, not RebuildAllAsync/ProcessBatchAsync
-			logger: Substitute.For<ILogger<AccountProjectionRebuilder>>()
+			scopeFactory: Substitute.For<IServiceScopeFactory>(),
+			logger: Substitute.For<ILogger<ProjectionRebuilder>>()
 		);
 		_userBuilder = new UserBuilder(context: Context);
 	}
@@ -104,24 +105,18 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 		return AccountFactory.Create(userId: userId, balance: balance, currency: currency).Value!;
 	}
 
+	private Task RebuildAsync(Guid accountId) => _rebuilder.RebuildAsync(
+		projection: _projection,
+		aggregateType: AggregateTypeNames.Account,
+		aggregateId: accountId,
+		ct: CancellationToken.None
+	);
+
 	/// <summary>
 	/// Persists the account's pending events to the event store (source of truth) and then
 	/// applies those same events to the read model — mirroring exactly what the outbox and
 	/// projection consumer do in production, one step at a time.
 	/// </summary>
-	/// <remarks>
-	/// <see cref="DbContext.SaveChangesAsync(CancellationToken)"/> is required because
-	/// <c>AccountWriteRepository.CreateAsync</c>/<c>UpsertFromSnapshotAsync</c> only call
-	/// <c>AddAsync</c> and rely on the caller to commit. <see cref="ChangeTracker.Clear"/>
-	/// afterward is just as important: this test reuses one long-lived <c>Context</c> across
-	/// every step plus the later rebuild, unlike production where the live projection
-	/// consumer and the rebuilder each get their own short-lived scoped <c>DbContext</c>.
-	/// Without clearing, the <c>AccountEntity</c> tracked here at version 1 lingers as
-	/// "Unchanged" in the identity map; <c>AccountWriteRepository.DeleteAsync</c> later
-	/// (called by the rebuilder) is a bulk <c>ExecuteDeleteAsync</c> that removes the row in
-	/// the database but never touches the tracker, so the rebuilder's subsequent
-	/// <c>AddAsync</c> for the same key collides with that stale tracked instance.
-	/// </remarks>
 	private async Task SaveAndProjectAsync(Core.Domains.Account.Account account)
 	{
 		List<IEvent> events = account.Events.ToList();
@@ -185,7 +180,7 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 		await Assert.That(value: balanceBeforeRebuild).IsEqualTo(expected: loaded.Balance.Amount);
 		await Assert.That(value: balanceBeforeRebuild).IsEqualTo(expected: 236.12m);
 
-		await _rebuilder.RebuildAsync(accountId: account.Id, ct: CancellationToken.None);
+		await RebuildAsync(accountId: account.Id);
 
 		decimal balanceAfterRebuild = await GetProjectedBalanceAsync(accountId: account.Id);
 		await Assert.That(value: balanceAfterRebuild).IsEqualTo(expected: balanceBeforeRebuild);
@@ -218,7 +213,7 @@ public sealed class AccountProjectionConsistencyTests : DatabaseFixture
 		decimal balanceBeforeRebuild = await GetProjectedBalanceAsync(accountId: account.Id);
 		await Assert.That(value: balanceBeforeRebuild).IsEqualTo(expected: loaded!.Balance.Amount);
 
-		await _rebuilder.RebuildAsync(accountId: account.Id, ct: CancellationToken.None);
+		await RebuildAsync(accountId: account.Id);
 
 		decimal balanceAfterRebuild = await GetProjectedBalanceAsync(accountId: account.Id);
 		await Assert.That(value: balanceAfterRebuild).IsEqualTo(expected: balanceBeforeRebuild);

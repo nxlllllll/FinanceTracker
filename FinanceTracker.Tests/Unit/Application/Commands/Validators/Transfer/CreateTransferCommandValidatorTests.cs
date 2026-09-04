@@ -13,9 +13,7 @@ public sealed class CreateTransferCommandValidatorTests
 	public void Setup()
 	{
 		_validator = new CreateTransferCommandValidator(
-			dateProvider: FakeDateProvider.Default,
-			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions()),
-			backdating: new FakeOptionsMonitor<BackdatingOptions>(value: new BackdatingOptions())
+			moneyLimits: new FakeOptionsMonitor<MoneyLimitsOptions>(value: new MoneyLimitsOptions())
 		);
 	}
 
@@ -107,24 +105,6 @@ public sealed class CreateTransferCommandValidatorTests
 	}
 
 	[Test]
-	public async Task Validate_WithFutureDate_ShouldHaveError()
-	{
-		CreateTransferCommand command = new CreateTransferCommand(
-			UserId: Guid.CreateVersion7(),
-			FromAccountId: Guid.CreateVersion7(),
-			ToAccountId: Guid.CreateVersion7(),
-			Amount: 500m,
-			Description: null,
-			OccurredAt: FakeDateProvider.Default.UtcNow.AddDays(days: 1)
-		);
-
-		ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-		await Assert.That(value: result.IsValid).IsFalse();
-		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.OccurredAt))).IsTrue();
-	}
-
-	[Test]
 	public async Task Validate_WithTooLongDescription_ShouldHaveError()
 	{
 		CreateTransferCommand command = CreateTransferCommandFactory.Create(description: new string(c: 'a', count: 256));
@@ -136,35 +116,17 @@ public sealed class CreateTransferCommandValidatorTests
 	}
 
 	[Test]
-	public async Task Validate_WithADateInsideTheBackdatingWindow_ShouldNotHaveErrors()
+	public async Task TheCommand_ShouldNotCarryADateAtAll()
 	{
-		CreateTransferCommand command = CreateTransferCommandFactory.Create(
-			occurredAt: FakeDateProvider.Default.UtcNow.AddMonths(months: -2)
-		);
+		bool hasDate = typeof(CreateTransferCommand).GetProperties().Any(predicate: property => property.PropertyType == typeof(DateTimeOffset));
 
-		ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-		await Assert.That(value: result.IsValid).IsTrue().Because(message: """
-			Entering an operation weeks or a couple of months late is the ordinary case the window
-			exists to allow. A bound tight enough to reject it would just push people to lie about
-			the date.
-		""");
-	}
-
-	[Test]
-	public async Task Validate_WithADateBeyondTheBackdatingWindow_ShouldHaveError()
-	{
-		CreateTransferCommand command = CreateTransferCommandFactory.Create(
-			occurredAt: FakeDateProvider.Default.UtcNow.AddMonths(months: -4)
-		);
-
-		ValidationResult result = await _validator.ValidateAsync(instance: command);
-
-		await Assert.That(value: result.IsValid).IsFalse();
-		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.OccurredAt))).IsTrue().Because(message: """
-			A cross-currency transfer converts at the rate of the date it carries, and that rate is
-			recorded as final. Without a lower bound the date is a free pick among every rate ever
-			recorded, and the resulting balances stop describing anything real.
+		await Assert.That(value: hasDate).IsFalse().Because(message: """
+			A transfer has no past to describe. Unlike a transaction, which records something that
+			happened outside the system and that only the user can date, a transfer is an operation the
+			system performs between two of its own accounts — it happens when the command runs, and a
+			caller-supplied date would name an event that never took place. Reintroducing one would also
+			hand the caller a free pick of exchange rate, since a cross-currency transfer converts at the
+			rate of the date it carries and records that rate as final.
 		""");
 	}
 }

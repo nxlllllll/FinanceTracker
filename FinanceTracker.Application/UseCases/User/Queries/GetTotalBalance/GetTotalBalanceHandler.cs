@@ -12,23 +12,23 @@ namespace FinanceTracker.Application.UseCases.User.Queries.GetTotalBalance;
 public sealed class GetTotalBalanceHandler(
 	IUserQueryRepository userQueryRepository,
 	IDateProvider dateProvider
-) : IRequestHandler<GetTotalBalanceQuery, Result<Money, AppException>>
+) : IRequestHandler<GetTotalBalanceQuery, Result<TotalBalanceReadModel, AppException>>
 {
-	public async Task<Result<Money, AppException>> Handle(
+	public async Task<Result<TotalBalanceReadModel, AppException>> Handle(
 		GetTotalBalanceQuery query,
 		CancellationToken ct = default)
 	{
 		UserReadModel? user = await userQueryRepository.GetByIdAsync(userId: query.UserId, ct: ct);
 		if (user is null)
-			return Result<Money, AppException>.Failure(error: new NotFoundException(message: "User not found.", id: query.UserId));
+			return Result<TotalBalanceReadModel, AppException>.Failure(error: new NotFoundException(message: "User not found.", id: query.UserId));
 
-		decimal balance = await userQueryRepository.GetTotalBalanceAsync(
+		TotalBalanceReadModel balance = await userQueryRepository.GetTotalBalanceAsync(
 			userId: query.UserId,
 			baseCurrency: user.BaseCurrency,
 			date: dateProvider.UtcToday,
 			ct: ct
 		);
 
-		return Result<Money, AppException>.Success(value: Money.Reconstitute(amount: balance, currency: user.BaseCurrency));
+		return Result<TotalBalanceReadModel, AppException>.Success(value: balance);
 	}
 }

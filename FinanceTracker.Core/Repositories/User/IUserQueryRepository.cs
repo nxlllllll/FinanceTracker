@@ -17,7 +17,7 @@ public interface IUserQueryRepository : IReadRepository<UserReadModel>
 		CancellationToken ct = default
 	);
 
-	Task<decimal> GetTotalBalanceAsync(
+	Task<TotalBalanceReadModel> GetTotalBalanceAsync(
 		Guid userId,
 		ValueObjects.Currency baseCurrency,
 		DateOnly date,

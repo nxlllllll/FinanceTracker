@@ -62,7 +62,10 @@ using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
 using FinanceTracker.Infrastructure.Services.Password;
 using FinanceTracker.Infrastructure.Services.RateLimit;
+using FinanceTracker.Infrastructure.Services.Rebuild;
 using FinanceTracker.Infrastructure.Services.Rebuild.Account;
+using FinanceTracker.Infrastructure.Services.Rebuild.UserPermission;
+using FinanceTracker.Infrastructure.Services.Rebuild.UserRole;
 using FinanceTracker.Infrastructure.Services.Token;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -90,6 +93,11 @@ public static class DependencyInjection
 
 		services.AddOptions<RedisOptions>()
 			.BindConfiguration(configSectionPath: RedisOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddOptions<CurrencyRateOptions>()
+			.BindConfiguration(configSectionPath: CurrencyRateOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
@@ -270,7 +278,15 @@ public static class DependencyInjection
 		services.AddSingleton<ISnapshotSerializer<Account>, AccountSnapshotSerializer>();
 
 		services.AddScoped<AccountDomainEventApplier>();
-		services.AddScoped<IAccountProjectionRebuilder, AccountProjectionRebuilder>();
+		services.AddScoped<UserRoleDomainEventApplier>();
+		services.AddScoped<UserPermissionDomainEventApplier>();
+
+		services.AddScoped<AccountProjectionRebuild>();
+		services.AddScoped<UserRoleProjectionRebuild>();
+		services.AddScoped<UserPermissionProjectionRebuild>();
+
+		services.AddScoped<ProjectionRegistry>();
+		services.AddScoped<ProjectionRebuilder>();
 
 		services.AddSingleton<ITransientFaultDetector, NpgsqlTransientFaultDetector>();
 
