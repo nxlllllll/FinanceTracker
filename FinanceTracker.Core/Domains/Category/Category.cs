@@ -1,6 +1,7 @@
 using FinanceTracker.Core.Domains.Abstractions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 
@@ -24,14 +25,23 @@ public sealed class Category : IHasId
 
 	private Category() { }
 
-	public static Category Create(
+	/// <summary>
+	/// <paramref name="parentType"/> is the type of the parent named by <paramref name="parentId"/>,
+	/// or <c>null</c> for a root category. Depth is checked by the caller, the only side that can see
+	/// the rest of the tree.
+	/// </summary>
+	public static Result<Category, DomainException> Create(
 		DateTimeOffset createdAt,
 		Guid userId,
 		Name name,
 		CategoryType type,
-		Guid? parentId)
+		Guid? parentId,
+		CategoryType? parentType)
 	{
-		return new Category()
+		if (parentType is not null && parentType != type)
+			return Result<Category, DomainException>.Failure(error: new CategoryTypeMismatchException(message: "A category must have the same type as its parent."));
+
+		return Result<Category, DomainException>.Success(value: new Category()
 		{
 			Id = Guid.CreateVersion7(),
 			UserId = userId,
@@ -41,7 +51,7 @@ public sealed class Category : IHasId
 			IsArchived = false,
 			RowVersion = 0,
 			CreatedAt = createdAt
-		};
+		});
 	}
 
 	public static Category Reconstitute(
@@ -76,6 +86,24 @@ public sealed class Category : IHasId
 			return Result<bool, DomainException>.Success(value: false);
 
 		Name = newName;
+		return Result<bool, DomainException>.Success(value: true);
+	}
+
+	public Result<bool, DomainException> ChangeParent(Guid? newParentId, CategoryType? newParentType)
+	{
+		if (IsArchived)
+			return Result<bool, DomainException>.Failure(error: new ArchivedOperationException(message: "It is forbidden to move an archived category."));
+
+		if (newParentId == Id)
+			return Result<bool, DomainException>.Failure(error: new CategoryCycleException(message: "A category cannot be its own parent."));
+
+		if (newParentType is not null && newParentType != Type)
+			return Result<bool, DomainException>.Failure(error: new CategoryTypeMismatchException(message: "A category must have the same type as its parent."));
+
+		if (ParentId == newParentId)
+			return Result<bool, DomainException>.Success(value: false);
+
+		ParentId = newParentId;
 		return Result<bool, DomainException>.Success(value: true);
 	}
 

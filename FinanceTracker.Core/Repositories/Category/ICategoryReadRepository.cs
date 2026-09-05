@@ -28,4 +28,16 @@ public interface ICategoryReadRepository : IReadRepository<CategoryReadModel>
 		Guid userId,
 		CancellationToken ct = default
 	);
+
+	Task<IReadOnlyList<Guid>> GetAncestorIdsAsync(
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default
+	);
+
+	Task<int> GetSubtreeHeightAsync(
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default
+	);
 }

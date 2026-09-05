@@ -10,6 +10,7 @@ using FinanceTracker.Application.Behaviours.Validation;
 using FinanceTracker.Application.Configurations.Options;
 using FinanceTracker.Application.Services.Permissions;
 using FinanceTracker.Application.Services.Roles;
+using FinanceTracker.Application.Services.Categories;
 using FinanceTracker.Application.Services.Transactions;
 using FinanceTracker.Core.Results;
 using FluentValidation;
@@ -53,6 +54,11 @@ public static class DependencyInjection
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<CategoryOptions>()
+			.BindConfiguration(configSectionPath: CategoryOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
 		services.AddOptions<CancellationOptions>()
 			.BindConfiguration(configSectionPath: CancellationOptions.SectionName)
 			.ValidateDataAnnotations()
@@ -64,6 +70,7 @@ public static class DependencyInjection
 
 		services.AddScoped<IIdempotencyReservationCoordinator, IdempotencyReservationCoordinator>();
 
+		services.AddScoped<ICategoryTreePolicy, CategoryTreePolicy>();
 		services.AddScoped<ITransactionCreationService, TransactionCreationService>();
 		services.AddScoped<IUserPermissionService, UserPermissionService>();
 		services.AddScoped<IUserRoleService, UserRoleService>();

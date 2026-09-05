@@ -13,6 +13,8 @@ namespace FinanceTracker.Infrastructure.Database.Extensions;
 /// </summary>
 public static class DbContextExtensions
 {
+	private const int CategoryTreeGuardDepth = 64;
+
 	private sealed record CurrencyRateRow(string BaseCode, string TargetCode, decimal Rate);
 	private sealed record CurrencyStableRateRow(string BaseCode, string TargetCode, DateTime AsOfUtc, decimal Rate);
 
@@ -180,6 +182,53 @@ public static class DbContextExtensions
 			LIMIT {batchSize}
 		""").ToListAsync(cancellationToken: ct);
 	}
+
+	public static async Task<IReadOnlyList<Guid>> GetCategoryAncestorIdsAsync(
+		this FinanceTrackerContext context,
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default)
+	{
+		List<Guid> ancestors = await context.Database.SqlQuery<Guid>($"""
+			WITH RECURSIVE chain AS (
+				SELECT c.parent_id AS id, 1 AS distance
+				FROM categories c
+				WHERE c.id = {categoryId} AND c.user_id = {userId} AND c.parent_id IS NOT NULL
+
+				UNION ALL
+
+				SELECT p.parent_id, chain.distance + 1
+				FROM chain
+				JOIN categories p ON p.id = chain.id
+				WHERE p.parent_id IS NOT NULL AND chain.distance < {CategoryTreeGuardDepth}
+			)
+			SELECT id AS "Value" FROM chain ORDER BY distance
+			""").ToListAsync(cancellationToken: ct);
+
+		return ancestors.AsReadOnly();
+	}
+
+	/// <summary>Edges from the category down to its deepest descendant. Zero for a leaf.</summary>
+	public static Task<int> GetCategorySubtreeHeightAsync(
+		this FinanceTrackerContext context,
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default
+	) => context.Database.SqlQuery<int>($"""
+		WITH RECURSIVE subtree AS (
+			SELECT c.id, 0 AS depth
+			FROM categories c
+			WHERE c.id = {categoryId} AND c.user_id = {userId}
+
+			UNION ALL
+
+			SELECT child.id, subtree.depth + 1
+			FROM subtree
+			JOIN categories child ON child.parent_id = subtree.id
+			WHERE subtree.depth < {CategoryTreeGuardDepth}
+		)
+		SELECT COALESCE(MAX(depth), 0) AS "Value" FROM subtree
+		""").SingleAsync(cancellationToken: ct);
 
 	public static Task InsertAccountAsync(
 		this DbContext context,

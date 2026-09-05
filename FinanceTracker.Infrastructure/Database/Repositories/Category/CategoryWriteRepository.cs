@@ -26,6 +26,23 @@ public sealed class CategoryWriteRepository(FinanceTrackerContext context) : ICa
 		}, cancellationToken: ct);
 	}
 
+	public async Task ChangeParentAsync(
+		Guid categoryId,
+		Guid? newParentId,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Categories.Where(predicate: c => c.Id == categoryId && c.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: c => c.ParentId, valueExpression: newParentId)
+				.SetProperty(propertyExpression: c => c.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"Category {categoryId} was modified by another request.", id: categoryId);
+	}
+
 	public async Task RenameAsync(
 		Guid categoryId,
 		Name newName,

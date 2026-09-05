@@ -41,8 +41,9 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 			userId: userId,
 			name: Name.Create(value: "Еда").Value,
 			type: type,
-			parentId: parentId
-		);
+			parentId: parentId,
+			parentType: null
+		).Value!;
 
 		await _writeRepository.CreateAsync(category: category);
 		await Context.SaveChangesAsync();
@@ -215,5 +216,60 @@ public sealed class CategoryReadRepositoryTests : DatabaseFixture
 		await Assert.That(value: secondPage.Items.Count).IsEqualTo(expected: 1);
 		await Assert.That(value: secondPage.HasNextPage).IsFalse();
 		await Assert.That(value: secondPage.Items.Any(c => firstPage.Items.Any(f => f.Id == c.Id))).IsFalse();
+	}
+
+	[Test]
+	public async Task GetAncestorIdsAsync_ForARootCategory_ShouldReturnNothing()
+	{
+		Guid userId = await CreateUserAsync();
+		Core.Domains.Category.Category root = await CreateAndSaveCategoryAsync(userId: userId);
+
+		IReadOnlyList<Guid> ancestors = await _readRepository.GetAncestorIdsAsync(categoryId: root.Id, userId: userId);
+
+		await Assert.That(value: ancestors).IsEmpty();
+	}
+
+	[Test]
+	public async Task GetAncestorIdsAsync_ShouldWalkToTheRootNearestFirst()
+	{
+		Guid userId = await CreateUserAsync();
+		Core.Domains.Category.Category root = await CreateAndSaveCategoryAsync(userId: userId);
+		Core.Domains.Category.Category middle = await CreateAndSaveCategoryAsync(userId: userId, parentId: root.Id);
+		Core.Domains.Category.Category leaf = await CreateAndSaveCategoryAsync(userId: userId, parentId: middle.Id);
+
+		IReadOnlyList<Guid> ancestors = await _readRepository.GetAncestorIdsAsync(categoryId: leaf.Id, userId: userId);
+
+		await Assert.That(value: ancestors).IsEquivalentTo(new[] { middle.Id, root.Id }).Because(message: """
+			The order carries meaning: the caller counts the chain to learn the parent's depth, and reads
+			it nearest first to answer whether a given category is an ancestor without walking twice.
+		""");
+	}
+
+	[Test]
+	public async Task GetSubtreeHeightAsync_ForALeaf_ShouldBeZero()
+	{
+		Guid userId = await CreateUserAsync();
+		Core.Domains.Category.Category leaf = await CreateAndSaveCategoryAsync(userId: userId);
+
+		int height = await _readRepository.GetSubtreeHeightAsync(categoryId: leaf.Id, userId: userId);
+
+		await Assert.That(value: height).IsEqualTo(expected: 0);
+	}
+
+	[Test]
+	public async Task GetSubtreeHeightAsync_ShouldCountEdgesToTheDeepestDescendant()
+	{
+		Guid userId = await CreateUserAsync();
+		Core.Domains.Category.Category root = await CreateAndSaveCategoryAsync(userId: userId);
+		Core.Domains.Category.Category middle = await CreateAndSaveCategoryAsync(userId: userId, parentId: root.Id);
+		await CreateAndSaveCategoryAsync(userId: userId, parentId: middle.Id);
+		await CreateAndSaveCategoryAsync(userId: userId, parentId: root.Id);
+
+		int height = await _readRepository.GetSubtreeHeightAsync(categoryId: root.Id, userId: userId);
+
+		await Assert.That(value: height).IsEqualTo(expected: 2).Because(message: """
+			A move carries the whole subtree, so the depth ceiling has to be judged against the deepest
+			branch. Taking the nearest child, or the count of descendants, would let a tall branch through.
+		""");
 	}
 }
