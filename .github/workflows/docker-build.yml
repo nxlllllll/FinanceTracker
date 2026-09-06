@@ -37,6 +37,22 @@ jobs:
           done
           exit $missing
 
+      - name: Every matrix entry is covered by the CI image override
+        run: |
+          names=$(grep -o -- '- { name: [a-z0-9-]*, path' .github/workflows/docker-build.yml | sed 's/- { name: //; s/, path//')
+          if [ -z "$names" ]; then
+            echo "::error::could not read the build matrix — the check would pass without testing anything"
+            exit 1
+          fi
+          missing=0
+          for name in $names; do
+            if ! grep -qF -- "-$name:\${IMAGE_TAG}" compose.ci.yaml; then
+              echo "::error::$name is in the build matrix but has no image override in compose.ci.yaml"
+              missing=1
+            fi
+          done
+          exit $missing
+
   build:
     needs: matrix-completeness
     runs-on: ubuntu-latest
@@ -99,10 +115,52 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
 
+  smoke:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      COMPOSE_FILE: compose.yaml:compose.ci.yaml
+      COMPOSE_PROFILES: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Point the stack at the images this run published
+        run: |
+          cp .env.example .env
+          {
+            echo
+            echo "IMAGE_PREFIX=${REGISTRY}/$(echo "$IMAGE_NAMESPACE" | tr '[:upper:]' '[:lower:]')"
+            echo "IMAGE_TAG=sha-$(echo "$GITHUB_SHA" | cut -c1-7)"
+          } >> .env
+
+      - name: Start the stack
+        run: docker compose up -d --no-build --quiet-pull
+
+      - name: Every service answers ready
+        run: bash scripts/ci/smoke.sh
+
+      - name: Container logs
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
   docker-build-status:
-    needs: [matrix-completeness, build]
+    needs: [matrix-completeness, build, smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any matrix build failed
-        run: ${{ (needs.matrix-completeness.result == 'success' && needs.build.result == 'success') && 'true' || 'false' }}
+        run: ${{ (needs.matrix-completeness.result == 'success' && needs.build.result == 'success' && (needs.smoke.result == 'success' || needs.smoke.result == 'skipped')) && 'true' || 'false' }}

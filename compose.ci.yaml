@@ -1,0 +1,47 @@
+services:
+  api:
+    image: ${IMAGE_PREFIX}-api:${IMAGE_TAG}
+    ports:
+      - "127.0.0.1:9100:9100"
+
+  migrator:
+    image: ${IMAGE_PREFIX}-migrator:${IMAGE_TAG}
+
+  cli:
+    image: ${IMAGE_PREFIX}-cli:${IMAGE_TAG}
+
+  worker-outbox:
+    image: ${IMAGE_PREFIX}-worker-outbox:${IMAGE_TAG}
+
+  worker-account-projection:
+    image: ${IMAGE_PREFIX}-worker-account-projection:${IMAGE_TAG}
+
+  worker-balance-adjustment:
+    image: ${IMAGE_PREFIX}-worker-balance-adjustment:${IMAGE_TAG}
+
+  worker-transfer-projection:
+    image: ${IMAGE_PREFIX}-worker-transfer-projection:${IMAGE_TAG}
+
+  worker-recurring-transaction:
+    image: ${IMAGE_PREFIX}-worker-recurring-transaction:${IMAGE_TAG}
+
+  worker-recurring-transaction-projection:
+    image: ${IMAGE_PREFIX}-worker-recurring-projection:${IMAGE_TAG}
+
+  worker-currency-rate:
+    image: ${IMAGE_PREFIX}-worker-currency-rate:${IMAGE_TAG}
+
+  worker-cleanup:
+    image: ${IMAGE_PREFIX}-worker-cleanup:${IMAGE_TAG}
+
+  worker-dead-letter-monitor:
+    image: ${IMAGE_PREFIX}-worker-dead-letter-monitor:${IMAGE_TAG}
+
+  worker-permission-projection:
+    image: ${IMAGE_PREFIX}-worker-permission-projection:${IMAGE_TAG}
+
+  worker-user-role-projection:
+    image: ${IMAGE_PREFIX}-worker-user-role-projection:${IMAGE_TAG}
+
+  worker-base-currency-recalculation:
+    image: ${IMAGE_PREFIX}-worker-base-currency-recalculation:${IMAGE_TAG}
