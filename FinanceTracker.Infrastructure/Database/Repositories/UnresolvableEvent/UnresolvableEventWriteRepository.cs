@@ -29,12 +29,12 @@ public sealed class UnresolvableEventWriteRepository(FinanceTrackerContext conte
 		}, cancellationToken: ct);
 	}
 
-	public async Task AcknowledgeBatchAsync(
-		IReadOnlyList<Guid> ids,
+	public async Task AcknowledgeAsync(
+		Guid id,
 		DateTimeOffset acknowledgedAt,
 		CancellationToken ct = default)
 	{
-		await context.UnresolvableEvents.Where(predicate: e => ids.Contains(e.Id)).ExecuteUpdateAsync(
+		await context.UnresolvableEvents.Where(predicate: e => e.Id == id).ExecuteUpdateAsync(
 			setPropertyCalls: e => e.SetProperty(propertyExpression: x => x.AcknowledgedAt, valueExpression: acknowledgedAt),
 			cancellationToken: ct
 		);

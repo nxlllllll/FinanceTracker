@@ -10,4 +10,5 @@ public static class RouteNames
 	public const string GetRecurringTransaction = nameof(GetRecurringTransaction);
 	public const string GetTransaction = nameof(GetTransaction);
 	public const string GetTransfer = nameof(GetTransfer);
+	public const string GetUnresolvableEvent = nameof(GetUnresolvableEvent);
 }

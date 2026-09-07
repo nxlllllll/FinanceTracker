@@ -1,6 +1,7 @@
 using System.Globalization;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Cli.Commands;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Infrastructure.Services.Rebuild;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +18,8 @@ public sealed class Program
 		FinanceTracker administrative commands.
 
 		Usage:
-		  grant-root <email>                        Grant the root role to an existing user.
+		  grant-role <email> <role>                 Grant a system role to an existing user.
+		                                            Roles: {String.Join(separator: ", ", values: Enum.GetNames<SystemRole>().Select(selector: name => name.ToLowerInvariant()))}.
 
 		  rebuild-projection --projection <name> <aggregateId>
 		                                            Replay one aggregate's events into its read model.
@@ -39,7 +41,7 @@ public sealed class Program
 
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 		builder.Services.AddApplication();
-		builder.Services.AddScoped<GrantRootCommand>();
+		builder.Services.AddScoped<GrantRoleCommand>();
 		builder.Services.AddScoped<RebuildProjectionCommand>();
 
 		using IHost host = builder.Build();
@@ -47,7 +49,7 @@ public sealed class Program
 
 		return args[0] switch
 		{
-			"grant-root" when args.Length == 2 => await scope.ServiceProvider.GetRequiredService<GrantRootCommand>().ExecuteAsync(email: args[1]),
+			"grant-role" when args.Length == 3 => await scope.ServiceProvider.GetRequiredService<GrantRoleCommand>().ExecuteAsync(email: args[1], role: args[2]),
 			"rebuild-projection" => await RunRebuildAsync(scope: scope, args: args),
 			_ => Fail()
 		};

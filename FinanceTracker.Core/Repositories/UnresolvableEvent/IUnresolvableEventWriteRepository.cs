@@ -13,8 +13,8 @@ public interface IUnresolvableEventWriteRepository
 		CancellationToken ct = default
 	);
 
-	Task AcknowledgeBatchAsync(
-		IReadOnlyList<Guid> ids,
+	Task AcknowledgeAsync(
+		Guid id,
 		DateTimeOffset acknowledgedAt,
 		CancellationToken ct = default
 	);

@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.ReadModels.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 
@@ -6,11 +7,21 @@ namespace FinanceTracker.Core.Repositories.UnresolvableEvent;
 public interface IUnresolvableEventReadRepository : IReadRepository<ReadModels.UnresolvableEvent.UnresolvableEvent>
 {
 	/// <summary>
-	/// Returns events that haven't been individually reported yet (and aren't already resolved) —
-	/// used by <c>DeadLetterMonitoringJob</c>'s frequent pass (every few minutes).
+	/// Returns one event together with the message body that caused it.
 	/// </summary>
-	Task<PagedResult<ReadModels.UnresolvableEvent.UnresolvableEvent>> GetUnacknowledgedBatchAsync(
-		int batchSize,
+	Task<UnresolvableEventDetail?> GetByIdAsync(
+		Guid eventId,
+		CancellationToken ct = default
+	);
+
+	/// <summary>Pages the escalation queue oldest first</summary>
+	Task<PagedResult<ReadModels.UnresolvableEvent.UnresolvableEvent>> GetAllAsync(
+		UnresolvableEventType? type = null,
+		bool? isAcknowledged = null,
+		bool? isResolved = null,
+		DateTimeOffset? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
 		CancellationToken ct = default
 	);
 

@@ -72,8 +72,8 @@ if (-not (Assert-Status -Response $me -Expected 200 -What 'GET /users/me' -PassT
 $userId = (Read-Json -Response $me).id
 Write-Note "userId: $userId"
 
-# grant-root идемпотентен: повторный прогон скрипта на той же учётке просто ничего не изменит.
-Invoke-Cli -Arguments @('grant-root', $user.Email) | Out-Null
+# grant-role идемпотентен: повторный прогон скрипта на той же учётке просто ничего не изменит.
+Invoke-Cli -Arguments @('grant-role', $user.Email, 'root') | Out-Null
 
 # Токен выдан до назначения роли и прав в нём не несёт — нужен новый.
 $user = New-TestUser -Label 'rebuild' -Fresh:$false
