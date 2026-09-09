@@ -1,4 +1,5 @@
 using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
+using FinanceTracker.Application.UseCases.Transfer.Commands.CancelTransfer;
 using FinanceTracker.Application.UseCases.Transfer.Commands.CreateTransfer;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
@@ -284,5 +285,146 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			.FirstAsync();
 
 		await Assert.That(value: toBalance).IsEqualTo(expected: 1_000m);
+	}
+
+	[Test]
+	public async Task CancelTransfer_AfterItCompleted_ShouldUnwindBothBalancesThroughTheProjection()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid fromAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 10_000m);
+		Guid toAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 2_000m);
+
+		await Mediator.Send(request: new CreateTransferCommand(
+			UserId: userId,
+			FromAccountId: fromAccountId,
+			ToAccountId: toAccountId,
+			Amount: 3_000m,
+			Description: null
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
+
+		await RunOutboxAsync();
+
+		Guid transferId = Guid.Empty;
+		await WaitForConditionAsync(condition: async () =>
+		{
+			await RunOutboxAsync();
+			await using FinanceTrackerContext ctx = CreateReadContext();
+			transferId = await ctx.Transfers.Where(predicate: t => t.FromAccountId == fromAccountId && t.Status == TransferStatus.Completed)
+				.Select(selector: t => t.Id)
+				.FirstOrDefaultAsync();
+			return transferId != Guid.Empty;
+		});
+
+		Result<Guid, AppException> cancelled = await Mediator.Send(request: new CancelTransferCommand(
+			UserId: userId,
+			TransferId: transferId
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
+
+		await Assert.That(value: cancelled.IsSuccess).IsTrue();
+
+		await WaitForConditionAsync(condition: async () =>
+		{
+			await RunOutboxAsync();
+			await using FinanceTrackerContext ctx = CreateReadContext();
+
+			decimal? from = await ctx.AccountBalances.Where(predicate: x => x.AccountId == fromAccountId)
+				.Select(selector: x => x.Balance)
+				.FirstOrDefaultAsync();
+
+			decimal? to = await ctx.AccountBalances.Where(predicate: x => x.AccountId == toAccountId)
+				.Select(selector: x => x.Balance)
+				.FirstOrDefaultAsync();
+
+			return from == 10_000m && to == 2_000m;
+		});
+
+		await using FinanceTrackerContext readCtx = CreateReadContext();
+
+		decimal fromBalance = await readCtx.AccountBalances.Where(predicate: b => b.AccountId == fromAccountId)
+			.Select(selector: b => b.Balance)
+			.FirstAsync();
+
+		decimal toBalance2 = await readCtx.AccountBalances.Where(predicate: b => b.AccountId == toAccountId)
+			.Select(selector: b => b.Balance)
+			.FirstAsync();
+
+		await Assert.That(value: fromBalance).IsEqualTo(expected: 10_000m).Because(message: """
+			Cancellation raises two account events of its own and reaches the balances the same way the
+			transfer did — through the outbox and the projection. A unit test sees the aggregate move;
+			only this path shows whether the events are published, resolved and applied at all.
+		""");
+
+		await Assert.That(value: toBalance2).IsEqualTo(expected: 2_000m);
+
+		TransferStatus status = await readCtx.Transfers.Where(predicate: t => t.Id == transferId)
+			.Select(selector: t => t.Status)
+			.FirstAsync();
+
+		await Assert.That(value: status).IsEqualTo(expected: TransferStatus.Cancelled);
+	}
+
+	[Test]
+	public async Task CancelTransfer_WhileTheCreditIsStillPending_ShouldRefundTheSourceAndLeaveTheDestinationAlone()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid fromAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 10_000m);
+		Guid toAccountId = await CreateAccountViaCommandAsync(userId: userId, balance: 2_000m);
+
+		await Mediator.Send(request: new CreateTransferCommand(
+			UserId: userId,
+			FromAccountId: fromAccountId,
+			ToAccountId: toAccountId,
+			Amount: 4_000m,
+			Description: null
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
+
+		Guid transferId = await Context.Transfers.Where(predicate: t => t.FromAccountId == fromAccountId)
+			.Select(selector: t => t.Id)
+			.FirstAsync();
+
+		Result<Guid, AppException> cancelled = await Mediator.Send(request: new CancelTransferCommand(
+			UserId: userId,
+			TransferId: transferId
+		)
+		{ IdempotencyKey = Guid.CreateVersion7() });
+
+		await Assert.That(value: cancelled.IsSuccess).IsTrue().Because(message: """
+			The credit is applied by a worker reading the outbox, and nothing has drained it yet, so the
+			transfer is still PendingCredit here. Cancelling from that state is the case a user hits when
+			they change their mind before the transfer settles.
+		""");
+
+		await WaitForConditionAsync(condition: async () =>
+		{
+			await RunOutboxAsync();
+			await using FinanceTrackerContext ctx = CreateReadContext();
+
+			decimal? from = await ctx.AccountBalances.Where(predicate: x => x.AccountId == fromAccountId)
+				.Select(selector: x => x.Balance)
+				.FirstOrDefaultAsync();
+
+			return from == 10_000m;
+		});
+
+		await using FinanceTrackerContext pendingCtx = CreateReadContext();
+
+		decimal destination = await pendingCtx.AccountBalances.Where(predicate: b => b.AccountId == toAccountId)
+			.Select(selector: b => b.Balance)
+			.FirstAsync();
+
+		await Assert.That(value: destination).IsEqualTo(expected: 2_000m).Because(message: """
+			The debit event is still in the outbox when the cancellation lands, so the consumer meets a
+			transfer that is no longer PendingCredit. It has to leave the destination alone: crediting it
+			after the source was already refunded would put the same money in two places at once.
+		""");
+
+		TransferStatus pendingStatus = await pendingCtx.Transfers.Where(predicate: t => t.Id == transferId)
+			.Select(selector: t => t.Status)
+			.FirstAsync();
+
+		await Assert.That(value: pendingStatus).IsEqualTo(expected: TransferStatus.Cancelled);
 	}
 }
