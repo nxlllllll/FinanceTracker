@@ -104,6 +104,25 @@ public sealed class AccountIntegrationEventMapper : IAggregateIntegrationEventMa
 			Version: e.Version,
 			OccurredAt: e.OccurredAt
 		),
+		AccountTransferDebitReverted e => new AccountTransferDebitRevertedEvent(
+			EventId: e.Id,
+			AccountId: e.AccountId,
+			TransferId: e.TransferId,
+			Amount: e.Amount,
+			Description: e.Description,
+			Version: e.Version,
+			OccurredAt: e.OccurredAt
+		),
+		AccountTransferCreditReverted e => new AccountTransferCreditRevertedEvent(
+			EventId: e.Id,
+			AccountId: e.AccountId,
+			TransferId: e.TransferId,
+			Amount: e.Amount,
+			ExchangeRate: e.ExchangeRate,
+			Description: e.Description,
+			Version: e.Version,
+			OccurredAt: e.OccurredAt
+		),
 		AccountBalanceAdjusted e => new AccountBalanceAdjustedEvent(
 			EventId: e.Id,
 			AccountId: e.AccountId,

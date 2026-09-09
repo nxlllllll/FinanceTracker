@@ -288,7 +288,10 @@ Assert-Status -Response (Send-Api -Method PATCH -Path "/transactions/$transactio
 
 Write-Step 'Участие в аналитике'
 
-$balanceBefore = Get-Balance
+# 10000 - 1500 - 100 - 200 из раздела «Создание». Константа по той же причине, что и ниже:
+# раздел не дожидается своих операций, и наблюдаемая база догоняет уже во время проверок.
+$balanceBefore = 8200
+Wait-Balance -Expected $balanceBefore | Out-Null
 
 Assert-Status -Response (Send-Api -Method POST -Path "/transactions/$transactionId/exclude" -Token $user.Token) `
     -Expected 204 -What 'исключение из аналитики'

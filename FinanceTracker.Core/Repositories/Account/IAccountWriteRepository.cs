@@ -48,6 +48,18 @@ public interface IAccountWriteRepository
 	);
 
 	[EventuallyConsistentDelta(ledgerTable: "rm_account_balance_applied_events")]
+	Task RevertTransferDebitAsync(
+		AccountTransferDebitReverted @event,
+		CancellationToken ct = default
+	);
+
+	[EventuallyConsistentDelta(ledgerTable: "rm_account_balance_applied_events")]
+	Task RevertTransferCreditAsync(
+		AccountTransferCreditReverted @event,
+		CancellationToken ct = default
+	);
+
+	[EventuallyConsistentDelta(ledgerTable: "rm_account_balance_applied_events")]
 	Task RevertTransactionAsync(
 		AccountTransactionReverted @event,
 		CancellationToken ct = default

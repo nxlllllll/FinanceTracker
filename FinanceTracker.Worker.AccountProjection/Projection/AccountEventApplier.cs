@@ -27,11 +27,19 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		AccountTransferDebitedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountTransferCreditedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountTransferRefundedEvent e => ApplyAsync(e: e, ct: ct),
+		AccountTransferDebitRevertedEvent e => ApplyAsync(e: e, ct: ct),
+		AccountTransferCreditRevertedEvent e => ApplyAsync(e: e, ct: ct),
 		AccountBalanceAdjustedEvent e => ApplyAsync(e: e, ct: ct),
-		_ => throw new UnknownEventException(message: $"Unhandled integration event: {@event.GetType().Name}", eventType: @event.GetType())
+		_ => throw new UnknownEventException(
+			message: $"Unhandled integration event: {@event.GetType().Name}",
+			eventType: @event.GetType()
+		)
 	};
 
-	private Task ApplyAsync(AccountCreatedEvent e, CancellationToken ct) => repository.CreateAsync(new AccountCreated(
+	private Task ApplyAsync(
+		AccountCreatedEvent e,
+		CancellationToken ct
+	) => repository.CreateAsync(new AccountCreated(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		UserId: e.UserId,
@@ -43,7 +51,10 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountDebitedEvent e, CancellationToken ct) => repository.DebitAsync(new AccountDebited(
+	private Task ApplyAsync(
+		AccountDebitedEvent e,
+		CancellationToken ct
+	) => repository.DebitAsync(new AccountDebited(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		TransactionId: e.TransactionId,
@@ -55,7 +66,10 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountCreditedEvent e, CancellationToken ct) => repository.CreditAsync(new AccountCredited(
+	private Task ApplyAsync(
+		AccountCreditedEvent e,
+		CancellationToken ct
+	) => repository.CreditAsync(new AccountCredited(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		TransactionId: e.TransactionId,
@@ -67,7 +81,10 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountTransactionRevertedEvent e, CancellationToken ct) => repository.RevertTransactionAsync(new AccountTransactionReverted(
+	private Task ApplyAsync(
+		AccountTransactionRevertedEvent e,
+		CancellationToken ct
+	) => repository.RevertTransactionAsync(new AccountTransactionReverted(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		TransactionId: e.TransactionId,
@@ -80,7 +97,10 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountRenamedEvent e, CancellationToken ct) => repository.RenameAsync(new AccountRenamed(
+	private Task ApplyAsync(
+		AccountRenamedEvent e,
+		CancellationToken ct
+	) => repository.RenameAsync(new AccountRenamed(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		NewName: Name.Reconstitute(value: e.NewName),
@@ -88,21 +108,30 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountArchivedEvent e, CancellationToken ct) => repository.ArchiveAsync(new AccountArchived(
+	private Task ApplyAsync(
+		AccountArchivedEvent e,
+		CancellationToken ct
+	) => repository.ArchiveAsync(new AccountArchived(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		Version: e.Version,
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountUnarchivedEvent e, CancellationToken ct) => repository.UnarchiveAsync(new AccountUnarchived(
+	private Task ApplyAsync(
+		AccountUnarchivedEvent e,
+		CancellationToken ct
+	) => repository.UnarchiveAsync(new AccountUnarchived(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		Version: e.Version,
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountTransferDebitedEvent e, CancellationToken ct) => repository.TransferDebitAsync(new AccountTransferDebited(
+	private Task ApplyAsync(
+		AccountTransferDebitedEvent e,
+		CancellationToken ct
+	) => repository.TransferDebitAsync(new AccountTransferDebited(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		TransferId: e.TransferId,
@@ -114,7 +143,10 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountTransferCreditedEvent e, CancellationToken ct) => repository.TransferCreditAsync(new AccountTransferCredited(
+	private Task ApplyAsync(
+		AccountTransferCreditedEvent e,
+		CancellationToken ct
+	) => repository.TransferCreditAsync(new AccountTransferCredited(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		TransferId: e.TransferId,
@@ -126,7 +158,10 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountTransferRefundedEvent e, CancellationToken ct) => repository.RefundTransferAsync(new AccountTransferRefunded(
+	private Task ApplyAsync(
+		AccountTransferRefundedEvent e,
+		CancellationToken ct
+	) => repository.RefundTransferAsync(new AccountTransferRefunded(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		TransferId: e.TransferId,
@@ -136,7 +171,37 @@ public sealed class AccountEventApplier(IAccountWriteRepository repository)
 		OccurredAt: e.OccurredAt
 	), ct);
 
-	private Task ApplyAsync(AccountBalanceAdjustedEvent e, CancellationToken ct) => repository.AdjustBalanceAsync(new AccountBalanceAdjusted(
+	private Task ApplyAsync(
+		AccountTransferDebitRevertedEvent e,
+		CancellationToken ct
+	) => repository.RevertTransferDebitAsync(new AccountTransferDebitReverted(
+		Id: e.EventId,
+		AccountId: e.AccountId,
+		TransferId: e.TransferId,
+		Amount: e.Amount,
+		Description: e.Description,
+		Version: e.Version,
+		OccurredAt: e.OccurredAt
+	), ct);
+
+	private Task ApplyAsync(
+		AccountTransferCreditRevertedEvent e,
+		CancellationToken ct
+	) => repository.RevertTransferCreditAsync(new AccountTransferCreditReverted(
+		Id: e.EventId,
+		AccountId: e.AccountId,
+		TransferId: e.TransferId,
+		Amount: e.Amount,
+		ExchangeRate: e.ExchangeRate,
+		Description: e.Description,
+		Version: e.Version,
+		OccurredAt: e.OccurredAt
+	), ct);
+
+	private Task ApplyAsync(
+		AccountBalanceAdjustedEvent e,
+		CancellationToken ct
+	) => repository.AdjustBalanceAsync(new AccountBalanceAdjusted(
 		Id: e.EventId,
 		AccountId: e.AccountId,
 		SourceId: e.SourceId,

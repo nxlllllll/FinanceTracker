@@ -173,6 +173,12 @@ public sealed class Account : AggregateRoot
 		Balance = @event.Direction is DirectionType.Debit ? Balance.Add(amount: delta) : Balance.Subtract(amount: delta);
 	}
 
+	private void Apply(AccountTransferDebitReverted @event)
+		=> Balance = Balance.Add(amount: @event.Amount);
+
+	private void Apply(AccountTransferCreditReverted @event)
+		=> Balance = Balance.Subtract(amount: Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate));
+
 	private void Apply(AccountRenamed @event)
 		=> Name = @event.NewName;
 
@@ -208,6 +214,8 @@ public sealed class Account : AggregateRoot
 			case AccountTransferCredited e: Apply(@event: e); break;
 			case AccountTransferRefunded e: Apply(@event: e); break;
 			case AccountTransactionReverted e: Apply(@event: e); break;
+			case AccountTransferDebitReverted e: Apply(@event: e); break;
+			case AccountTransferCreditReverted e: Apply(@event: e); break;
 			default: throw new UnknownEventException(message: "Event is unknown.", eventType: @event.GetType());
 		}
 	}
@@ -354,6 +362,65 @@ public sealed class Account : AggregateRoot
 			AccountId: Id,
 			TransferId: transferId,
 			Amount: amount,
+			Description: description,
+			Version: 0,
+			OccurredAt: occurredAt
+		));
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	/// <summary>
+	/// Gives the source account back what a cancelled transfer took from it.
+	/// </summary>
+	public Result<Unit, DomainException> RevertTransferDebit(
+		DateTimeOffset occurredAt,
+		Guid transferId,
+		decimal amount,
+		string? description)
+	{
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount);
+		if (constraints.IsFailure)
+			return constraints;
+
+		RaiseEvent(@event: new AccountTransferDebitReverted(
+			Id: Guid.CreateVersion7(),
+			AccountId: Id,
+			TransferId: transferId,
+			Amount: amount,
+			Description: description,
+			Version: 0,
+			OccurredAt: occurredAt
+		));
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	/// <summary>
+	/// Takes back what a cancelled transfer credited to the destination account.
+	/// Refuses when the money is no longer there.
+	/// </summary>
+	public Result<Unit, DomainException> RevertTransferCredit(
+		DateTimeOffset occurredAt,
+		Guid transferId,
+		decimal amount,
+		decimal exchangeRate,
+		string? description)
+	{
+		Result<Unit, DomainException> constraints = CheckConstraints(amount: amount, rate: exchangeRate);
+		if (constraints.IsFailure)
+			return constraints;
+
+		Result<Unit, DomainException> funds = CheckSufficientFunds(amount: amount, rate: exchangeRate);
+		if (funds.IsFailure)
+			return funds;
+
+		RaiseEvent(@event: new AccountTransferCreditReverted(
+			Id: Guid.CreateVersion7(),
+			AccountId: Id,
+			TransferId: transferId,
+			Amount: amount,
+			ExchangeRate: exchangeRate,
 			Description: description,
 			Version: 0,
 			OccurredAt: occurredAt
