@@ -34,10 +34,21 @@ $showEverything = $PSBoundParameters.ContainsKey('Verbose')
 Write-Host "FinanceTracker — прогон API-наборов" -ForegroundColor White
 Write-Host "Цель: $BaseUrl$ApiPrefix" -ForegroundColor DarkGray
 
+# SkipHttpErrorCheck появился только в PowerShell 7: на 5.1 параметра нет вовсе, и передать его
+# даже со значением $false нельзя — привязка падает раньше запроса.
+$probe = @{
+    Uri             = "$BaseUrl$ApiPrefix/auth/login"
+    Method          = 'POST'
+    ContentType     = 'application/json'
+    Body            = '{"email":"probe@none.test","password":"x"}'
+    UseBasicParsing = $true
+    ErrorAction     = 'Stop'
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 7) { $probe.SkipHttpErrorCheck = $true }
+
 try {
-    Invoke-WebRequest -Uri "$BaseUrl$ApiPrefix/auth/login" -Method POST `
-        -ContentType 'application/json' -Body '{"email":"probe@none.test","password":"x"}' `
-        -UseBasicParsing -SkipHttpErrorCheck:($PSVersionTable.PSVersion.Major -ge 7) -ErrorAction Stop | Out-Null
+    Invoke-WebRequest @probe | Out-Null
 }
 catch {
     # На PowerShell 5.1 неуспешный код прилетает исключением — это тоже признак живого API.

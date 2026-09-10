@@ -61,6 +61,28 @@ function Get-Balance {
     return [decimal]$account.balance.amount
 }
 
+<#
+.SYNOPSIS
+    Дожидается, пока баланс догонит ожидаемое значение.
+
+.DESCRIPTION
+    Счёт и его баланс заполняет проекция через outbox. Сразу после 201 чтение может прийти
+    раньше неё и вернуть 0 вместо начального остатка, поэтому ожидаемое значение задаётся
+    явно, а не снимается наблюдением.
+#>
+function Wait-Balance {
+    param([Parameter(Mandatory)][decimal] $Expected, [int] $TimeoutSeconds = 10)
+
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+
+    while ($watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if ((Get-Balance) -eq $Expected) { return $true }
+        Start-Sleep -Milliseconds 200
+    }
+
+    return $false
+}
+
 Write-Note "счёт $accountId"
 
 Write-Step 'Создание'
@@ -76,7 +98,8 @@ $body = @{
     description = 'Подписка'
 }
 
-$balanceBefore = Get-Balance
+$balanceBefore = 50000
+Wait-Balance -Expected $balanceBefore | Out-Null
 
 $created = Send-Api -Method POST -Path '/recurring-transactions' -Token $user.Token `
     -Headers @{ 'Idempotency-Key' = $key } -Body $body
