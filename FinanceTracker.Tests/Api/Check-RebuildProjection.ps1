@@ -31,7 +31,14 @@ Start-Suite -Name 'RebuildProjection'
 function Invoke-Sql {
     param([Parameter(Mandatory)][string] $Sql)
 
-    $output = docker compose exec -T postgres psql -U $DbUser -d $Database -t -A -F ',' -c $Sql 2>&1
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = docker compose exec -T postgres psql -U $DbUser -d $Database -t -A -F ',' -c $Sql 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
 
     if ($LASTEXITCODE -ne 0) { throw "psql failed: $output" }
 
@@ -41,7 +48,15 @@ function Invoke-Sql {
 function Invoke-Cli {
     param([Parameter(Mandatory)][string[]] $Arguments)
 
-    $output = docker compose --profile tools run --rm cli @Arguments 2>&1
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = docker compose --profile tools run --rm cli @Arguments 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+
     Write-Note ($output -join "`n    ")
 
     return $LASTEXITCODE
