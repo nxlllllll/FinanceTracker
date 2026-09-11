@@ -101,6 +101,14 @@ public sealed class CancelTransferHandlerTests
 		""");
 
 		await _accountRepository.DidNotReceive().SaveAsync(account: to, ct: Arg.Any<CancellationToken>());
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).SaveStatusAsync(transfer: transfer, ct: Arg.Any<CancellationToken>());
+		await _transferWriteRepository.DidNotReceive().CancelAsync(
+			transfer: Arg.Any<TransferAggregate>(),
+			reversalId: Arg.Any<Guid>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 	}
 
 	[Test]
@@ -116,6 +124,14 @@ public sealed class CancelTransferHandlerTests
 
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(account: from, ct: Arg.Any<CancellationToken>());
 		await _accountRepository.Received(requiredNumberOfCalls: 1).SaveAsync(account: to, ct: Arg.Any<CancellationToken>());
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 1).CancelAsync(
+			transfer: transfer,
+			reversalId: Arg.Any<Guid>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _transferWriteRepository.DidNotReceive().SaveStatusAsync(transfer: Arg.Any<TransferAggregate>(), ct: Arg.Any<CancellationToken>());
 	}
 
 	[Test]

@@ -77,18 +77,23 @@ public sealed class CancelTransferHandler(
 		if (debitReverted.IsFailure)
 			return Result<Guid, AppException>.Failure(error: debitReverted.Error!);
 
-		Guid reversalId = Guid.CreateVersion7();
+		Guid? reversalId = creditHadLanded ? Guid.CreateVersion7() : null;
 
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await accountRepository.SaveAsync(account: fromAccount, ct: ct);
 
-			if (toAccount is not null)
-				await accountRepository.SaveAsync(account: toAccount, ct: ct);
+			if (toAccount is null || reversalId is null)
+			{
+				await transferWriteRepository.SaveStatusAsync(transfer: transfer, ct: ct);
+				return;
+			}
+
+			await accountRepository.SaveAsync(account: toAccount, ct: ct);
 
 			await transferWriteRepository.CancelAsync(
 				transfer: transfer,
-				reversalId: reversalId,
+				reversalId: reversalId.Value,
 				occurredAt: occurredAt,
 				ct: ct
 			);

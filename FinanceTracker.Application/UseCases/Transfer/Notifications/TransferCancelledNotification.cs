@@ -7,7 +7,7 @@ public sealed record TransferCancelledNotification(
 	Guid UserId,
 	Guid FromAccountId,
 	Guid ToAccountId,
-	Guid ReversalId,
+	Guid? ReversalId,
 	decimal AmountFrom,
 	string CurrencyFrom,
 	decimal AmountTo,

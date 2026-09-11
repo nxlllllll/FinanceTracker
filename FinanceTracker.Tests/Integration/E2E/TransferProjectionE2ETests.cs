@@ -426,5 +426,13 @@ public sealed class TransferProjectionE2ETests : E2EFixture
 			.FirstAsync();
 
 		await Assert.That(value: pendingStatus).IsEqualTo(expected: TransferStatus.Cancelled);
+
+		bool hasReversalLine = await pendingCtx.Operations.AnyAsync(predicate: o => o.ReversalOfId == transferId);
+
+		await Assert.That(value: hasReversalLine).IsFalse().Because(message: """
+			A reversal line records money coming back out of the destination. While the credit was pending
+			the destination never received anything, so the feed must show the transfer as cancelled, the
+			way it shows a compensated one, rather than a return that did not happen.
+		""");
 	}
 }

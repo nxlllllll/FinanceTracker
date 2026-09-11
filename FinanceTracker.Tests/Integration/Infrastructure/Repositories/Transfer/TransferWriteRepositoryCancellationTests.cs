@@ -56,6 +56,7 @@ public sealed class TransferWriteRepositoryCancellationTests : DatabaseFixture
 	public async Task CancelAsync_ShouldPersistTheCancelledStatus()
 	{
 		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
+		transfer.Complete();
 		transfer.Cancel(cancelledAt: DateTimeOffset.UtcNow, maxAge: Window);
 
 		await _writeRepository.CancelAsync(transfer: transfer, reversalId: Guid.CreateVersion7(), occurredAt: DateTimeOffset.UtcNow);
@@ -75,6 +76,7 @@ public sealed class TransferWriteRepositoryCancellationTests : DatabaseFixture
 	public async Task CancelAsync_ShouldFlagTheOriginalOperationAsReverted()
 	{
 		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
+		transfer.Complete();
 		transfer.Cancel(cancelledAt: DateTimeOffset.UtcNow, maxAge: Window);
 
 		await _writeRepository.CancelAsync(transfer: transfer, reversalId: Guid.CreateVersion7(), occurredAt: DateTimeOffset.UtcNow);
@@ -89,6 +91,7 @@ public sealed class TransferWriteRepositoryCancellationTests : DatabaseFixture
 	public async Task CancelAsync_ShouldAddAReversalPointingBackAtTheOriginal()
 	{
 		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
+		transfer.Complete();
 		transfer.Cancel(cancelledAt: DateTimeOffset.UtcNow, maxAge: Window);
 
 		Guid reversalId = Guid.CreateVersion7();
@@ -107,6 +110,7 @@ public sealed class TransferWriteRepositoryCancellationTests : DatabaseFixture
 	public async Task CancelAsync_ShouldRecordTheReversalRunningTheOtherWay()
 	{
 		Core.Domains.Transfer.Transfer transfer = await CreateAndSaveTransferAsync();
+		transfer.Complete();
 		transfer.Cancel(cancelledAt: DateTimeOffset.UtcNow, maxAge: Window);
 
 		Guid reversalId = Guid.CreateVersion7();
