@@ -183,6 +183,73 @@ Assert-Status -Response (Send-Api -Method POST -Path "/categories/$categoryId/un
 Assert-Status -Response (Send-Api -Method PATCH -Path "/categories/$categoryId/name" -Token $user.Token -Body @{ name = 'Питание' }) `
     -Expected 204 -What 'после разархивации переименование снова работает'
 
+Write-Step 'Иерархия'
+
+function New-Category {
+    param([string] $Name, [string] $Type = 'expense', $ParentId = $null, [string] $Token = $user.Token)
+
+    $response = Send-Api -Method POST -Path '/categories' -Token $Token `
+        -Headers @{ 'Idempotency-Key' = New-Key } `
+        -Body @{ name = $Name; type = $Type; parentId = $ParentId }
+
+    if ($response.Status -ne 201) { throw "Не удалось создать категорию '$Name': $($response.Status) $($response.Content)" }
+    return (Read-Json -Response $response).id
+}
+
+function Move-Category {
+    param([string] $CategoryId, $ParentId, [string] $Token = $user.Token)
+
+    return Send-Api -Method PATCH -Path "/categories/$CategoryId/parent" -Token $Token -Body @{ parentId = $ParentId }
+}
+
+$level1 = New-Category -Name 'Продукты'
+$level2 = New-Category -Name 'Еда для кота' -ParentId $level1
+$level3 = New-Category -Name 'Корм'         -ParentId $level2
+$level4 = New-Category -Name 'Шеав'         -ParentId $level3
+
+Write-Note "цепочка из четырёх уровней построена"
+
+Assert-Status -Response (Send-Api -Method POST -Path '/categories' -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key } `
+    -Body @{ name = 'Пятый уровень'; type = 'expense'; parentId = $level4 }) `
+    -Expected 422 -What 'пятый уровень при создании отклонён'
+
+Assert-Status -Response (Send-Api -Method POST -Path '/categories' -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key } `
+    -Body @{ name = 'Доход внутри расхода'; type = 'income'; parentId = $level1 }) `
+    -Expected 422 -What 'создание с типом, отличным от родителя, отклонено'
+
+$standalone = New-Category -Name 'Транспорт'
+
+Assert-Status -Response (Move-Category -CategoryId $standalone -ParentId $level1) `
+    -Expected 204 -What 'перенос под другую категорию'
+
+$moved = Read-Json -Response (Send-Api -Method GET -Path "/categories/$standalone" -Token $user.Token)
+Assert-True -Condition ($moved.parentId -eq $level1) -What 'родитель обновился'
+
+Assert-Status -Response (Move-Category -CategoryId $level1 -ParentId $level1) `
+    -Expected 422 -What 'категория сама себе родитель — 422'
+
+Assert-Status -Response (Move-Category -CategoryId $level1 -ParentId $level3) `
+    -Expected 422 -What 'перенос под собственного потомка — 422'
+
+Assert-Status -Response (Move-Category -CategoryId $level2 -ParentId $standalone) `
+    -Expected 422 -What 'перенос ветки, которая не влезает по глубине — 422'
+
+$income = New-Category -Name 'Зарплата' -Type 'income'
+
+Assert-Status -Response (Move-Category -CategoryId $income -ParentId $level1) `
+    -Expected 422 -What 'перенос под родителя другого типа — 422'
+
+Assert-Status -Response (Move-Category -CategoryId $standalone -ParentId $null) `
+    -Expected 204 -What 'перенос в корень'
+
+$rooted = Read-Json -Response (Send-Api -Method GET -Path "/categories/$standalone" -Token $user.Token)
+Assert-True -Condition ($null -eq $rooted.parentId) -What 'категория стала корневой'
+
+Assert-Status -Response (Move-Category -CategoryId $standalone -ParentId ([guid]::NewGuid())) `
+    -Expected 404 -What 'несуществующий родитель — 404'
+
 Write-Step 'Изоляция между учётками'
 
 $other = New-TestUser -Label 'cat-other'
@@ -192,6 +259,9 @@ Assert-Status -Response (Send-Api -Method GET -Path "/categories/$categoryId" -T
 
 Assert-Status -Response (Send-Api -Method POST -Path "/categories/$categoryId/archive" -Token $other.Token) `
     -Expected 404 -What 'чужая категория не архивируется'
+
+Assert-Status -Response (Move-Category -CategoryId $categoryId -ParentId $null -Token $other.Token) `
+    -Expected 404 -What 'чужая категория не переносится'
 
 Assert-Status -Response (Send-Api -Method GET -Path "/categories/$categoryId") `
     -Expected 401 -What 'без токена — 401'

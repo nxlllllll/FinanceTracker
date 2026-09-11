@@ -39,6 +39,7 @@ public abstract class MediatorFixture
 
 	protected IHost Host = null!;
 	private string _connectionString = null!;
+	private string _redisInstanceName = null!;
 
 	protected IMediator Mediator { get; private set; } = null!;
 	protected FinanceTrackerContext Context { get; private set; } = null!;
@@ -81,12 +82,13 @@ public abstract class MediatorFixture
 		}.ConnectionString;
 
 		string redisConnectionString = _redis.GetConnectionString() + ",allowAdmin=true";
+		_redisInstanceName = $"ft_test_{Guid.CreateVersion7():N}:";
 
 		Dictionary<string, string?> configuration = new Dictionary<string, string?>
 		{
 			[$"ConnectionStrings:{nameof(FinanceTrackerContext)}"] = _connectionString,
 			[$"{RedisOptions.SectionName}:ConnectionString"] = redisConnectionString,
-			[$"{RedisOptions.SectionName}:InstanceName"] = "ft_test:",
+			[$"{RedisOptions.SectionName}:InstanceName"] = _redisInstanceName,
 			[$"{EventStoreOptions.SectionName}:SnapshotThreshold"] = "25",
 			["Retry:MaxRetries"] = "3",
 			["Retry:BaseDelayMs"] = "5",
@@ -162,7 +164,10 @@ public abstract class MediatorFixture
 		{
 			IConnectionMultiplexer redis = Host.Services.GetRequiredService<IConnectionMultiplexer>();
 			IServer server = redis.GetServer(endpoint: redis.GetEndPoints().First());
-			await server.FlushAllDatabasesAsync();
+			IDatabase database = redis.GetDatabase();
+
+			foreach (RedisKey key in server.Keys(pattern: $"{_redisInstanceName}*"))
+				await database.KeyDeleteAsync(key: key);
 		}
 		catch { /* non-critical */ }
 

@@ -7,8 +7,10 @@ namespace FinanceTracker.Application.UseCases.Transfer.Notifications.Handlers;
 /// <summary>
 /// Writes a structured audit log entry for every transfer lifecycle event.
 /// </summary>
-public sealed class TransferAuditNotificationHandler(ILogger<TransferAuditNotificationHandler> logger)
-	: INotificationHandler<TransferCreatedNotification>
+public sealed class TransferAuditNotificationHandler(
+	ILogger<TransferAuditNotificationHandler> logger
+) : INotificationHandler<TransferCreatedNotification>, 
+	INotificationHandler<TransferCancelledNotification>
 {
 	public Task Handle(TransferCreatedNotification notification, CancellationToken cancellationToken)
 	{
@@ -17,6 +19,16 @@ public sealed class TransferAuditNotificationHandler(ILogger<TransferAuditNotifi
 			ToAccountId: {notification.ToAccountId}, AmountFrom: {notification.AmountFrom} {notification.CurrencyFrom},
 			AmountTo: {notification.AmountTo} {notification.CurrencyTo}, ExchangeRate: {notification.ExchangeRate},
 			RateStatus: {notification.RateStatus}, OccurredAt: {notification.OccurredAt:O}.
+		""");
+		return Task.CompletedTask;
+	}
+
+	public Task Handle(TransferCancelledNotification notification, CancellationToken cancellationToken)
+	{
+		logger.ZLogInformation(message: $"""
+			[Audit] Transfer cancelled. TransferId: {notification.TransferId}, UserId: {notification.UserId}, FromAccountId: {notification.FromAccountId},
+			ToAccountId: {notification.ToAccountId}, ReversalId: {notification.ReversalId}, AmountFrom: {notification.AmountFrom} {notification.CurrencyFrom},
+			AmountTo: {notification.AmountTo} {notification.CurrencyTo}, CreditHadLanded: {notification.CreditHadLanded}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}

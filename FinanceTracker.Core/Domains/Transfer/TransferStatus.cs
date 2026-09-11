@@ -15,5 +15,8 @@ public enum TransferStatus
 	Compensated,
 
 	/// <summary>Compensation itself failed; manual intervention is required.</summary>
-	Failed
+	Failed,
+
+	/// <summary>The user undid the transfer: whatever had been applied was reversed on both accounts.</summary>
+	Cancelled
 }

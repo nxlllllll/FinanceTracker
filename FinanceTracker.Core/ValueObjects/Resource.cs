@@ -15,5 +15,6 @@ public enum Resource
 	RecurringTransaction,
 	Currency,
 	User,
-	Permission
+	Permission,
+	UnresolvableEvent
 }

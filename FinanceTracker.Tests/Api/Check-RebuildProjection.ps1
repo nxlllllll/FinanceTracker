@@ -31,7 +31,14 @@ Start-Suite -Name 'RebuildProjection'
 function Invoke-Sql {
     param([Parameter(Mandatory)][string] $Sql)
 
-    $output = docker compose exec -T postgres psql -U $DbUser -d $Database -t -A -F ',' -c $Sql 2>&1
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = docker compose exec -T postgres psql -U $DbUser -d $Database -t -A -F ',' -c $Sql 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
 
     if ($LASTEXITCODE -ne 0) { throw "psql failed: $output" }
 
@@ -41,7 +48,15 @@ function Invoke-Sql {
 function Invoke-Cli {
     param([Parameter(Mandatory)][string[]] $Arguments)
 
-    $output = docker compose --profile tools run --rm cli @Arguments 2>&1
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = docker compose --profile tools run --rm cli @Arguments 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+
     Write-Note ($output -join "`n    ")
 
     return $LASTEXITCODE
@@ -72,8 +87,8 @@ if (-not (Assert-Status -Response $me -Expected 200 -What 'GET /users/me' -PassT
 $userId = (Read-Json -Response $me).id
 Write-Note "userId: $userId"
 
-# grant-root идемпотентен: повторный прогон скрипта на той же учётке просто ничего не изменит.
-Invoke-Cli -Arguments @('grant-root', $user.Email) | Out-Null
+# grant-role идемпотентен: повторный прогон скрипта на той же учётке просто ничего не изменит.
+Invoke-Cli -Arguments @('grant-role', $user.Email, 'root') | Out-Null
 
 # Токен выдан до назначения роли и прав в нём не несёт — нужен новый.
 $user = New-TestUser -Label 'rebuild' -Fresh:$false

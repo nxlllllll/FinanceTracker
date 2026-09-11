@@ -101,6 +101,49 @@ public sealed class CreateTransactionCommandValidatorTests
 	}
 
 	[Test]
+	public async Task Validate_WithADateJustAheadOfTheServerClock_ShouldNotHaveErrors()
+	{
+		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddMilliseconds(milliseconds: 500)
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsTrue().Because(message: """
+			A client stamps "now" with its own clock, and a device running half a second fast is ordinary.
+			Refusing it answers 400 to a transaction entered at this very moment.
+		""");
+	}
+
+	[Test]
+	public async Task Validate_WithADateExactlyAtTheFutureTolerance_ShouldNotHaveErrors()
+	{
+		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddSeconds(seconds: new BackdatingOptions().FutureToleranceSeconds)
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsTrue();
+	}
+
+	[Test]
+	public async Task Validate_WithADateBeyondTheFutureTolerance_ShouldHaveError()
+	{
+		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(
+			occurredAt: FakeDateProvider.Default.UtcNow.AddSeconds(seconds: new BackdatingOptions().FutureToleranceSeconds + 1)
+		);
+
+		ValidationResult result = await _validator.ValidateAsync(instance: command);
+
+		await Assert.That(value: result.IsValid).IsFalse();
+		await Assert.That(value: result.Errors.Any(predicate: e => e.PropertyName == nameof(command.OccurredAt))).IsTrue().Because(message: """
+			The tolerance covers clock drift, not the future. A date a few seconds past it is a date
+			someone chose, and a transaction cannot record something that has not happened yet.
+		""");
+	}
+
+	[Test]
 	public async Task Validate_WithTooLongDescription_ShouldHaveError()
 	{
 		CreateTransactionCommand command = CreateTransactionCommandFactory.Create(description: new string(c: 'a', count: 256));

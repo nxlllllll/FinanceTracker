@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.ReadModels.UnresolvableEvent;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
@@ -9,25 +10,65 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.UnresolvableEvent;
 
 public sealed class UnresolvableEventReadRepository(FinanceTrackerContext context) : IUnresolvableEventReadRepository
 {
-	public async Task<PagedResult<Core.ReadModels.UnresolvableEvent.UnresolvableEvent>> GetUnacknowledgedBatchAsync(
-		int batchSize,
+	public async Task<UnresolvableEventDetail?> GetByIdAsync(
+		Guid eventId,
 		CancellationToken ct = default)
 	{
-		List<Core.ReadModels.UnresolvableEvent.UnresolvableEvent> items = await context.UnresolvableEvents.AsNoTracking()
-																	.Where(predicate: e => e.AcknowledgedAt == null && e.ResolvedAt == null)
-																	.OrderBy(keySelector: e => e.OccurredAt)
-																	.Take(count: batchSize + 1)
-																	.Select(selector: e => new Core.ReadModels.UnresolvableEvent.UnresolvableEvent(
-																			Id: e.Id,
-																			Type: e.Type,
-																			ReferenceId: e.ReferenceId,
-																			Reason: e.Reason,
-																			OccurredAt: e.OccurredAt,
-																			AcknowledgedAt: e.AcknowledgedAt,
-																			ResolvedAt: e.ResolvedAt
-																		)).ToListAsync(cancellationToken: ct);
+		return await context.UnresolvableEvents.AsNoTracking().Where(predicate: e => e.Id == eventId)
+			.Select(selector: e => new UnresolvableEventDetail(
+				Id: e.Id,
+				Type: e.Type,
+				ReferenceId: e.ReferenceId,
+				Reason: e.Reason,
+				Payload: e.Payload,
+				OccurredAt: e.OccurredAt,
+				AcknowledgedAt: e.AcknowledgedAt,
+				ResolvedAt: e.ResolvedAt
+			)).FirstOrDefaultAsync(cancellationToken: ct);
+	}
 
-		bool hasNextPage = items.Count > batchSize;
+	public async Task<PagedResult<Core.ReadModels.UnresolvableEvent.UnresolvableEvent>> GetAllAsync(
+		UnresolvableEventType? type = null,
+		bool? isAcknowledged = null,
+		bool? isResolved = null,
+		DateTimeOffset? cursorOccurredAt = null,
+		Guid? cursorId = null,
+		int pageSize = 20,
+		CancellationToken ct = default)
+	{
+		IQueryable<UnresolvableEventEntity> query = context.UnresolvableEvents.AsNoTracking();
+
+		if (type is not null)
+			query = query.Where(predicate: e => e.Type == type);
+
+		if (isAcknowledged is not null)
+			query = isAcknowledged.Value
+				? query.Where(predicate: e => e.AcknowledgedAt != null)
+				: query.Where(predicate: e => e.AcknowledgedAt == null);
+
+		if (isResolved is not null)
+			query = isResolved.Value
+				? query.Where(predicate: e => e.ResolvedAt != null)
+				: query.Where(predicate: e => e.ResolvedAt == null);
+
+		if (cursorOccurredAt is not null && cursorId is not null)
+			query = query.Where(predicate: e => e.OccurredAt > cursorOccurredAt || e.OccurredAt == cursorOccurredAt && e.Id > cursorId);
+
+		List<Core.ReadModels.UnresolvableEvent.UnresolvableEvent> items = await query
+			.OrderBy(keySelector: e => e.OccurredAt)
+			.ThenBy(keySelector: e => e.Id)
+			.Take(count: pageSize + 1)
+			.Select(selector: e => new Core.ReadModels.UnresolvableEvent.UnresolvableEvent(
+				Id: e.Id,
+				Type: e.Type,
+				ReferenceId: e.ReferenceId,
+				Reason: e.Reason,
+				OccurredAt: e.OccurredAt,
+				AcknowledgedAt: e.AcknowledgedAt,
+				ResolvedAt: e.ResolvedAt
+			)).ToListAsync(cancellationToken: ct);
+
+		bool hasNextPage = items.Count > pageSize;
 		if (hasNextPage)
 			items.RemoveAt(index: items.Count - 1);
 
@@ -55,16 +96,16 @@ public sealed class UnresolvableEventReadRepository(FinanceTrackerContext contex
 			return new UnresolvedBacklogSummary(TotalCount: 0, OldestOccurredAt: null, Sample: []);
 
 		List<Core.ReadModels.UnresolvableEvent.UnresolvableEvent> sample = await unresolved.OrderBy(keySelector: e => e.OccurredAt)
-																		.Take(count: sampleSize)
-																		.Select(selector: e => new Core.ReadModels.UnresolvableEvent.UnresolvableEvent(
-																				Id: e.Id,
-																				Type: e.Type,
-																				ReferenceId: e.ReferenceId,
-																				Reason: e.Reason,
-																				OccurredAt: e.OccurredAt,
-																				AcknowledgedAt: e.AcknowledgedAt,
-																				ResolvedAt: e.ResolvedAt
-																			)).ToListAsync(cancellationToken: ct);
+			.Take(count: sampleSize)
+			.Select(selector: e => new Core.ReadModels.UnresolvableEvent.UnresolvableEvent(
+				Id: e.Id,
+				Type: e.Type,
+				ReferenceId: e.ReferenceId,
+				Reason: e.Reason,
+				OccurredAt: e.OccurredAt,
+				AcknowledgedAt: e.AcknowledgedAt,
+				ResolvedAt: e.ResolvedAt
+			)).ToListAsync(cancellationToken: ct);
 
 		return new UnresolvedBacklogSummary(
 			TotalCount: totalCount,

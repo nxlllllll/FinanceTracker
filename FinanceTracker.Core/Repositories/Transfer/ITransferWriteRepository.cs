@@ -12,6 +12,13 @@ public interface ITransferWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task CancelAsync(
+		Domains.Transfer.Transfer transfer,
+		Guid reversalId,
+		DateTimeOffset occurredAt,
+		CancellationToken ct = default
+	);
+
 	Task SaveStatusAsync(
 		Domains.Transfer.Transfer transfer,
 		CancellationToken ct = default

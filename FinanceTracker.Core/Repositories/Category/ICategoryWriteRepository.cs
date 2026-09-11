@@ -16,6 +16,13 @@ public interface ICategoryWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task ChangeParentAsync(
+		Guid categoryId,
+		Guid? newParentId,
+		int expectedVersion,
+		CancellationToken ct = default
+	);
+
 	Task ArchiveAsync(
 		Guid categoryId,
 		int expectedVersion,

@@ -10,6 +10,7 @@ public static class TransferStatusExtensions
 		TransferStatus.Completed => "completed",
 		TransferStatus.Compensated => "compensated",
 		TransferStatus.Failed => "failed",
+		TransferStatus.Cancelled => "cancelled",
 		_ => throw new ArgumentOutOfRangeException(nameof(status), status, message: null)
 	};
 
@@ -19,6 +20,7 @@ public static class TransferStatusExtensions
 		"completed" => TransferStatus.Completed,
 		"compensated" => TransferStatus.Compensated,
 		"failed" => TransferStatus.Failed,
+		"cancelled" => TransferStatus.Cancelled,
 		_ => throw new ArgumentOutOfRangeException(nameof(code), code, message: null)
 	};
 }

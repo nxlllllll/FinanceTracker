@@ -1,9 +1,13 @@
 using FinanceTracker.Application.Behaviours.Notification;
+using FinanceTracker.Application.Services.Categories;
 using FinanceTracker.Application.UseCases.Category.Commands.CreateCategory;
 using FinanceTracker.Application.UseCases.Category.Notifications;
 using FinanceTracker.Core.Domains.Category;
+using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Persistence;
+using FinanceTracker.Core.ReadModels.Category;
 using FinanceTracker.Core.Repositories.Category;
+using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -12,7 +16,9 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Category;
 
 public sealed class CreateCategoryHandlerTests
 {
+	private ICategoryReadRepository _categoryReadRepository = null!;
 	private ICategoryWriteRepository _categoryWriteRepository = null!;
+	private ICategoryTreePolicy _categoryTreePolicy = null!;
 	private IUnitOfWork _unitOfWork = null!;
 	private IPostCommitNotifications _postCommitNotifications = null!;
 	private CreateCategoryHandler _handler = null!;
@@ -29,8 +35,20 @@ public sealed class CreateCategoryHandlerTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: callInfo => callInfo.Arg<Func<Task>>()?.Invoke());
 
+		_categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+		_categoryTreePolicy = Substitute.For<ICategoryTreePolicy>();
+
+		_categoryTreePolicy.EnsurePlaceableAsync(
+			userId: Arg.Any<Guid>(),
+			parentId: Arg.Any<Guid?>(),
+			movingCategoryId: Arg.Any<Guid?>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: Result<FinanceTracker.Core.Results.Unit, DomainException>.Success(value: FinanceTracker.Core.Results.Unit.Default));
+
 		_handler = new CreateCategoryHandler(
+			categoryReadRepository: _categoryReadRepository,
 			categoryWriteRepository: _categoryWriteRepository,
+			categoryTreePolicy: _categoryTreePolicy,
 			unitOfWork: _unitOfWork,
 			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default
@@ -63,12 +81,28 @@ public sealed class CreateCategoryHandlerTests
 	public async Task Handle_WithParentId_ShouldCreateCategoryWithParentId()
 	{
 		Guid parentId = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+
 		CreateCategoryCommand command = new CreateCategoryCommand(
-			UserId: Guid.CreateVersion7(),
+			UserId: userId,
 			Name: Name.Create(value: "Рестораны").Value,
 			Type: CategoryType.Expense,
 			ParentId: parentId
 		);
+
+		_categoryReadRepository.GetByIdAsync(
+			categoryId: parentId,
+			userId: userId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: new CategoryReadModel(
+			Id: parentId,
+			UserId: userId,
+			ParentId: null,
+			Name: Name.Create(value: "Еда").Value,
+			Type: CategoryType.Expense,
+			IsArchived: false,
+			CreatedAt: FakeDateProvider.Default.UtcNow
+		));
 
 		await _handler.Handle(command: command, ct: CancellationToken.None);
 

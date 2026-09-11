@@ -65,6 +65,22 @@ public sealed class TransferWriteRepository(
 		);
 	}
 
+	public async Task CancelAsync(
+		Core.Domains.Transfer.Transfer transfer,
+		Guid reversalId,
+		DateTimeOffset occurredAt,
+		CancellationToken ct = default)
+	{
+		await SaveStatusAsync(transfer: transfer, ct: ct);
+
+		await operationRepository.InsertTransferReversalAsync(
+			reversalId: reversalId,
+			transfer: transfer,
+			occurredAt: occurredAt,
+			ct: ct
+		);
+	}
+
 	public async Task SaveStatusAsync(
 		Core.Domains.Transfer.Transfer transfer,
 		CancellationToken ct = default)

@@ -370,6 +370,56 @@ Assert-True -Condition ((Read-Json -Response (Send-Api -Method GET -Path "/budge
 Assert-Status -Response (Send-Api -Method POST -Path "/budgets/$budgetId/activate" -Token $user.Token) `
     -Expected 204 -What 'повторная активация идемпотентна'
 
+# ---------------------------------------------------------------- формула прогресса
+
+Write-Step 'Формула прогресса'
+
+$formulaResponse = Send-Api -Method POST -Path '/accounts' -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key } `
+    -Body @{ name = "Формула-$stamp"; type = 'Checking'; currency = 'RUB'; initialBalance = 10000 }
+
+if ($formulaResponse.Status -ne 201) { throw "Не удалось создать счёт для формулы: $($formulaResponse.Status) $(ConvertTo-Text -Raw $formulaResponse.Content)" }
+
+$formulaAccount = (Read-Json -Response $formulaResponse).id
+
+$cases = @(
+    @{ Tag = 'ноль';       Limit = 1000; Spent = 0;    Label = 'без трат' },
+    @{ Tag = 'треть';      Limit = 3000; Spent = 1000; Label = 'треть лимита, дробный процент' },
+    @{ Tag = 'лимит';      Limit = 1000; Spent = 1000; Label = 'ровно лимит' },
+    @{ Tag = 'перерасход'; Limit = 1000; Spent = 1300; Label = 'перерасход' }
+)
+
+foreach ($case in $cases) {
+    $category = New-Category -Name "Формула-$($case.Tag)-$stamp"
+
+    $budgetResponse = Send-Api -Method POST -Path '/budgets' -Token $user.Token `
+        -Headers @{ 'Idempotency-Key' = New-Key } `
+        -Body @{ categoryId = $category; amount = $case.Limit; currency = 'RUB'; from = $monthStart; to = $monthEnd }
+
+    if ($budgetResponse.Status -ne 201) { throw "Не удалось создать бюджет '$($case.Label)': $($budgetResponse.Status) $(ConvertTo-Text -Raw $budgetResponse.Content)" }
+
+    $formulaBudget = (Read-Json -Response $budgetResponse).id
+
+    if ($case.Spent -gt 0) {
+        $spendResponse = Send-Api -Method POST -Path "/accounts/$formulaAccount/transactions" -Token $user.Token `
+            -Headers @{ 'Idempotency-Key' = New-Key } `
+            -Body @{ categoryId = $category; amount = $case.Spent; currency = 'RUB'; direction = 'Debit'
+                     occurredAt = (Get-Date).ToUniversalTime().ToString('o') }
+
+        if ($spendResponse.Status -ne 201) { throw "Не удалось записать трату '$($case.Label)': $($spendResponse.Status) $(ConvertTo-Text -Raw $spendResponse.Content)" }
+    }
+
+    Wait-Spent -BudgetId $formulaBudget -Expected $case.Spent | Out-Null
+
+    $p = Get-Progress -BudgetId $formulaBudget
+    $expected = [decimal]$case.Spent / $case.Limit * 100
+
+    Assert-True -Condition ([math]::Abs([decimal]$p.percentage - $expected) -lt 0.01) `
+        -What "$($case.Label): percentage = spent / лимит × 100 (ожидалось $([math]::Round($expected, 2)), получено $($p.percentage))"
+    Assert-True -Condition ([decimal]$p.remaining -eq ($case.Limit - $case.Spent)) `
+        -What "$($case.Label): remaining = лимит − spent"
+}
+
 # ---------------------------------------------------------------- изоляция
 
 Write-Step 'Изоляция между учётками'

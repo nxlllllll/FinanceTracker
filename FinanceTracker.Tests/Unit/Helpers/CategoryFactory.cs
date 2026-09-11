@@ -13,20 +13,25 @@ public static class CategoryFactory
 		string name = "Еда",
 		CategoryType type = CategoryType.Expense,
 		Guid? parentId = null,
-		bool archived = false)
+		bool archived = false,
+		CategoryType? parentType = null)
 	{
-		Category category = Category.Create(
+		Result<Category, DomainException> result = Category.Create(
 			createdAt: FakeDateProvider.Default.UtcNow,
 			userId: userId ?? Guid.CreateVersion7(),
 			name: Name.Create(value: name).Value,
 			type: type,
-			parentId: parentId
+			parentId: parentId,
+			parentType: parentType
 		);
 
-		if (archived)
-			category.Archive();
+		if (result.IsFailure)
+			return result;
 
-		return Result<Category, DomainException>.Success(value: category);
+		if (archived)
+			result.Value!.Archive();
+
+		return result;
 	}
 
 	public static CategoryReadModel CreateReadModel(

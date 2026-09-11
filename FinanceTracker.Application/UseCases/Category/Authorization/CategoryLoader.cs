@@ -1,5 +1,6 @@
 using FinanceTracker.Application.Behaviours.Authorization;
 using FinanceTracker.Application.UseCases.Category.Commands.ArchiveCategory;
+using FinanceTracker.Application.UseCases.Category.Commands.ChangeCategoryParent;
 using FinanceTracker.Application.UseCases.Category.Commands.RenameCategory;
 using FinanceTracker.Application.UseCases.Category.Commands.UnarchiveCategory;
 using FinanceTracker.Core.Exceptions;
@@ -13,8 +14,14 @@ public sealed class CategoryLoader(
 	ICategoryRepository categoryRepository
 ) : IEntityLoader<ArchiveCategoryCommand, Core.Domains.Category.Category, AppException>,
 	IEntityLoader<UnarchiveCategoryCommand, Core.Domains.Category.Category, AppException>,
-	IEntityLoader<RenameCategoryCommand, Core.Domains.Category.Category, AppException>
+	IEntityLoader<RenameCategoryCommand, Core.Domains.Category.Category, AppException>,
+	IEntityLoader<ChangeCategoryParentCommand, Core.Domains.Category.Category, AppException>
 {
+	public Task<Result<Core.Domains.Category.Category, AppException>> LoadAsync(
+		ChangeCategoryParentCommand request,
+		CancellationToken ct
+	) => LoadAndAuthorize(categoryId: request.CategoryId, userId: request.UserId, ct: ct);
+
 	public Task<Result<Core.Domains.Category.Category, AppException>> LoadAsync(
 		ArchiveCategoryCommand request,
 		CancellationToken ct

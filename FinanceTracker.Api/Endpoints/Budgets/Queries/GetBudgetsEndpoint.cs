@@ -23,7 +23,8 @@ public sealed class GetBudgetsEndpoint : IEndpoint
 			.RequirePermission(resource: Resource.Budget, action: PermissionAction.Read)
 			.WithSummary(summary: "List budgets")
 			.WithDescription(description:
-				"Newest first, including deactivated ones. Pages forward with a cursor: send back nextCursorDate " +
+				"Newest first, including deactivated ones — pass isActive to narrow to one or the other, and " +
+				"categoryId to a single category. Pages forward with a cursor: send back nextCursorDate " +
 				"and nextCursorId from the previous page — both or neither. Page size is 1 to 100."
 			).Produces<PagedResponse<BudgetResponse>>(statusCode: StatusCodes.Status200OK)
 			.ProducesValidationProblem();
@@ -33,12 +34,16 @@ public sealed class GetBudgetsEndpoint : IEndpoint
 		ICurrentUserProvider currentUser,
 		ISender sender,
 		CancellationToken ct,
+		Guid? categoryId = null,
+		bool? isActive = null,
 		DateTimeOffset? cursorCreatedAt = null,
 		Guid? cursorId = null,
 		int pageSize = 20)
 	{
 		GetBudgetsQuery query = new GetBudgetsQuery(
 			UserId: currentUser.UserId,
+			CategoryId: categoryId,
+			IsActive: isActive,
 			CursorCreatedAt: cursorCreatedAt?.ToUniversalTime(),
 			CursorId: cursorId,
 			PageSize: pageSize

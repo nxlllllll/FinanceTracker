@@ -5,6 +5,7 @@ using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Shared;
 using FinanceTracker.Core.Repositories.Account;
+using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -14,13 +15,15 @@ namespace FinanceTracker.Tests.Unit.Application.Loaders;
 public sealed class TransferLoaderTests
 {
 	private IAccountRepository _accountRepository = null!;
+	private ITransferRepository _transferRepository = null!;
 	private TransferLoader _loader = null!;
 
 	[Before(hookType: Test)]
 	public void Setup()
 	{
 		_accountRepository = Substitute.For<IAccountRepository>();
-		_loader = new TransferLoader(accountRepository: _accountRepository);
+		_transferRepository = Substitute.For<ITransferRepository>();
+		_loader = new TransferLoader(accountRepository: _accountRepository, transferRepository: _transferRepository);
 	}
 
 	[Test]

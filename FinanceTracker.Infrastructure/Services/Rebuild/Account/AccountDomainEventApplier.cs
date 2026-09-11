@@ -27,6 +27,8 @@ public sealed class AccountDomainEventApplier(IAccountWriteRepository repository
 		AccountTransferDebited e => repository.TransferDebitAsync(@event: e, ct: ct),
 		AccountTransferCredited e => repository.TransferCreditAsync(@event: e, ct: ct),
 		AccountTransferRefunded e => repository.RefundTransferAsync(@event: e, ct: ct),
+		AccountTransferDebitReverted e => repository.RevertTransferDebitAsync(@event: e, ct: ct),
+		AccountTransferCreditReverted e => repository.RevertTransferCreditAsync(@event: e, ct: ct),
 		AccountBalanceAdjusted e => repository.AdjustBalanceAsync(@event: e, ct: ct),
 		_ => throw new UnknownEventException(message: $"Unhandled account domain event: {@event.GetType().Name}", eventType: @event.GetType())
 	};

@@ -4,11 +4,14 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Category;
+using FinanceTracker.Infrastructure.Database.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Category;
 
-public sealed class CategoryReadRepository(FinanceTrackerContext context) : ICategoryReadRepository
+public sealed class CategoryReadRepository(
+	FinanceTrackerContext context
+) : ICategoryReadRepository
 {
 	public async Task<CategoryReadModel?> GetByIdAsync(
 		Guid categoryId,
@@ -84,4 +87,16 @@ public sealed class CategoryReadRepository(FinanceTrackerContext context) : ICat
 		Guid userId,
 		CancellationToken ct = default
 	) => await context.Categories.AsNoTracking().AnyAsync(predicate: c => c.Id == categoryId && c.UserId == userId, cancellationToken: ct);
+
+	public Task<IReadOnlyList<Guid>> GetAncestorIdsAsync(
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default
+	) => context.GetCategoryAncestorIdsAsync(categoryId: categoryId, userId: userId, ct: ct);
+
+	public Task<int> GetSubtreeHeightAsync(
+		Guid categoryId,
+		Guid userId,
+		CancellationToken ct = default
+	) => context.GetCategorySubtreeHeightAsync(categoryId: categoryId, userId: userId, ct: ct);
 }

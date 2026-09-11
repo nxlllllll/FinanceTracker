@@ -246,4 +246,165 @@ if (Assert-Status -Response $dated -Expected 202 -What 'лишнее поле oc
         -What 'перевод датирован моментом создания, а не присланной датой'
 }
 
+
+Write-Step 'Отмена перевода'
+
+function Get-Balance {
+    param([Parameter(Mandatory)][string] $AccountId, [string] $Token = $user.Token)
+
+    $account = Read-Json -Response (Send-Api -Method GET -Path "/accounts/$AccountId" -Token $Token)
+    return [decimal]$account.balance.amount
+}
+
+<#
+.SYNOPSIS
+    Дожидается, пока баланс счёта примет ожидаемое значение.
+
+.DESCRIPTION
+    Отмена разворачивает движение теми же событиями, что и сам перевод, а проекция счетов
+    догоняет их через outbox. Читать баланс сразу после 202 — значит спрашивать раньше времени.
+#>
+function Wait-Balance {
+    param(
+        [Parameter(Mandatory)][string] $AccountId,
+        [Parameter(Mandatory)][decimal] $Expected,
+        [int] $TimeoutSeconds = 20
+    )
+
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $last  = -1
+
+    while ($watch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        $last = Get-Balance -AccountId $AccountId
+        if ($last -eq $Expected) { return $true }
+        Start-Sleep -Milliseconds 300
+    }
+
+    Write-Note "последний баланс $AccountId : $last, ожидался $Expected"
+    return $false
+}
+
+<#
+.SYNOPSIS
+    Переводит деньги и дожидается завершения.
+
+.DESCRIPTION
+    Каждый сценарий отмены заводит свою пару счетов. Общие счета набора к этому моменту
+    ещё донашивают переводы из предыдущих секций, и снятый с них баланс разъезжается с
+    ожидаемым на величину того, что не успело доехать.
+#>
+function New-CompletedTransfer {
+    param(
+        [Parameter(Mandatory)][string] $From,
+        [Parameter(Mandatory)][string] $To,
+        [decimal] $Amount = 500
+    )
+
+    $response = Send-Api -Method POST -Path "/accounts/$From/transfers" -Token $user.Token `
+        -Headers @{ 'Idempotency-Key' = New-Key } `
+        -Body @{ toAccountId = $To; amount = $Amount }
+
+    if ($response.Status -ne 202) { throw "Не удалось создать перевод: $($response.Status) $($response.Content)" }
+
+    $id = (Read-Json -Response $response).id
+    if (-not (Wait-TransferStatus -TransferId $id -Expected 'completed')) { throw "Перевод $id не дошёл до completed" }
+
+    return $id
+}
+
+$cancelSource = New-Account -Name 'Отмена: источник' -Balance 5000
+$cancelTarget = New-Account -Name 'Отмена: получатель'
+
+$toCancel = New-CompletedTransfer -From $cancelSource -To $cancelTarget -Amount 500
+
+Assert-True -Condition (Wait-Balance -AccountId $cancelSource -Expected 4500) -What 'перевод списал с источника'
+Assert-True -Condition (Wait-Balance -AccountId $cancelTarget -Expected 500) -What 'перевод зачислен получателю'
+
+Assert-Status -Response (Send-Api -Method POST -Path "/transfers/$toCancel/cancel" -Token $user.Token) `
+    -Expected 400 -What 'отмена без Idempotency-Key отклонена'
+
+Assert-Status -Response (Send-Api -Method POST -Path "/transfers/$toCancel/cancel" -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key }) -Expected 202 -What 'завершённый перевод отменён'
+
+Assert-True -Condition (Wait-TransferStatus -TransferId $toCancel -Expected 'cancelled') `
+    -What 'перевод перешёл в cancelled'
+
+Assert-True -Condition (Wait-Balance -AccountId $cancelSource -Expected 5000) `
+    -What 'источнику вернулись деньги'
+
+Assert-True -Condition (Wait-Balance -AccountId $cancelTarget -Expected 0) `
+    -What 'у получателя списано обратно'
+
+Assert-Status -Response (Send-Api -Method POST -Path "/transfers/$toCancel/cancel" -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key }) -Expected 422 -What 'повторная отмена отклонена'
+
+Assert-Status -Response (Send-Api -Method POST -Path "/transfers/$([guid]::NewGuid())/cancel" -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key }) -Expected 404 -What 'отмена несуществующего перевода'
+
+Write-Step 'Отмена: получатель уже потратил деньги'
+
+$spentSource = New-Account -Name 'Потрачено: источник' -Balance 5000
+$spentTarget = New-Account -Name 'Потрачено: получатель'
+$spentAside  = New-Account -Name 'Потрачено: третий'
+
+$spent = New-CompletedTransfer -From $spentSource -To $spentTarget -Amount 700
+
+Assert-True -Condition (Wait-Balance -AccountId $spentTarget -Expected 700) -What 'получатель получил деньги'
+
+New-CompletedTransfer -From $spentTarget -To $spentAside -Amount 700 | Out-Null
+
+Assert-True -Condition (Wait-Balance -AccountId $spentTarget -Expected 0) -What 'получатель потратил всё до копейки'
+
+Assert-Status -Response (Send-Api -Method POST -Path "/transfers/$spent/cancel" -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key }) -Expected 422 -What 'отмена отклонена: получателю нечем вернуть'
+
+Assert-True -Condition ((Get-Balance -AccountId $spentSource) -eq 4300) `
+    -What 'отказ не тронул источник — отмена целиком, а не наполовину'
+
+$stillCompleted = Read-Json -Response (Send-Api -Method GET -Path "/transfers/$spent" -Token $user.Token)
+Assert-True -Condition ($stillCompleted.status -eq 'completed') -What 'перевод остался завершённым'
+
+Write-Step 'Отмена: гонка с воркером'
+
+$raceSource = New-Account -Name 'Гонка: источник' -Balance 1000
+$raceTarget = New-Account -Name 'Гонка: получатель'
+
+$racing = Send-Api -Method POST -Path "/accounts/$raceSource/transfers" -Token $user.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key } `
+    -Body @{ toAccountId = $raceTarget; amount = 300 }
+
+if (Assert-Status -Response $racing -Expected 202 -What 'перевод для гонки создан' -PassThru) {
+    $racingId = (Read-Json -Response $racing).id
+
+    $immediate = Send-Api -Method POST -Path "/transfers/$racingId/cancel" -Token $user.Token `
+        -Headers @{ 'Idempotency-Key' = New-Key }
+
+    Assert-True -Condition ($immediate.Status -in 202, 409, 422) `
+        -What "немедленная отмена ответила осмысленно (получен $($immediate.Status))"
+
+    Start-Sleep -Seconds 3
+
+    $racingStatus = (Read-Json -Response (Send-Api -Method GET -Path "/transfers/$racingId" -Token $user.Token)).status
+    Write-Note "исход гонки: $racingStatus"
+
+    Assert-True -Condition ($racingStatus -in 'completed', 'cancelled') `
+        -What 'перевод пришёл в определённое состояние, а не завис'
+
+    $pairTotal = (Get-Balance -AccountId $raceSource) + (Get-Balance -AccountId $raceTarget)
+
+    Assert-True -Condition ($pairTotal -eq 1000) `
+        -What 'сумма по двум счетам осталась прежней — ни одна из сторон гонки не создала денег'
+}
+
+Write-Step 'Отмена: изоляция'
+
+$foreignSource = New-Account -Name 'Чужой: источник' -Balance 1000
+$foreignTarget = New-Account -Name 'Чужой: получатель'
+
+$foreign = New-CompletedTransfer -From $foreignSource -To $foreignTarget -Amount 100
+
+Assert-Status -Response (Send-Api -Method POST -Path "/transfers/$foreign/cancel" -Token $outsider.Token `
+    -Headers @{ 'Idempotency-Key' = New-Key }) -Expected 404 -What 'посторонний не отменяет чужой перевод'
+
+
 Complete-Suite

@@ -4,11 +4,15 @@
     Прогоняет все API-наборы и сводит результат в одну таблицу.
 
 .DESCRIPTION
-    Находит соседние Test-*.ps1 и запускает каждый в своём процессе.
-    Полный вывод возвращает -Verbose.
+    Находит соседние Test-*.ps1 и запускает каждый в своём процессе, а с -IncludeChecks
+    следом и Check-*.ps1. Полный вывод возвращает -Verbose.
 
 .PARAMETER Only
     Запустить лишь часть наборов, по имени без префикса: -Only Categories,Transactions
+
+.PARAMETER IncludeChecks
+    Добавить наборы Check-*. Им нужен локальный docker: роль выдаётся через CLI, данные сеются
+    через psql, так что против удалённого стенда они не заработают.
 
 .PARAMETER FailFast
     Остановиться на первом упавшем наборе.
@@ -16,6 +20,7 @@
 .EXAMPLE
     ./Run-AllApiTests.ps1
     ./Run-AllApiTests.ps1 -Only Transactions -Verbose
+    ./Run-AllApiTests.ps1 -IncludeChecks
     ./Run-AllApiTests.ps1 -BaseUrl http://staging.local:8080 -FailFast
 #>
 [CmdletBinding()]
@@ -23,6 +28,7 @@ param(
     [string]   $BaseUrl   = 'http://localhost:8080',
     [string]   $ApiPrefix = '/api/v1',
     [string[]] $Only      = @(),
+    [switch]   $IncludeChecks,
     [switch]   $FailFast
 )
 
@@ -34,10 +40,21 @@ $showEverything = $PSBoundParameters.ContainsKey('Verbose')
 Write-Host "FinanceTracker — прогон API-наборов" -ForegroundColor White
 Write-Host "Цель: $BaseUrl$ApiPrefix" -ForegroundColor DarkGray
 
+# SkipHttpErrorCheck появился только в PowerShell 7: на 5.1 параметра нет вовсе, и передать его
+# даже со значением $false нельзя — привязка падает раньше запроса.
+$probe = @{
+    Uri             = "$BaseUrl$ApiPrefix/auth/login"
+    Method          = 'POST'
+    ContentType     = 'application/json'
+    Body            = '{"email":"probe@none.test","password":"x"}'
+    UseBasicParsing = $true
+    ErrorAction     = 'Stop'
+}
+
+if ($PSVersionTable.PSVersion.Major -ge 7) { $probe.SkipHttpErrorCheck = $true }
+
 try {
-    Invoke-WebRequest -Uri "$BaseUrl$ApiPrefix/auth/login" -Method POST `
-        -ContentType 'application/json' -Body '{"email":"probe@none.test","password":"x"}' `
-        -UseBasicParsing -SkipHttpErrorCheck:($PSVersionTable.PSVersion.Major -ge 7) -ErrorAction Stop | Out-Null
+    Invoke-WebRequest @probe | Out-Null
 }
 catch {
     # На PowerShell 5.1 неуспешный код прилетает исключением — это тоже признак живого API.
@@ -48,10 +65,14 @@ catch {
     }
 }
 
-$suites = Get-ChildItem -Path $PSScriptRoot -Filter 'Test-*.ps1' | Sort-Object Name
+$suites = @(Get-ChildItem -Path $PSScriptRoot -Filter 'Test-*.ps1' | Sort-Object Name)
+
+if ($IncludeChecks) {
+    $suites += @(Get-ChildItem -Path $PSScriptRoot -Filter 'Check-*.ps1' | Sort-Object Name)
+}
 
 if ($Only.Count -gt 0) {
-    $suites = $suites | Where-Object { $Only -contains ($_.BaseName -replace '^Test-', '') }
+    $suites = @($suites | Where-Object { $Only -contains ($_.BaseName -replace '^(Test|Check)-', '') })
 
     if (-not $suites) {
         Write-Host "Ни один набор не совпал с: $($Only -join ', ')" -ForegroundColor Red
@@ -64,7 +85,7 @@ Write-Host "Наборов к запуску: $($suites.Count)`n" -ForegroundCol
 $results = @()
 
 foreach ($suite in $suites) {
-    $name = $suite.BaseName -replace '^Test-', ''
+    $name = $suite.BaseName -replace '^(Test|Check)-', ''
     $suiteStarted = [datetime]::UtcNow
 
     Write-Host ("  … {0}" -f $name) -NoNewline -ForegroundColor DarkGray

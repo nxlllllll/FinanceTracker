@@ -37,8 +37,9 @@ public sealed class CategoryWriteRepositoryTests : DatabaseFixture
 			userId: userId,
 			name: Name.Create(value: "Еда").Value,
 			type: CategoryType.Expense,
-			parentId: parentId
-		);
+			parentId: parentId,
+			parentType: null
+		).Value!;
 
 		await _writeRepository.CreateAsync(category: category);
 		await Context.SaveChangesAsync();

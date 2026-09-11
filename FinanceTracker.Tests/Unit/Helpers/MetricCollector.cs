@@ -28,6 +28,7 @@ public sealed class MetricCollector : IDisposable
 			}
 		};
 
+		_listener.SetMeasurementEventCallback<int>(measurementCallback: (instrument, value, tags, _) => Add(instrument: instrument, value: value, tags: tags));
 		_listener.SetMeasurementEventCallback<long>(measurementCallback: (instrument, value, tags, _) => Add(instrument: instrument, value: value, tags: tags));
 		_listener.SetMeasurementEventCallback<double>(measurementCallback: (instrument, value, tags, _) => Add(instrument: instrument, value: value, tags: tags));
 

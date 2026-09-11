@@ -193,6 +193,30 @@ public sealed class AccountWriteRepository(
 		);
 	}
 
+	public async Task RevertTransferDebitAsync(
+		AccountTransferDebitReverted @event,
+		CancellationToken ct = default)
+	{
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: @event.Amount,
+			version: @event.Version,
+			ct: ct
+		);
+	}
+
+	public async Task RevertTransferCreditAsync(
+		AccountTransferCreditReverted @event,
+		CancellationToken ct = default)
+	{
+		await ApplyBalanceChangeAsync(
+			accountId: @event.AccountId,
+			delta: -Money.ConvertedAmount(amount: @event.Amount, rate: @event.ExchangeRate),
+			version: @event.Version,
+			ct: ct
+		);
+	}
+
 	public async Task RenameAsync(
 		AccountRenamed @event,
 		CancellationToken ct = default)

@@ -166,6 +166,26 @@ public sealed class Transfer : IHasId
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 
+	/// <summary>
+	/// Undoes the transfer at the user's request. Allowed while the credit is still pending, where only
+	/// the debit has to be given back, and after completion, where both sides are reversed. A compensated
+	/// or failed transfer has nothing left to undo. Cancels any pending rate for the same reason as
+	/// <see cref="Compensate"/>: there is no longer a balance for a correction to correct.
+	/// </summary>
+	public Result<Unit, DomainException> Cancel(DateTimeOffset cancelledAt, TimeSpan maxAge)
+	{
+		if (Status is not (TransferStatus.PendingCredit or TransferStatus.Completed))
+			return Result<Unit, DomainException>.Failure(error: new InvalidTransferStatusException(message: $"A transfer in {Status} state has nothing left to cancel."));
+
+		if (cancelledAt - OccurredAt > maxAge)
+			return Result<Unit, DomainException>.Failure(error: new TransferCancellationWindowExpiredException(message: $"A transfer may only be cancelled within {maxAge.TotalDays:0} day(s) of being made."));
+
+		Status = TransferStatus.Cancelled;
+		CancelPendingRate(occurredAt: cancelledAt);
+
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
 	public Result<Unit, DomainException> ResolveRate(decimal newRate, DateTimeOffset changedAt)
 	{
 		if (newRate <= 0)

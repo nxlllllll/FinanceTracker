@@ -115,6 +115,42 @@ public sealed class OperationWriteRepository(FinanceTrackerContext context) : IO
 		);
 	}
 
+	public async Task InsertTransferReversalAsync(
+		Guid reversalId,
+		Core.Domains.Transfer.Transfer transfer,
+		DateTimeOffset occurredAt,
+		CancellationToken ct = default)
+	{
+		await context.Operations.AddAsync(entity: new OperationEntity
+		{
+			Id = reversalId,
+			UserId = transfer.UserId,
+			Type = Transfer,
+			OccurredAt = occurredAt,
+			Description = transfer.Description,
+			AccountId = null,
+			CategoryId = null,
+			Amount = null,
+			CurrencyCode = null,
+			DirectionType = null,
+			IsExcluded = null,
+			IsReverted = false,
+			ReversalOfId = transfer.Id,
+			FromAccountId = transfer.ToAccountId,
+			ToAccountId = transfer.FromAccountId,
+			AmountFrom = transfer.AmountTo.Amount,
+			CurrencyFrom = transfer.AmountTo.Currency.Value,
+			AmountTo = transfer.AmountFrom.Amount,
+			CurrencyTo = transfer.AmountFrom.Currency.Value,
+			Status = transfer.Status.ToCode()
+		}, cancellationToken: ct);
+
+		await context.Operations.Where(predicate: o => o.Id == transfer.Id && o.UserId == transfer.UserId && o.Type == Transfer).ExecuteUpdateAsync(
+			setPropertyCalls: b => b.SetProperty(propertyExpression: o => o.IsReverted, valueExpression: true),
+			cancellationToken: ct
+		);
+	}
+
 	public async Task UpdateTransactionCategoryAsync(
 		Guid transactionId,
 		Guid userId,

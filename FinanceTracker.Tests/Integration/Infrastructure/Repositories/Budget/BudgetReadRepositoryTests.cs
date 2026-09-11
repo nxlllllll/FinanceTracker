@@ -197,6 +197,52 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 	}
 
 	[Test]
+	public async Task GetAllAsync_WithCategoryFilter_ShouldReturnOnlyThatCategorysBudgets()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid foodCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+		Guid transportCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
+
+		Guid foodBudgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: foodCategoryId);
+		await _budgetBuilder.CreateAsync(userId: userId, categoryId: transportCategoryId);
+
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(userId: userId, categoryId: foodCategoryId);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].Id).IsEqualTo(expected: foodBudgetId);
+	}
+
+	[Test]
+	public async Task GetAllAsync_WithBothFilters_ShouldApplyThemTogether()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Еда");
+		Guid otherCategoryId = await _categoryBuilder.CreateAsync(userId: userId, name: "Транспорт");
+
+		Guid deactivatedInCategory = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId);
+		await _budgetBuilder.CreateAsync(userId: userId, categoryId: otherCategoryId);
+
+		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
+			context: Context,
+			dateProvider: FakeDateProvider.Default
+		);
+		await writeRepository.DeactivateAsync(budgetId: deactivatedInCategory, expectedVersion: 0);
+
+		PagedResult<BudgetReadModel> result = await _readRepository.GetAllAsync(
+			userId: userId,
+			categoryId: categoryId,
+			isActive: false
+		);
+
+		await Assert.That(value: result.Items.Count).IsEqualTo(expected: 1);
+		await Assert.That(value: result.Items[0].Id).IsEqualTo(expected: deactivatedInCategory).Because(message: """
+			Each filter narrows the same query rather than replacing the other, so asking for the
+			deactivated budgets of one category must not return the active ones of that category nor
+			the deactivated ones of another.
+		""");
+	}
+
+	[Test]
 	public async Task GetAllAsync_WithIsActiveTrue_ShouldNotReturnDeactivatedBudgets()
 	{
 		Guid userId = await _userBuilder.CreateAsync();

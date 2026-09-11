@@ -161,6 +161,31 @@ public sealed class EventContractGoldenTests
 			),
 			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransferId":"00000000-0000-0000-0000-000000000006","Amount":100.00,"Description":"Refund","Version":9,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
 		),
+		[typeof(AccountTransferDebitReverted)] = (
+			new AccountTransferDebitReverted(
+				Id: Id,
+				AccountId: AccountId,
+				TransferId: Guid.Parse(input: "00000000-0000-0000-0000-000000000006"),
+				Amount: 100.00m,
+				Description: "Cancelled",
+				Version: 9,
+				OccurredAt: OccurredAt
+			),
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransferId":"00000000-0000-0000-0000-000000000006","Amount":100.00,"Description":"Cancelled","Version":9,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
+		),
+		[typeof(AccountTransferCreditReverted)] = (
+			new AccountTransferCreditReverted(
+				Id: Id,
+				AccountId: AccountId,
+				TransferId: Guid.Parse(input: "00000000-0000-0000-0000-000000000006"),
+				Amount: 100.00m,
+				ExchangeRate: 0.90m,
+				Description: "Cancelled",
+				Version: 9,
+				OccurredAt: OccurredAt
+			),
+			"""{"Id":"00000000-0000-0000-0000-000000000001","AccountId":"00000000-0000-0000-0000-000000000002","TransferId":"00000000-0000-0000-0000-000000000006","Amount":100.00,"ExchangeRate":0.90,"Description":"Cancelled","Version":9,"OccurredAt":"2026-01-15T12:30:00+00:00"}"""
+		),
 		[typeof(AccountBalanceAdjusted)] = (
 			new AccountBalanceAdjusted(
 				Id: Id,

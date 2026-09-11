@@ -51,7 +51,7 @@ public sealed class CreateTransactionCommandValidator : AbstractValidator<Create
 
 		RuleFor(expression: command => command.OccurredAt)
 			.NotEmpty().WithMessage(errorMessage: "The transaction date cannot be empty.")
-			.Must(occurredAt => occurredAt <= dateProvider.UtcNow)
+			.Must(occurredAt => occurredAt <= dateProvider.UtcNow.AddSeconds(seconds: backdating.CurrentValue.FutureToleranceSeconds))
 			.WithMessage(errorMessage: "The transaction date cannot be in the future.")
 			.Must(occurredAt => occurredAt >= dateProvider.UtcNow.AddMonths(months: -backdating.CurrentValue.MaxBackdatingMonths))
 			.WithMessage(errorMessage: $"The transaction date cannot be more than {backdating.CurrentValue.MaxBackdatingMonths} months in the past.");

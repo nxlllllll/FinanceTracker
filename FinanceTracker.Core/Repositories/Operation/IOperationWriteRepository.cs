@@ -21,6 +21,13 @@ public interface IOperationWriteRepository
 		CancellationToken ct = default
 	);
 
+	Task InsertTransferReversalAsync(
+		Guid reversalId,
+		Domains.Transfer.Transfer transfer,
+		DateTimeOffset occurredAt,
+		CancellationToken ct = default
+	);
+
 	Task UpdateTransactionCategoryAsync(
 		Guid transactionId,
 		Guid userId,

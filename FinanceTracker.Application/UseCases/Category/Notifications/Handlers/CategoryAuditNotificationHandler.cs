@@ -11,8 +11,19 @@ public sealed class CategoryAuditNotificationHandler(ILogger<CategoryAuditNotifi
 	INotificationHandler<CategoryCreatedNotification>,
 	INotificationHandler<CategoryRenamedNotification>,
 	INotificationHandler<CategoryArchivedNotification>,
-	INotificationHandler<CategoryUnarchivedNotification>
+	INotificationHandler<CategoryUnarchivedNotification>,
+	INotificationHandler<CategoryParentChangedNotification>
 {
+	public Task Handle(CategoryParentChangedNotification notification, CancellationToken cancellationToken)
+	{
+		logger.ZLogInformation(message: $"""
+			[Audit] Category moved. CategoryId: {notification.CategoryId}, UserId: {notification.UserId},
+			OldParentId: {notification.OldParentId}, NewParentId: {notification.NewParentId},
+			OccurredAt: {notification.OccurredAt:O}.
+		""");
+		return Task.CompletedTask;
+	}
+
 	public Task Handle(CategoryCreatedNotification notification, CancellationToken cancellationToken)
 	{
 		logger.ZLogInformation(message: $"""

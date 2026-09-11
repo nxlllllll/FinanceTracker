@@ -21,8 +21,8 @@ public sealed class Program
 
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 
-		builder.Services.AddOptions<DeadLetterMonitoringOptions>()
-			.BindConfiguration(configSectionPath: DeadLetterMonitoringOptions.SectionName)
+		builder.Services.AddOptions<UnresolvableEventGaugeOptions>()
+			.BindConfiguration(configSectionPath: UnresolvableEventGaugeOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
@@ -31,9 +31,9 @@ public sealed class Program
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
-		DeadLetterMonitoringOptions deadLetterOptions = builder.Configuration
-			.GetSection(key: DeadLetterMonitoringOptions.SectionName)
-			.Get<DeadLetterMonitoringOptions>() ?? new DeadLetterMonitoringOptions();
+		UnresolvableEventGaugeOptions gaugeOptions = builder.Configuration
+			.GetSection(key: UnresolvableEventGaugeOptions.SectionName)
+			.Get<UnresolvableEventGaugeOptions>() ?? new UnresolvableEventGaugeOptions();
 
 		DeadLetterBacklogSummaryOptions backlogSummaryOptions = builder.Configuration
 			.GetSection(key: DeadLetterBacklogSummaryOptions.SectionName)
@@ -45,11 +45,11 @@ public sealed class Program
 		{
 			q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "DeadLetterMonitorScheduler");
 
-			q.AddJob<DeadLetterMonitoringJob>(configure: j => j.WithIdentity(name: nameof(DeadLetterMonitoringJob), group: deadLetterOptions.Group));
+			q.AddJob<UnresolvableEventGaugeJob>(configure: j => j.WithIdentity(name: nameof(UnresolvableEventGaugeJob), group: gaugeOptions.Group));
 			q.AddTrigger(configure: t => t
-				.ForJob(jobName: nameof(DeadLetterMonitoringJob), jobGroup: deadLetterOptions.Group)
-				.WithIdentity(name: deadLetterOptions.TriggerName, group: deadLetterOptions.Group)
-				.WithSimpleSchedule(action: s => s.WithIntervalInMinutes(minutes: deadLetterOptions.IntervalMinutes).RepeatForever())
+				.ForJob(jobName: nameof(UnresolvableEventGaugeJob), jobGroup: gaugeOptions.Group)
+				.WithIdentity(name: gaugeOptions.TriggerName, group: gaugeOptions.Group)
+				.WithSimpleSchedule(action: s => s.WithIntervalInMinutes(minutes: gaugeOptions.IntervalMinutes).RepeatForever())
 			);
 
 			q.AddJob<DeadLetterBacklogSummaryJob>(configure: j => j.WithIdentity(name: nameof(DeadLetterBacklogSummaryJob), group: backlogSummaryOptions.Group));
