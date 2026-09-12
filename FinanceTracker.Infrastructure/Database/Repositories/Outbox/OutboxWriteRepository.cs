@@ -46,13 +46,14 @@ public sealed class OutboxWriteRepository(
 		Guid messageId,
 		int retryCount,
 		DateTimeOffset? failedAt,
+		DateTimeOffset? lockedUntil,
 		CancellationToken ct = default)
 	{
 		await context.OutboxMessages.Where(predicate: x => x.Id == messageId).ExecuteUpdateAsync(
 			setPropertyCalls: s => s
 				.SetProperty(propertyExpression: x => x.RetryCount, valueExpression: retryCount)
 				.SetProperty(propertyExpression: x => x.FailedAt, valueExpression: failedAt)
-				.SetProperty(propertyExpression: x => x.LockedUntil, valueExpression: (DateTimeOffset?)null)
+				.SetProperty(propertyExpression: x => x.LockedUntil, valueExpression: lockedUntil)
 				.SetProperty(propertyExpression: x => x.UpdatedAt, valueExpression: dateProvider.UtcNow),
 			cancellationToken: ct
 		);

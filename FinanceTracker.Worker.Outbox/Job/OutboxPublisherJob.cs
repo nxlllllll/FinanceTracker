@@ -9,6 +9,7 @@ using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.DateProvider;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -181,12 +182,25 @@ public sealed class OutboxPublisherJob(
 		return activity;
 	}
 
+	private static TimeSpan CalculateRetryDelay(int attempt, OutboxOptions options)
+	{
+		int delayMs = RetryDelayCalculator.Calculate(
+			attempt: attempt,
+			baseDelayMs: options.RetryBaseDelaySeconds * 1000,
+			useJitter: false
+		);
+
+		return TimeSpan.FromMilliseconds(value: Math.Min(val1: delayMs, val2: options.RetryMaxDelaySeconds * 1000L));
+	}
+
 	private async Task UpdateRetryStateAsync(PendingOutboxMessage message, OutboxOptions options, CancellationToken ct)
 	{
 		try
 		{
 			int newRetryCount = message.RetryCount + 1;
-			DateTimeOffset? failedAt = newRetryCount >= options.MaxRetries ? dateProvider.UtcNow : null;
+			DateTimeOffset now = dateProvider.UtcNow;
+			DateTimeOffset? failedAt = newRetryCount >= options.MaxRetries ? now : null;
+			DateTimeOffset? lockedUntil = failedAt is null ? now + CalculateRetryDelay(attempt: message.RetryCount, options: options) : null;
 
 			await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 			{
@@ -216,6 +230,7 @@ public sealed class OutboxPublisherJob(
 					messageId: message.Id,
 					retryCount: newRetryCount,
 					failedAt: failedAt,
+					lockedUntil: lockedUntil,
 					ct: ct
 				);
 			}, ct: ct);

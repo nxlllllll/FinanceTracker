@@ -92,6 +92,7 @@ public sealed class OutboxPublisherJobChaosTests
 			["Outbox:IntervalSeconds"] = "3",
 			["Outbox:BatchSize"] = "20",
 			["Outbox:MaxRetries"] = "5",
+			["Outbox:RetryBaseDelaySeconds"] = "1",
 			["Outbox:LeaseDurationSeconds"] = "60",
 			["Outbox:Group"] = "chaos",
 			["Outbox:TriggerName"] = "ChaosOutboxTrigger",

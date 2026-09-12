@@ -18,6 +18,7 @@ public interface IOutboxWriteRepository
 		Guid messageId,
 		int retryCount,
 		DateTimeOffset? failedAt,
+		DateTimeOffset? lockedUntil,
 		CancellationToken ct = default
 	);
 

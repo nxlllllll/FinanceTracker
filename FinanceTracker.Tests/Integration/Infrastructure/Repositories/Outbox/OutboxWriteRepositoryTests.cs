@@ -65,7 +65,7 @@ public sealed class OutboxWriteRepositoryTests : DatabaseFixture
 	{
 		Guid id = await SeedMessageAsync(retryCount: 2);
 
-		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 3, failedAt: null, ct: CancellationToken.None);
+		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 3, failedAt: null, lockedUntil: null, ct: CancellationToken.None);
 
 		OutboxMessageEntity entity = await Context.OutboxMessages.AsNoTracking().FirstAsync(predicate: m => m.Id == id);
 		await Assert.That(value: entity.RetryCount).IsEqualTo(expected: 3);
@@ -77,7 +77,7 @@ public sealed class OutboxWriteRepositoryTests : DatabaseFixture
 		Guid id = await SeedMessageAsync();
 		DateTimeOffset failedAt = FakeDateProvider.Default.UtcNow;
 
-		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: failedAt, ct: CancellationToken.None);
+		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: failedAt, lockedUntil: null, ct: CancellationToken.None);
 
 		OutboxMessageEntity entity = await Context.OutboxMessages.AsNoTracking().FirstAsync(predicate: m => m.Id == id);
 		await Assert.That(value: entity.FailedAt).IsEqualTo(expected: failedAt);
@@ -91,24 +91,36 @@ public sealed class OutboxWriteRepositoryTests : DatabaseFixture
 		// so FailedAt must be cleared rather than left stale from the prior failure.
 		Guid id = await SeedMessageAsync(failedAt: FakeDateProvider.Default.UtcNow.AddMinutes(minutes: -5));
 
-		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: null, ct: CancellationToken.None);
+		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: null, lockedUntil: null, ct: CancellationToken.None);
 
 		OutboxMessageEntity entity = await Context.OutboxMessages.AsNoTracking().FirstAsync(predicate: m => m.Id == id);
 		await Assert.That(value: entity.FailedAt).IsNull();
 	}
 
 	[Test]
-	public async Task MarkAsFailedAsync_ShouldReleaseLock()
+	public async Task MarkAsFailedAsync_WhenFinallyFailed_ShouldReleaseLock()
 	{
-		// The escalation path (MarkAsFailedAsync) always releases the lease, even though the
-		// message won't be retried further after final failure — a stale LockedUntil would
-		// otherwise make the message invisible to ClaimPendingBatchAsync for no reason.
 		Guid id = await SeedMessageAsync(lockedUntil: FakeDateProvider.Default.UtcNow.AddSeconds(seconds: 60));
 
-		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: FakeDateProvider.Default.UtcNow, ct: CancellationToken.None);
+		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: FakeDateProvider.Default.UtcNow, lockedUntil: null, ct: CancellationToken.None);
 
 		OutboxMessageEntity entity = await Context.OutboxMessages.AsNoTracking().FirstAsync(predicate: m => m.Id == id);
 		await Assert.That(value: entity.LockedUntil).IsNull();
+	}
+
+	[Test]
+	public async Task MarkAsFailedAsync_WithLockedUntil_ShouldHoldTheMessageUntilThen()
+	{
+		Guid id = await SeedMessageAsync();
+		DateTimeOffset lockedUntil = FakeDateProvider.Default.UtcNow.AddSeconds(seconds: 20);
+
+		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 3, failedAt: null, lockedUntil: lockedUntil, ct: CancellationToken.None);
+
+		OutboxMessageEntity entity = await Context.OutboxMessages.AsNoTracking().FirstAsync(predicate: m => m.Id == id);
+		await Assert.That(value: entity.LockedUntil).IsEqualTo(expected: lockedUntil).Because(message: """
+			The lease is the backoff: until it passes, ClaimPendingBatchAsync skips the message. Clearing
+			it here would put a message the broker just refused straight back into the next batch.
+		""");
 	}
 
 	[Test]
@@ -116,7 +128,7 @@ public sealed class OutboxWriteRepositoryTests : DatabaseFixture
 	{
 		Guid id = await SeedMessageAsync(updatedAt: FakeDateProvider.Default.UtcNow.AddDays(days: -1));
 
-		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: null, ct: CancellationToken.None);
+		await _repository.MarkAsFailedAsync(messageId: id, retryCount: 1, failedAt: null, lockedUntil: null, ct: CancellationToken.None);
 
 		OutboxMessageEntity entity = await Context.OutboxMessages.AsNoTracking().FirstAsync(predicate: m => m.Id == id);
 		await Assert.That(value: entity.UpdatedAt).IsEqualTo(expected: FakeDateProvider.Default.UtcNow);
@@ -129,6 +141,7 @@ public sealed class OutboxWriteRepositoryTests : DatabaseFixture
 			messageId: Guid.CreateVersion7(),
 			retryCount: 1,
 			failedAt: FakeDateProvider.Default.UtcNow,
+			lockedUntil: null,
 			ct: CancellationToken.None
 		)).ThrowsNothing();
 	}
