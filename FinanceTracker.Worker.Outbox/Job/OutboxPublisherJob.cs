@@ -121,7 +121,7 @@ public sealed class OutboxPublisherJob(
 
 			return new PublishOutcome(Message: message, Failure: null, Cancelled: false);
 		}
-		catch (Exception exception)
+		catch (Exception exception) when (!IsDependencyUnavailable(exception: exception))
 		{
 			activity?.SetStatus(code: ActivityStatusCode.Error, description: exception.Message);
 

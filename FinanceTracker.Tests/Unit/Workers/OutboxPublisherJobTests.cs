@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
@@ -12,6 +13,7 @@ using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Quartz;
+using RabbitMQ.Client.Exceptions;
 
 namespace FinanceTracker.Tests.Unit.Workers;
 
@@ -108,11 +110,11 @@ public sealed class OutboxPublisherJobTests
 		ct: Arg.Any<CancellationToken>()
 	).Returns(returnThis: [message]);
 
-	private void GivenPublishFails() => _publisher.PublishAsync(
+	private void GivenPublishFails(Exception? exception = null) => _publisher.PublishAsync(
 		message: Arg.Any<IRoutableMessage>(),
 		correlationId: Arg.Any<Guid?>(),
 		ct: Arg.Any<CancellationToken>()
-	).ThrowsAsync(new InvalidOperationException(message: "The broker refused the message."));
+	).ThrowsAsync(exception ?? new InvalidOperationException(message: "The broker refused the message."));
 
 	[Test]
 	public async Task Execute_WhenDisabled_ShouldNotReadBatch()
@@ -268,6 +270,32 @@ public sealed class OutboxPublisherJobTests
 			retryCount: 11,
 			failedAt: null,
 			lockedUntil: Now.AddSeconds(seconds: options.RetryMaxDelaySeconds),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenTheBrokerIsUnreachable_ShouldNotSpendTheRetry()
+	{
+		PendingOutboxMessage message = MakeMessage(retryCount: DefaultOptions.MaxRetries - 1);
+		GivenClaimed(message: message);
+		GivenPublishFails(exception: new BrokerUnreachableException(Inner: new SocketException(errorCode: (int)SocketError.ConnectionRefused)));
+
+		await _job.Execute(context: _jobContext);
+
+		await _writeRepository.DidNotReceive().MarkAsFailedAsync(
+			messageId: Arg.Any<Guid>(),
+			retryCount: Arg.Any<int>(),
+			failedAt: Arg.Any<DateTimeOffset?>(),
+			lockedUntil: Arg.Any<DateTimeOffset?>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
+			type: Arg.Any<UnresolvableEventType>(),
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

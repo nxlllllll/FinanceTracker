@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using FinanceTracker.Contracts.Messages.RecurringTransaction;
 using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Domains.RecurringTransaction;
@@ -15,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Quartz;
+using RabbitMQ.Client.Exceptions;
 
 namespace FinanceTracker.Tests.Unit.Workers;
 
@@ -409,6 +411,34 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: third.Id,
+			executedAt: Arg.Any<DateTimeOffset>(),
+			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
+			expectedVersion: Arg.Any<int>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenTheBrokerIsUnreachable_ShouldStopAtTheFirstOperation()
+	{
+		SetupRepository(count: 2);
+
+		_publisher.PublishAsync(
+			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		).Throws(createException: _ => new BrokerUnreachableException(Inner: new SocketException(errorCode: (int)SocketError.ConnectionRefused)));
+
+		await _job.Execute(context: _jobContext);
+
+		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
+			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
+			correlationId: Arg.Any<Guid>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
+			recurringTransactionId: Arg.Any<Guid>(),
 			executedAt: Arg.Any<DateTimeOffset>(),
 			nextDueAtUtc: Arg.Any<DateTimeOffset>(),
 			expectedVersion: Arg.Any<int>(),

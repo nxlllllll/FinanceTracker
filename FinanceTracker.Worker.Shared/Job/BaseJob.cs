@@ -2,6 +2,7 @@ using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Quartz;
+using RabbitMQ.Client.Exceptions;
 using ZLogger;
 
 namespace FinanceTracker.Worker.Shared.Job;
@@ -31,12 +32,35 @@ public abstract class BaseJob<TOptions>(
 		{
 			await ProcessAsync(options: currentOptions, ct: context.CancellationToken);
 		}
+		catch (Exception ex) when (IsDependencyUnavailable(exception: ex))
+		{
+			WorkerMetrics.JobExecutionSkipped.Add(delta: 1, new KeyValuePair<string, object?>(key: "job", value: jobName));
+			logger.ZLogWarning(exception: ex, message: $"[{jobName}] A dependency is unavailable. Skipping this run.");
+		}
 		catch (Exception ex)
 		{
 			WorkerMetrics.JobExecutionFailed.Add(delta: 1, new KeyValuePair<string, object?>(key: "job", value: GetType().Name));
 			logger.ZLogError(exception: ex, message: $"[{jobName}] Unhandled exception during execution.");
 			throw new JobExecutionException(cause: ex, refireImmediately: false);
 		}
+	}
+
+	protected static bool IsDependencyUnavailable(Exception exception) => exception switch
+	{
+		BrokerUnreachableException unreachable => !IsRefusedByBroker(exception: unreachable.InnerException),
+		AlreadyClosedException => true,
+		_ => false
+	};
+
+	private static bool IsRefusedByBroker(Exception? exception)
+	{
+		for (Exception? current = exception; current is not null; current = current.InnerException)
+		{
+			if (current is AuthenticationFailureException or OperationInterruptedException)
+				return true;
+		}
+
+		return false;
 	}
 
 	protected abstract Task ProcessAsync(TOptions options, CancellationToken ct);
