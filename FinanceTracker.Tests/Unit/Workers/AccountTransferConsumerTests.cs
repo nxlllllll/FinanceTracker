@@ -7,6 +7,7 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Account.Events;
 using FinanceTracker.Core.Domains.Transfer;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.Repositories.Account;
 using FinanceTracker.Core.Repositories.Transfer;
@@ -17,6 +18,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.AccountProjection.Consumer;
+using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.TransferProjection.Consumer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -35,6 +37,13 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 	private static readonly Guid TransferId = Guid.CreateVersion7();
 	private static readonly Guid FromAccountId = Guid.CreateVersion7();
 	private static readonly Guid ToAccountId = Guid.CreateVersion7();
+
+	private static readonly ProjectionRetryOptions RetryOptions = new ProjectionRetryOptions
+	{
+		MaxRetries = 3,
+		BaseDelayMs = 10,
+		UseJitter = false
+	};
 
 	[Before(hookType: Test)]
 	public void Setup()
@@ -66,9 +75,30 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			compensationService: _compensationService,
 			unitOfWork: UnitOfWork,
 			dateProvider: FakeDateProvider.Default,
+			retryOptions: new FakeOptionsMonitor<ProjectionRetryOptions>(value: RetryOptions),
 			logger: Substitute.For<ILogger<AccountTransferConsumer>>()
 		);
 	}
+
+	private void GivenFreshTransferAndAccountOnEveryLoad()
+	{
+		_transferRepository.GetByIdAsync(
+			transferId: TransferId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ => TransferFactory.Reconstitute(
+			id: TransferId,
+			fromAccountId: FromAccountId,
+			toAccountId: ToAccountId
+		));
+
+		_accountRepository.GetByIdAsync(
+			accountId: ToAccountId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ => AccountFactory.Create().Value!);
+	}
+
+	private async Task<bool> IsProcessedAsync(Guid messageId)
+		=> await Context.ProcessedMessages.AnyAsync(predicate: m => m.MessageId == messageId && m.ConsumerType == nameof(AccountTransferConsumer));
 
 	private AggregateEventsMessage BuildMessage(
 		Guid? messageId = null,
@@ -419,5 +449,61 @@ public sealed class AccountTransferConsumerTests : DatabaseFixture
 			account: Arg.Any<Account>(),
 			ct: Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenSavingConflictsOnce_ShouldRetryAndCompleteTheTransfer()
+	{
+		GivenFreshTransferAndAccountOnEveryLoad();
+
+		_transferWriteRepository.SaveStatusAsync(
+			transfer: Arg.Any<Transfer>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(
+			returnThis: _ => throw new ConcurrencyConflictException(message: "Conflict.", id: TransferId),
+			returnThese: _ => Task.CompletedTask
+		);
+
+		Guid messageId = Guid.CreateVersion7();
+
+		await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None);
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: 2).SaveStatusAsync(
+			transfer: Arg.Is<Transfer>(t => t!.Id == TransferId && t.Status == TransferStatus.Completed),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await Assert.That(value: await IsProcessedAsync(messageId: messageId)).IsTrue().Because(message: """
+			A version conflict means another writer touched the destination account or the transfer first.
+			Reloading both and trying again settles it here, and keeps the broker's delivery limit for
+			failures that retrying in place cannot fix.
+		""");
+	}
+
+	[Test]
+	public async Task HandleAsync_WhenTheConflictOutlastsTheRetries_ShouldLeaveItToTheBroker()
+	{
+		GivenFreshTransferAndAccountOnEveryLoad();
+
+		_transferWriteRepository.SaveStatusAsync(
+			transfer: Arg.Any<Transfer>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: _ => throw new ConcurrencyConflictException(message: "Conflict.", id: TransferId));
+
+		Guid messageId = Guid.CreateVersion7();
+
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(
+			action: async () => await _consumer.HandleAsync(message: BuildMessage(messageId: messageId), ct: CancellationToken.None)
+		);
+
+		await _transferWriteRepository.Received(requiredNumberOfCalls: RetryOptions.MaxRetries + 1).SaveStatusAsync(
+			transfer: Arg.Any<Transfer>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+
+		await Assert.That(value: await IsProcessedAsync(messageId: messageId)).IsFalse().Because(message: """
+			The exception reaching the listener is what makes the broker redeliver the message. Marking it
+			processed on the way out would acknowledge a credit that never landed.
+		""");
 	}
 }

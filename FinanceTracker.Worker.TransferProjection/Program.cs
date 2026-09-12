@@ -3,6 +3,7 @@ using FinanceTracker.Core.Services.TransferCompensation;
 using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.Host;
+using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.Quartz;
 using FinanceTracker.Worker.Shared.RabbitMQ.Configuration;
 using FinanceTracker.Worker.Shared.Tracing;
@@ -27,6 +28,7 @@ public sealed class Program
 		builder.Services.AddPersistence(configuration: builder.Configuration);
 
 		builder.Services.AddScoped<ITransferCompensationService, TransferCompensationService>();
+		builder.Services.AddProjectionRetryOptions();
 
 		builder.Services.AddRabbitMqCore()
 			.AddRabbitMqListener<AggregateEventsMessage, AccountTransferConsumer>();
