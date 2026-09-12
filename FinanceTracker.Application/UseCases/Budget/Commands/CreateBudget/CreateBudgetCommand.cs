@@ -16,4 +16,6 @@ public sealed record CreateBudgetCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new { CategoryId, Currency, Amount, From, To };
 }

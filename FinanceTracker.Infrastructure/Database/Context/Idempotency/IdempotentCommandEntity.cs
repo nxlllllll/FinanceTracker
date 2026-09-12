@@ -7,6 +7,7 @@ public sealed class IdempotentCommandEntity
 	public Guid UserId { get; init; }
 	public Guid ReservationId { get; init; }
 	public string? ResponseJson { get; init; }
+	public string? RequestHash { get; init; }
 	public DateTimeOffset ReservedAt { get; init; }
 	public DateTimeOffset ExpiresAt { get; init; }
 }

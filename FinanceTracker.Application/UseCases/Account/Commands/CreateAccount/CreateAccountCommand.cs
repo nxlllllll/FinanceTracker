@@ -17,4 +17,6 @@ public sealed record CreateAccountCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new { Name, Type, Currency, InitialBalance };
 }

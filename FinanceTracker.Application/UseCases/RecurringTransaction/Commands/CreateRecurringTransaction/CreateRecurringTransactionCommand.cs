@@ -20,4 +20,6 @@ public sealed record CreateRecurringTransactionCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new { AccountId, CategoryId, Amount, Currency, Direction, DayOfMonth, Description };
 }

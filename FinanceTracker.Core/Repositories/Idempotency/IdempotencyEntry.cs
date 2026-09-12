@@ -11,8 +11,10 @@ namespace FinanceTracker.Core.Repositories.Idempotency;
 /// </param>
 /// <param name="ResponseJson">The serialized command response, or <c>null</c> if the command has not yet completed.</param>
 /// <param name="ReservedAt">UTC timestamp when the idempotency key was first reserved.</param>
+/// <param name="RequestHash">Hash of the reserving request's fingerprint, or <c>null</c> for a row reserved before fingerprints were recorded.</param>
 public sealed record IdempotencyEntry(
 	Guid ReservationId,
 	string? ResponseJson,
-	DateTimeOffset ReservedAt
+	DateTimeOffset ReservedAt,
+	string? RequestHash
 );

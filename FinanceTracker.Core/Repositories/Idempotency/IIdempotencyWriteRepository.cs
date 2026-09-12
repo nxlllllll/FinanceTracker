@@ -12,6 +12,7 @@ public interface IIdempotencyWriteRepository
 		string commandType,
 		Guid userId,
 		Guid reservationId,
+		string requestHash,
 		DateTimeOffset reservedAt,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default);

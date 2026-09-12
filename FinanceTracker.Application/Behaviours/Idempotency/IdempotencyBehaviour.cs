@@ -41,11 +41,13 @@ public sealed class IdempotencyBehaviour<TRequest, TResponse>(
 		}
 
 		Guid userId = request is IUserScopedRequest scoped ? scoped.UserId : Guid.Empty;
+		string requestHash = RequestFingerprint.GetHash(fingerprint: idempotent.IdempotencyFingerprint);
 
 		IdempotencyAcquisition acquisition = await coordinator.AcquireAsync(
 			idempotencyKey: idempotent.IdempotencyKey,
 			commandType: RequestTypeName,
 			userId: userId,
+			requestHash: requestHash,
 			ct: cancellationToken
 		);
 

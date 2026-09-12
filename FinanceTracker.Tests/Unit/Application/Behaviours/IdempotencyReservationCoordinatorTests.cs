@@ -16,6 +16,8 @@ public sealed class IdempotencyReservationCoordinatorTests
 	private static readonly Guid Key = Guid.CreateVersion7();
 	private const string CommandType = "TestCommand";
 	private static readonly Guid UserId = Guid.CreateVersion7();
+	private const string RequestHash = "request-hash";
+	private const string OtherRequestHash = "other-request-hash";
 	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
 
 	[Before(hookType: Test)]
@@ -29,6 +31,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
 			reservationId: Arg.Any<Guid>(),
+			requestHash: Arg.Any<string>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
@@ -55,16 +58,18 @@ public sealed class IdempotencyReservationCoordinatorTests
 		);
 	}
 
-	private static IdempotencyEntry CompletedEntry(string responseJson) => new IdempotencyEntry(
+	private static IdempotencyEntry CompletedEntry(string responseJson, string? requestHash = RequestHash) => new IdempotencyEntry(
 		ReservationId: Guid.CreateVersion7(),
 		ResponseJson: responseJson,
-		ReservedAt: Now
+		ReservedAt: Now,
+		RequestHash: requestHash
 	);
 
-	private static IdempotencyEntry InFlightEntry(Guid? reservationId = null, DateTimeOffset? reservedAt = null) => new IdempotencyEntry(
+	private static IdempotencyEntry InFlightEntry(Guid? reservationId = null, DateTimeOffset? reservedAt = null, string? requestHash = RequestHash) => new IdempotencyEntry(
 		ReservationId: reservationId ?? Guid.CreateVersion7(),
 		ResponseJson: null,
-		ReservedAt: reservedAt ?? Now
+		ReservedAt: reservedAt ?? Now,
+		RequestHash: requestHash
 	);
 
 	[Test]
@@ -81,6 +86,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -102,6 +108,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -110,6 +117,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			commandType: CommandType,
 			userId: UserId,
 			reservationId: Arg.Any<Guid>(),
+			requestHash: RequestHash,
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Now.AddHours(hours: 24),
 			ct: Arg.Any<CancellationToken>()
@@ -130,6 +138,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -145,6 +154,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
 			reservationId: Arg.Any<Guid>(),
+			requestHash: Arg.Any<string>(),
 			reservedAt: Arg.Any<DateTimeOffset>(),
 			expiresAt: Arg.Any<DateTimeOffset>(),
 			ct: Arg.Any<CancellationToken>()
@@ -161,6 +171,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -181,6 +192,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -201,6 +213,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -233,6 +246,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -275,6 +289,7 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
@@ -295,10 +310,87 @@ public sealed class IdempotencyReservationCoordinatorTests
 			idempotencyKey: Key,
 			commandType: CommandType,
 			userId: UserId,
+			requestHash: RequestHash,
 			ct: CancellationToken.None
 		);
 
 		await Assert.That(value: acquisition.Kind).IsEqualTo(expected: IdempotencyAcquisitionKind.Failed);
 		await Assert.That(value: acquisition.Error).IsTypeOf<IdempotencyAbandonedException>();
+	}
+
+	[Test]
+	public async Task AcquireAsync_WhenACompletedEntryHoldsAnotherRequest_ShouldRefuseTheKey()
+	{
+		_readRepository.GetAsync(
+			idempotencyKey: Key,
+			commandType: CommandType,
+			userId: UserId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: CompletedEntry(responseJson: """{"cached":true}""", requestHash: OtherRequestHash));
+
+		IdempotencyAcquisition acquisition = await _coordinator.AcquireAsync(
+			idempotencyKey: Key,
+			commandType: CommandType,
+			userId: UserId,
+			requestHash: RequestHash,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: acquisition.Kind).IsEqualTo(expected: IdempotencyAcquisitionKind.Failed);
+		await Assert.That(value: acquisition.Error).IsTypeOf<IdempotencyKeyReusedException>().Because(message: """
+			The stored answer belongs to a request with a different body. Replaying it would tell the caller
+			their second request went through with the first one's values.
+		""");
+	}
+
+	[Test]
+	public async Task AcquireAsync_WhenAnInFlightEntryHoldsAnotherRequest_ShouldRefuseWithoutWaiting()
+	{
+		_readRepository.GetAsync(
+			idempotencyKey: Key,
+			commandType: CommandType,
+			userId: UserId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: InFlightEntry(requestHash: OtherRequestHash));
+
+		IdempotencyAcquisition acquisition = await _coordinator.AcquireAsync(
+			idempotencyKey: Key,
+			commandType: CommandType,
+			userId: UserId,
+			requestHash: RequestHash,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: acquisition.Error).IsTypeOf<IdempotencyKeyReusedException>();
+		await _readRepository.Received(requiredNumberOfCalls: 1).GetAsync(
+			idempotencyKey: Key,
+			commandType: CommandType,
+			userId: UserId,
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task AcquireAsync_WhenTheEntryPredatesFingerprints_ShouldReplayItAsBefore()
+	{
+		_readRepository.GetAsync(
+			idempotencyKey: Key,
+			commandType: CommandType,
+			userId: UserId,
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: CompletedEntry(responseJson: """{"cached":true}""", requestHash: null));
+
+		IdempotencyAcquisition acquisition = await _coordinator.AcquireAsync(
+			idempotencyKey: Key,
+			commandType: CommandType,
+			userId: UserId,
+			requestHash: RequestHash,
+			ct: CancellationToken.None
+		);
+
+		await Assert.That(value: acquisition.Kind).IsEqualTo(expected: IdempotencyAcquisitionKind.CachedResponse).Because(message: """
+			Rows reserved before the column existed carry no hash. There is nothing to compare against, and
+			refusing them would break a retry that was valid when it started.
+		""");
 	}
 }
