@@ -12,4 +12,10 @@ public sealed record CreateRoleCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new
+	{
+		DisplayName,
+		Permissions = Permissions.Select(selector: permission => permission.ToString()).Order(comparer: StringComparer.Ordinal).ToArray()
+	};
 }

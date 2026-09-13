@@ -36,6 +36,14 @@ public sealed class OutboxOptions : IJobOptions
 	[Range(minimum: 1, maximum: 100)]
 	public int MaxRetries { get; init; } = 5;
 
+	/// <summary>Delay before the first retry of a message the broker did not take. Doubles with each attempt. Default: 5 seconds.</summary>
+	[Range(minimum: 1, maximum: 3600)]
+	public int RetryBaseDelaySeconds { get; init; } = 5;
+
+	/// <summary>Longest delay between two attempts to publish one message. Default: 300 seconds.</summary>
+	[Range(minimum: 1, maximum: 86400)]
+	public int RetryMaxDelaySeconds { get; init; } = 300;
+
 	[Range(minimum: 1, maximum: 3600)]
 	public int LeaseDurationSeconds { get; init; } = 60;
 

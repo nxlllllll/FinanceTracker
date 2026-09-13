@@ -13,4 +13,6 @@ public sealed record CancelTransactionCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new { TransactionId };
 }

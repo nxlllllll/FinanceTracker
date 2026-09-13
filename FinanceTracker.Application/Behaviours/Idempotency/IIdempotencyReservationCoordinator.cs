@@ -10,6 +10,7 @@ public interface IIdempotencyReservationCoordinator
 		Guid idempotencyKey,
 		string commandType,
 		Guid userId,
+		string requestHash,
 		CancellationToken ct = default
 	);
 }

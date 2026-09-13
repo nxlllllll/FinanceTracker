@@ -22,12 +22,14 @@ namespace FinanceTracker.Tests.Integration.Chaos;
 /// <summary>
 /// Verifies <see cref="OutboxPublisherJob"/>'s at-least-once delivery claim actually holds against a
 /// real broker outage: a publish failure must not crash the job and must leave the message pending
-/// with an incremented retry count (not silently dropped), and the message must actually get
-/// published once the broker recovers.
+/// without spending a retry, and the message must actually get published once the broker recovers.
 /// </summary>
+[NotInParallel]
 public sealed class OutboxPublisherJobChaosTests
 {
 	private const string TemplateDatabaseName = "ft_outbox_chaos_template";
+	private const int OutboxMaxRetries = 5;
+	private const int LeaseSeconds = 1;
 
 	private PostgreSqlContainer _postgres = null!;
 	private RabbitMqContainer _rabbitMq = null!;
@@ -91,8 +93,9 @@ public sealed class OutboxPublisherJobChaosTests
 			["Outbox:IsEnabled"] = "true",
 			["Outbox:IntervalSeconds"] = "3",
 			["Outbox:BatchSize"] = "20",
-			["Outbox:MaxRetries"] = "5",
-			["Outbox:LeaseDurationSeconds"] = "60",
+			["Outbox:MaxRetries"] = OutboxMaxRetries.ToString(),
+			["Outbox:RetryBaseDelaySeconds"] = "1",
+			["Outbox:LeaseDurationSeconds"] = LeaseSeconds.ToString(),
 			["Outbox:Group"] = "chaos",
 			["Outbox:TriggerName"] = "ChaosOutboxTrigger",
 			["Retry:MaxRetries"] = "3",
@@ -169,8 +172,8 @@ public sealed class OutboxPublisherJobChaosTests
 			.Because(message: "A failed publish attempt must not mark the message as processed.");
 		await Assert.That(value: failedAtDuringOutage).IsNull()
 			.Because(message: "A single failed attempt is well under MaxRetries and should not dead-letter the message yet.");
-		await Assert.That(value: retryCountDuringOutage).IsEqualTo(expected: 1)
-			.Because(message: "A failed publish attempt must increment the retry count instead of silently dropping the message.");
+		await Assert.That(value: retryCountDuringOutage).IsEqualTo(expected: 0)
+			.Because(message: "An unreachable broker is not a failed attempt for the message. Counting it would dead-letter the whole backlog after a short outage.");
 
 		await _rabbitMq.StartAsync();
 		await WaitForBrokerToAcceptConnectionsAsync();
@@ -182,8 +185,31 @@ public sealed class OutboxPublisherJobChaosTests
 		await Assert.That(value: processedAtAfterRecovery).IsNotNull()
 			.Because(message: "Once the broker is back, the next job run should successfully publish and mark the message as processed.");
 		await Assert.That(value: failedAtAfterRecovery).IsNull();
-		await Assert.That(value: retryCountAfterRecovery).IsEqualTo(expected: 1)
+		await Assert.That(value: retryCountAfterRecovery).IsEqualTo(expected: 0)
 			.Because(message: "A successful publish should not touch the retry count further.");
+	}
+
+	[Test]
+	public async Task PublisherJob_WhileTheBrokerStaysDown_ShouldNotDeadLetterThePendingMessage()
+	{
+		Guid messageId = await SeedPendingOutboxMessageAsync();
+
+		await _rabbitMq.StopAsync();
+
+		for (int run = 0; run <= OutboxMaxRetries; run++)
+		{
+			await RunJobOnceAsync();
+			await Task.Delay(delay: TimeSpan.FromSeconds(value: LeaseSeconds) + TimeSpan.FromMilliseconds(value: 200));
+		}
+
+		(int retryCount, DateTimeOffset? processedAt, DateTimeOffset? failedAt) = await ReadOutboxRowAsync(messageId: messageId);
+
+		await Assert.That(value: failedAt).IsNull().Because(message: """
+			The job claimed this message more times than MaxRetries allows, and the broker was down every time.
+			None of those runs said anything about the message, so none of them may move it to dead letter.
+		""");
+		await Assert.That(value: retryCount).IsEqualTo(expected: 0);
+		await Assert.That(value: processedAt).IsNull();
 	}
 
 	private async Task<Guid> SeedPendingOutboxMessageAsync()

@@ -13,6 +13,8 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 	private IdempotencyReadRepository _readRepository = null!;
 	private IdempotencyWriteRepository _writeRepository = null!;
 
+	private const string RequestHash = "request-hash";
+
 	private static DateTimeOffset Now => FakeDateProvider.Default.UtcNow;
 
 	[Before(hookType: Test)]
@@ -34,6 +36,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userA,
 			reservationId: Guid.CreateVersion7(),
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -42,6 +45,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userB,
 			reservationId: Guid.CreateVersion7(),
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -61,6 +65,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
 			reservationId: Guid.CreateVersion7(),
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -69,6 +74,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateBudgetCommand),
 			userId: userId,
 			reservationId: Guid.CreateVersion7(),
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -88,6 +94,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
 			reservationId: Guid.CreateVersion7(),
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -96,12 +103,38 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
 			reservationId: Guid.CreateVersion7(),
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
 
 		await Assert.That(value: first).IsTrue();
 		await Assert.That(value: second).IsFalse();
+	}
+
+	[Test]
+	public async Task GetAsync_ShouldReturnTheRequestHashTheKeyWasReservedWith()
+	{
+		Guid key = Guid.CreateVersion7();
+		Guid userId = Guid.CreateVersion7();
+
+		await _writeRepository.TryReserveAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId,
+			reservationId: Guid.CreateVersion7(),
+			requestHash: "3f2a",
+			reservedAt: Now,
+			expiresAt: Now.AddHours(hours: 1)
+		);
+
+		IdempotencyEntry? entry = await _readRepository.GetAsync(
+			idempotencyKey: key,
+			commandType: nameof(CreateTransactionCommand),
+			userId: userId
+		);
+
+		await Assert.That(value: entry!.RequestHash).IsEqualTo(expected: "3f2a");
 	}
 
 	[Test]
@@ -117,6 +150,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userA,
 			reservationId: reservationId,
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -158,6 +192,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
 			reservationId: reservationId,
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -186,6 +221,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
 			reservationId: originalReservationId,
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -221,6 +257,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userA,
 			reservationId: reservationIdA,
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -229,6 +266,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userB,
 			reservationId: Guid.CreateVersion7(),
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);
@@ -268,6 +306,7 @@ public sealed class IdempotencyRepositoryTests : DatabaseFixture
 			commandType: nameof(CreateTransactionCommand),
 			userId: userId,
 			reservationId: originalReservationId,
+			requestHash: RequestHash,
 			reservedAt: Now,
 			expiresAt: Now.AddHours(hours: 1)
 		);

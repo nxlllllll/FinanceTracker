@@ -21,6 +21,7 @@ public sealed class IdempotencyReservationCoordinator(
 		Guid idempotencyKey,
 		string commandType,
 		Guid userId,
+		string requestHash,
 		CancellationToken ct = default)
 	{
 		IdempotencyOptions currentOptions = options.CurrentValue;
@@ -38,6 +39,7 @@ public sealed class IdempotencyReservationCoordinator(
 				idempotencyKey: idempotencyKey,
 				commandType: commandType,
 				userId: userId,
+				requestHash: requestHash,
 				entry: entry,
 				options: currentOptions,
 				ct: ct
@@ -47,7 +49,14 @@ public sealed class IdempotencyReservationCoordinator(
 				return decision;
 
 			logger.ZLogInformation(message: $"[Idempotency] Key {idempotencyKey} is in-flight, waiting for result.");
-			return await PollAsync(idempotencyKey: idempotencyKey, commandType: commandType, userId: userId, options: currentOptions, ct: ct);
+			return await PollAsync(
+				idempotencyKey: idempotencyKey,
+				commandType: commandType,
+				userId: userId,
+				options: currentOptions,
+				requestHash: requestHash,
+				ct: ct
+			);
 		}
 
 		Guid reservationId = Guid.CreateVersion7();
@@ -58,6 +67,7 @@ public sealed class IdempotencyReservationCoordinator(
 			commandType: commandType,
 			userId: userId,
 			reservationId: reservationId,
+			requestHash: requestHash,
 			reservedAt: now,
 			expiresAt: now.AddHours(hours: currentOptions.ExpiryHours),
 			ct: ct
@@ -67,17 +77,33 @@ public sealed class IdempotencyReservationCoordinator(
 			return IdempotencyAcquisition.Reserved(reservationId: reservationId);
 
 		logger.ZLogInformation(message: $"[Idempotency] Key {idempotencyKey} is in-flight, waiting for result.");
-		return await PollAsync(idempotencyKey: idempotencyKey, commandType: commandType, userId: userId, options: currentOptions, ct: ct);
+		return await PollAsync(
+			idempotencyKey: idempotencyKey,
+			commandType: commandType,
+			userId: userId,
+			options: currentOptions,
+			requestHash: requestHash,
+			ct: ct
+		);
 	}
 
 	private async Task<IdempotencyAcquisition?> TryResolveAsync(
 		Guid idempotencyKey,
 		string commandType,
 		Guid userId,
+		string requestHash,
 		IdempotencyEntry entry,
 		IdempotencyOptions options,
 		CancellationToken ct)
 	{
+		if (entry.RequestHash is not null && entry.RequestHash != requestHash)
+		{
+			logger.ZLogWarning(message: $"[Idempotency] Key {idempotencyKey} was already used for a different {commandType} request.");
+			return IdempotencyAcquisition.Failed(error: new IdempotencyKeyReusedException(
+				message: $"Idempotency key {idempotencyKey} was already used for a different request."
+			));
+		}
+
 		if (!String.IsNullOrWhiteSpace(value: entry.ResponseJson))
 			return IdempotencyAcquisition.CachedResponse(json: entry.ResponseJson);
 
@@ -110,6 +136,7 @@ public sealed class IdempotencyReservationCoordinator(
 		Guid idempotencyKey,
 		string commandType,
 		Guid userId,
+		string requestHash,
 		IdempotencyOptions options,
 		CancellationToken ct)
 	{
@@ -140,6 +167,7 @@ public sealed class IdempotencyReservationCoordinator(
 				idempotencyKey: idempotencyKey,
 				commandType: commandType,
 				userId: userId,
+				requestHash: requestHash,
 				entry: entry,
 				options: options,
 				ct: ct

@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Domains.Abstractions.Aggregate;
@@ -12,6 +13,7 @@ using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Quartz;
+using RabbitMQ.Client.Exceptions;
 
 namespace FinanceTracker.Tests.Unit.Workers;
 
@@ -33,7 +35,9 @@ public sealed class OutboxPublisherJobTests
 		IsEnabled = true,
 		BatchSize = 10,
 		MaxRetries = 3,
-		LeaseDurationSeconds = 60
+		LeaseDurationSeconds = 60,
+		RetryBaseDelaySeconds = 5,
+		RetryMaxDelaySeconds = 300
 	};
 
 	private static PendingOutboxMessage MakeMessage(int retryCount = 0)
@@ -85,32 +89,37 @@ public sealed class OutboxPublisherJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: []);
 
-		_job = new OutboxPublisherJob(
-			outboxReadRepository: _readRepository,
-			outboxWriteRepository: _writeRepository,
-			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
-			publisher: _publisher,
-			unitOfWork: _unitOfWork,
-			dateProvider: _dateProvider,
-			options: new FakeOptionsMonitor<OutboxOptions>(value: DefaultOptions),
-			logger: new CapturingLogger<OutboxPublisherJob>()
-		);
+		_job = CreateJob(options: DefaultOptions);
 	}
+
+	private OutboxPublisherJob CreateJob(OutboxOptions options) => new OutboxPublisherJob(
+		outboxReadRepository: _readRepository,
+		outboxWriteRepository: _writeRepository,
+		unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
+		publisher: _publisher,
+		unitOfWork: _unitOfWork,
+		dateProvider: _dateProvider,
+		options: new FakeOptionsMonitor<OutboxOptions>(value: options),
+		logger: new CapturingLogger<OutboxPublisherJob>()
+	);
+
+	private void GivenClaimed(PendingOutboxMessage message) => _readRepository.ClaimPendingBatchAsync(
+		batchSize: Arg.Any<int>(),
+		now: Arg.Any<DateTimeOffset>(),
+		leaseDuration: Arg.Any<TimeSpan>(),
+		ct: Arg.Any<CancellationToken>()
+	).Returns(returnThis: [message]);
+
+	private void GivenPublishFails(Exception? exception = null) => _publisher.PublishAsync(
+		message: Arg.Any<IRoutableMessage>(),
+		correlationId: Arg.Any<Guid?>(),
+		ct: Arg.Any<CancellationToken>()
+	).ThrowsAsync(exception ?? new InvalidOperationException(message: "The broker refused the message."));
+
 	[Test]
 	public async Task Execute_WhenDisabled_ShouldNotReadBatch()
 	{
-		OutboxPublisherJob disabledJob = new OutboxPublisherJob(
-			outboxReadRepository: _readRepository,
-			outboxWriteRepository: _writeRepository,
-			unresolvableEventWriteRepository: _unresolvableEventWriteRepository,
-			publisher: _publisher,
-			unitOfWork: _unitOfWork,
-			dateProvider: _dateProvider,
-			options: new FakeOptionsMonitor<OutboxOptions>(
-				value: new OutboxOptions { IsEnabled = false }
-			),
-			logger: new CapturingLogger<OutboxPublisherJob>()
-		);
+		OutboxPublisherJob disabledJob = CreateJob(options: new OutboxOptions { IsEnabled = false });
 
 		await disabledJob.Execute(context: _jobContext);
 
@@ -179,19 +188,34 @@ public sealed class OutboxPublisherJobTests
 	public async Task Execute_WhenPublishFails_ShouldIncrementRetryCount()
 	{
 		PendingOutboxMessage message = MakeMessage(retryCount: 0);
+		GivenClaimed(message: message);
+		GivenPublishFails();
 
-		_readRepository.ClaimPendingBatchAsync(
-			batchSize: Arg.Any<int>(),
-			now: Arg.Any<DateTimeOffset>(),
-			leaseDuration: Arg.Any<TimeSpan>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: [message]);
+		await _job.Execute(context: _jobContext);
 
-		_publisher.PublishAsync(
-			message: Arg.Any<IRoutableMessage>(),
-			correlationId: Arg.Any<Guid?>(),
+		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
+			messageId: message.Id,
+			retryCount: 1,
+			failedAt: Arg.Is<DateTimeOffset?>(value: null),
+			lockedUntil: Arg.Any<DateTimeOffset?>(),
 			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));
+		);
+		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
+			type: Arg.Any<UnresolvableEventType>(),
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenPublishFailsForTheFirstTime_ShouldHoldTheMessageForTheBaseDelay()
+	{
+		PendingOutboxMessage message = MakeMessage(retryCount: 0);
+		GivenClaimed(message: message);
+		GivenPublishFails();
 
 		await _job.Execute(context: _jobContext);
 
@@ -199,6 +223,71 @@ public sealed class OutboxPublisherJobTests
 			messageId: message.Id,
 			retryCount: 1,
 			failedAt: null,
+			lockedUntil: Now.AddSeconds(seconds: DefaultOptions.RetryBaseDelaySeconds),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenPublishFailsAgain_ShouldDoubleTheDelay()
+	{
+		PendingOutboxMessage message = MakeMessage(retryCount: 1);
+		GivenClaimed(message: message);
+		GivenPublishFails();
+
+		await _job.Execute(context: _jobContext);
+
+		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
+			messageId: message.Id,
+			retryCount: 2,
+			failedAt: null,
+			lockedUntil: Now.AddSeconds(seconds: DefaultOptions.RetryBaseDelaySeconds * 2),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenTheDelayWouldPassTheCeiling_ShouldStopAtTheCeiling()
+	{
+		OutboxOptions options = new OutboxOptions
+		{
+			IsEnabled = true,
+			BatchSize = 10,
+			MaxRetries = 20,
+			LeaseDurationSeconds = 60,
+			RetryBaseDelaySeconds = 5,
+			RetryMaxDelaySeconds = 300
+		};
+
+		PendingOutboxMessage message = MakeMessage(retryCount: 10);
+		GivenClaimed(message: message);
+		GivenPublishFails();
+
+		await CreateJob(options: options).Execute(context: _jobContext);
+
+		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
+			messageId: message.Id,
+			retryCount: 11,
+			failedAt: null,
+			lockedUntil: Now.AddSeconds(seconds: options.RetryMaxDelaySeconds),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenTheBrokerIsUnreachable_ShouldNotSpendTheRetry()
+	{
+		PendingOutboxMessage message = MakeMessage(retryCount: DefaultOptions.MaxRetries - 1);
+		GivenClaimed(message: message);
+		GivenPublishFails(exception: new BrokerUnreachableException(Inner: new SocketException(errorCode: (int)SocketError.ConnectionRefused)));
+
+		await _job.Execute(context: _jobContext);
+
+		await _writeRepository.DidNotReceive().MarkAsFailedAsync(
+			messageId: Arg.Any<Guid>(),
+			retryCount: Arg.Any<int>(),
+			failedAt: Arg.Any<DateTimeOffset?>(),
+			lockedUntil: Arg.Any<DateTimeOffset?>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
@@ -215,19 +304,8 @@ public sealed class OutboxPublisherJobTests
 	public async Task Execute_WhenMaxRetriesExceeded_ShouldMoveToUnresolvableEvents()
 	{
 		PendingOutboxMessage message = MakeMessage(retryCount: DefaultOptions.MaxRetries - 1);
-
-		_readRepository.ClaimPendingBatchAsync(
-			batchSize: Arg.Any<int>(),
-			now: Arg.Any<DateTimeOffset>(),
-			leaseDuration: Arg.Any<TimeSpan>(),
-			ct: Arg.Any<CancellationToken>()
-		).Returns(returnThis: [message]);
-
-		_publisher.PublishAsync(
-			message: Arg.Any<IRoutableMessage>(),
-			correlationId: Arg.Any<Guid?>(),
-			ct: Arg.Any<CancellationToken>()
-		).ThrowsAsync(new InvalidOperationException(message: "broker unavailable"));
+		GivenClaimed(message: message);
+		GivenPublishFails();
 
 		await _job.Execute(context: _jobContext);
 
@@ -243,6 +321,7 @@ public sealed class OutboxPublisherJobTests
 			messageId: message.Id,
 			retryCount: DefaultOptions.MaxRetries,
 			failedAt: Now,
+			lockedUntil: null,
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

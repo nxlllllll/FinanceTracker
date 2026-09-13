@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Shared.Job;
 using Microsoft.Extensions.Logging;
@@ -5,6 +6,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Quartz;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 
 namespace FinanceTracker.Tests.Unit.Workers;
 
@@ -51,6 +55,83 @@ public sealed class BaseJobTests
 		IOptionsMonitor<TestJobOptions> monitor = Substitute.For<IOptionsMonitor<TestJobOptions>>();
 		monitor.CurrentValue.Returns(returnThis: opts);
 		return new TrackingJob(options: monitor);
+	}
+
+	private static TrackingJob BuildJobThrowing(Exception exception, CapturingLogger<TrackingJob> logger)
+	{
+		IOptionsMonitor<TestJobOptions> monitor = Substitute.For<IOptionsMonitor<TestJobOptions>>();
+		monitor.CurrentValue.Returns(returnThis: new TestJobOptions { IsEnabled = true });
+		return new TrackingJob(options: monitor, logger: logger) { ExceptionToThrow = exception };
+	}
+
+	private static BrokerUnreachableException UnreachableBroker()
+		=> new BrokerUnreachableException(Inner: new SocketException(errorCode: (int)SocketError.ConnectionRefused));
+
+	[Test]
+	public async Task Execute_WhenTheBrokerIsUnreachable_ShouldSkipTheRunWithAWarning()
+	{
+		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
+		TrackingJob job = BuildJobThrowing(exception: UnreachableBroker(), logger: logger);
+
+		await Assert.That(action: async () => await job.Execute(context: BuildContext())).ThrowsNothing();
+
+		await Assert.That(value: logger.WarningLogged).IsTrue();
+		await Assert.That(value: logger.ErrorLogged).IsFalse().Because(message: """
+			A broker that is down says nothing about the job. Failing the run would raise JobExecutionFailed
+			for an outage the broker's own alerts already cover, and nothing is lost by waiting for the next tick.
+		""");
+	}
+
+	[Test]
+	public async Task Execute_WhenTheConnectionClosesMidRun_ShouldSkipTheRunWithAWarning()
+	{
+		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
+		TrackingJob job = BuildJobThrowing(
+			exception: new AlreadyClosedException(reason: new ShutdownEventArgs(
+				initiator: ShutdownInitiator.Peer,
+				replyCode: 320,
+				replyText: "CONNECTION_FORCED",
+				cause: null,
+				cancellationToken: CancellationToken.None
+			)),
+			logger: logger
+		);
+
+		await Assert.That(action: async () => await job.Execute(context: BuildContext())).ThrowsNothing();
+
+		await Assert.That(value: logger.WarningLogged).IsTrue();
+		await Assert.That(value: logger.ErrorLogged).IsFalse();
+	}
+
+	[Test]
+	public async Task Execute_WhenTheBrokerRejectsTheCredentials_ShouldFailTheRun()
+	{
+		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
+		TrackingJob job = BuildJobThrowing(
+			exception: new BrokerUnreachableException(Inner: new AuthenticationFailureException(msg: "ACCESS_REFUSED")),
+			logger: logger
+		);
+
+		await Assert.ThrowsAsync<JobExecutionException>(action: async () => await job.Execute(context: BuildContext()));
+
+		await Assert.That(value: logger.ErrorLogged).IsTrue().Because(message: """
+			The client wraps a rejected password in BrokerUnreachableException, so from the outside it looks
+			like an outage. Skipping it would turn a broken deployment into a warning that repeats forever.
+		""");
+	}
+
+	[Test]
+	public async Task Execute_WhenTheBrokerRefusesTheVhost_ShouldFailTheRun()
+	{
+		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
+		TrackingJob job = BuildJobThrowing(
+			exception: new BrokerUnreachableException(Inner: new OperationInterruptedException()),
+			logger: logger
+		);
+
+		await Assert.ThrowsAsync<JobExecutionException>(action: async () => await job.Execute(context: BuildContext()));
+
+		await Assert.That(value: logger.ErrorLogged).IsTrue();
 	}
 
 	[Test]

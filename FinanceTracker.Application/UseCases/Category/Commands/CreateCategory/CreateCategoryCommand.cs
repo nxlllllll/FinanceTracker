@@ -16,4 +16,6 @@ public sealed record CreateCategoryCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new { Name, Type, ParentId };
 }

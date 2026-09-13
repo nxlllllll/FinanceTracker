@@ -85,7 +85,7 @@ public sealed class RecurringTransactionHandlingJob(
 					$"{transaction.NextDueAtUtc:G}, next {nextDueAtUtc:G} ({++processed})."
 				);
 			}
-			catch (Exception ex)
+			catch (Exception ex) when (!IsDependencyUnavailable(exception: ex))
 			{
 				failed++;
 				logger.ZLogError(exception: ex, message:

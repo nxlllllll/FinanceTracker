@@ -16,4 +16,6 @@ public sealed record CreateTransferCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new { FromAccountId, ToAccountId, Amount, Description };
 }

@@ -12,6 +12,7 @@ public sealed class IdempotencyWriteRepository(FinanceTrackerContext context) : 
 		string commandType,
 		Guid userId,
 		Guid reservationId,
+		string requestHash,
 		DateTimeOffset reservedAt,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
@@ -21,6 +22,7 @@ public sealed class IdempotencyWriteRepository(FinanceTrackerContext context) : 
 			commandType: commandType,
 			userId: userId,
 			reservationId: reservationId,
+			requestHash: requestHash,
 			reservedAt: reservedAt,
 			expiresAt: expiresAt,
 			ct: ct

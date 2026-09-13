@@ -20,6 +20,11 @@ public static class WorkerMetrics
 		description: "Total number of job executions that threw an unhandled exception. Tagged by job (job type name)."
 	);
 
+	public static readonly Counter<long> JobExecutionSkipped = Meter.CreateCounter<long>(
+		name: "job.execution.skipped",
+		description: "Total number of job executions skipped because a dependency was unavailable. Tagged by job (job type name)."
+	);
+
 	public static readonly Histogram<double> ProjectionLag = Meter.CreateHistogram<double>(
 		name: "projection.lag",
 		unit: "s",

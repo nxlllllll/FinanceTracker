@@ -52,13 +52,14 @@ public static class DbContextExtensions
 		string commandType,
 		Guid userId,
 		Guid reservationId,
+		string requestHash,
 		DateTimeOffset reservedAt,
 		DateTimeOffset expiresAt,
 		CancellationToken ct = default)
 	{
 		int rows = await context.Database.ExecuteSqlAsync(sql: $"""
-			INSERT INTO idempotent_commands (idempotency_key, command_type, user_id, reservation_id, reserved_at, expires_at)
-			VALUES ({idempotencyKey}, {commandType}, {userId}, {reservationId}, {reservedAt}, {expiresAt})
+			INSERT INTO idempotent_commands (idempotency_key, command_type, user_id, reservation_id, request_hash, reserved_at, expires_at)
+			VALUES ({idempotencyKey}, {commandType}, {userId}, {reservationId}, {requestHash}, {reservedAt}, {expiresAt})
 			ON CONFLICT (idempotency_key, command_type, user_id) DO NOTHING
 		""", cancellationToken: ct);
 

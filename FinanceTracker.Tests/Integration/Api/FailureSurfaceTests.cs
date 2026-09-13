@@ -156,6 +156,40 @@ public sealed class FailureSurfaceTests : MediatorFixture
 	}
 
 	[Test]
+	public async Task AKeyReusedForADifferentRequest_ShouldAnswer422()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid idempotencyKey = Guid.CreateVersion7();
+
+		CreateAccountCommand Command(decimal balance) => new CreateAccountCommand(
+			UserId: userId,
+			Name: Name.Create(value: "Основной счёт").Value,
+			Type: AccountType.Checking,
+			Currency: Currency.Create(value: "RUB").Value,
+			InitialBalance: balance
+		)
+		{ IdempotencyKey = idempotencyKey };
+
+		Result<Guid, AppException> original = await Mediator.Send(request: Command(balance: 0m));
+		Result<Guid, AppException> retry = await Mediator.Send(request: Command(balance: 0m));
+		Result<Guid, AppException> reused = await Mediator.Send(request: Command(balance: 500m));
+
+		await Assert.That(value: retry.Value).IsEqualTo(expected: original.Value).Because(message: """
+			The same body under the same key is a retry and must still get the first answer back. The
+			fingerprint check must not turn an ordinary retry into a refusal.
+		""");
+
+		await Assert.That(value: reused.Error).IsTypeOf<IdempotencyKeyReusedException>();
+
+		DefaultHttpContext context = await AnswerForAsync(error: reused.Error!);
+
+		await Assert.That(value: context.Response.StatusCode).IsEqualTo(expected: StatusCodes.Status422UnprocessableEntity).Because(message: """
+			The key already belongs to a request with another body. Replaying the first answer would tell
+			the caller an account was opened with 500 when nothing of the kind happened.
+		""");
+	}
+
+	[Test]
 	public async Task ConcurrentWritesToOneAccount_ShouldNeverAnswerWithAServerFault()
 	{
 		Guid userId = await _userBuilder.CreateAsync();

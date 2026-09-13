@@ -12,4 +12,10 @@ public interface IIdempotentCommand
 	/// Must not be <see cref="Guid.Empty"/> — the behaviour will return an error if it is.
 	/// </summary>
 	Guid IdempotencyKey { get; }
+
+	/// <summary>
+	/// The values that make two submissions the same request. List only what the client supplies;
+	/// leave out secrets and anything the server fills in, such as the caller's address.
+	/// </summary>
+	object IdempotencyFingerprint { get; }
 }

@@ -18,6 +18,8 @@ public sealed record RegisterUserCommand(
 {
 	public Guid IdempotencyKey { get; init; }
 
+	object IIdempotentCommand.IdempotencyFingerprint => new { Email, BaseCurrencyCode, TimeZone };
+
 	public override string ToString()
 	{
 		return  $"RegisterUserCommand{{Email={Email},Password=******,BaseCurrencyCode={BaseCurrencyCode}," +

@@ -7,6 +7,7 @@ using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Transfer;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.ReadModels.Pending;
 using FinanceTracker.Core.Repositories.Account;
@@ -15,9 +16,12 @@ using FinanceTracker.Core.Repositories.Transfer;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.TransferCompensation;
+using FinanceTracker.Core.Utilities.Retry;
 using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Worker.Shared.Metrics;
+using FinanceTracker.Worker.Shared.Projection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
+using Microsoft.Extensions.Options;
 using ZLogger;
 
 namespace FinanceTracker.Worker.TransferProjection.Consumer;
@@ -52,6 +56,7 @@ public sealed class AccountTransferConsumer(
 	ITransferCompensationService compensationService,
 	IUnitOfWork unitOfWork,
 	IDateProvider dateProvider,
+	IOptionsMonitor<ProjectionRetryOptions> retryOptions,
 	ILogger<AccountTransferConsumer> logger
 ) : IMessageHandler<AggregateEventsMessage>
 {
@@ -63,25 +68,47 @@ public sealed class AccountTransferConsumer(
 
 		using IDisposable? scope = logger.BeginScope(state: new Dictionary<string, object> { ["CorrelationId"] = message.CorrelationId });
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
-			if (await processedMessageReadRepository.IsProcessedAsync(messageId: message.MessageId, consumerType: nameof(AccountTransferConsumer), ct: ct))
-			{
-				logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
-				return;
-			}
+		ProjectionRetryOptions currentOptions = retryOptions.CurrentValue;
 
-			foreach (AccountTransferDebitedEvent debitEvent in debitEvents)
-				await ExecuteCreditAsync(debitEvent: debitEvent, correlationId: message.CorrelationId, ct: ct);
-
-			await processedMessageWriteRepository.MarkAsProcessedAsync(
-				messageId: message.MessageId,
-				consumerType: nameof(AccountTransferConsumer),
-				processedAt: dateProvider.UtcNow,
-				ct: ct
-			);
-		}, ct: ct);
+		await RetryDelayCalculator.ExecuteWithRetryAsync(
+			operation: innerCt => ProcessAsync(message: message, debitEvents: debitEvents, ct: innerCt),
+			onError: (exception, attempt, delay) => logger.ZLogWarning(
+				exception: exception,
+				message: $"""
+					[{message.CorrelationId}] Concurrency conflict crediting from message {message.MessageId}.
+					Retry {attempt + 1}/{currentOptions.MaxRetries} in {delay}ms.
+				"""
+			),
+			exceptionFilter: ex => ex is ConcurrencyConflictException,
+			maxRetries: currentOptions.MaxRetries,
+			baseDelayMs: currentOptions.BaseDelayMs,
+			useJitter: currentOptions.UseJitter,
+			ct: ct
+		);
 	}
+
+	private Task ProcessAsync(
+		AggregateEventsMessage message,
+		IReadOnlyList<AccountTransferDebitedEvent> debitEvents,
+		CancellationToken ct
+	) => unitOfWork.ExecuteInTransactionAsync(operation: async () =>
+	{
+		if (await processedMessageReadRepository.IsProcessedAsync(messageId: message.MessageId, consumerType: nameof(AccountTransferConsumer), ct: ct))
+		{
+			logger.ZLogWarning(message: $"[{message.CorrelationId}] Message {message.MessageId} already processed.");
+			return;
+		}
+
+		foreach (AccountTransferDebitedEvent debitEvent in debitEvents)
+			await ExecuteCreditAsync(debitEvent: debitEvent, correlationId: message.CorrelationId, ct: ct);
+
+		await processedMessageWriteRepository.MarkAsProcessedAsync(
+			messageId: message.MessageId,
+			consumerType: nameof(AccountTransferConsumer),
+			processedAt: dateProvider.UtcNow,
+			ct: ct
+		);
+	}, ct: ct);
 
 	private async Task ExecuteCreditAsync(
 		AccountTransferDebitedEvent debitEvent,

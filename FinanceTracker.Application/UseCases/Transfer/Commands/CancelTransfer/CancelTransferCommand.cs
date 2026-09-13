@@ -13,4 +13,6 @@ public sealed record CancelTransferCommand(
 ) : IIdempotentCommand, IRequest<Result<Guid, AppException>>, IAuthorizable, IUserScopedRequest
 {
 	public Guid IdempotencyKey { get; init; }
+
+	object IIdempotentCommand.IdempotencyFingerprint => new { TransferId };
 }

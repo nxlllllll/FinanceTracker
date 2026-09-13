@@ -306,6 +306,7 @@ public sealed class RecurringTransactionE2ETests : E2EFixture
 			accountId: accountId,
 			categoryId: categoryId,
 			amount: 999_999m,
+			dayOfMonth: _clock.UtcNow.Day,
 			nextDueAtUtc: _clock.UtcNow.AddMinutes(minutes: 1)
 		);
 

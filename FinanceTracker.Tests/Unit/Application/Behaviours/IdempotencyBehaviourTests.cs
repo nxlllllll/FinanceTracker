@@ -19,9 +19,17 @@ namespace FinanceTracker.Tests.Unit.Application.Behaviours;
 [NotInParallel]
 public sealed class IdempotencyBehaviourTests
 {
-	public sealed record TestCommand(Guid IdempotencyKey) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand;
+	public sealed record TestCommand(Guid IdempotencyKey, string Payload = "") : IRequest<Result<Guid, DomainException>>, IIdempotentCommand
+	{
+		object IIdempotentCommand.IdempotencyFingerprint => new { Payload };
+	}
+
 	public sealed record NonIdempotentCommand : IRequest<Result<Guid, DomainException>>;
-	public sealed record TestUserScopedCommand(Guid IdempotencyKey, Guid UserId) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand, IUserScopedRequest;
+
+	public sealed record TestUserScopedCommand(Guid IdempotencyKey, Guid UserId) : IRequest<Result<Guid, DomainException>>, IIdempotentCommand, IUserScopedRequest
+	{
+		object IIdempotentCommand.IdempotencyFingerprint => new { };
+	}
 
 	private const string Acquisition = "idempotency.acquisition";
 
@@ -80,6 +88,7 @@ public sealed class IdempotencyBehaviourTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
+			requestHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: IdempotencyAcquisition.Reserved(reservationId: reservationId));
 	}
@@ -90,6 +99,7 @@ public sealed class IdempotencyBehaviourTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
+			requestHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: IdempotencyAcquisition.CachedResponse(json: Serialize(result: result)));
 	}
@@ -100,6 +110,7 @@ public sealed class IdempotencyBehaviourTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
+			requestHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: IdempotencyAcquisition.Failed(error: error));
 	}
@@ -117,6 +128,7 @@ public sealed class IdempotencyBehaviourTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
+			requestHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -136,6 +148,7 @@ public sealed class IdempotencyBehaviourTests
 			idempotencyKey: Arg.Any<Guid>(),
 			commandType: Arg.Any<string>(),
 			userId: Arg.Any<Guid>(),
+			requestHash: Arg.Any<string>(),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}
@@ -156,6 +169,27 @@ public sealed class IdempotencyBehaviourTests
 			idempotencyKey: ValidKey,
 			commandType: nameof(TestUserScopedCommand),
 			userId: userId,
+			requestHash: Arg.Any<string>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Handle_ShouldPassTheHashOfTheCommandsFingerprintToCoordinator()
+	{
+		GivenReserved(reservationId: Guid.CreateVersion7());
+
+		await _behaviour.Handle(
+			request: new TestCommand(IdempotencyKey: ValidKey, Payload: "first"),
+			next: _ => Task.FromResult(result: Ok()),
+			cancellationToken: CancellationToken.None
+		);
+
+		await _coordinator.Received(requiredNumberOfCalls: 1).AcquireAsync(
+			idempotencyKey: ValidKey,
+			commandType: nameof(TestCommand),
+			userId: Guid.Empty,
+			requestHash: RequestFingerprint.GetHash(fingerprint: new { Payload = "first" }),
 			ct: Arg.Any<CancellationToken>()
 		);
 	}

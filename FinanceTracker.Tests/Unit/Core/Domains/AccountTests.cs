@@ -774,4 +774,36 @@ public sealed class AccountTests
 			afterwards with nothing pointing at why.
 		""");
 	}
+
+	[Test]
+	public async Task Debit_DatedBeforeTheAccountWasOpened_ShouldStateBothTimesOnA24HourClock()
+	{
+		DateTimeOffset openedAt = new DateTimeOffset(year: 2025, month: 6, day: 1, hour: 15, minute: 30, second: 0, offset: TimeSpan.Zero);
+
+		Account account = Account.Create(
+			occurredAt: openedAt,
+			userId: Guid.CreateVersion7(),
+			name: Name.Create(value: "Card").Value!,
+			type: AccountType.Checking,
+			currency: Currency.Create(value: "RUB").Value,
+			balance: 10_000m
+		).Value!;
+
+		Result<FinanceTracker.Core.Results.Unit, DomainException> result = account.Debit(
+			occurredAt: new DateTimeOffset(year: 2025, month: 6, day: 1, hour: 14, minute: 5, second: 0, offset: TimeSpan.Zero),
+			transactionId: Guid.CreateVersion7(),
+			categoryId: Guid.CreateVersion7(),
+			amount: 500m,
+			exchangeRate: 1m,
+			description: null
+		);
+
+		string message = result.Error!.Message;
+
+		await Assert.That(value: message.Contains(value: "14:05:00", comparisonType: StringComparison.Ordinal)).IsTrue().Because(message: """
+			A 12-hour pattern without AM or PM prints 02:05:00, which reads as early morning and leaves
+			the caller unable to tell how far before the opening the operation really was.
+		""");
+		await Assert.That(value: message.Contains(value: "15:30:00", comparisonType: StringComparison.Ordinal)).IsTrue();
+	}
 }
