@@ -74,7 +74,7 @@ public sealed class RedisCache(
 		{
 			value = await database.StringGetAsync(key: Prefixed(key: key));
 		}
-		catch (RedisException ex)
+		catch (Exception ex) when (ex is RedisException or RedisTimeoutException)
 		{
 			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Read);
 			logger.LogWarning(exception: ex, message: "Redis unavailable reading key {Key} — reporting a cache miss.", Prefixed(key: key));
@@ -102,7 +102,7 @@ public sealed class RedisCache(
 			);
 			return true;
 		}
-		catch (RedisException ex)
+		catch (Exception ex) when (ex is RedisException or RedisTimeoutException)
 		{
 			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Write);
 			logger.LogWarning(exception: ex, message: "Redis unavailable writing key {Key} — the previous value stays until its TTL expires.", Prefixed(key: key));
@@ -131,7 +131,7 @@ public sealed class RedisCache(
 		{
 			values = await database.StringGetAsync(keys: redisKeys);
 		}
-		catch (RedisException ex)
+		catch (Exception ex) when (ex is RedisException or RedisTimeoutException)
 		{
 			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Read);
 			logger.LogWarning(exception: ex, message: "Redis unavailable reading a batch of {Count} keys — reporting all as cache misses.", keys.Count);
@@ -183,7 +183,7 @@ public sealed class RedisCache(
 			await Task.WhenAll(tasks);
 			return true;
 		}
-		catch (RedisException ex)
+		catch (Exception ex) when (ex is RedisException or RedisTimeoutException)
 		{
 			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Write);
 			logger.LogWarning(exception: ex, message: "Redis unavailable writing a batch of {Count} keys — previous values stay until their TTL expires.", items.Count);
@@ -206,7 +206,7 @@ public sealed class RedisCache(
 			await database.KeyDeleteAsync(keys: redisKeys);
 			return true;
 		}
-		catch (RedisException ex)
+		catch (Exception ex) when (ex is RedisException or RedisTimeoutException)
 		{
 			RecordFailure(operation: FinanceTrackerMetrics.CacheOperations.Delete);
 			logger.LogWarning(exception: ex, message: "Redis unavailable deleting a batch of {Count} keys — stale entries may remain until their TTL expires.", keys.Count);
