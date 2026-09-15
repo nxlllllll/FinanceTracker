@@ -46,6 +46,8 @@ public abstract class MediatorFixture
 
 	protected virtual IReadOnlyDictionary<string, string?> ConfigurationOverrides { get; } = new Dictionary<string, string?>();
 
+	protected virtual void ConfigureHostServices(IServiceCollection services, IConfiguration configuration) { }
+
 	[Before(hookType: Assembly)]
 	public static async Task StartContainersAsync()
 	{
@@ -129,6 +131,8 @@ public abstract class MediatorFixture
 			services.AddOptions<ProjectionRetryOptions>()
 				.BindConfiguration(configSectionPath: ProjectionRetryOptions.SectionName)
 				.ValidateDataAnnotations();
+
+			ConfigureHostServices(services: services, configuration: ctx.Configuration);
 		}).Build();
 
 		string adminConnectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())

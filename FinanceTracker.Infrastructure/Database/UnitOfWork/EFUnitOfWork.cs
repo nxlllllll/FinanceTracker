@@ -179,20 +179,40 @@ public sealed class EFUnitOfWork(
 
 		if (_savepoints.TryPop(result: out string? savepointName))
 		{
-			await _transaction.RollbackToSavepointAsync(name: savepointName, cancellationToken: ct);
-
 			HashSet<object> snapshot = _savepointSnapshots.Pop();
 			_callbackScopes.Pop();
 
+			await _transaction.RollbackToSavepointAsync(name: savepointName, cancellationToken: ct);
 			await ReconcileChangeTrackerAsync(snapshotBeforeSavepoint: snapshot, ct: ct);
 			return;
 		}
 
-		await _transaction.RollbackAsync(cancellationToken: ct);
-		await _transaction.DisposeAsync();
-		_transaction = null;
-		_callbackScopes.Clear();
-		context.ChangeTracker.Clear();
+		try
+		{
+			await _transaction.RollbackAsync(cancellationToken: ct);
+		}
+		finally
+		{
+			await _transaction.DisposeAsync();
+			_transaction = null;
+			_callbackScopes.Clear();
+			context.ChangeTracker.Clear();
+		}
+	}
+
+	private async Task RollbackAfterFailureAsync(CancellationToken ct)
+	{
+		try
+		{
+			await RollbackAsync(ct: ct);
+		}
+		catch (Exception rollbackFailure)
+		{
+			logger.ZLogWarning(
+				exception: rollbackFailure,
+				message: $"[UnitOfWork] Rollback failed after the operation had already failed. Keeping the original error."
+			);
+		}
 	}
 
 	private async Task RunCommittedCallbacksAsync(List<Func<Task>> callbacks)
@@ -241,7 +261,7 @@ public sealed class EFUnitOfWork(
 		}
 		catch
 		{
-			await RollbackAsync(ct: ct);
+			await RollbackAfterFailureAsync(ct: ct);
 			throw;
 		}
 	}
@@ -259,7 +279,7 @@ public sealed class EFUnitOfWork(
 		}
 		catch (Exception e)
 		{
-			await RollbackAsync(ct: ct);
+			await RollbackAfterFailureAsync(ct: ct);
 			await onError(arg: e);
 			throw;
 		}
@@ -276,7 +296,7 @@ public sealed class EFUnitOfWork(
 		}
 		catch
 		{
-			await RollbackAsync(ct: ct);
+			await RollbackAfterFailureAsync(ct: ct);
 			throw;
 		}
 	}
@@ -295,7 +315,7 @@ public sealed class EFUnitOfWork(
 		}
 		catch (Exception e)
 		{
-			await RollbackAsync(ct: ct);
+			await RollbackAfterFailureAsync(ct: ct);
 			await onError(arg: e);
 			throw;
 		}
