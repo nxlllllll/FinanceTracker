@@ -98,6 +98,9 @@ public sealed class ResultExtensionsTests
 			.IsEqualTo(expected: 409);
 		await Assert.That(value: (await ProblemFor(error: new IdempotencyAbandonedException(message: "abandoned"))).StatusCode)
 			.IsEqualTo(expected: 409);
+		await Assert.That(value: (await ProblemFor(error: new IdempotencyReservationLostException(message: "reclaimed"))).StatusCode)
+			.IsEqualTo(expected: 409)
+			.Because(message: "another request with the same key took the reservation over; the caller retries with that key, which is a conflict and not a malformed request");
 	}
 
 	[Test]
