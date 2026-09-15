@@ -56,6 +56,11 @@ public static class WorkerMetrics
 		description: "Total number of outbox messages moved to dead letter."
 	);
 
+	public static readonly Counter<int> OutboxUnroutable = Meter.CreateCounter<int>(
+		name: "outbox.unroutable",
+		description: "Publishes the broker returned because no queue was bound to the routing key. The message stays pending. Tagged by routing_key."
+	);
+
 	/// <summary>
 	/// Events escalated for manual resolution and still unresolved
 	/// </summary>

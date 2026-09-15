@@ -5,18 +5,11 @@ using System.Text;
 using System.Text.Json;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Abstractions.UnresolvableEvent;
 using FinanceTracker.Core.Observability.Tracing;
-using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using ZLogger;
 
 namespace FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 
@@ -28,8 +21,6 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 {
 	private readonly RabbitMqConnectionFactory _connectionFactory;
 	private readonly RabbitMqOptions _options;
-	private readonly IServiceScopeFactory _scopeFactory;
-	private readonly ILogger<RabbitMqPublisher> _logger;
 	private readonly IDateProvider _dateProvider;
 
 	private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
@@ -41,14 +32,10 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 	public RabbitMqPublisher(
 		RabbitMqConnectionFactory connectionFactory,
 		IOptions<RabbitMqOptions> options,
-		IServiceScopeFactory scopeFactory,
-		ILogger<RabbitMqPublisher> logger,
 		IDateProvider dateProvider)
 	{
 		_connectionFactory = connectionFactory;
 		_options = options.Value;
-		_scopeFactory = scopeFactory;
-		_logger = logger;
 		_dateProvider = dateProvider;
 		_slots = new SemaphoreSlim(
 			initialCount: _options.PublisherChannelPoolSize,
@@ -131,7 +118,7 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 			if (pooled is { IsOpen: true })
 				return pooled;
 
-			await DiscardChannelAsync(channel: pooled);
+			await pooled.DisposeAsync();
 		}
 
 		return await CreateChannelAsync(ct: ct);
@@ -152,7 +139,7 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 			return;
 		}
 
-		await DiscardChannelAsync(channel: channel);
+		await channel.DisposeAsync();
 	}
 
 	private async Task<IChannel> CreateChannelAsync(CancellationToken ct)
@@ -166,8 +153,6 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 			),
 			cancellationToken: ct
 		);
-
-		channel.BasicReturnAsync += OnBasicReturnAsync;
 
 		await channel.ExchangeDeclareAsync(
 			exchange: _options.ExchangeName,
@@ -205,67 +190,10 @@ public sealed class RabbitMqPublisher : IRabbitMqPublisher
 		}
 	}
 
-	/// <summary>
-	/// Invoked by the broker when a <c>mandatory</c> publish could not be routed to any queue.
-	/// This fires asynchronously and independently of <see cref="PublishAsync{TMessage}"/>'s own
-	/// Task, which may already have completed by the time this runs — so the only options here
-	/// are to make the failure visible (log + <c>unresolvable_events</c>), not to reject the
-	/// original call.
-	/// </summary>
-	private async Task OnBasicReturnAsync(object sender, BasicReturnEventArgs args)
-	{
-		_logger.ZLogError(message: $"""
-			[RabbitMqPublisher] Message returned as unroutable: exchange='{args.Exchange}',
-			routingKey='{args.RoutingKey}', replyCode={args.ReplyCode}, replyText='{args.ReplyText}'.
-		""");
-
-		await RecordUnroutableMessageAsync(args: args);
-	}
-
-	private async Task RecordUnroutableMessageAsync(BasicReturnEventArgs args)
-	{
-		try
-		{
-			await using AsyncServiceScope scope = _scopeFactory.CreateAsyncScope();
-
-			IUnresolvableEventWriteRepository repository = scope.ServiceProvider.GetRequiredService<IUnresolvableEventWriteRepository>();
-			IUnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-			IDateProvider dateProvider = scope.ServiceProvider.GetRequiredService<IDateProvider>();
-
-			string payload = JsonSerializer.Serialize(value: new
-			{
-				exchange = args.Exchange,
-				routingKey = args.RoutingKey,
-				replyCode = args.ReplyCode,
-				replyText = args.ReplyText,
-				correlationId = args.BasicProperties?.CorrelationId
-			});
-
-			await unitOfWork.ExecuteInTransactionAsync(operation: async () => await repository.CreateAsync(
-				type: UnresolvableEventType.PublisherUnroutable,
-				referenceId: Guid.CreateVersion7(),
-				reason: $"Message unroutable: exchange='{args.Exchange}', routingKey='{args.RoutingKey}' (broker reply {args.ReplyCode}: {args.ReplyText}).",
-				payload: payload,
-				occurredAt: dateProvider.UtcNow,
-				ct: CancellationToken.None
-			), ct: CancellationToken.None);
-		}
-		catch (Exception ex)
-		{
-			_logger.ZLogError(exception: ex, message: $"[RabbitMqPublisher] Failed to record unroutable message in unresolvable_events.");
-		}
-	}
-
-	private async Task DiscardChannelAsync(IChannel channel)
-	{
-		channel.BasicReturnAsync -= OnBasicReturnAsync;
-		await channel.DisposeAsync();
-	}
-
 	private async Task DiscardIdleChannelsAsync()
 	{
 		while (_idleChannels.TryTake(result: out IChannel? channel))
-			await DiscardChannelAsync(channel: channel);
+			await channel.DisposeAsync();
 	}
 
 	private async Task DisposeConnectionAsync()

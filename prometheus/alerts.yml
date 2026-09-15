@@ -21,6 +21,15 @@
           summary: "An outbox message was moved to dead letter"
           description: "outbox_failed_total increased in the last 15 minutes — a message the system was supposed to publish at-least-once did not make it out. Investigate OutboxPublisherJob and the affected AggregateId in outbox_messages."
 
+      - alert: OutboxMessageUnroutable
+        expr: increase(outbox_unroutable_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Outbox messages for {{ $labels.routing_key }} have had no queue to go to for 10+ minutes"
+          description: "The broker returned mandatory publishes with routing key {{ $labels.routing_key }} because no queue is bound to it. The messages stay pending in outbox_messages and are offered again each time their lease expires. Check that the consumer for this routing key is running and has declared its queue."
+
       - alert: UnresolvableEventBacklogNotDraining
         expr: unresolvable_events_pending > 0
         for: 30m

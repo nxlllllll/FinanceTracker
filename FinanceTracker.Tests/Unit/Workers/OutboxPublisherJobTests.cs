@@ -110,6 +110,15 @@ public sealed class OutboxPublisherJobTests
 		ct: Arg.Any<CancellationToken>()
 	).Returns(returnThis: [message]);
 
+	private static PublishReturnException Unroutable() => new PublishReturnException(
+		publishSequenceNumber: 1,
+		message: "NO_ROUTE",
+		exchange: "finance-tracker",
+		routingKey: AggregateTypeNames.Account,
+		replyCode: 312,
+		replyText: "NO_ROUTE"
+	);
+
 	private void GivenPublishFails(Exception? exception = null) => _publisher.PublishAsync(
 		message: Arg.Any<IRoutableMessage>(),
 		correlationId: Arg.Any<Guid?>(),
@@ -283,6 +292,37 @@ public sealed class OutboxPublisherJobTests
 
 		await _job.Execute(context: _jobContext);
 
+		await _writeRepository.DidNotReceive().MarkAsFailedAsync(
+			messageId: Arg.Any<Guid>(),
+			retryCount: Arg.Any<int>(),
+			failedAt: Arg.Any<DateTimeOffset?>(),
+			lockedUntil: Arg.Any<DateTimeOffset?>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
+			type: Arg.Any<UnresolvableEventType>(),
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenNoQueueIsBoundYet_ShouldLeaveTheMessageUnderItsLease()
+	{
+		PendingOutboxMessage message = MakeMessage(retryCount: DefaultOptions.MaxRetries - 1);
+		GivenClaimed(message: message);
+		GivenPublishFails(exception: Unroutable());
+
+		await _job.Execute(context: _jobContext);
+
+		await _writeRepository.DidNotReceive().MarkAsPublishedBatchAsync(
+			messageIds: Arg.Any<IReadOnlyCollection<Guid>>(),
+			processedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 		await _writeRepository.DidNotReceive().MarkAsFailedAsync(
 			messageId: Arg.Any<Guid>(),
 			retryCount: Arg.Any<int>(),

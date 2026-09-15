@@ -15,6 +15,7 @@ using FinanceTracker.Worker.Shared.Metrics;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
 using Microsoft.Extensions.Options;
 using Quartz;
+using RabbitMQ.Client.Exceptions;
 using ZLogger;
 
 namespace FinanceTracker.Worker.Outbox.Job;
@@ -36,9 +37,9 @@ public sealed class OutboxPublisherJob(
 	ILogger<OutboxPublisherJob> logger
 ) : BaseJob<OutboxOptions>(options: options, logger: logger)
 {
-	private sealed record PublishOutcome(PendingOutboxMessage Message, Exception? Failure, bool Cancelled)
+	private sealed record PublishOutcome(PendingOutboxMessage Message, Exception? Failure, bool Cancelled, bool Unroutable = false)
 	{
-		public bool IsPublished => Failure is null && !Cancelled;
+		public bool IsPublished => Failure is null && !Cancelled && !Unroutable;
 	}
 
 	protected override async Task ProcessAsync(OutboxOptions options, CancellationToken ct)
@@ -120,6 +121,14 @@ public sealed class OutboxPublisherJob(
 			WorkerMetrics.OutboxPublished.Add(delta: 1);
 
 			return new PublishOutcome(Message: message, Failure: null, Cancelled: false);
+		}
+		catch (PublishReturnException returned)
+		{
+			activity?.SetStatus(code: ActivityStatusCode.Error, description: returned.Message);
+			WorkerMetrics.OutboxUnroutable.Add(delta: 1, new KeyValuePair<string, object?>(key: "routing_key", value: returned.RoutingKey));
+			logger.ZLogWarning(message: $"Outbox message {message.Id} has no queue bound to '{returned.RoutingKey}' ({returned.ReplyCode} {returned.ReplyText}). Leaving it under its lease.");
+
+			return new PublishOutcome(Message: message, Failure: null, Cancelled: false, Unroutable: true);
 		}
 		catch (Exception exception) when (!IsDependencyUnavailable(exception: exception))
 		{
