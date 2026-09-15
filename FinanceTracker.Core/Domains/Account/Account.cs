@@ -69,19 +69,27 @@ public sealed class Account : AggregateRoot
 	}
 
 	/// <summary>
-	/// Reconstitutes an account from a snapshot and subsequent events.
+	/// Reconstitutes an account from its whole event history, for a stream that has no snapshot yet.
+	/// Bypasses validation — only use when loading from the event store.
+	/// </summary>
+	public static Account Reconstitute(IReadOnlyList<IEvent> events)
+	{
+		Account account = new Account();
+		account.LoadEventsFromHistory(history: events);
+		return account;
+	}
+
+	/// <summary>
+	/// Reconstitutes an account from a snapshot and the events recorded after it.
 	/// Bypasses validation — only use when loading from the event store.
 	/// </summary>
 	public static Account Reconstitute(
-		SnapshotData? snapshot,
+		SnapshotData snapshot,
 		IReadOnlyList<IEvent> events,
-		ISnapshotSerializer<Account>? serializer = null)
+		ISnapshotSerializer<Account> serializer)
 	{
-		Account account = snapshot is null || serializer is null
-			? new Account()
-			: serializer.Deserialize(snapshot: snapshot);
-
-		account.LoadEventsFromHistory(events);
+		Account account = serializer.Deserialize(snapshot: snapshot);
+		account.LoadEventsFromHistory(history: events);
 		return account;
 	}
 

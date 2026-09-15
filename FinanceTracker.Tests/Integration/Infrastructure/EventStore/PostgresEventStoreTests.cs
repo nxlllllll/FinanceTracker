@@ -367,8 +367,10 @@ public sealed class PostgresEventStoreTests : DatabaseFixture
 			aggregateType: AggregateTypeNames.Account
 		);
 
+		await Assert.That(value: result.Snapshot).IsNotNull();
+
 		Account restored = Account.Reconstitute(
-			snapshot: result.Snapshot,
+			snapshot: result.Snapshot!,
 			events: result.Events,
 			serializer: _serializer
 		);
