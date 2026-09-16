@@ -9,7 +9,12 @@ namespace FinanceTracker.Worker.CurrencyRate.HealthCheck;
 /// </summary>
 public sealed class ExchangeRateApiHealthCheck(CircuitBreakerStateProvider stateProvider) : IHealthCheck
 {
-	public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default) => stateProvider.CircuitState switch
+	public const string Name = "exchange-rate-api";
+
+	public async Task<HealthCheckResult> CheckHealthAsync(
+		HealthCheckContext context,
+		CancellationToken ct = default
+	) => stateProvider.CircuitState switch
 	{
 		CircuitState.Closed => HealthCheckResult.Healthy(description: "ExchangeRateApi is reachable."),
 		CircuitState.HalfOpen => HealthCheckResult.Degraded(description: "ExchangeRateApi circuit is half-open — probing."),

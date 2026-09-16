@@ -1,3 +1,5 @@
+using FinanceTracker.Api.Configurations;
+
 namespace FinanceTracker.Api.Http.Middleware;
 
 public sealed class SecurityHeadersMiddleware(RequestDelegate next)
@@ -32,7 +34,8 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 		context.Response.Headers["Referrer-Policy"] = "no-referrer";
 		context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin";
 
-		bool isDocumentation = context.Request.Path.StartsWithSegments(other: "/scalar") || context.Request.Path.StartsWithSegments(other: "/openapi");
+		bool isDocumentation = context.Request.Path.StartsWithSegments(other: ApiDocumentationRoutes.ScalarPrefix)
+			|| context.Request.Path.StartsWithSegments(other: ApiDocumentationRoutes.OpenApiPrefix);
 
 		context.Response.Headers.ContentSecurityPolicy = isDocumentation ? DocumentationPolicy : ApiPolicy;
 	}

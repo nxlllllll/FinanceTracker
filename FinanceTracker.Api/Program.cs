@@ -9,6 +9,8 @@ using FinanceTracker.Api.Routing;
 using FinanceTracker.Api.Security;
 using FinanceTracker.Application.Configurations;
 using FinanceTracker.Infrastructure.Configurations;
+using FinanceTracker.Infrastructure.Configurations.Options;
+using FinanceTracker.Infrastructure.Database.Context;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -39,8 +41,8 @@ public sealed class Program
 		builder.Services.AddApiTelemetry();
 
 		builder.Services.AddInfrastructureHealthChecks(
-			connectionString: builder.Configuration.RequireValue(path: "ConnectionStrings:FinanceTrackerContext"),
-			redisConnectionString: builder.Configuration.RequireValue(path: "Redis:ConnectionString")
+			connectionString: builder.Configuration.RequireConnectionString(name: nameof(FinanceTrackerContext)),
+			redisConnectionString: builder.Configuration.RequireValue(path: ConfigurationPath.Combine(RedisOptions.SectionName, nameof(RedisOptions.ConnectionString)))
 		);
 
 		builder.Services.AddEndpoints();
@@ -74,7 +76,7 @@ public sealed class Program
 			.ValidateOnStart();
 		builder.Services.AddSingleton<IValidateOptions<IpRateLimitOptions>, IpRateLimitOptionsValidator>();
 
-		builder.Services.AddOpenApi(configureOptions: options =>
+		builder.Services.AddOpenApi(documentName: ApiDocumentationRoutes.DocumentName, configureOptions: options =>
 		{
 			options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
 		});
@@ -117,21 +119,21 @@ public sealed class Program
 		app.UseAuthentication();
 		app.UseAuthorization();
 
-		app.MapHealthChecks(pattern: "/health/live", options: new HealthCheckOptions
+		app.MapHealthChecks(pattern: HealthCheckEndpoints.Live, options: new HealthCheckOptions
 		{
 			Predicate = _ => false
 		}).RequireHost(hosts: ApiPorts.ObservabilityHost);
 
-		app.MapHealthChecks(pattern: "/health/ready", options: new HealthCheckOptions
+		app.MapHealthChecks(pattern: HealthCheckEndpoints.Ready, options: new HealthCheckOptions
 		{
-			Predicate = check => check.Tags.Contains(item: "ready"),
+			Predicate = check => check.Tags.Contains(item: HealthCheckTags.Ready),
 			ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 		}).RequireHost(hosts: ApiPorts.ObservabilityHost);
 
 		app.UseWhen(
 			predicate: context => context.Connection.LocalPort == ApiPorts.Observability,
 			configuration: branch => branch.UseHealthChecksPrometheusExporter(
-				endpoint: "/health/metrics",
+				endpoint: HealthCheckEndpoints.Metrics,
 				configure: options => options.ResultStatusCodes[HealthStatus.Unhealthy] = (int)HttpStatusCode.OK
 			)
 		);
@@ -140,17 +142,17 @@ public sealed class Program
 
 		app.MapEndpoints();
 
-		if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>(key: "OpenApi:Expose"))
+		ApiDocumentationOptions documentation = app.Configuration.GetSection(key: ApiDocumentationOptions.SectionName).Get<ApiDocumentationOptions>() ?? new ApiDocumentationOptions();
+
+		if (app.Environment.IsDevelopment() || documentation.Expose)
 		{
-			app.MapOpenApi();
-			app.MapScalarApiReference(configureOptions: options =>
+			app.MapOpenApi(pattern: ApiDocumentationRoutes.OpenApiDocument);
+			app.MapScalarApiReference(endpointPrefix: ApiDocumentationRoutes.ScalarPrefix, configureOptions: options =>
 			{
 				options.WithTitle(title: "FinanceTracker API").WithDefaultHttpClient(target: ScalarTarget.CSharp, client: ScalarClient.HttpClient);
 			});
 
-			// Only meaningful when the reference is actually mapped. Previously this sat outside the
-			// check, so the root of a Production deployment redirected to a 404.
-			app.MapGet(pattern: "/", handler: () => Results.Redirect(url: "/scalar/v1")).ExcludeFromDescription();
+			app.MapGet(pattern: "/", handler: () => Results.Redirect(url: ApiDocumentationRoutes.ScalarDocument)).ExcludeFromDescription();
 		}
 
 		app.Run();

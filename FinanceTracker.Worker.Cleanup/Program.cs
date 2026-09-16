@@ -1,11 +1,8 @@
-using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Cleanup.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.Host;
 using FinanceTracker.Worker.Shared.Quartz;
-using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
-using Quartz;
 
 namespace FinanceTracker.Worker.Cleanup;
 
@@ -14,50 +11,18 @@ public sealed class Program
 	public static void Main(string[] args)
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+		builder.AddWorkerDefaults();
 
-		builder.AddStructuredLogging();
+		CleanupOptions cleanupOptions = builder.AddValidatedOptions<CleanupOptions>(sectionName: CleanupOptions.SectionName);
 
-		builder.UseStrictDependencyValidation();
-
-		builder.Services.AddPersistence(configuration: builder.Configuration);
-
-		builder.Services.AddOptions<CleanupOptions>()
-			.BindConfiguration(configSectionPath: CleanupOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
-
-		CleanupOptions cleanupOptions = builder.Configuration
-			.GetSection(key: CleanupOptions.SectionName)
-			.Get<CleanupOptions>() ?? new CleanupOptions();
-
-		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
-
-		builder.Services.AddQuartz(configure: q =>
-		{
-			q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "CleanupScheduler");
-
-			q.AddJob<CleanupJob>(configure: j => j.WithIdentity(name: nameof(CleanupJob), group: cleanupOptions.Group));
-			q.AddTrigger(configure: t => t
-				.ForJob(jobName: nameof(CleanupJob), jobGroup: cleanupOptions.Group)
-				.WithIdentity(name: cleanupOptions.TriggerName, group: cleanupOptions.Group)
-				.WithSimpleSchedule(action: s => s.WithIntervalInMinutes(minutes: cleanupOptions.IntervalMinutes).RepeatForever())
-			);
-		});
-
-		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
-
-		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
-
-		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)
-			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"]);
-
-		builder.Services.AddWorkerMetrics(workerName: "Worker.Cleanup");
-		builder.Services.AddWorkerTracing(workerName: "Worker.Cleanup");
+		builder.AddWorkerQuartz(configureJobs: quartz => quartz.AddIntervalJob<CleanupJob>(
+			group: cleanupOptions.Group,
+			triggerName: cleanupOptions.TriggerName,
+			interval: TimeSpan.FromMinutes(value: cleanupOptions.IntervalMinutes)
+		));
 
 		WebApplication app = builder.Build();
-
 		app.MapWorkerEndpoints();
-
 		app.Run();
 	}
 }
