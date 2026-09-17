@@ -41,6 +41,7 @@ public static class DependencyInjection
 
 	public static IServiceCollection AddRabbitMqHealthCheck(this IServiceCollection services)
 	{
+		services.AddSingleton<RabbitMqHealthCheck>();
 		services.AddHealthChecks().AddCheck<RabbitMqHealthCheck>(name: HealthCheckNames.RabbitMq, tags: [HealthCheckTags.Ready, HealthCheckTags.Broker]);
 		return services;
 	}
