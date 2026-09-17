@@ -16,6 +16,7 @@ using FinanceTracker.Core.Repositories.UnresolvableEvent;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Utilities.Retry;
+using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Worker.Shared.Job;
 using FinanceTracker.Worker.Shared.Metrics;
 using Microsoft.Extensions.Options;
@@ -44,6 +45,23 @@ public sealed class BalanceAdjustmentJob(
 {
 	private sealed record Outcome(AdjustResult Result, string? Reason = null);
 
+	private sealed record PendingRate(
+		Guid Id,
+		Currency From,
+		Currency To,
+		DateTimeOffset OccurredAt,
+		DateTimeOffset RateStatusChangedAt,
+		Func<CancellationToken, Task<Settlement?>> LoadAsync
+	);
+
+	private sealed record Settlement(
+		IRateSettleable Operation,
+		Guid AccountId,
+		DirectionType Direction,
+		decimal Amount,
+		Func<CancellationToken, Task> SaveRateResolutionAsync
+	);
+
 	private sealed class Tally
 	{
 		public int Resolved { get; set; }
@@ -55,11 +73,46 @@ public sealed class BalanceAdjustmentJob(
 
 	protected override async Task ProcessAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
 	{
-		await ProcessTransactionsAsync(options: options, ct: ct);
-		await ProcessTransfersAsync(options: options, ct: ct);
+		await ProcessAsync(
+			sourceType: AggregateTypeNames.Transaction,
+			readPageAsync: async (cursorOccurredAt, cursorId, innerCt) =>
+			{
+				IReadOnlyList<PendingRateTransaction> page = await transactionReadRepository.GetPendingRateAsync(
+					batchSize: options.BatchSize,
+					cursorOccurredAt: cursorOccurredAt,
+					cursorId: cursorId,
+					ct: innerCt
+				);
+
+				return [..page.Select(selector: ToPendingRate)];
+			},
+			options: options,
+			ct: ct
+		);
+
+		await ProcessAsync(
+			sourceType: AggregateTypeNames.Transfer,
+			readPageAsync: async (cursorOccurredAt, cursorId, innerCt) =>
+			{
+				IReadOnlyList<PendingRateTransfer> page = await transferReadRepository.GetPendingRateAsync(
+					batchSize: options.BatchSize,
+					cursorOccurredAt: cursorOccurredAt,
+					cursorId: cursorId,
+					ct: innerCt
+				);
+
+				return [.. page.Select(selector: ToPendingRate)];
+			},
+			options: options,
+			ct: ct
+		);
 	}
 
-	private async Task ProcessTransactionsAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
+	private async Task ProcessAsync(
+		string sourceType,
+		Func<DateTimeOffset?, Guid?, CancellationToken, Task<IReadOnlyList<PendingRate>>> readPageAsync,
+		BalanceAdjustmentJobOptions options,
+		CancellationToken ct)
 	{
 		Dictionary<Guid, Account> accountCache = new Dictionary<Guid, Account>();
 		Tally tally = new Tally();
@@ -69,130 +122,164 @@ public sealed class BalanceAdjustmentJob(
 
 		while (!ct.IsCancellationRequested)
 		{
-			IReadOnlyList<PendingRateTransaction> page = await transactionReadRepository.GetPendingRateAsync(
-				batchSize: options.BatchSize,
-				cursorOccurredAt: cursorOccurredAt,
-				cursorId: cursorId,
-				ct: ct
-			);
+			IReadOnlyList<PendingRate> page = await readPageAsync(cursorOccurredAt, cursorId, ct);
 
 			if (page.Count == 0)
 				break;
 
-			foreach (PendingRateTransaction item in page)
+			foreach (PendingRate item in page)
 			{
 				if (ct.IsCancellationRequested)
 					break;
 
 				Outcome outcome = await RunWithRetryAsync(
-					itemId: item.TransactionId,
+					itemId: item.Id,
 					accountCache: accountCache,
 					options: options,
-					work: innerCt => SettleTransactionAsync(item: item, accountCache: accountCache, options: options, ct: innerCt),
+					work: innerCt => SettleAsync(
+                        pending: item,
+                        sourceType: sourceType,
+                        accountCache: accountCache,
+                        options: options,
+                        ct: innerCt
+                    ),
 					ct: ct
 				);
 
-				Record(tally: tally, outcome: outcome, sourceType: AggregateTypeNames.Transaction, itemId: item.TransactionId);
+				Record(
+                    tally: tally,
+                    outcome: outcome,
+                    sourceType: sourceType,
+                    itemId: item.Id
+                );
 			}
 
 			cursorOccurredAt = page[^1].OccurredAt;
-			cursorId = page[^1].TransactionId;
+			cursorId = page[^1].Id;
 
 			if (page.Count < options.BatchSize)
 				break;
 		}
 
-		LogSummary(entityName: AggregateTypeNames.Transaction, tally: tally);
+		LogSummary(entityName: sourceType, tally: tally);
 	}
 
-	private async Task<Outcome> SettleTransactionAsync(
-		PendingRateTransaction item,
+	private PendingRate ToPendingRate(PendingRateTransaction item) => new PendingRate(
+		Id: item.TransactionId,
+		From: item.TransactionCurrency,
+		To: item.BaseCurrency,
+		OccurredAt: item.OccurredAt,
+		RateStatusChangedAt: item.RateStatusChangedAt,
+		LoadAsync: async ct =>
+		{
+			Transaction? transaction = await transactionRepository.GetByIdAsync(transactionId: item.TransactionId, userId: item.UserId, ct: ct);
+
+			return transaction is null ? null : new Settlement(
+				Operation: transaction,
+				AccountId: transaction.AccountId,
+				Direction: transaction.Direction,
+				Amount: transaction.Amount.Amount,
+				SaveRateResolutionAsync: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt)
+			);
+		}
+	);
+
+	private PendingRate ToPendingRate(PendingRateTransfer item) => new PendingRate(
+		Id: item.TransferId,
+		From: item.CurrencyFrom,
+		To: item.CurrencyTo,
+		OccurredAt: item.OccurredAt,
+		RateStatusChangedAt: item.RateStatusChangedAt,
+		LoadAsync: async ct =>
+		{
+			Transfer? transfer = await transferRepository.GetByIdAsync(transferId: item.TransferId, ct: ct);
+
+			return transfer is null ? null : new Settlement(
+				Operation: transfer,
+				AccountId: transfer.ToAccountId,
+				Direction: DirectionType.Credit,
+				Amount: transfer.AmountFrom.Amount,
+				SaveRateResolutionAsync: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt)
+			);
+		}
+	);
+
+	private async Task<Outcome> SettleAsync(
+		PendingRate pending,
+		string sourceType,
 		Dictionary<Guid, Account> accountCache,
 		BalanceAdjustmentJobOptions options,
 		CancellationToken ct)
 	{
 		decimal? newRate = await currencyRateReadRepository.GetRateAsync(
-			baseCurrencyCode: item.TransactionCurrency,
-			targetCurrencyCode: item.BaseCurrency,
-			date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
+			baseCurrencyCode: pending.From,
+			targetCurrencyCode: pending.To,
+			date: DateOnly.FromDateTime(dateTime: pending.OccurredAt.UtcDateTime),
 			ct: ct
 		);
 
-		if (newRate is null && !HasOutlivedGrace(rateStatusChangedAt: item.RateStatusChangedAt, options: options))
+		if (newRate is null && !HasOutlivedGrace(rateStatusChangedAt: pending.RateStatusChangedAt, options: options))
 			return new Outcome(Result: AdjustResult.Waiting);
 
-		Transaction? transaction = await transactionRepository.GetByIdAsync(
-			transactionId: item.TransactionId,
-			userId: item.UserId,
-			ct: ct
-		);
+		Settlement? settlement = await pending.LoadAsync(arg: ct);
 
-		if (transaction is null)
-			return new Outcome(Result: AdjustResult.Waiting, Reason: "Transaction disappeared between queue and settlement.");
+		if (settlement is null)
+			return new Outcome(Result: AdjustResult.Waiting, Reason: $"{sourceType} disappeared between queue and settlement.");
 
-		if (!transaction.RateStatus.IsOpen())
-			return new Outcome(Result: AdjustResult.Waiting, Reason: $"Rate already settled as {transaction.RateStatus}.");
+		IRateSettleable operation = settlement.Operation;
+
+		if (!operation.RateStatus.IsOpen())
+			return new Outcome(Result: AdjustResult.Waiting, Reason: $"Rate already settled as {operation.RateStatus}.");
 
 		if (newRate is null)
 		{
 			return await CloseAsync(
-				apply: () => transaction.ApproximateRate(changedAt: dateProvider.UtcNow),
-				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
-				result: AdjustResult.Approximated,
-				reason: $"No rate for {item.TransactionCurrency} -> {item.BaseCurrency} on {item.OccurredAt:d} after {options.RateGracePeriodDays} day(s).",
+				settlement: settlement,
+				reason: $"No rate for {pending.From} > {pending.To} on {pending.OccurredAt:d} after {options.RateGracePeriodDays} day(s).",
 				ct: ct
 			);
 		}
 
-		Account? account = await GetOrLoadAccountAsync(cache: accountCache, accountId: transaction.AccountId, ct: ct);
+		Account? account = await GetOrLoadAccountAsync(cache: accountCache, accountId: settlement.AccountId, ct: ct);
 		if (account is null)
 		{
 			return await EscalateAsync(
-				apply: () => transaction.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
-				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
-				referenceId: item.TransactionId,
-				sourceType: AggregateTypeNames.Transaction,
-				reason: $"Account {transaction.AccountId} not found.",
-				payload: new { transactionId = item.TransactionId, accountId = transaction.AccountId },
+				settlement: settlement,
+				reason: $"Account {settlement.AccountId} not found.",
+				payload: new { sourceType, sourceId = operation.Id, accountId = settlement.AccountId },
 				ct: ct
 			);
 		}
 
 		Result<Unit, DomainException> adjusted = account.AdjustBalance(
 			occurredAt: dateProvider.UtcNow,
-			sourceId: transaction.Id,
-			sourceType: AggregateTypeNames.Transaction,
-			direction: transaction.Direction,
-			oldRate: transaction.ExchangeRate,
+			sourceId: operation.Id,
+			sourceType: sourceType,
+			direction: settlement.Direction,
+			oldRate: operation.ExchangeRate,
 			newRate: newRate.Value,
-			amount: transaction.Amount.Amount
+			amount: settlement.Amount
 		);
 
 		if (adjusted.IsFailure)
 		{
 			return await EscalateAsync(
-				apply: () => transaction.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
-				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
-				referenceId: item.TransactionId,
-				sourceType: AggregateTypeNames.Transaction,
+				settlement: settlement,
 				reason: adjusted.Error!.Message,
-				payload: new { transactionId = item.TransactionId, accountId = account.Id, oldRate = transaction.ExchangeRate, newRate = newRate.Value },
+				payload: new { sourceType, sourceId = operation.Id, accountId = account.Id, oldRate = operation.ExchangeRate, newRate = newRate.Value },
 				ct: ct
 			);
 		}
 
-		Result<Unit, DomainException> resolved = transaction.ResolveRate(newRate: newRate.Value, changedAt: dateProvider.UtcNow);
+		Result<Unit, DomainException> resolved = operation.ResolveRate(newRate: newRate.Value, changedAt: dateProvider.UtcNow);
 		if (resolved.IsFailure)
 		{
 			accountCache.Remove(key: account.Id);
 
 			return await EscalateAsync(
-				apply: () => transaction.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
-				save: innerCt => transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: innerCt),
-				referenceId: item.TransactionId,
-				sourceType: AggregateTypeNames.Transaction,
+				settlement: settlement,
 				reason: resolved.Error!.Message,
-				payload: new { transactionId = item.TransactionId, newRate = newRate.Value },
+				payload: new { sourceType, sourceId = operation.Id, newRate = newRate.Value },
 				ct: ct
 			);
 		}
@@ -200,150 +287,7 @@ public sealed class BalanceAdjustmentJob(
 		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
 		{
 			await accountRepository.SaveAsync(account: account, ct: ct);
-			await transactionWriteRepository.SaveRateResolutionAsync(transaction: transaction, ct: ct);
-		}, ct: ct);
-
-		return new Outcome(Result: AdjustResult.Resolved);
-	}
-
-	private async Task ProcessTransfersAsync(BalanceAdjustmentJobOptions options, CancellationToken ct)
-	{
-		Dictionary<Guid, Account> accountCache = new Dictionary<Guid, Account>();
-		Tally tally = new Tally();
-
-		DateTimeOffset? cursorOccurredAt = null;
-		Guid? cursorId = null;
-
-		while (!ct.IsCancellationRequested)
-		{
-			IReadOnlyList<PendingRateTransfer> page = await transferReadRepository.GetPendingRateAsync(
-				batchSize: options.BatchSize,
-				cursorOccurredAt: cursorOccurredAt,
-				cursorId: cursorId,
-				ct: ct
-			);
-
-			if (page.Count == 0)
-				break;
-
-			foreach (PendingRateTransfer item in page)
-			{
-				if (ct.IsCancellationRequested)
-					break;
-
-				Outcome outcome = await RunWithRetryAsync(
-					itemId: item.TransferId,
-					accountCache: accountCache,
-					options: options,
-					work: innerCt => SettleTransferAsync(item: item, accountCache: accountCache, options: options, ct: innerCt),
-					ct: ct
-				);
-
-				Record(tally: tally, outcome: outcome, sourceType: AggregateTypeNames.Transfer, itemId: item.TransferId);
-			}
-
-			cursorOccurredAt = page[^1].OccurredAt;
-			cursorId = page[^1].TransferId;
-
-			if (page.Count < options.BatchSize)
-				break;
-		}
-
-		LogSummary(entityName: AggregateTypeNames.Transfer, tally: tally);
-	}
-
-	private async Task<Outcome> SettleTransferAsync(
-		PendingRateTransfer item,
-		Dictionary<Guid, Account> accountCache,
-		BalanceAdjustmentJobOptions options,
-		CancellationToken ct)
-	{
-		decimal? newRate = await currencyRateReadRepository.GetRateAsync(
-			baseCurrencyCode: item.CurrencyFrom,
-			targetCurrencyCode: item.CurrencyTo,
-			date: DateOnly.FromDateTime(dateTime: item.OccurredAt.UtcDateTime),
-			ct: ct
-		);
-
-		if (newRate is null && !HasOutlivedGrace(rateStatusChangedAt: item.RateStatusChangedAt, options: options))
-			return new Outcome(Result: AdjustResult.Waiting);
-
-		Transfer? transfer = await transferRepository.GetByIdAsync(transferId: item.TransferId, ct: ct);
-
-		if (transfer is null)
-			return new Outcome(Result: AdjustResult.Waiting, Reason: "Transfer disappeared between queue and settlement.");
-
-		if (!transfer.RateStatus.IsOpen())
-			return new Outcome(Result: AdjustResult.Waiting, Reason: $"Rate already settled as {transfer.RateStatus}.");
-
-		if (newRate is null)
-		{
-			return await CloseAsync(
-				apply: () => transfer.ApproximateRate(changedAt: dateProvider.UtcNow),
-				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
-				result: AdjustResult.Approximated,
-				reason: $"No rate for {item.CurrencyFrom} > {item.CurrencyTo} on {item.OccurredAt:d} after {options.RateGracePeriodDays} day(s).",
-				ct: ct
-			);
-		}
-
-		Account? toAccount = await GetOrLoadAccountAsync(cache: accountCache, accountId: transfer.ToAccountId, ct: ct);
-		if (toAccount is null)
-		{
-			return await EscalateAsync(
-				apply: () => transfer.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
-				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
-				referenceId: item.TransferId,
-				sourceType: AggregateTypeNames.Transfer,
-				reason: $"toAccount {transfer.ToAccountId} not found.",
-				payload: new { transferId = item.TransferId, toAccountId = transfer.ToAccountId },
-				ct: ct
-			);
-		}
-
-		Result<Unit, DomainException> adjusted = toAccount.AdjustBalance(
-			occurredAt: dateProvider.UtcNow,
-			sourceId: transfer.Id,
-			sourceType: AggregateTypeNames.Transfer,
-			direction: DirectionType.Credit,
-			oldRate: transfer.ExchangeRate,
-			newRate: newRate.Value,
-			amount: transfer.AmountFrom.Amount
-		);
-
-		if (adjusted.IsFailure)
-		{
-			return await EscalateAsync(
-				apply: () => transfer.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
-				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
-				referenceId: item.TransferId,
-				sourceType: AggregateTypeNames.Transfer,
-				reason: adjusted.Error!.Message,
-				payload: new { transferId = item.TransferId, toAccountId = toAccount.Id, oldRate = transfer.ExchangeRate, newRate = newRate.Value },
-				ct: ct
-			);
-		}
-
-		Result<Unit, DomainException> resolved = transfer.ResolveRate(newRate: newRate.Value, changedAt: dateProvider.UtcNow);
-		if (resolved.IsFailure)
-		{
-			accountCache.Remove(key: toAccount.Id);
-
-			return await EscalateAsync(
-				apply: () => transfer.MarkRateUnresolvable(changedAt: dateProvider.UtcNow),
-				save: innerCt => transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: innerCt),
-				referenceId: item.TransferId,
-				sourceType: AggregateTypeNames.Transfer,
-				reason: resolved.Error!.Message,
-				payload: new { transferId = item.TransferId, amountFrom = transfer.AmountFrom.Amount, newRate = newRate.Value },
-				ct: ct
-			);
-		}
-
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () =>
-		{
-			await accountRepository.SaveAsync(account: toAccount, ct: ct);
-			await transferWriteRepository.SaveRateResolutionAsync(transfer: transfer, ct: ct);
+			await settlement.SaveRateResolutionAsync(arg: ct);
 		}, ct: ct);
 
 		return new Outcome(Result: AdjustResult.Resolved);
@@ -351,19 +295,17 @@ public sealed class BalanceAdjustmentJob(
 
 	/// <summary>Closes a row without touching any balance — the placeholder rate stands as final.</summary>
 	private async Task<Outcome> CloseAsync(
-		Func<Result<Unit, DomainException>> apply,
-		Func<CancellationToken, Task> save,
-		AdjustResult result,
+		Settlement settlement,
 		string reason,
 		CancellationToken ct)
 	{
-		Result<Unit, DomainException> applied = apply();
+		Result<Unit, DomainException> applied = settlement.Operation.ApproximateRate(changedAt: dateProvider.UtcNow);
 		if (applied.IsFailure)
 			return new Outcome(Result: AdjustResult.Failed, Reason: applied.Error!.Message);
 
-		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await save(ct), ct: ct);
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await settlement.SaveRateResolutionAsync(arg: ct), ct: ct);
 
-		return new Outcome(Result: result, Reason: reason);
+		return new Outcome(Result: AdjustResult.Approximated, Reason: reason);
 	}
 
 	/// <summary>
@@ -371,15 +313,12 @@ public sealed class BalanceAdjustmentJob(
 	/// together: a row closed without a trail is a balance that is knowingly wrong and nobody knows it.
 	/// </summary>
 	private async Task<Outcome> EscalateAsync(
-		Func<Result<Unit, DomainException>> apply,
-		Func<CancellationToken, Task> save,
-		Guid referenceId,
-		string sourceType,
+		Settlement settlement,
 		string reason,
 		object payload,
 		CancellationToken ct)
 	{
-		Result<Unit, DomainException> applied = apply();
+		Result<Unit, DomainException> applied = settlement.Operation.MarkRateUnresolvable(changedAt: dateProvider.UtcNow);
 		if (applied.IsFailure)
 			return new Outcome(Result: AdjustResult.Failed, Reason: applied.Error!.Message);
 
@@ -387,14 +326,14 @@ public sealed class BalanceAdjustmentJob(
 		{
 			await unresolvableEventWriteRepository.CreateAsync(
 				type: UnresolvableEventType.RateAdjustmentFailed,
-				referenceId: referenceId,
+				referenceId: settlement.Operation.Id,
 				reason: reason,
 				payload: JsonSerializer.Serialize(value: payload),
 				occurredAt: dateProvider.UtcNow,
 				ct: ct
 			);
 
-			await save(ct);
+			await settlement.SaveRateResolutionAsync(arg: ct);
 		}, ct: ct);
 
 		return new Outcome(Result: AdjustResult.Unresolvable, Reason: reason);
