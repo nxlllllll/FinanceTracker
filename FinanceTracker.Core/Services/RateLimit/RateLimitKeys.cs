@@ -9,6 +9,7 @@ public static class RateLimitKeys
 	private const string AuthIpPrefix = "ratelimit:auth:ip:";
 	private const string AuthEmailPrefix = "ratelimit:email:";
 	private const string UserPrefix = "ratelimit:user:";
+	private const string IpReportPrefix = "ratelimit:report:ip:";
 
 	public static string GetGlobalIp(IPAddress address) => GlobalIpPrefix + GetPartition(address: address);
 
@@ -17,6 +18,8 @@ public static class RateLimitKeys
 	public static string GetAuthEmail(string email) => AuthEmailPrefix + email;
 
 	public static string GetUser(Guid userId) => UserPrefix + userId;
+
+	public static string GetIpReport(IPAddress address) => IpReportPrefix + GetPartition(address: address);
 
 	public static string GetPartition(IPAddress address)
 	{
