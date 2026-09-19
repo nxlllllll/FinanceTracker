@@ -17,13 +17,6 @@ public sealed class BudgetAlertOptionsValidatorTests
 	}
 
 	[Test]
-	public async Task NoThresholdsAreRefused()
-	{
-		await Assert.That(value: Validate().Failed).IsTrue()
-			.Because(message: "an empty list is what a missing section binds to, so starting with it would switch the feature off without anyone deciding to");
-	}
-
-	[Test]
 	public async Task AZeroThresholdIsRefused()
 	{
 		await Assert.That(value: Validate(0, 100).Failed).IsTrue()

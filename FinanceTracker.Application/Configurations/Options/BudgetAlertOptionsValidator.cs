@@ -17,9 +17,6 @@ public sealed class BudgetAlertOptionsValidator : IValidateOptions<BudgetAlertOp
 
 		List<string> failures = [];
 
-		if (options.Thresholds.Length == 0)
-			failures.Add(item: $"{thresholds} must list at least one threshold.");
-
 		foreach (int threshold in options.Thresholds.Where(predicate: threshold => threshold is < MinThreshold or > MaxThreshold))
 			failures.Add(item: $"{thresholds} must be between {MinThreshold} and {MaxThreshold} — {threshold} is not.");
 

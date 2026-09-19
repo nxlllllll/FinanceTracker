@@ -57,6 +57,11 @@ public static class DependencyInjection
 
 		services.AddOptions<BudgetAlertOptions>()
 			.BindConfiguration(configSectionPath: BudgetAlertOptions.SectionName)
+			.PostConfigure(configureOptions: options =>
+			{
+				if (options.Thresholds.Length == 0)
+					options.Thresholds = BudgetAlertOptions.DefaultThresholds;
+			})
 			.ValidateOnStart();
 		services.AddSingleton<IValidateOptions<BudgetAlertOptions>, BudgetAlertOptionsValidator>();
 

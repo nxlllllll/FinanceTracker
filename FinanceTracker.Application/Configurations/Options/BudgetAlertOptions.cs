@@ -8,6 +8,9 @@ public sealed class BudgetAlertOptions
 {
 	public const string SectionName = "BudgetAlerts";
 
+	/// <summary>Used when the section lists no thresholds.</summary>
+	public static readonly int[] DefaultThresholds = [80, 100];
+
 	/// <summary>Each value crossed upwards sends one notification.</summary>
-	public int[] Thresholds { get; init; } = [];
+	public int[] Thresholds { get; set; } = [];
 }
