@@ -17,6 +17,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Application.Configurations;
 
@@ -53,6 +54,11 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: BackdatingOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
+
+		services.AddOptions<BudgetAlertOptions>()
+			.BindConfiguration(configSectionPath: BudgetAlertOptions.SectionName)
+			.ValidateOnStart();
+		services.AddSingleton<IValidateOptions<BudgetAlertOptions>, BudgetAlertOptionsValidator>();
 
 		services.AddOptions<CategoryOptions>()
 			.BindConfiguration(configSectionPath: CategoryOptions.SectionName)
