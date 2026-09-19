@@ -52,7 +52,6 @@ public sealed class CleanupJobTests
 		_jobContext = Substitute.For<IJobExecutionContext>();
 
 		_dateProvider.UtcNow.Returns(returnThis: Now);
-		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_idempotencyWriteRepository.DeleteExpiredAsync(
 			before: Arg.Any<DateTimeOffset>(),
@@ -96,7 +95,10 @@ public sealed class CleanupJobTests
 	[Test]
 	public async Task Execute_IdempotentCommands_DeletesWithCurrentTimeAsCutoff()
 	{
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _idempotencyWriteRepository.Received(requiredNumberOfCalls: 1).DeleteExpiredAsync(
 			before: Now,
@@ -110,7 +112,10 @@ public sealed class CleanupJobTests
 	{
 		DateTimeOffset expectedCutoff = Now.AddDays(days: -DefaultOptions.ProcessedMessageRetentionDays);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _processedMessageWriteRepository.Received(requiredNumberOfCalls: 1).DeleteOldAsync(
 			before: expectedCutoff,
@@ -124,7 +129,10 @@ public sealed class CleanupJobTests
 	{
 		DateTimeOffset expectedCutoff = Now.AddDays(days: -DefaultOptions.OutboxProcessedRetentionDays);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _outboxWriteRepository.Received(requiredNumberOfCalls: 1).DeleteProcessedAsync(
 			before: expectedCutoff,
@@ -138,7 +146,10 @@ public sealed class CleanupJobTests
 	{
 		DateTimeOffset expectedCutoff = Now.AddDays(days: -DefaultOptions.OutboxFailedRetentionDays);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _outboxWriteRepository.Received(requiredNumberOfCalls: 1).DeleteFailedAsync(
 			before: expectedCutoff,
@@ -150,7 +161,10 @@ public sealed class CleanupJobTests
 	[Test]
 	public async Task Execute_Snapshots_CallsDeleteOldWithBatchSize()
 	{
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _snapshotWriteRepository.Received(requiredNumberOfCalls: 1).DeleteOldAsync(
 			batchSize: DefaultOptions.BatchSize,
@@ -166,7 +180,10 @@ public sealed class CleanupJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 5);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 1);
 	}
@@ -179,7 +196,10 @@ public sealed class CleanupJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: DefaultOptions.BatchSize, returnThese: 0);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _snapshotWriteRepository.Received(requiredNumberOfCalls: 2).DeleteOldAsync(
 			batchSize: Arg.Any<int>(),
@@ -196,7 +216,10 @@ public sealed class CleanupJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: DefaultOptions.BatchSize, returnThese: 0);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _idempotencyWriteRepository.Received(requiredNumberOfCalls: 2).DeleteExpiredAsync(
 			before: Arg.Any<DateTimeOffset>(),
@@ -214,7 +237,10 @@ public sealed class CleanupJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 500);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _idempotencyWriteRepository.Received(requiredNumberOfCalls: 1).DeleteExpiredAsync(
 			before: Arg.Any<DateTimeOffset>(),
@@ -226,7 +252,10 @@ public sealed class CleanupJobTests
 	[Test]
 	public async Task Execute_WhenNothingDeleted_DoesNotLog()
 	{
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 0);
 	}
@@ -259,7 +288,10 @@ public sealed class CleanupJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: 7);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 5);
 	}
@@ -268,8 +300,6 @@ public sealed class CleanupJobTests
 	public async Task Execute_WhenCancelled_StopsBatchLoop()
 	{
 		using CancellationTokenSource cts = new CancellationTokenSource();
-
-		_jobContext.CancellationToken.Returns(returnThis: cts.Token);
 
 		int callCount = 0;
 		_idempotencyWriteRepository.DeleteExpiredAsync(
@@ -283,7 +313,10 @@ public sealed class CleanupJobTests
 			return DefaultOptions.BatchSize;
 		});
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: cts.Token
+		);
 
 		await Assert.That(value: callCount).IsEqualTo(expected: 1);
 	}

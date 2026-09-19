@@ -5,12 +5,10 @@ using FinanceTracker.Worker.CurrencyRate.Job;
 using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.Host;
 using FinanceTracker.Worker.Shared.Quartz;
-using FinanceTracker.Worker.Shared.Tracing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using Polly.CircuitBreaker;
-using Quartz;
 using ZLogger;
 
 namespace FinanceTracker.Worker.CurrencyRate;
@@ -20,26 +18,13 @@ public sealed class Program
 	public static void Main(string[] args)
 	{
 		WebApplicationBuilder builder = WebApplication.CreateBuilder(args: args);
+		builder.AddWorkerDefaults();
 
-		builder.AddStructuredLogging();
-
-		builder.UseStrictDependencyValidation();
-
-		builder.Services.AddPersistence(configuration: builder.Configuration);
-
-		builder.Services
-			.AddOptions<ExchangeRateApiOptions>()
-			.BindConfiguration(configSectionPath: ExchangeRateApiOptions.SectionName)
-			.ValidateDataAnnotations()
-			.ValidateOnStart();
-
-		ExchangeRateApiOptions apiOptions = builder.Configuration
-			.GetSection(key: ExchangeRateApiOptions.SectionName)
-			.Get<ExchangeRateApiOptions>() ?? new ExchangeRateApiOptions();
+		ExchangeRateApiOptions apiOptions = builder.AddValidatedOptions<ExchangeRateApiOptions>(sectionName: ExchangeRateApiOptions.SectionName);
 
 		builder.Services.AddSingleton<CircuitBreakerStateProvider>();
 
-		builder.Services.AddHttpClient<ExchangeRateApiClient>().AddResilienceHandler(pipelineName: "exchange-rate-api", configure: (pipeline, context) =>
+		builder.Services.AddHttpClient<ExchangeRateApiClient>().AddResilienceHandler(pipelineName: nameof(ExchangeRateApiClient), configure: (pipeline, context) =>
 		{
 			CircuitBreakerStateProvider stateProvider = context.ServiceProvider.GetRequiredService<CircuitBreakerStateProvider>();
 			ILogger<ExchangeRateApiClient> resilienceLogger = context.ServiceProvider.GetRequiredService<ILogger<ExchangeRateApiClient>>();
@@ -96,37 +81,18 @@ public sealed class Program
 			pipeline.AddTimeout(timeout: TimeSpan.FromSeconds(value: apiOptions.TimeoutSeconds));
 		});
 
-		CurrencyRateJobOptions jobOptions = builder.Configuration
-			.GetSection(key: CurrencyRateJobOptions.SectionName)
-			.Get<CurrencyRateJobOptions>() ?? new CurrencyRateJobOptions();
+		builder.Services.AddHealthChecks().AddCheck<ExchangeRateApiHealthCheck>(
+			name: ExchangeRateApiHealthCheck.Name,
+			tags: [HealthCheckTags.Ready, HealthCheckTags.External]
+		);
 
-		string connectionString = builder.Configuration.GetConnectionString(name: "FinanceTrackerContext")!;
+		CurrencyRateJobOptions jobOptions = builder.AddValidatedOptions<CurrencyRateJobOptions>(sectionName: CurrencyRateJobOptions.SectionName);
 
-		builder.Services.AddQuartz(configure: q =>
-		{
-			q.UseClusteredPostgresStore(connectionString: connectionString, schedulerName: "CurrencyRateScheduler");
-
-			q.AddJob<CurrencyRateJob>(configure: j => j.WithIdentity(name: nameof(CurrencyRateJob), group: jobOptions.Group));
-			q.AddTrigger(configure: t => t
-				.ForJob(jobName: nameof(CurrencyRateJob), jobGroup: jobOptions.Group)
-				.WithIdentity(name: jobOptions.TriggerName, group: jobOptions.Group)
-				.WithCronSchedule(
-					cronExpression: jobOptions.CronExpression,
-					schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
-				)
-			);
-		});
-
-		builder.Services.AddQuartzHostedService(configure: o => o.WaitForJobsToComplete = true);
-
-		string redisConnectionString = builder.Configuration.GetSection(key: "Redis")["ConnectionString"]!;
-
-		builder.Services.AddWorkerHealthChecks(connectionString: connectionString, redisConnectionString: redisConnectionString)
-			.AddCheck<QuartzHealthCheck>(name: "quartz", tags: ["ready", "scheduler"])
-			.AddCheck<ExchangeRateApiHealthCheck>(name: "exchange-rate-api", tags: ["ready", "external"]);
-
-		builder.Services.AddWorkerMetrics(workerName: "Worker.CurrencyRate");
-		builder.Services.AddWorkerTracing(workerName: "Worker.CurrencyRate");
+		builder.AddWorkerQuartz(configureJobs: quartz => quartz.AddCronJob<CurrencyRateJob>(
+			group: jobOptions.Group,
+			triggerName: jobOptions.TriggerName,
+			cronExpression: jobOptions.CronExpression
+		));
 
 		WebApplication app = builder.Build();
 		app.MapWorkerEndpoints();

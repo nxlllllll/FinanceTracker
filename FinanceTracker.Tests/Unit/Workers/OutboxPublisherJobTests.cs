@@ -69,7 +69,6 @@ public sealed class OutboxPublisherJobTests
 		_jobContext = Substitute.For<IJobExecutionContext>();
 
 		_dateProvider.UtcNow.Returns(returnThis: Now);
-		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -110,6 +109,15 @@ public sealed class OutboxPublisherJobTests
 		ct: Arg.Any<CancellationToken>()
 	).Returns(returnThis: [message]);
 
+	private static PublishReturnException Unroutable() => new PublishReturnException(
+		publishSequenceNumber: 1,
+		message: "NO_ROUTE",
+		exchange: "finance-tracker",
+		routingKey: AggregateTypeNames.Account,
+		replyCode: 312,
+		replyText: "NO_ROUTE"
+	);
+
 	private void GivenPublishFails(Exception? exception = null) => _publisher.PublishAsync(
 		message: Arg.Any<IRoutableMessage>(),
 		correlationId: Arg.Any<Guid?>(),
@@ -121,7 +129,10 @@ public sealed class OutboxPublisherJobTests
 	{
 		OutboxPublisherJob disabledJob = CreateJob(options: new OutboxOptions { IsEnabled = false });
 
-		await disabledJob.Execute(context: _jobContext);
+		await disabledJob.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _readRepository.DidNotReceive().ClaimPendingBatchAsync(
 			batchSize: Arg.Any<int>(),
@@ -134,7 +145,10 @@ public sealed class OutboxPublisherJobTests
 	[Test]
 	public async Task Execute_WhenBatchIsEmpty_ShouldNotPublish()
 	{
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.DidNotReceive().PublishAsync(
 			message: Arg.Any<IRoutableMessage>(),
@@ -156,7 +170,10 @@ public sealed class OutboxPublisherJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: [msg1, msg2]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsPublishedBatchAsync(
 			messageIds: Arg.Is<IReadOnlyCollection<Guid>>(predicate: ids => ids!.Count == 2 && ids.Contains(msg1.Id) && ids.Contains(msg2.Id)),
@@ -174,7 +191,10 @@ public sealed class OutboxPublisherJobTests
 	[Test]
 	public async Task Execute_ShouldClaimUsingConfiguredLeaseDuration()
 	{
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _readRepository.Received(requiredNumberOfCalls: 1).ClaimPendingBatchAsync(
 			batchSize: DefaultOptions.BatchSize,
@@ -191,7 +211,10 @@ public sealed class OutboxPublisherJobTests
 		GivenClaimed(message: message);
 		GivenPublishFails();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
 			messageId: message.Id,
@@ -217,7 +240,10 @@ public sealed class OutboxPublisherJobTests
 		GivenClaimed(message: message);
 		GivenPublishFails();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
 			messageId: message.Id,
@@ -235,7 +261,10 @@ public sealed class OutboxPublisherJobTests
 		GivenClaimed(message: message);
 		GivenPublishFails();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
 			messageId: message.Id,
@@ -263,7 +292,10 @@ public sealed class OutboxPublisherJobTests
 		GivenClaimed(message: message);
 		GivenPublishFails();
 
-		await CreateJob(options: options).Execute(context: _jobContext);
+		await CreateJob(options: options).Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _writeRepository.Received(requiredNumberOfCalls: 1).MarkAsFailedAsync(
 			messageId: message.Id,
@@ -281,8 +313,45 @@ public sealed class OutboxPublisherJobTests
 		GivenClaimed(message: message);
 		GivenPublishFails(exception: new BrokerUnreachableException(Inner: new SocketException(errorCode: (int)SocketError.ConnectionRefused)));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
+		await _writeRepository.DidNotReceive().MarkAsFailedAsync(
+			messageId: Arg.Any<Guid>(),
+			retryCount: Arg.Any<int>(),
+			failedAt: Arg.Any<DateTimeOffset?>(),
+			lockedUntil: Arg.Any<DateTimeOffset?>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
+			type: Arg.Any<UnresolvableEventType>(),
+			referenceId: Arg.Any<Guid>(),
+			reason: Arg.Any<string>(),
+			payload: Arg.Any<string>(),
+			occurredAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task Execute_WhenNoQueueIsBoundYet_ShouldLeaveTheMessageUnderItsLease()
+	{
+		PendingOutboxMessage message = MakeMessage(retryCount: DefaultOptions.MaxRetries - 1);
+		GivenClaimed(message: message);
+		GivenPublishFails(exception: Unroutable());
+
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
+
+		await _writeRepository.DidNotReceive().MarkAsPublishedBatchAsync(
+			messageIds: Arg.Any<IReadOnlyCollection<Guid>>(),
+			processedAt: Arg.Any<DateTimeOffset>(),
+			ct: Arg.Any<CancellationToken>()
+		);
 		await _writeRepository.DidNotReceive().MarkAsFailedAsync(
 			messageId: Arg.Any<Guid>(),
 			retryCount: Arg.Any<int>(),
@@ -307,7 +376,10 @@ public sealed class OutboxPublisherJobTests
 		GivenClaimed(message: message);
 		GivenPublishFails();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			type: UnresolvableEventType.OutboxDeadLetter,

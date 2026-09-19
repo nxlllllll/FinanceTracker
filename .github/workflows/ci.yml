@@ -94,3 +94,21 @@ jobs:
           fi
 
           exit $FAILED
+
+  prometheus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check Prometheus config and alert rules
+        run: |
+          IMAGE=$(grep -oE 'prom/prometheus:[^[:space:]]+' compose.yaml)
+          docker run --rm \
+            -v "$PWD/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "$PWD/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro" \
+            --entrypoint promtool \
+            "$IMAGE" \
+            check config /etc/prometheus/prometheus.yml

@@ -24,14 +24,19 @@ public sealed class AccountRepository(
 			ct: ct
 		);
 
-		if (result.Events.Count == 0 && result.Snapshot is null)
+		if (result.Snapshot is not null)
+		{
+			return Core.Domains.Account.Account.Reconstitute(
+				snapshot: result.Snapshot,
+				events: result.Events,
+				serializer: snapshotSerializer
+			);
+		}
+
+		if (result.Events.Count == 0)
 			return null;
 
-		return Core.Domains.Account.Account.Reconstitute(
-			snapshot: result.Snapshot,
-			events: result.Events,
-			serializer: snapshotSerializer
-		);
+		return Core.Domains.Account.Account.Reconstitute(events: result.Events);
 	}
 
 	public async Task SaveAsync(

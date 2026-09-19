@@ -13,7 +13,7 @@ namespace FinanceTracker.Core.Domains.Transfer;
 /// Created with status <c>PendingCredit</c>; transitions to <c>Completed</c>,
 /// <c>Compensated</c>, or <c>Failed</c> via the transfer worker.
 /// </summary>
-public sealed class Transfer : IHasId
+public sealed class Transfer : IHasId, IRateSettleable
 {
 	public Guid Id { get; private set; }
 	public Guid UserId { get; private set; }

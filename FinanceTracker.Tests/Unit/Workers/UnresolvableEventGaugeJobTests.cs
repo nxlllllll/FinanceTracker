@@ -22,7 +22,6 @@ public sealed class UnresolvableEventGaugeJobTests
 		_readRepository = Substitute.For<IUnresolvableEventReadRepository>();
 		_jobContext = Substitute.For<IJobExecutionContext>();
 
-		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_job = new UnresolvableEventGaugeJob(
 			unresolvableEventReadRepository: _readRepository,
@@ -41,7 +40,10 @@ public sealed class UnresolvableEventGaugeJobTests
 
 		using MetricCollector collector = CollectPending();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: collector.Total(instrument: PendingInstrument)).IsEqualTo(expected: 7).Because(message: """
 			This job exists only to publish this number: two Prometheus alerts and the overview dashboard
@@ -57,7 +59,10 @@ public sealed class UnresolvableEventGaugeJobTests
 
 		using MetricCollector collector = CollectPending();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: collector.For(instrument: PendingInstrument).Count).IsEqualTo(expected: 1).Because(message: """
 			Skipping the record on an empty backlog would leave the last non-zero value as the newest
@@ -69,11 +74,12 @@ public sealed class UnresolvableEventGaugeJobTests
 	public async Task Execute_ShouldPassTheJobCancellationTokenToTheRepository()
 	{
 		using CancellationTokenSource cts = new CancellationTokenSource();
-		_jobContext.CancellationToken.Returns(returnThis: cts.Token);
-
 		_readRepository.CountUnresolvedAsync(ct: Arg.Any<CancellationToken>()).Returns(returnThis: 0);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: cts.Token
+		);
 
 		await _readRepository.Received(requiredNumberOfCalls: 1).CountUnresolvedAsync(ct: cts.Token);
 	}

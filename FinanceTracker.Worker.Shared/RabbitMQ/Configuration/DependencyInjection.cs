@@ -1,4 +1,6 @@
 using FinanceTracker.Contracts.Messages;
+using FinanceTracker.Infrastructure.Configurations;
+using FinanceTracker.Worker.Shared.HealthCheck;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
@@ -34,6 +36,13 @@ public static class DependencyInjection
 		services.AddScoped<THandler>();
 		services.AddHostedService<RabbitMqListenerService<TMessage, THandler>>();
 		services.AddHostedService<DeadLetterAuditListener<TMessage, THandler>>();
+		return services;
+	}
+
+	public static IServiceCollection AddRabbitMqHealthCheck(this IServiceCollection services)
+	{
+		services.AddSingleton<RabbitMqHealthCheck>();
+		services.AddHealthChecks().AddCheck<RabbitMqHealthCheck>(name: HealthCheckNames.RabbitMq, tags: [HealthCheckTags.Ready, HealthCheckTags.Broker]);
 		return services;
 	}
 }

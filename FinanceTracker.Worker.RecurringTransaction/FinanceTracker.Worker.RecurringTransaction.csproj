@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Quartz.Extensions.Hosting" />
+        <PackageReference Include="Quartz" />
         <PackageReference Include="Quartz.AspNetCore" />
     </ItemGroup>
 

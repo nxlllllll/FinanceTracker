@@ -27,7 +27,6 @@ public sealed class DeadLetterBacklogSummaryJobTests
 		_readRepository = Substitute.For<IUnresolvableEventReadRepository>();
 		_logger = new CapturingLogger<DeadLetterBacklogSummaryJob>();
 		_jobContext = Substitute.For<IJobExecutionContext>();
-		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_job = new DeadLetterBacklogSummaryJob(
 			unresolvableEventReadRepository: _readRepository,
@@ -56,7 +55,10 @@ public sealed class DeadLetterBacklogSummaryJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new UnresolvedBacklogSummary(TotalCount: 0, OldestOccurredAt: null, Sample: []));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: _logger.WarningLogged).IsFalse();
 	}
@@ -71,7 +73,10 @@ public sealed class DeadLetterBacklogSummaryJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new UnresolvedBacklogSummary(TotalCount: 1, OldestOccurredAt: e1.OccurredAt, Sample: [e1]));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: _logger.WarningLogged).IsTrue();
 	}
@@ -87,7 +92,10 @@ public sealed class DeadLetterBacklogSummaryJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new UnresolvedBacklogSummary(TotalCount: 2, OldestOccurredAt: e1.OccurredAt, Sample: [e1, e2]));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		// 1 summary line + 1 line per sampled event.
 		await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 3);
@@ -102,7 +110,10 @@ public sealed class DeadLetterBacklogSummaryJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new UnresolvedBacklogSummary(TotalCount: 0, OldestOccurredAt: null, Sample: []));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		DateTimeOffset expectedCutoff = FakeDateProvider.Default.UtcNow.AddHours(hours: -DefaultOptions.UnresolvedOlderThanHours);
 
@@ -122,7 +133,10 @@ public sealed class DeadLetterBacklogSummaryJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: new UnresolvedBacklogSummary(TotalCount: 0, OldestOccurredAt: null, Sample: []));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _readRepository.Received(requiredNumberOfCalls: 1).GetUnresolvedOlderThanAsync(
 			cutoff: Arg.Any<DateTimeOffset>(),

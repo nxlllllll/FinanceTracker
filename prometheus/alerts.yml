@@ -21,6 +21,15 @@
           summary: "An outbox message was moved to dead letter"
           description: "outbox_failed_total increased in the last 15 minutes — a message the system was supposed to publish at-least-once did not make it out. Investigate OutboxPublisherJob and the affected AggregateId in outbox_messages."
 
+      - alert: OutboxMessageUnroutable
+        expr: increase(outbox_unroutable_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Outbox messages for {{ $labels.routing_key }} have had no queue to go to for 10+ minutes"
+          description: "The broker returned mandatory publishes with routing key {{ $labels.routing_key }} because no queue is bound to it. The messages stay pending in outbox_messages and are offered again each time their lease expires. Check that the consumer for this routing key is running and has declared its queue."
+
       - alert: UnresolvableEventBacklogNotDraining
         expr: unresolvable_events_pending > 0
         for: 30m
@@ -120,6 +129,24 @@
         annotations:
           summary: "Rate limiting has been running on the in-memory fallback for 15+ minutes"
           description: "FallbackRateLimiter could not reach Redis and has been limiting per-instance instead of globally for at least 15 minutes. Limits are effectively multiplied by the number of API instances, so the configured ceiling is not the one being enforced — brute-force protection on the auth endpoints is the part that matters. A brief blip during a Redis restart is expected and clears itself; a sustained rate means Redis is unreachable, so check its health endpoint first. Note this counter only moves when requests arrive, so silence here does not prove Redis is up."
+
+      - alert: IpRateLimitRefusingSteadily
+        expr: sum(increase(ratelimit_refused_total{limit="ip"}[10m])) > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The per-address rate limit has been refusing traffic for 10+ minutes"
+          description: "{{ $value }} requests were refused ahead of authentication in the last 10 minutes and the refusals have not stopped. A short burst is ordinary — a client retrying in a loop, a scraper, a load test — and clears itself. Refusals that keep arriving mean someone is holding above the ceiling on purpose. The counter carries no address: a label whose values the caller picks would create a time series per address and take Prometheus down. The addresses are in the API logs, one line per address per window, prefixed [IpRateLimit]. Threshold is a guess until there is real traffic to calibrate against."
+
+      - alert: IpRateLimitFlooded
+        expr: sum(rate(ratelimit_refused_total{limit="ip"}[5m])) > 50
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Requests are being refused by the per-address limit at over 50/s"
+          description: "This is the shape of a flood rather than a misbehaving client. The limit is doing its job — refusals happen before authentication, so no database or token work is done for them — but the requests still cost a connection, a Redis round trip and a response each, and the API is now spending its capacity on them. Count the distinct addresses in the [IpRateLimit] log lines: a handful means blocking them upstream will end it, thousands means the traffic has to be cut before it reaches the API and the per-address limit cannot help. Cross-check ratelimiter_fallback_activated_total — if Redis went down under the load, limits are being counted per instance and the real ceiling is higher than the configured one."
 
       - alert: PostCommitCallbackFailing
         expr: increase(unitofwork_oncommitted_callback_failures_total[15m]) > 0

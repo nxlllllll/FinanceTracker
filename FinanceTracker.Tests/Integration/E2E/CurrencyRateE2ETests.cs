@@ -50,7 +50,10 @@ public sealed class CurrencyRateE2ETests : E2EFixture
 		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
 		CurrencyRateJob job = scope.ServiceProvider.GetRequiredService<CurrencyRateJob>();
 		IJobExecutionContext ctx = Substitute.For<IJobExecutionContext>();
-		await job.Execute(context: ctx);
+		await job.Execute(
+			context: ctx,
+			cancellationToken: CancellationToken.None
+		);
 	}
 
 	private static string BuildSuccessResponse(string baseCode, Dictionary<string, decimal> rates) => JsonSerializer.Serialize(new

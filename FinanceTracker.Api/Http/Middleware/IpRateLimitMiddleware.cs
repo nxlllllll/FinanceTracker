@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Mime;
 using FinanceTracker.Api.Configurations;
 using FinanceTracker.Core.Observability.Correlation;
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Services.RateLimit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,8 @@ public sealed class IpRateLimitMiddleware(
 	IOptionsMonitor<IpRateLimitOptions> options,
 	ILogger<IpRateLimitMiddleware> logger)
 {
+	private const int ReportsPerWindow = 1;
+
 	public async Task InvokeAsync(
 		HttpContext context,
 		IRateLimiter rateLimiter,
@@ -51,9 +54,26 @@ public sealed class IpRateLimitMiddleware(
 			return;
 		}
 
-		string partition = RateLimitKeys.GetPartition(address: address);
+		FinanceTrackerMetrics.RateLimitRefused.Add(
+			delta: 1,
+			tag: new KeyValuePair<string, object?>(
+				key: FinanceTrackerMetrics.Tags.Limit,
+				value: FinanceTrackerMetrics.RateLimits.Ip
+			)
+		);
 
-		logger.ZLogWarning(message: $"[IpRateLimit] {partition} exceeded {current.RequestsPerWindow} requests per {current.WindowSeconds}s on {context.Request.Path}.");
+		RateLimitResult report = await rateLimiter.IsAllowedAsync(
+			key: RateLimitKeys.GetIpReport(address: address),
+			requestsPerWindow: ReportsPerWindow,
+			windowSeconds: current.WindowSeconds,
+			ct: context.RequestAborted
+		);
+
+		if (report.IsAllowed)
+		{
+			string partition = RateLimitKeys.GetPartition(address: address);
+			logger.ZLogWarning(message: $"[IpRateLimit] {partition} exceeded {current.RequestsPerWindow} requests per {current.WindowSeconds}s on {context.Request.Path}.");
+		}
 
 		await WriteRejectionAsync(
 			context: context,

@@ -9,19 +9,22 @@ namespace FinanceTracker.Worker.Shared.Quartz;
 public static class QuartzClusteringExtensions
 {
 	public static void UseClusteredPostgresStore(
-		this IServiceCollectionQuartzConfigurator quartz,
+		this IQuartzBuilder quartz,
 		string connectionString,
 		string schedulerName)
 	{
-		quartz.SchedulerName = schedulerName;
-		quartz.SchedulerId = "AUTO"; // unique per-instance ID, auto-derived per host/process
+		quartz.ConfigureScheduler(configure: scheduler =>
+		{
+			scheduler.InstanceName = schedulerName;
+			scheduler.GenerateInstanceId = true; // unique per-instance ID, auto-derived per host/process
+		});
 
 		quartz.UsePersistentStore(configure: store =>
 		{
-			store.UseProperties = true;
+			store.ConfigureStore(configure: options => options.StoreJobDataAsStrings = true);
 			store.UseClustering();
 			store.UseSystemTextJsonSerializer();
-			store.UsePostgres(configurer: postgresOptions => postgresOptions.ConnectionString = connectionString);
+			store.UsePostgres(connectionString: connectionString);
 		});
 	}
 }

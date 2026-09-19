@@ -19,7 +19,7 @@ namespace FinanceTracker.Core.Domains.Transaction;
 /// never be picked up again.
 /// </para>
 /// </summary>
-public sealed class Transaction : IHasId
+public sealed class Transaction : IHasId, IRateSettleable
 {
 	public Guid Id { get; private set; }
 	public Guid AccountId { get; private set; }

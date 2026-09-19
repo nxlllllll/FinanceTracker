@@ -4,23 +4,31 @@ using System.Text.Json;
 using FinanceTracker.Api.Configurations;
 using FinanceTracker.Api.Http.Middleware;
 using FinanceTracker.Core.Observability.Correlation;
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Services.RateLimit;
+using FinanceTracker.Infrastructure.Services.RateLimit;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Unit.Api.Infrastructure;
 
+[NotInParallel]
 public sealed class IpRateLimitMiddlewareTests
 {
+	private const int WindowSeconds = 60;
+	private const string RefusedInstrument = "ratelimit.refused";
+
 	private IRateLimiter _rateLimiter = null!;
 	private ICorrelationContext _correlationContext = null!;
 	private IpRateLimitOptions _options = null!;
 	private IpRateLimitMiddleware _middleware = null!;
 	private IOptionsMonitor<IpRateLimitOptions> _optionsMonitor = null!;
+	private CapturingLogger<IpRateLimitMiddleware> _logger = null!;
+	private ControllableDateProvider _clock = null!;
 	private bool _nextCalled;
 
 	[Before(hookType: Test)]
@@ -28,6 +36,16 @@ public sealed class IpRateLimitMiddlewareTests
 	{
 		_nextCalled = false;
 		_options = new IpRateLimitOptions();
+		_logger = new CapturingLogger<IpRateLimitMiddleware>();
+		_clock = new ControllableDateProvider(initial: new DateTimeOffset(
+			year: 2024,
+			month: 1,
+			day: 15,
+			hour: 12,
+			minute: 0,
+			second: 0,
+			offset: TimeSpan.Zero
+		));
 
 		_rateLimiter = Substitute.For<IRateLimiter>();
 		_rateLimiter.IsAllowedAsync(
@@ -50,7 +68,17 @@ public sealed class IpRateLimitMiddlewareTests
 				return Task.CompletedTask;
 			},
 			options: _optionsMonitor,
-			logger: NullLogger<IpRateLimitMiddleware>.Instance
+			logger: _logger
+		);
+	}
+
+	private void UseSlidingWindowLimiter()
+	{
+		_options = new IpRateLimitOptions { RequestsPerWindow = 1, WindowSeconds = WindowSeconds };
+
+		_rateLimiter = new InMemoryRateLimiter(
+			dateProvider: _clock,
+			options: new FakeOptionsMonitor<InMemoryRateLimiterOptions>(value: new InMemoryRateLimiterOptions())
 		);
 	}
 
@@ -216,5 +244,78 @@ public sealed class IpRateLimitMiddlewareTests
 		await Assert.That(value: problem.RootElement.GetProperty(propertyName: "code").GetString())
 			.IsEqualTo(expected: "rate_limit.ip_exceeded")
 			.Because(message: "the code is what separates this 429 from the per-user one in logs and dashboards");
+	}
+
+	private async Task SendAsync(string remoteAddress, int requests)
+	{
+		for (int i = 0; i < requests; i++)
+		{
+			(DefaultHttpContext context, _) = BuildContext(remoteAddress: remoteAddress);
+			await InvokeAsync(context: context);
+		}
+	}
+
+	[Test]
+	public async Task RepeatedRefusalsFromOneAddressAreLoggedOncePerWindow()
+	{
+		UseSlidingWindowLimiter();
+
+		await SendAsync(remoteAddress: "203.0.113.7", requests: 4);
+
+		await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 1).Because(message: """
+			One address hammering the API produces hundreds of refusals a second, and a line for each
+			pushes everything else out of the log store. The first line of the window already carries the
+			address, the limit and the path; the rest repeat it.
+		""");
+	}
+
+	[Test]
+	public async Task EveryRefusedAddressIsNamedInTheLog()
+	{
+		UseSlidingWindowLimiter();
+
+		await SendAsync(remoteAddress: "203.0.113.7", requests: 3);
+		await SendAsync(remoteAddress: "203.0.113.8", requests: 3);
+
+		await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 2).Because(message: """
+			Suppression is held per address rather than globally, because the log is the only place an
+			address is recorded at all — the metric carries no address by design.
+		""");
+	}
+
+	[Test]
+	public async Task ARefusedAddressIsLoggedAgainInTheNextWindow()
+	{
+		UseSlidingWindowLimiter();
+
+		await SendAsync(remoteAddress: "203.0.113.7", requests: 3);
+
+		_clock.Advance(by: TimeSpan.FromSeconds(value: WindowSeconds + 1));
+
+		await SendAsync(remoteAddress: "203.0.113.7", requests: 3);
+
+		await Assert.That(value: _logger.LogCount).IsEqualTo(expected: 2).Because(message: """
+			An address still being refused an hour later is news again, not the same event. Suppression
+			that outlived its window would make an ongoing flood look like it had stopped.
+		""");
+	}
+
+	[Test]
+	public async Task EveryRefusalIsCounted()
+	{
+		UseSlidingWindowLimiter();
+
+		using MetricCollector collector = new MetricCollector(RefusedInstrument);
+
+		await SendAsync(remoteAddress: "203.0.113.7", requests: 4);
+
+		await Assert.That(value: collector.Total(
+			instrument: RefusedInstrument,
+			tags: (FinanceTrackerMetrics.Tags.Limit, FinanceTrackerMetrics.RateLimits.Ip)
+		)).IsEqualTo(expected: 3).Because(message: """
+			The log reports one line per address per window, so the counter is the only thing that knows
+			how large a flood is. The DDoS alert is built on its rate, and a refusal that increments
+			nothing is invisible to it.
+		""");
 	}
 }

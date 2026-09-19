@@ -1,5 +1,6 @@
 using System.Net;
 using FinanceTracker.Core.Observability.Metrics;
+using FinanceTracker.Infrastructure.Configurations;
 using FinanceTracker.Worker.Shared.Metrics;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
@@ -28,11 +29,11 @@ public static class WorkerHealthCheckExtensions
 		string connectionString,
 		string redisConnectionString)
 	{
-		return services.AddHealthChecks().AddNpgSql(connectionString: connectionString, name: "postgres", tags: ["ready", "db"]).AddRedis(
+		return services.AddHealthChecks().AddNpgSql(connectionString: connectionString, name: HealthCheckNames.Postgres, tags: [HealthCheckTags.Ready, HealthCheckTags.Database]).AddRedis(
 			redisConnectionString: redisConnectionString,
-			name: "redis",
+			name: HealthCheckNames.Redis,
 			failureStatus: HealthStatus.Degraded,
-			tags: ["ready", "cache"],
+			tags: [HealthCheckTags.Ready, HealthCheckTags.Cache],
 			timeout: TimeSpan.FromSeconds(value: 2)
 		);
 	}
@@ -53,19 +54,19 @@ public static class WorkerHealthCheckExtensions
 
 	public static WebApplication MapWorkerEndpoints(this WebApplication app)
 	{
-		app.MapHealthChecks(pattern: "/health/live", options: new HealthCheckOptions
+		app.MapHealthChecks(pattern: HealthCheckEndpoints.Live, options: new HealthCheckOptions
 		{
 			Predicate = _ => false
 		});
 
-		app.MapHealthChecks(pattern: "/health/ready", options: new HealthCheckOptions
+		app.MapHealthChecks(pattern: HealthCheckEndpoints.Ready, options: new HealthCheckOptions
 		{
-			Predicate = check => check.Tags.Contains(item: "ready"),
+			Predicate = check => check.Tags.Contains(item: HealthCheckTags.Ready),
 			ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 		});
 
 		app.UseHealthChecksPrometheusExporter(
-			endpoint: "/health/metrics",
+			endpoint: HealthCheckEndpoints.Metrics,
 			configure: options => options.ResultStatusCodes[HealthStatus.Unhealthy] = (int)HttpStatusCode.OK
 		);
 

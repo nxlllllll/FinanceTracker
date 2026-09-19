@@ -42,7 +42,7 @@ public static class ResultExtensions
 		InvalidCredentialsException or InvalidTokenException => StatusCodes.Status401Unauthorized,
 		NotFoundException or CurrencyNotFoundException => StatusCodes.Status404NotFound,
 		ConcurrencyConflictException or UniqueConstraintException => StatusCodes.Status409Conflict,
-		IdempotencyTimeoutException or IdempotencyAbandonedException => StatusCodes.Status409Conflict,
+		IdempotencyTimeoutException or IdempotencyAbandonedException or IdempotencyReservationLostException => StatusCodes.Status409Conflict,
 		SelfPermissionModificationException => StatusCodes.Status403Forbidden,
 		PreconditionFailedException => StatusCodes.Status412PreconditionFailed,
 		DomainException => StatusCodes.Status422UnprocessableEntity,

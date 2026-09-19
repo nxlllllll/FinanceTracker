@@ -17,7 +17,9 @@ public abstract class BaseJob<TOptions>(
 	ILogger logger
 ) : IJob where TOptions : class, IJobOptions
 {
-	public async Task Execute(IJobExecutionContext context)
+	public async ValueTask Execute(
+		IJobExecutionContext context,
+		CancellationToken cancellationToken)
 	{
 		string jobName = GetType().Name;
 		TOptions currentOptions = options.CurrentValue;
@@ -30,7 +32,7 @@ public abstract class BaseJob<TOptions>(
 
 		try
 		{
-			await ProcessAsync(options: currentOptions, ct: context.CancellationToken);
+			await ProcessAsync(options: currentOptions, ct: cancellationToken);
 		}
 		catch (Exception ex) when (IsDependencyUnavailable(exception: ex))
 		{
@@ -41,7 +43,7 @@ public abstract class BaseJob<TOptions>(
 		{
 			WorkerMetrics.JobExecutionFailed.Add(delta: 1, new KeyValuePair<string, object?>(key: "job", value: GetType().Name));
 			logger.ZLogError(exception: ex, message: $"[{jobName}] Unhandled exception during execution.");
-			throw new JobExecutionException(cause: ex, refireImmediately: false);
+			throw new JobExecutionException(innerException: ex);
 		}
 	}
 

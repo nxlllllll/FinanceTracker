@@ -368,9 +368,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -395,9 +393,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -423,9 +419,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: _baseOptions),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -479,9 +473,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -532,9 +524,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -573,9 +563,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -616,9 +604,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -657,9 +643,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -699,9 +683,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		AggregateEventsMessage sent = BuildMessage();
@@ -749,9 +731,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		AggregateEventsMessage sent = BuildMessage();
@@ -794,9 +774,7 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		await using RabbitMqPublisher publisher = new RabbitMqPublisher(
 			connectionFactory: _connectionFactory,
 			options: Options.Create(options: options),
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 
 		await listener.StartAsync(ct: CancellationToken.None);
@@ -841,12 +819,10 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		return services.BuildServiceProvider();
 	}
 
-	private RabbitMqPublisher BuildPublisherWithClock(IServiceScopeFactory scopeFactory, DateTimeOffset publishedAt) => new RabbitMqPublisher(
+	private RabbitMqPublisher BuildPublisherWithClock(DateTimeOffset publishedAt) => new RabbitMqPublisher(
 		connectionFactory: _connectionFactory,
 		options: Options.Create(options: _baseOptions),
-		scopeFactory: scopeFactory,
-		dateProvider: new FakeDateProvider(utcNow: publishedAt),
-		logger: NullLogger<RabbitMqPublisher>.Instance
+		dateProvider: new FakeDateProvider(utcNow: publishedAt)
 	);
 
 	[Test]
@@ -866,7 +842,6 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 
 		await using RabbitMqPublisher publisher = BuildPublisherWithClock(
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
 			publishedAt: FakeDateProvider.Default.UtcNow.AddSeconds(seconds: -2)
 		);
 
@@ -921,7 +896,6 @@ public sealed class RabbitMqListenerServiceTests : RabbitMqDatabaseFixture
 		);
 
 		await using RabbitMqPublisher publisher = BuildPublisherWithClock(
-			scopeFactory: sp.GetRequiredService<IServiceScopeFactory>(),
 			publishedAt: FakeDateProvider.Default.UtcNow.AddSeconds(seconds: 5)
 		);
 

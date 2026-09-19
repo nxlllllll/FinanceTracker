@@ -28,7 +28,6 @@ public sealed class TransferCreditLagJobTests
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_jobContext = Substitute.For<IJobExecutionContext>();
-		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -69,7 +68,10 @@ public sealed class TransferCreditLagJobTests
 	[Test]
 	public async Task Execute_WhenNoStuckTransfers_ShouldNotCallCompensate()
 	{
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _compensationService.DidNotReceive().CompensateAsync(
 			transfer: Arg.Any<PendingCreditTransfer>(),
@@ -82,7 +84,10 @@ public sealed class TransferCreditLagJobTests
 	{
 		SetupStuckTransfers(transfers: [CreateStuckTransfer(), CreateStuckTransfer(), CreateStuckTransfer()]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _compensationService.Received(requiredNumberOfCalls: 3).CompensateAsync(
 			transfer: Arg.Any<PendingCreditTransfer>(),
@@ -104,7 +109,10 @@ public sealed class TransferCreditLagJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new ConcurrencyConflictException(message: "Conflict.", id: second.TransferId));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _compensationService.Received(requiredNumberOfCalls: 1).CompensateAsync(transfer: first, ct: Arg.Any<CancellationToken>());
 		await _compensationService.Received(requiredNumberOfCalls: 1).CompensateAsync(transfer: second, ct: Arg.Any<CancellationToken>());
@@ -125,7 +133,10 @@ public sealed class TransferCreditLagJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "Database connection lost."));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _compensationService.Received(requiredNumberOfCalls: 1).CompensateAsync(transfer: first, ct: Arg.Any<CancellationToken>());
 		await _compensationService.Received(requiredNumberOfCalls: 1).CompensateAsync(transfer: third, ct: Arg.Any<CancellationToken>());
@@ -141,6 +152,9 @@ public sealed class TransferCreditLagJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "Database connection lost."));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 	}
 }

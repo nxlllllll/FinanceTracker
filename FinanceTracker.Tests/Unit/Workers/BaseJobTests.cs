@@ -42,12 +42,7 @@ public sealed class TrackingJob(
 
 public sealed class BaseJobTests
 {
-	private static IJobExecutionContext BuildContext(CancellationToken ct = default)
-	{
-		IJobExecutionContext context = Substitute.For<IJobExecutionContext>();
-		context.CancellationToken.Returns(returnThis: ct);
-		return context;
-	}
+	private static IJobExecutionContext BuildContext() => Substitute.For<IJobExecutionContext>();
 
 	private static TrackingJob BuildJob(bool isEnabled)
 	{
@@ -73,7 +68,7 @@ public sealed class BaseJobTests
 		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
 		TrackingJob job = BuildJobThrowing(exception: UnreachableBroker(), logger: logger);
 
-		await Assert.That(action: async () => await job.Execute(context: BuildContext())).ThrowsNothing();
+		await Assert.That(action: async () => await job.Execute(context: BuildContext(), cancellationToken: CancellationToken.None)).ThrowsNothing();
 
 		await Assert.That(value: logger.WarningLogged).IsTrue();
 		await Assert.That(value: logger.ErrorLogged).IsFalse().Because(message: """
@@ -97,7 +92,7 @@ public sealed class BaseJobTests
 			logger: logger
 		);
 
-		await Assert.That(action: async () => await job.Execute(context: BuildContext())).ThrowsNothing();
+		await Assert.That(action: async () => await job.Execute(context: BuildContext(), cancellationToken: CancellationToken.None)).ThrowsNothing();
 
 		await Assert.That(value: logger.WarningLogged).IsTrue();
 		await Assert.That(value: logger.ErrorLogged).IsFalse();
@@ -112,7 +107,7 @@ public sealed class BaseJobTests
 			logger: logger
 		);
 
-		await Assert.ThrowsAsync<JobExecutionException>(action: async () => await job.Execute(context: BuildContext()));
+		await Assert.ThrowsAsync<JobExecutionException>(action: async () => await job.Execute(context: BuildContext(), cancellationToken: CancellationToken.None));
 
 		await Assert.That(value: logger.ErrorLogged).IsTrue().Because(message: """
 			The client wraps a rejected password in BrokerUnreachableException, so from the outside it looks
@@ -129,7 +124,7 @@ public sealed class BaseJobTests
 			logger: logger
 		);
 
-		await Assert.ThrowsAsync<JobExecutionException>(action: async () => await job.Execute(context: BuildContext()));
+		await Assert.ThrowsAsync<JobExecutionException>(action: async () => await job.Execute(context: BuildContext(), cancellationToken: CancellationToken.None));
 
 		await Assert.That(value: logger.ErrorLogged).IsTrue();
 	}
@@ -139,7 +134,10 @@ public sealed class BaseJobTests
 	{
 		TrackingJob job = BuildJob(isEnabled: true);
 
-		await job.Execute(context: BuildContext());
+		await job.Execute(
+			context: BuildContext(),
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: job.ProcessCallCount).IsEqualTo(expected: 1);
 	}
@@ -149,7 +147,10 @@ public sealed class BaseJobTests
 	{
 		TrackingJob job = BuildJob(isEnabled: false);
 
-		await job.Execute(context: BuildContext());
+		await job.Execute(
+			context: BuildContext(),
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: job.ProcessCallCount).IsEqualTo(expected: 0);
 	}
@@ -159,7 +160,10 @@ public sealed class BaseJobTests
 	{
 		TrackingJob job = BuildJob(isEnabled: true);
 
-		await job.Execute(context: BuildContext());
+		await job.Execute(
+			context: BuildContext(),
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: job.LastOptions).IsNotNull();
 		await Assert.That(value: job.LastOptions!.IsEnabled).IsTrue();
@@ -171,7 +175,10 @@ public sealed class BaseJobTests
 		TrackingJob job = BuildJob(isEnabled: true);
 		using CancellationTokenSource cts = new CancellationTokenSource();
 
-		await job.Execute(context: BuildContext(ct: cts.Token));
+		await job.Execute(
+			context: BuildContext(),
+			cancellationToken: cts.Token
+		);
 
 		await Assert.That(value: job.LastCancellationToken).IsEqualTo(expected: cts.Token);
 	}
@@ -187,8 +194,14 @@ public sealed class BaseJobTests
 
 		TrackingJob job = new TrackingJob(options: monitor);
 
-		await job.Execute(context: BuildContext());
-		await job.Execute(context: BuildContext());
+		await job.Execute(
+			context: BuildContext(),
+			cancellationToken: CancellationToken.None
+		);
+		await job.Execute(
+			context: BuildContext(),
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: job.ProcessCallCount).IsEqualTo(expected: 1);
 	}
@@ -203,7 +216,7 @@ public sealed class BaseJobTests
 		TrackingJob job = new TrackingJob(options: monitor) { ExceptionToThrow = thrown };
 
 		JobExecutionException? caught = await Assert.ThrowsAsync<JobExecutionException>(
-			action: async () => await job.Execute(context: BuildContext())
+			action: async () => await job.Execute(context: BuildContext(), cancellationToken: CancellationToken.None)
 		);
 
 		await Assert.That(value: caught!.InnerException).IsEqualTo(expected: thrown);
@@ -224,7 +237,10 @@ public sealed class BaseJobTests
 
 		try
 		{
-			await job.Execute(context: BuildContext());
+			await job.Execute(
+				context: BuildContext(),
+				cancellationToken: CancellationToken.None
+			);
 		}
 		catch (JobExecutionException) { /* Expected — Execute wraps and rethrows after logging; */ }
 
@@ -240,7 +256,10 @@ public sealed class BaseJobTests
 		CapturingLogger<TrackingJob> logger = new CapturingLogger<TrackingJob>();
 		TrackingJob job = new TrackingJob(options: monitor, logger: logger);
 
-		await job.Execute(context: BuildContext());
+		await job.Execute(
+			context: BuildContext(),
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: logger.ErrorLogged).IsFalse();
 	}

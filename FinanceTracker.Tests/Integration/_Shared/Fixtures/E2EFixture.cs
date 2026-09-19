@@ -399,25 +399,37 @@ public abstract class E2EFixture
 	protected async Task RunOutboxAsync()
 	{
 		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-		await scope.ServiceProvider.GetRequiredService<OutboxPublisherJob>().Execute(context: MockJobContext());
+		await scope.ServiceProvider.GetRequiredService<OutboxPublisherJob>().Execute(
+			context: MockJobContext(),
+			cancellationToken: CancellationToken.None
+		);
 	}
 
 	protected async Task RunBalanceAdjustmentAsync()
 	{
 		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-		await scope.ServiceProvider.GetRequiredService<BalanceAdjustmentJob>().Execute(context: MockJobContext());
+		await scope.ServiceProvider.GetRequiredService<BalanceAdjustmentJob>().Execute(
+			context: MockJobContext(),
+			cancellationToken: CancellationToken.None
+		);
 	}
 
 	protected async Task RunTransferCreditLagAsync()
 	{
 		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-		await scope.ServiceProvider.GetRequiredService<TransferCreditLagJob>().Execute(context: MockJobContext());
+		await scope.ServiceProvider.GetRequiredService<TransferCreditLagJob>().Execute(
+			context: MockJobContext(),
+			cancellationToken: CancellationToken.None
+		);
 	}
 
 	protected async Task RunRecurringTransactionJobAsync()
 	{
 		await using AsyncServiceScope scope = Host.Services.CreateAsyncScope();
-		await scope.ServiceProvider.GetRequiredService<RecurringTransactionHandlingJob>().Execute(context: MockJobContext());
+		await scope.ServiceProvider.GetRequiredService<RecurringTransactionHandlingJob>().Execute(
+			context: MockJobContext(),
+			cancellationToken: CancellationToken.None
+		);
 	}
 
 	protected async Task ProcessRecurringTransactionDirectAsync(RecurringTransactionTriggeredMessage message)

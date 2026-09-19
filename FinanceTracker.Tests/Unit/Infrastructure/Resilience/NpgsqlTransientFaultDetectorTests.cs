@@ -20,6 +20,8 @@ public sealed class NpgsqlTransientFaultDetectorTests
 	[Arguments("40P01")]
 	[Arguments("55P03")]
 	[Arguments("57P01")]
+	[Arguments("57P03")]
+	[Arguments("53300")]
 	public async Task SqlStatesPostgresAsksClientsToRetry_ShouldBeTransient(string sqlState)
 		=> await Assert.That(value: _detector.IsTransient(exception: WithSqlState(sqlState: sqlState))).IsTrue();
 

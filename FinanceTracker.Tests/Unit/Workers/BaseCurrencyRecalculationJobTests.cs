@@ -27,6 +27,7 @@ public sealed class BaseCurrencyRecalculationJobTests
 	private BaseCurrencyRecalculationJob _job = null!;
 
 	private readonly Guid _userId = Guid.CreateVersion7();
+	private readonly IJobExecutionContext _jobContext = Substitute.For<IJobExecutionContext>();
 
 	[Before(hookType: Test)]
 	public void Setup()
@@ -90,20 +91,16 @@ public sealed class BaseCurrencyRecalculationJobTests
 		CreatedAt: FakeDateProvider.Default.UtcNow
 	));
 
-	private static IJobExecutionContext ContextWith(CancellationToken ct)
-	{
-		IJobExecutionContext context = Substitute.For<IJobExecutionContext>();
-		context.CancellationToken.Returns(returnThis: ct);
-		return context;
-	}
-
 	[Test]
 	public async Task Execute_ShouldRebuildAndMarkDone()
 	{
 		Claims(Request(target: Usd));
 		UserHasCurrency(currency: Usd);
 
-		await _job.Execute(context: ContextWith(ct: CancellationToken.None));
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _categoryTotalWriteRepository.Received(requiredNumberOfCalls: 1).RecalculateAllForUserAsync(
 			userId: _userId,
@@ -124,7 +121,10 @@ public sealed class BaseCurrencyRecalculationJobTests
 		Claims(Request(target: Usd));
 		UserHasCurrency(currency: Eur);
 
-		await _job.Execute(context: ContextWith(ct: CancellationToken.None));
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _categoryTotalWriteRepository.DidNotReceive().RecalculateAllForUserAsync(
 			userId: Arg.Any<Guid>(),
@@ -158,7 +158,10 @@ public sealed class BaseCurrencyRecalculationJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: false);
 
-		await _job.Execute(context: ContextWith(ct: CancellationToken.None));
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recalculationWriteRepository.DidNotReceive().FailAttemptAsync(
 			userId: Arg.Any<Guid>(),
@@ -180,7 +183,10 @@ public sealed class BaseCurrencyRecalculationJobTests
 			ct: Arg.Any<CancellationToken>()
 		).ThrowsAsync(ex: new InvalidOperationException(message: "rate lookup failed"));
 
-		await _job.Execute(context: ContextWith(ct: CancellationToken.None));
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recalculationWriteRepository.Received(requiredNumberOfCalls: 1).FailAttemptAsync(
 			userId: _userId,
@@ -228,7 +234,10 @@ public sealed class BaseCurrencyRecalculationJobTests
 			ct: Arg.Any<CancellationToken>()
 		).ThrowsAsync(ex: new InvalidOperationException(message: "boom"));
 
-		await _job.Execute(context: ContextWith(ct: CancellationToken.None));
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recalculationWriteRepository.Received(requiredNumberOfCalls: 1).CompleteAsync(
 			userId: secondUserId,
@@ -255,7 +264,10 @@ public sealed class BaseCurrencyRecalculationJobTests
 			throw new InvalidOperationException(message: "interrupted");
 		});
 
-		await _job.Execute(context: ContextWith(ct: cts.Token));
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: cts.Token
+		);
 
 		await _recalculationWriteRepository.Received(requiredNumberOfCalls: 1).FailAttemptAsync(
 			userId: _userId,
@@ -302,7 +314,10 @@ public sealed class BaseCurrencyRecalculationJobTests
 			return Task.CompletedTask;
 		});
 
-		await _job.Execute(context: ContextWith(ct: cts.Token));
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: cts.Token
+		);
 
 		await _categoryTotalWriteRepository.DidNotReceive().RecalculateAllForUserAsync(
 			userId: secondUserId,
@@ -326,7 +341,10 @@ public sealed class BaseCurrencyRecalculationJobTests
 			logger: NullLogger<BaseCurrencyRecalculationJob>.Instance
 		);
 
-		await disabled.Execute(context: ContextWith(ct: CancellationToken.None));
+		await disabled.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recalculationWriteRepository.DidNotReceive().ClaimPendingBatchAsync(
 			batchSize: Arg.Any<int>(),

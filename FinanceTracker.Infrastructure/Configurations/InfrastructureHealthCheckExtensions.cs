@@ -12,13 +12,13 @@ public static class InfrastructureHealthCheckExtensions
 		string redisConnectionString)
 	{
 		return services.AddHealthChecks()
-			.AddNpgSql(connectionString: connectionString, name: "postgres", tags: ["ready", "db"])
-			.AddCheck<EventSchemaHealthCheck>(name: "event-schema", tags: ["ready", "db"])
+			.AddNpgSql(connectionString: connectionString, name: HealthCheckNames.Postgres, tags: [HealthCheckTags.Ready, HealthCheckTags.Database])
+			.AddCheck<EventSchemaHealthCheck>(name: HealthCheckNames.EventSchema, tags: [HealthCheckTags.Ready, HealthCheckTags.Database])
 			.AddRedis(
 				redisConnectionString: redisConnectionString,
-				name: "redis",
+				name: HealthCheckNames.Redis,
 				failureStatus: HealthStatus.Degraded,
-				tags: ["ready", "cache"],
+				tags: [HealthCheckTags.Ready, HealthCheckTags.Cache],
 				timeout: TimeSpan.FromSeconds(value: 2)
 			);
 	}

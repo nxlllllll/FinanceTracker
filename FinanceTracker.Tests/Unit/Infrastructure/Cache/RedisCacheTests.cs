@@ -52,6 +52,12 @@ public sealed class RedisCacheTests
 		flags: CommandFlags.None
 	);
 
+	private static RedisTimeoutException Slow() => new RedisTimeoutException(
+		flags: CommandFlags.None,
+		message: "timeout",
+		commandStatus: CommandStatus.WaitingToBeSent
+	);
+
 	[Test]
 	public async Task SetAsync_WhenRedisAccepts_ShouldReportSuccess()
 	{
@@ -84,6 +90,24 @@ public sealed class RedisCacheTests
 	}
 
 	[Test]
+	public async Task SetAsync_WhenRedisTimesOut_ShouldReportFailureWithoutThrowing()
+	{
+		_database.StringSetAsync(
+			key: Arg.Any<RedisKey>(),
+			value: Arg.Any<RedisValue>(),
+			expiry: Arg.Any<Expiration>()
+		).ThrowsAsync(ex: Slow());
+
+		bool written = await _cache.SetAsync(key: "permissions:1", value: new[] { "account:read" }, options: Ttl);
+
+		await Assert.That(value: written).IsFalse().Because(message: """
+			RedisTimeoutException derives from System.TimeoutException, not RedisException. A Redis that is up
+			but slow has to degrade the same way as one that is down, or a latency spike turns every cached
+			read on the request path into a 500.
+		""");
+	}
+
+	[Test]
 	public async Task DeleteBatchAsync_WhenRedisAccepts_ShouldReportSuccess()
 	{
 		_database.KeyDeleteAsync(keys: Arg.Any<RedisKey[]>()).Returns(returnThis: 1L);
@@ -97,6 +121,16 @@ public sealed class RedisCacheTests
 	public async Task DeleteBatchAsync_WhenRedisIsUnavailable_ShouldReportFailureWithoutThrowing()
 	{
 		_database.KeyDeleteAsync(keys: Arg.Any<RedisKey[]>()).ThrowsAsync(ex: Unavailable());
+
+		bool deleted = await _cache.DeleteBatchAsync(keys: ["permissions:1"]);
+
+		await Assert.That(value: deleted).IsFalse();
+	}
+
+	[Test]
+	public async Task DeleteBatchAsync_WhenRedisTimesOut_ShouldReportFailureWithoutThrowing()
+	{
+		_database.KeyDeleteAsync(keys: Arg.Any<RedisKey[]>()).ThrowsAsync(ex: Slow());
 
 		bool deleted = await _cache.DeleteBatchAsync(keys: ["permissions:1"]);
 
@@ -126,9 +160,34 @@ public sealed class RedisCacheTests
 	}
 
 	[Test]
+	public async Task TryGetAsync_WhenRedisTimesOut_ShouldReportAMiss()
+	{
+		_database.StringGetAsync(key: Arg.Any<RedisKey>()).ThrowsAsync(ex: Slow());
+
+		CacheEntry<string[]> entry = await _cache.TryGetAsync<string[]>(key: "permissions:1");
+
+		await Assert.That(value: entry.Found).IsFalse().Because(message: """
+			This is the path CachedSessionValidator takes on every authenticated request. A timeout that
+			escapes here reaches JwtBearerHandler, which rethrows it, so the whole API answers 500 for as
+			long as Redis stays slow.
+		""");
+	}
+
+	[Test]
 	public async Task TryGetBatchAsync_WhenRedisIsUnavailable_ShouldReportEveryKeyAsAMiss()
 	{
 		_database.StringGetAsync(keys: Arg.Any<RedisKey[]>()).ThrowsAsync(ex: Unavailable());
+
+		Dictionary<string, CacheEntry<string[]>> result = await _cache.TryGetBatchAsync<string[]>(keys: ["a", "b"]);
+
+		await Assert.That(value: result.Count).IsEqualTo(expected: 2);
+		await Assert.That(value: result.Values.All(predicate: e => !e.Found)).IsTrue();
+	}
+
+	[Test]
+	public async Task TryGetBatchAsync_WhenRedisTimesOut_ShouldReportEveryKeyAsAMiss()
+	{
+		_database.StringGetAsync(keys: Arg.Any<RedisKey[]>()).ThrowsAsync(ex: Slow());
 
 		Dictionary<string, CacheEntry<string[]>> result = await _cache.TryGetBatchAsync<string[]>(keys: ["a", "b"]);
 

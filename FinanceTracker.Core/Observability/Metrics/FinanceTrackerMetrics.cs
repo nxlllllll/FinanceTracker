@@ -24,6 +24,16 @@ public static class FinanceTrackerMetrics
 	);
 
 	/// <summary>
+	/// Requests refused by a rate limit, tagged by which limit refused them. Deliberately carries no
+	/// address: the values of such a tag are chosen by the caller, and each one would become a
+	/// separate time series kept for the life of the process.
+	/// </summary>
+	public static readonly Counter<long> RateLimitRefused = Meter.CreateCounter<long>(
+		name: "ratelimit.refused",
+		description: "Requests refused by a rate limit. Tagged by limit (ip)."
+	);
+
+	/// <summary>
 	/// Incremented for every <c>IUnitOfWork.OnCommitted</c> callback that throws
 	/// after its enclosing transaction already committed successfully
 	/// </summary>
@@ -99,6 +109,14 @@ public static class FinanceTrackerMetrics
 		public const string NotificationType = "notification_type";
 		public const string Reason = "reason";
 		public const string Kind = "kind";
+		public const string Limit = "limit";
+	}
+
+	/// <summary>Values for the <see cref="Tags.Limit"/> tag on <see cref="RateLimitRefused"/>.</summary>
+	public static class RateLimits
+	{
+		/// <summary>The per-address ceiling applied ahead of authentication.</summary>
+		public const string Ip = "ip";
 	}
 
 	/// <summary>Values for the <see cref="Tags.Outcome"/> tag on <see cref="RefreshTokenReplay"/>.</summary>

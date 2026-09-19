@@ -9,11 +9,10 @@ using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using FinanceTracker.Worker.Shared.RabbitMQ.Connection;
 using FinanceTracker.Worker.Shared.RabbitMQ.Publisher;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.RabbitMQ;
 
@@ -24,7 +23,6 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 	private string _exchangeName = null!;
 	private string _queueName = null!;
 	private RabbitMqOptions _options = null!;
-	private ServiceProvider _serviceProvider = null!;
 	private RabbitMqPublisher _publisher = null!;
 
 	[Before(hookType: Test)]
@@ -67,14 +65,10 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 			routingKey: AggregateTypeNames.Account
 		);
 
-		_serviceProvider = new ServiceCollection().BuildServiceProvider();
-
 		_publisher = new RabbitMqPublisher(
 			connectionFactory: new RabbitMqConnectionFactory(options: Options.Create(options: _options)),
 			options: Options.Create(options: _options),
-			scopeFactory: _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
-			dateProvider: FakeDateProvider.Default,
-			logger: NullLogger<RabbitMqPublisher>.Instance
+			dateProvider: FakeDateProvider.Default
 		);
 	}
 
@@ -84,7 +78,6 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 		await _publisher.DisposeAsync();
 		await _channel.DisposeAsync();
 		await _connection.DisposeAsync();
-		await _serviceProvider.DisposeAsync();
 	}
 
 
@@ -138,6 +131,22 @@ public sealed class RabbitMqPublisherTests : RabbitMqFixture
 
 		QueueDeclareOk result = await _channel.QueueDeclarePassiveAsync(queue: _queueName);
 		await Assert.That(value: (int)result.MessageCount).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task PublishAsync_WhenNoQueueIsBoundToTheRoutingKey_ShouldThrowPublishReturnException()
+	{
+		AggregateEventsMessage unroutable = BuildMessage() with { AggregateType = AggregateTypeNames.UserPermission };
+
+		PublishReturnException? returned = await Assert.ThrowsAsync<PublishReturnException>(
+			action: async () => await _publisher.PublishAsync(message: unroutable)
+		);
+
+		await Assert.That(value: returned!.RoutingKey).IsEqualTo(expected: AggregateTypeNames.UserPermission).Because(message: """
+			With confirmation tracking on, RabbitMQ.Client 7 matches the broker's basic.return to the publish
+			and fails it. This is what lets the outbox tell "nobody is listening yet" apart from "the broker
+			took it"; a BasicReturnAsync handler could only record the loss after the call had returned.
+		""");
 	}
 
 	[Test]

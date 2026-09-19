@@ -28,6 +28,12 @@ public sealed class NpgsqlTransientFaultDetector : ITransientFaultDetector
 		// The server is shutting down. The next attempt reaches a different instance.
 		"57P01",
 
+		// The server is starting up or recovering and is not taking connections yet.
+		"57P03",
+
+		// Every server slot is taken. One frees up as soon as any other request finishes.
+		"53300",
+
 		// Connection lost while the query was running.
 		"08006",
 		"08003",

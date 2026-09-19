@@ -11,7 +11,6 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
         <PackageReference Include="Quartz" />
-        <PackageReference Include="Quartz.Extensions.Hosting" />
         <PackageReference Include="ZLogger" />
         <PackageReference Include="Quartz.AspNetCore" />
     </ItemGroup>

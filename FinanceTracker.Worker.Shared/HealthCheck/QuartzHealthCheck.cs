@@ -13,7 +13,7 @@ public sealed class QuartzHealthCheck(ISchedulerFactory schedulerFactory) : IHea
 	{
 		IScheduler scheduler = await schedulerFactory.GetScheduler(cancellationToken: ct);
 
-		if (scheduler is { IsStarted: true, IsShutdown: false })
+		if (scheduler.Status == SchedulerStatus.Running)
 			return HealthCheckResult.Healthy();
 
 		return HealthCheckResult.Unhealthy(description: "Quartz scheduler is not running.");
