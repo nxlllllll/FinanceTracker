@@ -62,9 +62,11 @@ public sealed class BaseCurrencyRecalculationFlowTests : MediatorFixture
 		);
 
 		IJobExecutionContext context = Substitute.For<IJobExecutionContext>();
-		context.CancellationToken.Returns(returnThis: CancellationToken.None);
 
-		await job.Execute(context: context);
+		await job.Execute(
+			context: context,
+			cancellationToken: CancellationToken.None
+		);
 	}
 
 	[Test]

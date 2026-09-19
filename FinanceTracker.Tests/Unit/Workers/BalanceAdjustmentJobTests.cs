@@ -62,7 +62,6 @@ public sealed class BalanceAdjustmentJobTests
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_jobContext = Substitute.For<IJobExecutionContext>();
 
-		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -176,7 +175,10 @@ public sealed class BalanceAdjustmentJobTests
 	{
 		Transfer transfer = QueueTransfer(rateStatus: RateStatus.Cancelled, status: TransferStatus.Compensated);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _accountRepository.DidNotReceive().SaveAsync(
 			account: Arg.Any<Account>(),
@@ -198,7 +200,10 @@ public sealed class BalanceAdjustmentJobTests
 
 		transfer.Compensate(occurredAt: Now);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _accountRepository.DidNotReceive().SaveAsync(
 			account: Arg.Any<Account>(),
@@ -216,7 +221,10 @@ public sealed class BalanceAdjustmentJobTests
 		Transfer transfer = QueueTransfer(amountFrom: 100m, currentRate: 90m, availableRate: 95m);
 		Account toAccount = GivenAccount(accountId: transfer.ToAccountId);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Resolved);
 		await Assert.That(value: transfer.ExchangeRate).IsEqualTo(expected: 95m);
@@ -241,7 +249,10 @@ public sealed class BalanceAdjustmentJobTests
 		Transfer transfer = QueueTransfer(amountFrom: 100m, currentRate: 80m, availableRate: 95m);
 		Account toAccount = GivenAccount(accountId: transfer.ToAccountId);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: toAccount.Balance.Amount).IsEqualTo(expected: 101_500m);
 	}
@@ -251,7 +262,10 @@ public sealed class BalanceAdjustmentJobTests
 	{
 		Transfer transfer = QueueTransfer(availableRate: null, rateStatusChangedAt: Now.AddDays(days: -3));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Pending);
 
@@ -270,7 +284,10 @@ public sealed class BalanceAdjustmentJobTests
 	{
 		Transfer transfer = QueueTransfer(currentRate: 90m, availableRate: null, rateStatusChangedAt: Now.AddDays(days: -8));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Approximated);
 		await Assert.That(value: transfer.RateStatus.IsOpen()).IsFalse()
@@ -302,7 +319,10 @@ public sealed class BalanceAdjustmentJobTests
 		Transfer transfer = QueueTransfer(availableRate: 95m);
 		GivenAccount(accountId: transfer.ToAccountId, archived: true);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Unresolvable);
 		await Assert.That(value: transfer.RateStatus.IsOpen()).IsFalse()
@@ -335,7 +355,10 @@ public sealed class BalanceAdjustmentJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Returns(returnThis: (Account?)null);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Unresolvable);
 
@@ -355,7 +378,10 @@ public sealed class BalanceAdjustmentJobTests
 		Transfer transfer = QueueTransfer(amountFrom: 100m, currentRate: 0.9m, availableRate: 0.00000001m);
 		Account toAccount = GivenAccount(accountId: transfer.ToAccountId);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: transfer.RateStatus).IsEqualTo(expected: RateStatus.Unresolvable);
 		await Assert.That(value: toAccount.Events.Count).IsGreaterThan(minimum: 0)

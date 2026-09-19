@@ -19,8 +19,6 @@
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
         <PackageReference Include="Quartz" />
-        <PackageReference Include="Quartz.Extensions.Hosting" />
-        <PackageReference Include="Quartz.Serialization.SystemTextJson" />
         <PackageReference Include="RabbitMQ.Client" />
         <PackageReference Include="ZLogger" />
         <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />

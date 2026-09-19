@@ -12,7 +12,7 @@ public static class QuartzWorkerExtensions
 {
 	public static WebApplicationBuilder AddWorkerQuartz(
 		this WebApplicationBuilder builder,
-		Action<IServiceCollectionQuartzConfigurator> configureJobs)
+		Action<IQuartzBuilder> configureJobs)
 	{
 		string connectionString = builder.Configuration.RequireConnectionString(name: nameof(FinanceTrackerContext));
 		string schedulerName = builder.Environment.ApplicationName;
@@ -30,7 +30,7 @@ public static class QuartzWorkerExtensions
 	}
 
 	public static void AddCronJob<TJob>(
-		this IServiceCollectionQuartzConfigurator quartz,
+		this IQuartzBuilder quartz,
 		string group,
 		string triggerName,
 		string cronExpression) where TJob : IJob
@@ -41,13 +41,13 @@ public static class QuartzWorkerExtensions
 			.WithIdentity(name: triggerName, group: group)
 			.WithCronSchedule(
 				cronExpression: cronExpression,
-				schedule => schedule.InTimeZone(tz: TimeZoneInfo.Utc).WithMisfireHandlingInstructionFireAndProceed()
+				schedule => schedule.InTimeZone(timeZone: TimeZoneInfo.Utc).WithMisfireInstruction(instruction: CronTriggerMisfireInstruction.FireAndProceed)
 			)
 		);
 	}
 
 	public static void AddIntervalJob<TJob>(
-		this IServiceCollectionQuartzConfigurator quartz,
+		this IQuartzBuilder quartz,
 		string group,
 		string triggerName,
 		TimeSpan interval) where TJob : IJob
@@ -56,7 +56,7 @@ public static class QuartzWorkerExtensions
 		quartz.AddTrigger(configure: trigger => trigger
 			.ForJob(jobName: typeof(TJob).Name, jobGroup: group)
 			.WithIdentity(name: triggerName, group: group)
-			.WithSimpleSchedule(action: schedule => schedule.WithInterval(timeSpan: interval).RepeatForever())
+			.WithSimpleSchedule(configure: schedule => schedule.WithInterval(timeSpan: interval).RepeatForever())
 		);
 	}
 }

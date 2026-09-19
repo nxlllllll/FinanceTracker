@@ -10,7 +10,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
-        <PackageReference Include="Quartz.Extensions.Hosting" />
+        <PackageReference Include="Quartz" />
         <PackageReference Include="Quartz.AspNetCore" />
     </ItemGroup>
 

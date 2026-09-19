@@ -241,9 +241,11 @@ public sealed class OutboxPublisherJobChaosTests
 		OutboxPublisherJob job = scope.ServiceProvider.GetRequiredService<OutboxPublisherJob>();
 
 		IJobExecutionContext context = Substitute.For<IJobExecutionContext>();
-		context.CancellationToken.Returns(returnThis: CancellationToken.None);
 
-		await job.Execute(context: context);
+		await job.Execute(
+			context: context,
+			cancellationToken: CancellationToken.None
+		);
 	}
 
 	private async Task<(int RetryCount, DateTimeOffset? ProcessedAt, DateTimeOffset? FailedAt)> ReadOutboxRowAsync(Guid messageId)

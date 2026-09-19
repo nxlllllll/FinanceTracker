@@ -43,7 +43,6 @@ public sealed class RecurringTransactionHandlingJobTests
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 
 		_jobContext = Substitute.For<IJobExecutionContext>();
-		_jobContext.CancellationToken.Returns(returnThis: CancellationToken.None);
 
 		_unitOfWork.ExecuteInTransactionAsync(
 			operation: Arg.Any<Func<Task>>(),
@@ -130,7 +129,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.DidNotReceive().PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
@@ -144,7 +146,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -160,7 +165,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupRepository(count: 3);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.Received(requiredNumberOfCalls: 3).PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
@@ -175,7 +183,10 @@ public sealed class RecurringTransactionHandlingJobTests
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
 		SetupRepository(transactions: [transaction]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(message: Arg.Is<RecurringTransactionTriggeredMessage>(m =>
 			m!.RecurringTransactionId == transaction.Id &&
@@ -191,7 +202,10 @@ public sealed class RecurringTransactionHandlingJobTests
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
 		SetupRepository(transactions: [transaction]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
 			message: Arg.Is<RecurringTransactionTriggeredMessage>(predicate: m => m!.OccurredAt == transaction.NextDueAtUtc),
@@ -208,7 +222,10 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		Guid expectedMessageId = DeterministicGuid.Create(baseId: transaction.Id, occurrence: transaction.NextDueAtUtc);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
 			message: Arg.Is<RecurringTransactionTriggeredMessage>(predicate: m => m!.MessageId == expectedMessageId),
@@ -247,7 +264,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			return Task.CompletedTask;
 		});
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: callOrder).IsEquivalentTo(expected: ["Publish", "MarkExecuted"]);
 	}
@@ -257,7 +277,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupRepository(count: 2);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 2).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -274,7 +297,10 @@ public sealed class RecurringTransactionHandlingJobTests
 		RecurringTransactionReadModel transaction = RecurringTransactionFactory.CreateReadModel();
 		SetupRepository(transactions: [transaction]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: transaction.Id,
@@ -290,7 +316,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupRepository(count: 1);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -313,7 +342,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			after: transaction.NextDueAtUtc
 		);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: transaction.Id,
@@ -335,7 +367,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "RabbitMQ unavailable"));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.DidNotReceive().MarkExecutedAsync(
 			recurringTransactionId: Arg.Any<Guid>(),
@@ -357,7 +392,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new InvalidOperationException(message: "RabbitMQ unavailable"));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
 			type: Arg.Any<UnresolvableEventType>(),
@@ -391,7 +429,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			return Task.CompletedTask;
 		});
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkExecutedAsync(
 			recurringTransactionId: first.Id,
@@ -429,7 +470,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			ct: Arg.Any<CancellationToken>()
 		).Throws(createException: _ => new BrokerUnreachableException(Inner: new SocketException(errorCode: (int)SocketError.ConnectionRefused)));
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.Received(requiredNumberOfCalls: 1).PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
@@ -451,7 +495,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: CapturedDueBound()).IsEqualTo(expected: FakeDateProvider.Default.UtcNow);
 	}
@@ -463,7 +510,10 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		RecurringTransactionJobOptions options = new RecurringTransactionJobOptions();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await Assert.That(value: CapturedOverdueBound())
 			.IsEqualTo(expected: FakeDateProvider.Default.UtcNow.AddHours(hours: -options.OverdueAfterHours));
@@ -474,7 +524,10 @@ public sealed class RecurringTransactionHandlingJobTests
 	{
 		SetupEmptyRepository();
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _unresolvableEventWriteRepository.DidNotReceive().CreateAsync(
 			type: Arg.Any<UnresolvableEventType>(),
@@ -495,7 +548,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			RecurringTransactionFactory.CreateReadModel()
 		]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 2).CreateAsync(
 			type: UnresolvableEventType.RecurringTransactionFailed,
@@ -514,7 +570,10 @@ public sealed class RecurringTransactionHandlingJobTests
 		SetupEmptyRepository();
 		SetupOverdueTransactions(transactions: [overdue]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _unresolvableEventWriteRepository.Received(requiredNumberOfCalls: 1).CreateAsync(
 			type: UnresolvableEventType.RecurringTransactionFailed,
@@ -533,7 +592,10 @@ public sealed class RecurringTransactionHandlingJobTests
 		SetupEmptyRepository();
 		SetupOverdueTransactions(transactions: [overdue]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkMissedAsync(
 			recurringTransactionId: overdue.Id,
@@ -550,7 +612,10 @@ public sealed class RecurringTransactionHandlingJobTests
 		SetupEmptyRepository();
 		SetupOverdueTransactions(transactions: [overdue]);
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _publisher.DidNotReceive().PublishAsync(
 			message: Arg.Any<RecurringTransactionTriggeredMessage>(),
@@ -583,7 +648,10 @@ public sealed class RecurringTransactionHandlingJobTests
 			return Task.CompletedTask;
 		});
 
-		await _job.Execute(context: _jobContext);
+		await _job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		await _recurringTransactionWriteRepository.Received(requiredNumberOfCalls: 1).MarkMissedAsync(
 			recurringTransactionId: second.Id,
@@ -606,7 +674,10 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		SetupEmptyRepository();
 
-		await job.Execute(context: _jobContext);
+		await job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		DateTimeOffset bound = CapturedDueBound();
 
@@ -639,7 +710,10 @@ public sealed class RecurringTransactionHandlingJobTests
 
 		SetupEmptyRepository();
 
-		await job.Execute(context: _jobContext);
+		await job.Execute(
+			context: _jobContext,
+			cancellationToken: CancellationToken.None
+		);
 
 		DateTimeOffset aucklandDue = RecurringDueDate.Next(
 			dayOfMonth: 1,

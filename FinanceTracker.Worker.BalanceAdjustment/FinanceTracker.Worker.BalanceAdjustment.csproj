@@ -10,7 +10,6 @@
 
     <ItemGroup>
         <PackageReference Include="Quartz" />
-        <PackageReference Include="Quartz.Extensions.Hosting" />
         <PackageReference Include="ZLogger" />
     </ItemGroup>
 
