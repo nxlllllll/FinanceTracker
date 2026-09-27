@@ -20,7 +20,7 @@ public abstract class DatabaseFixture
 	[Before(hookType: Assembly)]
 	public static async Task StartContainerAsync()
 	{
-		_container = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "500").Build();
+		_container = new PostgreSqlBuilder(image: "postgres:18").WithCommand("-N", "500").Build();
 		await _container.StartAsync();
 
 		string templateConnectionString = new NpgsqlConnectionStringBuilder(connectionString: _container.GetConnectionString())

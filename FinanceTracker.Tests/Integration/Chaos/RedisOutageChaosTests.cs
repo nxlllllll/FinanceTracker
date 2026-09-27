@@ -34,7 +34,7 @@ public sealed class RedisOutageChaosTests
 	[Before(hookType: Test)]
 	public async Task SetupAsync()
 	{
-		_postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "500").Build();
+		_postgres = new PostgreSqlBuilder(image: "postgres:18").WithCommand("-N", "500").Build();
 		_redis = new RedisBuilder(image: "redis:7").Build();
 		await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
 
