@@ -1,7 +1,7 @@
-using FinanceTracker.Application.Configurations.Options;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Options;
 
-namespace FinanceTracker.Tests.Unit.Application.Configurations;
+namespace FinanceTracker.Tests.Unit.Infrastructure.Configurations;
 
 public sealed class BudgetAlertOptionsValidatorTests
 {

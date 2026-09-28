@@ -1,10 +1,10 @@
-using FinanceTracker.Application.Configurations;
-using FinanceTracker.Application.Configurations.Options;
+using FinanceTracker.Infrastructure.Configurations;
+using FinanceTracker.Infrastructure.Configurations.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace FinanceTracker.Tests.Unit.Application.Configurations;
+namespace FinanceTracker.Tests.Unit.Infrastructure.Configurations;
 
 public sealed class BudgetAlertOptionsBindingTests
 {
@@ -14,7 +14,7 @@ public sealed class BudgetAlertOptionsBindingTests
 
 		ServiceCollection services = new ServiceCollection();
 		services.AddSingleton(implementationInstance: configuration);
-		services.AddApplication();
+		services.AddBudgetAlertOptions();
 
 		using ServiceProvider provider = services.BuildServiceProvider();
 
@@ -27,7 +27,7 @@ public sealed class BudgetAlertOptionsBindingTests
 		int[] thresholds = Bind(settings: []);
 
 		await Assert.That(value: thresholds).IsEquivalentTo(expected: [80, 100]).Because(message: """
-			Every host that registers the application layer reads these options, test hosts included.
+			Every host that registers persistence reads these options, workers and test hosts included.
 			A section every one of them has to carry is a section one of them will forget.
 		""");
 	}

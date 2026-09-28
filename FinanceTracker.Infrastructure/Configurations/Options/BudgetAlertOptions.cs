@@ -1,4 +1,4 @@
-namespace FinanceTracker.Application.Configurations.Options;
+namespace FinanceTracker.Infrastructure.Configurations.Options;
 
 /// <summary>
 /// Spending levels, in percent of a budget's limit, at which its owner is notified.

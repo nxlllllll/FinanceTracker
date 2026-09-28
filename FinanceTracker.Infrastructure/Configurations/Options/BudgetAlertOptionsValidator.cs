@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace FinanceTracker.Application.Configurations.Options;
+namespace FinanceTracker.Infrastructure.Configurations.Options;
 
 /// <summary>
 /// Refuses to start on a <see cref="BudgetAlertOptions"/> section that would notify nobody,

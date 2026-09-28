@@ -71,6 +71,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace FinanceTracker.Infrastructure.Configurations;
@@ -105,6 +106,8 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: CategoryTotalOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
+
+		services.AddBudgetAlertOptions();
 
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
@@ -293,6 +296,21 @@ public static class DependencyInjection
 		services.AddScoped<IUnitOfWork, EFUnitOfWork>();
 
 		services.AddSingleton<RedisCache>();
+
+		return services;
+	}
+
+	public static IServiceCollection AddBudgetAlertOptions(this IServiceCollection services)
+	{
+		services.AddOptions<BudgetAlertOptions>()
+			.BindConfiguration(configSectionPath: BudgetAlertOptions.SectionName)
+			.PostConfigure(configureOptions: options =>
+			{
+				if (options.Thresholds.Length == 0)
+					options.Thresholds = BudgetAlertOptions.DefaultThresholds;
+			})
+			.ValidateOnStart();
+		services.AddSingleton<IValidateOptions<BudgetAlertOptions>, BudgetAlertOptionsValidator>();
 
 		return services;
 	}
