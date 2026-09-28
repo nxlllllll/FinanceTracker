@@ -12,6 +12,7 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Operation;
+using FinanceTracker.Core.Repositories.Notification;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -27,6 +28,7 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.EventStore;
+using FinanceTracker.Core.Services.Notification;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Core.Services.Rebuild;
@@ -41,6 +43,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
+using FinanceTracker.Infrastructure.Database.Repositories.Notification;
 using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
@@ -60,6 +63,7 @@ using FinanceTracker.Infrastructure.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Correlation;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
+using FinanceTracker.Infrastructure.Services.Notification;
 using FinanceTracker.Infrastructure.Services.Password;
 using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Infrastructure.Services.Rebuild;
@@ -298,6 +302,8 @@ public static class DependencyInjection
 
 		services.AddSingleton<RedisCache>();
 
+		services.AddScoped<INotificationDeliveryRepository, NotificationDeliveryRepository>();
+
 		return services;
 	}
 
@@ -317,6 +323,18 @@ public static class DependencyInjection
 	}
 
 	/// <summary>Registers JWT issuance and password hashing</summary>
+	public static IServiceCollection AddNotificationSenders(this IServiceCollection services)
+	{
+		services.AddOptions<SmtpOptions>()
+			.BindConfiguration(configSectionPath: SmtpOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddScoped<INotificationSender, EmailNotificationSender>();
+
+		return services;
+	}
+
 	public static IServiceCollection AddAuth(this IServiceCollection services)
 	{
 		services.AddOptions<Argon2Options>()
