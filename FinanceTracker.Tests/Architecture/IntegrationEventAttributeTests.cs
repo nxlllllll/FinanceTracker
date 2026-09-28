@@ -35,6 +35,7 @@ public sealed class IntegrationEventAttributeTests
 	{
 		List<string> violations = IntegrationEventTypes
 			.Select(selector: t => t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType)
+			.OfType<Type>()
 			.Where(predicate: domainType => !typeof(IEvent).IsAssignableFrom(c: domainType))
 			.Select(selector: t => t.Name)
 			.ToList();
@@ -48,6 +49,7 @@ public sealed class IntegrationEventAttributeTests
 	{
 		List<string> violations = IntegrationEventTypes
 			.Select(selector: t => t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType)
+			.OfType<Type>()
 			.Where(predicate: domainType => domainType.GetCustomAttribute<EventTypeAttribute>() is null)
 			.Select(selector: t => t.Name)
 			.ToList();
@@ -61,8 +63,8 @@ public sealed class IntegrationEventAttributeTests
 	{
 		List<string> names = IntegrationEventTypes.Select(selector: t =>
 		{
-			Type domainType = t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType;
-			return domainType.GetCustomAttribute<EventTypeAttribute>()!.Name;
+			IntegrationEventTypeAttribute attribute = t.GetCustomAttribute<IntegrationEventTypeAttribute>()!;
+			return attribute.Name ?? attribute.DomainEventType!.GetCustomAttribute<EventTypeAttribute>()!.Name;
 		}).ToList();
 
 		List<string> duplicates = names
@@ -79,7 +81,8 @@ public sealed class IntegrationEventAttributeTests
 	public async Task AccountIntegrationEventMapper_ShouldMapAllAccountDomainEvents()
 	{
 		List<string> mappedDomainTypes = IntegrationEventTypes
-			.Select(selector: t => t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType.Name)
+			.Select(selector: t => t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType?.Name)
+			.OfType<string>()
 			.ToList();
 
 		List<string> unmapped = AccountDomainEventTypes
