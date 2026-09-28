@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.ValueObjects;
 
 namespace FinanceTracker.Infrastructure.Database.Context.User;
@@ -9,6 +10,7 @@ public sealed class UserEntity
 	public string PasswordHash { get; init; } = String.Empty;
 	public Core.ValueObjects.Currency BaseCurrencyCode { get; init; }
 	public TimeZoneId TimeZoneId { get; init; } = TimeZoneId.Utc;
+	public NotificationType? NotificationType { get; init; }
 	public int RowVersion { get; init; }
 	public DateTimeOffset CreatedAt { get; init; }
 }

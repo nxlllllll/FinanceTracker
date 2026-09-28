@@ -5,8 +5,10 @@ using FinanceTracker.Application.UseCases.Role.Commands.AssignRoleToUser;
 using FinanceTracker.Application.UseCases.Role.Commands.RemoveRoleFromUser;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserBaseCurrency;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserEmail;
+using FinanceTracker.Application.UseCases.User.Commands.ChangeUserNotificationType;
 using FinanceTracker.Application.UseCases.User.Commands.ChangeUserPassword;
 using FinanceTracker.Application.UseCases.UserPermission.Commands.GrantPermission;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Results;
 using MediatR;
@@ -168,6 +170,46 @@ public sealed class UserEndpointTests
 		await sender.Received(requiredNumberOfCalls: 1).Send(
 			request: Arg.Is<ChangeUserBaseCurrencyCommand>(predicate: command =>
 				command!.UserId == CallerId && command.NewBaseCurrency.Value == "USD"
+			),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task ChangeNotificationType_ShouldActOnTheCallerAlone()
+	{
+		ISender sender = SenderReturning<ChangeUserNotificationTypeCommand, Guid>(result: OkGuid());
+
+		await ChangeNotificationTypeEndpoint.HandleAsync(
+			request: new ChangeNotificationTypeRequest(Type: NotificationType.Email),
+			currentUser: CurrentUser(),
+			sender: sender,
+			ct: CancellationToken.None
+		);
+
+		await sender.Received(requiredNumberOfCalls: 1).Send(
+			request: Arg.Is<ChangeUserNotificationTypeCommand>(predicate: command =>
+				command!.UserId == CallerId && command.NewNotificationType == NotificationType.Email
+			),
+			cancellationToken: Arg.Any<CancellationToken>()
+		);
+	}
+
+	[Test]
+	public async Task ChangeNotificationType_WithNull_ShouldAskToTurnNotificationsOff()
+	{
+		ISender sender = SenderReturning<ChangeUserNotificationTypeCommand, Guid>(result: OkGuid());
+
+		await ChangeNotificationTypeEndpoint.HandleAsync(
+			request: new ChangeNotificationTypeRequest(Type: null),
+			currentUser: CurrentUser(),
+			sender: sender,
+			ct: CancellationToken.None
+		);
+
+		await sender.Received(requiredNumberOfCalls: 1).Send(
+			request: Arg.Is<ChangeUserNotificationTypeCommand>(predicate: command =>
+				command!.UserId == CallerId && command.NewNotificationType == null
 			),
 			cancellationToken: Arg.Any<CancellationToken>()
 		);

@@ -114,4 +114,34 @@ public sealed class UserTests
 
 		await Assert.That(value: result.IsSuccess).IsTrue();
 	}
+
+	[Test]
+	public async Task Register_ShouldNotifyByEmail()
+	{
+		User user = UserFactory.Create().Value!;
+
+		await Assert.That(value: user.NotificationType).IsEqualTo(expected: NotificationType.Email)
+			.Because(message: "a user who has to find the setting before any budget alert reaches them would not get the first one");
+	}
+
+	[Test]
+	public async Task ChangeNotificationType_ToNull_ShouldTurnNotificationsOff()
+	{
+		User user = UserFactory.Create().Value!;
+
+		user.ChangeNotificationType(newNotificationType: null);
+
+		await Assert.That(value: user.NotificationType).IsNull();
+	}
+
+	[Test]
+	public async Task ChangeNotificationType_BackToEmail_ShouldTurnNotificationsOn()
+	{
+		User user = UserFactory.Create().Value!;
+		user.ChangeNotificationType(newNotificationType: null);
+
+		user.ChangeNotificationType(newNotificationType: NotificationType.Email);
+
+		await Assert.That(value: user.NotificationType).IsEqualTo(expected: NotificationType.Email);
+	}
 }

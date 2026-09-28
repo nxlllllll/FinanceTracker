@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.ValueObjects;
@@ -22,6 +23,7 @@ public sealed class UserWriteRepository(
 			PasswordHash = user.PasswordHash,
 			BaseCurrencyCode = user.BaseCurrency,
 			TimeZoneId = user.TimeZone,
+			NotificationType = user.NotificationType,
 			RowVersion = 0,
 			CreatedAt = user.CreatedAt
 		}, cancellationToken: ct);
@@ -87,6 +89,23 @@ public sealed class UserWriteRepository(
 		int affected = await context.Users.Where(predicate: u => u.Id == userId && u.RowVersion == expectedVersion).ExecuteUpdateAsync(
 			setPropertyCalls: builder => builder
 				.SetProperty(propertyExpression: u => u.TimeZoneId, valueExpression: newTimeZone)
+				.SetProperty(propertyExpression: u => u.RowVersion, valueExpression: expectedVersion + 1),
+			cancellationToken: ct
+		);
+
+		if (affected == 0)
+			throw new ConcurrencyConflictException(message: $"User {userId} was modified by another request.", id: userId);
+	}
+
+	public async Task ChangeNotificationTypeAsync(
+		Guid userId,
+		NotificationType? newNotificationType,
+		int expectedVersion,
+		CancellationToken ct = default)
+	{
+		int affected = await context.Users.Where(predicate: u => u.Id == userId && u.RowVersion == expectedVersion).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder
+				.SetProperty(propertyExpression: u => u.NotificationType, valueExpression: newNotificationType)
 				.SetProperty(propertyExpression: u => u.RowVersion, valueExpression: expectedVersion + 1),
 			cancellationToken: ct
 		);

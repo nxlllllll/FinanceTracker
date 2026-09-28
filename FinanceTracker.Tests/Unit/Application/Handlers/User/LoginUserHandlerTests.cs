@@ -32,6 +32,7 @@ public sealed class LoginUserHandlerTests
 		passwordHash: PasswordHash,
 		baseCurrencyCode: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 		timeZone: TimeZoneId.Utc,
+		notificationType: FinanceTracker.Core.Domains.User.NotificationType.Email,
 		rowVersion: 0,
 		createdAt: FakeDateProvider.Default.UtcNow
 	);

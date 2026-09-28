@@ -13,6 +13,7 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 	INotificationHandler<UserPasswordChangedNotification>,
 	INotificationHandler<UserBaseCurrencyChangedNotification>,
 	INotificationHandler<UserTimeZoneChangedNotification>,
+	INotificationHandler<UserNotificationTypeChangedNotification>,
 	INotificationHandler<RefreshTokenReuseDetectedNotification>
 {
 	public Task Handle(UserRegisteredNotification notification, CancellationToken cancellationToken)
@@ -64,6 +65,15 @@ public sealed class UserAuditNotificationHandler(ILogger<UserAuditNotificationHa
 		logger.ZLogInformation(message: $"""
 			[Audit] User time zone changed. UserId: {notification.UserId}, OldTimeZone: {notification.OldTimeZone},
 			NewTimeZone: {notification.NewTimeZone}, OccurredAt: {notification.OccurredAt:O}.
+		""");
+		return Task.CompletedTask;
+	}
+
+	public Task Handle(UserNotificationTypeChangedNotification notification, CancellationToken cancellationToken)
+	{
+		logger.ZLogInformation(message: $"""
+			[Audit] User notification type changed. UserId: {notification.UserId}, OldNotificationType: {notification.OldNotificationType?.ToString() ?? "none"},
+			NewNotificationType: {notification.NewNotificationType?.ToString() ?? "none"}, OccurredAt: {notification.OccurredAt:O}.
 		""");
 		return Task.CompletedTask;
 	}

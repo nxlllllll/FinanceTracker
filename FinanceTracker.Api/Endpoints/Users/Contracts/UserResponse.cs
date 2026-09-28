@@ -1,4 +1,5 @@
 ﻿using FinanceTracker.Api.Endpoints.Shared;
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.ReadModels.User;
 using FinanceTracker.Core.ValueObjects;
 
@@ -12,6 +13,7 @@ public sealed record UserResponse(
 	Email Email,
 	Currency BaseCurrency,
 	TimeZoneId TimeZone,
+	NotificationType? NotificationType,
 	DateTimeOffset CreatedAt
 ) : IResponseOf<UserReadModel, UserResponse>
 {
@@ -20,6 +22,7 @@ public sealed record UserResponse(
 		Email: readModel.Email,
 		BaseCurrency: readModel.BaseCurrency,
 		TimeZone: readModel.TimeZone,
+		NotificationType: readModel.NotificationType,
 		CreatedAt: readModel.CreatedAt
 	);
 }
