@@ -1,23 +1,13 @@
-using System.Text.Json;
-using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Budget;
-using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Persistence;
-using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Services.Currency;
-using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context.Budget;
-using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
 using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 
 namespace FinanceTracker.Tests.Integration.Infrastructure.Repositories.Budget;
@@ -53,19 +43,11 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 			elementSelector: _ => 1m
 		));
 
-		IOptionsMonitor<BudgetAlertOptions> budgetAlertOptions = Substitute.For<IOptionsMonitor<BudgetAlertOptions>>();
-		budgetAlertOptions.CurrentValue.Returns(returnThis: new BudgetAlertOptions { Thresholds = [80, 100] });
-
 		_writeRepository = new BudgetProgressWriteRepository(
 			context: Context,
 			currencyConversionService: _currencyConversionService,
 			dateProvider: FakeDateProvider.Default,
-			budgetAlertOptions: budgetAlertOptions,
-			integrationEventTypeResolver: new IntegrationEventTypeResolver(
-				contractsAssembly: typeof(IIntegrationEvent).Assembly,
-				logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
-			),
-			correlationContext: Substitute.For<ICorrelationContext>()
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unitOfWork.ExecuteInTransactionAsync(
@@ -85,23 +67,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 
 	private static Core.ValueObjects.Currency Rub => Core.ValueObjects.Currency.Create(value: "RUB").Value;
 
-	private async Task<List<BudgetThresholdReachedEvent>> GetAlertsAsync(Guid budgetId)
-	{
-		await Context.SaveChangesAsync();
-
-		List<string> payloads = await Context.OutboxMessages.AsNoTracking()
-			.Where(predicate: m => m.AggregateType == AggregateTypeNames.Budget && m.AggregateId == budgetId)
-			.OrderBy(keySelector: m => m.Id)
-			.Select(selector: m => m.Payload)
-			.ToListAsync();
-
-		return
-		[
-			..payloads
-				.SelectMany(selector: payload => JsonSerializer.Deserialize<OutboxPayload>(json: payload, options: FinanceTrackerJsonOptions.Payload)!.Events)
-				.Select(selector: envelope => JsonSerializer.Deserialize<BudgetThresholdReachedEvent>(json: envelope.EventPayload, options: FinanceTrackerJsonOptions.Payload)!)
-		];
-	}
+	private Task<List<BudgetThresholdReachedEvent>> GetAlertsAsync(Guid budgetId)
+		=> TestBudgetThresholdAlerts.ReadStagedAsync(context: Context, budgetId: budgetId);
 
 	[Test]
 	public async Task AddAsync_WhenBudgetExists_ShouldIncreaseSpent()
@@ -197,7 +164,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 			occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
 		);
 
-		BudgetWriteRepository budgetWriteRepository = new BudgetWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
+		BudgetWriteRepository budgetWriteRepository = new BudgetWriteRepository(context: Context, dateProvider: FakeDateProvider.Default, budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context));
 		await budgetWriteRepository.DeactivateAsync(budgetId: budgetBId, expectedVersion: 0);
 		await budgetWriteRepository.ActivateAsync(budgetId: budgetAId, expectedVersion: 1);
 		await Context.SaveChangesAsync();

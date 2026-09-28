@@ -12,7 +12,8 @@ public class BudgetBuilder(FinanceTrackerContext context)
 {
 	private readonly BudgetWriteRepository _writeRepository = new BudgetWriteRepository(
 		context: context,
-		dateProvider: FakeDateProvider.Default
+		dateProvider: FakeDateProvider.Default,
+		budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: context)
 	);
 
 	public async Task<Guid> CreateAsync(

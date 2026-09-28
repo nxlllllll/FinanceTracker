@@ -1,3 +1,4 @@
+using FinanceTracker.Contracts.Events.Budget;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Data;
@@ -25,7 +26,8 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
 	{
 		_writeRepository = new BudgetWriteRepository(
 			context: Context,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		_userBuilder = new UserBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);
@@ -161,6 +163,57 @@ public sealed class BudgetWriteRepositoryTests : DatabaseFixture
 		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
 			await _writeRepository.ChangeAmountAsync(budgetId: budget.Id, amount: 9000m, expectedVersion: 0)
 		);
+	}
+
+	private async Task<Core.Domains.Budget.Budget> CreateBudgetWithSpentAsync(decimal spent)
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		Core.Domains.Budget.Budget budget = await CreateAndSaveBudgetAsync(userId: userId, categoryId: categoryId);
+
+		await Context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
+			setPropertyCalls: builder => builder.SetProperty(propertyExpression: p => p.Spent, valueExpression: spent)
+		);
+
+		return budget;
+	}
+
+	[Test]
+	public async Task ChangeAmountAsync_WhenALowerLimitPutsSpendingPastAThreshold_ShouldStageAnAlert()
+	{
+		Core.Domains.Budget.Budget budget = await CreateBudgetWithSpentAsync(spent: 8500m);
+
+		await _writeRepository.ChangeAmountAsync(budgetId: budget.Id, amount: 8500m, expectedVersion: 0);
+
+		List<BudgetThresholdReachedEvent> alerts = await TestBudgetThresholdAlerts.ReadStagedAsync(context: Context, budgetId: budget.Id);
+
+		await Assert.That(value: alerts).Count().IsEqualTo(expected: 1).Because(message: """
+			Nothing was spent, yet the budget went from 85% to 100% of its limit. The owner is exactly as
+			out of budget as if the last purchase had done it.
+		""");
+		await Assert.That(value: alerts[0].Threshold).IsEqualTo(expected: 100);
+		await Assert.That(value: alerts[0].Limit).IsEqualTo(expected: 8500m);
+	}
+
+	[Test]
+	public async Task ChangeAmountAsync_WhenALowerLimitCrossesNoThreshold_ShouldStageNoAlert()
+	{
+		Core.Domains.Budget.Budget budget = await CreateBudgetWithSpentAsync(spent: 5000m);
+
+		await _writeRepository.ChangeAmountAsync(budgetId: budget.Id, amount: 9000m, expectedVersion: 0);
+
+		await Assert.That(value: await TestBudgetThresholdAlerts.ReadStagedAsync(context: Context, budgetId: budget.Id)).IsEmpty();
+	}
+
+	[Test]
+	public async Task ChangeAmountAsync_WhenTheLimitIsRaised_ShouldStageNoAlert()
+	{
+		Core.Domains.Budget.Budget budget = await CreateBudgetWithSpentAsync(spent: 8500m);
+
+		await _writeRepository.ChangeAmountAsync(budgetId: budget.Id, amount: 20000m, expectedVersion: 0);
+
+		await Assert.That(value: await TestBudgetThresholdAlerts.ReadStagedAsync(context: Context, budgetId: budget.Id)).IsEmpty();
 	}
 
 	[Test]

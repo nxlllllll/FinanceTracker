@@ -1,20 +1,12 @@
-using FinanceTracker.Contracts.Events.Budget;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Account;
-using FinanceTracker.Core.Domains.Budget;
-using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.ValueObjects;
-using FinanceTracker.Infrastructure.Configurations.Options;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.Budget;
-using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using FinanceTracker.Infrastructure.Database.Context.Transaction;
-using FinanceTracker.Infrastructure.Database.EventStore.TypeResolver;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace FinanceTracker.Infrastructure.Database.Repositories.Budget;
 
@@ -22,9 +14,7 @@ public sealed class BudgetProgressWriteRepository(
 	FinanceTrackerContext context,
 	ICurrencyConversionService currencyConversionService,
 	IDateProvider dateProvider,
-	IOptionsMonitor<BudgetAlertOptions> budgetAlertOptions,
-	IIntegrationEventTypeResolver integrationEventTypeResolver,
-	ICorrelationContext correlationContext
+	BudgetThresholdAlerts budgetThresholdAlerts
 ) : IBudgetProgressWriteRepository
 {
 	private sealed record SpentChange(decimal SpentBefore, decimal SpentAfter, int Version);
@@ -59,40 +49,14 @@ public sealed class BudgetProgressWriteRepository(
 		CancellationToken ct)
 	{
 		BudgetEntity budget = await context.Budgets.AsNoTracking().SingleAsync(predicate: b => b.Id == budgetId, cancellationToken: ct);
-		if (!budget.IsActive)
-			return;
 
-		int? threshold = BudgetThresholds.GetHighestCrossed(
+		budgetThresholdAlerts.StageIfCrossed(
+			budget: budget,
 			spentBefore: change.SpentBefore,
 			limitBefore: budget.Amount,
 			spentAfter: change.SpentAfter,
-			limitAfter: budget.Amount,
-			thresholds: budgetAlertOptions.CurrentValue.Thresholds
+			version: change.Version
 		);
-
-		if (threshold is null)
-			return;
-
-		BudgetThresholdReachedEvent integrationEvent = new BudgetThresholdReachedEvent(
-			EventId: Guid.CreateVersion7(),
-			BudgetId: budget.Id,
-			UserId: budget.UserId,
-			CategoryId: budget.CategoryId,
-			Threshold: threshold.Value,
-			Spent: change.SpentAfter,
-			Limit: budget.Amount,
-			Currency: budget.Currency,
-			Version: change.Version,
-			OccurredAt: dateProvider.UtcNow
-		);
-
-		context.OutboxMessages.Add(entity: OutboxMessageFactory.CreateMessage(
-			aggregateId: budget.Id,
-			aggregateType: AggregateTypeNames.Budget,
-			correlationId: correlationContext.CorrelationId,
-			envelopes: [OutboxMessageFactory.CreateEnvelope(integrationEvent: integrationEvent, integrationEventTypeResolver: integrationEventTypeResolver)],
-			now: dateProvider.UtcNow
-		));
 	}
 
 	private async Task ChangeSpentAsync(

@@ -1,6 +1,7 @@
 using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Tests.Unit.Helpers;
 using NSubstitute;
@@ -10,6 +11,7 @@ namespace FinanceTracker.Tests.Unit.Application.Handlers.Budget;
 public sealed class ChangeBudgetAmountHandlerTests
 {
 	private IBudgetWriteRepository _budgetWriteRepository = null!;
+	private IUnitOfWork _unitOfWork = null!;
 	private IPostCommitNotifications _postCommitNotifications = null!;
 	private ChangeBudgetAmountHandler _handler = null!;
 
@@ -17,11 +19,34 @@ public sealed class ChangeBudgetAmountHandlerTests
 	public void Setup()
 	{
 		_budgetWriteRepository = Substitute.For<IBudgetWriteRepository>();
+		_unitOfWork = Substitute.For<IUnitOfWork>();
+		_unitOfWork.ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
+		).Returns(returnThis: callInfo => callInfo.ArgAt<Func<Task>>(position: 0)());
 		_postCommitNotifications = Substitute.For<IPostCommitNotifications>();
 		_handler = new ChangeBudgetAmountHandler(
 			budgetWriteRepository: _budgetWriteRepository,
+			unitOfWork: _unitOfWork,
 			postCommitNotifications: _postCommitNotifications,
 			dateProvider: FakeDateProvider.Default
+		);
+	}
+
+	[Test]
+	public async Task HandleAsync_ShouldChangeAmountInsideATransaction()
+	{
+		FinanceTracker.Core.Domains.Budget.Budget budget = BudgetFactory.Create().Value!;
+
+		await _handler.HandleAsync(
+			command: new ChangeBudgetAmountCommand(UserId: budget.UserId, BudgetId: budget.Id, Amount: 5000m),
+			budget: budget,
+			ct: CancellationToken.None
+		);
+
+		await _unitOfWork.Received(requiredNumberOfCalls: 1).ExecuteInTransactionAsync(
+			operation: Arg.Any<Func<Task>>(),
+			ct: Arg.Any<CancellationToken>()
 		);
 	}
 

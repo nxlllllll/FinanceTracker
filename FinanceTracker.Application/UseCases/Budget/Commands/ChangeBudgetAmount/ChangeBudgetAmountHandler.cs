@@ -3,6 +3,7 @@ using FinanceTracker.Application.Behaviours.Notification;
 using FinanceTracker.Application.UseCases.Budget.Notifications;
 using FinanceTracker.Core.Exceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
+using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Repositories.Budget;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.Services.DateProvider;
@@ -11,6 +12,7 @@ namespace FinanceTracker.Application.UseCases.Budget.Commands.ChangeBudgetAmount
 
 public sealed class ChangeBudgetAmountHandler(
 	IBudgetWriteRepository budgetWriteRepository,
+	IUnitOfWork unitOfWork,
 	IPostCommitNotifications postCommitNotifications,
 	IDateProvider dateProvider
 ) : IAuthorizedHandler<ChangeBudgetAmountCommand, Core.Domains.Budget.Budget, Guid, AppException>
@@ -27,12 +29,12 @@ public sealed class ChangeBudgetAmountHandler(
 		if (!result.Value)
 			return Result<Guid, AppException>.Success(value: budget.Id);
 
-		await budgetWriteRepository.ChangeAmountAsync(
+		await unitOfWork.ExecuteInTransactionAsync(operation: async () => await budgetWriteRepository.ChangeAmountAsync(
 			budgetId: budget.Id,
 			expectedVersion: budget.RowVersion,
 			amount: command.Amount,
 			ct: ct
-		);
+		), ct: ct);
 
 		postCommitNotifications.Stage(notification: new BudgetAmountChangedNotification(
 			BudgetId: budget.Id,

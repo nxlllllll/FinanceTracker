@@ -81,7 +81,8 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 
 		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
 			context: Context,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		await writeRepository.DeactivateAsync(budgetId: budgetId, expectedVersion: 0);
 
@@ -224,7 +225,8 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 
 		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
 			context: Context,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		await writeRepository.DeactivateAsync(budgetId: deactivatedInCategory, expectedVersion: 0);
 
@@ -253,7 +255,8 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 
 		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
 			context: Context,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		await writeRepository.DeactivateAsync(budgetId: deactivatedId, expectedVersion: 0);
 
@@ -274,7 +277,8 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 
 		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
 			context: Context,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		await writeRepository.DeactivateAsync(budgetId: deactivatedId, expectedVersion: 0);
 
@@ -295,7 +299,8 @@ public sealed class BudgetReadRepositoryTests : DatabaseFixture
 
 		BudgetWriteRepository writeRepository = new BudgetWriteRepository(
 			context: Context,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		await writeRepository.DeactivateAsync(budgetId: deactivatedId, expectedVersion: 0);
 

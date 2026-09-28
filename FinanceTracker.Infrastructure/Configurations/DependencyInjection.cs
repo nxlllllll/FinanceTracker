@@ -190,6 +190,7 @@ public static class DependencyInjection
 		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();
 		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
+		services.AddScoped<BudgetThresholdAlerts>();
 
 		// Base currency recalculation
 		services.AddScoped<IBaseCurrencyRecalculationWriteRepository, BaseCurrencyRecalculationWriteRepository>();
