@@ -45,3 +45,6 @@ services:
 
   worker-base-currency-recalculation:
     image: ${IMAGE_PREFIX}-worker-base-currency-recalculation:${IMAGE_TAG}
+
+  worker-notification:
+    image: ${IMAGE_PREFIX}-worker-notification:${IMAGE_TAG}
