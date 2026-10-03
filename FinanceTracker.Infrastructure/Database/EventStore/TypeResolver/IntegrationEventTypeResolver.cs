@@ -32,8 +32,8 @@ public sealed class IntegrationEventTypeResolver : IIntegrationEventTypeResolver
 		}
 
 		List<string> missingEventType = integrationEventTypes.Select(selector: t => t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType)
-			.Where(predicate: domainType => domainType.GetCustomAttribute<EventTypeAttribute>() is null)
-			.Select(selector: domainType => domainType.Name)
+			.Where(predicate: domainType => domainType is not null && domainType.GetCustomAttribute<EventTypeAttribute>() is null)
+			.Select(selector: domainType => domainType!.Name)
 			.ToList();
 
 		if (missingEventType.Count > 0)
@@ -50,8 +50,9 @@ public sealed class IntegrationEventTypeResolver : IIntegrationEventTypeResolver
 
 	private string GetEventNameFromAttribute(Type t)
 	{
-		Type domainType = t.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType;
-		return domainType.GetCustomAttribute<EventTypeAttribute>()!.Name;
+		IntegrationEventTypeAttribute attribute = t.GetCustomAttribute<IntegrationEventTypeAttribute>()!;
+
+		return attribute.Name ?? attribute.DomainEventType!.GetCustomAttribute<EventTypeAttribute>()!.Name;
 	}
 
 	public Type ResolveType(string eventType)

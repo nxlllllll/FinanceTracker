@@ -42,6 +42,7 @@ public static class UserFactory
 		Email: Email.Reconstitute(value: email),
 		BaseCurrency: Currency.Reconstitute(value: baseCurrency),
 		TimeZone: timeZone ?? TimeZoneId.Utc,
+		NotificationType: NotificationType.Email,
 		CreatedAt: createdAt ?? FakeDateProvider.Default.UtcNow
 	);
 }

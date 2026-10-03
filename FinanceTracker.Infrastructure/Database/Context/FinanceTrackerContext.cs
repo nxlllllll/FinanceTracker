@@ -6,6 +6,7 @@ using FinanceTracker.Infrastructure.Database.Context.Conversions;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
 using FinanceTracker.Infrastructure.Database.Context.EventStore;
 using FinanceTracker.Infrastructure.Database.Context.Idempotency;
+using FinanceTracker.Infrastructure.Database.Context.Notification;
 using FinanceTracker.Infrastructure.Database.Context.Operation;
 using FinanceTracker.Infrastructure.Database.Context.Outbox;
 using FinanceTracker.Infrastructure.Database.Context.ProcessedMessage;
@@ -52,6 +53,8 @@ public sealed class FinanceTrackerContext(DbContextOptions<FinanceTrackerContext
 	public DbSet<OutboxMessageEntity> OutboxMessages => Set<OutboxMessageEntity>();
 
 	public DbSet<ProcessedMessageEntity> ProcessedMessages => Set<ProcessedMessageEntity>();
+
+	public DbSet<NotificationDeliveryEntity> NotificationDeliveries => Set<NotificationDeliveryEntity>();
 
 	public DbSet<RecurringTransactionEntity> RecurringTransactions => Set<RecurringTransactionEntity>();
 

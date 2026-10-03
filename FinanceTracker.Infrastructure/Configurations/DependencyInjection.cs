@@ -12,6 +12,7 @@ using FinanceTracker.Core.Repositories.Category;
 using FinanceTracker.Core.Repositories.Currency;
 using FinanceTracker.Core.Repositories.Idempotency;
 using FinanceTracker.Core.Repositories.Operation;
+using FinanceTracker.Core.Repositories.Notification;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Core.Repositories.ProcessedMessage;
 using FinanceTracker.Core.Repositories.RecurringTransaction;
@@ -27,6 +28,7 @@ using FinanceTracker.Core.Services.Auth;
 using FinanceTracker.Core.Services.Currency;
 using FinanceTracker.Core.Services.DateProvider;
 using FinanceTracker.Core.Services.EventStore;
+using FinanceTracker.Core.Services.Notification;
 using FinanceTracker.Core.Services.Password;
 using FinanceTracker.Core.Services.RateLimit;
 using FinanceTracker.Core.Services.Rebuild;
@@ -41,6 +43,7 @@ using FinanceTracker.Infrastructure.Database.Repositories.Budget;
 using FinanceTracker.Infrastructure.Database.Repositories.Category;
 using FinanceTracker.Infrastructure.Database.Repositories.Currency;
 using FinanceTracker.Infrastructure.Database.Repositories.Idempotency;
+using FinanceTracker.Infrastructure.Database.Repositories.Notification;
 using FinanceTracker.Infrastructure.Database.Repositories.Operation;
 using FinanceTracker.Infrastructure.Database.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Database.Repositories.ProcessedMessage;
@@ -60,6 +63,7 @@ using FinanceTracker.Infrastructure.Services.Auth;
 using FinanceTracker.Infrastructure.Services.Correlation;
 using FinanceTracker.Infrastructure.Services.Currency;
 using FinanceTracker.Infrastructure.Services.Date;
+using FinanceTracker.Infrastructure.Services.Notification;
 using FinanceTracker.Infrastructure.Services.Password;
 using FinanceTracker.Infrastructure.Services.RateLimit;
 using FinanceTracker.Infrastructure.Services.Rebuild;
@@ -71,6 +75,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace FinanceTracker.Infrastructure.Configurations;
@@ -105,6 +110,8 @@ public static class DependencyInjection
 			.BindConfiguration(configSectionPath: CategoryTotalOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
+
+		services.AddBudgetAlertOptions();
 
 		services.AddDbContext<FinanceTrackerContext>(optionsAction: options =>
 			options.UseNpgsql(connectionString: configuration.GetConnectionString(name: nameof(FinanceTrackerContext)))
@@ -187,6 +194,7 @@ public static class DependencyInjection
 		services.AddScoped<IBudgetWriteRepository, BudgetWriteRepository>();
 		services.AddScoped<IBudgetProgressReadRepository, BudgetProgressReadRepository>();
 		services.AddScoped<IBudgetProgressWriteRepository, BudgetProgressWriteRepository>();
+		services.AddScoped<BudgetThresholdAlerts>();
 
 		// Base currency recalculation
 		services.AddScoped<IBaseCurrencyRecalculationWriteRepository, BaseCurrencyRecalculationWriteRepository>();
@@ -294,10 +302,45 @@ public static class DependencyInjection
 
 		services.AddSingleton<RedisCache>();
 
+		services.AddScoped<INotificationDeliveryRepository, NotificationDeliveryRepository>();
+
+		return services;
+	}
+
+	public static IServiceCollection AddBudgetAlertOptions(this IServiceCollection services)
+	{
+		services.AddOptions<BudgetAlertOptions>()
+			.BindConfiguration(configSectionPath: BudgetAlertOptions.SectionName)
+			.PostConfigure(configureOptions: options =>
+			{
+				if (options.Thresholds.Length == 0)
+					options.Thresholds = BudgetAlertOptions.DefaultThresholds;
+			})
+			.ValidateOnStart();
+		services.AddSingleton<IValidateOptions<BudgetAlertOptions>, BudgetAlertOptionsValidator>();
+
 		return services;
 	}
 
 	/// <summary>Registers JWT issuance and password hashing</summary>
+	public static IServiceCollection AddNotifications(this IServiceCollection services)
+	{
+		services.AddOptions<SmtpOptions>()
+			.BindConfiguration(configSectionPath: SmtpOptions.SectionName)
+			.ValidateDataAnnotations()
+			.ValidateOnStart();
+
+		services.AddOptions<NotificationOptions>()
+			.BindConfiguration(configSectionPath: NotificationOptions.SectionName)
+			.ValidateOnStart();
+		services.AddSingleton<IValidateOptions<NotificationOptions>, NotificationOptionsValidator>();
+
+		services.AddScoped<INotificationSender, EmailNotificationSender>();
+		services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+		return services;
+	}
+
 	public static IServiceCollection AddAuth(this IServiceCollection services)
 	{
 		services.AddOptions<Argon2Options>()

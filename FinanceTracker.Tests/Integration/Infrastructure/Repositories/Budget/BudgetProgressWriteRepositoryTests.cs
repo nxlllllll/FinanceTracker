@@ -1,3 +1,4 @@
+using FinanceTracker.Contracts.Events.Budget;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Persistence;
 using FinanceTracker.Core.Services.Currency;
@@ -45,7 +46,8 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 		_writeRepository = new BudgetProgressWriteRepository(
 			context: Context,
 			currencyConversionService: _currencyConversionService,
-			dateProvider: FakeDateProvider.Default
+			dateProvider: FakeDateProvider.Default,
+			budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context)
 		);
 		_unitOfWork = Substitute.For<IUnitOfWork>();
 		_unitOfWork.ExecuteInTransactionAsync(
@@ -60,6 +62,13 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 		_accountBuilder = new AccountBuilder(context: Context);
 		_transactionBuilder = new TransactionBuilder(context: Context);
 	}
+
+	private static readonly DateTimeOffset InPeriod = new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero);
+
+	private static Core.ValueObjects.Currency Rub => Core.ValueObjects.Currency.Create(value: "RUB").Value;
+
+	private Task<List<BudgetThresholdReachedEvent>> GetAlertsAsync(Guid budgetId)
+		=> TestBudgetThresholdAlerts.ReadStagedAsync(context: Context, budgetId: budgetId);
 
 	[Test]
 	public async Task AddAsync_WhenBudgetExists_ShouldIncreaseSpent()
@@ -155,7 +164,7 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 			occurredAt: new DateTimeOffset(year: 2025, month: 1, day: 15, hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero)
 		);
 
-		BudgetWriteRepository budgetWriteRepository = new BudgetWriteRepository(context: Context, dateProvider: FakeDateProvider.Default);
+		BudgetWriteRepository budgetWriteRepository = new BudgetWriteRepository(context: Context, dateProvider: FakeDateProvider.Default, budgetThresholdAlerts: TestBudgetThresholdAlerts.Create(context: Context));
 		await budgetWriteRepository.DeactivateAsync(budgetId: budgetBId, expectedVersion: 0);
 		await budgetWriteRepository.ActivateAsync(budgetId: budgetAId, expectedVersion: 1);
 		await Context.SaveChangesAsync();
@@ -480,5 +489,210 @@ public sealed class BudgetProgressWriteRepositoryTests : DatabaseFixture
 		);
 
 		await Assert.That(value: progress.Spent).IsEqualTo(expected: 0m);
+	}
+
+	[Test]
+	public async Task AddAsync_WhenSpendingCrossesAThreshold_ShouldStageOneAlert()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, amount: 10000m);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 8500m,
+			occurredAt: InPeriod
+		);
+
+		List<BudgetThresholdReachedEvent> alerts = await GetAlertsAsync(budgetId: budgetId);
+
+		await Assert.That(value: alerts).Count().IsEqualTo(expected: 1);
+		await Assert.That(value: alerts[0].Threshold).IsEqualTo(expected: 80);
+		await Assert.That(value: alerts[0].Spent).IsEqualTo(expected: 8500m);
+		await Assert.That(value: alerts[0].Limit).IsEqualTo(expected: 10000m);
+		await Assert.That(value: alerts[0].UserId).IsEqualTo(expected: userId);
+	}
+
+	[Test]
+	public async Task AddAsync_WhenSpendingCrossesSeveralThresholdsAtOnce_ShouldStageOnlyTheHighest()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, amount: 10000m);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 12000m,
+			occurredAt: InPeriod
+		);
+
+		List<BudgetThresholdReachedEvent> alerts = await GetAlertsAsync(budgetId: budgetId);
+
+		await Assert.That(value: alerts).Count().IsEqualTo(expected: 1)
+			.Because(message: "an owner told in one breath that the budget is at 80% and at 100% learns nothing from the first");
+		await Assert.That(value: alerts[0].Threshold).IsEqualTo(expected: 100);
+	}
+
+	[Test]
+	public async Task AddAsync_WhenSpendingStaysBelowEveryThreshold_ShouldStageNoAlert()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, amount: 10000m);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 5000m,
+			occurredAt: InPeriod
+		);
+
+		await Assert.That(value: await GetAlertsAsync(budgetId: budgetId)).IsEmpty();
+	}
+
+	[Test]
+	public async Task AddAsync_WhenAThresholdWasAlreadyCrossed_ShouldNotStageItAgain()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, amount: 10000m);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 8500m,
+			occurredAt: InPeriod
+		);
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 500m,
+			occurredAt: InPeriod
+		);
+
+		await Assert.That(value: await GetAlertsAsync(budgetId: budgetId)).Count().IsEqualTo(expected: 1).Because(message: """
+			Every purchase above 80% would otherwise repeat the same warning. The alert marks the moment
+			the level is reached, not the state of being past it.
+		""");
+	}
+
+	[Test]
+	public async Task AddAsync_WhenBudgetIsInactive_ShouldStageNoAlert()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, amount: 10000m, isActive: false);
+
+		await _writeRepository.AddAsync(userId: userId, categoryId: categoryId, currencyCode: Rub, amount: 9000m, occurredAt: InPeriod);
+
+		await Assert.That(value: await GetAlertsAsync(budgetId: budgetId)).IsEmpty()
+			.Because(message: "an inactive budget still tracks spending so it is accurate when reactivated, but its owner has stopped watching it");
+	}
+
+	[Test]
+	public async Task AddAsync_AfterSpendingDropsBelowAThreshold_ShouldStageItAgainWhenCrossedAgain()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, amount: 10000m);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 8500m,
+			occurredAt: InPeriod
+		);
+		await _writeRepository.SubtractAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 1000m,
+			occurredAt: InPeriod
+		);
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: categoryId,
+			currencyCode: Rub,
+			amount: 1000m,
+			occurredAt: InPeriod
+		);
+
+		List<BudgetThresholdReachedEvent> alerts = await GetAlertsAsync(budgetId: budgetId);
+
+		await Assert.That(value: alerts.Select(selector: a => a.Threshold).ToList()).IsEquivalentTo(expected: [80, 80]).Because(message: """
+			A cancelled purchase took the budget back under 80%; the next one that crosses it is news again.
+		""");
+	}
+
+	[Test]
+	public async Task ChangeCategoryAsync_ShouldStageAnAlertOnlyForTheBudgetThatGained()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid oldCategoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid newCategoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid oldBudgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: oldCategoryId, amount: 10000m);
+		Guid newBudgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: newCategoryId, amount: 10000m);
+
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: oldCategoryId,
+			currencyCode: Rub,
+			amount: 5000m,
+			occurredAt: InPeriod
+		);
+		await _writeRepository.AddAsync(
+			userId: userId,
+			categoryId: newCategoryId,
+			currencyCode: Rub,
+			amount: 5000m,
+			occurredAt: InPeriod
+		);
+
+		await _writeRepository.ChangeCategoryAsync(
+			userId: userId,
+			oldCategoryId: oldCategoryId,
+			newCategoryId: newCategoryId,
+			currencyCode: Rub,
+			amount: 4000m,
+			occurredAt: InPeriod
+		);
+
+		await Assert.That(value: await GetAlertsAsync(budgetId: oldBudgetId)).IsEmpty();
+		await Assert.That(value: await GetAlertsAsync(budgetId: newBudgetId)).Count().IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task RecalculateForBudgetAsync_WhenRecalculatedSpendingCrossesAThreshold_ShouldStageAnAlert()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+		Guid accountId = await _accountBuilder.CreateAsync(userId: userId);
+		Guid budgetId = await _budgetBuilder.CreateAsync(userId: userId, categoryId: categoryId, amount: 10000m);
+
+		await _transactionBuilder.CreateAsync(userId: userId, accountId: accountId, categoryId: categoryId, amount: 9000m, occurredAt: InPeriod);
+
+		await _writeRepository.RecalculateForBudgetAsync(
+			budgetId: budgetId,
+			userId: userId,
+			categoryId: categoryId,
+			fromDate: new DateOnly(year: 2025, month: 1, day: 1),
+			toDate: new DateOnly(year: 2025, month: 1, day: 31)
+		);
+
+		List<BudgetThresholdReachedEvent> alerts = await GetAlertsAsync(budgetId: budgetId);
+
+		await Assert.That(value: alerts).Count().IsEqualTo(expected: 1).Because(message: """
+				Widening a budget's period can pull earlier purchases into it. The owner is past 80% as surely
+				as if they had just spent the money.
+			""");
+		await Assert.That(value: alerts[0].Threshold).IsEqualTo(expected: 80);
 	}
 }

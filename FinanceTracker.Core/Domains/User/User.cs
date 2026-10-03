@@ -13,6 +13,7 @@ public sealed class User : IHasId
 	public string PasswordHash { get; private set; } = String.Empty;
 	public Currency BaseCurrency { get; private set; }
 	public TimeZoneId TimeZone { get; private set; }
+	public NotificationType? NotificationType { get; private set; }
 	public int RowVersion { get; private set; }
 	public DateTimeOffset CreatedAt { get; private set; }
 
@@ -35,6 +36,7 @@ public sealed class User : IHasId
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrency,
 			TimeZone = timeZone ?? TimeZoneId.Utc,
+			NotificationType = Domains.User.NotificationType.Email,
 			RowVersion = 0,
 			CreatedAt = createdAt
 		});
@@ -46,6 +48,7 @@ public sealed class User : IHasId
 		string passwordHash,
 		Currency baseCurrencyCode,
 		TimeZoneId timeZone,
+		NotificationType? notificationType,
 		int rowVersion,
 		DateTimeOffset createdAt)
 	{
@@ -56,6 +59,7 @@ public sealed class User : IHasId
 			PasswordHash = passwordHash,
 			BaseCurrency = baseCurrencyCode,
 			TimeZone = timeZone,
+			NotificationType = notificationType,
 			RowVersion = rowVersion,
 			CreatedAt = createdAt
 		};
@@ -94,6 +98,15 @@ public sealed class User : IHasId
 			return Result<Unit, DomainException>.Success(value: Unit.Default);
 
 		TimeZone = newTimeZone;
+		return Result<Unit, DomainException>.Success(value: Unit.Default);
+	}
+
+	public Result<Unit, DomainException> ChangeNotificationType(NotificationType? newNotificationType)
+	{
+		if (NotificationType == newNotificationType)
+			return Result<Unit, DomainException>.Success(value: Unit.Default);
+
+		NotificationType = newNotificationType;
 		return Result<Unit, DomainException>.Success(value: Unit.Default);
 	}
 }

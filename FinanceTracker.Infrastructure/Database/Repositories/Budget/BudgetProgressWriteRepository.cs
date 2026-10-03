@@ -13,9 +13,52 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.Budget;
 public sealed class BudgetProgressWriteRepository(
 	FinanceTrackerContext context,
 	ICurrencyConversionService currencyConversionService,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	BudgetThresholdAlerts budgetThresholdAlerts
 ) : IBudgetProgressWriteRepository
 {
+	private sealed record SpentChange(decimal SpentBefore, decimal SpentAfter, int Version);
+
+	private async Task<SpentChange?> IncreaseSpentAsync(Guid budgetId, decimal addition, CancellationToken ct)
+	{
+		List<SpentChange> rows = await context.Database.SqlQuery<SpentChange>(sql: $"""
+			UPDATE rm_budget_progress
+			SET spent = spent + {addition}, row_version = row_version + 1, updated_at = {dateProvider.UtcNow}
+			WHERE budget_id = {budgetId}
+			RETURNING old.spent AS "SpentBefore", new.spent AS "SpentAfter", new.row_version AS "Version"
+		""").ToListAsync(cancellationToken: ct);
+
+		return rows.SingleOrDefault();
+	}
+
+	private async Task<SpentChange?> SetSpentAsync(Guid budgetId, decimal spent, CancellationToken ct)
+	{
+		List<SpentChange> rows = await context.Database.SqlQuery<SpentChange>(sql: $"""
+			UPDATE rm_budget_progress
+			SET spent = {spent}, row_version = row_version + 1, updated_at = {dateProvider.UtcNow}
+			WHERE budget_id = {budgetId}
+			RETURNING old.spent AS "SpentBefore", new.spent AS "SpentAfter", new.row_version AS "Version"
+		""").ToListAsync(cancellationToken: ct);
+
+		return rows.SingleOrDefault();
+	}
+
+	private async Task StageCrossedThresholdAsync(
+		Guid budgetId, 
+		SpentChange change,
+		CancellationToken ct)
+	{
+		BudgetEntity budget = await context.Budgets.AsNoTracking().SingleAsync(predicate: b => b.Id == budgetId, cancellationToken: ct);
+
+		budgetThresholdAlerts.StageIfCrossed(
+			budget: budget,
+			spentBefore: change.SpentBefore,
+			limitBefore: budget.Amount,
+			spentAfter: change.SpentAfter,
+			version: change.Version
+		);
+	}
+
 	private async Task ChangeSpentAsync(
 		Guid userId,
 		Guid categoryId,
@@ -45,13 +88,9 @@ public sealed class BudgetProgressWriteRepository(
 
 			decimal additionSpent = delta * Money.ConvertedAmount(amount: amount, rate: rate);
 
-			await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budget.Id).ExecuteUpdateAsync(
-				setPropertyCalls: builder => builder
-					.SetProperty(propertyExpression: p => p.Spent, valueExpression: p => p.Spent + additionSpent)
-					.SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
-					.SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
-				cancellationToken: ct
-			);
+			SpentChange? change = await IncreaseSpentAsync(budgetId: budget.Id, addition: additionSpent, ct: ct);
+			if (change is not null)
+				await StageCrossedThresholdAsync(budgetId: budget.Id, change: change, ct: ct);
 		}
 	}
 
@@ -148,37 +187,26 @@ public sealed class BudgetProgressWriteRepository(
 			t.OccurredAt <= toUtc
 		).ToListAsync(cancellationToken: ct);
 
-		if (transactions.Count == 0)
+		decimal spent = 0m;
+
+		if (transactions.Count > 0)
 		{
-			await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
-				setPropertyCalls: builder => builder
-					.SetProperty(propertyExpression: p => p.Spent, valueExpression: 0m)
-					.SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
-					.SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
-				cancellationToken: ct
-			);
-			return;
+			List<CurrencyStableRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyStableRateRequest(
+				From: t.Currency,
+				To: budget.Currency,
+				AsOf: t.OccurredAt
+			)).Distinct().ToList();
+
+			Dictionary<CurrencyStableRateRequest, decimal> rates = await currencyConversionService.GetStableRatesBatchAsync(requests: rateRequests, ct: ct);
+
+			spent = transactions.Sum(selector: t => Money.ConvertedAmount(
+				amount: t.Amount,
+				rate: rates[new CurrencyStableRateRequest(From: t.Currency, To: budget.Currency, AsOf: t.OccurredAt)]
+			));
 		}
 
-		List<CurrencyStableRateRequest> rateRequests = transactions.Select(selector: t => new CurrencyStableRateRequest(
-			From: t.Currency,
-			To: budget.Currency,
-			AsOf: t.OccurredAt
-		)).Distinct().ToList();
-
-		Dictionary<CurrencyStableRateRequest, decimal> rates = await currencyConversionService.GetStableRatesBatchAsync(requests: rateRequests, ct: ct);
-
-		decimal spent = transactions.Sum(selector: t => Money.ConvertedAmount(
-			amount: t.Amount,
-			rate: rates[new CurrencyStableRateRequest(From: t.Currency, To: budget.Currency, AsOf: t.OccurredAt)]
-		));
-
-		await context.BudgetProgresses.Where(predicate: p => p.BudgetId == budgetId).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				 .SetProperty(propertyExpression: p => p.Spent, valueExpression: spent)
-				 .SetProperty(propertyExpression: p => p.RowVersion, valueExpression: p => p.RowVersion + 1)
-				.SetProperty(propertyExpression: p => p.UpdatedAt, valueExpression: dateProvider.UtcNow),
-			cancellationToken: ct
-		);
+		SpentChange? change = await SetSpentAsync(budgetId: budgetId, spent: spent, ct: ct);
+		if (change is not null)
+			await StageCrossedThresholdAsync(budgetId: budgetId, change: change, ct: ct);
 	}
 }

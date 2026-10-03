@@ -30,6 +30,7 @@ public sealed class JwtTokenServiceTests
 		passwordHash: "hash",
 		baseCurrencyCode: Currency.Create(value: "RUB").Value,
 		timeZone: TimeZoneId.Utc,
+		notificationType: NotificationType.Email,
 		rowVersion: 0,
 		createdAt: FakeDateProvider.Default.UtcNow
 	);

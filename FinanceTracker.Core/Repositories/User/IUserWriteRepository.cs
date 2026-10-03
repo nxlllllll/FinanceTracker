@@ -36,4 +36,11 @@ public interface IUserWriteRepository
 		int expectedVersion,
 		CancellationToken ct = default
 	);
+
+	Task ChangeNotificationTypeAsync(
+		Guid userId,
+		Domains.User.NotificationType? newNotificationType,
+		int expectedVersion,
+		CancellationToken ct = default
+	);
 }

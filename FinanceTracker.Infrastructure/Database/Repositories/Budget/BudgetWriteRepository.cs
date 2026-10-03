@@ -9,9 +9,14 @@ namespace FinanceTracker.Infrastructure.Database.Repositories.Budget;
 
 public sealed class BudgetWriteRepository(
 	FinanceTrackerContext context,
-	IDateProvider dateProvider
+	IDateProvider dateProvider,
+	BudgetThresholdAlerts budgetThresholdAlerts
 ) : IBudgetWriteRepository
 {
+	private sealed record LimitChange(decimal LimitBefore, decimal LimitAfter);
+
+	private sealed record Progress(decimal Spent, int RowVersion);
+
 	public async Task CreateAsync(
 		Core.Domains.Budget.Budget budget,
 		CancellationToken ct = default)
@@ -44,15 +49,33 @@ public sealed class BudgetWriteRepository(
 		int expectedVersion,
 		CancellationToken ct = default)
 	{
-		int affected = await context.Budgets.Where(predicate: b => b.Id == budgetId && b.RowVersion == expectedVersion).ExecuteUpdateAsync(
-			setPropertyCalls: builder => builder
-				.SetProperty(propertyExpression: b => b.Amount, valueExpression: amount)
-				.SetProperty(propertyExpression: b => b.RowVersion, valueExpression: expectedVersion + 1),
-			cancellationToken: ct
-		);
+		List<LimitChange> changes = await context.Database.SqlQuery<LimitChange>(sql: $"""
+			UPDATE budgets
+			SET amount = {amount}, row_version = {expectedVersion + 1}
+			WHERE id = {budgetId} AND row_version = {expectedVersion}
+			RETURNING old.amount AS "LimitBefore", new.amount AS "LimitAfter"
+		""").ToListAsync(cancellationToken: ct);
 
-		if (affected == 0)
+		LimitChange? change = changes.SingleOrDefault();
+		if (change is null)
 			throw new ConcurrencyConflictException(message: $"Budget {budgetId} was modified by another request.", id: budgetId);
+
+		Progress progress = await context.Database.SqlQuery<Progress>(sql: $"""
+			SELECT spent AS "Spent", row_version AS "RowVersion"
+			FROM rm_budget_progress
+			WHERE budget_id = {budgetId}
+			FOR UPDATE
+		""").SingleAsync(cancellationToken: ct);
+
+		BudgetEntity budget = await context.Budgets.AsNoTracking().SingleAsync(predicate: b => b.Id == budgetId, cancellationToken: ct);
+
+		budgetThresholdAlerts.StageIfCrossed(
+			budget: budget,
+			spentBefore: progress.Spent,
+			limitBefore: change.LimitBefore,
+			spentAfter: progress.Spent,
+			version: progress.RowVersion
+		);
 	}
 
 	public async Task ChangePeriodAsync(

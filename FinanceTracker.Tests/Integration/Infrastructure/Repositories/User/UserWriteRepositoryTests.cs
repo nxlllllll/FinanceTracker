@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.Exceptions.DomainExceptions;
 using FinanceTracker.Core.Exceptions.DomainExceptions.Platform.Concurrency;
 using FinanceTracker.Core.ReadModels.User;
@@ -141,6 +142,67 @@ public sealed class UserWriteRepositoryTests : DatabaseFixture
 				newEmail: Email.Create(value: "second@test.com").Value,
 				expectedVersion: 0
 			)
+		);
+	}
+
+	[Test]
+	public async Task CreateAsync_ShouldPersistTheEmailNotificationType()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync();
+
+		UserReadModel? loaded = await (_readRepository as IUserQueryRepository).GetByIdAsync(userId: user.Id);
+
+		await Assert.That(value: loaded!.NotificationType).IsEqualTo(expected: NotificationType.Email);
+	}
+
+	[Test]
+	public async Task ChangeNotificationTypeAsync_ToNull_ShouldTurnNotificationsOff()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync();
+
+		await _writeRepository.ChangeNotificationTypeAsync(
+			userId: user.Id,
+			newNotificationType: null,
+			expectedVersion: 0
+		);
+
+		Core.Domains.User.User? loaded = await (_readRepository as IUserAuthRepository).GetByIdAsync(userId: user.Id);
+
+		await Assert.That(value: loaded!.NotificationType).IsNull();
+
+		UserEntity entity = await Context.Users.AsNoTracking().FirstAsync(predicate: u => u.Id == user.Id);
+		await Assert.That(value: entity.RowVersion).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task ChangeNotificationTypeAsync_ShouldAcceptEveryNotificationType()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync();
+		int version = 0;
+
+		foreach (NotificationType type in Enum.GetValues<NotificationType>())
+		{
+			await _writeRepository.ChangeNotificationTypeAsync(userId: user.Id, newNotificationType: null, expectedVersion: version++);
+			await _writeRepository.ChangeNotificationTypeAsync(userId: user.Id, newNotificationType: type, expectedVersion: version++);
+
+			Core.Domains.User.User? loaded = await (_readRepository as IUserAuthRepository).GetByIdAsync(userId: user.Id);
+
+			await Assert.That(value: loaded!.NotificationType).IsEqualTo(expected: type).Because(message: """
+				users.notification_type references notification_types. A value added to the enum without a row
+				in the lookup table fails on the foreign key only when a user picks it, not at startup.
+			""");
+		}
+	}
+
+	[Test]
+	public async Task ChangeNotificationTypeAsync_WhenVersionConflict_ShouldThrowConcurrencyConflictException()
+	{
+		Core.Domains.User.User user = await CreateAndSaveUserAsync();
+
+		await _writeRepository.ChangeNotificationTypeAsync(userId: user.Id, newNotificationType: null, expectedVersion: 0);
+
+		await Assert.ThrowsAsync<ConcurrencyConflictException>(action: async () =>
+			await _writeRepository.ChangeNotificationTypeAsync(userId: user.Id, newNotificationType: NotificationType.Email, expectedVersion: 0)
 		);
 	}
 }

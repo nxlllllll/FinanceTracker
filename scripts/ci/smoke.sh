@@ -16,6 +16,7 @@ SERVICES=(
 	"worker-permission-projection:5009"
 	"worker-user-role-projection:5010"
 	"worker-base-currency-recalculation:5011"
+	"worker-notification:5012"
 )
 
 failed=0

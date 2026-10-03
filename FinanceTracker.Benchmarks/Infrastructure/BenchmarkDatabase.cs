@@ -36,7 +36,7 @@ public sealed class BenchmarkDatabase
 
 	public async Task InitializeAsync()
 	{
-		_container = new PostgreSqlBuilder(image: "postgres:16")
+		_container = new PostgreSqlBuilder(image: "postgres:18")
 			.WithLogger(logger: NullLogger<PostgreSqlBuilder>.Instance)
 			.Build();
 

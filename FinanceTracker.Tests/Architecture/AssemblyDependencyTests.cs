@@ -37,7 +37,9 @@ public sealed class AssemblyDependencyTests
 		"Blake3",
 		"StackExchange.Redis",
 		"Microsoft.IdentityModel.JsonWebTokens",
-		"HealthChecks"
+		"HealthChecks",
+		"MailKit",
+		"MimeKit"
 	];
 
 	[Test]

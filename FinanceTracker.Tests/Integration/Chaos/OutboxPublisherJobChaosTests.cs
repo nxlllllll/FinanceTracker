@@ -39,7 +39,7 @@ public sealed class OutboxPublisherJobChaosTests
 	[Before(hookType: Test)]
 	public async Task SetupAsync()
 	{
-		_postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "500").Build();
+		_postgres = new PostgreSqlBuilder(image: "postgres:18").WithCommand("-N", "500").Build();
 		_rabbitMq = new RabbitMqBuilder(image: "rabbitmq:4.3.0")
 			.WithUsername(username: "guest")
 			.WithPassword(password: "guest")

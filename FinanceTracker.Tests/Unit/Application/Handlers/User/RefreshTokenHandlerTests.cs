@@ -42,6 +42,7 @@ public sealed class RefreshTokenHandlerTests
 		passwordHash: "hash",
 		baseCurrencyCode: FinanceTracker.Core.ValueObjects.Currency.Create(value: "RUB").Value,
 		timeZone: TimeZoneId.Utc,
+		notificationType: NotificationType.Email,
 		rowVersion: 0,
 		createdAt: Now
 	);

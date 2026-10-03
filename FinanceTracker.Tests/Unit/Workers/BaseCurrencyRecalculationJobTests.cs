@@ -88,6 +88,7 @@ public sealed class BaseCurrencyRecalculationJobTests
 		Email: Email.Reconstitute(value: "someone@example.com"),
 		BaseCurrency: currency,
 		TimeZone: TimeZoneId.Utc,
+		NotificationType: NotificationType.Email,
 		CreatedAt: FakeDateProvider.Default.UtcNow
 	));
 
@@ -225,6 +226,7 @@ public sealed class BaseCurrencyRecalculationJobTests
 			Email: Email.Reconstitute(value: "other@example.com"),
 			BaseCurrency: Usd,
 			TimeZone: TimeZoneId.Utc,
+			NotificationType: NotificationType.Email,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		));
 
@@ -301,6 +303,7 @@ public sealed class BaseCurrencyRecalculationJobTests
 			Email: Email.Reconstitute(value: "other@example.com"),
 			BaseCurrency: Usd,
 			TimeZone: TimeZoneId.Utc,
+			NotificationType: FinanceTracker.Core.Domains.User.NotificationType.Email,
 			CreatedAt: FakeDateProvider.Default.UtcNow
 		));
 

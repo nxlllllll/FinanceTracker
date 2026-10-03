@@ -31,6 +31,7 @@ scrape_configs:
           - 'worker-permission-projection:5009'
           - 'worker-user-role-projection:5010'
           - 'worker-base-currency-recalculation:5011'
+          - 'worker-notification:5012'
 
   - job_name: 'health-checks'
     metrics_path: /health/metrics
@@ -53,6 +54,7 @@ scrape_configs:
           - 'worker-permission-projection:5009'
           - 'worker-user-role-projection:5010'
           - 'worker-base-currency-recalculation:5011'
+          - 'worker-notification:5012'
 
   - job_name: 'postgres'
     static_configs:

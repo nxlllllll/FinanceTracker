@@ -32,7 +32,7 @@ public abstract class RabbitMqDatabaseFixture
 
 	private static async Task StartPostgresAsync()
 	{
-		_postgresContainer = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "500").Build();
+		_postgresContainer = new PostgreSqlBuilder(image: "postgres:18").WithCommand("-N", "500").Build();
 		await _postgresContainer.StartAsync();
 
 		string templateConnectionString = new NpgsqlConnectionStringBuilder(connectionString: _postgresContainer.GetConnectionString())

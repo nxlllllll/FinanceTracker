@@ -1,5 +1,5 @@
-using FinanceTracker.Application.UseCases.Account.Commands.CreateAccount;
 using FinanceTracker.Application.UseCases.Transaction.Commands.CreateTransaction;
+using FinanceTracker.Contracts.Events.Budget;
 using FinanceTracker.Core.Domains.Account;
 using FinanceTracker.Core.Domains.Category;
 using FinanceTracker.Core.Exceptions;
@@ -7,9 +7,9 @@ using FinanceTracker.Core.Exceptions.DomainExceptions.Domain.Account;
 using FinanceTracker.Core.Results;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
-using FinanceTracker.Infrastructure.Database.Context.Account;
 using FinanceTracker.Tests.Integration._Shared.Builders;
 using FinanceTracker.Tests.Integration._Shared.Fixtures;
+using FinanceTracker.Tests.Unit.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceTracker.Tests.Integration.Application.Transaction;
@@ -24,6 +24,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	private UserBuilder _userBuilder = null!;
 	private CategoryBuilder _categoryBuilder = null!;
 	private BudgetBuilder _budgetBuilder = null!;
+	private AccountFlowBuilder _accountFlowBuilder = null!;
 
 	[Before(hookType: Test)]
 	public async Task SetupDataAsync()
@@ -31,42 +32,8 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 		_userBuilder = new UserBuilder(context: Context);
 		_categoryBuilder = new CategoryBuilder(context: Context);
 		_budgetBuilder = new BudgetBuilder(context: Context);
+		_accountFlowBuilder = new AccountFlowBuilder(mediator: Mediator, context: Context);
 		await new CurrencyBuilder(context: Context).CreateAsync(code: "RUB");
-	}
-
-	/// <summary>Creates an account through MediatR and gets into the Event Store and read model.</summary>
-	private async Task<Guid> CreateAccountAsync(Guid userId, decimal balance = 10_000m)
-	{
-		Result<Guid, AppException> result = await Mediator.Send(request: new CreateAccountCommand(
-			UserId: userId,
-			Name: Name.Create(value: "Основной счёт").Value,
-			Type: AccountType.Checking,
-			Currency: Currency.Create(value: "RUB").Value,
-			InitialBalance: balance
-		)
-		{ IdempotencyKey = Guid.CreateVersion7() });
-
-		Guid accountId = result.Value!;
-
-		await Context.Accounts.AddAsync(new AccountEntity
-		{
-			Id = accountId,
-			UserId = userId,
-			Name = Name.Create(value: "Основной счёт").Value,
-			AccountType = AccountType.Checking,
-			Currency = Currency.Create(value: "RUB").Value,
-			IsArchived = false,
-			CreatedAt = DateTimeOffset.UtcNow
-		});
-		await Context.AccountBalances.AddAsync(new AccountBalanceEntity
-		{
-			AccountId = accountId,
-			Balance = balance,
-			UpdatedAt = DateTimeOffset.UtcNow
-		});
-		await Context.SaveChangesAsync();
-
-		return accountId;
 	}
 
 	private CreateTransactionCommand BuildCommand(
@@ -93,7 +60,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	public async Task CreateTransaction_Debit_ShouldSucceed()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 10_000m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		Result<Guid, AppException> result = await Mediator.Send(
@@ -107,7 +74,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	public async Task CreateTransaction_Debit_ShouldPersistEventInEventStore()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 10_000m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		await Mediator.Send(request: BuildCommand(userId: userId, accountId: accountId, categoryId: categoryId));
@@ -124,7 +91,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	public async Task CreateTransaction_Debit_ShouldReduceAccountBalance()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 10_000m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		await Mediator.Send(request: BuildCommand(
@@ -149,7 +116,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	public async Task CreateTransaction_Debit_ShouldUpdateBudgetProgress()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await CreateAccountAsync(userId: userId, balance: 10_000m);
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 10_000m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		DateOnly today = DateOnly.FromDateTime(dateTime: DateTime.UtcNow);
@@ -181,10 +148,43 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	}
 
 	[Test]
+	public async Task CreateTransaction_Debit_WhenSpendingCrossesAThreshold_ShouldStageOneBudgetAlert()
+	{
+		Guid userId = await _userBuilder.CreateAsync();
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 10_000m);
+		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
+
+		DateOnly today = DateOnly.FromDateTime(dateTime: DateTime.UtcNow);
+		Guid budgetId = await _budgetBuilder.CreateAsync(
+			userId: userId,
+			categoryId: categoryId,
+			amount: 5_000m,
+			dateFrom: today.AddDays(value: -1),
+			dateTo: today.AddDays(value: 30)
+		);
+
+		Result<Guid, AppException> result = await Mediator.Send(
+			request: BuildCommand(userId: userId, accountId: accountId, categoryId: categoryId, amount: 4_500m)
+		);
+
+		await Assert.That(value: result.IsSuccess).IsTrue();
+
+		await using FinanceTrackerContext readCtx = CreateReadContext();
+		List<BudgetThresholdReachedEvent> alerts = await TestBudgetThresholdAlerts.ReadStagedAsync(context: readCtx, budgetId: budgetId);
+
+		await Assert.That(value: alerts).Count().IsEqualTo(expected: 1).Because(message: """
+			The repository tests stage the alert in a context they save themselves. Only a command sent
+			through the pipeline shows that the unit of work commits it with the transaction.
+		""");
+		await Assert.That(value: alerts[0].Threshold).IsEqualTo(expected: 80);
+		await Assert.That(value: alerts[0].Spent).IsEqualTo(expected: 4_500m);
+	}
+
+	[Test]
 	public async Task CreateTransaction_Debit_WithInsufficientFunds_ShouldFail()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await CreateAccountAsync(userId: userId, balance: 500m);
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 500m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		Result<Guid, AppException> result = await Mediator.Send(
@@ -199,7 +199,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	public async Task CreateTransaction_Debit_WithInsufficientFunds_ShouldNotChangeBalance()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await CreateAccountAsync(userId: userId, balance: 500m);
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 500m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(userId: userId);
 
 		await Mediator.Send(
@@ -219,7 +219,7 @@ public sealed class CreateTransactionFlowTests : MediatorFixture
 	public async Task CreateTransaction_Credit_ShouldNotUpdateBudgetProgress()
 	{
 		Guid userId = await _userBuilder.CreateAsync();
-		Guid accountId = await CreateAccountAsync(userId: userId, balance: 0m);
+		Guid accountId = await _accountFlowBuilder.CreateAsync(userId: userId, balance: 0m);
 		Guid categoryId = await _categoryBuilder.CreateAsync(
 			userId: userId,
 			type: CategoryType.Income

@@ -75,7 +75,7 @@ public abstract class E2EFixture
 	{
 		Task postgres = Task.Run(async () =>
 		{
-			_postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "700").Build();
+			_postgres = new PostgreSqlBuilder(image: "postgres:18").WithCommand("-N", "700").Build();
 			await _postgres.StartAsync();
 
 			string templateConnectionString = new NpgsqlConnectionStringBuilder(connectionString: _postgres.GetConnectionString())

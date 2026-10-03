@@ -100,6 +100,27 @@ public static class FinanceTrackerMetrics
 		description: "Idempotency key acquisitions. Tagged by kind (cached_response/reserved/failed)."
 	);
 
+	/// <summary>Notifications a user was sent, tagged by channel and template.</summary>
+	public static readonly Counter<long> UserNotificationsSent = Meter.CreateCounter<long>(
+		name: "user_notifications.sent",
+		description: "Notifications sent to users and recorded as delivered. Tagged by channel and template."
+	);
+
+	/// <summary>Notifications deliberately not sent, tagged by reason.</summary>
+	public static readonly Counter<long> UserNotificationsSkipped = Meter.CreateCounter<long>(
+		name: "user_notifications.skipped",
+		description: "Notifications not sent on purpose. Tagged by reason (disabled/already_delivered)."
+	);
+
+	/// <summary>
+	/// Sends that threw. The message is redelivered, so a failure here is not yet a lost notification;
+	/// a steady rate means the channel itself is down.
+	/// </summary>
+	public static readonly Counter<long> UserNotificationsFailed = Meter.CreateCounter<long>(
+		name: "user_notifications.failed",
+		description: "Notification sends that threw and will be retried. Tagged by channel."
+	);
+
 	/// <summary>Standard metric tag keys.</summary>
 	public static class Tags
 	{
@@ -110,6 +131,18 @@ public static class FinanceTrackerMetrics
 		public const string Reason = "reason";
 		public const string Kind = "kind";
 		public const string Limit = "limit";
+		public const string Channel = "channel";
+		public const string Template = "template";
+	}
+
+	/// <summary>Values for the <see cref="Tags.Reason"/> tag on <see cref="UserNotificationsSkipped"/>.</summary>
+	public static class NotificationSkipReasons
+	{
+		/// <summary>The user has turned notifications off, or no longer exists.</summary>
+		public const string Disabled = "disabled";
+
+		/// <summary>A redelivered message whose notification already went out.</summary>
+		public const string AlreadyDelivered = "already_delivered";
 	}
 
 	/// <summary>Values for the <see cref="Tags.Limit"/> tag on <see cref="RateLimitRefused"/>.</summary>

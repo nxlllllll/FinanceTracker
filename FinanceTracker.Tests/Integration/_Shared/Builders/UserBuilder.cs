@@ -1,3 +1,4 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context;
 using FinanceTracker.Infrastructure.Database.Context.User;
@@ -22,6 +23,7 @@ public class UserBuilder(FinanceTrackerContext context)
 			PasswordHash = "hash",
 			BaseCurrencyCode = Currency.Create(value: currencyCode).Value,
 			TimeZoneId = timeZone ?? TimeZoneId.Utc,
+			NotificationType = NotificationType.Email,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await context.SaveChangesAsync();
@@ -40,6 +42,7 @@ public class UserBuilder(FinanceTrackerContext context)
 			PasswordHash = "hash",
 			BaseCurrencyCode = currencyCode,
 			TimeZoneId = timeZone ?? TimeZoneId.Utc,
+			NotificationType = NotificationType.Email,
 			CreatedAt = DateTimeOffset.UtcNow
 		});
 		await context.SaveChangesAsync();

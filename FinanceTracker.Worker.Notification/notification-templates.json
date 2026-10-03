@@ -1,0 +1,14 @@
+{
+  "Notifications": {
+    "Templates": {
+      "BudgetThresholdReached": {
+        "Subject": "Budget \"{Category}\" reached {Threshold}% of its limit",
+        "Body": "You have spent {Spent} {Currency} of the {Limit} {Currency} budgeted for \"{Category}\" ({Percent}%)."
+      },
+      "BudgetLimitReached": {
+        "Subject": "Budget \"{Category}\" reached its limit",
+        "Body": "You have spent {Spent} {Currency} of the {Limit} {Currency} budgeted for \"{Category}\" ({Percent}%).\nFurther spending in this category is over budget."
+      }
+    }
+  }
+}

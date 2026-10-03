@@ -20,6 +20,7 @@ public sealed class GetTotalBalanceHandlerTests
 		Email: Email.Create(value: "test@test.com").Value!,
 		BaseCurrency: FinanceTracker.Core.ValueObjects.Currency.Create(value: currency).Value,
 		TimeZone: TimeZoneId.Utc,
+		NotificationType: FinanceTracker.Core.Domains.User.NotificationType.Email,
 		CreatedAt: FakeDateProvider.Default.UtcNow
 	);
 

@@ -41,6 +41,7 @@ public sealed class UserReadRepository(
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
 				timeZone: u.TimeZoneId,
+				notificationType: u.NotificationType,
 				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
@@ -57,6 +58,7 @@ public sealed class UserReadRepository(
 				passwordHash: u.PasswordHash,
 				baseCurrencyCode: u.BaseCurrencyCode,
 				timeZone: u.TimeZoneId,
+				notificationType: u.NotificationType,
 				rowVersion: u.RowVersion,
 				createdAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
@@ -72,6 +74,7 @@ public sealed class UserReadRepository(
 				Email: u.Email,
 				BaseCurrency: u.BaseCurrencyCode,
 				TimeZone: u.TimeZoneId,
+				NotificationType: u.NotificationType,
 				CreatedAt: u.CreatedAt
 			)).FirstOrDefaultAsync(cancellationToken: ct);
 	}

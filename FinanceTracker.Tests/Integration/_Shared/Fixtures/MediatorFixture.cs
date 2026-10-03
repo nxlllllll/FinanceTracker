@@ -53,7 +53,7 @@ public abstract class MediatorFixture
 	{
 		Task postgres = Task.Run(async () =>
 		{
-			_postgres = new PostgreSqlBuilder(image: "postgres:16").WithCommand("-N", "500").Build();
+			_postgres = new PostgreSqlBuilder(image: "postgres:18").WithCommand("-N", "500").Build();
 			await _postgres.StartAsync();
 
 			string templateConnectionString = new NpgsqlConnectionStringBuilder(connectionString: _postgres.GetConnectionString())

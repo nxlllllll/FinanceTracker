@@ -218,6 +218,34 @@ Assert-True -Condition ((Read-Json -Response (Send-Api -Method GET -Path '/users
 
 Send-Api -Method PATCH -Path '/users/me/base-currency' -Token $token -Body @{ baseCurrency = 'RUB' } | Out-Null
 
+# ---------------------------------------------------------------- уведомления
+
+Write-Step 'Уведомления'
+
+Assert-True -Condition ((Read-Json -Response (Send-Api -Method GET -Path '/users/me' -Token $token)).notificationType -eq 'email') `
+    -What 'новая учётка получает уведомления на почту'
+
+Assert-Status -Response (Send-Api -Method PATCH -Path '/users/me/notifications' -Token $token `
+    -Body @{ type = $null }) -Expected 204 -What 'уведомления выключены'
+
+Assert-True -Condition ($null -eq (Read-Json -Response (Send-Api -Method GET -Path '/users/me' -Token $token)).notificationType) `
+    -What 'выключенные уведомления видны в профиле как null'
+
+Assert-Status -Response (Send-Api -Method PATCH -Path '/users/me/notifications' -Token $token `
+    -Body @{ type = $null }) -Expected 204 -What 'повторное выключение идемпотентно'
+
+Assert-Status -Response (Send-Api -Method PATCH -Path '/users/me/notifications' -Token $token `
+    -Body @{ type = 'email' }) -Expected 204 -What 'уведомления на почту включены обратно'
+
+Assert-True -Condition ((Read-Json -Response (Send-Api -Method GET -Path '/users/me' -Token $token)).notificationType -eq 'email') `
+    -What 'включённые уведомления видны в профиле'
+
+Assert-Status -Response (Send-Api -Method PATCH -Path '/users/me/notifications' -Token $token `
+    -Body @{ type = 'telegram' }) -Expected 400 -What 'неизвестный тип уведомлений'
+
+Assert-Status -Response (Send-Api -Method PATCH -Path '/users/me/notifications' `
+    -Body @{ type = 'email' }) -Expected 401 -What 'без токена — 401'
+
 # ---------------------------------------------------------------- пароль
 
 Write-Step 'Смена пароля'

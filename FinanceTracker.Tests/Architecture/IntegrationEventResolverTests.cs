@@ -21,6 +21,13 @@ public sealed class IntegrationEventResolverTests
 		logger: Substitute.For<ILogger<IntegrationEventTypeResolver>>()
 	);
 
+	private static string GetExpectedName(Type integrationEventType)
+	{
+		IntegrationEventTypeAttribute attribute = integrationEventType.GetCustomAttribute<IntegrationEventTypeAttribute>()!;
+
+		return attribute.Name ?? attribute.DomainEventType!.GetCustomAttribute<EventTypeAttribute>()!.Name;
+	}
+
 	[Test]
 	public async Task IntegrationEventTypeResolver_ShouldBuildWithoutThrowing()
 	{
@@ -47,8 +54,7 @@ public sealed class IntegrationEventResolverTests
 
 		foreach (Type integrationEventType in IntegrationEventTypes)
 		{
-			Type domainType = integrationEventType.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType;
-			string eventTypeName = domainType.GetCustomAttribute<EventTypeAttribute>()!.Name;
+			string eventTypeName = GetExpectedName(integrationEventType: integrationEventType);
 
 			try
 			{
@@ -74,8 +80,7 @@ public sealed class IntegrationEventResolverTests
 
 		foreach (Type integrationEventType in IntegrationEventTypes)
 		{
-			Type domainType = integrationEventType.GetCustomAttribute<IntegrationEventTypeAttribute>()!.DomainEventType;
-			string expectedName = domainType.GetCustomAttribute<EventTypeAttribute>()!.Name;
+			string expectedName = GetExpectedName(integrationEventType: integrationEventType);
 
 			try
 			{

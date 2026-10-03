@@ -1,5 +1,7 @@
+using FinanceTracker.Core.Domains.User;
 using FinanceTracker.Core.ValueObjects;
 using FinanceTracker.Infrastructure.Database.Context.Currency;
+using FinanceTracker.Infrastructure.Database.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -28,6 +30,10 @@ public sealed class UserEntityConfiguration : IEntityTypeConfiguration<UserEntit
 				convertToProviderExpression: timeZone => timeZone.Value,
 				convertFromProviderExpression: timeZone => TimeZoneId.Reconstitute(value: timeZone)
 			);
+
+		builder.Property(propertyExpression: u => u.NotificationType)
+			.HasMaxLength(maxLength: 16)
+			.HasConversion<SnakeCaseEnumConverter<NotificationType>>();
 
 		builder.Property(propertyExpression: u => u.RowVersion).HasDefaultValue(value: 0);
 

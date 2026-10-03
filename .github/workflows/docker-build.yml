@@ -74,6 +74,7 @@ jobs:
           - { name: worker-permission-projection, path: FinanceTracker.Worker.PermissionProjection }
           - { name: worker-user-role-projection, path: FinanceTracker.Worker.UserRoleProjection }
           - { name: worker-base-currency-recalculation, path: FinanceTracker.Worker.BaseCurrencyRecalculation }
+          - { name: worker-notification, path: FinanceTracker.Worker.Notification }
           - { name: cli, path: FinanceTracker.Cli }
           - { name: api, path: FinanceTracker.Api }
 

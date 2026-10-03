@@ -81,9 +81,7 @@ public sealed class PostgresEventStore(
 			if (integrationEvent is null)
 				continue;
 
-			string outboxEventType = integrationEventTypeResolver.ResolveTypeName(eventType: integrationEvent.GetType());
-			string outboxPayload = JsonSerializer.Serialize(value: integrationEvent, inputType: integrationEvent.GetType(), options: FinanceTrackerJsonOptions.Payload);
-			envelopes.Add(item: new OutboxEventEnvelope(EventType: outboxEventType, EventPayload: outboxPayload));
+			envelopes.Add(item: OutboxMessageFactory.CreateEnvelope(integrationEvent: integrationEvent, integrationEventTypeResolver: integrationEventTypeResolver));
 		}
 
 		return (entities, envelopes);
@@ -192,23 +190,13 @@ public sealed class PostgresEventStore(
 
 		if (envelopes.Count > 0)
 		{
-			string payload = JsonSerializer.Serialize(value: new OutboxPayload(
-				AggregateId: aggregateId,
-				CorrelationId: correlationContext.CorrelationId,
-				Events: envelopes,
-				TraceParent: FinanceTrackerActivitySource.CaptureTraceParent(),
-				TraceState: Activity.Current?.TraceStateString
-			), options: FinanceTrackerJsonOptions.Payload);
-
-			context.OutboxMessages.Add(entity: new OutboxMessageEntity()
-			{
-				Id = Guid.CreateVersion7(),
-				AggregateId = aggregateId,
-				AggregateType = aggregateType,
-				Payload = payload,
-				UpdatedAt = dateProvider.UtcNow,
-				ProcessedAt = null
-			});
+			context.OutboxMessages.Add(entity: OutboxMessageFactory.CreateMessage(
+				aggregateId: aggregateId,
+				aggregateType: aggregateType,
+				correlationId: correlationContext.CorrelationId,
+				envelopes: envelopes,
+				now: dateProvider.UtcNow
+			));
 		}
 
 		ApplySnapshot(

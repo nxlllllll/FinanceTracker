@@ -79,6 +79,17 @@
           summary: "A recurring transaction occurrence could not be created"
           description: "recurring_transactions_failed_total increased in the last hour — an occurrence was escalated to unresolvable_events instead of becoming a transaction."
 
+  - name: finance-tracker-notifications
+    rules:
+      - alert: NotificationDeliveryFailing
+        expr: increase(user_notifications_failed_total[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Notifications through {{ $labels.channel }} have been failing for 10+ minutes"
+          description: "Sends through {{ $labels.channel }} keep throwing. Each failed message is redelivered, so nothing is lost yet, but once a message exhausts its retries it lands in notification.dlq and DeadLetterQueueNotEmpty fires. For email this is usually the SMTP server being unreachable or the credentials in SMTP_* being wrong; check the worker-notification logs."
+
   - name: finance-tracker-currency-rates
     rules:
       - alert: CurrencyRateFetchRepeatedlyFailing
