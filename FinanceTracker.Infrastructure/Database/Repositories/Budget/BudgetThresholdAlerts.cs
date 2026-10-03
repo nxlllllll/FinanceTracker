@@ -1,5 +1,5 @@
+using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Budget;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Domains.Budget;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Services.DateProvider;
@@ -56,7 +56,7 @@ public sealed class BudgetThresholdAlerts(
 
 		context.OutboxMessages.Add(entity: OutboxMessageFactory.CreateMessage(
 			aggregateId: budget.Id,
-			aggregateType: AggregateTypeNames.Budget,
+			aggregateType: IUserNotification.RoutingKey,
 			correlationId: correlationContext.CorrelationId,
 			envelopes: [OutboxMessageFactory.CreateEnvelope(integrationEvent: integrationEvent, integrationEventTypeResolver: integrationEventTypeResolver)],
 			now: dateProvider.UtcNow

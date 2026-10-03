@@ -14,7 +14,7 @@ public sealed record BudgetThresholdReachedEvent(
 	string Currency,
 	int Version,
 	DateTimeOffset OccurredAt
-) : IIntegrationEvent
+) : IUserNotification
 {
 	Guid IIntegrationEvent.AggregateId => BudgetId;
 }

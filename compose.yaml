@@ -478,6 +478,51 @@ services:
       migrator:
         condition: service_completed_successfully
 
+  mailpit:
+    profiles: ["app"]
+    image: axllent/mailpit:v1.31.3
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit_data:/data
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
+
+  worker-notification:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: FinanceTracker.Worker.Notification/Dockerfile
+    ports:
+      - "127.0.0.1:5012:5012"
+    environment:
+      <<: [*redis-env, *rabbitmq-env, *otel-env]
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5012
+      ConnectionStrings__FinanceTrackerContext: ${DB_CONNECTION_STRING}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      Redis__ConnectionString: redis:6379
+      Smtp__Host: ${SMTP_HOST:-mailpit}
+      Smtp__Port: "${SMTP_PORT:-1025}"
+      Smtp__From: ${SMTP_FROM:-alerts@financetracker.local}
+      Smtp__UserName: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      migrator:
+        condition: service_completed_successfully
+
   cli:
     profiles: ["tools"]
     build:
@@ -591,3 +636,4 @@ volumes:
   grafana_data:
   loki_data:
   alloy_data:
+  mailpit_data:

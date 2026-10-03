@@ -1,6 +1,7 @@
 using System.Reflection;
 using FinanceTracker.Contracts.Messages;
 using FinanceTracker.Worker.AccountProjection.Consumer;
+using FinanceTracker.Worker.Notification.Consumer;
 using FinanceTracker.Worker.PermissionProjection.Consumer;
 using FinanceTracker.Worker.RecurringTransactionProjection.Consumer;
 using FinanceTracker.Worker.Shared.RabbitMQ.Handler;
@@ -15,7 +16,8 @@ public sealed class MessageHandlerRoutingKeyArchitectureTests
 		typeof(AccountEventsConsumer).Assembly,
 		typeof(PermissionEventsConsumer).Assembly,
 		typeof(AccountTransferConsumer).Assembly,
-		typeof(RecurringTransactionConsumer).Assembly
+		typeof(RecurringTransactionConsumer).Assembly,
+		typeof(UserNotificationConsumer).Assembly
 	];
 
 	[Test]

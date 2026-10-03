@@ -323,14 +323,20 @@ public static class DependencyInjection
 	}
 
 	/// <summary>Registers JWT issuance and password hashing</summary>
-	public static IServiceCollection AddNotificationSenders(this IServiceCollection services)
+	public static IServiceCollection AddNotifications(this IServiceCollection services)
 	{
 		services.AddOptions<SmtpOptions>()
 			.BindConfiguration(configSectionPath: SmtpOptions.SectionName)
 			.ValidateDataAnnotations()
 			.ValidateOnStart();
 
+		services.AddOptions<NotificationOptions>()
+			.BindConfiguration(configSectionPath: NotificationOptions.SectionName)
+			.ValidateOnStart();
+		services.AddSingleton<IValidateOptions<NotificationOptions>, NotificationOptionsValidator>();
+
 		services.AddScoped<INotificationSender, EmailNotificationSender>();
+		services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
 
 		return services;
 	}

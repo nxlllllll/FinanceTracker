@@ -2,7 +2,6 @@ using System.Text.Json;
 using FinanceTracker.Contracts.Events.Abstraction;
 using FinanceTracker.Contracts.Events.Budget;
 using FinanceTracker.Core.Converters.Json;
-using FinanceTracker.Core.Domains.Abstractions.Aggregate;
 using FinanceTracker.Core.Observability.Correlation;
 using FinanceTracker.Core.Repositories.Outbox;
 using FinanceTracker.Infrastructure.Configurations.Options;
@@ -40,7 +39,7 @@ public static class TestBudgetThresholdAlerts
 		await context.SaveChangesAsync();
 
 		List<string> payloads = await context.OutboxMessages.AsNoTracking()
-			.Where(predicate: m => m.AggregateType == AggregateTypeNames.Budget && m.AggregateId == budgetId)
+			.Where(predicate: m => m.AggregateType == IUserNotification.RoutingKey && m.AggregateId == budgetId)
 			.OrderBy(keySelector: m => m.Id)
 			.Select(selector: m => m.Payload)
 			.ToListAsync();
