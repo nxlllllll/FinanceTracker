@@ -1,4 +1,5 @@
 using FinanceTracker.Core.Domains.User;
+using FinanceTracker.Core.Observability.Metrics;
 using FinanceTracker.Core.Repositories.Notification;
 using FinanceTracker.Core.Repositories.User;
 using FinanceTracker.Core.Services.Notification;
@@ -11,6 +12,7 @@ using NSubstitute.ExceptionExtensions;
 
 namespace FinanceTracker.Tests.Unit.Infrastructure.Services.Notification;
 
+[NotInParallel]
 public sealed class NotificationDispatcherTests
 {
 	private const string TemplateName = "Greeting";
@@ -139,5 +141,77 @@ public sealed class NotificationDispatcherTests
 		await Assert.ThrowsAsync<InvalidOperationException>(action: async () => await CreateDispatcher(_emailSender).SendAsync(request: Request(template: "Missing")));
 
 		await _emailSender.DidNotReceiveWithAnyArgs().SendAsync(recipient: null!, message: null!);
+	}
+
+	private static MetricCollector CollectNotificationMetrics() => new MetricCollector(
+		"user_notifications.sent",
+		"user_notifications.skipped",
+		"user_notifications.failed"
+	);
+
+	[Test]
+	public async Task SendAsync_WhenSent_ShouldCountItByChannelAndTemplate()
+	{
+		using MetricCollector metrics = CollectNotificationMetrics();
+
+		await CreateDispatcher(_emailSender).SendAsync(request: Request());
+
+		await Assert.That(value: metrics.Total(
+			instrument: "user_notifications.sent",
+			(FinanceTrackerMetrics.Tags.Channel, "email"),
+			(FinanceTrackerMetrics.Tags.Template, TemplateName)
+		)).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task SendAsync_WhenNotificationsAreOff_ShouldCountASkipForThatReason()
+	{
+		using MetricCollector metrics = CollectNotificationMetrics();
+		_user.ChangeNotificationType(newNotificationType: null);
+
+		await CreateDispatcher(_emailSender).SendAsync(request: Request());
+
+		await Assert.That(value: metrics.Total(
+			instrument: "user_notifications.skipped",
+			(FinanceTrackerMetrics.Tags.Reason, FinanceTrackerMetrics.NotificationSkipReasons.Disabled)
+		)).IsEqualTo(expected: 1);
+		await Assert.That(value: metrics.Total(instrument: "user_notifications.sent")).IsEqualTo(expected: 0);
+	}
+
+	[Test]
+	public async Task SendAsync_WhenAlreadyDelivered_ShouldCountASkipForThatReason()
+	{
+		using MetricCollector metrics = CollectNotificationMetrics();
+		NotificationRequest request = Request();
+		_deliveryRepository.IsDeliveredAsync(eventId: request.EventId, type: NotificationType.Email, ct: Arg.Any<CancellationToken>()).Returns(returnThis: true);
+
+		await CreateDispatcher(_emailSender).SendAsync(request: request);
+
+		await Assert.That(value: metrics.Total(
+			instrument: "user_notifications.skipped",
+			(FinanceTrackerMetrics.Tags.Reason, FinanceTrackerMetrics.NotificationSkipReasons.AlreadyDelivered)
+		)).IsEqualTo(expected: 1);
+	}
+
+	[Test]
+	public async Task SendAsync_WhenSendingFails_ShouldCountTheFailureByChannel()
+	{
+		using MetricCollector metrics = CollectNotificationMetrics();
+		_emailSender.SendAsync(
+			recipient: Arg.Any<NotificationRecipient>(),
+			message: Arg.Any<NotificationMessage>(),
+			ct: Arg.Any<CancellationToken>()
+		).ThrowsAsync(ex: new IOException(message: "SMTP server went away"));
+
+		await Assert.ThrowsAsync<IOException>(action: async () => await CreateDispatcher(_emailSender).SendAsync(request: Request()));
+
+		await Assert.That(value: metrics.Total(
+			instrument: "user_notifications.failed",
+			(FinanceTrackerMetrics.Tags.Channel, "email")
+		)).IsEqualTo(expected: 1).Because(message: """
+			The exception sends the message back for redelivery, so nothing is lost yet. The counter is what
+			shows the channel failing over and over before the retries run out.
+		""");
+		await Assert.That(value: metrics.Total(instrument: "user_notifications.sent")).IsEqualTo(expected: 0);
 	}
 }
